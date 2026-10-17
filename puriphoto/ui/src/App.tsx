@@ -33,7 +33,7 @@ const App = () => {
                 permissions: {
                     takePhoto: true,
                     takeVideo: false,
-                    takeLandscapePhoto: false
+                    takeLandscapePhoto: true
                 },
                 saveToGallery: false
             })

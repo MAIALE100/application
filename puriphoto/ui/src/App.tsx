@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react'
+import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useState } from 'react'
 import './App.css'
 import Frame from './components/Frame'
 
@@ -107,7 +107,7 @@ const App = () => {
         }
     }
 
-    const moveOverlayItem = (event: React.PointerEvent<HTMLDivElement>) => {
+    const moveOverlayItem = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (!draggingItem) return
         const rect = event.currentTarget.getBoundingClientRect()
         if (!rect.width || !rect.height) return

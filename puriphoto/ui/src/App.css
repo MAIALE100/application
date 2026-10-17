@@ -396,8 +396,14 @@
     font-weight: 600;
     cursor: pointer;
 }
-.overlay-toolbar .delete-overlay-button {
+.overlay-toolbar:not(.compact) .delete-overlay-button {
     grid-column: 1 / -1;
+    background: #8f2f55;
+    border-color: #8f2f55;
+    color: #fff;
+}
+.overlay-toolbar.compact .delete-overlay-button {
+    grid-column: auto;
     background: #8f2f55;
     border-color: #8f2f55;
     color: #fff;

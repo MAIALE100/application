@@ -11,6 +11,7 @@ const App = () => {
     const [isEditing, setIsEditing] = useState(false)
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
@@ -45,6 +46,81 @@ const App = () => {
             })
         } catch {
             setError('カメラを開けませんでした。もう一度お試しください。')
+        }
+    }
+
+    const saveFinishedPhoto = async () => {
+        if (!photoUrl || isSaving) return
+
+        setIsSaving(true)
+        setError(null)
+
+        try {
+            if (typeof components === 'undefined' || typeof components.uploadMedia !== 'function' || typeof components.saveToGallery !== 'function') {
+                throw new Error('LB Phone gallery functions are unavailable')
+            }
+
+            const loadImage = (src: string, crossOrigin = false) => new Promise<HTMLImageElement>((resolve, reject) => {
+                const image = new Image()
+                if (crossOrigin && /^https?:/i.test(src)) image.crossOrigin = 'anonymous'
+                image.onload = () => resolve(image)
+                image.onerror = () => reject(new Error('An image could not be loaded for export'))
+                image.src = src
+            })
+
+            const photo = await loadImage(photoUrl, true)
+            const width = photo.naturalWidth
+            const height = photo.naturalHeight
+            if (!width || !height) throw new Error('The source photo has invalid dimensions')
+
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const context = canvas.getContext('2d')
+            if (!context) throw new Error('Canvas is unavailable')
+
+            context.drawImage(photo, 0, 0, width, height)
+
+            if (selectedFrame === 'soft') {
+                const framePath = photoAspectRatio !== null ? photoAspectRatio : width / height
+                const frameSrc = framePath > 1
+                    ? frameImageSrc
+                    : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-portrait.webp`
+                const frameImage = await loadImage(frameSrc)
+                context.drawImage(frameImage, 0, 0, width, height)
+            } else if (selectedFrame === 'pop') {
+                const borderWidth = Math.max(12, Math.round(Math.min(width, height) * 0.035))
+                context.save()
+                context.lineWidth = borderWidth
+                context.strokeStyle = 'rgba(169, 72, 117, 0.9)'
+                context.setLineDash([borderWidth * 1.1, borderWidth * 0.65])
+                context.strokeRect(borderWidth / 2, borderWidth / 2, width - borderWidth, height - borderWidth)
+                context.restore()
+            }
+
+            const blob = await new Promise<Blob>((resolve, reject) => {
+                canvas.toBlob((result) => {
+                    if (result) resolve(result)
+                    else reject(new Error('Canvas export failed; the photo host may block canvas access'))
+                }, 'image/png')
+            })
+
+            const uploadedUrl = await components.uploadMedia('Image', blob)
+            if (typeof uploadedUrl !== 'string' || !uploadedUrl.trim()) {
+                throw new Error('The finished photo upload returned no URL')
+            }
+
+            await components.saveToGallery(uploadedUrl)
+            setPhotoUrl(uploadedUrl)
+            setPhotoAspectRatio(width / height)
+            setSelectedFrame('none')
+            setIsEditing(false)
+            setError(null)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to save finished photo:', cause)
+            setError('完成画像を保存できませんでした。LB Phoneの画像アップロード設定、または写真URLの読み込み権限を確認してください。')
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -117,9 +193,14 @@ const App = () => {
                         </p>
 
                         {isEditing ? (
-                            <button type="button" className="capture-button" onClick={() => setIsEditing(false)}>
-                                写真確認に戻る
-                            </button>
+                            <>
+                                <button type="button" className="capture-button" onClick={saveFinishedPhoto} disabled={isSaving}>
+                                    {isSaving ? '保存しています…' : '完成して保存'}
+                                </button>
+                                <button type="button" className="capture-button secondary-button" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                                    写真確認に戻る
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <button type="button" className="capture-button" onClick={takePhoto}>

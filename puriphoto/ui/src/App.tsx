@@ -5,8 +5,9 @@ import Frame from './components/Frame'
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
-type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number }
-type CaptionInstance = { instanceId: number; text: string; x: number; y: number }
+type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number }
+type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
     { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
     { id: 'star', label: '星', glyph: '⭐', x: 0.86, y: 0.14 },
@@ -24,7 +25,8 @@ const App = () => {
     const [stampInstances, setStampInstances] = useState<StampInstance[]>([])
     const [captionDraft, setCaptionDraft] = useState('')
     const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
-    const [draggingItem, setDraggingItem] = useState<{ kind: 'stamp' | 'caption'; id: number } | null>(null)
+    const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
+    const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
     const nextOverlayId = useRef(1)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
@@ -53,6 +55,7 @@ const App = () => {
                     setStampInstances([])
                     setCaptionDraft('')
                     setCaptionInstances([])
+                    setSelectedOverlay(null)
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -130,7 +133,9 @@ const App = () => {
             instanceId: nextOverlayId.current++,
             stampId,
             x: 50 + offset,
-            y: 50 + offset
+            y: 50 + offset,
+            scale: 1,
+            rotation: 0
         }])
     }
 
@@ -142,9 +147,50 @@ const App = () => {
             instanceId: nextOverlayId.current++,
             text,
             x: 50,
-            y: Math.min(85, 45 + offset)
+            y: Math.min(85, 45 + offset),
+            scale: 1,
+            rotation: 0
         }])
         setCaptionDraft('')
+    }
+
+    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number }) => {
+        if (!selectedOverlay) return
+        if (selectedOverlay.kind === 'stamp') {
+            setStampInstances((current) => current.map((item) =>
+                item.instanceId === selectedOverlay.id ? {
+                    ...item,
+                    scale: changes.scale ?? item.scale,
+                    rotation: changes.rotation ?? item.rotation
+                } : item
+            ))
+        } else {
+            setCaptionInstances((current) => current.map((item) =>
+                item.instanceId === selectedOverlay.id ? {
+                    ...item,
+                    scale: changes.scale ?? item.scale,
+                    rotation: changes.rotation ?? item.rotation
+                } : item
+            ))
+        }
+    }
+
+    const getSelectedOverlayValues = () => {
+        if (!selectedOverlay) return null
+        return selectedOverlay.kind === 'stamp'
+            ? stampInstances.find((item) => item.instanceId === selectedOverlay.id) ?? null
+            : captionInstances.find((item) => item.instanceId === selectedOverlay.id) ?? null
+    }
+
+    const deleteSelectedOverlay = () => {
+        if (!selectedOverlay) return
+        if (selectedOverlay.kind === 'stamp') {
+            setStampInstances((current) => current.filter((item) => item.instanceId !== selectedOverlay.id))
+        } else {
+            setCaptionInstances((current) => current.filter((item) => item.instanceId !== selectedOverlay.id))
+        }
+        setDraggingItem(null)
+        setSelectedOverlay(null)
     }
 
     const saveFinishedPhoto = async () => {
@@ -206,7 +252,13 @@ const App = () => {
                 context.shadowBlur = stampSize * 0.18
                 for (const item of stampInstances) {
                     const stamp = STAMPS.find((candidate) => candidate.id === item.stampId)
-                    if (stamp) context.fillText(stamp.glyph, width * item.x / 100, height * item.y / 100)
+                    if (!stamp) continue
+                    context.save()
+                    context.translate(width * item.x / 100, height * item.y / 100)
+                    context.rotate(item.rotation * Math.PI / 180)
+                    context.scale(item.scale, item.scale)
+                    context.fillText(stamp.glyph, 0, 0)
+                    context.restore()
                 }
                 context.restore()
             }
@@ -222,8 +274,13 @@ const App = () => {
                 context.lineJoin = 'round'
                 context.fillStyle = '#a12f68'
                 for (const item of captionInstances) {
-                    context.strokeText(item.text, width * item.x / 100, height * item.y / 100)
-                    context.fillText(item.text, width * item.x / 100, height * item.y / 100)
+                    context.save()
+                    context.translate(width * item.x / 100, height * item.y / 100)
+                    context.rotate(item.rotation * Math.PI / 180)
+                    context.scale(item.scale, item.scale)
+                    context.strokeText(item.text, 0, 0)
+                    context.fillText(item.text, 0, 0)
+                    context.restore()
                 }
                 context.restore()
             }
@@ -273,6 +330,9 @@ const App = () => {
                                 onPointerMove={moveOverlayItem}
                                 onPointerUp={() => setDraggingItem(null)}
                                 onPointerCancel={() => setDraggingItem(null)}
+                                onPointerDown={(event) => {
+                                    if (event.target === event.currentTarget) setSelectedOverlay(null)
+                                }}
                             >
                                 <img
                                     className="photo-preview"
@@ -304,16 +364,16 @@ const App = () => {
                                     return (
                                         <span
                                             key={item.instanceId}
-                                            className="stamp-overlay"
-                                            style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                                            className={selectedOverlay?.kind === 'stamp' && selectedOverlay.id === item.instanceId ? 'stamp-overlay overlay-selected' : 'stamp-overlay'}
+                                            style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                             onPointerDown={(event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
+                                                setSelectedOverlay({ kind: 'stamp', id: item.instanceId })
                                                 setDraggingItem({ kind: 'stamp', id: item.instanceId })
                                                 event.currentTarget.setPointerCapture(event.pointerId)
                                             }}
-                                            onDoubleClick={() => setStampInstances((current) => current.filter((candidate) => candidate.instanceId !== item.instanceId))}
-                                            aria-label={`${stamp.label}。ダブルクリックで削除`}
+                                            aria-label={`${stamp.label}。タップして選択`}
                                         >
                                             {stamp.glyph}
                                         </span>
@@ -322,16 +382,16 @@ const App = () => {
                                 {isEditing && captionInstances.map((item) => (
                                     <span
                                         key={item.instanceId}
-                                        className="caption-overlay"
-                                        style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                                        className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
+                                        style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()
+                                            setSelectedOverlay({ kind: 'caption', id: item.instanceId })
                                             setDraggingItem({ kind: 'caption', id: item.instanceId })
                                             event.currentTarget.setPointerCapture(event.pointerId)
                                         }}
-                                        onDoubleClick={() => setCaptionInstances((current) => current.filter((candidate) => candidate.instanceId !== item.instanceId))}
-                                        aria-label="文字。ダブルクリックで削除"
+                                        aria-label="文字。タップして選択"
                                     >
                                         {item.text}
                                     </span>
@@ -347,6 +407,19 @@ const App = () => {
                     </section>
 
                     <footer className="capture-controls">
+                        {isEditing && selectedOverlay && (() => {
+                            const selected = getSelectedOverlayValues()
+                            if (!selected) return null
+                            return (
+                                <div className="overlay-toolbar" aria-label="選択中のアイテムを編集">
+                                    <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.max(0.45, selected.scale - 0.15) })}>− 小さく</button>
+                                    <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.min(2.5, selected.scale + 0.15) })}>＋ 大きく</button>
+                                    <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation - 15 })}>↶ 回転</button>
+                                    <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation + 15 })}>↷ 回転</button>
+                                    <button type="button" className="delete-overlay-button" onClick={deleteSelectedOverlay}>🗑 削除</button>
+                                </div>
+                            )
+                        })()}
                         {isEditing && (
                             <div className="frame-picker" aria-label="フレームを選択">
                                 <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>

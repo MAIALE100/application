@@ -12,6 +12,8 @@ type CaptionColor = 'pink' | 'hotPink' | 'red' | 'orange' | 'yellow' | 'lime' | 
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
+type DrawPoint = { x: number; y: number }
+type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -108,7 +110,11 @@ const App = () => {
     const gestureStart = useRef<{ distance: number; angle: number; scale: number; rotation: number } | null>(null)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
-    const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text'>('stamp')
+    const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text' | 'draw'>('stamp')
+    const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
+    const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
+    const [drawWidth, setDrawWidth] = useState(5)
+    const activeDrawPointer = useRef<number | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
 
     useEffect(() => {
@@ -133,6 +139,7 @@ const App = () => {
                     setIsEditing(false)
                     setSelectedFrame('none')
                     setStampInstances([])
+                    setDrawStrokes([])
                     setCaptionDraft('')
                     setCaptionInstances([])
                     setSelectedOverlay(null)
@@ -180,6 +187,10 @@ const App = () => {
                     setIsEditing(false)
                     setSelectedFrame('none')
                     setStampInstances([])
+                    setDrawStrokes([])
+                    setCaptionDraft('')
+                    setCaptionInstances([])
+                    setSelectedOverlay(null)
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -276,6 +287,46 @@ const App = () => {
             const direction = event.deltaY < 0 ? 0.1 : -0.1
             updateSelectedOverlay({ scale: Math.max(0.35, Math.min(3.5, selected.scale + direction)) })
         }
+    }
+
+    const drawPointFromEvent = (event: ReactPointerEvent<SVGSVGElement>): DrawPoint => {
+        const rect = event.currentTarget.getBoundingClientRect()
+        return {
+            x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+            y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+        }
+    }
+
+    const beginDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (activeEditorTab !== 'draw') return
+        event.preventDefault()
+        event.stopPropagation()
+        activeDrawPointer.current = event.pointerId
+        event.currentTarget.setPointerCapture(event.pointerId)
+        const point = drawPointFromEvent(event)
+        setSelectedOverlay(null)
+        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawWidth }])
+    }
+
+    const continueDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (activeDrawPointer.current !== event.pointerId || activeEditorTab !== 'draw') return
+        event.preventDefault()
+        const point = drawPointFromEvent(event)
+        setDrawStrokes((current) => {
+            if (!current.length) return current
+            const next = current.slice()
+            const last = next[next.length - 1]
+            const previous = last.points[last.points.length - 1]
+            if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 0.15) return current
+            next[next.length - 1] = { ...last, points: [...last.points, point] }
+            return next
+        })
+    }
+
+    const endDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (activeDrawPointer.current !== event.pointerId) return
+        activeDrawPointer.current = null
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
     const addStamp = (stampId: StampId) => {
@@ -386,6 +437,30 @@ const App = () => {
 
             context.drawImage(photo, 0, 0, width, height)
 
+            if (drawStrokes.length > 0) {
+                context.save()
+                context.lineCap = 'round'
+                context.lineJoin = 'round'
+                for (const stroke of drawStrokes) {
+                    if (!stroke.points.length) continue
+                    context.beginPath()
+                    context.strokeStyle = CAPTION_COLORS[stroke.color]
+                    context.lineWidth = Math.max(2, Math.min(width, height) * stroke.width / 250)
+                    const first = stroke.points[0]
+                    context.moveTo(width * first.x / 100, height * first.y / 100)
+                    if (stroke.points.length === 1) {
+                        context.lineTo(width * first.x / 100 + 0.01, height * first.y / 100 + 0.01)
+                    } else {
+                        for (let i = 1; i < stroke.points.length; i++) {
+                            const point = stroke.points[i]
+                            context.lineTo(width * point.x / 100, height * point.y / 100)
+                        }
+                    }
+                    context.stroke()
+                }
+                context.restore()
+            }
+
             if (selectedFrame === 'soft') {
                 const framePath = photoAspectRatio !== null ? photoAspectRatio : width / height
                 const frameSrc = framePath > 1
@@ -470,6 +545,9 @@ const App = () => {
             setPhotoAspectRatio(width / height)
             setSelectedFrame('none')
             setStampInstances([])
+            setDrawStrokes([])
+            setCaptionInstances([])
+            setSelectedOverlay(null)
             setIsEditing(false)
             setError(null)
         } catch (cause) {
@@ -516,6 +594,32 @@ const App = () => {
                                     }}
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
                                 />
+                                {isEditing && (
+                                    <svg
+                                        className={activeEditorTab === 'draw' ? 'drawing-layer drawing-active' : 'drawing-layer'}
+                                        viewBox="0 0 100 100"
+                                        preserveAspectRatio="none"
+                                        onPointerDown={beginDrawing}
+                                        onPointerMove={continueDrawing}
+                                        onPointerUp={endDrawing}
+                                        onPointerCancel={endDrawing}
+                                        onContextMenu={(event) => event.preventDefault()}
+                                        aria-label="手書きキャンバス"
+                                    >
+                                        {drawStrokes.map((stroke, index) => (
+                                            <polyline
+                                                key={index}
+                                                points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                                                fill="none"
+                                                stroke={CAPTION_COLORS[stroke.color]}
+                                                strokeWidth={stroke.width / 10}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                vectorEffect="non-scaling-stroke"
+                                            />
+                                        ))}
+                                    </svg>
+                                )}
                                 {isEditing && selectedFrame !== 'none' && (
                                     selectedFrame === 'soft' && photoAspectRatio !== null
                                         ? <img
@@ -586,6 +690,7 @@ const App = () => {
                                 <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => setActiveEditorTab('frame')}>フレーム</button>
                                 <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} onClick={() => setActiveEditorTab('stamp')}>スタンプ</button>
                                 <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} onClick={() => setActiveEditorTab('text')}>文字</button>
+                                <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} onClick={() => { setActiveEditorTab('draw'); setSelectedOverlay(null) }}>手書き</button>
                             </div>
                         )}
                         {isEditing && selectedOverlay && (() => {
@@ -601,6 +706,33 @@ const App = () => {
                                 </div>
                             )
                         })()}
+                        {isEditing && activeEditorTab === 'draw' && (
+                            <div className="drawing-controls">
+                                <div className="drawing-control-row">
+                                    <span>ペン色</span>
+                                    <div className="drawing-color-picker">
+                                        {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
+                                            <button
+                                                key={color}
+                                                type="button"
+                                                className={drawColor === color ? 'drawing-color selected' : 'drawing-color'}
+                                                style={{ background: CAPTION_COLORS[color] }}
+                                                onClick={() => setDrawColor(color)}
+                                                aria-label={`ペン色 ${color}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <label className="drawing-width-control">
+                                    <span>太さ</span>
+                                    <input type="range" min="2" max="14" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
+                                </label>
+                                <div className="drawing-actions">
+                                    <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes((current) => current.slice(0, -1))}>↶ 1つ戻す</button>
+                                    <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes([])}>全部消す</button>
+                                </div>
+                            </div>
+                        )}
                         {isEditing && activeEditorTab === 'frame' && (
                             <div className="frame-picker" aria-label="フレームを選択">
                                 <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>
@@ -715,7 +847,7 @@ const App = () => {
                         <p className="capture-message" role="status" aria-live="polite">
                             {error || (
                                 isEditing
-                                    ? 'クリックで選択・ドラッグで移動。ホイールで拡大縮小、Shift＋ホイールで回転。'
+                                    ? (activeEditorTab === 'draw' ? '写真の上をマウスでドラッグして手書きできます。' : 'クリックで選択・ドラッグで移動。ホイールで拡大縮小、Shift＋ホイールで回転。')
                                     : photoUrl
                                         ? '撮り直すか、この写真を編集できます。'
                                         : 'ボタンを押すとカメラが開きます。'

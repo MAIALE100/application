@@ -900,7 +900,7 @@ const App = () => {
                                 </div>
                                 <label className="drawing-width-control">
                                     <span>太さ {drawWidth}</span>
-                                    <input type="range" min="2" max="40" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
+                                    <input type="range" min="2" max="100" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
                                 </label>
                                 <div className="drawing-actions">
                                     <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes((current) => current.slice(0, -1))}>↶ 1つ戻す</button>

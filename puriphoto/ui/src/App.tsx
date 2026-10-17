@@ -7,6 +7,8 @@ type FrameStyle = 'none' | 'soft' | 'pop'
 
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+    const [sourcePhotoUrl, setSourcePhotoUrl] = useState<string | null>(null)
+    const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
@@ -30,6 +32,8 @@ const App = () => {
             window.useCamera((url) => {
                 if (typeof url === 'string' && url.trim()) {
                     setPhotoUrl(url)
+                    setSourcePhotoUrl(url)
+                    setSavedPhotoUrl(null)
                     setIsEditing(false)
                     setSelectedFrame('none')
                     setPhotoAspectRatio(null)
@@ -46,6 +50,42 @@ const App = () => {
             })
         } catch {
             setError('カメラを開けませんでした。もう一度お試しください。')
+        }
+    }
+
+    const chooseFromGallery = () => {
+        setError(null)
+
+        if (typeof components === 'undefined' || typeof components.setGallery !== 'function') {
+            setError('ギャラリーは LB Phone 内で利用できます。')
+            return
+        }
+
+        try {
+            components.setGallery({
+                includeImages: true,
+                includeVideos: false,
+                allowExternal: false,
+                multiSelect: false,
+                onSelect: (data) => {
+                    const selected = Array.isArray(data) ? data[0] : data
+                    if (!selected || selected.isVideo || typeof selected.src !== 'string' || !selected.src.trim()) {
+                        setError('写真を選択できませんでした。画像を選び直してください。')
+                        return
+                    }
+
+                    setPhotoUrl(selected.src)
+                    setSourcePhotoUrl(selected.src)
+                    setSavedPhotoUrl(null)
+                    setIsEditing(false)
+                    setSelectedFrame('none')
+                    setPhotoAspectRatio(null)
+                    setError(null)
+                }
+            })
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to open gallery:', cause)
+            setError('ギャラリーを開けませんでした。')
         }
     }
 
@@ -112,6 +152,7 @@ const App = () => {
 
             await components.saveToGallery(uploadedUrl)
             setPhotoUrl(uploadedUrl)
+            setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
             setSelectedFrame('none')
             setIsEditing(false)
@@ -197,7 +238,10 @@ const App = () => {
                                 <button type="button" className="capture-button" onClick={saveFinishedPhoto} disabled={isSaving}>
                                     {isSaving ? '保存しています…' : '完成して保存'}
                                 </button>
-                                <button type="button" className="capture-button secondary-button" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                                <button type="button" className="capture-button secondary-button" onClick={() => {
+                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
+                                    setIsEditing(false)
+                                }} disabled={isSaving}>
                                     写真確認に戻る
                                 </button>
                             </>
@@ -206,8 +250,16 @@ const App = () => {
                                 <button type="button" className="capture-button" onClick={takePhoto}>
                                     {photoUrl ? '撮り直す' : '写真を撮る'}
                                 </button>
+                                {!photoUrl && (
+                                    <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
+                                        ギャラリーから選ぶ
+                                    </button>
+                                )}
                                 {photoUrl && (
-                                    <button type="button" className="capture-button" onClick={() => setIsEditing(true)}>
+                                    <button type="button" className="capture-button" onClick={() => {
+                                    setPhotoUrl(sourcePhotoUrl || photoUrl)
+                                    setIsEditing(true)
+                                }}>
                                         編集する
                                     </button>
                                 )}

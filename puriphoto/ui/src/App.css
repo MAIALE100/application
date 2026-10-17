@@ -166,6 +166,10 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.4rem;
+    max-height: 9.5rem;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+    scrollbar-width: thin;
 }
 .stamp-option {
     min-width: 0;

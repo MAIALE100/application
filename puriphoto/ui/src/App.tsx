@@ -114,6 +114,7 @@ const App = () => {
     const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
     const [drawWidth, setDrawWidth] = useState(5)
+    const [editorZoom, setEditorZoom] = useState(1)
     const activeDrawPointer = useRef<number | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
 
@@ -143,6 +144,7 @@ const App = () => {
                     setCaptionDraft('')
                     setCaptionInstances([])
                     setSelectedOverlay(null)
+                    setEditorZoom(1)
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -191,6 +193,7 @@ const App = () => {
                     setCaptionDraft('')
                     setCaptionInstances([])
                     setSelectedOverlay(null)
+                    setEditorZoom(1)
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -548,6 +551,7 @@ const App = () => {
             setDrawStrokes([])
             setCaptionInstances([])
             setSelectedOverlay(null)
+            setEditorZoom(1)
             setIsEditing(false)
             setError(null)
         } catch (cause) {
@@ -569,9 +573,13 @@ const App = () => {
 
                     <section className="photo-area" aria-label={isEditing ? '編集中の写真' : '撮影した写真'}>
                         {photoUrl ? (
+                            <div className="photo-zoom-viewport">
                             <div
                                 className="photo-stage"
-                                style={photoAspectRatio ? { aspectRatio: photoAspectRatio } : undefined}
+                                style={{
+                                    ...(photoAspectRatio ? { aspectRatio: photoAspectRatio } : {}),
+                                    transform: `scale(${editorZoom})`
+                                }}
                                 onPointerDownCapture={beginStagePointer}
                                 onPointerMoveCapture={updateStagePointer}
                                 onPointerUpCapture={endStagePointer}
@@ -675,6 +683,7 @@ const App = () => {
                                     </span>
                                 ))}
                             </div>
+                            </div>
                         ) : (
                             <div className="empty-state">
                                 <span className="camera-mark" aria-hidden="true">◎</span>
@@ -683,6 +692,23 @@ const App = () => {
                             </div>
                         )}
                     </section>
+
+                    {isEditing && photoUrl && (
+                        <div className="photo-zoom-controls" aria-label="写真の表示倍率">
+                            <button type="button" onClick={() => setEditorZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={editorZoom <= 1}>−</button>
+                            <input
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.25"
+                                value={editorZoom}
+                                onChange={(event) => setEditorZoom(Number(event.target.value))}
+                                aria-label="写真の拡大率"
+                            />
+                            <button type="button" onClick={() => setEditorZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={editorZoom >= 3}>＋</button>
+                            <button type="button" className="zoom-reset-button" onClick={() => setEditorZoom(1)}>{Math.round(editorZoom * 100)}%</button>
+                        </div>
+                    )}
 
                     <footer className="capture-controls">
                         {isEditing && (

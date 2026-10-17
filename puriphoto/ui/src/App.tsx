@@ -3,6 +3,7 @@ import './App.css'
 import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
+const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
@@ -85,7 +86,7 @@ const STAMPS: { id: StampId; label: string; glyph: string; category: StampCatego
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
 
-const isTopLevelNui = window.parent === window
+const isTopLevelNui = window.location.hostname === 'cfx-nui-puriphoto'
 
 type EditorMirrorState = {
     photoUrl: string

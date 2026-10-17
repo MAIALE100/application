@@ -150,7 +150,7 @@ const App = () => {
             if (selectedStamps.length > 0) {
                 const stampSize = Math.max(30, Math.round(Math.min(width, height) * 0.11))
                 context.save()
-                context.font = `\u0024{stampSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
+                context.font = `${stampSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
                 context.textAlign = 'center'
                 context.textBaseline = 'middle'
                 context.shadowColor = 'rgba(255, 105, 180, 0.65)'

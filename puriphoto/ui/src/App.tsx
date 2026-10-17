@@ -4,8 +4,7 @@ import Frame from './components/Frame'
 
 const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
 const puriPhotoResourceName = 'puriphoto'
-const isPuriPhotoTopLevelNui = window.location.hostname === 'cfx-nui-puriphoto'
-const devMode = !window['invokeNative'] && !isPuriPhotoTopLevelNui
+const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
@@ -832,6 +831,11 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     ) : <>{children}</>
 }
 
-const Root = () => isPuriPhotoTopLevelNui ? <StandaloneEditorLayer /> : <App />
+const Root = () => (
+    <>
+        <App />
+        <StandaloneEditorLayer />
+    </>
+)
 
 export default Root

@@ -240,6 +240,7 @@ const App = () => {
     useEffect(() => {
         if (!isEditing) return
         const onKeyDown = (event: KeyboardEvent) => {
+            if (saveLock.current) return
             const target = event.target as HTMLElement | null
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
@@ -759,6 +760,30 @@ const App = () => {
                 throw new Error('LB Phone gallery functions are unavailable')
             }
 
+            const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) =>
+                new Promise<T>((resolve, reject) => {
+                    let settled = false
+                    const timer = window.setTimeout(() => {
+                        if (settled) return
+                        settled = true
+                        reject(new Error(`${label} timed out`))
+                    }, ms)
+                    promise.then(
+                        (value) => {
+                            if (settled) return
+                            settled = true
+                            window.clearTimeout(timer)
+                            resolve(value)
+                        },
+                        (cause) => {
+                            if (settled) return
+                            settled = true
+                            window.clearTimeout(timer)
+                            reject(cause)
+                        }
+                    )
+                })
+
             const loadImage = (src: string, crossOrigin = false) => new Promise<HTMLImageElement>((resolve, reject) => {
                 const image = new Image()
                 let settled = false
@@ -780,7 +805,13 @@ const App = () => {
                 image.src = src
             })
 
-            if (document.fonts?.ready) await document.fonts.ready
+            if (document.fonts?.ready) {
+                try {
+                    await withTimeout(document.fonts.ready, 5000, 'Font loading')
+                } catch (cause) {
+                    console.warn('[PuriPhoto] Font readiness timed out; continuing export with available fonts.', cause)
+                }
+            }
             const photo = await loadImage(photoUrl, true)
             const sourceWidth = photo.naturalWidth
             const sourceHeight = photo.naturalHeight
@@ -949,12 +980,20 @@ const App = () => {
                 throw new Error('The finished image is too large to upload')
             }
 
-            const uploadedUrl = await components.uploadMedia('Image', blob)
+            const uploadedUrl = await withTimeout(
+                components.uploadMedia('Image', blob),
+                45000,
+                'Image upload'
+            )
             if (typeof uploadedUrl !== 'string' || !uploadedUrl.trim()) {
                 throw new Error('The finished photo upload returned no URL')
             }
 
-            await components.saveToGallery(uploadedUrl)
+            await withTimeout(
+                components.saveToGallery(uploadedUrl),
+                30000,
+                'Gallery save'
+            )
             setPhotoUrl(uploadedUrl)
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)

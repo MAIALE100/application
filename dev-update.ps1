@@ -27,7 +27,8 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[3/3] Syncing dependencies + building PuriPhoto..."
 Set-Location $UiPath
 
-npm.cmd install --no-audit --no-fund
+# package-lock.json が古い場合でも package.json の依存関係を確実に同期する
+npm.cmd install --package-lock=false --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) {
     throw "PuriPhoto dependency install failed."
 }

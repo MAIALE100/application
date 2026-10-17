@@ -688,3 +688,18 @@
 .photo-zoom-controls .zoom-reset-button {
     font-size: 0.62rem;
 }
+
+.photo-zoom-viewport.pannable {
+    cursor: grab;
+    touch-action: none;
+}
+.photo-zoom-viewport.pannable:active {
+    cursor: grabbing;
+}
+.photo-pan-hint {
+    margin: -0.35rem 0 0;
+    color: #8a687c;
+    font-size: 0.6rem;
+    line-height: 1.35;
+    text-align: center;
+}

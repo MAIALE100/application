@@ -109,7 +109,6 @@ const App = () => {
     const activePointers = useRef(new Map<number, { x: number; y: number }>())
     const gestureStart = useRef<{ distance: number; angle: number; scale: number; rotation: number } | null>(null)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
-    const isLandscapePhoto = isEditing && photoAspectRatio !== null && photoAspectRatio > 1.15
     const [isSaving, setIsSaving] = useState(false)
     const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text' | 'draw'>('stamp')
     const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
@@ -635,7 +634,7 @@ const App = () => {
     return (
         <AppProvider>
             <main className="app">
-                <div className={isEditing ? `app-wrapper editing-layout${isLandscapePhoto ? ' landscape-editor' : ''}${toolsCollapsed ? ' tools-collapsed' : ''}` : 'app-wrapper'}>
+                <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
                     <header className="app-header">
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>
@@ -675,7 +674,6 @@ const App = () => {
                                         if (image.naturalWidth > 0 && image.naturalHeight > 0) {
                                             const ratio = image.naturalWidth / image.naturalHeight
                                             setPhotoAspectRatio(ratio)
-                                            if (isEditing) setPhoneLandscape(ratio > 1.15)
                                         }
                                     }}
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
@@ -988,8 +986,7 @@ const App = () => {
                                         setPhotoUrl(editingUrl)
                                         setToolsCollapsed(false)
                                         setIsEditing(true)
-                                        if (photoAspectRatio) setPhoneLandscape(photoAspectRatio > 1.15)
-                                    }}>
+                                        }}>
                                         編集する
                                     </button>
                                 )}

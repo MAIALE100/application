@@ -104,7 +104,8 @@ const StandaloneEditorLayer = () => {
         return () => window.removeEventListener('message', onMessage)
     }, [])
 
-    if (!photoUrl) return null
+    const isTopLevelPuriPhotoNui = window.location.hostname === 'cfx-nui-puriphoto'
+    if (!isTopLevelPuriPhotoNui || !photoUrl) return null
 
     return (
         <main className="standalone-editor-layer">
@@ -831,11 +832,19 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     ) : <>{children}</>
 }
 
-const Root = () => (
-    <>
-        <App />
-        <StandaloneEditorLayer />
-    </>
-)
+const Root = () => {
+    const isTopLevelPuriPhotoNui = window.location.hostname === 'cfx-nui-puriphoto'
+
+    if (isTopLevelPuriPhotoNui) {
+        return (
+            <>
+                <div className="top-level-phone-app-host"><App /></div>
+                <StandaloneEditorLayer />
+            </>
+        )
+    }
+
+    return <App />
+}
 
 export default Root

@@ -263,14 +263,6 @@ const App = () => {
                 item.instanceId === selectedOverlay.id ? {
                     ...item,
                     scale: changes.scale ?? item.scale,
-                    rotation: changes.rotation ?? item.rotation
-                } : item
-            ))
-        } else {
-            setCaptionInstances((current) => current.map((item) =>
-                item.instanceId === selectedOverlay.id ? {
-                    ...item,
-                    scale: changes.scale ?? item.scale,
                     rotation: changes.rotation ?? item.rotation,
                     color: changes.color ?? item.color,
                     font: changes.font ?? item.font,

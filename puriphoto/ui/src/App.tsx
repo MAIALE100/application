@@ -40,7 +40,8 @@ const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: s
     serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
     rounded: { label: '丸文字', css: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif', canvas: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif' }
 }
-const STAMPS: { id: StampId; label: string; glyph: string; category: StampCategory }[] = [
+type StampDefinition = { id: StampId; label: string; glyph: string; category: StampCategory; image?: string }
+const STAMPS: StampDefinition[] = [
     { id: 'heart', label: 'ハート', glyph: '❤️' , category: 'love' },
     { id: 'pinkHeart', label: 'ピンク', glyph: '💗' , category: 'love' },
     { id: 'brokenHeart', label: '失恋', glyph: '💔' , category: 'love' },
@@ -88,6 +89,9 @@ const STAMPS: { id: StampId; label: string; glyph: string; category: StampCatego
     { id: 'diamond', label: 'ダイヤ', glyph: '💎' , category: 'other' },
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
+
+const stampAssetUrl = (stamp: StampDefinition) =>
+    stamp.image ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/stamps/${stamp.image}` : null
 
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -599,7 +603,16 @@ const App = () => {
                     context.translate(width * item.x / 100, height * item.y / 100)
                     context.rotate(item.rotation * Math.PI / 180)
                     context.scale(item.scale, item.scale)
-                    context.fillText(stamp.glyph, 0, 0)
+                    const assetUrl = stampAssetUrl(stamp)
+                    if (assetUrl) {
+                        const stampImage = await loadImage(assetUrl)
+                        const naturalRatio = stampImage.naturalWidth / Math.max(1, stampImage.naturalHeight)
+                        const drawHeight = stampSize
+                        const drawWidth = drawHeight * naturalRatio
+                        context.drawImage(stampImage, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight)
+                    } else {
+                        context.fillText(stamp.glyph, 0, 0)
+                    }
                     context.restore()
                 }
                 context.restore()
@@ -790,7 +803,9 @@ const App = () => {
                                             }}
                                             aria-label={`${stamp.label}。タップして選択`}
                                         >
-                                            {stamp.glyph}
+                                            {stampAssetUrl(stamp)
+                                                ? <img className="stamp-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} />
+                                                : stamp.glyph}
                                         </span>
                                     )
                                 })}

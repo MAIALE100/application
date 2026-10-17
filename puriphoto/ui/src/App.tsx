@@ -143,6 +143,25 @@ const App = () => {
         if (!isEditing) setToolsCollapsed(false)
     }, [isEditing])
 
+    useEffect(() => {
+        if (!isEditing) return
+        const onKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+            if ((event.key === 'Delete' || event.key === 'Backspace') && selectedOverlay) {
+                event.preventDefault()
+                deleteSelectedOverlay()
+            } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd' && selectedOverlay) {
+                event.preventDefault()
+                duplicateSelectedOverlay()
+            } else if (event.key === 'Escape') {
+                setSelectedOverlay(null)
+            }
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [isEditing, selectedOverlay, stampInstances, captionInstances])
+
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
     const takePhoto = () => {
@@ -495,6 +514,51 @@ const App = () => {
         }
         setDraggingItem(null)
         setSelectedOverlay(null)
+    }
+
+    const duplicateSelectedOverlay = () => {
+        if (!selectedOverlay) return
+        if (selectedOverlay.kind === 'stamp') {
+            const source = stampInstances.find((item) => item.instanceId === selectedOverlay.id)
+            if (!source) return
+            const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }
+            setStampInstances((current) => [...current, copy])
+            setSelectedOverlay({ kind: 'stamp', id: copy.instanceId })
+        } else {
+            const source = captionInstances.find((item) => item.instanceId === selectedOverlay.id)
+            if (!source) return
+            const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }
+            setCaptionInstances((current) => [...current, copy])
+            setSelectedOverlay({ kind: 'caption', id: copy.instanceId })
+        }
+    }
+
+    const resetSelectedOverlayTransform = () => {
+        updateSelectedOverlay({ scale: 1, rotation: 0 })
+    }
+
+    const moveSelectedOverlayLayer = (direction: 'front' | 'back') => {
+        if (!selectedOverlay) return
+        const reorder = <T extends { instanceId: number }>(items: T[]) => {
+            const index = items.findIndex((item) => item.instanceId === selectedOverlay.id)
+            if (index < 0) return items
+            const next = items.slice()
+            const [item] = next.splice(index, 1)
+            if (direction === 'front') next.push(item)
+            else next.unshift(item)
+            return next
+        }
+        if (selectedOverlay.kind === 'stamp') setStampInstances(reorder)
+        else setCaptionInstances(reorder)
+    }
+
+    const clearAllDecorations = () => {
+        setSelectedFrame('none')
+        setStampInstances([])
+        setCaptionInstances([])
+        setDrawStrokes([])
+        setSelectedOverlay(null)
+        setDraggingItem(null)
     }
 
     const saveFinishedPhoto = async () => {
@@ -862,6 +926,9 @@ const App = () => {
                             <button type="button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>
                                 表示をリセット
                             </button>
+                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={!selectedFrame || (selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0)}>
+                                装飾を全消去
+                            </button>
                         </div>
                     )}
 
@@ -883,6 +950,10 @@ const App = () => {
                                     <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.min(2.5, selected.scale + 0.15) })}>＋ 大きく</button>
                                     <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation - 15 })}>↶ 回転</button>
                                     <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation + 15 })}>↷ 回転</button>
+                                    <button type="button" onClick={resetSelectedOverlayTransform}>↺ リセット</button>
+                                    <button type="button" onClick={duplicateSelectedOverlay}>⧉ 複製</button>
+                                    <button type="button" onClick={() => moveSelectedOverlayLayer('front')}>前面へ</button>
+                                    <button type="button" onClick={() => moveSelectedOverlayLayer('back')}>背面へ</button>
                                     <button type="button" className="delete-overlay-button" onClick={deleteSelectedOverlay}>🗑 削除</button>
                                 </div>
                             )

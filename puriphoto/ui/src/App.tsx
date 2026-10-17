@@ -180,7 +180,7 @@ const App = () => {
     }
 
     const undoEditor = () => {
-        if (historyActionLock.current || !undoStack.length) return
+        if (saveLock.current || historyActionLock.current || !undoStack.length) return
         historyActionLock.current = true
         const previous = undoStack[undoStack.length - 1]
         setUndoStack((current) => current.slice(0, -1))
@@ -190,7 +190,7 @@ const App = () => {
     }
 
     const redoEditor = () => {
-        if (historyActionLock.current || !redoStack.length) return
+        if (saveLock.current || historyActionLock.current || !redoStack.length) return
         historyActionLock.current = true
         const next = redoStack[redoStack.length - 1]
         setRedoStack((current) => current.slice(0, -1))
@@ -405,6 +405,7 @@ const App = () => {
     }
 
     const changeEditorTab = (tab: 'frame' | 'stamp' | 'text' | 'draw') => {
+        if (saveLock.current) return
         cancelTransientInteractions()
         setOverlayToolsExpanded(false)
         if (tab === 'draw') setSelectedOverlay(null)

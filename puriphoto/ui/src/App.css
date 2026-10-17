@@ -703,3 +703,126 @@
     line-height: 1.35;
     text-align: center;
 }
+
+/* Editor workspace controls */
+.editor-shell-actions {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+}
+.editor-shell-actions button {
+    min-width: 0;
+    padding: 0.45rem 0.3rem;
+    border: 1px solid #e0b9cc;
+    border-radius: 0.65rem;
+    background: #fff;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.collapsed-controls {
+    display: none;
+}
+.editing-layout.tools-collapsed .photo-area {
+    height: clamp(18rem, 58vh, 34rem);
+}
+.editing-layout.tools-collapsed .app-header {
+    flex: 0 0 auto;
+}
+.editing-layout.tools-collapsed .app-eyebrow {
+    display: none;
+}
+.editing-layout.tools-collapsed .app-header h1 {
+    font-size: 1.45rem;
+}
+
+/* LB Phone landscape workspace: photo on the left, tools on the right. */
+@media (orientation: landscape) {
+    .app-wrapper.editing-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(15rem, 0.8fr);
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        gap: 0.55rem 0.75rem;
+        padding: min(1.2rem, 4vh) min(1.2rem, 3vw);
+    }
+    .editing-layout .app-header {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+    .editing-layout .app-eyebrow {
+        display: none;
+    }
+    .editing-layout .app-header h1 {
+        font-size: 1.25rem;
+        line-height: 1.15;
+    }
+    .editing-layout .photo-area {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        border-radius: 1rem;
+    }
+    .editing-layout .photo-zoom-controls {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    .editing-layout .photo-pan-hint {
+        grid-column: 1;
+        grid-row: 4;
+        margin: 0;
+    }
+    .editing-layout .editor-shell-actions {
+        grid-column: 2;
+        grid-row: 3 / 5;
+        align-self: end;
+    }
+    .editing-layout .capture-controls {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 0.2rem;
+        scrollbar-width: thin;
+    }
+    .editing-layout.tools-collapsed {
+        grid-template-columns: minmax(0, 1fr) 13rem;
+    }
+    .editing-layout.tools-collapsed .photo-area {
+        height: 100%;
+    }
+    .editing-layout.tools-collapsed .editor-shell-actions {
+        grid-row: 2 / 5;
+        align-self: end;
+    }
+    .editing-layout.tools-collapsed .photo-zoom-controls {
+        grid-column: 1;
+    }
+    .editing-layout .stamp-picker {
+        max-height: 12rem;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+    .app-wrapper.editing-layout {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    .editing-layout .app-header {
+        display: none;
+    }
+    .editing-layout .photo-area,
+    .editing-layout .capture-controls {
+        grid-row: 1 / 3;
+    }
+    .editing-layout .photo-zoom-controls {
+        grid-row: 3;
+    }
+    .editing-layout .editor-shell-actions {
+        grid-row: 3 / 5;
+    }
+}

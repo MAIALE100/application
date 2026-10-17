@@ -35,9 +35,11 @@
 .app-header h1 { font-size: 2rem; line-height: 1.4; letter-spacing: -0.04em; }
 
 .photo-area {
-    flex: 1 1 0;
+    flex: 0 0 auto;
+    width: 100%;
+    height: clamp(12rem, 31vh, 18rem);
     min-width: 0;
-    min-height: 0;
+    min-height: 12rem;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -49,20 +51,19 @@
 
 .photo-stage {
     position: relative;
+    display: inline-block;
     width: auto;
-    height: auto;
+    height: 100%;
     max-width: 100%;
-    max-height: 100%;
     min-width: 0;
     min-height: 0;
 }
 
 .photo-preview {
     display: block;
-    width: 100%;
+    width: auto;
     height: 100%;
     max-width: 100%;
-    max-height: 100%;
     object-fit: contain;
 }
 

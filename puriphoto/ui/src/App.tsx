@@ -366,6 +366,21 @@ const App = () => {
         }
     }
 
+    const cancelTransientInteractions = () => {
+        setDraggingItem(null)
+        activePointers.current.clear()
+        gestureStart.current = null
+        activeDrawPointer.current = null
+        panPointer.current = null
+    }
+
+    const changeEditorTab = (tab: 'frame' | 'stamp' | 'text' | 'draw') => {
+        cancelTransientInteractions()
+        setOverlayToolsExpanded(false)
+        if (tab === 'draw') setSelectedOverlay(null)
+        setActiveEditorTab(tab)
+    }
+
     const moveOverlayItem = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (!draggingItem || gestureStart.current) return
         const rect = event.currentTarget.getBoundingClientRect()
@@ -1058,10 +1073,10 @@ const App = () => {
                     <footer className={toolsCollapsed ? 'capture-controls collapsed-controls' : 'capture-controls'}>
                         {isEditing && (
                             <div className="editor-tabs" aria-label="編集ツール">
-                                <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => setActiveEditorTab('frame')}>フレーム</button>
-                                <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} onClick={() => setActiveEditorTab('stamp')}>スタンプ</button>
-                                <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} onClick={() => setActiveEditorTab('text')}>文字</button>
-                                <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} onClick={() => { setActiveEditorTab('draw'); setSelectedOverlay(null) }}>手書き</button>
+                                <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => changeEditorTab('frame')}>フレーム</button>
+                                <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} onClick={() => changeEditorTab('stamp')}>スタンプ</button>
+                                <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} onClick={() => changeEditorTab('text')}>文字</button>
+                                <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} onClick={() => changeEditorTab('draw')}>手書き</button>
                             </div>
                         )}
                         {isEditing && selectedOverlay && activeEditorTab !== 'stamp' && (() => {
@@ -1365,14 +1380,9 @@ const App = () => {
                             <div>
                                 <button type="button" onClick={() => setConfirmExit(false)}>編集を続ける</button>
                                 <button type="button" className="danger-confirm" onClick={() => {
-                                    setConfirmExit(false)
                                     setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setSelectedFrame('none')
-                                    setStampInstances([])
-                                    setCaptionInstances([])
-                                    setDrawStrokes([])
-                                    setSelectedOverlay(null)
                                     setIsEditing(false)
+                                    resetEditorState()
                                 }}>破棄して戻る</button>
                             </div>
                         </div>

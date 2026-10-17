@@ -1151,3 +1151,12 @@
     opacity:.4;
     cursor:default;
 }
+
+.confirm-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(31,20,27,.42);padding:1.2rem}
+.confirm-card{width:min(20rem,90%);padding:1rem;border-radius:1rem;background:#fff9fc;box-shadow:0 1rem 3rem rgba(60,20,40,.28);text-align:center;color:#503744}
+.confirm-card strong{display:block;font-size:.9rem;margin-bottom:.35rem}
+.confirm-card p{margin:.2rem 0 .85rem;font-size:.68rem;color:#876d7b}
+.confirm-card>div{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.confirm-card button{padding:.65rem .35rem;border:1px solid #dfb9ca;border-radius:.7rem;background:#fff;color:#8d3f63;font:inherit;font-size:.65rem;font-weight:700}
+.confirm-card .danger-confirm{background:#ad3f70;color:#fff;border-color:#ad3f70}
+.save-toast{position:fixed;left:50%;bottom:5.5rem;z-index:1100;transform:translateX(-50%);padding:.65rem 1rem;border-radius:999px;background:rgba(54,38,47,.94);color:#fff;font-size:.7rem;font-weight:700;white-space:nowrap;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.2)}

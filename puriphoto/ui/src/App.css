@@ -278,6 +278,16 @@
     color: #7d2f54;
     font-weight: 700;
 }
+.caption-color-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.caption-color-label,
+.caption-color-section > span {
+    font-size: 0.62rem;
+    color: #795b70;
+}
 .caption-color-picker {
     display: flex;
     justify-content: center;

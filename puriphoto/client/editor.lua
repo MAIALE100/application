@@ -2,8 +2,8 @@ local editorDui = nil
 local editorTextureDictName = "puriphoto_editor_txd"
 local editorTextureName = "puriphoto_editor"
 local editorVisible = false
-local editorReady = false
 local pendingPhotoUrl = nil
+local duiGeneration = 0
 
 local function sendPhoto()
     if not editorDui or not pendingPhotoUrl then return end
@@ -13,10 +13,19 @@ local function sendPhoto()
     }))
 end
 
+local function destroyEditorDui()
+    if editorDui then
+        DestroyDui(editorDui)
+        editorDui = nil
+    end
+end
+
 local function ensureEditorDui()
     if editorDui then return true end
 
-    local url = ("https://cfx-nui-%s/editor/index.html"):format(GetCurrentResourceName())
+    duiGeneration = duiGeneration + 1
+    local generation = duiGeneration
+    local url = ("https://cfx-nui-%s/editor/index.html?v=%d"):format(GetCurrentResourceName(), generation)
     print(("[PuriPhoto] Creating standalone editor DUI: %s"):format(url))
 
     editorDui = CreateDui(url, 1280, 720)
@@ -28,29 +37,25 @@ local function ensureEditorDui()
     local handle = GetDuiHandle(editorDui)
     if not handle or handle == "" then
         print("[PuriPhoto] ERROR: GetDuiHandle returned an empty handle")
-        DestroyDui(editorDui)
-        editorDui = nil
+        destroyEditorDui()
         return false
     end
 
     local txd = CreateRuntimeTxd(editorTextureDictName)
     if not txd then
         print("[PuriPhoto] ERROR: CreateRuntimeTxd failed")
-        DestroyDui(editorDui)
-        editorDui = nil
+        destroyEditorDui()
         return false
     end
 
     local texture = CreateRuntimeTextureFromDuiHandle(txd, editorTextureName, handle)
     if not texture then
         print("[PuriPhoto] ERROR: CreateRuntimeTextureFromDuiHandle failed")
-        DestroyDui(editorDui)
-        editorDui = nil
+        destroyEditorDui()
         return false
     end
 
     print("[PuriPhoto] Standalone editor DUI texture created")
-    RequestStreamedTextureDict(editorTextureDictName, false)
     return true
 end
 
@@ -65,12 +70,13 @@ local function showEditor(photoUrl)
 
     editorVisible = true
     print("[PuriPhoto] Standalone editor requested")
-    sendPhoto()
 
-    -- DUI pages initialize asynchronously. Repeat while the page becomes ready.
-    SetTimeout(250, sendPhoto)
-    SetTimeout(750, sendPhoto)
-    SetTimeout(1500, sendPhoto)
+    -- The DUI document and its JS listener are asynchronous. Keep the initial
+    -- message, then resend after the document has had time to initialize.
+    sendPhoto()
+    SetTimeout(300, sendPhoto)
+    SetTimeout(1000, sendPhoto)
+    SetTimeout(2000, sendPhoto)
 end
 
 local function hideEditor()
@@ -94,15 +100,15 @@ end)
 CreateThread(function()
     while true do
         if editorVisible and editorDui then
-            -- Explicitly switch to the normal fullscreen frontend draw target.
             SetScriptGfxDrawOrder(7)
             SetScriptGfxDrawBehindPausemenu(false)
 
-            -- Diagnostic: this translucent magenta rectangle does not depend on
-            -- DUI/runtime textures. If it appears, native fullscreen drawing is
-            -- working and only the DUI texture path needs further work.
+            -- Known-good native background. Keep it during this diagnostic so
+            -- we can distinguish native draw failure from DUI texture failure.
             DrawRect(0.38, 0.50, 0.70, 1.00, 220, 30, 120, 90)
 
+            -- Runtime TXDs are already resident; RequestStreamedTextureDict is
+            -- for streamed game dictionaries and must not be used for this TXD.
             DrawSprite(editorTextureDictName, editorTextureName, 0.38, 0.50, 0.70, 1.00, 0.0, 255, 255, 255, 255)
             Wait(0)
         else
@@ -113,8 +119,5 @@ end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    if editorDui then
-        DestroyDui(editorDui)
-        editorDui = nil
-    end
+    destroyEditorDui()
 end)

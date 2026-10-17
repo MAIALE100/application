@@ -244,6 +244,46 @@ const App = () => {
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
+    const resetEditorState = () => {
+        setSelectedFrame('none')
+        setStampInstances([])
+        setCaptionInstances([])
+        setDrawStrokes([])
+        setCaptionDraft('')
+        setCaptionDraftBoxWidth(70)
+        setCaptionDraftColor('pink')
+        setCaptionDraftOutlineColor('white')
+        setCaptionDraftFont('gothic')
+        setCaptionDraftOutline(true)
+        setCaptionDraftOutlineWidth(4)
+        setCaptionAdvancedOpen(false)
+        setSelectedOverlay(null)
+        setDraggingItem(null)
+        setActiveEditorTab('stamp')
+        setStampCategory('all')
+        setStampSearch('')
+        setDrawColor('hotPink')
+        setDrawWidth(5)
+        setDrawTool('pen')
+        setDrawOpacity(100)
+        setEditorZoom(1)
+        setEditorPan({ x: 0, y: 0 })
+        setToolsCollapsed(false)
+        setOverlayToolsExpanded(false)
+        setConfirmExit(false)
+        setUndoStack([])
+        setRedoStack([])
+        activePointers.current.clear()
+        gestureStart.current = null
+        activeDrawPointer.current = null
+        panPointer.current = null
+        lastSnapshot.current = ''
+        if (historyTimer.current !== null) {
+            window.clearTimeout(historyTimer.current)
+            historyTimer.current = null
+        }
+    }
+
     const takePhoto = () => {
         setError(null)
         if (typeof window.useCamera !== 'function') {
@@ -258,14 +298,7 @@ const App = () => {
                     setSourcePhotoUrl(url)
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
-                    setSelectedFrame('none')
-                    setStampInstances([])
-                    setDrawStrokes([])
-                    setCaptionDraft('')
-                    setCaptionInstances([])
-                    setSelectedOverlay(null)
-                    setEditorZoom(1)
-                    setEditorPan({ x: 0, y: 0 })
+                    resetEditorState()
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -288,22 +321,10 @@ const App = () => {
         setSourcePhotoUrl(null)
         setSavedPhotoUrl(null)
         setIsEditing(false)
-        setSelectedFrame('none')
-        setStampInstances([])
-        setDrawStrokes([])
-        setCaptionDraft('')
-        setCaptionDraftOutlineWidth(4)
-        setCaptionInstances([])
-        setSelectedOverlay(null)
-        setDraggingItem(null)
-        setEditorZoom(1)
-        setEditorPan({ x: 0, y: 0 })
-        setToolsCollapsed(false)
+        resetEditorState()
         setPhotoAspectRatio(null)
+        setSaveNotice(null)
         setError(null)
-        setUndoStack([])
-        setRedoStack([])
-        lastSnapshot.current = ''
     }
 
     const chooseFromGallery = () => {
@@ -331,14 +352,7 @@ const App = () => {
                     setSourcePhotoUrl(selected.src)
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
-                    setSelectedFrame('none')
-                    setStampInstances([])
-                    setDrawStrokes([])
-                    setCaptionDraft('')
-                    setCaptionInstances([])
-                    setSelectedOverlay(null)
-                    setEditorZoom(1)
-                    setEditorPan({ x: 0, y: 0 })
+                    resetEditorState()
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -810,14 +824,8 @@ const App = () => {
             setPhotoUrl(uploadedUrl)
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
-            setSelectedFrame('none')
-            setStampInstances([])
-            setDrawStrokes([])
-            setCaptionInstances([])
-            setSelectedOverlay(null)
-            setEditorZoom(1)
-            setEditorPan({ x: 0, y: 0 })
             setIsEditing(false)
+            resetEditorState()
             setSaveNotice('ギャラリーに保存しました')
             window.setTimeout(() => setSaveNotice(null), 2600)
             setError(null)

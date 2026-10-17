@@ -1121,3 +1121,14 @@
     margin:0 auto;
     pointer-events:none;
 }
+
+.stamp-author {
+    display:block;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#a08394;
+    font-size:.5rem !important;
+    line-height:1.1;
+}

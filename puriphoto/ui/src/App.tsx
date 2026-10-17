@@ -9,7 +9,7 @@ type StampInstance = { instanceId: number; stampId: StampId; x: number; y: numbe
 type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other'
 type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
-type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; font: CaptionFont; outline: boolean }
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#a12f68',
@@ -81,6 +81,7 @@ const App = () => {
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
     const [stampInstances, setStampInstances] = useState<StampInstance[]>([])
     const [captionDraft, setCaptionDraft] = useState('')
+    const [captionDraftBoxWidth, setCaptionDraftBoxWidth] = useState(70)
     const [captionDraftColor, setCaptionDraftColor] = useState<CaptionColor>('pink')
     const [captionDraftFont, setCaptionDraftFont] = useState<CaptionFont>('gothic')
     const [captionDraftOutline, setCaptionDraftOutline] = useState(true)
@@ -275,7 +276,7 @@ const App = () => {
     }
 
     const addCaption = () => {
-        const text = captionDraft.trim().slice(0, 40)
+        const text = captionDraft.trim().slice(0, 120)
         if (!text) return
         const offset = (captionInstances.length % 5) * 5
         setCaptionInstances((current) => [...current, {
@@ -287,12 +288,13 @@ const App = () => {
             rotation: 0,
             color: captionDraftColor,
             font: captionDraftFont,
-            outline: captionDraftOutline
+            outline: captionDraftOutline,
+            boxWidth: captionDraftBoxWidth
         }])
         setCaptionDraft('')
     }
 
-    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; font?: CaptionFont; outline?: boolean }) => {
+    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; font?: CaptionFont; outline?: boolean; boxWidth?: number }) => {
         if (!selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             setStampInstances((current) => current.map((item) =>
@@ -310,7 +312,8 @@ const App = () => {
                     rotation: changes.rotation ?? item.rotation,
                     color: changes.color ?? item.color,
                     font: changes.font ?? item.font,
-                    outline: changes.outline ?? item.outline
+                    outline: changes.outline ?? item.outline,
+                    boxWidth: changes.boxWidth ?? item.boxWidth
                 } : item
             ))
         }
@@ -419,8 +422,14 @@ const App = () => {
                     context.translate(width * item.x / 100, height * item.y / 100)
                     context.rotate(item.rotation * Math.PI / 180)
                     context.scale(item.scale, item.scale)
-                    if (item.outline) context.strokeText(item.text, 0, 0)
-                    context.fillText(item.text, 0, 0)
+                    const lines = item.text.split('\n')
+                    const lineHeight = fontSize * 1.25
+                    const startY = -((lines.length - 1) * lineHeight) / 2
+                    lines.forEach((line, lineIndex) => {
+                        const y = startY + lineIndex * lineHeight
+                        if (item.outline) context.strokeText(line, 0, y)
+                        context.fillText(line, 0, y)
+                    })
                     context.restore()
                 }
                 context.restore()
@@ -531,7 +540,7 @@ const App = () => {
                                         className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
                                         data-overlay-kind="caption"
                                         data-overlay-id={item.instanceId}
-                                        style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? '0.08em #fff' : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                        style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? '0.08em #fff' : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()
@@ -586,18 +595,30 @@ const App = () => {
                             <div className="caption-input-wrap">
                                 <span>{selectedOverlay?.kind === 'caption' ? '選択中の文字を編集' : '文字入れ（何個でも追加できます）'}</span>
                                 <div className="caption-input-row">
-                                    <input
+                                    <textarea
                                         className="caption-input"
-                                        type="text"
-                                        maxLength={40}
+                                        maxLength={120}
+                                        rows={2}
                                         value={captionDraft}
                                         onChange={(event) => setCaptionDraft(event.target.value)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') addCaption()
-                                        }}
-                                        placeholder="例：最高の一枚！"
+                                        placeholder={'例：最高の\n一枚！'}
                                     />
                                     <button type="button" className="caption-add-button" onClick={addCaption} disabled={!captionDraft.trim()}>追加</button>
+                                </div>
+                                <div className="caption-width-control">
+                                    <span>文字枠の幅</span>
+                                    <input
+                                        type="range"
+                                        min="25"
+                                        max="95"
+                                        step="5"
+                                        value={selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.boxWidth ?? 70 : captionDraftBoxWidth}
+                                        onChange={(event) => {
+                                            const boxWidth = Number(event.target.value)
+                                            if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ boxWidth })
+                                            else setCaptionDraftBoxWidth(boxWidth)
+                                        }}
+                                    />
                                 </div>
                                 <div className="caption-style-row" aria-label="文字フォント">
                                     {(Object.keys(CAPTION_FONTS) as CaptionFont[]).map((font) => (

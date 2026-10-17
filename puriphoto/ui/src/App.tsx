@@ -1038,9 +1038,7 @@ const App = () => {
     return (
         <AppProvider>
             <main className="app">
-                <div className={isEditing
-                    ? `app-wrapper editing-layout${photoAspectRatio !== null && photoAspectRatio > 1 ? ' landscape-editor' : ''}${toolsCollapsed ? ' tools-collapsed' : ''}`
-                    : 'app-wrapper'}>
+                <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
                     <header className="app-header">
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>

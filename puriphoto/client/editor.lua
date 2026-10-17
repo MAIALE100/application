@@ -7,6 +7,7 @@ local function ensureEditorDui()
     if editorDui then return true end
 
     local url = ("https://cfx-nui-%s/editor/index.html"):format(GetCurrentResourceName())
+    print(("[PuriPhoto] Creating standalone editor DUI: %s"):format(url))
     editorDui = CreateDui(url, 1280, 720)
     if not editorDui then
         print("[PuriPhoto] Failed to create standalone editor DUI")
@@ -24,6 +25,7 @@ local function showEditor(photoUrl)
     if not ensureEditorDui() then return end
 
     editorVisible = true
+    print("[PuriPhoto] Standalone editor requested")
     SendDuiMessage(editorDui, json.encode({
         action = "puriphoto:showStandaloneEditor",
         photoUrl = photoUrl

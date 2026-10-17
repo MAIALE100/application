@@ -182,6 +182,25 @@ const App = () => {
         }
     }
 
+    const resetPhotoSession = () => {
+        setPhotoUrl(null)
+        setSourcePhotoUrl(null)
+        setSavedPhotoUrl(null)
+        setIsEditing(false)
+        setSelectedFrame('none')
+        setStampInstances([])
+        setDrawStrokes([])
+        setCaptionDraft('')
+        setCaptionInstances([])
+        setSelectedOverlay(null)
+        setDraggingItem(null)
+        setEditorZoom(1)
+        setEditorPan({ x: 0, y: 0 })
+        setToolsCollapsed(false)
+        setPhotoAspectRatio(null)
+        setError(null)
+    }
+
     const chooseFromGallery = () => {
         setError(null)
 
@@ -981,14 +1000,22 @@ const App = () => {
                                     </button>
                                 )}
                                 {photoUrl && (
-                                    <button type="button" className="capture-button" onClick={() => {
-                                        const editingUrl = sourcePhotoUrl || photoUrl
-                                        setPhotoUrl(editingUrl)
-                                        setToolsCollapsed(false)
-                                        setIsEditing(true)
+                                    <>
+                                        <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
+                                            別の写真を選ぶ
+                                        </button>
+                                        <button type="button" className="capture-button" onClick={() => {
+                                            const editingUrl = sourcePhotoUrl || photoUrl
+                                            setPhotoUrl(editingUrl)
+                                            setToolsCollapsed(false)
+                                            setIsEditing(true)
                                         }}>
-                                        編集する
-                                    </button>
+                                            編集する
+                                        </button>
+                                        <button type="button" className="capture-button menu-return-button" onClick={resetPhotoSession}>
+                                            最初のメニューに戻る
+                                        </button>
+                                    </>
                                 )}
                             </>
                         )}                    </footer>

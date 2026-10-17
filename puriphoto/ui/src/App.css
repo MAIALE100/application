@@ -1160,3 +1160,10 @@
 .confirm-card button{padding:.65rem .35rem;border:1px solid #dfb9ca;border-radius:.7rem;background:#fff;color:#8d3f63;font:inherit;font-size:.65rem;font-weight:700}
 .confirm-card .danger-confirm{background:#ad3f70;color:#fff;border-color:#ad3f70}
 .save-toast{position:fixed;left:50%;bottom:5.5rem;z-index:1100;transform:translateX(-50%);padding:.65rem 1rem;border-radius:999px;background:rgba(54,38,47,.94);color:#fff;font-size:.7rem;font-weight:700;white-space:nowrap;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.2)}
+
+.overlay-toolbar-wrap{display:grid;gap:.3rem;flex:0 0 auto}
+.overlay-toolbar.compact{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.25rem}
+.overlay-toolbar.compact button{padding:.38rem .12rem;min-height:1.8rem;font-size:.62rem}
+.overlay-toolbar.compact button:last-child{font-size:.52rem}
+.overlay-toolbar-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.3rem}
+.overlay-toolbar-details button{min-width:0;padding:.4rem .15rem;border:1px solid #e2bfd0;border-radius:.55rem;background:#fff;color:#7d5369;font:inherit;font-size:.55rem;font-weight:700}

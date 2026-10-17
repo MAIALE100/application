@@ -126,6 +126,7 @@ const App = () => {
     const gestureStart = useRef<{ distance: number; angle: number; scale: number; rotation: number } | null>(null)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
+    const saveLock = useRef(false)
     const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text' | 'draw'>('stamp')
     const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
@@ -271,6 +272,8 @@ const App = () => {
         setToolsCollapsed(false)
         setOverlayToolsExpanded(false)
         setConfirmExit(false)
+        saveLock.current = false
+        setIsSaving(false)
         setUndoStack([])
         setRedoStack([])
         activePointers.current.clear()
@@ -510,6 +513,7 @@ const App = () => {
         if (activeEditorTab !== 'draw') return
         event.preventDefault()
         event.stopPropagation()
+        if (activeDrawPointer.current !== null) return
         activeDrawPointer.current = event.pointerId
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
@@ -539,22 +543,28 @@ const App = () => {
     }
 
     const addStamp = (stampId: StampId) => {
-        const offset = (stampInstances.length % 5) * 4
-        setStampInstances((current) => [...current, {
+        if (!STAMPS.some((stamp) => stamp.id === stampId)) return
+        setStampInstances((current) => {
+            const offset = (current.length % 5) * 4
+            if (current.length >= 100) return current
+            return [...current, {
             instanceId: nextOverlayId.current++,
             stampId,
             x: 50 + offset,
             y: 50 + offset,
             scale: 1,
             rotation: 0
-        }])
+        }]
+        })
     }
 
     const addCaption = () => {
         const text = captionDraft.trim().slice(0, 120)
         if (!text) return
         const offset = (captionInstances.length % 5) * 5
-        setCaptionInstances((current) => [...current, {
+        setCaptionInstances((current) => {
+            if (current.length >= 100) return current
+            return [...current, {
             instanceId: nextOverlayId.current++,
             text,
             x: 50,
@@ -567,7 +577,8 @@ const App = () => {
             outline: captionDraftOutline,
             outlineWidth: captionDraftOutlineWidth,
             boxWidth: captionDraftBoxWidth
-        }])
+        }]
+        })
         setCaptionDraft('')
     }
 
@@ -663,8 +674,9 @@ const App = () => {
     }
 
     const saveFinishedPhoto = async () => {
-        if (!photoUrl || isSaving) return
+        if (!photoUrl || isSaving || saveLock.current) return
 
+        saveLock.current = true
         setIsSaving(true)
         setError(null)
 
@@ -833,6 +845,7 @@ const App = () => {
             console.error('[PuriPhoto] Failed to save finished photo:', cause)
             setError('完成画像を保存できませんでした。LB Phoneの画像アップロード設定、または写真URLの読み込み権限を確認してください。')
         } finally {
+            saveLock.current = false
             setIsSaving(false)
         }
     }

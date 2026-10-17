@@ -115,7 +115,7 @@
 
 .editor-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.35rem;
     padding: 0.25rem;
     border-radius: 0.8rem;
@@ -556,4 +556,89 @@
    Hide that copy; the visible phone app is rendered by LB Phone. */
 .top-level-phone-app-host {
     display: none !important;
+}
+
+.drawing-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+.drawing-layer.drawing-active {
+    z-index: 10;
+    pointer-events: auto;
+    cursor: crosshair;
+    touch-action: none;
+}
+.drawing-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.5rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 0.85rem;
+    background: #fff8fb;
+}
+.drawing-control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: #795b70;
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+.drawing-color-picker {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 0.32rem 0.22rem;
+}
+.drawing-color {
+    width: 1.15rem;
+    height: 1.15rem;
+    justify-self: center;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #cdb6c1;
+    cursor: pointer;
+}
+.drawing-color.selected {
+    box-shadow: 0 0 0 2px #8f2f55;
+    transform: scale(1.1);
+}
+.drawing-width-control {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    color: #795b70;
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+.drawing-width-control input {
+    width: 100%;
+    accent-color: #a94875;
+}
+.drawing-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+}
+.drawing-actions button {
+    padding: 0.42rem 0.25rem;
+    border: 1px solid #e0b9cc;
+    border-radius: 0.6rem;
+    background: #fff;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.drawing-actions button:disabled {
+    opacity: 0.4;
+    cursor: default;
 }

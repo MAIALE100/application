@@ -76,8 +76,15 @@ const App = () => {
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
                                 />
                                 {isEditing && selectedFrame !== 'none' && (
-                                    selectedFrame === 'soft' && photoAspectRatio !== null && photoAspectRatio > 1
-                                        ? <img className="frame-image-overlay" src={frameImageSrc} alt="" aria-hidden="true" />
+                                    selectedFrame === 'soft' && photoAspectRatio !== null
+                                        ? <img
+                                            className="frame-image-overlay"
+                                            src={photoAspectRatio > 1
+                                                ? frameImageSrc
+                                                : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-portrait.webp`}
+                                            alt=""
+                                            aria-hidden="true"
+                                        />
                                         : <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
                                 )}
                             </div>

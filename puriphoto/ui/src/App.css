@@ -183,6 +183,26 @@
     color: #795b70;
     font-size: 0.72rem;
 }
+.caption-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+}
+.caption-add-button {
+    padding: 0 0.75rem;
+    border: 1px solid #a94875;
+    border-radius: 0.75rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.caption-add-button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
 .caption-input {
     width: 100%;
     min-width: 0;

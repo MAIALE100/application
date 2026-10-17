@@ -235,6 +235,38 @@
     cursor: grab;
 }
 
+.overlay-selected {
+    outline: 2px solid #a94875;
+    outline-offset: 0.2rem;
+    border-radius: 0.35rem;
+}
+.overlay-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.45rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 0.85rem;
+    background: #fff0f6;
+}
+.overlay-toolbar button {
+    min-width: 0;
+    padding: 0.45rem 0.2rem;
+    border: 1px solid #e0b9cc;
+    border-radius: 0.6rem;
+    background: #fff;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.overlay-toolbar .delete-overlay-button {
+    grid-column: 1 / -1;
+    background: #8f2f55;
+    border-color: #8f2f55;
+    color: #fff;
+}
 .capture-message {
     min-height: 2.8em;
     font-size: 0.8rem;

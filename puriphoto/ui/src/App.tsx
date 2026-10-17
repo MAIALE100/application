@@ -152,9 +152,9 @@ const App = () => {
 
     const makeSnapshot = (): EditorSnapshot => ({
         frame: selectedFrame,
-        stamps: stampInstances,
-        captions: captionInstances,
-        strokes: drawStrokes
+        stamps: stampInstances.map((item) => ({ ...item })),
+        captions: captionInstances.map((item) => ({ ...item })),
+        strokes: drawStrokes.map((stroke) => ({ ...stroke, points: stroke.points.map((point) => ({ ...point })) }))
     })
 
     const applySnapshot = (snapshot: EditorSnapshot) => {
@@ -165,6 +165,7 @@ const App = () => {
         setDrawStrokes(snapshot.strokes)
         setSelectedOverlay(null)
         setDraggingItem(null)
+        nextOverlayId.current = 1
         activePointers.current.clear()
         gestureStart.current = null
         activeDrawPointer.current = null
@@ -307,6 +308,7 @@ const App = () => {
 
         try {
             window.useCamera((url) => {
+                if (saveLock.current) return
                 if (typeof url === 'string' && url.trim()) {
                     setPhotoUrl(url)
                     setSourcePhotoUrl(url)
@@ -331,6 +333,7 @@ const App = () => {
     }
 
     const resetPhotoSession = () => {
+        if (saveLock.current) return
         setPhotoUrl(null)
         setSourcePhotoUrl(null)
         setSavedPhotoUrl(null)
@@ -356,6 +359,7 @@ const App = () => {
                 allowExternal: false,
                 multiSelect: false,
                 onSelect: (data) => {
+                    if (saveLock.current) return
                     const selected = Array.isArray(data) ? data[0] : data
                     if (!selected || selected.isVideo || typeof selected.src !== 'string' || !selected.src.trim()) {
                         setError('写真を選択できませんでした。画像を選び直してください。')
@@ -549,7 +553,10 @@ const App = () => {
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
         setSelectedOverlay(null)
-        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, opacity: drawOpacity / 100, tool: drawTool }])
+        setDrawStrokes((current) => {
+            if (current.length >= 500) return current
+            return [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, opacity: drawOpacity / 100, tool: drawTool }]
+        })
     }
 
     const continueDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -562,6 +569,7 @@ const App = () => {
             const last = next[next.length - 1]
             const previous = last.points[last.points.length - 1]
             if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 0.15) return current
+            if (last.points.length >= 5000) return current
             next[next.length - 1] = { ...last, points: [...last.points, point] }
             return next
         })
@@ -739,9 +747,15 @@ const App = () => {
 
             if (document.fonts?.ready) await document.fonts.ready
             const photo = await loadImage(photoUrl, true)
-            const width = photo.naturalWidth
-            const height = photo.naturalHeight
-            if (!width || !height) throw new Error('The source photo has invalid dimensions')
+            const sourceWidth = photo.naturalWidth
+            const sourceHeight = photo.naturalHeight
+            if (!sourceWidth || !sourceHeight || !Number.isFinite(sourceWidth) || !Number.isFinite(sourceHeight)) {
+                throw new Error('The source photo has invalid dimensions')
+            }
+            const maxExportEdge = 4096
+            const exportScale = Math.min(1, maxExportEdge / Math.max(sourceWidth, sourceHeight))
+            const width = Math.max(1, Math.round(sourceWidth * exportScale))
+            const height = Math.max(1, Math.round(sourceHeight * exportScale))
 
             const canvas = document.createElement('canvas')
             canvas.width = width

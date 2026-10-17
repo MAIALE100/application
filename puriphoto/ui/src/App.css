@@ -518,10 +518,6 @@
     paint-order: stroke fill;
     filter: drop-shadow(0 0.08rem 0.15rem rgba(0,0,0,0.25));
 }
-.fullscreen-editor-hint {
-    color: rgba(255,255,255,0.72);
-    font-size: 0.68rem;
-}
 
 .drawing-layer {
     position: absolute;

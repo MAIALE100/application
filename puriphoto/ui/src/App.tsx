@@ -654,7 +654,7 @@ const App = () => {
     }
 
     const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; outlineColor?: CaptionColor; font?: CaptionFont; outline?: boolean; outlineWidth?: number; boxWidth?: number }) => {
-        if (!selectedOverlay) return
+        if (saveLock.current || !selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             setStampInstances((current) => current.map((item) =>
                 item.instanceId === selectedOverlay.id ? {
@@ -688,7 +688,7 @@ const App = () => {
     }
 
     const deleteSelectedOverlay = () => {
-        if (!selectedOverlay) return
+        if (saveLock.current || !selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             setStampInstances((current) => current.filter((item) => item.instanceId !== selectedOverlay.id))
         } else {
@@ -700,7 +700,7 @@ const App = () => {
     }
 
     const duplicateSelectedOverlay = () => {
-        if (!selectedOverlay) return
+        if (saveLock.current || !selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             if (stampInstances.length >= 100) {
                 setError('スタンプは100個までです。複製するには不要なスタンプを削除してください。')
@@ -725,11 +725,12 @@ const App = () => {
     }
 
     const resetSelectedOverlayTransform = () => {
+        if (saveLock.current) return
         updateSelectedOverlay({ scale: 1, rotation: 0 })
     }
 
     const moveSelectedOverlayLayer = (direction: 'front' | 'back') => {
-        if (!selectedOverlay) return
+        if (saveLock.current || !selectedOverlay) return
         const reorder = <T extends { instanceId: number }>(items: T[]) => {
             const index = items.findIndex((item) => item.instanceId === selectedOverlay.id)
             if (index < 0) return items
@@ -744,6 +745,7 @@ const App = () => {
     }
 
     const clearAllDecorations = () => {
+        if (saveLock.current) return
         setSelectedFrame('none')
         setStampInstances([])
         setCaptionInstances([])

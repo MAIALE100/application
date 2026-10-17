@@ -161,12 +161,17 @@ const App = () => {
     const applySnapshot = (snapshot: EditorSnapshot) => {
         historyLock.current = true
         setSelectedFrame(snapshot.frame)
-        setStampInstances(snapshot.stamps)
-        setCaptionInstances(snapshot.captions)
-        setDrawStrokes(snapshot.strokes)
+        setStampInstances(snapshot.stamps.map((item) => ({ ...item })))
+        setCaptionInstances(snapshot.captions.map((item) => ({ ...item })))
+        setDrawStrokes(snapshot.strokes.map((stroke) => ({ ...stroke, points: stroke.points.map((point) => ({ ...point })) })))
         setSelectedOverlay(null)
         setDraggingItem(null)
-        nextOverlayId.current = 1
+        const highestOverlayId = Math.max(
+            0,
+            ...snapshot.stamps.map((item) => item.instanceId),
+            ...snapshot.captions.map((item) => item.instanceId)
+        )
+        nextOverlayId.current = highestOverlayId + 1
         activePointers.current.clear()
         gestureStart.current = null
         activeDrawPointer.current = null
@@ -679,12 +684,14 @@ const App = () => {
     const duplicateSelectedOverlay = () => {
         if (!selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
+            if (stampInstances.length >= 100) return
             const source = stampInstances.find((item) => item.instanceId === selectedOverlay.id)
             if (!source) return
             const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }
             setStampInstances((current) => [...current, copy])
             setSelectedOverlay({ kind: 'stamp', id: copy.instanceId })
         } else {
+            if (captionInstances.length >= 100) return
             const source = captionInstances.find((item) => item.instanceId === selectedOverlay.id)
             if (!source) return
             const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }

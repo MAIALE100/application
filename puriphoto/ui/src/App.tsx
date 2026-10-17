@@ -1,4 +1,5 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
+import '@fontsource/m-plus-rounded-1c/700.css'
 import './App.css'
 import Frame from './components/Frame'
 
@@ -38,7 +39,7 @@ const CAPTION_COLORS: Record<CaptionColor, string> = {
 const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: string }> = {
     gothic: { label: 'ゴシック', css: '"Noto Sans JP", sans-serif', canvas: '"Noto Sans JP", sans-serif' },
     serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
-    rounded: { label: '丸文字', css: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif', canvas: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif' }
+    rounded: { label: '丸文字', css: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif', canvas: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif' }
 }
 type StampDefinition = { id: StampId; label: string; category: StampCategory; glyph?: string; image?: string; author?: string }
 const BASE_STAMPS: StampDefinition[] = [

@@ -755,6 +755,10 @@ const App = () => {
         setIsSaving(true)
         setError(null)
 
+        const exportPhotoUrl = photoUrl
+        const exportAspectRatio = photoAspectRatio
+        const exportSnapshot = makeSnapshot()
+
         try {
             if (typeof components === 'undefined' || typeof components.uploadMedia !== 'function' || typeof components.saveToGallery !== 'function') {
                 throw new Error('LB Phone gallery functions are unavailable')
@@ -812,7 +816,7 @@ const App = () => {
                     console.warn('[PuriPhoto] Font readiness timed out; continuing export with available fonts.', cause)
                 }
             }
-            const photo = await loadImage(photoUrl, true)
+            const photo = await loadImage(exportPhotoUrl, true)
             const sourceWidth = photo.naturalWidth
             const sourceHeight = photo.naturalHeight
             if (!sourceWidth || !sourceHeight || !Number.isFinite(sourceWidth) || !Number.isFinite(sourceHeight)) {
@@ -831,7 +835,7 @@ const App = () => {
 
             context.drawImage(photo, 0, 0, width, height)
 
-            if (drawStrokes.length > 0) {
+            if (exportSnapshot.strokes.length > 0) {
                 // Draw freehand edits on their own transparent layer. The eraser must
                 // remove only PuriPhoto drawing pixels, never pixels from the source photo.
                 const drawingCanvas = document.createElement('canvas')
@@ -842,7 +846,7 @@ const App = () => {
 
                 drawingContext.lineCap = 'round'
                 drawingContext.lineJoin = 'round'
-                for (const stroke of drawStrokes) {
+                for (const stroke of exportSnapshot.strokes) {
                     if (!stroke.points.length) continue
                     drawingContext.save()
                     drawingContext.beginPath()
@@ -868,14 +872,14 @@ const App = () => {
                 context.drawImage(drawingCanvas, 0, 0)
             }
 
-            if (selectedFrame === 'soft') {
-                const framePath = photoAspectRatio !== null ? photoAspectRatio : width / height
+            if (exportSnapshot.frame === 'soft') {
+                const framePath = exportAspectRatio !== null ? exportAspectRatio : width / height
                 const frameSrc = framePath > 1
                     ? frameImageSrc
                     : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-portrait.webp`
                 const frameImage = await loadImage(frameSrc)
                 context.drawImage(frameImage, 0, 0, width, height)
-            } else if (selectedFrame === 'pop') {
+            } else if (exportSnapshot.frame === 'pop') {
                 const borderWidth = Math.max(12, Math.round(Math.min(width, height) * 0.035))
                 context.save()
                 context.lineWidth = borderWidth
@@ -885,7 +889,7 @@ const App = () => {
                 context.restore()
             }
 
-            if (stampInstances.length > 0) {
+            if (exportSnapshot.stamps.length > 0) {
                 const stampSize = Math.max(30, Math.round(Math.min(width, height) * 0.11))
                 context.save()
                 context.font = `${stampSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
@@ -893,7 +897,7 @@ const App = () => {
                 context.textBaseline = 'middle'
                 context.shadowColor = 'rgba(255, 105, 180, 0.65)'
                 context.shadowBlur = stampSize * 0.18
-                for (const item of stampInstances) {
+                for (const item of exportSnapshot.stamps) {
                     const stamp = STAMPS.find((candidate) => candidate.id === item.stampId)
                     if (!stamp) continue
                     context.save()
@@ -902,12 +906,17 @@ const App = () => {
                     context.scale(item.scale, item.scale)
                     const assetUrl = stampAssetUrl(stamp)
                     if (assetUrl) {
-                        const stampImage = await loadImage(assetUrl)
-                        const naturalRatio = stampImage.naturalWidth / Math.max(1, stampImage.naturalHeight)
-                        const drawHeight = stampSize
-                        const drawWidth = drawHeight * naturalRatio
-                        context.drawImage(stampImage, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight)
-                    } else {
+                        try {
+                            const stampImage = await loadImage(assetUrl)
+                            const naturalRatio = stampImage.naturalWidth / Math.max(1, stampImage.naturalHeight)
+                            const drawHeight = stampSize
+                            const drawWidth = drawHeight * naturalRatio
+                            context.drawImage(stampImage, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight)
+                        } catch (cause) {
+                            console.warn(`[PuriPhoto] Skipping unavailable stamp asset: ${stamp.id}`, cause)
+                            if (stamp.glyph) context.fillText(stamp.glyph, 0, 0)
+                        }
+                    } else if (stamp.glyph) {
                         context.fillText(stamp.glyph, 0, 0)
                     }
                     context.restore()
@@ -915,7 +924,7 @@ const App = () => {
                 context.restore()
             }
 
-            if (captionInstances.length > 0) {
+            if (exportSnapshot.captions.length > 0) {
                 const fontSize = Math.max(22, Math.round(Math.min(width, height) * 0.055))
                 const wrapCaptionLines = (text: string, maxWidth: number) => {
                     const explicitLines = text.split('\n')
@@ -943,7 +952,7 @@ const App = () => {
                 context.textAlign = 'center'
                 context.textBaseline = 'middle'
                 context.lineJoin = 'round'
-                for (const item of captionInstances) {
+                for (const item of exportSnapshot.captions) {
                     context.strokeStyle = CAPTION_COLORS[item.outlineColor]
                     context.lineWidth = Math.max(1, fontSize * (item.outlineWidth ?? 4) * 0.028)
                     context.lineJoin = 'round'
@@ -1148,7 +1157,7 @@ const App = () => {
                                             aria-label={`${stamp.label}。タップして選択`}
                                         >
                                             {stampAssetUrl(stamp)
-                                                ? <img className="stamp-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} />
+                                                ? <img className="stamp-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} onError={(event) => { event.currentTarget.style.display = 'none' }} />
                                                 : (stamp.glyph ?? '★')}
                                         </span>
                                     )
@@ -1222,7 +1231,7 @@ const App = () => {
                             <button type="button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>
                                 表示をリセット
                             </button>
-                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={isSaving || selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0} data-save-guard="true">
+                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={isSaving || selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0}>
                                 装飾を全消去
                             </button>
                         </div>
@@ -1459,7 +1468,7 @@ const App = () => {
                                     <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
                                         <span>
                                             {stampAssetUrl(stamp)
-                                                ? <img className="stamp-picker-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} />
+                                                ? <img className="stamp-picker-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} onError={(event) => { event.currentTarget.style.display = 'none' }} />
                                                 : (stamp.glyph ?? '★')}
                                         </span>
                                         <small>{stamp.label}</small>

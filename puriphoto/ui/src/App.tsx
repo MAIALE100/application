@@ -6,8 +6,16 @@ const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
-type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number }
+type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
+const CAPTION_COLORS: Record<CaptionColor, string> = {
+    pink: '#a12f68',
+    white: '#ffffff',
+    black: '#1f1b1e',
+    blue: '#3b68c7',
+    yellow: '#f1c83b'
+}
 const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
     { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
     { id: 'star', label: '星', glyph: '⭐', x: 0.86, y: 0.14 },
@@ -24,6 +32,7 @@ const App = () => {
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
     const [stampInstances, setStampInstances] = useState<StampInstance[]>([])
     const [captionDraft, setCaptionDraft] = useState('')
+    const [captionDraftColor, setCaptionDraftColor] = useState<CaptionColor>('pink')
     const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
     const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
     const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
@@ -223,7 +232,8 @@ const App = () => {
             x: 50,
             y: Math.min(85, 45 + offset),
             scale: 1,
-            rotation: 0
+            rotation: 0,
+            color: captionDraftColor
         }])
         setCaptionDraft('')
     }
@@ -346,8 +356,8 @@ const App = () => {
                 context.lineWidth = Math.max(3, fontSize * 0.14)
                 context.strokeStyle = '#ffffff'
                 context.lineJoin = 'round'
-                context.fillStyle = '#a12f68'
                 for (const item of captionInstances) {
+                    context.fillStyle = CAPTION_COLORS[item.color]
                     context.save()
                     context.translate(width * item.x / 100, height * item.y / 100)
                     context.rotate(item.rotation * Math.PI / 180)
@@ -444,7 +454,7 @@ const App = () => {
                                             className={selectedOverlay?.kind === 'stamp' && selectedOverlay.id === item.instanceId ? 'stamp-overlay overlay-selected' : 'stamp-overlay'}
                                             data-overlay-kind="stamp"
                                             data-overlay-id={item.instanceId}
-                                            style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                            style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                             onPointerDown={(event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
@@ -531,6 +541,18 @@ const App = () => {
                                         placeholder="例：最高の一枚！"
                                     />
                                     <button type="button" className="caption-add-button" onClick={addCaption} disabled={!captionDraft.trim()}>追加</button>
+                                </div>
+                                <div className="caption-color-picker" aria-label="文字色">
+                                    {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            className={captionDraftColor === color ? 'caption-color selected' : 'caption-color'}
+                                            style={{ background: CAPTION_COLORS[color] }}
+                                            onClick={() => setCaptionDraftColor(color)}
+                                            aria-label={`文字色 ${color}`}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         )}

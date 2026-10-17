@@ -117,6 +117,7 @@ const App = () => {
     const [captionDraftFont, setCaptionDraftFont] = useState<CaptionFont>('gothic')
     const [captionDraftOutline, setCaptionDraftOutline] = useState(true)
     const [captionDraftOutlineWidth, setCaptionDraftOutlineWidth] = useState(4)
+    const [captionAdvancedOpen, setCaptionAdvancedOpen] = useState(false)
     const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
     const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
     const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
@@ -1173,40 +1174,49 @@ const App = () => {
                                         />
                                     </div>
                                 )}
-                                <span className="caption-color-label">文字色</span>
-                                <div className="caption-color-picker" aria-label="文字色">
-                                    {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
-                                        <button
-                                            key={color}
-                                            type="button"
-                                            className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.color === color : captionDraftColor === color) ? 'caption-color selected' : 'caption-color'}
-                                            style={{ background: CAPTION_COLORS[color] }}
-                                            onClick={() => {
-                                                if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ color })
-                                                else setCaptionDraftColor(color)
-                                            }}
-                                            aria-label={`文字色 ${color}`}
-                                        />
-                                    ))}
-                                </div>
-                                <div className="caption-color-section">
-                                    <span>文字枠の色</span>
-                                    <div className="caption-color-picker" aria-label="文字枠の色">
-                                        {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outlineColor === color : captionDraftOutlineColor === color) ? 'caption-color selected' : 'caption-color'}
-                                                style={{ background: CAPTION_COLORS[color] }}
-                                                onClick={() => {
-                                                    if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ outlineColor: color })
-                                                    else setCaptionDraftOutlineColor(color)
-                                                }}
-                                                aria-label={`文字枠色 ${color}`}
-                                            />
-                                        ))}
+                                <button type="button" className="caption-advanced-toggle" onClick={() => setCaptionAdvancedOpen((value) => !value)}>
+                                    {captionAdvancedOpen ? '色設定を閉じる' : '色を変更'}
+                                </button>
+                                {captionAdvancedOpen && (
+                                    <div className="caption-advanced-panel">
+                                        <span className="caption-color-label">文字色</span>
+                                        <div className="caption-color-picker" aria-label="文字色">
+                                            {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
+                                                <button
+                                                    key={color}
+                                                    type="button"
+                                                    className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.color === color : captionDraftColor === color) ? 'caption-color selected' : 'caption-color'}
+                                                    style={{ background: CAPTION_COLORS[color] }}
+                                                    onClick={() => {
+                                                        if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ color })
+                                                        else setCaptionDraftColor(color)
+                                                    }}
+                                                    aria-label={`文字色 ${color}`}
+                                                />
+                                            ))}
+                                        </div>
+                                        {(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outline : captionDraftOutline) && (
+                                            <div className="caption-color-section">
+                                                <span>縁取り色</span>
+                                                <div className="caption-color-picker" aria-label="縁取り色">
+                                                    {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
+                                                        <button
+                                                            key={color}
+                                                            type="button"
+                                                            className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outlineColor === color : captionDraftOutlineColor === color) ? 'caption-color selected' : 'caption-color'}
+                                                            style={{ background: CAPTION_COLORS[color] }}
+                                                            onClick={() => {
+                                                                if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ outlineColor: color })
+                                                                else setCaptionDraftOutlineColor(color)
+                                                            }}
+                                                            aria-label={`縁取り色 ${color}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'stamp' && (

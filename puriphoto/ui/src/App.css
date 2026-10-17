@@ -296,6 +296,14 @@
     box-shadow: 0 0 0 2px #8f2f55;
     transform: scale(1.08);
 }
+.caption-width-control {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.62rem;
+}
+.caption-width-control input { width: 100%; accent-color: #a94875; }
 .caption-input {
     width: 100%;
     min-width: 0;
@@ -306,12 +314,13 @@
     color: #392b36;
     font: inherit;
     font-size: 0.9rem;
+    resize: none;
 }
 .caption-overlay {
     position: absolute;
     z-index: 3;
     transform: translate(-50%, -50%);
-    max-width: 90%;
+    max-width: 95%;
     color: #a12f68;
     font-size: clamp(0.9rem, 4.2vw, 1.8rem);
     font-weight: 800;

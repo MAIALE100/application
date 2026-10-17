@@ -1104,3 +1104,20 @@
 .drawing-tool-picker button { min-width:0; padding:.42rem .2rem; border:1px solid #e0b9cc; border-radius:.6rem; background:#fff; color:#795b70; font:inherit; font-size:.64rem; font-weight:700; cursor:pointer; }
 .drawing-tool-picker button.selected { border-color:#a94875; background:#f9e3ec; color:#7d2f54; }
 .drawing-color-picker.hidden-colors { display:none; }
+
+.stamp-image {
+    display:block;
+    width:2.5rem;
+    height:2.5rem;
+    object-fit:contain;
+    pointer-events:none;
+    user-select:none;
+}
+.stamp-picker-image {
+    display:block;
+    width:1.6rem;
+    height:1.6rem;
+    object-fit:contain;
+    margin:0 auto;
+    pointer-events:none;
+}

@@ -4,7 +4,8 @@ import Frame from './components/Frame'
 
 const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
 const puriPhotoResourceName = 'puriphoto'
-const devMode = !window['invokeNative']
+const isPuriPhotoTopLevelNui = window.location.hostname === 'cfx-nui-puriphoto'
+const devMode = !window['invokeNative'] && !isPuriPhotoTopLevelNui
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
@@ -86,6 +87,36 @@ const STAMPS: { id: StampId; label: string; glyph: string; category: StampCatego
     { id: 'diamond', label: 'ダイヤ', glyph: '💎' , category: 'other' },
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
+
+const StandaloneEditorLayer = () => {
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+
+    useEffect(() => {
+        const onMessage = (event: MessageEvent) => {
+            const data = event.data
+            if (!data || typeof data !== 'object') return
+            if (data.action === 'puriphoto:showStandaloneEditor' && typeof data.photoUrl === 'string') {
+                setPhotoUrl(data.photoUrl)
+            } else if (data.action === 'puriphoto:hideStandaloneEditor') {
+                setPhotoUrl(null)
+            }
+        }
+        window.addEventListener('message', onMessage)
+        return () => window.removeEventListener('message', onMessage)
+    }, [])
+
+    if (!photoUrl) return null
+
+    return (
+        <main className="standalone-editor-layer">
+            <section className="standalone-editor-card">
+                <div className="standalone-editor-title">PuriPhoto EDIT PREVIEW</div>
+                <img src={photoUrl} className="standalone-editor-photo" alt="編集中の写真" />
+                <div className="standalone-editor-hint">右のスマホから編集できます</div>
+            </section>
+        </main>
+    )
+}
 
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -801,4 +832,6 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     ) : <>{children}</>
 }
 
-export default App
+const Root = () => isPuriPhotoTopLevelNui ? <StandaloneEditorLayer /> : <App />
+
+export default Root

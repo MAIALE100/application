@@ -162,6 +162,30 @@
     font-weight: 600;
 }
 
+.stamp-categories {
+    display: flex;
+    gap: 0.3rem;
+    overflow-x: auto;
+    padding: 0.05rem 0 0.25rem;
+    scrollbar-width: thin;
+}
+.stamp-categories button {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 999px;
+    background: #fff;
+    color: #795b70;
+    font: inherit;
+    font-size: 0.6rem;
+    cursor: pointer;
+}
+.stamp-categories button.selected {
+    border-color: #a94875;
+    background: #f9e3ec;
+    color: #7d2f54;
+    font-weight: 700;
+}
 .stamp-picker {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

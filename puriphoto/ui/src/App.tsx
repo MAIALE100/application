@@ -336,7 +336,6 @@ const App = () => {
                                         {item.text}
                                     </span>
                                 ))}
-                                )}
                             </div>
                         ) : (
                             <div className="empty-state">

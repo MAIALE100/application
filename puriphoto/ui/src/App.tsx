@@ -248,7 +248,7 @@ const App = () => {
         setCaptionDraft('')
     }
 
-    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number }) => {
+    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; font?: CaptionFont; outline?: boolean }) => {
         if (!selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             setStampInstances((current) => current.map((item) =>
@@ -264,6 +264,17 @@ const App = () => {
                     ...item,
                     scale: changes.scale ?? item.scale,
                     rotation: changes.rotation ?? item.rotation
+                } : item
+            ))
+        } else {
+            setCaptionInstances((current) => current.map((item) =>
+                item.instanceId === selectedOverlay.id ? {
+                    ...item,
+                    scale: changes.scale ?? item.scale,
+                    rotation: changes.rotation ?? item.rotation,
+                    color: changes.color ?? item.color,
+                    font: changes.font ?? item.font,
+                    outline: changes.outline ?? item.outline
                 } : item
             ))
         }
@@ -537,7 +548,7 @@ const App = () => {
                         )}
                         {isEditing && activeEditorTab === 'text' && (
                             <div className="caption-input-wrap">
-                                <span>文字入れ（何個でも追加できます）</span>
+                                <span>{selectedOverlay?.kind === 'caption' ? '選択中の文字を編集' : '文字入れ（何個でも追加できます）'}</span>
                                 <div className="caption-input-row">
                                     <input
                                         className="caption-input"
@@ -554,11 +565,19 @@ const App = () => {
                                 </div>
                                 <div className="caption-style-row" aria-label="文字フォント">
                                     {(Object.keys(CAPTION_FONTS) as CaptionFont[]).map((font) => (
-                                        <button key={font} type="button" className={captionDraftFont === font ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => setCaptionDraftFont(font)}>
+                                        <button key={font} type="button" className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.font === font : captionDraftFont === font) ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => {
+                                            if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ font })
+                                            else setCaptionDraftFont(font)
+                                        }}>
                                             {CAPTION_FONTS[font].label}
                                         </button>
                                     ))}
-                                    <button type="button" className={captionDraftOutline ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => setCaptionDraftOutline((value) => !value)}>
+                                    <button type="button" className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outline : captionDraftOutline) ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => {
+                                        if (selectedOverlay?.kind === 'caption') {
+                                            const selected = getSelectedOverlayValues() as CaptionInstance | null
+                                            if (selected) updateSelectedOverlay({ outline: !selected.outline })
+                                        } else setCaptionDraftOutline((value) => !value)
+                                    }}>
                                         縁取り
                                     </button>
                                 </div>
@@ -567,9 +586,12 @@ const App = () => {
                                         <button
                                             key={color}
                                             type="button"
-                                            className={captionDraftColor === color ? 'caption-color selected' : 'caption-color'}
+                                            className={(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.color === color : captionDraftColor === color) ? 'caption-color selected' : 'caption-color'}
                                             style={{ background: CAPTION_COLORS[color] }}
-                                            onClick={() => setCaptionDraftColor(color)}
+                                            onClick={() => {
+                                                if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ color })
+                                                else setCaptionDraftColor(color)
+                                            }}
                                             aria-label={`文字色 ${color}`}
                                         />
                                     ))}

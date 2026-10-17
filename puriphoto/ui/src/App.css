@@ -1182,3 +1182,8 @@
 
 .caption-advanced-toggle{width:100%;min-height:1.9rem;padding:.35rem .55rem;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#7d5369;font:inherit;font-size:.62rem;font-weight:700;cursor:pointer}
 .caption-advanced-panel{display:flex;flex-direction:column;gap:.35rem;padding:.4rem;border:1px solid #efd5e1;border-radius:.7rem;background:#fffafd}
+
+.stamp-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem;flex:0 0 auto}
+.stamp-search-row input{min-width:0;height:1.9rem;padding:.35rem .55rem;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#392b36;font:inherit;font-size:.68rem;outline:none}
+.stamp-search-row input:focus{border-color:#a94875;box-shadow:0 0 0 1px #a94875}
+.stamp-search-row button{width:1.9rem;height:1.9rem;padding:0;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#7d5369;font:inherit;font-weight:700;cursor:pointer}

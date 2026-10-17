@@ -10,6 +10,7 @@ const App = () => {
     const [error, setError] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
+    const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
@@ -28,6 +29,7 @@ const App = () => {
                     setPhotoUrl(url)
                     setIsEditing(false)
                     setSelectedFrame('none')
+                    setPhotoAspectRatio(null)
                     setError(null)
                 }
             }, {
@@ -55,11 +57,20 @@ const App = () => {
 
                     <section className="photo-area" aria-label={isEditing ? '編集中の写真' : '撮影した写真'}>
                         {photoUrl ? (
-                            <div className="photo-stage">
+                            <div
+                                className="photo-stage"
+                                style={photoAspectRatio ? { aspectRatio: photoAspectRatio } : undefined}
+                            >
                                 <img
                                     className="photo-preview"
                                     src={photoUrl}
                                     alt={isEditing ? '編集中の写真' : '撮影した写真'}
+                                    onLoad={(event) => {
+                                        const image = event.currentTarget
+                                        if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                                            setPhotoAspectRatio(image.naturalWidth / image.naturalHeight)
+                                        }
+                                    }}
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
                                 />
                                 {isEditing && selectedFrame !== 'none' && (

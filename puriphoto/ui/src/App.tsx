@@ -6,6 +6,7 @@ const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
+type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other'
 type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; font: CaptionFont; outline: boolean }
@@ -22,53 +23,53 @@ const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: s
     serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
     rounded: { label: '丸文字', css: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif', canvas: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif' }
 }
-const STAMPS: { id: StampId; label: string; glyph: string }[] = [
-    { id: 'heart', label: 'ハート', glyph: '❤️' },
-    { id: 'pinkHeart', label: 'ピンク', glyph: '💗' },
-    { id: 'brokenHeart', label: '失恋', glyph: '💔' },
-    { id: 'star', label: '星', glyph: '⭐' },
-    { id: 'sparkle', label: 'キラキラ', glyph: '✨' },
-    { id: 'crown', label: '王冠', glyph: '👑' },
-    { id: 'ribbon', label: 'リボン', glyph: '🎀' },
-    { id: 'flower', label: '花', glyph: '🌸' },
-    { id: 'cherryBlossom', label: '桜', glyph: '🌺' },
-    { id: 'tulip', label: 'チューリップ', glyph: '🌷' },
-    { id: 'sunflower', label: 'ひまわり', glyph: '🌻' },
-    { id: 'butterfly', label: '蝶', glyph: '🦋' },
-    { id: 'cherry', label: 'さくらんぼ', glyph: '🍒' },
-    { id: 'strawberry', label: 'いちご', glyph: '🍓' },
-    { id: 'peach', label: '桃', glyph: '🍑' },
-    { id: 'cake', label: 'ケーキ', glyph: '🍰' },
-    { id: 'candy', label: 'キャンディ', glyph: '🍬' },
-    { id: 'lollipop', label: 'ペロペロ', glyph: '🍭' },
-    { id: 'iceCream', label: 'アイス', glyph: '🍦' },
-    { id: 'donut', label: 'ドーナツ', glyph: '🍩' },
-    { id: 'coffee', label: 'コーヒー', glyph: '☕' },
-    { id: 'cat', label: 'ねこ', glyph: '🐱' },
-    { id: 'dog', label: 'いぬ', glyph: '🐶' },
-    { id: 'bear', label: 'くま', glyph: '🐻' },
-    { id: 'rabbit', label: 'うさぎ', glyph: '🐰' },
-    { id: 'panda', label: 'パンダ', glyph: '🐼' },
-    { id: 'chick', label: 'ひよこ', glyph: '🐥' },
-    { id: 'frog', label: 'かえる', glyph: '🐸' },
-    { id: 'smile', label: 'スマイル', glyph: '😊' },
-    { id: 'loveFace', label: 'ラブ', glyph: '😍' },
-    { id: 'kiss', label: 'キス', glyph: '😘' },
-    { id: 'cool', label: 'クール', glyph: '😎' },
-    { id: 'party', label: 'パーティ', glyph: '🥳' },
-    { id: 'fire', label: '炎', glyph: '🔥' },
-    { id: 'rainbow', label: '虹', glyph: '🌈' },
-    { id: 'cloud', label: '雲', glyph: '☁️' },
-    { id: 'sun', label: '太陽', glyph: '☀️' },
-    { id: 'moon', label: '月', glyph: '🌙' },
-    { id: 'music', label: '音楽', glyph: '🎵' },
-    { id: 'note', label: '音符', glyph: '🎶' },
-    { id: 'camera', label: 'カメラ', glyph: '📷' },
-    { id: 'gift', label: 'プレゼント', glyph: '🎁' },
-    { id: 'balloon', label: '風船', glyph: '🎈' },
-    { id: 'clover', label: 'クローバー', glyph: '🍀' },
-    { id: 'diamond', label: 'ダイヤ', glyph: '💎' },
-    { id: 'hundred', label: '100', glyph: '💯' }
+const STAMPS: { id: StampId; label: string; glyph: string; category: StampCategory }[] = [
+    { id: 'heart', label: 'ハート', glyph: '❤️' , category: 'love' },
+    { id: 'pinkHeart', label: 'ピンク', glyph: '💗' , category: 'love' },
+    { id: 'brokenHeart', label: '失恋', glyph: '💔' , category: 'love' },
+    { id: 'star', label: '星', glyph: '⭐' , category: 'cute' },
+    { id: 'sparkle', label: 'キラキラ', glyph: '✨' , category: 'cute' },
+    { id: 'crown', label: '王冠', glyph: '👑' , category: 'cute' },
+    { id: 'ribbon', label: 'リボン', glyph: '🎀' , category: 'cute' },
+    { id: 'flower', label: '花', glyph: '🌸' , category: 'cute' },
+    { id: 'cherryBlossom', label: '桜', glyph: '🌺' , category: 'cute' },
+    { id: 'tulip', label: 'チューリップ', glyph: '🌷' , category: 'cute' },
+    { id: 'sunflower', label: 'ひまわり', glyph: '🌻' , category: 'cute' },
+    { id: 'butterfly', label: '蝶', glyph: '🦋' , category: 'cute' },
+    { id: 'cherry', label: 'さくらんぼ', glyph: '🍒' , category: 'food' },
+    { id: 'strawberry', label: 'いちご', glyph: '🍓' , category: 'food' },
+    { id: 'peach', label: '桃', glyph: '🍑' , category: 'food' },
+    { id: 'cake', label: 'ケーキ', glyph: '🍰' , category: 'food' },
+    { id: 'candy', label: 'キャンディ', glyph: '🍬' , category: 'food' },
+    { id: 'lollipop', label: 'ペロペロ', glyph: '🍭' , category: 'food' },
+    { id: 'iceCream', label: 'アイス', glyph: '🍦' , category: 'food' },
+    { id: 'donut', label: 'ドーナツ', glyph: '🍩' , category: 'food' },
+    { id: 'coffee', label: 'コーヒー', glyph: '☕' , category: 'food' },
+    { id: 'cat', label: 'ねこ', glyph: '🐱' , category: 'animal' },
+    { id: 'dog', label: 'いぬ', glyph: '🐶' , category: 'animal' },
+    { id: 'bear', label: 'くま', glyph: '🐻' , category: 'animal' },
+    { id: 'rabbit', label: 'うさぎ', glyph: '🐰' , category: 'animal' },
+    { id: 'panda', label: 'パンダ', glyph: '🐼' , category: 'animal' },
+    { id: 'chick', label: 'ひよこ', glyph: '🐥' , category: 'animal' },
+    { id: 'frog', label: 'かえる', glyph: '🐸' , category: 'animal' },
+    { id: 'smile', label: 'スマイル', glyph: '😊' , category: 'face' },
+    { id: 'loveFace', label: 'ラブ', glyph: '😍' , category: 'face' },
+    { id: 'kiss', label: 'キス', glyph: '😘' , category: 'face' },
+    { id: 'cool', label: 'クール', glyph: '😎' , category: 'face' },
+    { id: 'party', label: 'パーティ', glyph: '🥳' , category: 'face' },
+    { id: 'fire', label: '炎', glyph: '🔥' , category: 'other' },
+    { id: 'rainbow', label: '虹', glyph: '🌈' , category: 'other' },
+    { id: 'cloud', label: '雲', glyph: '☁️' , category: 'other' },
+    { id: 'sun', label: '太陽', glyph: '☀️' , category: 'other' },
+    { id: 'moon', label: '月', glyph: '🌙' , category: 'other' },
+    { id: 'music', label: '音楽', glyph: '🎵' , category: 'other' },
+    { id: 'note', label: '音符', glyph: '🎶' , category: 'other' },
+    { id: 'camera', label: 'カメラ', glyph: '📷' , category: 'other' },
+    { id: 'gift', label: 'プレゼント', glyph: '🎁' , category: 'other' },
+    { id: 'balloon', label: '風船', glyph: '🎈' , category: 'other' },
+    { id: 'clover', label: 'クローバー', glyph: '🍀' , category: 'other' },
+    { id: 'diamond', label: 'ダイヤ', glyph: '💎' , category: 'other' },
+    { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
 
 const App = () => {
@@ -92,6 +93,7 @@ const App = () => {
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text'>('stamp')
+    const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
@@ -633,14 +635,24 @@ const App = () => {
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'stamp' && (
-                            <div className="stamp-picker" aria-label="スタンプを追加">
-                                {STAMPS.map((stamp) => (
+                            <>
+                                <div className="stamp-categories" aria-label="スタンプカテゴリ">
+                                    {([
+                                        ['all', '全部'], ['love', 'ハート'], ['cute', 'かわいい'],
+                                        ['food', 'フード'], ['animal', 'どうぶつ'], ['face', '顔'], ['other', 'その他']
+                                    ] as const).map(([id, label]) => (
+                                        <button key={id} type="button" className={stampCategory === id ? 'selected' : ''} onClick={() => setStampCategory(id)}>{label}</button>
+                                    ))}
+                                </div>
+                                <div className="stamp-picker" aria-label="スタンプを追加">
+                                {STAMPS.filter((stamp) => stampCategory === 'all' || stamp.category === stampCategory).map((stamp) => (
                                     <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
                                         <span>{stamp.glyph}</span>
                                         <small>{stamp.label}</small>
                                     </button>
                                 ))}
-                            </div>
+                                </div>
+                            </>
                         )}
 
                         <p className="capture-message" role="status" aria-live="polite">

@@ -185,6 +185,22 @@ const App = () => {
         setDraggingItem(null)
     }
 
+    const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        if (!selectedOverlay) return
+        event.preventDefault()
+
+        const selected = getSelectedOverlayValues()
+        if (!selected) return
+
+        if (event.shiftKey) {
+            const direction = event.deltaY < 0 ? 8 : -8
+            updateSelectedOverlay({ rotation: selected.rotation + direction })
+        } else {
+            const direction = event.deltaY < 0 ? 0.1 : -0.1
+            updateSelectedOverlay({ scale: Math.max(0.35, Math.min(3.5, selected.scale + direction)) })
+        }
+    }
+
     const addStamp = (stampId: StampId) => {
         const offset = (stampInstances.length % 5) * 4
         setStampInstances((current) => [...current, {
@@ -390,6 +406,7 @@ const App = () => {
                                 onPointerUpCapture={endStagePointer}
                                 onPointerCancelCapture={endStagePointer}
                                 onPointerMove={moveOverlayItem}
+                                onWheel={handleStageWheel}
                                 onPointerDown={(event) => {
                                     if (event.target === event.currentTarget) setSelectedOverlay(null)
                                 }}
@@ -531,7 +548,7 @@ const App = () => {
                         <p className="capture-message" role="status" aria-live="polite">
                             {error || (
                                 isEditing
-                                    ? 'タップで選択・ドラッグで移動。2本指で拡大縮小・回転できます。'
+                                    ? 'クリックで選択・ドラッグで移動。ホイールで拡大縮小、Shift＋ホイールで回転。'
                                     : photoUrl
                                         ? '撮り直すか、この写真を編集できます。'
                                         : 'ボタンを押すとカメラが開きます。'

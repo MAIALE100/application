@@ -1132,3 +1132,22 @@
     font-size:.5rem !important;
     line-height:1.1;
 }
+
+.overlay-toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.overlay-toolbar button {
+    min-width:0;
+}
+.editor-shell-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.editor-shell-actions .danger-subtle {
+    border-color:#e3b5c8;
+    color:#9a4569;
+    background:#fff8fb;
+}
+.editor-shell-actions button:disabled {
+    opacity:.4;
+    cursor:default;
+}

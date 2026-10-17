@@ -418,9 +418,13 @@ const App = () => {
             ? captionInstances.find((item) => item.instanceId === draggingItem.id)
             : stampInstances.find((item) => item.instanceId === draggingItem.id)
         const scale = selected?.scale ?? 1
-        const edgeMargin = Math.max(4, Math.min(18, 4 + scale * 3))
-        const x = Math.max(edgeMargin, Math.min(100 - edgeMargin, ((event.clientX - rect.left) / rect.width) * 100))
-        const y = Math.max(edgeMargin, Math.min(100 - edgeMargin, ((event.clientY - rect.top) / rect.height) * 100))
+        const captionWidth = draggingItem.kind === 'caption' && selected && 'boxWidth' in selected ? selected.boxWidth : 0
+        const horizontalMargin = draggingItem.kind === 'caption'
+            ? Math.max(5, Math.min(46, captionWidth * scale * 0.5))
+            : Math.max(4, Math.min(18, 4 + scale * 3))
+        const verticalMargin = Math.max(4, Math.min(22, 4 + scale * 3.5))
+        const x = Math.max(horizontalMargin, Math.min(100 - horizontalMargin, ((event.clientX - rect.left) / rect.width) * 100))
+        const y = Math.max(verticalMargin, Math.min(100 - verticalMargin, ((event.clientY - rect.top) / rect.height) * 100))
         if (draggingItem.kind === 'caption') {
             setCaptionInstances((current) => current.map((item) =>
                 item.instanceId === draggingItem.id ? { ...item, x, y } : item
@@ -563,12 +567,15 @@ const App = () => {
         event.preventDefault()
         event.stopPropagation()
         if (activeDrawPointer.current !== null) return
+        if (drawStrokes.length >= 500) {
+            setError('手書きの線が上限に達しました。戻す・全消去・消しゴムなどで整理してください。')
+            return
+        }
         activeDrawPointer.current = event.pointerId
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
         setSelectedOverlay(null)
         setDrawStrokes((current) => {
-            if (current.length >= 500) return current
             return [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, opacity: drawOpacity / 100, tool: drawTool }]
         })
     }
@@ -597,9 +604,12 @@ const App = () => {
 
     const addStamp = (stampId: StampId) => {
         if (!STAMPS.some((stamp) => stamp.id === stampId)) return
+        if (stampInstances.length >= 100) {
+            setError('スタンプは100個まで追加できます。不要なスタンプを削除してから追加してください。')
+            return
+        }
         setStampInstances((current) => {
             const offset = (current.length % 5) * 4
-            if (current.length >= 100) return current
             return [...current, {
             instanceId: nextOverlayId.current++,
             stampId,
@@ -609,15 +619,18 @@ const App = () => {
             rotation: 0
         }]
         })
+        setError(null)
     }
 
     const addCaption = () => {
         const text = captionDraft.trim().slice(0, 120)
         if (!text) return
         const offset = (captionInstances.length % 5) * 5
-        setCaptionInstances((current) => {
-            if (current.length >= 100) return current
-            return [...current, {
+        if (captionInstances.length >= 100) {
+            setError('文字は100個まで追加できます。不要な文字を削除してから追加してください。')
+            return
+        }
+        setCaptionInstances((current) => [...current, {
             instanceId: nextOverlayId.current++,
             text,
             x: 50,
@@ -630,9 +643,9 @@ const App = () => {
             outline: captionDraftOutline,
             outlineWidth: captionDraftOutlineWidth,
             boxWidth: captionDraftBoxWidth
-        }]
-        })
+        }])
         setCaptionDraft('')
+        setError(null)
     }
 
     const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; outlineColor?: CaptionColor; font?: CaptionFont; outline?: boolean; outlineWidth?: number; boxWidth?: number }) => {
@@ -649,8 +662,8 @@ const App = () => {
             setCaptionInstances((current) => current.map((item) =>
                 item.instanceId === selectedOverlay.id ? {
                     ...item,
-                    scale: changes.scale ?? item.scale,
-                    rotation: changes.rotation ?? item.rotation,
+                    scale: changes.scale === undefined ? item.scale : Math.max(0.35, Math.min(3.5, changes.scale)),
+                    rotation: changes.rotation === undefined ? item.rotation : ((changes.rotation % 360) + 360) % 360,
                     color: changes.color ?? item.color,
                     outlineColor: changes.outlineColor ?? item.outlineColor,
                     font: changes.font ?? item.font,
@@ -684,14 +697,20 @@ const App = () => {
     const duplicateSelectedOverlay = () => {
         if (!selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
-            if (stampInstances.length >= 100) return
+            if (stampInstances.length >= 100) {
+                setError('スタンプは100個までです。複製するには不要なスタンプを削除してください。')
+                return
+            }
             const source = stampInstances.find((item) => item.instanceId === selectedOverlay.id)
             if (!source) return
             const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }
             setStampInstances((current) => [...current, copy])
             setSelectedOverlay({ kind: 'stamp', id: copy.instanceId })
         } else {
-            if (captionInstances.length >= 100) return
+            if (captionInstances.length >= 100) {
+                setError('文字は100個までです。複製するには不要な文字を削除してください。')
+                return
+            }
             const source = captionInstances.find((item) => item.instanceId === selectedOverlay.id)
             if (!source) return
             const copy = { ...source, instanceId: nextOverlayId.current++, x: Math.min(94, source.x + 5), y: Math.min(94, source.y + 5) }

@@ -4,7 +4,7 @@ import './App.css'
 import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
-type FrameStyle = 'none' | 'soft' | 'pop'
+type FrameStyle = 'none' | 'soft' | 'pop' | 'white' | 'black' | 'double'
 type StampId = string
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
 type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other' | 'community'
@@ -894,6 +894,24 @@ const App = () => {
                 context.setLineDash([borderWidth * 1.1, borderWidth * 0.65])
                 context.strokeRect(borderWidth / 2, borderWidth / 2, width - borderWidth, height - borderWidth)
                 context.restore()
+            } else if (exportSnapshot.frame === 'white' || exportSnapshot.frame === 'black') {
+                const borderWidth = Math.max(10, Math.round(Math.min(width, height) * 0.025))
+                context.save()
+                context.lineWidth = borderWidth
+                context.strokeStyle = exportSnapshot.frame === 'white' ? 'rgba(255, 255, 255, 0.96)' : 'rgba(20, 18, 20, 0.94)'
+                context.strokeRect(borderWidth / 2, borderWidth / 2, width - borderWidth, height - borderWidth)
+                context.restore()
+            } else if (exportSnapshot.frame === 'double') {
+                const outerWidth = Math.max(9, Math.round(Math.min(width, height) * 0.022))
+                const inset = Math.max(22, Math.round(Math.min(width, height) * 0.055))
+                context.save()
+                context.strokeStyle = 'rgba(255, 255, 255, 0.96)'
+                context.lineWidth = outerWidth
+                context.strokeRect(outerWidth / 2, outerWidth / 2, width - outerWidth, height - outerWidth)
+                context.strokeStyle = 'rgba(169, 72, 117, 0.88)'
+                context.lineWidth = Math.max(4, Math.round(outerWidth * 0.45))
+                context.strokeRect(inset, inset, width - inset * 2, height - inset * 2)
+                context.restore()
             }
 
             if (exportSnapshot.stamps.length > 0) {
@@ -1319,6 +1337,9 @@ const App = () => {
                                 <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('none') }}>なし</button>
                                 <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('soft') }}>フレーム1</button>
                                 <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('pop') }}>フレーム2</button>
+                                <button className={selectedFrame === 'white' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('white') }}>白ふち</button>
+                                <button className={selectedFrame === 'black' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('black') }}>黒ふち</button>
+                                <button className={selectedFrame === 'double' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('double') }}>二重ふち</button>
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'text' && (

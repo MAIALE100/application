@@ -245,7 +245,6 @@
     cursor: grab;
     filter: drop-shadow(0 0 0.18rem rgba(255, 105, 180, 0.65));
 }
-.stamp-heart, .stamp-star, .stamp-crown, .stamp-sparkle { }
 .caption-input-wrap {
     display: flex;
     flex-direction: column;
@@ -1175,8 +1174,7 @@
 .stamp-browser-shell .stamp-categories{flex:0 0 auto}
 .stamp-browser-shell .stamp-picker{flex:1 1 auto;min-height:7rem;max-height:none;overflow-y:auto}
 
-.caption-overlay{white-space:pre-wrap}
-.caption-outline-layer,.caption-fill-layer{display:block;white-space:pre-wrap}
+.caption-outline-layer,.caption-fill-layer{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
 .caption-outline-layer{position:absolute;inset:0;color:transparent;pointer-events:none;z-index:0}
 .caption-fill-layer{position:relative;color:inherit;pointer-events:none;z-index:1;-webkit-text-stroke:0 transparent!important;paint-order:normal}
 

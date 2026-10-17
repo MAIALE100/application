@@ -1247,10 +1247,10 @@ const App = () => {
                     <footer className={toolsCollapsed ? 'capture-controls collapsed-controls' : 'capture-controls'}>
                         {isEditing && (
                             <div className="editor-tabs" aria-label="編集ツール">
-                                <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => changeEditorTab('frame')}>フレーム</button>
-                                <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} onClick={() => changeEditorTab('stamp')}>スタンプ</button>
-                                <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} onClick={() => changeEditorTab('text')}>文字</button>
-                                <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} onClick={() => changeEditorTab('draw')}>手書き</button>
+                                <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} disabled={isSaving} onClick={() => changeEditorTab('frame')}>フレーム</button>
+                                <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} disabled={isSaving} onClick={() => changeEditorTab('stamp')}>スタンプ</button>
+                                <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} disabled={isSaving} onClick={() => changeEditorTab('text')}>文字</button>
+                                <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} disabled={isSaving} onClick={() => changeEditorTab('draw')}>手書き</button>
                             </div>
                         )}
                         {isEditing && selectedOverlay && activeEditorTab !== 'stamp' && (() => {
@@ -1280,8 +1280,8 @@ const App = () => {
                         {isEditing && activeEditorTab === 'draw' && (
                             <div className="drawing-controls">
                                 <div className="drawing-tool-picker" aria-label="手書きツール">
-                                    <button type="button" className={drawTool === 'pen' ? 'selected' : ''} onClick={() => setDrawTool('pen')}>ペン</button>
-                                    <button type="button" className={drawTool === 'eraser' ? 'selected' : ''} onClick={() => setDrawTool('eraser')}>消しゴム</button>
+                                    <button type="button" className={drawTool === 'pen' ? 'selected' : ''} disabled={isSaving} onClick={() => { if (!saveLock.current) setDrawTool('pen') }}>ペン</button>
+                                    <button type="button" className={drawTool === 'eraser' ? 'selected' : ''} disabled={isSaving} onClick={() => { if (!saveLock.current) setDrawTool('eraser') }}>消しゴム</button>
                                 </div>
                                 <div className="drawing-control-row">
                                     <span>{drawTool === 'eraser' ? '消しゴムサイズ' : 'ペン色'}</span>
@@ -1292,7 +1292,7 @@ const App = () => {
                                                 type="button"
                                                 className={drawColor === color ? 'drawing-color selected' : 'drawing-color'}
                                                 style={{ background: CAPTION_COLORS[color] }}
-                                                onClick={() => setDrawColor(color)}
+                                                disabled={isSaving} onClick={() => { if (!saveLock.current) setDrawColor(color) }}
                                                 aria-label={`ペン色 ${color}`}
                                             />
                                         ))}
@@ -1300,25 +1300,25 @@ const App = () => {
                                 </div>
                                 <label className="drawing-width-control">
                                     <span>太さ {drawWidth}</span>
-                                    <input type="range" min="2" max="100" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
+                                    <input type="range" min="2" max="100" step="1" value={drawWidth} disabled={isSaving} onChange={(event) => { if (!saveLock.current) setDrawWidth(Number(event.target.value)) }} />
                                 </label>
                                 {drawTool === 'pen' && (
                                     <label className="drawing-width-control">
                                         <span>透明度 {drawOpacity}%</span>
-                                        <input type="range" min="10" max="100" step="5" value={drawOpacity} onChange={(event) => setDrawOpacity(Number(event.target.value))} />
+                                        <input type="range" min="10" max="100" step="5" value={drawOpacity} disabled={isSaving} onChange={(event) => { if (!saveLock.current) setDrawOpacity(Number(event.target.value)) }} />
                                     </label>
                                 )}
                                 <div className="drawing-actions">
-                                    <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes((current) => current.slice(0, -1))}>↶ 1つ戻す</button>
-                                    <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes([])}>全部消す</button>
+                                    <button type="button" disabled={isSaving || !drawStrokes.length} onClick={() => { if (!saveLock.current) setDrawStrokes((current) => current.slice(0, -1)) }}>↶ 1つ戻す</button>
+                                    <button type="button" disabled={isSaving || !drawStrokes.length} onClick={() => { if (!saveLock.current) setDrawStrokes([]) }}>全部消す</button>
                                 </div>
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'frame' && (
                             <div className="frame-picker" aria-label="フレームを選択">
-                                <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>
-                                <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('soft')}>フレーム1</button>
-                                <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('pop')}>フレーム2</button>
+                                <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('none') }}>なし</button>
+                                <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('soft') }}>フレーム1</button>
+                                <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} disabled={isSaving} onClick={() => { if (!saveLock.current) setSelectedFrame('pop') }}>フレーム2</button>
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'text' && (

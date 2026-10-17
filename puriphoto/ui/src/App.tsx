@@ -1,10 +1,12 @@
-import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useState } from 'react'
+import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import './App.css'
 import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
+type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number }
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number }
 const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
     { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
     { id: 'star', label: '星', glyph: '⭐', x: 0.86, y: 0.14 },
@@ -19,14 +21,11 @@ const App = () => {
     const [error, setError] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
-    const [selectedStamps, setSelectedStamps] = useState<StampId[]>([])
-    const [stampPositions, setStampPositions] = useState<Record<StampId, { x: number; y: number }>>({
-        heart: { x: 13, y: 14 }, star: { x: 86, y: 14 },
-        crown: { x: 14, y: 85 }, sparkle: { x: 86, y: 85 }
-    })
-    const [captionText, setCaptionText] = useState('')
-    const [captionPosition, setCaptionPosition] = useState({ x: 50, y: 50 })
-    const [draggingItem, setDraggingItem] = useState<StampId | 'caption' | null>(null)
+    const [stampInstances, setStampInstances] = useState<StampInstance[]>([])
+    const [captionDraft, setCaptionDraft] = useState('')
+    const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
+    const [draggingItem, setDraggingItem] = useState<{ kind: 'stamp' | 'caption'; id: number } | null>(null)
+    const nextOverlayId = useRef(1)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -51,8 +50,9 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
                     setSelectedFrame('none')
-                    setSelectedStamps([])
-                    setCaptionText('')
+                    setStampInstances([])
+                    setCaptionDraft('')
+                    setCaptionInstances([])
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -96,7 +96,7 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
                     setSelectedFrame('none')
-                    setSelectedStamps([])
+                    setStampInstances([])
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -113,8 +113,38 @@ const App = () => {
         if (!rect.width || !rect.height) return
         const x = Math.max(4, Math.min(96, ((event.clientX - rect.left) / rect.width) * 100))
         const y = Math.max(4, Math.min(96, ((event.clientY - rect.top) / rect.height) * 100))
-        if (draggingItem === 'caption') setCaptionPosition({ x, y })
-        else setStampPositions((current) => ({ ...current, [draggingItem]: { x, y } }))
+        if (draggingItem.kind === 'caption') {
+            setCaptionInstances((current) => current.map((item) =>
+                item.instanceId === draggingItem.id ? { ...item, x, y } : item
+            ))
+        } else {
+            setStampInstances((current) => current.map((item) =>
+                item.instanceId === draggingItem.id ? { ...item, x, y } : item
+            ))
+        }
+    }
+
+    const addStamp = (stampId: StampId) => {
+        const offset = (stampInstances.length % 5) * 4
+        setStampInstances((current) => [...current, {
+            instanceId: nextOverlayId.current++,
+            stampId,
+            x: 50 + offset,
+            y: 50 + offset
+        }])
+    }
+
+    const addCaption = () => {
+        const text = captionDraft.trim().slice(0, 40)
+        if (!text) return
+        const offset = (captionInstances.length % 5) * 5
+        setCaptionInstances((current) => [...current, {
+            instanceId: nextOverlayId.current++,
+            text,
+            x: 50,
+            y: Math.min(85, 45 + offset)
+        }])
+        setCaptionDraft('')
     }
 
     const saveFinishedPhoto = async () => {
@@ -166,7 +196,7 @@ const App = () => {
                 context.restore()
             }
 
-            if (selectedStamps.length > 0) {
+            if (stampInstances.length > 0) {
                 const stampSize = Math.max(30, Math.round(Math.min(width, height) * 0.11))
                 context.save()
                 context.font = `${stampSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
@@ -174,15 +204,14 @@ const App = () => {
                 context.textBaseline = 'middle'
                 context.shadowColor = 'rgba(255, 105, 180, 0.65)'
                 context.shadowBlur = stampSize * 0.18
-                for (const stamp of STAMPS) {
-                    if (!selectedStamps.includes(stamp.id)) continue
-                    const position = stampPositions[stamp.id]
-                    context.fillText(stamp.glyph, width * position.x / 100, height * position.y / 100)
+                for (const item of stampInstances) {
+                    const stamp = STAMPS.find((candidate) => candidate.id === item.stampId)
+                    if (stamp) context.fillText(stamp.glyph, width * item.x / 100, height * item.y / 100)
                 }
                 context.restore()
             }
 
-            if (captionText.trim()) {
+            if (captionInstances.length > 0) {
                 const fontSize = Math.max(22, Math.round(Math.min(width, height) * 0.055))
                 context.save()
                 context.font = `700 ${fontSize}px "Noto Sans JP", sans-serif`
@@ -191,9 +220,11 @@ const App = () => {
                 context.lineWidth = Math.max(3, fontSize * 0.14)
                 context.strokeStyle = '#ffffff'
                 context.lineJoin = 'round'
-                context.strokeText(captionText.trim().slice(0, 40), width * captionPosition.x / 100, height * captionPosition.y / 100)
                 context.fillStyle = '#a12f68'
-                context.fillText(captionText.trim().slice(0, 40), width * captionPosition.x / 100, height * captionPosition.y / 100)
+                for (const item of captionInstances) {
+                    context.strokeText(item.text, width * item.x / 100, height * item.y / 100)
+                    context.fillText(item.text, width * item.x / 100, height * item.y / 100)
+                }
                 context.restore()
             }
 
@@ -214,7 +245,7 @@ const App = () => {
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
             setSelectedFrame('none')
-            setSelectedStamps([])
+            setStampInstances([])
             setIsEditing(false)
             setError(null)
         } catch (cause) {
@@ -267,36 +298,44 @@ const App = () => {
                                         />
                                         : <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
                                 )}
-                                {isEditing && STAMPS.filter((stamp) => selectedStamps.includes(stamp.id)).map((stamp) => (
+                                {isEditing && stampInstances.map((item) => {
+                                    const stamp = STAMPS.find((candidate) => candidate.id === item.stampId)
+                                    if (!stamp) return null
+                                    return (
+                                        <span
+                                            key={item.instanceId}
+                                            className="stamp-overlay"
+                                            style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                                            onPointerDown={(event) => {
+                                                event.preventDefault()
+                                                event.stopPropagation()
+                                                setDraggingItem({ kind: 'stamp', id: item.instanceId })
+                                                event.currentTarget.setPointerCapture(event.pointerId)
+                                            }}
+                                            onDoubleClick={() => setStampInstances((current) => current.filter((candidate) => candidate.instanceId !== item.instanceId))}
+                                            aria-label={`${stamp.label}。ダブルクリックで削除`}
+                                        >
+                                            {stamp.glyph}
+                                        </span>
+                                    )
+                                })}
+                                {isEditing && captionInstances.map((item) => (
                                     <span
-                                        key={stamp.id}
-                                        className={`stamp-overlay stamp-${stamp.id}`}
-                                        style={{ left: `${stampPositions[stamp.id].x}%`, top: `${stampPositions[stamp.id].y}%` }}
+                                        key={item.instanceId}
+                                        className="caption-overlay"
+                                        style={{ left: `${item.x}%`, top: `${item.y}%` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()
-                                            setDraggingItem(stamp.id)
+                                            setDraggingItem({ kind: 'caption', id: item.instanceId })
                                             event.currentTarget.setPointerCapture(event.pointerId)
                                         }}
-                                        aria-label={stamp.label}
+                                        onDoubleClick={() => setCaptionInstances((current) => current.filter((candidate) => candidate.instanceId !== item.instanceId))}
+                                        aria-label="文字。ダブルクリックで削除"
                                     >
-                                        {stamp.glyph}
+                                        {item.text}
                                     </span>
                                 ))}
-                                {isEditing && captionText.trim() && (
-                                    <span
-                                        className="caption-overlay"
-                                        style={{ left: `${captionPosition.x}%`, top: `${captionPosition.y}%` }}
-                                        onPointerDown={(event) => {
-                                            event.preventDefault()
-                                            event.stopPropagation()
-                                            setDraggingItem('caption')
-                                            event.currentTarget.setPointerCapture(event.pointerId)
-                                        }}
-                                        aria-label="文字スタンプ"
-                                    >
-                                        {captionText.trim().slice(0, 40)}
-                                    </span>
                                 )}
                             </div>
                         ) : (
@@ -317,32 +356,28 @@ const App = () => {
                             </div>
                         )}
                         {isEditing && (
-                            <label className="caption-input-wrap">
-                                <span>文字入れ（40文字まで）</span>
-                                <input
-                                    className="caption-input"
-                                    type="text"
-                                    maxLength={40}
-                                    value={captionText}
-                                    onChange={(event) => setCaptionText(event.target.value)}
-                                    placeholder="例：最高の一枚！"
-                                />
-                            </label>
+                            <div className="caption-input-wrap">
+                                <span>文字入れ（何個でも追加できます）</span>
+                                <div className="caption-input-row">
+                                    <input
+                                        className="caption-input"
+                                        type="text"
+                                        maxLength={40}
+                                        value={captionDraft}
+                                        onChange={(event) => setCaptionDraft(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') addCaption()
+                                        }}
+                                        placeholder="例：最高の一枚！"
+                                    />
+                                    <button type="button" className="caption-add-button" onClick={addCaption} disabled={!captionDraft.trim()}>追加</button>
+                                </div>
+                            </div>
                         )}
                         {isEditing && (
-                            <div className="stamp-picker" aria-label="スタンプを選択">
+                            <div className="stamp-picker" aria-label="スタンプを追加">
                                 {STAMPS.map((stamp) => (
-                                    <button
-                                        key={stamp.id}
-                                        type="button"
-                                        className={selectedStamps.includes(stamp.id) ? 'stamp-option selected' : 'stamp-option'}
-                                        aria-pressed={selectedStamps.includes(stamp.id)}
-                                        onClick={() => setSelectedStamps((current) =>
-                                            current.includes(stamp.id)
-                                                ? current.filter((id) => id !== stamp.id)
-                                                : [...current, stamp.id]
-                                        )}
-                                    >
+                                    <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
                                         <span>{stamp.glyph}</span>
                                         <small>{stamp.label}</small>
                                     </button>

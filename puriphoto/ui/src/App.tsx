@@ -85,6 +85,66 @@ const STAMPS: { id: StampId; label: string; glyph: string; category: StampCatego
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
 
+const isTopLevelNui = window.parent === window
+
+type EditorMirrorState = {
+    photoUrl: string
+    aspectRatio: number | null
+    frame: FrameStyle
+    stamps: StampInstance[]
+    captions: CaptionInstance[]
+}
+
+const FullscreenEditor = () => {
+    const [visible, setVisible] = useState(false)
+    const [state, setState] = useState<EditorMirrorState | null>(null)
+
+    useEffect(() => {
+        const onMessage = (event: MessageEvent) => {
+            const message = event.data
+            if (!message || typeof message !== 'object') return
+            if (message.action === 'puriphoto:openEditor') {
+                setVisible(true)
+                if (message.payload) setState(message.payload)
+            } else if (message.action === 'puriphoto:editorState') {
+                setState(message.payload ?? null)
+            } else if (message.action === 'puriphoto:closeEditor') {
+                setVisible(false)
+                setState(null)
+            }
+        }
+        window.addEventListener('message', onMessage)
+        return () => window.removeEventListener('message', onMessage)
+    }, [])
+
+    if (!visible || !state?.photoUrl) return null
+
+    const frameSrc = state.aspectRatio && state.aspectRatio > 1
+        ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
+        : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-portrait.webp`
+
+    return (
+        <main className="fullscreen-editor" aria-label="PuriPhoto 大画面プレビュー">
+            <div className="fullscreen-editor-card">
+                <div className="fullscreen-editor-label">PuriPhoto EDIT PREVIEW</div>
+                <div className="fullscreen-photo-stage" style={state.aspectRatio ? { aspectRatio: state.aspectRatio } : undefined}>
+                    <img src={state.photoUrl} className="fullscreen-photo" alt="" />
+                    {state.frame === 'soft' && <img src={frameSrc} className="frame-image-overlay" alt="" />}
+                    {state.frame === 'pop' && <div className="frame-overlay frame-pop" />}
+                    {state.stamps.map((item) => {
+                        const stamp = STAMPS.find((candidate) => candidate.id === item.stampId)
+                        return stamp ? <span key={item.instanceId} className="fullscreen-stamp" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}>{stamp.glyph}</span> : null
+                    })}
+                    {state.captions.map((item) => (
+                        <span key={item.instanceId} className="fullscreen-caption" style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? `0.08em ${CAPTION_COLORS[item.outlineColor]}` : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}>{item.text}</span>
+                    ))}
+                </div>
+                <div className="fullscreen-editor-hint">右のスマホから編集できます</div>
+            </div>
+        </main>
+    )
+}
+
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [sourcePhotoUrl, setSourcePhotoUrl] = useState<string | null>(null)
@@ -113,6 +173,47 @@ const App = () => {
     useEffect(() => {
         document.body.style.visibility = 'visible'
     }, [])
+
+    useEffect(() => {
+        if (isTopLevelNui || devMode || !photoUrl) return
+        const payload: EditorMirrorState = {
+            photoUrl,
+            aspectRatio: photoAspectRatio,
+            frame: selectedFrame,
+            stamps: stampInstances,
+            captions: captionInstances
+        }
+        fetch(`https://${resourceName}/puriphoto:editorState`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(payload)
+        }).catch(() => undefined)
+    }, [photoUrl, photoAspectRatio, selectedFrame, stampInstances, captionInstances])
+
+    const openFullscreenEditor = (url: string) => {
+        if (devMode || isTopLevelNui) return
+        const payload: EditorMirrorState = {
+            photoUrl: url,
+            aspectRatio: photoAspectRatio,
+            frame: selectedFrame,
+            stamps: stampInstances,
+            captions: captionInstances
+        }
+        fetch(`https://${resourceName}/puriphoto:openEditor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(payload)
+        }).catch(() => undefined)
+    }
+
+    const closeFullscreenEditor = () => {
+        if (devMode || isTopLevelNui) return
+        fetch(`https://${resourceName}/puriphoto:closeEditor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: '{}'
+        }).catch(() => undefined)
+    }
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
@@ -470,6 +571,7 @@ const App = () => {
             setSelectedFrame('none')
             setStampInstances([])
             setIsEditing(false)
+            closeFullscreenEditor()
             setError(null)
         } catch (cause) {
             console.error('[PuriPhoto] Failed to save finished photo:', cause)
@@ -729,6 +831,7 @@ const App = () => {
                                 <button type="button" className="capture-button secondary-button" onClick={() => {
                                     setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
                                     setIsEditing(false)
+                                    closeFullscreenEditor()
                                 }} disabled={isSaving}>
                                     写真確認に戻る
                                 </button>
@@ -745,8 +848,10 @@ const App = () => {
                                 )}
                                 {photoUrl && (
                                     <button type="button" className="capture-button" onClick={() => {
-                                    setPhotoUrl(sourcePhotoUrl || photoUrl)
+                                    const editingUrl = sourcePhotoUrl || photoUrl
+                                    setPhotoUrl(editingUrl)
                                     setIsEditing(true)
+                                    openFullscreenEditor(editingUrl)
                                 }}>
                                         編集する
                                     </button>
@@ -778,4 +883,6 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     ) : <>{children}</>
 }
 
-export default App
+const Root = () => isTopLevelNui && !devMode ? <FullscreenEditor /> : <App />
+
+export default Root

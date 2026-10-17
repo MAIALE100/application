@@ -9,7 +9,7 @@ type StampInstance = { instanceId: number; stampId: StampId; x: number; y: numbe
 type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other' | 'community'
 type CaptionColor = 'pink' | 'hotPink' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'mint' | 'cyan' | 'blue' | 'navy' | 'purple' | 'lavender' | 'brown' | 'beige' | 'white' | 'gray' | 'black'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
-type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; outlineWidth: number; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 type DrawPoint = { x: number; y: number }
 type DrawTool = 'pen' | 'eraser'
@@ -115,6 +115,7 @@ const App = () => {
     const [captionDraftOutlineColor, setCaptionDraftOutlineColor] = useState<CaptionColor>('white')
     const [captionDraftFont, setCaptionDraftFont] = useState<CaptionFont>('gothic')
     const [captionDraftOutline, setCaptionDraftOutline] = useState(true)
+    const [captionDraftOutlineWidth, setCaptionDraftOutlineWidth] = useState(4)
     const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
     const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
     const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
@@ -288,6 +289,7 @@ const App = () => {
         setStampInstances([])
         setDrawStrokes([])
         setCaptionDraft('')
+        setCaptionDraftOutlineWidth(4)
         setCaptionInstances([])
         setSelectedOverlay(null)
         setDraggingItem(null)
@@ -546,6 +548,7 @@ const App = () => {
             outlineColor: captionDraftOutlineColor,
             font: captionDraftFont,
             outline: captionDraftOutline,
+            outlineWidth: captionDraftOutlineWidth,
             boxWidth: captionDraftBoxWidth
         }])
         setCaptionDraft('')
@@ -1140,6 +1143,23 @@ const App = () => {
                                         縁取り
                                     </button>
                                 </div>
+                                {(selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outline : captionDraftOutline) && (
+                                    <div className="caption-width-control">
+                                        <span>縁取り太さ</span>
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="12"
+                                            step="1"
+                                            value={selectedOverlay?.kind === 'caption' ? (getSelectedOverlayValues() as CaptionInstance | null)?.outlineWidth ?? 4 : captionDraftOutlineWidth}
+                                            onChange={(event) => {
+                                                const outlineWidth = Number(event.target.value)
+                                                if (selectedOverlay?.kind === 'caption') updateSelectedOverlay({ outlineWidth })
+                                                else setCaptionDraftOutlineWidth(outlineWidth)
+                                            }}
+                                        />
+                                    </div>
+                                )}
                                 <span className="caption-color-label">文字色</span>
                                 <div className="caption-color-picker" aria-label="文字色">
                                     {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (

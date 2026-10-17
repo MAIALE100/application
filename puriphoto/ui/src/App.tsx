@@ -3,9 +3,7 @@ import './App.css'
 import Frame from './components/Frame'
 
 const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
-const puriPhotoResourceName = 'puriphoto'
-const isTopLevelPuriPhotoNui = window.location.hostname === 'cfx-nui-puriphoto'
-const devMode = !window['invokeNative'] && !isTopLevelPuriPhotoNui
+const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
@@ -88,37 +86,6 @@ const STAMPS: { id: StampId; label: string; glyph: string; category: StampCatego
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
 
-const StandaloneEditorLayer = () => {
-    const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-
-    useEffect(() => {
-        const onMessage = (event: MessageEvent) => {
-            const data = event.data
-            if (!data || typeof data !== 'object') return
-            if (data.action === 'puriphoto:showStandaloneEditor' && typeof data.photoUrl === 'string') {
-                setPhotoUrl(data.photoUrl)
-            } else if (data.action === 'puriphoto:hideStandaloneEditor') {
-                setPhotoUrl(null)
-            }
-        }
-        window.addEventListener('message', onMessage)
-        return () => window.removeEventListener('message', onMessage)
-    }, [])
-
-    const isTopLevelPuriPhotoNui = window.location.hostname === 'cfx-nui-puriphoto'
-    if (!isTopLevelPuriPhotoNui || !photoUrl) return null
-
-    return (
-        <main className="standalone-editor-layer">
-            <section className="standalone-editor-card">
-                <div className="standalone-editor-title">PuriPhoto EDIT PREVIEW</div>
-                <img src={photoUrl} className="standalone-editor-photo" alt="編集中の写真" />
-                <div className="standalone-editor-hint">右のスマホから編集できます</div>
-            </section>
-        </main>
-    )
-}
-
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [sourcePhotoUrl, setSourcePhotoUrl] = useState<string | null>(null)
@@ -147,24 +114,6 @@ const App = () => {
     useEffect(() => {
         document.body.style.visibility = 'visible'
     }, [])
-
-    const showStandaloneEditor = (url: string) => {
-        if (devMode) return
-        fetch(`https://${puriPhotoResourceName}/puriphoto:showStandaloneEditor`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-            body: JSON.stringify({ photoUrl: url })
-        }).catch(() => undefined)
-    }
-
-    const hideStandaloneEditor = () => {
-        if (devMode) return
-        fetch(`https://${puriPhotoResourceName}/puriphoto:hideStandaloneEditor`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-            body: '{}'
-        }).catch(() => undefined)
-    }
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
@@ -781,7 +730,6 @@ const App = () => {
                                 <button type="button" className="capture-button secondary-button" onClick={() => {
                                     setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
                                     setIsEditing(false)
-                                    hideStandaloneEditor()
                                 }} disabled={isSaving}>
                                     写真確認に戻る
                                 </button>
@@ -801,7 +749,6 @@ const App = () => {
                                     const editingUrl = sourcePhotoUrl || photoUrl
                                     setPhotoUrl(editingUrl)
                                     setIsEditing(true)
-                                    showStandaloneEditor(editingUrl)
                                 }}>
                                         編集する
                                     </button>
@@ -833,12 +780,4 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     ) : <>{children}</>
 }
 
-const Root = () => {
-    if (isTopLevelPuriPhotoNui) {
-        return <StandaloneEditorLayer />
-    }
-
-    return <App />
-}
-
-export default Root
+export default App

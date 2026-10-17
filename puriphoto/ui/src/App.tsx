@@ -115,6 +115,24 @@ const App = () => {
         document.body.style.visibility = 'visible'
     }, [])
 
+    const showStandaloneEditor = (url: string) => {
+        if (devMode) return
+        fetch(`https://${resourceName}/puriphoto:showStandaloneEditor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify({ photoUrl: url })
+        }).catch(() => undefined)
+    }
+
+    const hideStandaloneEditor = () => {
+        if (devMode) return
+        fetch(`https://${resourceName}/puriphoto:hideStandaloneEditor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: '{}'
+        }).catch(() => undefined)
+    }
+
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
     const takePhoto = () => {
@@ -730,6 +748,7 @@ const App = () => {
                                 <button type="button" className="capture-button secondary-button" onClick={() => {
                                     setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
                                     setIsEditing(false)
+                                    hideStandaloneEditor()
                                 }} disabled={isSaving}>
                                     写真確認に戻る
                                 </button>
@@ -749,6 +768,7 @@ const App = () => {
                                     const editingUrl = sourcePhotoUrl || photoUrl
                                     setPhotoUrl(editingUrl)
                                     setIsEditing(true)
+                                    showStandaloneEditor(editingUrl)
                                 }}>
                                         編集する
                                     </button>

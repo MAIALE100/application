@@ -14,6 +14,7 @@ type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 type DrawPoint = { x: number; y: number }
 type DrawTool = 'pen' | 'eraser'
 type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
+type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: CaptionInstance[]; strokes: DrawStroke[] }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -133,7 +134,74 @@ const App = () => {
     const [toolsCollapsed, setToolsCollapsed] = useState(false)
     const panPointer = useRef<{ id: number; startX: number; startY: number; originX: number; originY: number } | null>(null)
     const activeDrawPointer = useRef<number | null>(null)
+    const [confirmExit, setConfirmExit] = useState(false)
+    const [saveNotice, setSaveNotice] = useState<string | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
+    const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([])
+    const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([])
+    const historyLock = useRef(false)
+    const historyTimer = useRef<number | null>(null)
+    const lastSnapshot = useRef<string>('')
+
+    const makeSnapshot = (): EditorSnapshot => ({
+        frame: selectedFrame,
+        stamps: stampInstances,
+        captions: captionInstances,
+        strokes: drawStrokes
+    })
+
+    const applySnapshot = (snapshot: EditorSnapshot) => {
+        historyLock.current = true
+        setSelectedFrame(snapshot.frame)
+        setStampInstances(snapshot.stamps)
+        setCaptionInstances(snapshot.captions)
+        setDrawStrokes(snapshot.strokes)
+        setSelectedOverlay(null)
+        setDraggingItem(null)
+        window.setTimeout(() => { historyLock.current = false }, 0)
+    }
+
+    const undoEditor = () => {
+        if (!undoStack.length) return
+        const previous = undoStack[undoStack.length - 1]
+        setUndoStack((current) => current.slice(0, -1))
+        setRedoStack((current) => [...current.slice(-29), makeSnapshot()])
+        applySnapshot(previous)
+    }
+
+    const redoEditor = () => {
+        if (!redoStack.length) return
+        const next = redoStack[redoStack.length - 1]
+        setRedoStack((current) => current.slice(0, -1))
+        setUndoStack((current) => [...current.slice(-29), makeSnapshot()])
+        applySnapshot(next)
+    }
+
+    useEffect(() => {
+        if (!isEditing || historyLock.current) return
+        if (historyTimer.current !== null) window.clearTimeout(historyTimer.current)
+        historyTimer.current = window.setTimeout(() => {
+            const snapshot = makeSnapshot()
+            const serialized = JSON.stringify(snapshot)
+            if (lastSnapshot.current && lastSnapshot.current !== serialized) {
+                const previous = JSON.parse(lastSnapshot.current) as EditorSnapshot
+                setUndoStack((current) => [...current.slice(-29), previous])
+                setRedoStack([])
+            }
+            lastSnapshot.current = serialized
+        }, 180)
+        return () => {
+            if (historyTimer.current !== null) window.clearTimeout(historyTimer.current)
+        }
+    }, [isEditing, selectedFrame, stampInstances, captionInstances, drawStrokes])
+
+    useEffect(() => {
+        if (isEditing) {
+            lastSnapshot.current = JSON.stringify(makeSnapshot())
+            setUndoStack([])
+            setRedoStack([])
+        }
+    }, [isEditing])
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
@@ -148,7 +216,14 @@ const App = () => {
         const onKeyDown = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement | null
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
-            if ((event.key === 'Delete' || event.key === 'Backspace') && selectedOverlay) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+                event.preventDefault()
+                if (event.shiftKey) redoEditor()
+                else undoEditor()
+            } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+                event.preventDefault()
+                redoEditor()
+            } else if ((event.key === 'Delete' || event.key === 'Backspace') && selectedOverlay) {
                 event.preventDefault()
                 deleteSelectedOverlay()
             } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd' && selectedOverlay) {
@@ -160,7 +235,7 @@ const App = () => {
         }
         window.addEventListener('keydown', onKeyDown)
         return () => window.removeEventListener('keydown', onKeyDown)
-    }, [isEditing, selectedOverlay, stampInstances, captionInstances])
+    }, [isEditing, selectedOverlay, stampInstances, captionInstances, undoStack, redoStack, selectedFrame, drawStrokes])
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
@@ -220,6 +295,9 @@ const App = () => {
         setToolsCollapsed(false)
         setPhotoAspectRatio(null)
         setError(null)
+        setUndoStack([])
+        setRedoStack([])
+        lastSnapshot.current = ''
     }
 
     const chooseFromGallery = () => {
@@ -729,6 +807,8 @@ const App = () => {
             setEditorZoom(1)
             setEditorPan({ x: 0, y: 0 })
             setIsEditing(false)
+            setSaveNotice('ギャラリーに保存しました')
+            window.setTimeout(() => setSaveNotice(null), 2600)
             setError(null)
         } catch (cause) {
             console.error('[PuriPhoto] Failed to save finished photo:', cause)
@@ -920,13 +1000,15 @@ const App = () => {
 
                     {isEditing && (
                         <div className="editor-shell-actions">
+                            <button type="button" onClick={undoEditor} disabled={!undoStack.length}>↶ 戻す</button>
+                            <button type="button" onClick={redoEditor} disabled={!redoStack.length}>↷ やり直す</button>
                             <button type="button" onClick={() => setToolsCollapsed((value) => !value)}>
                                 {toolsCollapsed ? '編集ツールを表示' : '編集ツールを折りたたむ'}
                             </button>
                             <button type="button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>
                                 表示をリセット
                             </button>
-                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={!selectedFrame || (selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0)}>
+                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0}>
                                 装飾を全消去
                             </button>
                         </div>
@@ -1155,8 +1237,12 @@ const App = () => {
                     {isEditing && (
                         <div className="editor-final-actions">
                             <button type="button" className="capture-button secondary-button" onClick={() => {
-                                setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                setIsEditing(false)
+                                const dirty = selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
+                                if (dirty) setConfirmExit(true)
+                                else {
+                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
+                                    setIsEditing(false)
+                                }
                             }} disabled={isSaving}>
                                 写真確認に戻る
                             </button>
@@ -1166,6 +1252,28 @@ const App = () => {
                         </div>
                     )}
                 </div>
+                {confirmExit && (
+                    <div className="confirm-overlay" role="dialog" aria-modal="true">
+                        <div className="confirm-card">
+                            <strong>編集内容を破棄しますか？</strong>
+                            <p>保存していない装飾は失われます。</p>
+                            <div>
+                                <button type="button" onClick={() => setConfirmExit(false)}>編集を続ける</button>
+                                <button type="button" className="danger-confirm" onClick={() => {
+                                    setConfirmExit(false)
+                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
+                                    setSelectedFrame('none')
+                                    setStampInstances([])
+                                    setCaptionInstances([])
+                                    setDrawStrokes([])
+                                    setSelectedOverlay(null)
+                                    setIsEditing(false)
+                                }}>破棄して戻る</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {saveNotice && <div className="save-toast" role="status">{saveNotice}</div>}
             </main>
         </AppProvider>
     )

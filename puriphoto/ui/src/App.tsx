@@ -7,7 +7,8 @@ type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
 type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
-type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor }
+type CaptionFont = 'gothic' | 'serif' | 'rounded'
+type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; font: CaptionFont; outline: boolean }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#a12f68',
@@ -15,6 +16,11 @@ const CAPTION_COLORS: Record<CaptionColor, string> = {
     black: '#1f1b1e',
     blue: '#3b68c7',
     yellow: '#f1c83b'
+}
+const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: string }> = {
+    gothic: { label: 'ゴシック', css: '"Noto Sans JP", sans-serif', canvas: '"Noto Sans JP", sans-serif' },
+    serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
+    rounded: { label: '丸文字', css: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif', canvas: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif' }
 }
 const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
     { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
@@ -33,6 +39,8 @@ const App = () => {
     const [stampInstances, setStampInstances] = useState<StampInstance[]>([])
     const [captionDraft, setCaptionDraft] = useState('')
     const [captionDraftColor, setCaptionDraftColor] = useState<CaptionColor>('pink')
+    const [captionDraftFont, setCaptionDraftFont] = useState<CaptionFont>('gothic')
+    const [captionDraftOutline, setCaptionDraftOutline] = useState(true)
     const [captionInstances, setCaptionInstances] = useState<CaptionInstance[]>([])
     const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
     const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
@@ -233,7 +241,9 @@ const App = () => {
             y: Math.min(85, 45 + offset),
             scale: 1,
             rotation: 0,
-            color: captionDraftColor
+            color: captionDraftColor,
+            font: captionDraftFont,
+            outline: captionDraftOutline
         }])
         setCaptionDraft('')
     }
@@ -350,19 +360,19 @@ const App = () => {
             if (captionInstances.length > 0) {
                 const fontSize = Math.max(22, Math.round(Math.min(width, height) * 0.055))
                 context.save()
-                context.font = `700 ${fontSize}px "Noto Sans JP", sans-serif`
                 context.textAlign = 'center'
                 context.textBaseline = 'middle'
                 context.lineWidth = Math.max(3, fontSize * 0.14)
                 context.strokeStyle = '#ffffff'
                 context.lineJoin = 'round'
                 for (const item of captionInstances) {
+                    context.font = `700 ${fontSize}px ${CAPTION_FONTS[item.font].canvas}`
                     context.fillStyle = CAPTION_COLORS[item.color]
                     context.save()
                     context.translate(width * item.x / 100, height * item.y / 100)
                     context.rotate(item.rotation * Math.PI / 180)
                     context.scale(item.scale, item.scale)
-                    context.strokeText(item.text, 0, 0)
+                    if (item.outline) context.strokeText(item.text, 0, 0)
                     context.fillText(item.text, 0, 0)
                     context.restore()
                 }
@@ -454,7 +464,7 @@ const App = () => {
                                             className={selectedOverlay?.kind === 'stamp' && selectedOverlay.id === item.instanceId ? 'stamp-overlay overlay-selected' : 'stamp-overlay'}
                                             data-overlay-kind="stamp"
                                             data-overlay-id={item.instanceId}
-                                            style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                            style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? '0.08em #fff' : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                             onPointerDown={(event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
@@ -541,6 +551,16 @@ const App = () => {
                                         placeholder="例：最高の一枚！"
                                     />
                                     <button type="button" className="caption-add-button" onClick={addCaption} disabled={!captionDraft.trim()}>追加</button>
+                                </div>
+                                <div className="caption-style-row" aria-label="文字フォント">
+                                    {(Object.keys(CAPTION_FONTS) as CaptionFont[]).map((font) => (
+                                        <button key={font} type="button" className={captionDraftFont === font ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => setCaptionDraftFont(font)}>
+                                            {CAPTION_FONTS[font].label}
+                                        </button>
+                                    ))}
+                                    <button type="button" className={captionDraftOutline ? 'caption-style-button selected' : 'caption-style-button'} onClick={() => setCaptionDraftOutline((value) => !value)}>
+                                        縁取り
+                                    </button>
                                 </div>
                                 <div className="caption-color-picker" aria-label="文字色">
                                     {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (

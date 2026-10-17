@@ -162,19 +162,58 @@
 .stamp-option.selected { border-color: #a94875; background: #f9e3ec; box-shadow: inset 0 0 0 1px #a94875; }
 .stamp-option:focus-visible { outline: 2px solid #392b36; outline-offset: 2px; }
 
+.photo-stage { touch-action: none; }
 .stamp-overlay {
     position: absolute;
     z-index: 2;
     transform: translate(-50%, -50%);
     font-size: clamp(1.5rem, 8vw, 3.25rem);
     line-height: 1;
-    pointer-events: none;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
     filter: drop-shadow(0 0 0.18rem rgba(255, 105, 180, 0.65));
 }
-.stamp-heart { left: 13%; top: 14%; }
-.stamp-star { left: 86%; top: 14%; }
-.stamp-crown { left: 14%; top: 85%; }
-.stamp-sparkle { left: 86%; top: 85%; }
+.stamp-heart, .stamp-star, .stamp-crown, .stamp-sparkle { }
+.caption-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: #795b70;
+    font-size: 0.72rem;
+}
+.caption-input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: #392b36;
+    font: inherit;
+    font-size: 0.9rem;
+}
+.caption-overlay {
+    position: absolute;
+    z-index: 3;
+    transform: translate(-50%, -50%);
+    max-width: 90%;
+    color: #a12f68;
+    font-size: clamp(0.9rem, 4.2vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    -webkit-text-stroke: 0.08em #fff;
+    paint-order: stroke fill;
+    filter: drop-shadow(0 0.08rem 0.15rem rgba(0,0,0,0.25));
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
 
 .capture-message {
     min-height: 2.8em;

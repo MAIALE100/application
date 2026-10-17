@@ -1436,13 +1436,23 @@ const App = () => {
                                     const selected = getSelectedOverlayValues()
                                     if (!selected) return null
                                     return (
-                                        <div className="stamp-quick-actions">
-                                            <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.max(0.45, selected.scale - 0.15) })}>−</button>
-                                            <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.min(2.5, selected.scale + 0.15) })}>＋</button>
-                                            <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation - 15 })}>↶</button>
-                                            <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation + 15 })}>↷</button>
-                                            <button type="button" onClick={duplicateSelectedOverlay}>⧉</button>
-                                            <button type="button" className="delete-overlay-button" onClick={deleteSelectedOverlay}>🗑</button>
+                                        <div className="overlay-toolbar-wrap">
+                                            <div className="stamp-quick-actions">
+                                                <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.max(0.45, selected.scale - 0.15) })}>−</button>
+                                                <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.min(2.5, selected.scale + 0.15) })}>＋</button>
+                                                <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation - 15 })}>↶</button>
+                                                <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation + 15 })}>↷</button>
+                                                <button type="button" onClick={duplicateSelectedOverlay}>⧉</button>
+                                                <button type="button" className="delete-overlay-button" onClick={deleteSelectedOverlay}>🗑</button>
+                                                <button type="button" onClick={() => setOverlayToolsExpanded((value) => !value)}>{overlayToolsExpanded ? '閉じる' : '詳細'}</button>
+                                            </div>
+                                            {overlayToolsExpanded && (
+                                                <div className="overlay-toolbar-details">
+                                                    <button type="button" onClick={resetSelectedOverlayTransform}>サイズ・回転リセット</button>
+                                                    <button type="button" onClick={() => moveSelectedOverlayLayer('front')}>最前面へ</button>
+                                                    <button type="button" onClick={() => moveSelectedOverlayLayer('back')}>最背面へ</button>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })()}

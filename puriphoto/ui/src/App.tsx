@@ -28,6 +28,8 @@ const App = () => {
     const [draggingItem, setDraggingItem] = useState<SelectedOverlay | null>(null)
     const [selectedOverlay, setSelectedOverlay] = useState<SelectedOverlay | null>(null)
     const nextOverlayId = useRef(1)
+    const activePointers = useRef(new Map<number, { x: number; y: number }>())
+    const gestureStart = useRef<{ distance: number; angle: number; scale: number; rotation: number } | null>(null)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text'>('stamp')
@@ -112,7 +114,7 @@ const App = () => {
     }
 
     const moveOverlayItem = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!draggingItem) return
+        if (!draggingItem || gestureStart.current) return
         const rect = event.currentTarget.getBoundingClientRect()
         if (!rect.width || !rect.height) return
         const x = Math.max(4, Math.min(96, ((event.clientX - rect.left) / rect.width) * 100))
@@ -126,6 +128,61 @@ const App = () => {
                 item.instanceId === draggingItem.id ? { ...item, x, y } : item
             ))
         }
+    }
+
+    const beginStagePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+        activePointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+        const target = (event.target as HTMLElement).closest<HTMLElement>('[data-overlay-kind]')
+        if (!target) return
+
+        const kind = target.dataset.overlayKind as 'stamp' | 'caption' | undefined
+        const id = Number(target.dataset.overlayId)
+        if (!kind || !Number.isFinite(id)) return
+
+        const overlay = { kind, id } as SelectedOverlay
+        setSelectedOverlay(overlay)
+
+        if (activePointers.current.size === 2) {
+            const points = [...activePointers.current.values()]
+            const dx = points[1].x - points[0].x
+            const dy = points[1].y - points[0].y
+            const selected = kind === 'stamp'
+                ? stampInstances.find((item) => item.instanceId === id)
+                : captionInstances.find((item) => item.instanceId === id)
+            if (!selected) return
+
+            gestureStart.current = {
+                distance: Math.max(1, Math.hypot(dx, dy)),
+                angle: Math.atan2(dy, dx) * 180 / Math.PI,
+                scale: selected.scale,
+                rotation: selected.rotation
+            }
+            setDraggingItem(null)
+        }
+    }
+
+    const updateStagePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!activePointers.current.has(event.pointerId)) return
+        activePointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+
+        const gesture = gestureStart.current
+        if (!gesture || !selectedOverlay || activePointers.current.size < 2) return
+
+        const points = [...activePointers.current.values()]
+        const dx = points[1].x - points[0].x
+        const dy = points[1].y - points[0].y
+        const distance = Math.max(1, Math.hypot(dx, dy))
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI
+        updateSelectedOverlay({
+            scale: Math.max(0.35, Math.min(3.5, gesture.scale * distance / gesture.distance)),
+            rotation: gesture.rotation + (angle - gesture.angle)
+        })
+    }
+
+    const endStagePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+        activePointers.current.delete(event.pointerId)
+        if (activePointers.current.size < 2) gestureStart.current = null
+        setDraggingItem(null)
     }
 
     const addStamp = (stampId: StampId) => {
@@ -328,9 +385,11 @@ const App = () => {
                             <div
                                 className="photo-stage"
                                 style={photoAspectRatio ? { aspectRatio: photoAspectRatio } : undefined}
+                                onPointerDownCapture={beginStagePointer}
+                                onPointerMoveCapture={updateStagePointer}
+                                onPointerUpCapture={endStagePointer}
+                                onPointerCancelCapture={endStagePointer}
                                 onPointerMove={moveOverlayItem}
-                                onPointerUp={() => setDraggingItem(null)}
-                                onPointerCancel={() => setDraggingItem(null)}
                                 onPointerDown={(event) => {
                                     if (event.target === event.currentTarget) setSelectedOverlay(null)
                                 }}
@@ -366,6 +425,8 @@ const App = () => {
                                         <span
                                             key={item.instanceId}
                                             className={selectedOverlay?.kind === 'stamp' && selectedOverlay.id === item.instanceId ? 'stamp-overlay overlay-selected' : 'stamp-overlay'}
+                                            data-overlay-kind="stamp"
+                                            data-overlay-id={item.instanceId}
                                             style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                             onPointerDown={(event) => {
                                                 event.preventDefault()
@@ -384,6 +445,8 @@ const App = () => {
                                     <span
                                         key={item.instanceId}
                                         className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
+                                        data-overlay-kind="caption"
+                                        data-overlay-id={item.instanceId}
                                         style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
@@ -468,7 +531,7 @@ const App = () => {
                         <p className="capture-message" role="status" aria-live="polite">
                             {error || (
                                 isEditing
-                                    ? '写真上のアイテムをタップすると移動・拡大・回転・削除できます。'
+                                    ? 'タップで選択・ドラッグで移動。2本指で拡大縮小・回転できます。'
                                     : photoUrl
                                         ? '撮り直すか、この写真を編集できます。'
                                         : 'ボタンを押すとカメラが開きます。'

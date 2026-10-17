@@ -141,6 +141,7 @@ const App = () => {
     const [overlayToolsExpanded, setOverlayToolsExpanded] = useState(false)
     const [saveNotice, setSaveNotice] = useState<string | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
+    const [stampSearch, setStampSearch] = useState('')
     const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([])
     const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([])
     const historyLock = useRef(false)
@@ -1235,6 +1236,16 @@ const App = () => {
                                         </div>
                                     )
                                 })()}
+                                <div className="stamp-search-row">
+                                    <input
+                                        type="search"
+                                        value={stampSearch}
+                                        onChange={(event) => setStampSearch(event.target.value)}
+                                        placeholder="スタンプを検索"
+                                        aria-label="スタンプを検索"
+                                    />
+                                    {stampSearch && <button type="button" onClick={() => setStampSearch('')} aria-label="検索をクリア">×</button>}
+                                </div>
                                 <div className="stamp-categories" aria-label="スタンプカテゴリ">
                                     {([
                                         ['all', '全部'], ['love', 'ハート'], ['cute', 'かわいい'],
@@ -1245,7 +1256,12 @@ const App = () => {
                                     ))}
                                 </div>
                                 <div className="stamp-picker" aria-label="スタンプを追加">
-                                {STAMPS.filter((stamp) => stampCategory === 'all' || stamp.category === stampCategory).map((stamp) => (
+                                {STAMPS.filter((stamp) => {
+                                    if (stampCategory !== 'all' && stamp.category !== stampCategory) return false
+                                    const query = stampSearch.trim().toLocaleLowerCase('ja')
+                                    if (!query) return true
+                                    return `${stamp.label} ${stamp.author ?? ''} ${stamp.id}`.toLocaleLowerCase('ja').includes(query)
+                                }).map((stamp) => (
                                     <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
                                         <span>
                                             {stampAssetUrl(stamp)

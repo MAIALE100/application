@@ -30,6 +30,7 @@ local function AddApp()
 
         onClose = function()
             exports["lb-phone"]:DisableWalkableCam()
+            exports["lb-phone"]:ToggleLandscape(false)
         end
     })
 
@@ -48,6 +49,12 @@ end)
 
 local directions = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
 local oldYaw, currentDirection
+
+RegisterNUICallback("puriphoto:setLandscape", function(data, cb)
+    local landscape = data == true or (type(data) == "table" and data.landscape == true)
+    exports["lb-phone"]:ToggleLandscape(landscape)
+    cb({ ok = true })
+end)
 
 RegisterNUICallback("getDirection", function(data, cb)
     cb(currentDirection)

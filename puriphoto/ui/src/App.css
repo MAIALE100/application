@@ -228,6 +228,24 @@
     opacity: 0.45;
     cursor: default;
 }
+.caption-color-picker {
+    display: flex;
+    justify-content: center;
+    gap: 0.55rem;
+    padding-top: 0.1rem;
+}
+.caption-color {
+    width: 1.55rem;
+    height: 1.55rem;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #d7bdca;
+    cursor: pointer;
+}
+.caption-color.selected {
+    box-shadow: 0 0 0 2px #8f2f55;
+    transform: scale(1.08);
+}
 .caption-input {
     width: 100%;
     min-width: 0;

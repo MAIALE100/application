@@ -412,7 +412,7 @@ const App = () => {
     }
 
     const moveOverlayItem = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!draggingItem || gestureStart.current) return
+        if (saveLock.current || !draggingItem || gestureStart.current) return
         const rect = event.currentTarget.getBoundingClientRect()
         if (!rect.width || !rect.height) return
         const selected = draggingItem.kind === 'caption'
@@ -438,6 +438,7 @@ const App = () => {
     }
 
     const beginStagePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (saveLock.current) return
         activePointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
         const target = (event.target as HTMLElement).closest<HTMLElement>('[data-overlay-kind]')
         if (!target) return
@@ -469,7 +470,7 @@ const App = () => {
     }
 
     const updateStagePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!activePointers.current.has(event.pointerId)) return
+        if (saveLock.current || !activePointers.current.has(event.pointerId)) return
         activePointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
 
         const gesture = gestureStart.current
@@ -490,10 +491,11 @@ const App = () => {
         activePointers.current.delete(event.pointerId)
         if (activePointers.current.size < 2) gestureStart.current = null
         setDraggingItem(null)
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
     const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-        if (!selectedOverlay) return
+        if (saveLock.current || !selectedOverlay) return
         event.preventDefault()
 
         const selected = getSelectedOverlayValues()
@@ -518,7 +520,7 @@ const App = () => {
     }
 
     const beginPhotoPan = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!isEditing || editorZoom <= 1 || activeEditorTab === 'draw') return
+        if (saveLock.current || !isEditing || editorZoom <= 1 || activeEditorTab === 'draw') return
         const target = event.target as HTMLElement
         if (target.closest('[data-overlay-kind]')) return
         event.preventDefault()
@@ -564,7 +566,7 @@ const App = () => {
     }
 
     const beginDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
-        if (activeEditorTab !== 'draw') return
+        if (saveLock.current || activeEditorTab !== 'draw') return
         event.preventDefault()
         event.stopPropagation()
         if (activeDrawPointer.current !== null) return
@@ -604,6 +606,7 @@ const App = () => {
     }
 
     const addStamp = (stampId: StampId) => {
+        if (saveLock.current) return
         if (!STAMPS.some((stamp) => stamp.id === stampId)) return
         if (stampInstances.length >= 100) {
             setError('スタンプは100個まで追加できます。不要なスタンプを削除してから追加してください。')
@@ -624,6 +627,7 @@ const App = () => {
     }
 
     const addCaption = () => {
+        if (saveLock.current) return
         const text = captionDraft.trim().slice(0, 120)
         if (!text) return
         const offset = (captionInstances.length % 5) * 5
@@ -1034,7 +1038,9 @@ const App = () => {
     return (
         <AppProvider>
             <main className="app">
-                <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
+                <div className={isEditing
+                    ? `app-wrapper editing-layout${photoAspectRatio !== null && photoAspectRatio > 1 ? ' landscape-editor' : ''}${toolsCollapsed ? ' tools-collapsed' : ''}`
+                    : 'app-wrapper'}>
                     <header className="app-header">
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>

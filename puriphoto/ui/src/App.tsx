@@ -1,167 +1,105 @@
-import { ReactNode, useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import './App.css'
 import Frame from './components/Frame'
 
-const devMode = !window?.['invokeNative']
+const devMode = !window['invokeNative']
 
 const App = () => {
-    const [gameRender, setGameRender] = useState(false)
-    const [notificationText, setNotificationText] = useState('Notification text')
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-
-    const appDiv = useRef(null)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (devMode) {
-            document.body.style.visibility = 'visible'
-            return
-        }
+        // App mounts after LB Phone's componentsLoaded event (or immediately in preview).
+        document.body.style.visibility = 'visible'
     }, [])
 
-    useEffect(() => {
-        if (notificationText === '') setNotificationText('Notification text')
-    }, [notificationText])
+    const takePhoto = () => {
+        setError(null)
+
+        if (typeof window.useCamera !== 'function') {
+            setError('カメラは LB Phone 内で利用できます。')
+            return
+        }
+
+        try {
+            window.useCamera((url) => {
+                // Keep the current photo if the camera closes without a new image.
+                if (typeof url === 'string' && url.trim()) {
+                    setPhotoUrl(url)
+                    setError(null)
+                }
+            }, {
+                default: { type: 'Photo' },
+                permissions: {
+                    takePhoto: true,
+                    takeVideo: false,
+                    takeLandscapePhoto: false
+                },
+                saveToGallery: false
+            })
+        } catch {
+            setError('カメラを開けませんでした。もう一度お試しください。')
+        }
+    }
 
     return (
         <AppProvider>
-            <div className="app" ref={appDiv}>
+            <main className="app">
                 <div className="app-wrapper">
+                    <header className="app-header">
+                        <p className="app-eyebrow">今日の一枚を、ここに。</p>
+                        <h1>PuriPhoto</h1>
+                    </header>
 
-                    {photoUrl && (
-    <img
-    src={photoUrl}
-    alt="PuriPhoto"
-    style={{
-        width: '100%',
-        maxHeight: '400px',
-        objectFit: 'contain'
-    }}
-/>
-)}
-</div>
-            </div>
+                    <section className="photo-area" aria-label="撮影した写真">
+                        {photoUrl ? (
+                            <img
+                                className="photo-preview"
+                                src={photoUrl}
+                                alt="撮影した写真"
+                                onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
+                            />
+                        ) : (
+                            <div className="empty-state">
+                                <span className="camera-mark" aria-hidden="true">◎</span>
+                                <h2>まずは写真を撮ろう</h2>
+                                <p>お気に入りの瞬間を<br />PuriPhotoに。</p>
+                            </div>
+                        )}
+                    </section>
+
+                    <footer className="capture-controls">
+                        <p className="capture-message" role="status" aria-live="polite">
+                            {error || (photoUrl ? 'もう一度撮影して、写真を選び直せます。' : 'ボタンを押すとカメラが開きます。')}
+                        </p>
+                        <button type="button" className="capture-button" onClick={takePhoto}>
+                            {photoUrl ? '撮り直す' : '写真を撮る'}
+                        </button>
+                    </footer>
+                </div>
+            </main>
         </AppProvider>
     )
 }
 
-const Header = () => {
-    const [direction, setDirection] = useState('N')
-
-    useEffect(() => {
-        if (devMode) return
-
-        fetchNui<string>('getDirection').then(setDirection)
-        useNuiEvent('updateDirection', setDirection)
-    }, [])
-
-    return (
-        <div className="header">
-            <div className="title">Custom App Template</div>
-            <div className="subtitle">React TS</div>
-            <a className="subtitle">{direction}</a>
-        </div>
-    )
-}
-
-const GameRender = ({ remove }: { remove: (photo?: string, blob?: Blob) => void }) => {
-    const aspectRatio = 9 / 18
-
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const gameRenderRef = useRef<ReturnType<typeof components.createGameRender>>(null)
-
-    useEffect(() => {
-        if (!canvasRef.current) return
-
-        const gameRender = components.createGameRender(canvasRef.current)
-
-        gameRenderRef.current = gameRender
-
-        gameRender.resizeByAspect(aspectRatio)
-
-        fetchNui('toggleCamera', true)
-
-        const checkDestroyedInterval = setInterval(() => {
-            if (gameRender.destroyed) remove()
-        }, 1000)
-
-        return () => {
-            fetchNui('toggleCamera', false)
-
-            if (checkDestroyedInterval) clearInterval(checkDestroyedInterval)
-
-            gameRenderRef.current?.destroy()
-        }
-    }, [canvasRef.current])
-
-    return (
-        <div
-            className="gamerender-blur"
-            onClick={() => {
-                remove()
-            }}
-        >
-            <div
-                className="gamerender-container"
-                style={{
-                    aspectRatio: aspectRatio
-                }}
-                onClick={(event) => {
-                    event.stopPropagation()
-
-                    const gameRender = gameRenderRef.current
-
-                    if (!gameRender || gameRender.destroyed) return
-
-                    gameRender.takePhoto().then((blob) => {
-                        const url = URL.createObjectURL(blob)
-
-                        remove(url, blob)
-                    })
-                }}
-            >
-                <canvas
-                    style={{
-                        width: '100%',
-                        height: '100%'
-                    }}
-                    ref={canvasRef}
-                />
-            </div>
-        </div>
-    )
-}
-
 const AppProvider = ({ children }: { children: ReactNode }) => {
-    if (devMode) {
+    useEffect(() => {
+        if (!devMode) return
+
         const handleResize = () => {
             const { innerWidth, innerHeight } = window
-
-            const aspectRatio = innerWidth / innerHeight
-            const phoneAspectRatio = 27.6 / 59
-
-            if (phoneAspectRatio < aspectRatio) {
-                document.documentElement.style.fontSize = '1.66vh'
-            } else {
-                document.documentElement.style.fontSize = '3.4vw'
-            }
+            document.documentElement.style.fontSize =
+                27.6 / 59 < innerWidth / innerHeight ? '1.66vh' : '3.4vw'
         }
 
-        useEffect(() => {
-            window.addEventListener('resize', handleResize)
-
-            return () => {
-                window.removeEventListener('resize', handleResize)
-            }
-        }, [])
-
         handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
-        return (
-            <div className="dev-wrapper">
-                <Frame>{children}</Frame>
-            </div>
-        )
-    } else return children
+    return devMode ? (
+        <div className="dev-wrapper"><Frame>{children}</Frame></div>
+    ) : <>{children}</>
 }
 
 export default App

@@ -5,128 +5,142 @@
 }
 
 .app {
-    height: 100vh;
     width: 100%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-
-    background-color: var(--background-primary);
-
-    font-family: 'Poppins', sans-serif;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #fff7fa;
+    color: #392b36;
+    font-family: 'Poppins', 'Noto Sans JP', sans-serif;
 }
 
 .app-wrapper {
     width: 100%;
     height: 100%;
-
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    gap: 1rem;
+    padding: min(4.5rem, 10vh) min(1.5rem, 5vw) min(2.5rem, 6vh);
+}
+
+.app-header {
+    flex: 0 0 auto;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.app-eyebrow {
+    font-size: 0.85rem;
+    color: #795b70;
+}
+
+.app-header h1 {
+    font-size: 2rem;
+    line-height: 1.4;
+    letter-spacing: -0.04em;
+}
+
+.photo-area {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3rem;
+    border: 1px solid #efd9e4;
+    border-radius: 1.5rem;
+    background: #fff;
 }
 
-.header,
-.button-wrapper {
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    gap: 0.2rem;
-}
-
-.button-wrapper {
-    gap: 1rem;
-}
-
-.title {
-    font-size: 1.4rem;
-    font-weight: 700;
-
-    color: var(--text-primary);
-}
-
-.subtitle {
-    font-size: 1rem;
-    font-weight: 400;
-
-    color: var(--text-secondary);
-}
-
-button {
-    width: 14rem;
-    height: 3.25rem;
-
-    background-color: var(--background-highlight);
-    color: var(--text-primary);
-
-    border: none;
-    border-radius: 0.3rem;
-
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-
-    cursor: pointer;
-    transition: all 0.25s ease-in-out;
-
-    user-select: none;
-}
-
-button:hover {
-    filter: brightness(0.8);
-}
-
-input {
-    width: 14rem;
-    height: 3.25rem;
-
-    background-color: var(--background-highlight);
-    color: var(--text-primary);
-
-    border: none;
-    border-radius: 0.3rem;
-
-    padding: 0 1rem;
-
-    font-size: 0.8rem;
-    font-weight: 600;
-
-    transition: all 0.25s ease-in-out;
-
-    outline: none;
-}
-
-.gamerender-blur {
-    position: absolute;
-    top: 0;
-    left: 0;
-
+.photo-preview {
+    display: block;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(0.2rem);
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    min-height: 0;
+    object-fit: contain;
 }
 
-.gamerender-container {
-    width: 80%;
+.empty-state {
+    padding: 1rem;
+    text-align: center;
+    max-width: 100%;
+    max-height: 100%;
     overflow: hidden;
-    border-radius: 1rem;
+    overflow-wrap: anywhere;
 }
 
-/* Do not edit, this allows you to view changes easily in your browser */
+.camera-mark {
+    display: block;
+    margin-bottom: 1rem;
+    color: #a94875;
+    font-size: 4rem;
+    line-height: 1;
+}
+
+.empty-state h2 {
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+.empty-state p {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #795b70;
+}
+
+.capture-controls {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.capture-message {
+    min-height: 2.8em;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    color: #795b70;
+}
+
+.capture-button {
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 1rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    overflow-wrap: anywhere;
+}
+
+.capture-button:hover { background: #923b64; }
+.capture-button:focus-visible { outline: 2px solid #392b36; outline-offset: 3px; }
+.capture-button:active { transform: translateY(1px); }
+
 .dev-wrapper {
     display: flex;
-
     align-items: center;
     justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
 
-    width: 100vw;
-    height: 100vh;
+@media (max-height: 450px) {
+    .app-wrapper { gap: 0.5rem; }
+    .app-eyebrow { display: none; }
+    .app-header h1 { font-size: 1.5rem; }
+    .camera-mark { font-size: 2rem; margin-bottom: 0.5rem; }
+    .empty-state p { display: none; }
+    .capture-button { min-height: 2.75rem; }
 }

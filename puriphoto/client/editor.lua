@@ -97,6 +97,12 @@ CreateThread(function()
             -- Explicitly switch to the normal fullscreen frontend draw target.
             SetScriptGfxDrawOrder(7)
             SetScriptGfxDrawBehindPausemenu(false)
+
+            -- Diagnostic: this translucent magenta rectangle does not depend on
+            -- DUI/runtime textures. If it appears, native fullscreen drawing is
+            -- working and only the DUI texture path needs further work.
+            DrawRect(0.38, 0.50, 0.70, 1.00, 220, 30, 120, 90)
+
             DrawSprite(editorTextureDictName, editorTextureName, 0.38, 0.50, 0.70, 1.00, 0.0, 255, 255, 255, 255)
             Wait(0)
         else

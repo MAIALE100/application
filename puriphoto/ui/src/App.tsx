@@ -30,6 +30,7 @@ const App = () => {
     const nextOverlayId = useRef(1)
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
+    const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text'>('stamp')
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
@@ -407,6 +408,13 @@ const App = () => {
                     </section>
 
                     <footer className="capture-controls">
+                        {isEditing && (
+                            <div className="editor-tabs" aria-label="編集ツール">
+                                <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => setActiveEditorTab('frame')}>フレーム</button>
+                                <button type="button" className={activeEditorTab === 'stamp' ? 'selected' : ''} onClick={() => setActiveEditorTab('stamp')}>スタンプ</button>
+                                <button type="button" className={activeEditorTab === 'text' ? 'selected' : ''} onClick={() => setActiveEditorTab('text')}>文字</button>
+                            </div>
+                        )}
                         {isEditing && selectedOverlay && (() => {
                             const selected = getSelectedOverlayValues()
                             if (!selected) return null
@@ -420,14 +428,14 @@ const App = () => {
                                 </div>
                             )
                         })()}
-                        {isEditing && (
+                        {isEditing && activeEditorTab === 'frame' && (
                             <div className="frame-picker" aria-label="フレームを選択">
                                 <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>
                                 <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('soft')}>フレーム1</button>
                                 <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('pop')}>フレーム2</button>
                             </div>
                         )}
-                        {isEditing && (
+                        {isEditing && activeEditorTab === 'text' && (
                             <div className="caption-input-wrap">
                                 <span>文字入れ（何個でも追加できます）</span>
                                 <div className="caption-input-row">
@@ -446,7 +454,7 @@ const App = () => {
                                 </div>
                             </div>
                         )}
-                        {isEditing && (
+                        {isEditing && activeEditorTab === 'stamp' && (
                             <div className="stamp-picker" aria-label="スタンプを追加">
                                 {STAMPS.map((stamp) => (
                                     <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
@@ -460,7 +468,7 @@ const App = () => {
                         <p className="capture-message" role="status" aria-live="polite">
                             {error || (
                                 isEditing
-                                    ? 'フレームを選んで写真に重ねられます。'
+                                    ? '写真上のアイテムをタップすると移動・拡大・回転・削除できます。'
                                     : photoUrl
                                         ? '撮り直すか、この写真を編集できます。'
                                         : 'ボタンを押すとカメラが開きます。'

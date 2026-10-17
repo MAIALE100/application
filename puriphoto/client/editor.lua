@@ -62,7 +62,7 @@ CreateThread(function()
     while true do
         if editorVisible and editorDui and editorTextureDict then
             -- Draw only the center workspace. LB Phone remains untouched on the right.
-            DrawSprite("puriphoto_editor_txd", editorTextureName, 0.43, 0.50, 0.62, 0.78, 0.0, 255, 255, 255, 255)
+            DrawSprite("puriphoto_editor_txd", editorTextureName, 0.38, 0.50, 0.70, 1.00, 0.0, 255, 255, 255, 255)
             Wait(0)
         else
             Wait(250)

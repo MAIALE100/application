@@ -24,12 +24,13 @@ local function AddApp()
         },
 
         ui = url:find("http") and url or GetCurrentResourceName() .. "/" .. url,
-        icon = url:find("http") and url .. "/public/icon.svg" or "https://cfx-nui-" .. GetCurrentResourceName() .. "/ui/dist/icon.svg",
+        icon = url:find("http") and url .. "/public/icon.webp" or "https://cfx-nui-" .. GetCurrentResourceName() .. "/ui/dist/icon.webp",
 
         fixBlur = true,
 
         onClose = function()
             exports["lb-phone"]:DisableWalkableCam()
+            exports["lb-phone"]:ToggleLandscape(false)
         end
     })
 

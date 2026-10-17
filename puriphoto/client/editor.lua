@@ -1,0 +1,2 @@
+-- Reserved for a future editor implementation.
+-- Intentionally passive: PuriPhoto currently runs entirely inside LB Phone.

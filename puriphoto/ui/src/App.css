@@ -162,6 +162,9 @@
 }
 
 .capture-button:hover { background: #923b64; }
+.capture-button:disabled { opacity: 0.65; cursor: wait; }
+.secondary-button { background: #fff; color: #a94875; border: 1px solid #e8cbd9; }
+.secondary-button:hover { background: #f9e3ec; }
 .capture-button:focus-visible, .frame-option:focus-visible { outline: 2px solid #392b36; outline-offset: 3px; }
 .capture-button:active, .frame-option:active { transform: translateY(1px); }
 

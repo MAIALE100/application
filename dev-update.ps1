@@ -22,9 +22,15 @@ if ($LASTEXITCODE -ne 0) {
     throw "git pull failed."
 }
 
-# 4. PuriPhotoをビルド
-Write-Host "[3/3] Building PuriPhoto..."
+# 4. 依存関係を同期してからPuriPhotoをビルド
+# package.json に新しい依存関係が追加された場合も dev-update.cmd だけで反映する
+Write-Host "[3/3] Syncing dependencies + building PuriPhoto..."
 Set-Location $UiPath
+
+npm.cmd install --no-audit --no-fund
+if ($LASTEXITCODE -ne 0) {
+    throw "PuriPhoto dependency install failed."
+}
 
 npm.cmd run build
 

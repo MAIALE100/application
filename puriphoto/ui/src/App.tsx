@@ -4,6 +4,13 @@ import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
+type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
+const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
+    { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
+    { id: 'star', label: '星', glyph: '⭐', x: 0.86, y: 0.14 },
+    { id: 'crown', label: '王冠', glyph: '👑', x: 0.14, y: 0.85 },
+    { id: 'sparkle', label: 'キラキラ', glyph: '✨', x: 0.86, y: 0.85 }
+]
 
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -12,6 +19,7 @@ const App = () => {
     const [error, setError] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
+    const [selectedStamps, setSelectedStamps] = useState<StampId[]>([])
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -36,6 +44,7 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
                     setSelectedFrame('none')
+                    setSelectedStamps([])
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -138,6 +147,21 @@ const App = () => {
                 context.restore()
             }
 
+            if (selectedStamps.length > 0) {
+                const stampSize = Math.max(30, Math.round(Math.min(width, height) * 0.11))
+                context.save()
+                context.font = `\u0024{stampSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`
+                context.textAlign = 'center'
+                context.textBaseline = 'middle'
+                context.shadowColor = 'rgba(255, 105, 180, 0.65)'
+                context.shadowBlur = stampSize * 0.18
+                for (const stamp of STAMPS) {
+                    if (!selectedStamps.includes(stamp.id)) continue
+                    context.fillText(stamp.glyph, width * stamp.x, height * stamp.y)
+                }
+                context.restore()
+            }
+
             const blob = await new Promise<Blob>((resolve, reject) => {
                 canvas.toBlob((result) => {
                     if (result) resolve(result)
@@ -155,6 +179,7 @@ const App = () => {
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
             setSelectedFrame('none')
+            setSelectedStamps([])
             setIsEditing(false)
             setError(null)
         } catch (cause) {
@@ -204,6 +229,11 @@ const App = () => {
                                         />
                                         : <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
                                 )}
+                                {isEditing && STAMPS.filter((stamp) => selectedStamps.includes(stamp.id)).map((stamp) => (
+                                    <span key={stamp.id} className={`stamp-overlay stamp-${stamp.id}`} aria-hidden="true">
+                                        {stamp.glyph}
+                                    </span>
+                                ))}
                             </div>
                         ) : (
                             <div className="empty-state">
@@ -220,6 +250,26 @@ const App = () => {
                                 <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>
                                 <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('soft')}>フレーム1</button>
                                 <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('pop')}>フレーム2</button>
+                            </div>
+                        )}
+                        {isEditing && (
+                            <div className="stamp-picker" aria-label="スタンプを選択">
+                                {STAMPS.map((stamp) => (
+                                    <button
+                                        key={stamp.id}
+                                        type="button"
+                                        className={selectedStamps.includes(stamp.id) ? 'stamp-option selected' : 'stamp-option'}
+                                        aria-pressed={selectedStamps.includes(stamp.id)}
+                                        onClick={() => setSelectedStamps((current) =>
+                                            current.includes(stamp.id)
+                                                ? current.filter((id) => id !== stamp.id)
+                                                : [...current, stamp.id]
+                                        )}
+                                    >
+                                        <span>{stamp.glyph}</span>
+                                        <small>{stamp.label}</small>
+                                    </button>
+                                ))}
                             </div>
                         )}
 

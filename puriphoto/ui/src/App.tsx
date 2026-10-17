@@ -88,6 +88,7 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setIsEditing(false)
                     setSelectedFrame('none')
+                    setSelectedStamps([])
                     setPhotoAspectRatio(null)
                     setError(null)
                 }

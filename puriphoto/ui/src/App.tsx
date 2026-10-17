@@ -4,7 +4,7 @@ import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
-type StampId = 'heart' | 'star' | 'crown' | 'sparkle'
+type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
 type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
@@ -20,13 +20,55 @@ const CAPTION_COLORS: Record<CaptionColor, string> = {
 const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: string }> = {
     gothic: { label: 'ゴシック', css: '"Noto Sans JP", sans-serif', canvas: '"Noto Sans JP", sans-serif' },
     serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
-    rounded: { label: '丸文字', css: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif', canvas: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif' }
+    rounded: { label: '丸文字', css: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif', canvas: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif' }
 }
-const STAMPS: { id: StampId; label: string; glyph: string; x: number; y: number }[] = [
-    { id: 'heart', label: 'ハート', glyph: '💗', x: 0.13, y: 0.14 },
-    { id: 'star', label: '星', glyph: '⭐', x: 0.86, y: 0.14 },
-    { id: 'crown', label: '王冠', glyph: '👑', x: 0.14, y: 0.85 },
-    { id: 'sparkle', label: 'キラキラ', glyph: '✨', x: 0.86, y: 0.85 }
+const STAMPS: { id: StampId; label: string; glyph: string }[] = [
+    { id: 'heart', label: 'ハート', glyph: '❤️' },
+    { id: 'pinkHeart', label: 'ピンク', glyph: '💗' },
+    { id: 'brokenHeart', label: '失恋', glyph: '💔' },
+    { id: 'star', label: '星', glyph: '⭐' },
+    { id: 'sparkle', label: 'キラキラ', glyph: '✨' },
+    { id: 'crown', label: '王冠', glyph: '👑' },
+    { id: 'ribbon', label: 'リボン', glyph: '🎀' },
+    { id: 'flower', label: '花', glyph: '🌸' },
+    { id: 'cherryBlossom', label: '桜', glyph: '🌺' },
+    { id: 'tulip', label: 'チューリップ', glyph: '🌷' },
+    { id: 'sunflower', label: 'ひまわり', glyph: '🌻' },
+    { id: 'butterfly', label: '蝶', glyph: '🦋' },
+    { id: 'cherry', label: 'さくらんぼ', glyph: '🍒' },
+    { id: 'strawberry', label: 'いちご', glyph: '🍓' },
+    { id: 'peach', label: '桃', glyph: '🍑' },
+    { id: 'cake', label: 'ケーキ', glyph: '🍰' },
+    { id: 'candy', label: 'キャンディ', glyph: '🍬' },
+    { id: 'lollipop', label: 'ペロペロ', glyph: '🍭' },
+    { id: 'iceCream', label: 'アイス', glyph: '🍦' },
+    { id: 'donut', label: 'ドーナツ', glyph: '🍩' },
+    { id: 'coffee', label: 'コーヒー', glyph: '☕' },
+    { id: 'cat', label: 'ねこ', glyph: '🐱' },
+    { id: 'dog', label: 'いぬ', glyph: '🐶' },
+    { id: 'bear', label: 'くま', glyph: '🐻' },
+    { id: 'rabbit', label: 'うさぎ', glyph: '🐰' },
+    { id: 'panda', label: 'パンダ', glyph: '🐼' },
+    { id: 'chick', label: 'ひよこ', glyph: '🐥' },
+    { id: 'frog', label: 'かえる', glyph: '🐸' },
+    { id: 'smile', label: 'スマイル', glyph: '😊' },
+    { id: 'loveFace', label: 'ラブ', glyph: '😍' },
+    { id: 'kiss', label: 'キス', glyph: '😘' },
+    { id: 'cool', label: 'クール', glyph: '😎' },
+    { id: 'party', label: 'パーティ', glyph: '🥳' },
+    { id: 'fire', label: '炎', glyph: '🔥' },
+    { id: 'rainbow', label: '虹', glyph: '🌈' },
+    { id: 'cloud', label: '雲', glyph: '☁️' },
+    { id: 'sun', label: '太陽', glyph: '☀️' },
+    { id: 'moon', label: '月', glyph: '🌙' },
+    { id: 'music', label: '音楽', glyph: '🎵' },
+    { id: 'note', label: '音符', glyph: '🎶' },
+    { id: 'camera', label: 'カメラ', glyph: '📷' },
+    { id: 'gift', label: 'プレゼント', glyph: '🎁' },
+    { id: 'balloon', label: '風船', glyph: '🎈' },
+    { id: 'clover', label: 'クローバー', glyph: '🍀' },
+    { id: 'diamond', label: 'ダイヤ', glyph: '💎' },
+    { id: 'hundred', label: '100', glyph: '💯' }
 ]
 
 const App = () => {

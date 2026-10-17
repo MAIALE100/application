@@ -3,6 +3,7 @@ import './App.css'
 import Frame from './components/Frame'
 
 const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
+const puriPhotoResourceName = 'puriphoto'
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
@@ -117,7 +118,7 @@ const App = () => {
 
     const showStandaloneEditor = (url: string) => {
         if (devMode) return
-        fetch(`https://${resourceName}/puriphoto:showStandaloneEditor`, {
+        fetch(`https://${puriPhotoResourceName}/puriphoto:showStandaloneEditor`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
             body: JSON.stringify({ photoUrl: url })
@@ -126,7 +127,7 @@ const App = () => {
 
     const hideStandaloneEditor = () => {
         if (devMode) return
-        fetch(`https://${resourceName}/puriphoto:hideStandaloneEditor`, {
+        fetch(`https://${puriPhotoResourceName}/puriphoto:hideStandaloneEditor`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
             body: '{}'

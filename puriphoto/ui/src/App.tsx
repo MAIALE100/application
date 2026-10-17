@@ -141,6 +141,7 @@ const App = () => {
     const [confirmExit, setConfirmExit] = useState(false)
     const [overlayToolsExpanded, setOverlayToolsExpanded] = useState(false)
     const [saveNotice, setSaveNotice] = useState<string | null>(null)
+    const saveNoticeTimer = useRef<number | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
     const [stampSearch, setStampSearch] = useState('')
     const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([])
@@ -221,6 +222,10 @@ const App = () => {
 
     useEffect(() => {
         document.body.style.visibility = 'visible'
+        return () => {
+            if (historyTimer.current !== null) window.clearTimeout(historyTimer.current)
+            if (saveNoticeTimer.current !== null) window.clearTimeout(saveNoticeTimer.current)
+        }
     }, [])
 
     useEffect(() => {
@@ -340,6 +345,10 @@ const App = () => {
         setIsEditing(false)
         resetEditorState()
         setPhotoAspectRatio(null)
+        if (saveNoticeTimer.current !== null) {
+            window.clearTimeout(saveNoticeTimer.current)
+            saveNoticeTimer.current = null
+        }
         setSaveNotice(null)
         setError(null)
     }
@@ -904,10 +913,13 @@ const App = () => {
 
             const blob = await new Promise<Blob>((resolve, reject) => {
                 canvas.toBlob((result) => {
-                    if (result) resolve(result)
+                    if (result && result.size > 0) resolve(result)
                     else reject(new Error('Canvas export failed; the photo host may block canvas access'))
                 }, 'image/png')
             })
+            if (blob.size > 25 * 1024 * 1024) {
+                throw new Error('The finished image is too large to upload')
+            }
 
             const uploadedUrl = await components.uploadMedia('Image', blob)
             if (typeof uploadedUrl !== 'string' || !uploadedUrl.trim()) {
@@ -921,11 +933,22 @@ const App = () => {
             setIsEditing(false)
             resetEditorState()
             setSaveNotice('ギャラリーに保存しました')
-            window.setTimeout(() => setSaveNotice(null), 2600)
+            if (saveNoticeTimer.current !== null) window.clearTimeout(saveNoticeTimer.current)
+            saveNoticeTimer.current = window.setTimeout(() => {
+                setSaveNotice(null)
+                saveNoticeTimer.current = null
+            }, 2600)
             setError(null)
         } catch (cause) {
             console.error('[PuriPhoto] Failed to save finished photo:', cause)
-            setError('完成画像を保存できませんでした。LB Phoneの画像アップロード設定、または写真URLの読み込み権限を確認してください。')
+            const message = cause instanceof Error ? cause.message : ''
+            if (message.includes('timed out')) {
+                setError('画像の読み込みがタイムアウトしました。編集内容は残っています。少し待ってからもう一度保存してください。')
+            } else if (message.includes('too large')) {
+                setError('完成画像の容量が大きすぎます。編集内容は残っています。装飾を減らすか別の写真でお試しください。')
+            } else {
+                setError('保存に失敗しました。編集内容は残っています。通信状態を確認して、もう一度「完成して保存」を押してください。')
+            }
         } finally {
             saveLock.current = false
             setIsSaving(false)
@@ -975,6 +998,7 @@ const App = () => {
                                         if (image.naturalWidth > 0 && image.naturalHeight > 0) {
                                             const ratio = image.naturalWidth / image.naturalHeight
                                             setPhotoAspectRatio(ratio)
+                                            setError(null)
                                         }
                                     }}
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
@@ -1123,15 +1147,15 @@ const App = () => {
 
                     {isEditing && (
                         <div className="editor-shell-actions">
-                            <button type="button" onClick={undoEditor} disabled={!undoStack.length}>↶ 戻す</button>
-                            <button type="button" onClick={redoEditor} disabled={!redoStack.length}>↷ やり直す</button>
-                            <button type="button" onClick={() => setToolsCollapsed((value) => !value)}>
+                            <button type="button" onClick={undoEditor} disabled={isSaving || !undoStack.length}>↶ 戻す</button>
+                            <button type="button" onClick={redoEditor} disabled={isSaving || !redoStack.length}>↷ やり直す</button>
+                            <button type="button" disabled={isSaving} onClick={() => setToolsCollapsed((value) => !value)}>
                                 {toolsCollapsed ? '編集ツールを表示' : '編集ツールを折りたたむ'}
                             </button>
                             <button type="button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>
                                 表示をリセット
                             </button>
-                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0}>
+                            <button type="button" className="danger-subtle" onClick={clearAllDecorations} disabled={isSaving || selectedFrame === 'none' && stampInstances.length === 0 && captionInstances.length === 0 && drawStrokes.length === 0} data-save-guard="true">
                                 装飾を全消去
                             </button>
                         </div>

@@ -530,29 +530,40 @@ const App = () => {
             context.drawImage(photo, 0, 0, width, height)
 
             if (drawStrokes.length > 0) {
-                context.save()
-                context.lineCap = 'round'
-                context.lineJoin = 'round'
+                // Draw freehand edits on their own transparent layer. The eraser must
+                // remove only PuriPhoto drawing pixels, never pixels from the source photo.
+                const drawingCanvas = document.createElement('canvas')
+                drawingCanvas.width = width
+                drawingCanvas.height = height
+                const drawingContext = drawingCanvas.getContext('2d')
+                if (!drawingContext) throw new Error('Drawing canvas is unavailable')
+
+                drawingContext.lineCap = 'round'
+                drawingContext.lineJoin = 'round'
                 for (const stroke of drawStrokes) {
                     if (!stroke.points.length) continue
-                    context.beginPath()
-                    context.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over'
-                    context.globalAlpha = stroke.tool === 'marker' ? 0.42 : 1
-                    context.strokeStyle = CAPTION_COLORS[stroke.color]
-                    context.lineWidth = Math.max(2, Math.min(width, height) * stroke.width / 250)
+                    drawingContext.save()
+                    drawingContext.beginPath()
+                    drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over'
+                    drawingContext.globalAlpha = stroke.tool === 'marker' ? 0.42 : 1
+                    drawingContext.strokeStyle = CAPTION_COLORS[stroke.color]
+                    // Match the editor's SVG coordinate system: width 10 = 1% of the
+                    // short edge. This keeps preview and exported line thickness aligned.
+                    drawingContext.lineWidth = Math.max(1, Math.min(width, height) * stroke.width / 1000)
                     const first = stroke.points[0]
-                    context.moveTo(width * first.x / 100, height * first.y / 100)
+                    drawingContext.moveTo(width * first.x / 100, height * first.y / 100)
                     if (stroke.points.length === 1) {
-                        context.lineTo(width * first.x / 100 + 0.01, height * first.y / 100 + 0.01)
+                        drawingContext.lineTo(width * first.x / 100 + 0.01, height * first.y / 100 + 0.01)
                     } else {
                         for (let i = 1; i < stroke.points.length; i++) {
                             const point = stroke.points[i]
-                            context.lineTo(width * point.x / 100, height * point.y / 100)
+                            drawingContext.lineTo(width * point.x / 100, height * point.y / 100)
                         }
                     }
-                    context.stroke()
+                    drawingContext.stroke()
+                    drawingContext.restore()
                 }
-                context.restore()
+                context.drawImage(drawingCanvas, 0, 0)
             }
 
             if (selectedFrame === 'soft') {

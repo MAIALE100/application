@@ -115,6 +115,8 @@ const App = () => {
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
     const [drawWidth, setDrawWidth] = useState(5)
     const [editorZoom, setEditorZoom] = useState(1)
+    const [editorPan, setEditorPan] = useState({ x: 0, y: 0 })
+    const panPointer = useRef<{ id: number; startX: number; startY: number; originX: number; originY: number } | null>(null)
     const activeDrawPointer = useRef<number | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
 
@@ -145,6 +147,7 @@ const App = () => {
                     setCaptionInstances([])
                     setSelectedOverlay(null)
                     setEditorZoom(1)
+                    setEditorPan({ x: 0, y: 0 })
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -194,6 +197,7 @@ const App = () => {
                     setCaptionInstances([])
                     setSelectedOverlay(null)
                     setEditorZoom(1)
+                    setEditorPan({ x: 0, y: 0 })
                     setPhotoAspectRatio(null)
                     setError(null)
                 }
@@ -290,6 +294,53 @@ const App = () => {
             const direction = event.deltaY < 0 ? 0.1 : -0.1
             updateSelectedOverlay({ scale: Math.max(0.35, Math.min(3.5, selected.scale + direction)) })
         }
+    }
+
+    const clampEditorPan = (x: number, y: number, zoom = editorZoom) => {
+        if (zoom <= 1) return { x: 0, y: 0 }
+        const limit = 42 * (zoom - 1) / zoom
+        return {
+            x: Math.max(-limit, Math.min(limit, x)),
+            y: Math.max(-limit, Math.min(limit, y))
+        }
+    }
+
+    const beginPhotoPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isEditing || editorZoom <= 1 || activeEditorTab === 'draw') return
+        const target = event.target as HTMLElement
+        if (target.closest('[data-overlay-kind]')) return
+        event.preventDefault()
+        panPointer.current = {
+            id: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            originX: editorPan.x,
+            originY: editorPan.y
+        }
+        event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
+    const movePhotoPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const pan = panPointer.current
+        if (!pan || pan.id !== event.pointerId) return
+        event.preventDefault()
+        const rect = event.currentTarget.getBoundingClientRect()
+        if (!rect.width || !rect.height) return
+        const x = pan.originX + ((event.clientX - pan.startX) / rect.width) * 100
+        const y = pan.originY + ((event.clientY - pan.startY) / rect.height) * 100
+        setEditorPan(clampEditorPan(x, y))
+    }
+
+    const endPhotoPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (panPointer.current?.id !== event.pointerId) return
+        panPointer.current = null
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    const changeEditorZoom = (zoom: number) => {
+        const nextZoom = Math.max(1, Math.min(3, zoom))
+        setEditorZoom(nextZoom)
+        setEditorPan((current) => clampEditorPan(current.x, current.y, nextZoom))
     }
 
     const drawPointFromEvent = (event: ReactPointerEvent<SVGSVGElement>): DrawPoint => {
@@ -552,6 +603,7 @@ const App = () => {
             setCaptionInstances([])
             setSelectedOverlay(null)
             setEditorZoom(1)
+            setEditorPan({ x: 0, y: 0 })
             setIsEditing(false)
             setError(null)
         } catch (cause) {
@@ -573,12 +625,18 @@ const App = () => {
 
                     <section className="photo-area" aria-label={isEditing ? '編集中の写真' : '撮影した写真'}>
                         {photoUrl ? (
-                            <div className="photo-zoom-viewport">
+                            <div
+                                className={isEditing && editorZoom > 1 && activeEditorTab !== 'draw' ? 'photo-zoom-viewport pannable' : 'photo-zoom-viewport'}
+                                onPointerDown={beginPhotoPan}
+                                onPointerMove={movePhotoPan}
+                                onPointerUp={endPhotoPan}
+                                onPointerCancel={endPhotoPan}
+                            >
                             <div
                                 className="photo-stage"
                                 style={{
                                     ...(photoAspectRatio ? { aspectRatio: photoAspectRatio } : {}),
-                                    transform: `scale(${editorZoom})`
+                                    transform: `translate(${editorPan.x}%, ${editorPan.y}%) scale(${editorZoom})`
                                 }}
                                 onPointerDownCapture={beginStagePointer}
                                 onPointerMoveCapture={updateStagePointer}
@@ -695,19 +753,22 @@ const App = () => {
 
                     {isEditing && photoUrl && (
                         <div className="photo-zoom-controls" aria-label="写真の表示倍率">
-                            <button type="button" onClick={() => setEditorZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={editorZoom <= 1}>−</button>
+                            <button type="button" onClick={() => changeEditorZoom(Math.max(1, Number((editorZoom - 0.25).toFixed(2))))} disabled={editorZoom <= 1}>−</button>
                             <input
                                 type="range"
                                 min="1"
                                 max="3"
                                 step="0.25"
                                 value={editorZoom}
-                                onChange={(event) => setEditorZoom(Number(event.target.value))}
+                                onChange={(event) => changeEditorZoom(Number(event.target.value))}
                                 aria-label="写真の拡大率"
                             />
-                            <button type="button" onClick={() => setEditorZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={editorZoom >= 3}>＋</button>
-                            <button type="button" className="zoom-reset-button" onClick={() => setEditorZoom(1)}>{Math.round(editorZoom * 100)}%</button>
+                            <button type="button" onClick={() => changeEditorZoom(Math.min(3, Number((editorZoom + 0.25).toFixed(2))))} disabled={editorZoom >= 3}>＋</button>
+                            <button type="button" className="zoom-reset-button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>{Math.round(editorZoom * 100)}%</button>
                         </div>
+                    )}
+                    {isEditing && editorZoom > 1 && (
+                        <p className="photo-pan-hint">{activeEditorTab === 'draw' ? '手書き中は写真位置を固定します。' : '写真の空いている部分をドラッグして表示位置を移動できます。'}</p>
                     )}
 
                     <footer className="capture-controls">

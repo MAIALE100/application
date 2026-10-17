@@ -904,6 +904,8 @@ const App = () => {
                     lines.forEach((line, lineIndex) => {
                         const y = startY + lineIndex * lineHeight
                         if (item.outline) context.strokeText(line, 0, y)
+                        // Repaint the glyph fill after the centered canvas stroke so thick
+                        // Japanese outlines cannot visually intrude into the character body.
                         context.fillText(line, 0, y)
                     })
                     context.restore()

@@ -769,7 +769,9 @@ const App = () => {
                 context.lineJoin = 'round'
                 for (const item of captionInstances) {
                     context.strokeStyle = CAPTION_COLORS[item.outlineColor]
-                    context.lineWidth = Math.max(1, fontSize * (item.outlineWidth ?? 4) * 0.035)
+                    context.lineWidth = Math.max(1, fontSize * (item.outlineWidth ?? 4) * 0.028)
+                    context.lineJoin = 'round'
+                    context.miterLimit = 2
                     context.font = `700 ${fontSize}px ${CAPTION_FONTS[item.font].canvas}`
                     context.fillStyle = CAPTION_COLORS[item.color]
                     context.save()
@@ -960,7 +962,7 @@ const App = () => {
                                         className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
                                         data-overlay-kind="caption"
                                         data-overlay-id={item.instanceId}
-                                        style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? `${Math.max(0.02, (item.outlineWidth ?? 4) * 0.02)}em ${CAPTION_COLORS[item.outlineColor]}` : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                        style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()
@@ -970,7 +972,16 @@ const App = () => {
                                         }}
                                         aria-label="文字。タップして選択"
                                     >
-                                        {item.text}
+                                        {item.outline && (
+                                            <span
+                                                className="caption-outline-layer"
+                                                aria-hidden="true"
+                                                style={{
+                                                    WebkitTextStroke: `${Math.max(0.02, (item.outlineWidth ?? 4) * 0.02)}em ${CAPTION_COLORS[item.outlineColor]}`
+                                                }}
+                                            >{item.text}</span>
+                                        )}
+                                        <span className="caption-fill-layer">{item.text}</span>
                                     </span>
                                 ))}
                             </div>

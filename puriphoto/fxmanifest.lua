@@ -1,9 +1,9 @@
 fx_version "cerulean"
 game "gta5"
 
-title "LB Phone - App Template | React TS"
-description "A template for creating apps for the LB Phone."
-author "Breze & Loaf"
+title "PuriPhoto"
+description "Purikura-style photo editor app for LB Phone."
+author "PuriPhoto"
 
 shared_script "config.lua"
 client_script "client/**.lua"

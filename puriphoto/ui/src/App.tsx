@@ -116,6 +116,7 @@ const App = () => {
     const [drawWidth, setDrawWidth] = useState(5)
     const [editorZoom, setEditorZoom] = useState(1)
     const [editorPan, setEditorPan] = useState({ x: 0, y: 0 })
+    const [toolsCollapsed, setToolsCollapsed] = useState(false)
     const panPointer = useRef<{ id: number; startX: number; startY: number; originX: number; originY: number } | null>(null)
     const activeDrawPointer = useRef<number | null>(null)
     const [stampCategory, setStampCategory] = useState<StampCategory | 'all'>('all')
@@ -123,6 +124,22 @@ const App = () => {
     useEffect(() => {
         document.body.style.visibility = 'visible'
     }, [])
+
+    const setPhoneLandscape = (landscape: boolean) => {
+        if (devMode) return
+        fetch(`https://${resourceName}/puriphoto:setLandscape`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify({ landscape })
+        }).catch(() => undefined)
+    }
+
+    useEffect(() => {
+        if (!isEditing) {
+            setToolsCollapsed(false)
+            setPhoneLandscape(false)
+        }
+    }, [isEditing])
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
 
@@ -617,7 +634,7 @@ const App = () => {
     return (
         <AppProvider>
             <main className="app">
-                <div className="app-wrapper">
+                <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
                     <header className="app-header">
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>
@@ -655,7 +672,9 @@ const App = () => {
                                     onLoad={(event) => {
                                         const image = event.currentTarget
                                         if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-                                            setPhotoAspectRatio(image.naturalWidth / image.naturalHeight)
+                                            const ratio = image.naturalWidth / image.naturalHeight
+                                            setPhotoAspectRatio(ratio)
+                                            if (isEditing) setPhoneLandscape(ratio > 1.15)
                                         }
                                     }}
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
@@ -771,7 +790,18 @@ const App = () => {
                         <p className="photo-pan-hint">{activeEditorTab === 'draw' ? '手書き中は写真位置を固定します。' : '写真の空いている部分をドラッグして表示位置を移動できます。'}</p>
                     )}
 
-                    <footer className="capture-controls">
+                    {isEditing && (
+                        <div className="editor-shell-actions">
+                            <button type="button" onClick={() => setToolsCollapsed((value) => !value)}>
+                                {toolsCollapsed ? '編集ツールを表示' : '編集ツールを折りたたむ'}
+                            </button>
+                            <button type="button" onClick={() => { changeEditorZoom(1); setEditorPan({ x: 0, y: 0 }) }}>
+                                表示をリセット
+                            </button>
+                        </div>
+                    )}
+
+                    <footer className={toolsCollapsed ? 'capture-controls collapsed-controls' : 'capture-controls'}>
                         {isEditing && (
                             <div className="editor-tabs" aria-label="編集ツール">
                                 <button type="button" className={activeEditorTab === 'frame' ? 'selected' : ''} onClick={() => setActiveEditorTab('frame')}>フレーム</button>
@@ -967,7 +997,9 @@ const App = () => {
                                     <button type="button" className="capture-button" onClick={() => {
                                     const editingUrl = sourcePhotoUrl || photoUrl
                                     setPhotoUrl(editingUrl)
+                                    setToolsCollapsed(false)
                                     setIsEditing(true)
+                                    if (photoAspectRatio) setPhoneLandscape(photoAspectRatio > 1.15)
                                 }}>
                                         編集する
                                     </button>

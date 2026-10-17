@@ -13,7 +13,8 @@ type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 type DrawPoint = { x: number; y: number }
-type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number }
+type DrawTool = 'pen' | 'marker' | 'eraser'
+type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; tool: DrawTool }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -114,6 +115,7 @@ const App = () => {
     const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
     const [drawWidth, setDrawWidth] = useState(5)
+    const [drawTool, setDrawTool] = useState<DrawTool>('pen')
     const [editorZoom, setEditorZoom] = useState(1)
     const [editorPan, setEditorPan] = useState({ x: 0, y: 0 })
     const [toolsCollapsed, setToolsCollapsed] = useState(false)
@@ -395,7 +397,7 @@ const App = () => {
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
         setSelectedOverlay(null)
-        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawWidth }])
+        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(10, drawWidth * 2) : drawWidth, tool: drawTool }])
     }
 
     const continueDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -534,6 +536,8 @@ const App = () => {
                 for (const stroke of drawStrokes) {
                     if (!stroke.points.length) continue
                     context.beginPath()
+                    context.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over'
+                    context.globalAlpha = stroke.tool === 'marker' ? 0.42 : 1
                     context.strokeStyle = CAPTION_COLORS[stroke.color]
                     context.lineWidth = Math.max(2, Math.min(width, height) * stroke.width / 250)
                     const first = stroke.points[0]
@@ -714,7 +718,8 @@ const App = () => {
                                                 key={index}
                                                 points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
                                                 fill="none"
-                                                stroke={CAPTION_COLORS[stroke.color]}
+                                                stroke={stroke.tool === 'eraser' ? '#ffffff' : CAPTION_COLORS[stroke.color]}
+                                                strokeOpacity={stroke.tool === 'marker' ? 0.42 : stroke.tool === 'eraser' ? 0.75 : 1}
                                                 strokeWidth={stroke.width / 10}
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
@@ -843,9 +848,14 @@ const App = () => {
                         })()}
                         {isEditing && activeEditorTab === 'draw' && (
                             <div className="drawing-controls">
+                                <div className="drawing-tool-picker" aria-label="手書きツール">
+                                    <button type="button" className={drawTool === 'pen' ? 'selected' : ''} onClick={() => setDrawTool('pen')}>ペン</button>
+                                    <button type="button" className={drawTool === 'marker' ? 'selected' : ''} onClick={() => setDrawTool('marker')}>蛍光</button>
+                                    <button type="button" className={drawTool === 'eraser' ? 'selected' : ''} onClick={() => setDrawTool('eraser')}>消しゴム</button>
+                                </div>
                                 <div className="drawing-control-row">
-                                    <span>ペン色</span>
-                                    <div className="drawing-color-picker">
+                                    <span>{drawTool === 'eraser' ? '消しゴムサイズ' : 'ペン色'}</span>
+                                    <div className={drawTool === 'eraser' ? 'drawing-color-picker hidden-colors' : 'drawing-color-picker'}>
                                         {(Object.keys(CAPTION_COLORS) as CaptionColor[]).map((color) => (
                                             <button
                                                 key={color}

@@ -50,6 +50,7 @@ local function ensureEditorDui()
     end
 
     print("[PuriPhoto] Standalone editor DUI texture created")
+    RequestStreamedTextureDict(editorTextureDictName, false)
     return true
 end
 
@@ -93,8 +94,9 @@ end)
 CreateThread(function()
     while true do
         if editorVisible and editorDui then
-            -- Native draw functions use the runtime TXD *name*, not the object
-            -- returned by CreateRuntimeTxd.
+            -- Explicitly switch to the normal fullscreen frontend draw target.
+            SetScriptGfxDrawOrder(7)
+            SetScriptGfxDrawBehindPausemenu(false)
             DrawSprite(editorTextureDictName, editorTextureName, 0.38, 0.50, 0.70, 1.00, 0.0, 255, 255, 255, 255)
             Wait(0)
         else

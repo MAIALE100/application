@@ -112,6 +112,31 @@
     gap: 0.75rem;
 }
 
+.editor-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.25rem;
+    border-radius: 0.8rem;
+    background: #f7e8ef;
+}
+.editor-tabs button {
+    min-width: 0;
+    padding: 0.5rem 0.2rem;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: #795b70;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.editor-tabs button.selected {
+    background: #fff;
+    color: #8f2f55;
+    box-shadow: 0 0.08rem 0.25rem rgba(91, 40, 67, 0.14);
+}
 .frame-picker {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

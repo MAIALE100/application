@@ -117,10 +117,16 @@
 .empty-state p { margin-top: 0.6rem; font-size: 0.9rem; line-height: 1.8; color: #795b70; }
 
 .capture-controls {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.15rem;
+    padding-bottom: max(1.1rem, env(safe-area-inset-bottom));
+    scrollbar-width: thin;
 }
 
 .editor-tabs {
@@ -707,6 +713,8 @@
 /* Editor workspace controls */
 .editor-shell-actions {
     flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.35rem;
@@ -824,5 +832,31 @@
     }
     .editing-layout .editor-shell-actions {
         grid-row: 3 / 5;
+    }
+}
+
+/* Keep final actions reachable on short portrait phone screens. */
+.editing-layout {
+    min-height: 0;
+}
+.editing-layout .capture-controls > .capture-button:last-child {
+    margin-bottom: 0.35rem;
+}
+@media (orientation: portrait) {
+    .app-wrapper.editing-layout {
+        gap: 0.55rem;
+        padding-bottom: max(1.2rem, env(safe-area-inset-bottom));
+    }
+    .editing-layout .photo-area {
+        height: clamp(11rem, 29vh, 17rem);
+        min-height: 10rem;
+    }
+    .editing-layout .capture-controls {
+        flex: 1 1 auto;
+        min-height: 0;
+        overscroll-behavior: contain;
+    }
+    .editing-layout.tools-collapsed .photo-area {
+        height: clamp(18rem, 60vh, 35rem);
     }
 }

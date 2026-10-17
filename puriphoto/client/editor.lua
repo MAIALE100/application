@@ -26,6 +26,13 @@ local function showEditor(photoUrl)
 
     editorVisible = true
     print("[PuriPhoto] Standalone editor requested")
+    SetTimeout(500, function()
+        if not editorDui then return end
+        SendDuiMessage(editorDui, json.encode({
+            action = "puriphoto:showStandaloneEditor",
+            photoUrl = photoUrl
+        }))
+    end)
     SendDuiMessage(editorDui, json.encode({
         action = "puriphoto:showStandaloneEditor",
         photoUrl = photoUrl

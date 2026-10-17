@@ -860,3 +860,141 @@
         height: clamp(18rem, 60vh, 35rem);
     }
 }
+
+/* Persistent final actions: never bury Save inside a scrolling tool list. */
+.editor-final-actions {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 0.45rem;
+    position: relative;
+    z-index: 5;
+    padding-top: 0.15rem;
+    background: #fff7fa;
+}
+.editor-final-actions .capture-button {
+    min-height: 2.9rem;
+    padding: 0.55rem 0.45rem;
+    border-radius: 0.8rem;
+    font-size: 0.72rem;
+}
+
+@media (orientation: landscape) {
+    .app-wrapper.editing-layout {
+        grid-template-columns: minmax(0, 1.65fr) minmax(13rem, 0.85fr);
+        grid-template-rows: minmax(0, 1fr) auto auto;
+        column-gap: 0.65rem;
+        row-gap: 0.4rem;
+        padding: 0.55rem 0.7rem 0.7rem;
+    }
+    .editing-layout .app-header {
+        display: none;
+    }
+    .editing-layout .photo-area {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        align-self: stretch;
+    }
+    .editing-layout .photo-stage {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .editing-layout .photo-preview {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .editing-layout .photo-zoom-controls {
+        grid-column: 1;
+        grid-row: 2;
+        min-height: 0;
+        padding: 0.25rem 0.35rem;
+    }
+    .editing-layout .photo-pan-hint {
+        display: none;
+    }
+    .editing-layout .capture-controls {
+        grid-column: 2;
+        grid-row: 1 / 3;
+        min-width: 0;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0 0.25rem 0.35rem 0;
+        gap: 0.45rem;
+    }
+    .editing-layout .editor-shell-actions {
+        grid-column: 1;
+        grid-row: 3;
+        grid-template-columns: 1fr 1fr;
+        align-self: stretch;
+    }
+    .editing-layout .editor-final-actions {
+        grid-column: 2;
+        grid-row: 3;
+        align-self: end;
+        padding: 0;
+    }
+    .editing-layout .editor-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        padding: 0.2rem;
+    }
+    .editing-layout .editor-tabs button {
+        padding: 0.4rem 0.12rem;
+        font-size: 0.62rem;
+    }
+    .editing-layout .stamp-categories {
+        padding-bottom: 0.15rem;
+    }
+    .editing-layout .stamp-picker {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: none;
+        overflow: visible;
+    }
+    .editing-layout .stamp-option {
+        padding: 0.25rem 0.1rem;
+    }
+    .editing-layout .stamp-option span {
+        font-size: 1.2rem;
+    }
+    .editing-layout .capture-message {
+        min-height: 0;
+        margin-top: auto;
+        font-size: 0.58rem;
+    }
+    .editing-layout.tools-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) auto auto;
+    }
+    .editing-layout.tools-collapsed .photo-area,
+    .editing-layout.tools-collapsed .photo-zoom-controls,
+    .editing-layout.tools-collapsed .editor-shell-actions {
+        grid-column: 1;
+    }
+    .editing-layout.tools-collapsed .editor-final-actions {
+        grid-column: 1;
+        grid-row: 3;
+        width: min(22rem, 58%);
+        justify-self: end;
+        background: transparent;
+    }
+    .editing-layout.tools-collapsed .editor-shell-actions {
+        grid-row: 3;
+        width: min(22rem, 40%);
+        justify-self: start;
+    }
+}
+
+@media (orientation: portrait) {
+    .editing-layout .editor-final-actions {
+        position: sticky;
+        bottom: 0;
+        margin-top: -0.1rem;
+        padding: 0.35rem 0 max(0.25rem, env(safe-area-inset-bottom));
+        box-shadow: 0 -0.35rem 0.8rem rgba(91, 40, 67, 0.08);
+    }
+}

@@ -397,7 +397,7 @@ const App = () => {
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
         setSelectedOverlay(null)
-        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(10, drawWidth * 2) : drawWidth, tool: drawTool }])
+        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, tool: drawTool }])
     }
 
     const continueDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -713,19 +713,38 @@ const App = () => {
                                         onContextMenu={(event) => event.preventDefault()}
                                         aria-label="手書きキャンバス"
                                     >
-                                        {drawStrokes.map((stroke, index) => (
-                                            <polyline
-                                                key={index}
-                                                points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
-                                                fill="none"
-                                                stroke={stroke.tool === 'eraser' ? '#ffffff' : CAPTION_COLORS[stroke.color]}
-                                                strokeOpacity={stroke.tool === 'marker' ? 0.42 : stroke.tool === 'eraser' ? 0.75 : 1}
-                                                strokeWidth={stroke.width / 10}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                vectorEffect="non-scaling-stroke"
-                                            />
-                                        ))}
+                                        <defs>
+                                            <mask id="puriphoto-drawing-mask">
+                                                <rect width="100" height="100" fill="white" />
+                                                {drawStrokes.filter((stroke) => stroke.tool === 'eraser').map((stroke, index) => (
+                                                    <polyline
+                                                        key={`erase-${index}`}
+                                                        points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                                                        fill="none"
+                                                        stroke="black"
+                                                        strokeWidth={stroke.width / 10}
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        vectorEffect="non-scaling-stroke"
+                                                    />
+                                                ))}
+                                            </mask>
+                                        </defs>
+                                        <g mask="url(#puriphoto-drawing-mask)">
+                                            {drawStrokes.filter((stroke) => stroke.tool !== 'eraser').map((stroke, index) => (
+                                                <polyline
+                                                    key={index}
+                                                    points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                                                    fill="none"
+                                                    stroke={CAPTION_COLORS[stroke.color]}
+                                                    strokeOpacity={stroke.tool === 'marker' ? 0.42 : 1}
+                                                    strokeWidth={stroke.width / 10}
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    vectorEffect="non-scaling-stroke"
+                                                />
+                                            ))}
+                                        </g>
                                     </svg>
                                 )}
                                 {isEditing && selectedFrame !== 'none' && (
@@ -869,8 +888,8 @@ const App = () => {
                                     </div>
                                 </div>
                                 <label className="drawing-width-control">
-                                    <span>太さ</span>
-                                    <input type="range" min="2" max="14" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
+                                    <span>太さ {drawWidth}</span>
+                                    <input type="range" min="2" max="40" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
                                 </label>
                                 <div className="drawing-actions">
                                     <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes((current) => current.slice(0, -1))}>↶ 1つ戻す</button>

@@ -7,16 +7,29 @@ type FrameStyle = 'none' | 'soft' | 'pop'
 type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
 type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other'
-type CaptionColor = 'pink' | 'white' | 'black' | 'blue' | 'yellow'
+type CaptionColor = 'pink' | 'hotPink' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'mint' | 'cyan' | 'blue' | 'navy' | 'purple' | 'lavender' | 'brown' | 'beige' | 'white' | 'gray' | 'black'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
-    pink: '#a12f68',
-    white: '#ffffff',
-    black: '#1f1b1e',
+    pink: '#e98bb7',
+    hotPink: '#e83e8c',
+    red: '#e5484d',
+    orange: '#f28c38',
+    yellow: '#f1c83b',
+    lime: '#a8d84e',
+    green: '#42a66b',
+    mint: '#70d6b5',
+    cyan: '#55c7d9',
     blue: '#3b68c7',
-    yellow: '#f1c83b'
+    navy: '#344b78',
+    purple: '#8b5cc7',
+    lavender: '#b79ae3',
+    brown: '#8b6048',
+    beige: '#d8b98d',
+    white: '#ffffff',
+    gray: '#8a8588',
+    black: '#1f1b1e'
 }
 const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: string }> = {
     gothic: { label: 'ゴシック', css: '"Noto Sans JP", sans-serif', canvas: '"Noto Sans JP", sans-serif' },

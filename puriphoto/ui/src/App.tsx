@@ -16,6 +16,8 @@ const App = () => {
         document.body.style.visibility = 'visible'
     }, [])
 
+    const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
+
     const takePhoto = () => {
         setError(null)
         if (typeof window.useCamera !== 'function') {
@@ -74,7 +76,9 @@ const App = () => {
                                     onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
                                 />
                                 {isEditing && selectedFrame !== 'none' && (
-                                    <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
+                                    selectedFrame === 'soft' && photoAspectRatio !== null && photoAspectRatio > 1
+                                        ? <img className="frame-image-overlay" src={frameImageSrc} alt="" aria-hidden="true" />
+                                        : <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
                                 )}
                             </div>
                         ) : (

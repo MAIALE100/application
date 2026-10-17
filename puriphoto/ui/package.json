@@ -1,6 +1,6 @@
 {
-    "name": "lb-phone-app-template-react",
-    "version": "2.0.0",
+    "name": "puriphoto",
+    "version": "1.0.0",
     "private": true,
     "homepage": "./",
     "dependencies": {

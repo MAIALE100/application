@@ -3,20 +3,20 @@ import './App.css'
 import Frame from './components/Frame'
 
 const devMode = !window['invokeNative']
+type FrameStyle = 'none' | 'soft' | 'pop'
 
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
+    const [selectedFrame, setSelectedFrame] = useState<FrameStyle>('none')
 
     useEffect(() => {
-        // App mounts after LB Phone's componentsLoaded event (or immediately in preview).
         document.body.style.visibility = 'visible'
     }, [])
 
     const takePhoto = () => {
         setError(null)
-
         if (typeof window.useCamera !== 'function') {
             setError('カメラは LB Phone 内で利用できます。')
             return
@@ -24,10 +24,10 @@ const App = () => {
 
         try {
             window.useCamera((url) => {
-                // Keep the current photo if the camera closes without a new image.
                 if (typeof url === 'string' && url.trim()) {
                     setPhotoUrl(url)
                     setIsEditing(false)
+                    setSelectedFrame('none')
                     setError(null)
                 }
             }, {
@@ -55,12 +55,17 @@ const App = () => {
 
                     <section className="photo-area" aria-label={isEditing ? '編集中の写真' : '撮影した写真'}>
                         {photoUrl ? (
-                            <img
-                                className="photo-preview"
-                                src={photoUrl}
-                                alt={isEditing ? '編集中の写真' : '撮影した写真'}
-                                onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
-                            />
+                            <div className="photo-stage">
+                                <img
+                                    className="photo-preview"
+                                    src={photoUrl}
+                                    alt={isEditing ? '編集中の写真' : '撮影した写真'}
+                                    onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
+                                />
+                                {isEditing && selectedFrame !== 'none' && (
+                                    <div className={`frame-overlay frame-${selectedFrame}`} aria-hidden="true" />
+                                )}
+                            </div>
                         ) : (
                             <div className="empty-state">
                                 <span className="camera-mark" aria-hidden="true">◎</span>
@@ -71,10 +76,18 @@ const App = () => {
                     </section>
 
                     <footer className="capture-controls">
+                        {isEditing && (
+                            <div className="frame-picker" aria-label="フレームを選択">
+                                <button className={selectedFrame === 'none' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('none')}>なし</button>
+                                <button className={selectedFrame === 'soft' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('soft')}>フレーム1</button>
+                                <button className={selectedFrame === 'pop' ? 'frame-option selected' : 'frame-option'} onClick={() => setSelectedFrame('pop')}>フレーム2</button>
+                            </div>
+                        )}
+
                         <p className="capture-message" role="status" aria-live="polite">
                             {error || (
                                 isEditing
-                                    ? 'この写真にフレームやスタンプを追加していきます。'
+                                    ? 'フレームを選んで写真に重ねられます。'
                                     : photoUrl
                                         ? '撮り直すか、この写真を編集できます。'
                                         : 'ボタンを押すとカメラが開きます。'
@@ -107,13 +120,11 @@ const App = () => {
 const AppProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!devMode) return
-
         const handleResize = () => {
             const { innerWidth, innerHeight } = window
             document.documentElement.style.fontSize =
                 27.6 / 59 < innerWidth / innerHeight ? '1.66vh' : '3.4vw'
         }
-
         handleResize()
         window.addEventListener('resize', handleResize)
         return () => window.removeEventListener('resize', handleResize)

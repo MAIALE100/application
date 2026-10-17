@@ -1179,3 +1179,6 @@
 .caption-outline-layer,.caption-fill-layer{display:block;white-space:pre-wrap}
 .caption-outline-layer{position:absolute;inset:0;color:transparent;pointer-events:none;z-index:0}
 .caption-fill-layer{position:relative;color:inherit;pointer-events:none;z-index:1;-webkit-text-stroke:0 transparent!important;paint-order:normal}
+
+.caption-advanced-toggle{width:100%;min-height:1.9rem;padding:.35rem .55rem;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#7d5369;font:inherit;font-size:.62rem;font-weight:700;cursor:pointer}
+.caption-advanced-panel{display:flex;flex-direction:column;gap:.35rem;padding:.4rem;border:1px solid #efd5e1;border-radius:.7rem;background:#fffafd}

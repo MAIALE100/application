@@ -1025,7 +1025,7 @@ const App = () => {
                                 <button type="button" className={activeEditorTab === 'draw' ? 'selected' : ''} onClick={() => { setActiveEditorTab('draw'); setSelectedOverlay(null) }}>手書き</button>
                             </div>
                         )}
-                        {isEditing && selectedOverlay && (() => {
+                        {isEditing && selectedOverlay && activeEditorTab !== 'stamp' && (() => {
                             const selected = getSelectedOverlayValues()
                             if (!selected) return null
                             return (
@@ -1177,7 +1177,21 @@ const App = () => {
                             </div>
                         )}
                         {isEditing && activeEditorTab === 'stamp' && (
-                            <>
+                            <div className="stamp-browser-shell">
+                                {selectedOverlay?.kind === 'stamp' && (() => {
+                                    const selected = getSelectedOverlayValues()
+                                    if (!selected) return null
+                                    return (
+                                        <div className="stamp-quick-actions">
+                                            <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.max(0.45, selected.scale - 0.15) })}>−</button>
+                                            <button type="button" onClick={() => updateSelectedOverlay({ scale: Math.min(2.5, selected.scale + 0.15) })}>＋</button>
+                                            <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation - 15 })}>↶</button>
+                                            <button type="button" onClick={() => updateSelectedOverlay({ rotation: selected.rotation + 15 })}>↷</button>
+                                            <button type="button" onClick={duplicateSelectedOverlay}>⧉</button>
+                                            <button type="button" className="delete-overlay-button" onClick={deleteSelectedOverlay}>🗑</button>
+                                        </div>
+                                    )
+                                })()}
                                 <div className="stamp-categories" aria-label="スタンプカテゴリ">
                                     {([
                                         ['all', '全部'], ['love', 'ハート'], ['cute', 'かわいい'],
@@ -1200,7 +1214,7 @@ const App = () => {
                                     </button>
                                 ))}
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         <p className="capture-message" role="status" aria-live="polite">

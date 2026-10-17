@@ -467,7 +467,7 @@ const App = () => {
                                             className={selectedOverlay?.kind === 'stamp' && selectedOverlay.id === item.instanceId ? 'stamp-overlay overlay-selected' : 'stamp-overlay'}
                                             data-overlay-kind="stamp"
                                             data-overlay-id={item.instanceId}
-                                            style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? '0.08em #fff' : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                            style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                             onPointerDown={(event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
@@ -487,7 +487,7 @@ const App = () => {
                                         className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
                                         data-overlay-kind="caption"
                                         data-overlay-id={item.instanceId}
-                                        style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                        style={{ left: `${item.x}%`, top: `${item.y}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? '0.08em #fff' : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()

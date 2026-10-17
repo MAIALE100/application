@@ -554,7 +554,7 @@ const App = () => {
         setCaptionDraft('')
     }
 
-    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; outlineColor?: CaptionColor; font?: CaptionFont; outline?: boolean; boxWidth?: number }) => {
+    const updateSelectedOverlay = (changes: { scale?: number; rotation?: number; color?: CaptionColor; outlineColor?: CaptionColor; font?: CaptionFont; outline?: boolean; outlineWidth?: number; boxWidth?: number }) => {
         if (!selectedOverlay) return
         if (selectedOverlay.kind === 'stamp') {
             setStampInstances((current) => current.map((item) =>
@@ -574,6 +574,7 @@ const App = () => {
                     outlineColor: changes.outlineColor ?? item.outlineColor,
                     font: changes.font ?? item.font,
                     outline: changes.outline ?? item.outline,
+                    outlineWidth: changes.outlineWidth ?? item.outlineWidth,
                     boxWidth: changes.boxWidth ?? item.boxWidth
                 } : item
             ))
@@ -765,10 +766,10 @@ const App = () => {
                 context.save()
                 context.textAlign = 'center'
                 context.textBaseline = 'middle'
-                context.lineWidth = Math.max(3, fontSize * 0.14)
                 context.lineJoin = 'round'
                 for (const item of captionInstances) {
                     context.strokeStyle = CAPTION_COLORS[item.outlineColor]
+                    context.lineWidth = Math.max(1, fontSize * (item.outlineWidth ?? 4) * 0.035)
                     context.font = `700 ${fontSize}px ${CAPTION_FONTS[item.font].canvas}`
                     context.fillStyle = CAPTION_COLORS[item.color]
                     context.save()
@@ -959,7 +960,7 @@ const App = () => {
                                         className={selectedOverlay?.kind === 'caption' && selectedOverlay.id === item.instanceId ? 'caption-overlay overlay-selected' : 'caption-overlay'}
                                         data-overlay-kind="caption"
                                         data-overlay-id={item.instanceId}
-                                        style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? `0.08em ${CAPTION_COLORS[item.outlineColor]}` : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
+                                        style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.boxWidth}%`, color: CAPTION_COLORS[item.color], fontFamily: CAPTION_FONTS[item.font].css, WebkitTextStroke: item.outline ? `${Math.max(0.02, (item.outlineWidth ?? 4) * 0.02)}em ${CAPTION_COLORS[item.outlineColor]}` : '0', transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})` }}
                                         onPointerDown={(event) => {
                                             event.preventDefault()
                                             event.stopPropagation()

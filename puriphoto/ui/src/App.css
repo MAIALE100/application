@@ -228,6 +228,28 @@
     opacity: 0.45;
     cursor: default;
 }
+.caption-style-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.3rem;
+}
+.caption-style-button {
+    min-width: 0;
+    padding: 0.42rem 0.12rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 0.6rem;
+    background: #fff;
+    color: #795b70;
+    font: inherit;
+    font-size: 0.6rem;
+    cursor: pointer;
+}
+.caption-style-button.selected {
+    border-color: #a94875;
+    background: #f9e3ec;
+    color: #7d2f54;
+    font-weight: 700;
+}
 .caption-color-picker {
     display: flex;
     justify-content: center;

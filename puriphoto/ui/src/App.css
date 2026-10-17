@@ -49,8 +49,18 @@
     background: #fff;
 }
 
+.photo-zoom-viewport {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
 .photo-stage {
     position: relative;
+    transform-origin: center center;
     display: inline-block;
     width: auto;
     height: 100%;
@@ -641,4 +651,40 @@
 .drawing-actions button:disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+.photo-zoom-controls {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr) 2.2rem 3.4rem;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid #e8cbd9;
+    border-radius: 0.8rem;
+    background: #fff8fb;
+}
+.photo-zoom-controls button {
+    min-width: 0;
+    height: 2rem;
+    border: 1px solid #e0b9cc;
+    border-radius: 0.55rem;
+    background: #fff;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.photo-zoom-controls button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.photo-zoom-controls input {
+    width: 100%;
+    min-width: 0;
+    accent-color: #a94875;
+}
+.photo-zoom-controls .zoom-reset-button {
+    font-size: 0.62rem;
 }

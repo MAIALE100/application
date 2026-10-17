@@ -1167,3 +1167,10 @@
 .overlay-toolbar.compact button:last-child{font-size:.52rem}
 .overlay-toolbar-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.3rem}
 .overlay-toolbar-details button{min-width:0;padding:.4rem .15rem;border:1px solid #e2bfd0;border-radius:.55rem;background:#fff;color:#7d5369;font:inherit;font-size:.55rem;font-weight:700}
+
+.stamp-browser-shell{display:flex;flex-direction:column;gap:.3rem;min-height:0;flex:1 1 auto}
+.stamp-quick-actions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.25rem;flex:0 0 auto}
+.stamp-quick-actions button{min-width:0;min-height:1.65rem;padding:.25rem .08rem;border:1px solid #e2bfd0;border-radius:.5rem;background:#fff;color:#7d5369;font:inherit;font-size:.62rem;font-weight:700}
+.stamp-quick-actions .delete-overlay-button{background:#a32f60;color:#fff;border-color:#a32f60}
+.stamp-browser-shell .stamp-categories{flex:0 0 auto}
+.stamp-browser-shell .stamp-picker{flex:1 1 auto;min-height:7rem;max-height:none;overflow-y:auto}

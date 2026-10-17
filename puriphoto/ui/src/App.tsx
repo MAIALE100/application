@@ -971,19 +971,7 @@ const App = () => {
                             )}
                         </p>
 
-                        {isEditing ? (
-                            <>
-                                <button type="button" className="capture-button" onClick={saveFinishedPhoto} disabled={isSaving}>
-                                    {isSaving ? '保存しています…' : '完成して保存'}
-                                </button>
-                                <button type="button" className="capture-button secondary-button" onClick={() => {
-                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setIsEditing(false)
-                                }} disabled={isSaving}>
-                                    写真確認に戻る
-                                </button>
-                            </>
-                        ) : (
+                        {!isEditing && (
                             <>
                                 <button type="button" className="capture-button" onClick={takePhoto}>
                                     {photoUrl ? '撮り直す' : '写真を撮る'}
@@ -995,18 +983,30 @@ const App = () => {
                                 )}
                                 {photoUrl && (
                                     <button type="button" className="capture-button" onClick={() => {
-                                    const editingUrl = sourcePhotoUrl || photoUrl
-                                    setPhotoUrl(editingUrl)
-                                    setToolsCollapsed(false)
-                                    setIsEditing(true)
-                                    if (photoAspectRatio) setPhoneLandscape(photoAspectRatio > 1.15)
-                                }}>
+                                        const editingUrl = sourcePhotoUrl || photoUrl
+                                        setPhotoUrl(editingUrl)
+                                        setToolsCollapsed(false)
+                                        setIsEditing(true)
+                                        if (photoAspectRatio) setPhoneLandscape(photoAspectRatio > 1.15)
+                                    }}>
                                         編集する
                                     </button>
                                 )}
                             </>
-                        )}
-                    </footer>
+                        )}                    </footer>
+                    {isEditing && (
+                        <div className="editor-final-actions">
+                            <button type="button" className="capture-button secondary-button" onClick={() => {
+                                setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
+                                setIsEditing(false)
+                            }} disabled={isSaving}>
+                                写真確認に戻る
+                            </button>
+                            <button type="button" className="capture-button" onClick={saveFinishedPhoto} disabled={isSaving}>
+                                {isSaving ? '保存しています…' : '完成して保存'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </main>
         </AppProvider>

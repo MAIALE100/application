@@ -73,6 +73,15 @@
     border-radius: 1.35rem;
 }
 
+.frame-image-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+}
+
 .frame-soft {
     border: 0.65rem solid rgba(255, 170, 203, 0.82);
     box-shadow: inset 0 0 0 0.22rem rgba(255, 255, 255, 0.82);

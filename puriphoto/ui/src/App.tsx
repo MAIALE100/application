@@ -148,6 +148,7 @@ const App = () => {
     const historyLock = useRef(false)
     const historyTimer = useRef<number | null>(null)
     const lastSnapshot = useRef<string>('')
+    const historyActionLock = useRef(false)
 
     const makeSnapshot = (): EditorSnapshot => ({
         frame: selectedFrame,
@@ -164,23 +165,31 @@ const App = () => {
         setDrawStrokes(snapshot.strokes)
         setSelectedOverlay(null)
         setDraggingItem(null)
+        activePointers.current.clear()
+        gestureStart.current = null
+        activeDrawPointer.current = null
+        panPointer.current = null
         window.setTimeout(() => { historyLock.current = false }, 0)
     }
 
     const undoEditor = () => {
-        if (!undoStack.length) return
+        if (historyActionLock.current || !undoStack.length) return
+        historyActionLock.current = true
         const previous = undoStack[undoStack.length - 1]
         setUndoStack((current) => current.slice(0, -1))
         setRedoStack((current) => [...current.slice(-29), makeSnapshot()])
         applySnapshot(previous)
+        window.setTimeout(() => { historyActionLock.current = false }, 60)
     }
 
     const redoEditor = () => {
-        if (!redoStack.length) return
+        if (historyActionLock.current || !redoStack.length) return
+        historyActionLock.current = true
         const next = redoStack[redoStack.length - 1]
         setRedoStack((current) => current.slice(0, -1))
         setUndoStack((current) => [...current.slice(-29), makeSnapshot()])
         applySnapshot(next)
+        window.setTimeout(() => { historyActionLock.current = false }, 60)
     }
 
     useEffect(() => {
@@ -281,6 +290,8 @@ const App = () => {
         activeDrawPointer.current = null
         panPointer.current = null
         lastSnapshot.current = ''
+        historyActionLock.current = false
+        historyLock.current = false
         if (historyTimer.current !== null) {
             window.clearTimeout(historyTimer.current)
             historyTimer.current = null
@@ -608,8 +619,8 @@ const App = () => {
             setStampInstances((current) => current.map((item) =>
                 item.instanceId === selectedOverlay.id ? {
                     ...item,
-                    scale: changes.scale ?? item.scale,
-                    rotation: changes.rotation ?? item.rotation
+                    scale: changes.scale === undefined ? item.scale : Math.max(0.35, Math.min(3.5, changes.scale)),
+                    rotation: changes.rotation === undefined ? item.rotation : ((changes.rotation % 360) + 360) % 360
                 } : item
             ))
         } else {
@@ -622,8 +633,8 @@ const App = () => {
                     outlineColor: changes.outlineColor ?? item.outlineColor,
                     font: changes.font ?? item.font,
                     outline: changes.outline ?? item.outline,
-                    outlineWidth: changes.outlineWidth ?? item.outlineWidth,
-                    boxWidth: changes.boxWidth ?? item.boxWidth
+                    outlineWidth: changes.outlineWidth === undefined ? item.outlineWidth : Math.max(1, Math.min(12, changes.outlineWidth)),
+                    boxWidth: changes.boxWidth === undefined ? item.boxWidth : Math.max(25, Math.min(95, changes.boxWidth))
                 } : item
             ))
         }
@@ -707,12 +718,26 @@ const App = () => {
 
             const loadImage = (src: string, crossOrigin = false) => new Promise<HTMLImageElement>((resolve, reject) => {
                 const image = new Image()
+                let settled = false
+                const timeout = window.setTimeout(() => {
+                    if (settled) return
+                    settled = true
+                    image.src = ''
+                    reject(new Error('Image loading timed out during export'))
+                }, 15000)
+                const finish = (callback: () => void) => {
+                    if (settled) return
+                    settled = true
+                    window.clearTimeout(timeout)
+                    callback()
+                }
                 if (crossOrigin && /^https?:/i.test(src)) image.crossOrigin = 'anonymous'
-                image.onload = () => resolve(image)
-                image.onerror = () => reject(new Error('An image could not be loaded for export'))
+                image.onload = () => finish(() => resolve(image))
+                image.onerror = () => finish(() => reject(new Error('An image could not be loaded for export')))
                 image.src = src
             })
 
+            if (document.fonts?.ready) await document.fonts.ready
             const photo = await loadImage(photoUrl, true)
             const width = photo.naturalWidth
             const height = photo.naturalHeight

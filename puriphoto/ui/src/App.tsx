@@ -385,8 +385,13 @@ const App = () => {
         if (!draggingItem || gestureStart.current) return
         const rect = event.currentTarget.getBoundingClientRect()
         if (!rect.width || !rect.height) return
-        const x = Math.max(4, Math.min(96, ((event.clientX - rect.left) / rect.width) * 100))
-        const y = Math.max(4, Math.min(96, ((event.clientY - rect.top) / rect.height) * 100))
+        const selected = draggingItem.kind === 'caption'
+            ? captionInstances.find((item) => item.instanceId === draggingItem.id)
+            : stampInstances.find((item) => item.instanceId === draggingItem.id)
+        const scale = selected?.scale ?? 1
+        const edgeMargin = Math.max(4, Math.min(18, 4 + scale * 3))
+        const x = Math.max(edgeMargin, Math.min(100 - edgeMargin, ((event.clientX - rect.left) / rect.width) * 100))
+        const y = Math.max(edgeMargin, Math.min(100 - edgeMargin, ((event.clientY - rect.top) / rect.height) * 100))
         if (draggingItem.kind === 'caption') {
             setCaptionInstances((current) => current.map((item) =>
                 item.instanceId === draggingItem.id ? { ...item, x, y } : item
@@ -807,6 +812,28 @@ const App = () => {
 
             if (captionInstances.length > 0) {
                 const fontSize = Math.max(22, Math.round(Math.min(width, height) * 0.055))
+                const wrapCaptionLines = (text: string, maxWidth: number) => {
+                    const explicitLines = text.split('\n')
+                    const wrapped: string[] = []
+                    for (const explicitLine of explicitLines) {
+                        if (!explicitLine) {
+                            wrapped.push('')
+                            continue
+                        }
+                        let line = ''
+                        for (const char of Array.from(explicitLine)) {
+                            const candidate = line + char
+                            if (line && context.measureText(candidate).width > maxWidth) {
+                                wrapped.push(line)
+                                line = char
+                            } else {
+                                line = candidate
+                            }
+                        }
+                        wrapped.push(line)
+                    }
+                    return wrapped
+                }
                 context.save()
                 context.textAlign = 'center'
                 context.textBaseline = 'middle'
@@ -822,7 +849,8 @@ const App = () => {
                     context.translate(width * item.x / 100, height * item.y / 100)
                     context.rotate(item.rotation * Math.PI / 180)
                     context.scale(item.scale, item.scale)
-                    const lines = item.text.split('\n')
+                    const maxTextWidth = Math.max(fontSize * 2, width * item.boxWidth / 100 / Math.max(0.35, item.scale))
+                    const lines = wrapCaptionLines(item.text, maxTextWidth)
                     const lineHeight = fontSize * 1.25
                     const startY = -((lines.length - 1) * lineHeight) / 2
                     lines.forEach((line, lineIndex) => {

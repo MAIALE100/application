@@ -7,6 +7,7 @@ const devMode = !window['invokeNative']
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [isEditing, setIsEditing] = useState(false)
 
     useEffect(() => {
         // App mounts after LB Phone's componentsLoaded event (or immediately in preview).
@@ -26,6 +27,7 @@ const App = () => {
                 // Keep the current photo if the camera closes without a new image.
                 if (typeof url === 'string' && url.trim()) {
                     setPhotoUrl(url)
+                    setIsEditing(false)
                     setError(null)
                 }
             }, {
@@ -47,16 +49,16 @@ const App = () => {
             <main className="app">
                 <div className="app-wrapper">
                     <header className="app-header">
-                        <p className="app-eyebrow">今日の一枚を、ここに。</p>
-                        <h1>PuriPhoto</h1>
+                        <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
+                        <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>
                     </header>
 
-                    <section className="photo-area" aria-label="撮影した写真">
+                    <section className="photo-area" aria-label={isEditing ? '編集中の写真' : '撮影した写真'}>
                         {photoUrl ? (
                             <img
                                 className="photo-preview"
                                 src={photoUrl}
-                                alt="撮影した写真"
+                                alt={isEditing ? '編集中の写真' : '撮影した写真'}
                                 onError={() => setError('写真を読み込めませんでした。撮り直すことができます。')}
                             />
                         ) : (
@@ -70,11 +72,31 @@ const App = () => {
 
                     <footer className="capture-controls">
                         <p className="capture-message" role="status" aria-live="polite">
-                            {error || (photoUrl ? 'もう一度撮影して、写真を選び直せます。' : 'ボタンを押すとカメラが開きます。')}
+                            {error || (
+                                isEditing
+                                    ? 'この写真にフレームやスタンプを追加していきます。'
+                                    : photoUrl
+                                        ? '撮り直すか、この写真を編集できます。'
+                                        : 'ボタンを押すとカメラが開きます。'
+                            )}
                         </p>
-                        <button type="button" className="capture-button" onClick={takePhoto}>
-                            {photoUrl ? '撮り直す' : '写真を撮る'}
-                        </button>
+
+                        {isEditing ? (
+                            <button type="button" className="capture-button" onClick={() => setIsEditing(false)}>
+                                写真確認に戻る
+                            </button>
+                        ) : (
+                            <>
+                                <button type="button" className="capture-button" onClick={takePhoto}>
+                                    {photoUrl ? '撮り直す' : '写真を撮る'}
+                                </button>
+                                {photoUrl && (
+                                    <button type="button" className="capture-button" onClick={() => setIsEditing(true)}>
+                                        編集する
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </footer>
                 </div>
             </main>

@@ -1217,15 +1217,17 @@ const App = () => {
                             </div>
                         )}
 
-                        <p className="capture-message" role="status" aria-live="polite">
-                            {error || (
-                                isEditing
-                                    ? (activeEditorTab === 'draw' ? '写真の上をマウスでドラッグして手書きできます。' : 'クリックで選択・ドラッグで移動。ホイールで拡大縮小、Shift＋ホイールで回転。')
-                                    : photoUrl
-                                        ? '撮り直すか、この写真を編集できます。'
-                                        : 'ボタンを押すとカメラが開きます。'
-                            )}
-                        </p>
+                        {(!isEditing || error || activeEditorTab === 'draw') && (
+                            <p className="capture-message" role="status" aria-live="polite">
+                                {error || (
+                                    isEditing
+                                        ? '写真の上をマウスでドラッグして手書きできます。'
+                                        : photoUrl
+                                            ? '撮り直すか、この写真を編集できます。'
+                                            : 'ボタンを押すとカメラが開きます。'
+                                )}
+                            </p>
+                        )}
 
                         {!isEditing && (
                             <>

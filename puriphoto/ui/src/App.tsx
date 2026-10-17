@@ -2,12 +2,11 @@ import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useSta
 import './App.css'
 import Frame from './components/Frame'
 
-const resourceName = typeof window.GetParentResourceName === 'function' ? window.GetParentResourceName() : 'puriphoto'
 const devMode = !window['invokeNative']
 type FrameStyle = 'none' | 'soft' | 'pop'
-type StampId = 'heart' | 'pinkHeart' | 'brokenHeart' | 'star' | 'sparkle' | 'crown' | 'ribbon' | 'flower' | 'cherryBlossom' | 'tulip' | 'sunflower' | 'butterfly' | 'cherry' | 'strawberry' | 'peach' | 'cake' | 'candy' | 'lollipop' | 'iceCream' | 'donut' | 'coffee' | 'cat' | 'dog' | 'bear' | 'rabbit' | 'panda' | 'chick' | 'frog' | 'smile' | 'loveFace' | 'kiss' | 'cool' | 'party' | 'fire' | 'rainbow' | 'cloud' | 'sun' | 'moon' | 'music' | 'note' | 'camera' | 'gift' | 'balloon' | 'clover' | 'diamond' | 'hundred'
+type StampId = string
 type StampInstance = { instanceId: number; stampId: StampId; x: number; y: number; scale: number; rotation: number }
-type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other'
+type StampCategory = 'love' | 'cute' | 'food' | 'animal' | 'face' | 'other' | 'community'
 type CaptionColor = 'pink' | 'hotPink' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'mint' | 'cyan' | 'blue' | 'navy' | 'purple' | 'lavender' | 'brown' | 'beige' | 'white' | 'gray' | 'black'
 type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
@@ -40,8 +39,8 @@ const CAPTION_FONTS: Record<CaptionFont, { label: string; css: string; canvas: s
     serif: { label: '明朝', css: '"Noto Serif JP", "Yu Mincho", serif', canvas: '"Noto Serif JP", "Yu Mincho", serif' },
     rounded: { label: '丸文字', css: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif', canvas: '"Arial Rounded MT Bold", "Trebuchet MS", "Noto Sans JP", sans-serif' }
 }
-type StampDefinition = { id: StampId; label: string; glyph: string; category: StampCategory; image?: string }
-const STAMPS: StampDefinition[] = [
+type StampDefinition = { id: StampId; label: string; category: StampCategory; glyph?: string; image?: string; author?: string }
+const BASE_STAMPS: StampDefinition[] = [
     { id: 'heart', label: 'ハート', glyph: '❤️' , category: 'love' },
     { id: 'pinkHeart', label: 'ピンク', glyph: '💗' , category: 'love' },
     { id: 'brokenHeart', label: '失恋', glyph: '💔' , category: 'love' },
@@ -90,6 +89,14 @@ const STAMPS: StampDefinition[] = [
     { id: 'hundred', label: '100', glyph: '💯' , category: 'other' }
 ]
 
+// 公募採用スタンプはここに追加。既存の基本スタンプは削除・置換しない。
+const COMMUNITY_STAMPS: StampDefinition[] = [
+    // 例:
+    // { id: 'community-sakura-01', label: 'さくら', category: 'community', image: 'community/sakura-01.webp', author: '作者名' }
+]
+
+const STAMPS: StampDefinition[] = [...BASE_STAMPS, ...COMMUNITY_STAMPS]
+
 const stampAssetUrl = (stamp: StampDefinition) =>
     stamp.image ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/stamps/${stamp.image}` : null
 
@@ -132,20 +139,8 @@ const App = () => {
         document.body.style.visibility = 'visible'
     }, [])
 
-    const setPhoneLandscape = (landscape: boolean) => {
-        if (devMode) return
-        fetch(`https://${resourceName}/puriphoto:setLandscape`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-            body: JSON.stringify({ landscape })
-        }).catch(() => undefined)
-    }
-
     useEffect(() => {
-        if (!isEditing) {
-            setToolsCollapsed(false)
-            setPhoneLandscape(false)
-        }
+        if (!isEditing) setToolsCollapsed(false)
     }, [isEditing])
 
     const frameImageSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/frames/frame01-landscape.webp`
@@ -805,7 +800,7 @@ const App = () => {
                                         >
                                             {stampAssetUrl(stamp)
                                                 ? <img className="stamp-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} />
-                                                : stamp.glyph}
+                                                : (stamp.glyph ?? '★')}
                                         </span>
                                     )
                                 })}
@@ -1024,7 +1019,8 @@ const App = () => {
                                 <div className="stamp-categories" aria-label="スタンプカテゴリ">
                                     {([
                                         ['all', '全部'], ['love', 'ハート'], ['cute', 'かわいい'],
-                                        ['food', 'フード'], ['animal', 'どうぶつ'], ['face', '顔'], ['other', 'その他']
+                                        ['food', 'フード'], ['animal', 'どうぶつ'], ['face', '顔'], ['other', 'その他'],
+                                        ...(COMMUNITY_STAMPS.length > 0 ? [['community', 'みんなの'] as const] : [])
                                     ] as const).map(([id, label]) => (
                                         <button key={id} type="button" className={stampCategory === id ? 'selected' : ''} onClick={() => setStampCategory(id)}>{label}</button>
                                     ))}
@@ -1032,8 +1028,13 @@ const App = () => {
                                 <div className="stamp-picker" aria-label="スタンプを追加">
                                 {STAMPS.filter((stamp) => stampCategory === 'all' || stamp.category === stampCategory).map((stamp) => (
                                     <button key={stamp.id} type="button" className="stamp-option" onClick={() => addStamp(stamp.id)}>
-                                        <span>{stamp.glyph}</span>
+                                        <span>
+                                            {stampAssetUrl(stamp)
+                                                ? <img className="stamp-picker-image" src={stampAssetUrl(stamp)!} alt="" draggable={false} />
+                                                : (stamp.glyph ?? '★')}
+                                        </span>
                                         <small>{stamp.label}</small>
+                                        {stamp.author && <small className="stamp-author">by {stamp.author}</small>}
                                     </button>
                                 ))}
                                 </div>

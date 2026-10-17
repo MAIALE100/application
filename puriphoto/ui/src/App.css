@@ -551,3 +551,9 @@
     background: #fff;
     box-shadow: 0 0.8rem 2.4rem rgba(0,0,0,0.3);
 }
+
+/* The top-level ui_page keeps App mounted only so its existing NUI callbacks stay registered.
+   Hide that copy; the visible phone app is rendered by LB Phone. */
+.top-level-phone-app-host {
+    display: none !important;
+}

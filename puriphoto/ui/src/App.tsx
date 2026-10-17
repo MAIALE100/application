@@ -13,8 +13,8 @@ type CaptionFont = 'gothic' | 'serif' | 'rounded'
 type CaptionInstance = { instanceId: number; text: string; x: number; y: number; scale: number; rotation: number; color: CaptionColor; outlineColor: CaptionColor; font: CaptionFont; outline: boolean; boxWidth: number }
 type SelectedOverlay = { kind: 'stamp' | 'caption'; id: number }
 type DrawPoint = { x: number; y: number }
-type DrawTool = 'pen' | 'marker' | 'eraser'
-type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; tool: DrawTool }
+type DrawTool = 'pen' | 'eraser'
+type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -116,6 +116,7 @@ const App = () => {
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
     const [drawWidth, setDrawWidth] = useState(5)
     const [drawTool, setDrawTool] = useState<DrawTool>('pen')
+    const [drawOpacity, setDrawOpacity] = useState(100)
     const [editorZoom, setEditorZoom] = useState(1)
     const [editorPan, setEditorPan] = useState({ x: 0, y: 0 })
     const [toolsCollapsed, setToolsCollapsed] = useState(false)
@@ -397,7 +398,7 @@ const App = () => {
         event.currentTarget.setPointerCapture(event.pointerId)
         const point = drawPointFromEvent(event)
         setSelectedOverlay(null)
-        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, tool: drawTool }])
+        setDrawStrokes((current) => [...current, { points: [point], color: drawColor, width: drawTool === 'eraser' ? Math.max(18, drawWidth * 1.6) : drawWidth, opacity: drawOpacity / 100, tool: drawTool }])
     }
 
     const continueDrawing = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -545,7 +546,7 @@ const App = () => {
                     drawingContext.save()
                     drawingContext.beginPath()
                     drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over'
-                    drawingContext.globalAlpha = stroke.tool === 'marker' ? 0.42 : 1
+                    drawingContext.globalAlpha = stroke.tool === 'eraser' ? 1 : stroke.opacity
                     drawingContext.strokeStyle = CAPTION_COLORS[stroke.color]
                     // Match the editor's SVG coordinate system: width 10 = 1% of the
                     // short edge. This keeps preview and exported line thickness aligned.
@@ -748,7 +749,7 @@ const App = () => {
                                                     points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
                                                     fill="none"
                                                     stroke={CAPTION_COLORS[stroke.color]}
-                                                    strokeOpacity={stroke.tool === 'marker' ? 0.42 : 1}
+                                                    strokeOpacity={stroke.opacity}
                                                     strokeWidth={stroke.width / 10}
                                                     strokeLinecap="round"
                                                     strokeLinejoin="round"
@@ -880,7 +881,6 @@ const App = () => {
                             <div className="drawing-controls">
                                 <div className="drawing-tool-picker" aria-label="手書きツール">
                                     <button type="button" className={drawTool === 'pen' ? 'selected' : ''} onClick={() => setDrawTool('pen')}>ペン</button>
-                                    <button type="button" className={drawTool === 'marker' ? 'selected' : ''} onClick={() => setDrawTool('marker')}>蛍光</button>
                                     <button type="button" className={drawTool === 'eraser' ? 'selected' : ''} onClick={() => setDrawTool('eraser')}>消しゴム</button>
                                 </div>
                                 <div className="drawing-control-row">
@@ -902,6 +902,12 @@ const App = () => {
                                     <span>太さ {drawWidth}</span>
                                     <input type="range" min="2" max="100" step="1" value={drawWidth} onChange={(event) => setDrawWidth(Number(event.target.value))} />
                                 </label>
+                                {drawTool === 'pen' && (
+                                    <label className="drawing-width-control">
+                                        <span>透明度 {drawOpacity}%</span>
+                                        <input type="range" min="10" max="100" step="5" value={drawOpacity} onChange={(event) => setDrawOpacity(Number(event.target.value))} />
+                                    </label>
+                                )}
                                 <div className="drawing-actions">
                                     <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes((current) => current.slice(0, -1))}>↶ 1つ戻す</button>
                                     <button type="button" disabled={!drawStrokes.length} onClick={() => setDrawStrokes([])}>全部消す</button>

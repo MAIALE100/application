@@ -40,6 +40,10 @@ function PhotoDiaryFramework.IsPaymentConfigured()
   return false
 end
 
+-- Flecity payment adapter point.
+-- This function must perform the complete purchase atomically from Photo Diary's
+-- perspective: debit the player's bank and credit Weazel, or leave both unchanged.
+-- Return: true on success, or false, 'REASON' on failure.
 function PhotoDiaryFramework.ProcessShareSlotPurchase(source, amount, companyAccount, metadata)
   return false, 'PAYMENT_ADAPTER_NOT_CONFIGURED'
 end

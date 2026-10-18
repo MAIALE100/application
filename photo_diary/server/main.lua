@@ -14,7 +14,7 @@ local function validDate(d)
   if not y or m<1 or m>12 or day<1 or day>31 then return false end
   local t=os.time({year=y,month=m,day=day,hour=12}); if not t then return false end
   local rt=os.date('*t',t); if rt.year~=y or rt.month~=m or rt.day~=day then return false end
-  return t <= (os.time()+86400)
+  return t <= (os.time()+86400) -- timezone-safe one-day tolerance; UI blocks future dates exactly
 end
 
 local function phoneFor(owner)
@@ -80,6 +80,7 @@ RegisterNetEvent('photo_diary:revokeShare',function(shareId)
   if changedRows and changedRows>0 then notify(src,'共有を解除しました。'); changed(src) end
 end)
 
+
 RegisterNetEvent('photo_diary:leaveShared',function(shareId)
   local src=source; local owner=ident(src); shareId=tonumber(shareId)
   if not owner or not shareId then return end
@@ -108,6 +109,8 @@ RegisterNetEvent('photo_diary:purchaseShareSlots',function(productId)
   local price=tonumber(product.price)
   if not price or price<=0 then return notify(src,'この共有枠の価格はまだ設定されていません。') end
 
+  -- Re-check the entitlement immediately before payment. This blocks stale/double
+  -- purchase requests from charging for the same tier twice.
   local latest=tonumber(MySQL.scalar.await('SELECT MAX(slots) FROM weazel_photo_diary_entitlements WHERE owner_identifier=? AND active=1',{owner}) or Config.FreeShareSlots)
   if latest~=current then return notify(src,'共有枠の状態が更新されました。画面を開き直してください。') end
 

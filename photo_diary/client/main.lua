@@ -24,3 +24,4 @@ end)
 RegisterNetEvent('photo_diary:changed',function() TriggerServerEvent('photo_diary:bootstrap') end)
 RegisterNetEvent('photo_diary:notify',function(m) exports['lb-phone']:SendCustomAppMessage(APP,{type='toast',payload={message=m}}) end)
 RegisterNUICallback('photoDiary:purchaseShareSlots',function(d,cb) TriggerServerEvent('photo_diary:purchaseShareSlots',tostring(d.productId or ''));cb({ok=true}) end)
+

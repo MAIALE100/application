@@ -26,3 +26,6 @@ Thumbs.db
 
 # VS Code local settings
 .vscode/
+
+# Flecity local 3-app setup
+.three-apps.local.json

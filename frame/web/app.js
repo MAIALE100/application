@@ -78,20 +78,46 @@ function bindFavoriteButtons(onChange){
    b.disabled=false;
  })
 }
-async function banners(){const d=await nui('frame:getActiveAds');if(!d.ok)return '';return (d.ads||[]).filter(x=>x.placement==='home_banner').slice(0,2).map(x=>`<div class="banner" data-ad="${esc(x.public_id)}" data-link="${esc(x.link_value||'')}"><img src="${esc(x.media_ref)}"><span>${esc(x.title||'Sponsored')}</span></div>`).join('')}
+function adBannerMarkup(a,cls='banner'){
+ const link=a.link_value||a.event_public_id||'';
+ return '<div class="'+cls+'" data-ad="'+esc(a.public_id)+'" data-link="'+esc(link)+'"><img src="'+esc(a.media_ref)+'"><div class="ad-surface-copy"><small>SPONSORED</small><b>'+esc(a.title||a.event_title||'Advertisement')+'</b><span>'+esc(a.advertiser_name||'')+'</span></div></div>';
+}
+function adFeatureMarkup(a,cls='featured-ad-card'){
+ const link=a.link_value||a.event_public_id||'';
+ return '<article class="'+cls+'" data-ad="'+esc(a.public_id)+'" data-link="'+esc(link)+'"><img src="'+esc(a.media_ref)+'"><div><small>SPONSORED · '+esc(AD_PLACEMENTS[a.placement]||a.placement)+'</small><b>'+esc(a.title||a.event_title||'Advertisement')+'</b><span>'+esc(a.event_title||a.advertiser_name||'')+'</span></div></article>';
+}
 async function home(){
- clearTimeout(playerRetryTimer);const d=await nui('frame:getInitialData');
+ clearTimeout(playerRetryTimer);
+ const [d,adData]=await Promise.all([nui('frame:getInitialData'),nui('frame:getActiveAds')]);
  if(!d.ok&&d.error==='PLAYER_NOT_READY'){appReady=false;viewer={};$('#staffNav').hidden=true;view.innerHTML='<section id="hero"><p>FRAME</p><strong>キャラクター選択を待っています。</strong></section><div class="empty">キャラクターを選択すると自動で読み込みます。</div>';playerRetryTimer=setTimeout(home,1500);return}
  appReady=!!d.ok;viewer=d.viewer||{};favoriteIds=new Set(d.favorite_ids||[]);$('#staffNav').hidden=!viewer.staff;
- const events=d.events||[],invited=d.invited||[],cats=[...new Set(events.map(x=>x.category).filter(Boolean))].sort();let favoriteOnly=false;
- let body=(await banners())+'<section id="hero"><div class="hero-eyebrow">PHOTO EVENTS / FLECITY</div><div class="hero-copy"><span>'+esc(viewer.name||'Flecity')+'さんへ</span><strong>見つける。<br>撮る。参加する。</strong><p>街の瞬間を、イベントに。</p></div><div class="hero-mark">F</div></section>';
+ const events=d.events||[],invited=d.invited||[],cats=[...new Set(events.map(x=>x.category).filter(Boolean))].sort(),activeAds=adData.ok?(adData.ads||[]):[],seenAdImpressions=new Set();let favoriteOnly=false;
+ const homeAds=activeAds.filter(x=>x.placement==='home_banner').slice(0,2),topAds=activeAds.filter(x=>x.placement==='top_placement').slice(0,2),featuredAds=activeAds.filter(x=>x.placement==='featured').slice(0,4);
+ const bindAdSurfaces=()=>{
+  document.querySelectorAll('[data-ad]').forEach(el=>{
+   const adId=el.dataset.ad;if(!adId)return;
+   if(!seenAdImpressions.has(adId)){seenAdImpressions.add(adId);nui('frame:adImpression',{public_id:adId})}
+   el.onclick=async ev=>{ev.stopPropagation();await nui('frame:adClick',{public_id:adId});if(el.dataset.link)detail(el.dataset.link)}
+  })
+ };
+ let body=homeAds.map(a=>adBannerMarkup(a,'banner home-ad-banner')).join('')+'<section id="hero"><div class="hero-eyebrow">PHOTO EVENTS / FLECITY</div><div class="hero-copy"><span>'+esc(viewer.name||'Flecity')+'さんへ</span><strong>見つける。<br>撮る。参加する。</strong><p>街の瞬間を、イベントに。</p></div><div class="hero-mark">F</div></section>';
+ if(topAds.length)body+='<div class="section-title sponsored-title"><h2>PR / TOP</h2><span>Sponsored</span></div><div class="top-ad-list">'+topAds.map(a=>adFeatureMarkup(a,'top-ad-card')).join('')+'</div>';
+ if(featuredAds.length)body+='<div class="section-title sponsored-title"><h2>注目イベント</h2><span>Sponsored</span></div><div class="featured-ad-list">'+featuredAds.map(a=>adFeatureMarkup(a)).join('')+'</div>';
  if(invited.length)body+='<div class="section-title"><h2>招待イベント</h2><span>'+invited.length+'件</span></div><div id="inviteList">'+cards(invited)+'</div>';
- body+='<div class="discover"><input id="eventSearch" placeholder="イベント名・説明を検索"><select id="eventCategory"><option value="">すべてのカテゴリ</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select><select id="eventType"><option value="">すべての形式</option>'+Object.entries(TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></div><div class="quick-filter"><button id="favoriteOnly">保存済みだけ</button></div><div class="section-title"><h2>イベント</h2><span id="eventCount"></span></div><div id="eventList"></div>';
+ body+='<div class="discover"><input id="eventSearch" placeholder="イベント名・説明を検索"><select id="eventCategory"><option value="">すべてのカテゴリ</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select><select id="eventType"><option value="">すべての形式</option>'+Object.entries(TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></div><div id="categoryAdSlot"></div><div class="quick-filter"><button id="favoriteOnly">保存済みだけ</button></div><div class="section-title"><h2>イベント</h2><span id="eventCount"></span></div><div id="eventList"></div>';
  view.innerHTML=body;
- const render=()=>{const q=$('#eventSearch').value.trim().toLowerCase(),cat=$('#eventCategory').value,typ=$('#eventType').value;const rows=events.filter(e=>(!q||String(e.title+' '+(e.description||'')).toLowerCase().includes(q))&&(!cat||e.category===cat)&&(!typ||e.event_type===typ)&&(!favoriteOnly||favoriteIds.has(e.public_id)));$('#eventCount').textContent=rows.length+'件';$('#eventList').innerHTML=cards(rows);bindCards();bindFavoriteButtons(render)};
- $('#eventSearch').oninput=render;$('#eventCategory').onchange=render;$('#eventType').onchange=render;$('#favoriteOnly').onclick=()=>{favoriteOnly=!favoriteOnly;$('#favoriteOnly').classList.toggle('active',favoriteOnly);render()};render();bindCards();bindFavoriteButtons(render);
- document.querySelectorAll('.banner').forEach(async b=>{await nui('frame:adImpression',{public_id:b.dataset.ad});b.onclick=async()=>{await nui('frame:adClick',{public_id:b.dataset.ad});if(b.dataset.link)detail(b.dataset.link)}})
+ const render=()=>{
+  const q=$('#eventSearch').value.trim().toLowerCase(),cat=$('#eventCategory').value,typ=$('#eventType').value;
+  const rows=events.filter(e=>(!q||String(e.title+' '+(e.description||'')).toLowerCase().includes(q))&&(!cat||e.category===cat)&&(!typ||e.event_type===typ)&&(!favoriteOnly||favoriteIds.has(e.public_id)));
+  $('#eventCount').textContent=rows.length+'件';$('#eventList').innerHTML=cards(rows);bindCards();bindFavoriteButtons(render);
+  const catAds=cat?activeAds.filter(x=>x.placement==='category_banner'&&String(x.event_category||'')===cat).slice(0,2):[];
+  $('#categoryAdSlot').innerHTML=catAds.length?'<div class="category-ad-list">'+catAds.map(a=>adBannerMarkup(a,'category-ad-banner')).join('')+'</div>':'';
+  bindAdSurfaces();
+ };
+ $('#eventSearch').oninput=render;$('#eventCategory').onchange=render;$('#eventType').onchange=render;$('#favoriteOnly').onclick=()=>{favoriteOnly=!favoriteOnly;$('#favoriteOnly').classList.toggle('active',favoriteOnly);render()};
+ render();bindCards();bindFavoriteButtons(render);bindAdSurfaces();
 }
+
 async function mine(){
  const d=await nui('frame:getMyEvents');
  if(!d.ok){view.innerHTML='<div class="empty">'+esc(errorText(d.error))+'</div>';return}

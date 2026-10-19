@@ -199,3 +199,21 @@ CreateThread(function()
   end
  end
 end)
+
+
+-- Integration-test automatic checks. Disabled together with FrameConfig.TestGuard.
+CreateThread(function()
+ local cfg=FrameConfig.TestGuard or {}
+ if cfg.Enabled~=true or not selftestReady then return end
+ local delay=math.max(5000,tonumber(cfg.StartupCheckDelayMs) or 20000)
+ Wait(delay)
+ if cfg.AutoHealthcheck==true then
+  print('[FRAME] automatic integration checks: frame_healthcheck')
+  ExecuteCommand('frame_healthcheck')
+ end
+ if cfg.AutoSelftest==true then
+  Wait(1500)
+  print('[FRAME] automatic integration checks: frame_selftest')
+  ExecuteCommand('frame_selftest')
+ end
+end)

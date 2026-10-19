@@ -88,8 +88,11 @@ function FrameAds.Create(src,d)
  local validWindow=tonumber(MySQL.scalar.await([[SELECT CASE WHEN ?>UTC_TIMESTAMP()-INTERVAL 5 MINUTE AND ?>UTC_TIMESTAMP() THEN 1 ELSE 0 END]],{finish,finish}) or 0)
  if validWindow~=1 then return {ok=false,error='INVALID_WINDOW'} end
 
- local requiresReview=tonumber(p.requires_review or 1)==1
- local status=requiresReview and 'pending_review' or ((start<=os.date('!%Y-%m-%d %H:%M:%S')) and 'active' or 'scheduled')
+ local requiresReview=tonumber(p.requires_review or 1)==1 or tonumber(p.base_price or 0)>0
+ local status='pending_review'
+ if not requiresReview then
+  status=MySQL.scalar.await([[SELECT CASE WHEN ?>UTC_TIMESTAMP() THEN 'scheduled' ELSE 'active' END]],{start}) or 'scheduled'
+ end
  local linkType=eventId and 'event' or 'none'
  local linkValue=eventId and eventPublic or nil
  local pub=pid()

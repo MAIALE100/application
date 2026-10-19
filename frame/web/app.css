@@ -927,3 +927,19 @@ input,textarea,select{
 
 .home-ad-banner .ad-surface-copy span{position:static!important;left:auto!important;bottom:auto!important;background:transparent!important;padding:0!important;border-radius:0!important;color:inherit!important}
 .home-ad-banner .ad-surface-copy b{display:block}
+
+
+/* accessibility readability */
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+ outline:2px solid currentColor;
+ outline-offset:2px;
+}
+input::placeholder,textarea::placeholder{opacity:.68}
+@media (prefers-reduced-motion:reduce){
+ *,*::before,*::after{
+  scroll-behavior:auto!important;
+  transition-duration:.01ms!important;
+  animation-duration:.01ms!important;
+  animation-iteration-count:1!important;
+ }
+}

@@ -266,4 +266,11 @@ function FrameAds.Advance()
    WHERE status='scheduled' AND starts_at<=UTC_TIMESTAMP() AND ends_at>UTC_TIMESTAMP()]])
  MySQL.update.await([[UPDATE frame_ads SET status='ended'
    WHERE status IN ('active','scheduled') AND ends_at<=UTC_TIMESTAMP()]])
+ MySQL.update.await([[UPDATE frame_ads a
+   JOIN frame_ad_products p ON p.id=a.product_id
+   LEFT JOIN frame_events e ON e.id=a.event_id
+   SET a.status='ended',a.review_reason=COALESCE(a.review_reason,'紐付けイベントが終了または非公開になりました。')
+   WHERE a.status IN ('active','scheduled')
+     AND p.placement IN ('featured','top_placement','category_banner')
+     AND (e.id IS NULL OR e.visibility<>'public' OR e.status IN ('draft','cancelled','ended'))]])
 end

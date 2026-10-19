@@ -3,7 +3,17 @@ local function ident(src) return FrameFramework.GetIdentifier(src) end
 local function event(data) return FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or '') end
 function FrameManagement.ListSubmissions(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
- local rows=MySQL.query.await([[SELECT s.public_id,s.player_identifier,s.caption,s.status,s.submitted_at,m.media_ref FROM frame_submissions s JOIN frame_submission_media m ON m.submission_id=s.id WHERE s.event_id=? ORDER BY s.submitted_at DESC]],{e.id}) or {}
+ local rows=MySQL.query.await([[SELECT
+   s.public_id,s.caption,s.status,s.submitted_at,m.media_ref,
+   COALESCE((SELECT COUNT(*) FROM frame_votes v WHERE v.submission_id=s.id),0) vote_count,
+   COALESCE((SELECT GROUP_CONCAT(a.name ORDER BY a.sort_order,a.id SEPARATOR ' / ')
+     FROM frame_results r JOIN frame_awards a ON a.id=r.award_id
+     WHERE r.event_id=s.event_id AND r.submission_id=s.id),'') award_names,
+   EXISTS(SELECT 1 FROM frame_results r2 WHERE r2.event_id=s.event_id AND r2.submission_id=s.id) is_awarded
+   FROM frame_submissions s
+   JOIN frame_submission_media m ON m.submission_id=s.id
+   WHERE s.event_id=? AND s.status='submitted'
+   ORDER BY s.submitted_at DESC,s.id DESC]],{e.id}) or {}
  return {ok=true,submissions=rows}
 end
 function FrameManagement.AuthorizeSave(src,data)
@@ -66,6 +76,20 @@ function FrameManagement.BeginJudging(src,data)
  local n=MySQL.update.await([[UPDATE frame_events SET status='judging',judging_starts_at=COALESCE(judging_starts_at,UTC_TIMESTAMP()),submissions_close_at=COALESCE(submissions_close_at,UTC_TIMESTAMP()) WHERE id=? AND status='active']],{e.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'JUDGING_START','event',?,?)]],{id,e.public_id,e.id})
+ return {ok=true}
+end
+
+function FrameManagement.ClearWinner(src,data)
+ local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ if e.status~='judging' then return {ok=false,error='NOT_JUDGING'} end
+ local awardId=tonumber(type(data)=='table' and data.award_id or nil)
+ if not awardId then return {ok=false,error='INVALID_AWARD'} end
+ local award=MySQL.single.await([[SELECT id,name FROM frame_awards WHERE id=? AND event_id=? LIMIT 1]],{awardId,e.id})
+ if not award then return {ok=false,error='INVALID_AWARD'} end
+ local n=MySQL.update.await([[DELETE FROM frame_results WHERE event_id=? AND award_id=?]],{e.id,awardId}) or 0
+ if n<1 then return {ok=false,error='RESULT_NOT_SET'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id)
+   VALUES(?,'RESULT_CLEAR','award',?,?)]],{id,tostring(awardId),e.id})
  return {ok=true}
 end
 

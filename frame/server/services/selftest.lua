@@ -342,6 +342,12 @@ RegisterCommand('frame_healthcheck',function(source)
       {'award_sponsor_event_mismatch',[[SELECT COUNT(*) FROM frame_awards a JOIN frame_sponsors s ON s.id=a.sponsor_id WHERE a.sponsor_id IS NOT NULL AND a.event_id<>s.event_id]]},
       {'notifications_without_event',[[SELECT COUNT(*) FROM frame_notification_deliveries n LEFT JOIN frame_events e ON e.id=n.event_id WHERE e.id IS NULL]]},
       {'stale_notification_claims',[[SELECT COUNT(*) FROM frame_notification_deliveries WHERE status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 15 MINUTE]]},
+      {'ad_invalid_window',[[SELECT COUNT(*) FROM frame_ads WHERE starts_at>=ends_at]]},
+      {'ad_active_expired',[[SELECT COUNT(*) FROM frame_ads WHERE status='active' AND ends_at<=UTC_TIMESTAMP()-INTERVAL 2 MINUTE]]},
+      {'ad_scheduled_past_start',[[SELECT COUNT(*) FROM frame_ads WHERE status='scheduled' AND starts_at<=UTC_TIMESTAMP()-INTERVAL 2 MINUTE AND ends_at>UTC_TIMESTAMP()]]},
+      {'ad_processing_stale',[[SELECT COUNT(*) FROM frame_ads WHERE status='processing' AND updated_at<UTC_TIMESTAMP()-INTERVAL 15 MINUTE]]},
+      {'ad_stats_without_ad',[[SELECT COUNT(*) FROM frame_ad_daily_stats s LEFT JOIN frame_ads a ON a.id=s.ad_id WHERE a.id IS NULL]]},
+      {'ad_missing_product',[[SELECT COUNT(*) FROM frame_ads a LEFT JOIN frame_ad_products p ON p.id=a.product_id WHERE p.id IS NULL]]},
       {'stuck_event_lifecycle',[[SELECT COUNT(*) FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE e.status='active' AND e.submissions_close_at IS NOT NULL AND e.submissions_close_at<UTC_TIMESTAMP()-INTERVAL 5 MINUTE AND (COALESCE(r.judging_enabled,0)=1 OR (COALESCE(r.judging_enabled,0)=0 AND e.results_at IS NOT NULL AND e.results_at<=UTC_TIMESTAMP()))]]}
     }
     local warnings=0

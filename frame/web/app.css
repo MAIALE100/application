@@ -602,3 +602,30 @@ input::placeholder,textarea::placeholder{opacity:.78!important}
   }
   .hero-copy p{margin-top:.65rem!important}
 }
+
+
+/* ===== 0.19.2 hero caption legibility ===== */
+.hero-copy p{
+  margin-top:.82rem!important;
+  font-size:.74rem!important;
+  line-height:1.65!important;
+  letter-spacing:.035em!important;
+  font-weight:500!important;
+  white-space:nowrap!important;
+  opacity:.92!important;
+}
+.hero-copy strong{
+  margin-bottom:0!important;
+}
+#hero{
+  min-height:14.6rem!important;
+}
+@media (max-width:360px){
+  #hero{min-height:14.15rem!important}
+  .hero-copy p{
+    margin-top:.76rem!important;
+    font-size:.71rem!important;
+    line-height:1.6!important;
+    letter-spacing:.025em!important;
+  }
+}

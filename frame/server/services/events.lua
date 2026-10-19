@@ -96,7 +96,8 @@ function FrameEventsService.Duplicate(source,raw)
   local ok=MySQL.transaction.await({
     {query=[[INSERT INTO frame_events(public_id,owner_identifier,organizer_name,organizer_type,title,description,event_type,category,cover_media_ref,visibility,status) VALUES(?,?,?,?,?,?,?,?,?,?,'draft')]],values={newId,identifier,FrameFramework.GetCharacterName(source),e.organizer_type or 'individual',title,e.description or '',e.event_type,e.category,e.cover_media_ref,e.visibility or 'public'}},
     {query=[[INSERT INTO frame_event_rules(event_id,participation_required,submission_enabled,judging_enabled,ranking_enabled,voting_enabled,awards_enabled,max_submissions,allow_submission_edit,allow_submission_delete,comment_mode,approval_mode,extra_rules)
-      SELECT LAST_INSERT_ID(),participation_required,submission_enabled,judging_enabled,ranking_enabled,voting_enabled,awards_enabled,max_submissions,allow_submission_edit,allow_submission_delete,comment_mode,approval_mode,extra_rules FROM frame_event_rules WHERE event_id=?]],values={e.id}}
+      SELECT LAST_INSERT_ID(),participation_required,submission_enabled,judging_enabled,ranking_enabled,voting_enabled,awards_enabled,max_submissions,allow_submission_edit,allow_submission_delete,comment_mode,approval_mode,extra_rules FROM frame_event_rules WHERE event_id=?]],values={e.id}},
+    {query=[[INSERT INTO frame_event_access_rules(event_id,rule_type,rule_value) SELECT LAST_INSERT_ID(),rule_type,rule_value FROM frame_event_access_rules WHERE event_id=?]],values={e.id}}
   })
   if not ok then return {ok=false,error='DATABASE_ERROR'} end
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,metadata) VALUES(?,'EVENT_DUPLICATE','event',?,?)]],{identifier,newId,json.encode({source=e.public_id})})

@@ -52,13 +52,36 @@ function FrameManagement.Results(src,data)
 end
 function FrameManagement.StaffDashboard(src)
  local id=ident(src); if not FramePermissions.IsStaff(id,src) then return {ok=false,error='FORBIDDEN'} end
- local ads=MySQL.query.await([[SELECT a.public_id,a.advertiser_name,a.title,a.status,a.starts_at,a.ends_at,p.name product_name,a.price_snapshot FROM frame_ads a JOIN frame_ad_products p ON p.id=a.product_id ORDER BY a.created_at DESC LIMIT 100]]) or {}
- local events=MySQL.query.await([[SELECT e.public_id,e.title,e.organizer_name,e.event_type,e.status,e.created_at,(SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active') participant_count,(SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted') submission_count FROM frame_events e ORDER BY e.created_at DESC LIMIT 100]]) or {}
- local stats={events=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events]]) or 0),active=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events WHERE status='active']]) or 0),submissions=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE status='submitted']]) or 0),pending_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='pending_review']]) or 0)}
- local audit=MySQL.query.await([[SELECT action,entity_type,entity_id,created_at FROM frame_audit_logs ORDER BY id DESC LIMIT 40]]) or {}
+ local ads=MySQL.query.await([[SELECT
+   a.public_id,a.advertiser_name,a.title,a.media_ref,a.status,a.starts_at,a.ends_at,a.created_at,
+   a.review_reason,a.reviewed_at,a.price_snapshot,a.link_type,a.link_value,
+   p.name product_name,p.code product_code,p.placement,
+   e.public_id event_public_id,e.title event_title,e.category event_category,
+   COALESCE((SELECT SUM(s.impressions) FROM frame_ad_daily_stats s WHERE s.ad_id=a.id),0) impressions,
+   COALESCE((SELECT SUM(s.clicks) FROM frame_ad_daily_stats s WHERE s.ad_id=a.id),0) clicks
+   FROM frame_ads a
+   JOIN frame_ad_products p ON p.id=a.product_id
+   LEFT JOIN frame_events e ON e.id=a.event_id
+   ORDER BY
+     CASE a.status WHEN 'pending_review' THEN 0 WHEN 'processing' THEN 1 WHEN 'scheduled' THEN 2 WHEN 'active' THEN 3 ELSE 4 END,
+     a.created_at DESC
+   LIMIT 150]]) or {}
+ local events=MySQL.query.await([[SELECT e.public_id,e.title,e.organizer_name,e.event_type,e.status,e.created_at,
+   (SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active') participant_count,
+   (SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted') submission_count
+   FROM frame_events e ORDER BY e.created_at DESC LIMIT 100]]) or {}
+ local stats={
+  events=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events]]) or 0),
+  active=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events WHERE status='active']]) or 0),
+  submissions=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE status='submitted']]) or 0),
+  pending_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='pending_review']]) or 0),
+  scheduled_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='scheduled']]) or 0),
+  active_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='active']]) or 0)
+ }
+ local audit=MySQL.query.await([[SELECT action,entity_type,entity_id,created_at
+   FROM frame_audit_logs ORDER BY id DESC LIMIT 40]]) or {}
  return {ok=true,ads=ads,events=events,stats=stats,audit=audit}
 end
-
 
 function FrameManagement.ListAwards(src,data)
  local id=ident(src); local e=event(data); if not id or not e then return {ok=false,error='NOT_FOUND'} end

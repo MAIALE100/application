@@ -802,3 +802,11 @@ input,textarea,select{
 
 .collab-limit{padding:.62rem .7rem;margin-bottom:.65rem;border-radius:.7rem;background:rgba(183,109,69,.10);color:#7b523b;font-size:.72rem;font-weight:700}
 .collab-leave{width:100%!important;min-height:2.45rem!important;margin-top:.72rem!important;border-radius:.72rem!important;font-size:.75rem!important;font-weight:700!important}
+
+.activity-panel{margin:.8rem 0 1rem;padding:.82rem;border:1px solid var(--frame-line);border-radius:.92rem;background:var(--frame-panel-soft)}
+.activity-list{display:grid;gap:.4rem;margin-top:.55rem}
+.activity-row{display:flex;justify-content:space-between;gap:.65rem;align-items:center;padding:.55rem .6rem;border-radius:.68rem;background:var(--frame-panel);border:1px solid var(--frame-line)}
+.activity-row>div{display:grid;gap:.12rem;min-width:0}
+.activity-row b{font-size:.76rem;line-height:1.3}
+.activity-row span{font-size:.66rem;color:var(--frame-muted)}
+.activity-row small{flex:0 0 auto;font-size:.62rem!important;letter-spacing:0!important;opacity:.72!important}

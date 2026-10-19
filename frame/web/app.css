@@ -18,3 +18,5 @@ button:disabled{opacity:.5;cursor:default}
 .award-list{margin:.9rem 0}.award-row{display:flex;justify-content:space-between;gap:.5rem;padding:.55rem 0;border-bottom:1px solid rgba(127,127,127,.15);font-size:.72rem}
 .winner-pick{display:grid;grid-template-columns:1fr;gap:.4rem;margin-top:.55rem}.winner-pick select{font-size:.72rem}.winner-pick button{width:100%}
 .result b{display:block;margin-bottom:.35rem}
+
+.cover-preview{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:.75rem;margin-top:.5rem;display:block}

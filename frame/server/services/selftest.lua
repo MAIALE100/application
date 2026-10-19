@@ -337,6 +337,9 @@ RegisterCommand('frame_healthcheck',function(source)
       {'collaborator_is_owner',[[SELECT COUNT(*) FROM frame_event_collaborators c JOIN frame_events e ON e.id=c.event_id WHERE c.player_identifier=e.owner_identifier]]},
       {'votes_without_event',[[SELECT COUNT(*) FROM frame_votes v LEFT JOIN frame_events e ON e.id=v.event_id WHERE e.id IS NULL]]},
       {'results_without_event',[[SELECT COUNT(*) FROM frame_results r LEFT JOIN frame_events e ON e.id=r.event_id WHERE e.id IS NULL]]},
+      {'result_award_event_mismatch',[[SELECT COUNT(*) FROM frame_results r JOIN frame_awards a ON a.id=r.award_id WHERE r.award_id IS NOT NULL AND r.event_id<>a.event_id]]},
+      {'result_submission_event_mismatch',[[SELECT COUNT(*) FROM frame_results r JOIN frame_submissions s ON s.id=r.submission_id WHERE r.event_id<>s.event_id]]},
+      {'award_sponsor_event_mismatch',[[SELECT COUNT(*) FROM frame_awards a JOIN frame_sponsors s ON s.id=a.sponsor_id WHERE a.sponsor_id IS NOT NULL AND a.event_id<>s.event_id]]},
       {'notifications_without_event',[[SELECT COUNT(*) FROM frame_notification_deliveries n LEFT JOIN frame_events e ON e.id=n.event_id WHERE e.id IS NULL]]},
       {'stale_notification_claims',[[SELECT COUNT(*) FROM frame_notification_deliveries WHERE status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 15 MINUTE]]},
       {'stuck_event_lifecycle',[[SELECT COUNT(*) FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE e.status='active' AND e.submissions_close_at IS NOT NULL AND e.submissions_close_at<UTC_TIMESTAMP()-INTERVAL 5 MINUTE AND (COALESCE(r.judging_enabled,0)=1 OR (COALESCE(r.judging_enabled,0)=0 AND e.results_at IS NOT NULL AND e.results_at<=UTC_TIMESTAMP()))]]}

@@ -30,7 +30,7 @@ const ERRORS={
  ACCESS_RULE_REQUIRED:'このイベントには参加条件があります。',ACCESS_JOB_REQUIRED:'条件付きイベントでは対象Jobを1つ以上指定してください。',ACCESS_RULE_FAILED:'現在のJobではこのイベントに参加できません。',NO_SUBMISSIONS:'応募作品がまだありません。',NO_RESULTS:'受賞作品を1件以上設定してください。',
  NOT_JUDGING:'審査中ではありません。',NOT_CONTEST:'コンテスト形式のイベントではありません。',INVALID_AWARD:'賞が見つかりません。',
  INVALID_SUBMISSION:'応募作品が見つかりません。',NAME_REQUIRED:'賞の名前を入力してください。',CAPTION_REQUIRED:'コメントを入力してください。',INVALID_EVENT_WINDOW:'イベントの開始・終了日時を確認してください。',INVALID_SUBMISSION_WINDOW:'投稿受付期間を確認してください。',TITLE_REQUIRED:'イベント名を入力してください。',DESCRIPTION_REQUIRED:'説明を入力してください。',STATE_CHANGED:'状態が更新されています。画面を再読み込みしてください。',
- DIRECT_UPLOAD_DISABLED:'このイベントはSNS投稿からのみ応募できます。',DELETE_DISABLED:'このイベントでは投稿を削除できません。',DELETE_CLOSED:'投稿削除の受付は終了しています。',SUBMISSION_LOCKED_OR_NOT_FOUND:'受賞設定済み、または削除できない応募作品です。',SOCIAL_ENTRY_DISABLED:'このイベントはSNS応募方式ではありません。',SOCIAL_PLATFORM_NOT_ALLOWED:'このSNSは応募先に指定されていません。',SOCIAL_ACCOUNT_REQUIRED:'LB Phoneで対象SNSにログインしてください。',PHONE_NUMBER_UNAVAILABLE:'電話番号を取得できませんでした。',SOCIAL_POST_FAILED:'SNSへの投稿に失敗しました。',ORGANIZER_REQUIRED:'先にイベントを作成してください。',INVALID_PRODUCT:'広告商品が見つかりません。',INVALID_EVENT:'紐付けるイベントを確認してください。',INVALID_WINDOW:'掲載期間を確認してください。', INVITE_REQUIRED:'このイベントは招待者のみ参加できます。',NOT_PRIVATE_EVENT:'招待制イベントではありません。',PHONE_REQUIRED:'電話番号を入力してください。',INVITEE_OFFLINE:'招待相手がオンラインではありません。', VOTING_DISABLED:'このイベントでは市民投票を使用していません。',VOTING_CLOSED:'市民投票の受付は終了しています。',SELF_VOTE_DISABLED:'自分の応募作品には投票できません。',NO_VOTES:'まだ投票がありません。',VOTE_TIE:'同票1位があります。市民投票賞は手動で決定してください。', DELETE_FAILED:'イベントの関連データ削除に失敗しました。サーバーログを確認してください。', PHONE_CALLBACK_FAILED:'LB Phoneとの通信に失敗しました。',CALLBACK_FAILED:'処理に失敗しました。',NUI_ERROR:'アプリ通信に失敗しました。'
+ DIRECT_UPLOAD_DISABLED:'このイベントはSNS投稿からのみ応募できます。',DELETE_DISABLED:'このイベントでは投稿を削除できません。',DELETE_CLOSED:'投稿削除の受付は終了しています。',SUBMISSION_LOCKED_OR_NOT_FOUND:'受賞設定済み、または削除できない応募作品です。',SOCIAL_ENTRY_DISABLED:'このイベントはSNS応募方式ではありません。',SOCIAL_PLATFORM_NOT_ALLOWED:'このSNSは応募先に指定されていません。',SOCIAL_ACCOUNT_REQUIRED:'LB Phoneで対象SNSにログインしてください。',PHONE_NUMBER_UNAVAILABLE:'電話番号を取得できませんでした。',SOCIAL_POST_FAILED:'SNSへの投稿に失敗しました。',ORGANIZER_REQUIRED:'先にイベントを作成してください。',INVALID_PRODUCT:'広告商品が見つかりません。',INVALID_EVENT:'紐付けるイベントを確認してください。',INVALID_WINDOW:'掲載期間を確認してください。', INVITE_REQUIRED:'このイベントは招待者のみ参加できます。',NOT_PRIVATE_EVENT:'招待制イベントではありません。',PHONE_REQUIRED:'電話番号を入力してください。',INVITEE_OFFLINE:'招待相手がオンラインではありません。', VOTING_DISABLED:'このイベントでは市民投票を使用していません。',VOTING_CLOSED:'市民投票の受付は終了しています。',SELF_VOTE_DISABLED:'自分の応募作品には投票できません。',NO_VOTES:'まだ投票がありません。',VOTE_TIE:'同票1位があります。市民投票賞は手動で決定してください。', DELETE_FAILED:'イベントの関連データ削除に失敗しました。サーバーログを確認してください。',NO_EVENTS_SELECTED:'イベントを選択してください。',TOO_MANY_EVENTS:'一度に削除できるのは50件までです。', PHONE_CALLBACK_FAILED:'LB Phoneとの通信に失敗しました。',CALLBACK_FAILED:'処理に失敗しました。',NUI_ERROR:'アプリ通信に失敗しました。'
 };
 const STATUS={draft:'下書き',scheduled:'公開予定',active:'開催中',judging:'審査中',results:'結果発表',ended:'終了',cancelled:'中止'};
 const TYPES={contest:'フォトコンテスト',mission:'フォトミッション',collection:'フォトコレクション',memorial:'メモリアル / アルバム'};
@@ -57,7 +57,7 @@ function cards(a,owned=false){return a?.length?a.map(e=>{
    :(e.starts_at?'<span>'+esc(fmtDate(e.starts_at))+'</span>':'');
  const closedDelete=['draft','cancelled','results','ended'].includes(e.status),forceDelete=!closedDelete;
  const tools=owned?'<div class="card-tools"><button data-duplicate="'+esc(e.public_id)+'">複製</button><button class="danger-soft" data-delete-event="'+esc(e.public_id)+'" data-delete-title="'+esc(e.title)+'" data-delete-force="'+(forceDelete?'1':'0')+'">'+(forceDelete?'中止→削除':'削除')+'</button></div>':'';
- return '<article class="card" data-id="'+esc(e.public_id)+'">'+cover+fav+'<div class="card-body"><div class="card-chips">'+status+type+cat+'</div><h3>'+esc(e.title)+'</h3>'+(e.description?'<p>'+esc(e.description)+'</p>':'')+'<div class="card-foot">'+foot+'</div>'+tools+'</div></article>'
+ return '<article class="card" data-id="'+esc(e.public_id)+'">'+(owned?'<label class="bulk-pick" data-bulk-wrap><input type="checkbox" data-bulk-event="'+esc(e.public_id)+'" data-bulk-status="'+esc(e.status)+'"><span>選択</span></label>':'')+cover+fav+'<div class="card-body"><div class="card-chips">'+status+type+cat+'</div><h3>'+esc(e.title)+'</h3>'+(e.description?'<p>'+esc(e.description)+'</p>':'')+'<div class="card-foot">'+foot+'</div>'+tools+'</div></article>'
 }).join(''):'<div class="empty"><div class="empty-mark">□</div><strong>まだイベントがありません</strong><span>新しい写真イベントを待ちましょう。</span></div>'}
 function bindFavoriteButtons(onChange){
  document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=async ev=>{
@@ -89,9 +89,35 @@ async function mine(){
  const d=await nui('frame:getMyEvents');
  if(!d.ok){view.innerHTML='<div class="empty">'+esc(errorText(d.error))+'</div>';return}
  const rows=d.events||[],total=rows.length,active=rows.filter(x=>x.status==='active').length,participants=rows.reduce((n,x)=>n+Number(x.participant_count||0),0),submissions=rows.reduce((n,x)=>n+Number(x.submission_count||0),0),submitters=rows.reduce((n,x)=>n+Number(x.submitter_count||0),0),favorites=rows.reduce((n,x)=>n+Number(x.favorite_count||0),0),conversion=participants>0?Math.round((submitters/participants)*100):0;
- view.innerHTML='<div class="page-head"><span>ORGANIZER</span><h2>主催ダッシュボード</h2><p>イベント運営と反応をひと目で確認できます。</p></div><div class="stats-grid organizer-stats"><div><b>'+total+'</b><span>イベント</span></div><div><b>'+active+'</b><span>開催中</span></div><div><b>'+participants+'</b><span>参加者</span></div><div><b>'+submissions+'</b><span>応募作品</span></div><div><b>'+favorites+'</b><span>保存</span></div><div><b>'+conversion+'%</b><span>参加→応募率</span></div></div><div class="section-title"><h2>主催イベント</h2><span>'+total+'件</span></div>'+cards(rows,true);
- bindCards();bindDuplicateButtons();bindDeleteEventButtons();
+ view.innerHTML='<div class="page-head"><span>ORGANIZER</span><h2>主催ダッシュボード</h2><p>イベント運営と反応をひと目で確認できます。</p></div><div class="stats-grid organizer-stats"><div><b>'+total+'</b><span>イベント</span></div><div><b>'+active+'</b><span>開催中</span></div><div><b>'+participants+'</b><span>参加者</span></div><div><b>'+submissions+'</b><span>応募作品</span></div><div><b>'+favorites+'</b><span>保存</span></div><div><b>'+conversion+'%</b><span>参加→応募率</span></div></div><div class="section-title"><h2>主催イベント</h2><span>'+total+'件</span></div><div class="bulk-toolbar"><button id="bulkMode">一括整理</button><div id="bulkActions" hidden><button id="bulkClosed">下書き/終了済み</button><button id="bulkAll">全部</button><button id="bulkClear">解除</button><button id="bulkDelete" class="danger-soft">選択分を削除 <b id="bulkCount">0</b></button></div></div><div id="ownedEventList">'+cards(rows,true)+'</div>';
+ bindCards();bindDuplicateButtons();bindDeleteEventButtons();bindBulkOrganizer();
 }
+function bindBulkOrganizer(){
+ const mode=$('#bulkMode'),actions=$('#bulkActions'),list=$('#ownedEventList');if(!mode||!actions||!list)return;
+ let enabled=false;
+ const boxes=()=>Array.from(document.querySelectorAll('[data-bulk-event]'));
+ const update=()=>{const n=boxes().filter(x=>x.checked).length;const c=$('#bulkCount');if(c)c.textContent=String(n)};
+ const setMode=v=>{enabled=v;list.classList.toggle('bulk-mode',enabled);actions.hidden=!enabled;mode.classList.toggle('active',enabled);mode.textContent=enabled?'一括整理中':'一括整理';if(!enabled){boxes().forEach(x=>x.checked=false);update()}};
+ mode.onclick=()=>setMode(!enabled);
+ document.querySelectorAll('[data-bulk-wrap]').forEach(w=>w.onclick=e=>e.stopPropagation());
+ boxes().forEach(b=>{b.onchange=update;b.onclick=e=>e.stopPropagation()});
+ $('#bulkClosed').onclick=()=>{const closed=new Set(['draft','cancelled','results','ended']);boxes().forEach(b=>b.checked=closed.has(b.dataset.bulkStatus));update()};
+ $('#bulkAll').onclick=()=>{boxes().forEach(b=>b.checked=true);update()};
+ $('#bulkClear').onclick=()=>{boxes().forEach(b=>b.checked=false);update()};
+ $('#bulkDelete').onclick=async()=>{
+  const selected=boxes().filter(x=>x.checked);
+  if(!selected.length){action({ok:false,error:'NO_EVENTS_SELECTED'});return}
+  const hasLive=selected.some(x=>!['draft','cancelled','results','ended'].includes(x.dataset.bulkStatus));
+  const msg=hasLive?selected.length+'件を削除します。\n\n開催中・予定・審査中のイベントは中止して削除します。\n応募作品・賞・スポンサー等も削除され、元に戻せません。':selected.length+'件を完全に削除します。\n\n応募作品・賞・スポンサー等も削除され、元に戻せません。';
+  if(!confirm(msg))return;
+  const btn=$('#bulkDelete');btn.disabled=true;btn.textContent='削除中…';
+  const r=await nui('frame:deleteEventsBulk',{public_ids:selected.map(x=>x.dataset.bulkEvent),force:hasLive});
+  if(Number(r?.deleted_count||0)>0){await mine();if(Number(r.failed_count||0)>0)alert('削除 '+r.deleted_count+'件 / 失敗 '+r.failed_count+'件')}
+  else{btn.disabled=false;btn.innerHTML='選択分を削除 <b id="bulkCount">'+selected.length+'</b>';action(r)}
+ };
+ update();
+}
+
 function create(){renderEventForm(null)}
 async function editEvent(id){const d=await nui('frame:getEvent',{public_id:id});if(!d.ok)return action(d);d.event.access_jobs=(d.access_jobs||[]).map(x=>x.rule_value);renderEventForm(d.event)}
 function renderEventForm(e){

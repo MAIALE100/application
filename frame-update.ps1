@@ -13,10 +13,30 @@ function Mirror-Frame([string]$TargetRoot) {
     }
 
     New-Item -ItemType Directory -Force -Path $dst | Out-Null
-
     & robocopy.exe $src $dst /MIR /NFL /NDL /NJH /NJS /NP /R:2 /W:1 | Out-Null
     if ($LASTEXITCODE -gt 7) {
         throw "robocopy failed for FRAME (exit $LASTEXITCODE)."
+    }
+}
+
+function Repair-BootstrapCollision {
+    $names = @("frame-update.cmd", "frame-update.ps1")
+    $untracked = @(git ls-files --others --exclude-standard)
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect Git working tree." }
+
+    $collisions = @($names | Where-Object { $untracked -contains $_ })
+    if ($collisions.Count -eq 0) { return }
+
+    Write-Host "  First-run updater collision detected." -ForegroundColor Yellow
+    Write-Host "  Moving local bootstrap updater files aside so Git can track them..."
+
+    foreach ($name in $collisions) {
+        $path = Join-Path $RepoRoot $name
+        if (Test-Path -LiteralPath $path) {
+            $backup = Join-Path $env:TEMP ("FRAME_bootstrap_" + $name + "." + [guid]::NewGuid().ToString("N"))
+            Copy-Item -LiteralPath $path -Destination $backup -Force
+            Remove-Item -LiteralPath $path -Force
+        }
     }
 }
 
@@ -29,20 +49,17 @@ Write-Host ""
 
 if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
     Write-Host "First setup has not been run yet." -ForegroundColor Yellow
-
     $setup = Join-Path $RepoRoot "3apps-setup.cmd"
     if (Test-Path -LiteralPath $setup -PathType Leaf) {
         Write-Host "Opening 3apps-setup.cmd..."
         Start-Process -FilePath $setup
         exit 0
     }
-
     throw "Missing local setup config: $ConfigPath"
 }
 
 $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $resourcesPath = [string]$config.resourcesPath
-
 if (-not (Test-Path -LiteralPath $resourcesPath -PathType Container)) {
     throw "Configured resources folder no longer exists: $resourcesPath"
 }
@@ -51,19 +68,16 @@ Set-Location $RepoRoot
 
 Write-Host "[1/4] Checking Git branch..."
 $branch = (git branch --show-current).Trim()
-if ($LASTEXITCODE -ne 0) {
-    throw "Could not read the current Git branch."
-}
+if ($LASTEXITCODE -ne 0) { throw "Could not read the current Git branch." }
 if ($branch -ne $ExpectedBranch) {
     throw "Safety stop: current branch is '$branch'. Expected '$ExpectedBranch'."
 }
 Write-Host "  Branch: $branch"
 
 Write-Host "[2/4] Pulling latest FRAME changes from GitHub..."
+Repair-BootstrapCollision
 git pull --ff-only origin $ExpectedBranch
-if ($LASTEXITCODE -ne 0) {
-    throw "git pull failed."
-}
+if ($LASTEXITCODE -ne 0) { throw "git pull failed." }
 
 Write-Host "[3/4] Syncing FRAME only..."
 Mirror-Frame $resourcesPath
@@ -77,9 +91,7 @@ if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
 
 $manifestText = Get-Content -LiteralPath $manifest -Raw
 $version = "unknown"
-if ($manifestText -match "(?m)^version\s+'([^']+)'") {
-    $version = $Matches[1]
-}
+if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
 
 Write-Host ""
 Write-Host "========================================"

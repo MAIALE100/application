@@ -1,9 +1,9 @@
-fx_version '0.15.0-integration'
+fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 author 'FRAME Project'
 description 'FRAME - Flecity Photo Event Platform'
-version '0.13.0-integration'
+version '0.15.0-integration'
 dependency 'oxmysql'
 dependency 'lb-phone'
 shared_scripts {'config/shared.lua'}

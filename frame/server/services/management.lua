@@ -342,3 +342,29 @@ function FrameManagement.EventAnalytics(src,data)
    conversion=conversion,avg_submissions=avg
  }}
 end
+
+
+function FrameManagement.EventActivity(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local rows=MySQL.query.await([[SELECT action,entity_type,entity_id,actor_identifier,metadata,created_at
+   FROM frame_audit_logs
+   WHERE event_id=?
+   ORDER BY id DESC
+   LIMIT 30]],{e.id}) or {}
+ for _,row in ipairs(rows) do
+  row.actor_label=(row.actor_identifier==e.owner_identifier) and e.organizer_name or nil
+  if not row.actor_label then
+   row.actor_label=MySQL.scalar.await([[SELECT display_name FROM frame_event_collaborators
+     WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,row.actor_identifier})
+  end
+  if not row.actor_label then
+   if tostring(row.actor_identifier or ''):sub(1,2)=='__' then row.actor_label='FRAME System'
+   else row.actor_label='主催メンバー' end
+  end
+  row.actor_identifier=nil
+  row.metadata=nil
+ end
+ return {ok=true,activity=rows}
+end

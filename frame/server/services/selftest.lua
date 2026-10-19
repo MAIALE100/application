@@ -348,6 +348,8 @@ RegisterCommand('frame_healthcheck',function(source)
       {'ad_processing_stale',[[SELECT COUNT(*) FROM frame_ads WHERE status='processing' AND updated_at<UTC_TIMESTAMP()-INTERVAL 15 MINUTE]]},
       {'ad_stats_without_ad',[[SELECT COUNT(*) FROM frame_ad_daily_stats s LEFT JOIN frame_ads a ON a.id=s.ad_id WHERE a.id IS NULL]]},
       {'ad_missing_product',[[SELECT COUNT(*) FROM frame_ads a LEFT JOIN frame_ad_products p ON p.id=a.product_id WHERE p.id IS NULL]]},
+      {'ad_event_link_mismatch',[[SELECT COUNT(*) FROM frame_ads a JOIN frame_events e ON e.id=a.event_id WHERE a.link_type='event' AND COALESCE(a.link_value,'')<>e.public_id]]},
+      {'ad_promoted_event_invalid',[[SELECT COUNT(*) FROM frame_ads a JOIN frame_ad_products p ON p.id=a.product_id LEFT JOIN frame_events e ON e.id=a.event_id WHERE a.status IN ('active','scheduled') AND p.placement IN ('featured','top_placement','category_banner') AND (e.id IS NULL OR e.visibility<>'public' OR e.status IN ('draft','cancelled','ended'))]]},
       {'stuck_event_lifecycle',[[SELECT COUNT(*) FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE e.status='active' AND e.submissions_close_at IS NOT NULL AND e.submissions_close_at<UTC_TIMESTAMP()-INTERVAL 5 MINUTE AND (COALESCE(r.judging_enabled,0)=1 OR (COALESCE(r.judging_enabled,0)=0 AND e.results_at IS NOT NULL AND e.results_at<=UTC_TIMESTAMP()))]]}
     }
     local warnings=0

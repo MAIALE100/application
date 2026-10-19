@@ -1,15 +1,20 @@
 FrameNotifications={}
 
 local function claim(eventId,identifier,kind)
-  local n=MySQL.update.await([[INSERT INTO frame_notification_deliveries(event_id,player_identifier,notification_type,status,attempted_at)
-    VALUES(?,?,?,'pending',UTC_TIMESTAMP())
-    ON DUPLICATE KEY UPDATE
-      status=IF(status='failed' OR (status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 10 MINUTE),'pending',status),
-      attempted_at=IF(status='failed' OR (status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 10 MINUTE),UTC_TIMESTAMP(),attempted_at)]],
-    {eventId,identifier,kind}) or 0
-  if n<1 then return false end
-  local row=MySQL.single.await([[SELECT status,attempted_at FROM frame_notification_deliveries WHERE event_id=? AND player_identifier=? AND notification_type=? LIMIT 1]],{eventId,identifier,kind})
-  return row and row.status=='pending'
+  local inserted=MySQL.update.await([[INSERT IGNORE INTO frame_notification_deliveries(
+      event_id,player_identifier,notification_type,status,attempted_at)
+    VALUES(?,?,?,'pending',UTC_TIMESTAMP())]],{eventId,identifier,kind}) or 0
+  if inserted>0 then return true end
+
+  local claimed=MySQL.update.await([[UPDATE frame_notification_deliveries
+    SET status='pending',attempted_at=UTC_TIMESTAMP()
+    WHERE event_id=? AND player_identifier=? AND notification_type=?
+      AND (
+        (status='failed' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 10 MINUTE)
+        OR
+        (status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 10 MINUTE)
+      )]],{eventId,identifier,kind}) or 0
+  return claimed>0
 end
 
 local function mark(eventId,identifier,kind,status,phone,notificationId)

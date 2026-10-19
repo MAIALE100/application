@@ -29,3 +29,32 @@ function FrameEventsService.Create(source,raw)
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,metadata) VALUES(?,'EVENT_CREATE','event',?,?)]],{identifier,id,json.encode({type=input.event_type})})
   return {ok=true,public_id=id}
 end
+
+
+function FrameEventsService.Update(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+  if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
+  if e.status~='draft' then return {ok=false,error='EDIT_DRAFT_ONLY'} end
+  local input,err=FrameEventsService.NormalizeCreate(raw); if not input then return {ok=false,error=err} end
+  local ok=MySQL.transaction.await({
+    {query=[[UPDATE frame_events SET title=?,description=?,event_type=?,category=?,cover_media_ref=?,visibility=?,publish_at=?,starts_at=?,submissions_open_at=?,submissions_close_at=?,judging_starts_at=?,results_at=?,ends_at=? WHERE id=?]],values={input.title,input.description,input.event_type,input.category,input.cover_media_ref,input.visibility,input.publish_at,input.starts_at,input.submissions_open_at,input.submissions_close_at,input.judging_starts_at,input.results_at,input.ends_at,e.id}},
+    {query=[[UPDATE frame_event_rules SET participation_required=?,submission_enabled=?,judging_enabled=?,ranking_enabled=?,voting_enabled=?,awards_enabled=?,max_submissions=?,allow_submission_edit=?,allow_submission_delete=?,comment_mode=?,approval_mode=? WHERE event_id=?]],values={input.participation_required and 1 or 0,input.submission_enabled and 1 or 0,input.judging_enabled and 1 or 0,input.ranking_enabled and 1 or 0,input.voting_enabled and 1 or 0,input.awards_enabled and 1 or 0,input.max_submissions,input.allow_submission_edit and 1 or 0,input.allow_submission_delete and 1 or 0,input.comment_mode,input.approval_mode,e.id}}
+  })
+  if not ok then return {ok=false,error='DATABASE_ERROR'} end
+  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'EVENT_EDIT','event',?,?)]],{identifier,e.public_id,e.id})
+  return {ok=true}
+end
+
+function FrameEventsService.Cancel(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+  if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
+  if e.status=='ended' or e.status=='cancelled' then return {ok=false,error='EVENT_ALREADY_CLOSED'} end
+  local n=MySQL.update.await([[UPDATE frame_events SET status='cancelled',ends_at=COALESCE(ends_at,UTC_TIMESTAMP()) WHERE id=? AND status<>'ended' AND status<>'cancelled']],{e.id}) or 0
+  if n<1 then return {ok=false,error='STATE_CHANGED'} end
+  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'EVENT_CANCEL','event',?,?)]],{identifier,e.public_id,e.id})
+  return {ok=true}
+end

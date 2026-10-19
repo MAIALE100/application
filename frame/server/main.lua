@@ -4,14 +4,27 @@ local function viewer(source)
 end
 local callbacks={
  ['frame:getEvents']=function(source) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY',events={}} end; local ok,rows=pcall(FrameEventsRepository.ListPublic,FrameConfig.EventPageSize); return ok and {ok=true,viewer=viewer(source),events=rows} or {ok=false,error='DATABASE_ERROR',events={}} end,
- ['frame:getEvent']=function(source,data) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end; local e=FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or nil); return e and {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e)} or {ok=false,error='NOT_FOUND'} end,
+ ['frame:getEvent']=function(source,data)
+  local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+  local e=FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or nil); if not e then return {ok=false,error='NOT_FOUND'} end
+  local joined=MySQL.scalar.await([[SELECT 1 FROM frame_event_participants WHERE event_id=? AND player_identifier=? AND status='active' LIMIT 1]],{e.id,id}) ~= nil
+  local ownCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND player_identifier=? AND status='submitted']],{e.id,id}) or 0)
+  local participantCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or 0)
+  local submissionCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount}
+ end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,
+ ['frame:updateEvent']=function(source,data) return FrameEventsService.Update(source,data) end,
+ ['frame:cancelEvent']=function(source,data) return FrameEventsService.Cancel(source,data) end,
  ['frame:publishEvent']=function(source,data) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end; local n=FrameEventsRepository.PublishOwned(type(data)=='table' and data.public_id or '',id); if n>0 then MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id) VALUES(?,'EVENT_PUBLISH','event',?)]],{id,data.public_id}); return {ok=true} end; return {ok=false,error='NOT_OWNER_OR_NOT_DRAFT'} end,
  ['frame:joinEvent']=function(source,data) return FrameSubmissionsService.Join(source,data) end,
  ['frame:submitPhoto']=function(source,data) return FrameSubmissionsService.Submit(source,data) end,
  ['frame:getMySubmissions']=function(source,data) return FrameSubmissionsService.ListMine(source,data) end,
  ['frame:getEventSubmissions']=function(source,data) return FrameManagement.ListSubmissions(source,data) end,
+ ['frame:getEventAwards']=function(source,data) return FrameManagement.ListAwards(source,data) end,
+ ['frame:beginJudging']=function(source,data) return FrameManagement.BeginJudging(source,data) end,
+ ['frame:publishResults']=function(source,data) return FrameManagement.PublishResults(source,data) end,
  ['frame:authorizeSave']=function(source,data) return FrameManagement.AuthorizeSave(source,data) end,
  ['frame:addAward']=function(source,data) return FrameManagement.AddAward(source,data) end,
  ['frame:setWinner']=function(source,data) return FrameManagement.SetWinner(source,data) end,

@@ -108,10 +108,11 @@ function bindBulkOrganizer(){
   const selected=boxes().filter(x=>x.checked);
   if(!selected.length){action({ok:false,error:'NO_EVENTS_SELECTED'});return}
   const hasLive=selected.some(x=>!['draft','cancelled','results','ended'].includes(x.dataset.bulkStatus));
-  const msg=hasLive?selected.length+'件を削除します。\n\n開催中・予定・審査中のイベントは中止して削除します。\n応募作品・賞・スポンサー等も削除され、元に戻せません。':selected.length+'件を完全に削除します。\n\n応募作品・賞・スポンサー等も削除され、元に戻せません。';
+  if(hasLive){alert('主催者権限では、開催中・予定・審査中のイベントを完全削除できません。\n先にイベントを中止してから削除してください。');return}
+  const msg=selected.length+'件を完全に削除します。\n\n応募作品・賞・スポンサー等も削除され、元に戻せません。';
   if(!confirm(msg))return;
   const btn=$('#bulkDelete');btn.disabled=true;btn.textContent='削除中…';
-  const r=await nui('frame:deleteEventsBulk',{public_ids:selected.map(x=>x.dataset.bulkEvent),force:hasLive});
+  const r=await nui('frame:deleteEventsBulk',{public_ids:selected.map(x=>x.dataset.bulkEvent),force:false});
   if(Number(r?.deleted_count||0)>0){await mine();if(Number(r.failed_count||0)>0)alert('削除 '+r.deleted_count+'件 / 失敗 '+r.failed_count+'件')}
   else{btn.disabled=false;btn.innerHTML='選択分を削除 <b id="bulkCount">'+selected.length+'</b>';action(r)}
  };

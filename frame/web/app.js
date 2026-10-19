@@ -36,7 +36,7 @@ const STATUS={draft:'下書き',scheduled:'公開予定',active:'開催中',judg
 const TYPES={contest:'フォトコンテスト',mission:'フォトミッション',collection:'フォトコレクション',memorial:'メモリアル / アルバム'};
 const AD_STATUS={pending_review:'審査待ち',processing:'審査処理中',scheduled:'掲載予約',active:'掲載中',ended:'掲載終了',rejected:'却下',cancelled:'取消・停止',payment_error:'支払エラー'};
 const AD_PLACEMENTS={home_banner:'Home Banner',category_banner:'Category Banner',featured:'Featured Event',top_placement:'Top Placement'};
-const ACTION_LABELS={EVENT_CREATE:'イベント作成',EVENT_UPDATE:'イベント編集',EVENT_PUBLISH:'イベント公開',EVENT_CANCEL:'イベント中止',EVENT_DELETE:'イベント削除',EVENT_DUPLICATE:'イベント複製',COLLABORATOR_ADD:'共同主催者追加',COLLABORATOR_REMOVE:'共同主催者解除',COLLABORATOR_LEAVE:'共同主催から離脱',SUBMISSION_DOWNLOAD:'応募画像を保存',SUBMISSION_MOD_DELETE:'応募作品を削除',SPONSOR_ADD:'スポンサー追加',SPONSOR_DELETE:'スポンサー削除',JUDGING_START:'審査開始',RESULT_SET:'受賞作品を設定',RESULT_CLEAR:'受賞設定を解除',RESULT_PUBLISH:'結果発表',EVENT_INVITE:'参加者を招待'};
+const ACTION_LABELS={EVENT_CREATE:'イベント作成',EVENT_UPDATE:'イベント編集',EVENT_PUBLISH:'イベント公開',EVENT_CANCEL:'イベント中止',EVENT_DELETE:'イベント削除',EVENT_DUPLICATE:'イベント複製',COLLABORATOR_ADD:'共同主催者追加',COLLABORATOR_REMOVE:'共同主催者解除',COLLABORATOR_LEAVE:'共同主催から離脱',SUBMISSION_DOWNLOAD:'応募画像を保存',SUBMISSION_MOD_DELETE:'応募作品を削除',SPONSOR_ADD:'スポンサー追加',SPONSOR_DELETE:'スポンサー削除',JUDGING_START:'審査開始',RESULT_SET:'受賞作品を設定',RESULT_CLEAR:'受賞設定を解除',RESULT_PUBLISH:'結果発表',EVENT_INVITE:'参加者を招待',AD_CREATE:'広告申請',AD_APPROVE:'広告承認',AD_REJECT:'広告却下',AD_WITHDRAW:'広告申請取消',AD_STOP:'広告掲載停止'};
 function errorText(code){return ERRORS[code]||String(code||'不明なエラーです。')}
 function statusLabel(v){return STATUS[v]||v||'-'}
 function typeLabel(v){return TYPES[v]||v||'-'}

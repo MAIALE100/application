@@ -20,7 +20,9 @@ function FrameEventsRepository.GetByPublicId(publicId)
   return MySQL.single.await([[SELECT e.*,r.participation_required,r.submission_enabled,r.judging_enabled,r.ranking_enabled,r.voting_enabled,r.awards_enabled,r.max_submissions,r.allow_submission_edit,r.allow_submission_delete,r.comment_mode,r.approval_mode,r.extra_rules, CASE WHEN (e.submissions_open_at IS NULL OR e.submissions_open_at<=UTC_TIMESTAMP()) AND (e.submissions_close_at IS NULL OR e.submissions_close_at>=UTC_TIMESTAMP()) THEN 1 ELSE 0 END AS submission_window_open FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE e.public_id=? LIMIT 1]],{publicId})
 end
 function FrameEventsRepository.ListOwned(identifier)
-  return MySQL.query.await([[SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.status,e.visibility,e.starts_at,e.submissions_close_at,e.ends_at,e.created_at,
+  local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+  local sql=([[SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.status,e.visibility,e.starts_at,e.submissions_close_at,e.ends_at,e.created_at,
+  DATE_ADD(e.created_at,INTERVAL %d MONTH) retention_delete_at,
   CASE WHEN e.owner_identifier=? THEN 1 ELSE 0 END is_owner,
   CASE WHEN e.owner_identifier<>? AND EXISTS(SELECT 1 FROM frame_event_collaborators c WHERE c.event_id=e.id AND c.player_identifier=?) THEN 1 ELSE 0 END is_collaborator,
   COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active'),0) participant_count,
@@ -29,8 +31,10 @@ function FrameEventsRepository.ListOwned(identifier)
   COALESCE((SELECT COUNT(*) FROM frame_event_favorites f WHERE f.event_id=e.id),0) favorite_count
   FROM frame_events e
   WHERE e.owner_identifier=? OR EXISTS(SELECT 1 FROM frame_event_collaborators c2 WHERE c2.event_id=e.id AND c2.player_identifier=?)
-  ORDER BY e.created_at DESC LIMIT 100]],{identifier,identifier,identifier,identifier,identifier}) or {}
+  ORDER BY e.created_at DESC LIMIT 100]]):format(months)
+  return MySQL.query.await(sql,{identifier,identifier,identifier,identifier,identifier}) or {}
 end
+
 function FrameEventsRepository.Create(identifier,name,input,publicId)
   return MySQL.transaction.await({
     {query=[[INSERT INTO frame_events(public_id,owner_identifier,organizer_name,organizer_type,title,description,event_type,category,cover_media_ref,visibility,status,publish_at,starts_at,submissions_open_at,submissions_close_at,judging_starts_at,results_at,ends_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]],values={publicId,identifier,name,'individual',input.title,input.description,input.event_type,input.category,input.cover_media_ref,input.visibility,'draft',input.publish_at,input.starts_at,input.submissions_open_at,input.submissions_close_at,input.judging_starts_at,input.results_at,input.ends_at}},

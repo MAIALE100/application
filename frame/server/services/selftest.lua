@@ -39,6 +39,11 @@ RegisterCommand('frame_selftest',function(source)
       MySQL.insert.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
         VALUES(?,?,?,'0000000000',?)]],{eventId,voter,'FRAME Selftest Co-Organizer',owner})
       assert(scalar([[SELECT COUNT(*) FROM frame_event_collaborators WHERE event_id=?]],{eventId})==1,'collaborator insert failed')
+      local duplicateCollaboratorAccepted=pcall(function()
+        MySQL.insert.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
+          VALUES(?,?,?,'0000000000',?)]],{eventId,voter,'FRAME Selftest Duplicate',owner})
+      end)
+      assert(not duplicateCollaboratorAccepted,'duplicate collaborator constraint missing')
       MySQL.insert.await([[INSERT INTO frame_event_invites(event_id,player_identifier,invited_by) VALUES(?,?,?)]],{eventId,voter,owner})
       MySQL.insert.await([[INSERT INTO frame_judges(event_id,player_identifier,assigned_by) VALUES(?,?,?)]],{eventId,voter,owner})
 
@@ -107,7 +112,7 @@ RegisterCommand('frame_selftest',function(source)
     MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier LIKE ?]],{SELFTEST_ACTOR..'%'})
 
     if ok then
-      out('PASS: owner/collaborator permission boundaries')
+      out('PASS: owner/collaborator permission boundaries and unique membership')
       out('PASS: participant/favorite/submission/vote/collaborator aggregates')
       out('PASS: one-vote-per-event database constraint')
       out('PASS: create -> dependencies -> production delete -> orphan checks')
@@ -346,6 +351,16 @@ RegisterCommand('frame_healthcheck',function(source)
       else
         devOut(('PASS: %s = 0'):format(check[1]))
       end
+    end
+
+    local collaboratorMax=math.max(1,math.min(50,tonumber(FrameConfig.CollaboratorMax) or 10))
+    local overLimitSql=('SELECT COUNT(*) FROM (SELECT event_id FROM frame_event_collaborators GROUP BY event_id HAVING COUNT(*)>%d) x'):format(collaboratorMax)
+    local overLimit=scalar(overLimitSql)
+    if overLimit>0 then
+      warnings=warnings+1
+      devOut(('WARN: collaborator_limit_exceeded = %d event(s)'):format(overLimit))
+    else
+      devOut('PASS: collaborator_limit_exceeded = 0')
     end
 
     local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))

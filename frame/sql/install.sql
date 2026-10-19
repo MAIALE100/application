@@ -199,6 +199,19 @@ CREATE TABLE IF NOT EXISTS frame_event_favorites (
   CONSTRAINT fk_favorite_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS frame_event_collaborators (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  event_id BIGINT UNSIGNED NOT NULL,
+  player_identifier VARCHAR(128) NOT NULL,
+  display_name VARCHAR(100) NULL,
+  phone_number VARCHAR(32) NULL,
+  added_by VARCHAR(128) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_event_collaborator (event_id, player_identifier),
+  INDEX idx_collaborator_player (player_identifier, created_at),
+  CONSTRAINT fk_collaborator_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS frame_event_invites (
   event_id BIGINT UNSIGNED NOT NULL,
   player_identifier VARCHAR(128) NOT NULL,

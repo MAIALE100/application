@@ -105,19 +105,8 @@ function FrameEventsService.Duplicate(source,raw)
 end
 
 
-function FrameEventsService.Delete(source,raw)
-  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
-  raw=type(raw)=='table' and raw or {}
-  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
-  local isOwner=e.owner_identifier==identifier
-  local isAdmin=FramePermissions.IsAdmin(identifier)
-  if not isOwner and not isAdmin then return {ok=false,error='FORBIDDEN'} end
-
-  local closed={draft=true,cancelled=true,results=true,ended=true}
-  local force=raw.force==true or tonumber(raw.force)==1
-  if not closed[e.status] and not force then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
-
-  local metadata=json.encode({title=e.title,status=e.status,forced=force})
+local function deleteEventInternal(e,identifier,force)
+  local metadata=json.encode({title=e.title,status=e.status,forced=force==true})
   local auditId=MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
     VALUES(?,'EVENT_DELETE','event',?,?,?)]],{identifier,e.public_id,e.id,metadata})
   if not auditId then return {ok=false,error='DATABASE_ERROR'} end
@@ -150,4 +139,20 @@ function FrameEventsService.Delete(source,raw)
     return {ok=false,error='DELETE_FAILED'}
   end
   return {ok=true}
+end
+
+FrameEventsService.DeleteInternal=deleteEventInternal
+
+function FrameEventsService.Delete(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+  local isOwner=e.owner_identifier==identifier
+  local isAdmin=FramePermissions.IsAdmin(identifier)
+  if not isOwner and not isAdmin then return {ok=false,error='FORBIDDEN'} end
+
+  local closed={draft=true,cancelled=true,results=true,ended=true}
+  local force=raw.force==true or tonumber(raw.force)==1
+  if not closed[e.status] and not force then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
+  return deleteEventInternal(e,identifier,force)
 end

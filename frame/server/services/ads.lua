@@ -66,6 +66,9 @@ function FrameAds.Create(src,d)
  if d.event_public_id and tostring(d.event_public_id)~='' then
   local e=FrameEventsRepository.GetByPublicId(tostring(d.event_public_id))
   if not e or not FramePermissions.CanManageEvent(who,e,src) then return {ok=false,error='INVALID_EVENT'} end
+  if e.visibility~='public' or not ({scheduled=true,active=true,judging=true,results=true})[e.status] then
+   return {ok=false,error='AD_EVENT_NOT_PROMOTABLE'}
+  end
   eventId=e.id
   eventPublic=e.public_id
  end
@@ -134,6 +137,16 @@ function FrameAds.Review(src,d)
    JOIN frame_ad_products p ON p.id=a.product_id
    WHERE a.public_id=? AND a.status='pending_review' LIMIT 1]],{d.public_id})
  if not ad then return {ok=false,error='NOT_PENDING'} end
+
+ local expired=tonumber(MySQL.scalar.await([[SELECT CASE WHEN ends_at<=UTC_TIMESTAMP() THEN 1 ELSE 0 END FROM frame_ads WHERE id=?]],{ad.id}) or 0)==1
+ if expired then
+  local reason='審査中に掲載期間が終了しました。'
+  MySQL.update.await([[UPDATE frame_ads SET status='rejected',reviewed_by=?,reviewed_at=UTC_TIMESTAMP(),review_reason=? WHERE id=? AND status='pending_review']],{who,reason,ad.id})
+  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id)
+    VALUES(?,'AD_REJECT','ad',?,?)]],{who,ad.public_id,ad.event_id})
+  notifyIdentifier(ad.creator_identifier,'FRAME 広告審査','広告「'..tostring(ad.title or ad.product_name)..'」は掲載期間終了のため却下されました。')
+  return {ok=true,status='rejected',expired=true}
+ end
 
  if decision=='reject' then
   local reason=type(d.reason)=='string' and d.reason:sub(1,500) or ''
@@ -244,6 +257,11 @@ function FrameAds.Stat(src,d,kind)
 end
 
 function FrameAds.Advance()
+ MySQL.update.await([[UPDATE frame_ads SET status=CASE
+   WHEN ends_at<=UTC_TIMESTAMP() THEN 'ended'
+   WHEN starts_at<=UTC_TIMESTAMP() THEN 'active'
+   ELSE 'scheduled' END
+   WHERE status='approved']])
  MySQL.update.await([[UPDATE frame_ads SET status='active'
    WHERE status='scheduled' AND starts_at<=UTC_TIMESTAMP() AND ends_at>UTC_TIMESTAMP()]])
  MySQL.update.await([[UPDATE frame_ads SET status='ended'

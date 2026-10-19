@@ -799,3 +799,6 @@ input,textarea,select{
 .retention-card{display:inline-flex!important;width:max-content;margin-top:.28rem;padding:.2rem .42rem;border-radius:999px;background:rgba(183,109,69,.10);color:#8a4f30!important;font-size:.66rem!important;font-weight:700}
 .retention-card.urgent{background:rgba(170,40,40,.12);color:#932f2f!important}
 .retention-date small{display:inline!important;margin-left:.2rem;font-size:.66rem!important;letter-spacing:0!important;color:#8a4f30!important;opacity:.9!important}
+
+.collab-limit{padding:.62rem .7rem;margin-bottom:.65rem;border-radius:.7rem;background:rgba(183,109,69,.10);color:#7b523b;font-size:.72rem;font-weight:700}
+.collab-leave{width:100%!important;min-height:2.45rem!important;margin-top:.72rem!important;border-radius:.72rem!important;font-size:.75rem!important;font-weight:700!important}

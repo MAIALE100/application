@@ -60,7 +60,7 @@ function FrameEventsService.Update(source,raw)
   local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
   raw=type(raw)=='table' and raw or {}
   local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
-  if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
+  if not FramePermissions.CanManageEvent(identifier,e,source) then return {ok=false,error='FORBIDDEN'} end
   if e.status~='draft' then return {ok=false,error='EDIT_DRAFT_ONLY'} end
   local input,err=FrameEventsService.NormalizeCreate(raw); if not input then return {ok=false,error=err} end
   local ok=MySQL.transaction.await({
@@ -73,11 +73,23 @@ function FrameEventsService.Update(source,raw)
   return {ok=true}
 end
 
+function FrameEventsService.Publish(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+  if not FramePermissions.CanManageEvent(identifier,e,source) then return {ok=false,error='FORBIDDEN'} end
+  if e.status~='draft' then return {ok=false,error='NOT_DRAFT'} end
+  local n=MySQL.update.await([[UPDATE frame_events SET status=CASE WHEN starts_at IS NOT NULL AND starts_at>UTC_TIMESTAMP() THEN 'scheduled' ELSE 'active' END,publish_at=COALESCE(publish_at,UTC_TIMESTAMP()) WHERE id=? AND status='draft']],{e.id}) or 0
+  if n<1 then return {ok=false,error='STATE_CHANGED'} end
+  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'EVENT_PUBLISH','event',?,?)]],{identifier,e.public_id,e.id})
+  return {ok=true}
+end
+
 function FrameEventsService.Cancel(source,raw)
   local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
   raw=type(raw)=='table' and raw or {}
   local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
-  if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
+  if not FramePermissions.CanManageEvent(identifier,e,source) then return {ok=false,error='FORBIDDEN'} end
   if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='EVENT_ALREADY_CLOSED'} end
   local n=MySQL.update.await([[UPDATE frame_events SET status='cancelled',ends_at=COALESCE(ends_at,UTC_TIMESTAMP()) WHERE id=? AND status IN ('draft','scheduled','active','judging')]],{e.id}) or 0
   if n<1 then return {ok=false,error='STATE_CHANGED'} end
@@ -90,7 +102,7 @@ function FrameEventsService.Duplicate(source,raw)
   local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
   raw=type(raw)=='table' and raw or {}
   local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
-  if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
+  if not FramePermissions.CanManageEvent(identifier,e,source) then return {ok=false,error='FORBIDDEN'} end
   local newId=publicId()
   local title=('コピー - '..tostring(e.title or 'イベント')):sub(1,160)
   local ok=MySQL.transaction.await({
@@ -147,14 +159,15 @@ function FrameEventsService.Delete(source,raw)
   local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
   raw=type(raw)=='table' and raw or {}
   local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
-  local isOwner=e.owner_identifier==identifier
-  local isAdmin=FramePermissions.IsAdmin(identifier)
-  if not isOwner and not isAdmin then return {ok=false,error='FORBIDDEN'} end
-
-  local closed={draft=true,cancelled=true,results=true,ended=true}
   local force=raw.force==true or tonumber(raw.force)==1
-  if not closed[e.status] and not force then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
-  return deleteEventInternal(e,identifier,force)
+  local operator=FramePermissions.IsOperator(identifier,source)
+
+  if force and not operator then return {ok=false,error='OPERATOR_REQUIRED'} end
+  if not FramePermissions.CanHardDeleteEvent(identifier,e,source) then
+    if e.owner_identifier==identifier then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
+    return {ok=false,error='FORBIDDEN'}
+  end
+  return deleteEventInternal(e,identifier,force and operator)
 end
 
 
@@ -166,8 +179,8 @@ function FrameEventsService.DeleteMany(source,raw)
   if #ids<1 then return {ok=false,error='NO_EVENTS_SELECTED'} end
   if #ids>50 then return {ok=false,error='TOO_MANY_EVENTS'} end
 
-  local isAdmin=FramePermissions.IsAdmin(identifier)
-  local force=raw.force==true or tonumber(raw.force)==1
+  local operator=FramePermissions.IsOperator(identifier,source)
+  local force=(raw.force==true or tonumber(raw.force)==1) and operator
   local closed={draft=true,cancelled=true,results=true,ended=true}
   local seen,deleted,failed={},{},{}
 
@@ -178,9 +191,9 @@ function FrameEventsService.DeleteMany(source,raw)
       local e=FrameEventsRepository.GetByPublicId(publicId)
       if not e then
         failed[#failed+1]={public_id=publicId,error='NOT_FOUND'}
-      elseif e.owner_identifier~=identifier and not isAdmin then
+      elseif e.owner_identifier~=identifier and not operator then
         failed[#failed+1]={public_id=publicId,error='FORBIDDEN'}
-      elseif not closed[e.status] and not force then
+      elseif not closed[e.status] and not operator then
         failed[#failed+1]={public_id=publicId,error='DELETE_REQUIRES_CLOSED'}
       else
         local r=FrameEventsService.DeleteInternal(e,identifier,force)

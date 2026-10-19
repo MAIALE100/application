@@ -68,6 +68,20 @@ local callbacks={
 CreateThread(function()
  pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)
  pcall(function() MySQL.query.await([[ALTER TABLE frame_votes ADD UNIQUE INDEX IF NOT EXISTS uq_vote_event_voter (event_id,voter_identifier)]]) end)
+ pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_notification_deliveries (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   event_id BIGINT UNSIGNED NOT NULL,
+   player_identifier VARCHAR(128) NOT NULL,
+   notification_type VARCHAR(48) NOT NULL,
+   status VARCHAR(16) NOT NULL DEFAULT 'pending',
+   phone_number VARCHAR(32) NULL,
+   notification_id BIGINT NULL,
+   attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   delivered_at DATETIME NULL,
+   UNIQUE KEY uq_frame_notification (event_id,player_identifier,notification_type),
+   INDEX idx_frame_notification_status (status,attempted_at),
+   CONSTRAINT fk_frame_notification_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+ )]]) end)
  pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_event_favorites (
    event_id BIGINT UNSIGNED NOT NULL,
    player_identifier VARCHAR(128) NOT NULL,
@@ -80,4 +94,4 @@ CreateThread(function()
  for name,fn in pairs(callbacks) do exports['lb-phone']:RegisterCallback(name,fn,{preventSpam=true,rateLimit=(name=='frame:createEvent' or name=='frame:createAd') and 5 or 30,defaultReturn={ok=false,error='CALLBACK_FAILED'}}) end
  print('[FRAME] server callbacks registered')
 end)
-CreateThread(function() while true do pcall(FrameEventsRepository.AdvanceLifecycle); pcall(FrameAds.Advance); Wait(60000) end end)
+CreateThread(function() while true do pcall(FrameEventsRepository.AdvanceLifecycle); pcall(FrameAds.Advance); pcall(FrameNotifications.Scan); Wait(60000) end end)

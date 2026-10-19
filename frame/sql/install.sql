@@ -231,6 +231,21 @@ CREATE TABLE IF NOT EXISTS frame_votes (
   CONSTRAINT fk_vote_submission FOREIGN KEY (submission_id) REFERENCES frame_submissions(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS frame_notification_deliveries (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  event_id BIGINT UNSIGNED NOT NULL,
+  player_identifier VARCHAR(128) NOT NULL,
+  notification_type VARCHAR(48) NOT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'pending',
+  phone_number VARCHAR(32) NULL,
+  notification_id BIGINT NULL,
+  attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  delivered_at DATETIME NULL,
+  UNIQUE KEY uq_frame_notification (event_id, player_identifier, notification_type),
+  INDEX idx_frame_notification_status (status, attempted_at),
+  CONSTRAINT fk_frame_notification_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS frame_ad_products (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(64) NOT NULL UNIQUE,

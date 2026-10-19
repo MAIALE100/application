@@ -80,13 +80,7 @@ function FrameManagement.PublishResults(src,data)
  end
  local n=MySQL.update.await([[UPDATE frame_events SET status='results',results_at=UTC_TIMESTAMP() WHERE id=? AND status='judging']],{e.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end
- local participants=MySQL.query.await([[SELECT DISTINCT player_identifier FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or {}
- for _,p in ipairs(participants) do
-   pcall(function()
-     local number=exports['lb-phone']:GetEquippedPhoneNumber(p.player_identifier)
-     if number then exports['lb-phone']:SendNotification(number,{app='frame',title='結果発表',content=(e.title or 'FRAMEイベント')..' の結果が発表されました。'}) end
-   end)
- end
+ pcall(function() FrameNotifications.NotifyResults(e) end)
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'RESULT_PUBLISH','event',?,?)]],{id,e.public_id,e.id})
  return {ok=true}
 end

@@ -60,6 +60,7 @@ local callbacks={
  ['frame:updateEvent']=function(source,data) return FrameEventsService.Update(source,data) end,
  ['frame:cancelEvent']=function(source,data) return FrameEventsService.Cancel(source,data) end,
  ['frame:deleteEvent']=function(source,data) return FrameEventsService.Delete(source,data) end,
+ ['frame:deleteEventsBulk']=function(source,data) return FrameEventsService.DeleteMany(source,data) end,
  ['frame:publishEvent']=function(source,data) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end; local n=FrameEventsRepository.PublishOwned(type(data)=='table' and data.public_id or '',id); if n>0 then MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id) VALUES(?,'EVENT_PUBLISH','event',?)]],{id,data.public_id}); return {ok=true} end; return {ok=false,error='NOT_OWNER_OR_NOT_DRAFT'} end,
  ['frame:joinEvent']=function(source,data) return FrameSubmissionsService.Join(source,data) end,
  ['frame:submitPhoto']=function(source,data) return FrameSubmissionsService.Submit(source,data) end,

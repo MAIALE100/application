@@ -112,14 +112,42 @@ function FrameEventsService.Delete(source,raw)
   local isOwner=e.owner_identifier==identifier
   local isAdmin=FramePermissions.IsAdmin(identifier)
   if not isOwner and not isAdmin then return {ok=false,error='FORBIDDEN'} end
-  local allowed={draft=true,cancelled=true,results=true,ended=true}
-  if not allowed[e.status] then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
 
-  local metadata=json.encode({title=e.title,status=e.status})
-  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'EVENT_DELETE','event',?,?,?)]],{identifier,e.public_id,e.id,metadata})
+  local closed={draft=true,cancelled=true,results=true,ended=true}
+  local force=raw.force==true or tonumber(raw.force)==1
+  if not closed[e.status] and not force then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
 
-  MySQL.update.await([[UPDATE frame_ads SET status='ended',link_type='none',link_value=NULL WHERE event_id=? AND status IN ('pending_review','scheduled','active')]],{e.id})
-  local n=MySQL.update.await([[DELETE FROM frame_events WHERE id=?]],{e.id}) or 0
-  if n<1 then return {ok=false,error='STATE_CHANGED'} end
+  local metadata=json.encode({title=e.title,status=e.status,forced=force})
+  local auditId=MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
+    VALUES(?,'EVENT_DELETE','event',?,?,?)]],{identifier,e.public_id,e.id,metadata})
+  if not auditId then return {ok=false,error='DATABASE_ERROR'} end
+
+  local ok,tx=pcall(function()
+    return MySQL.transaction.await({
+      {query=[[UPDATE frame_ads SET status=CASE WHEN status IN ('pending_review','scheduled','active') THEN 'ended' ELSE status END,link_type='none',link_value=NULL,event_id=NULL WHERE event_id=?]],values={e.id}},
+      {query=[[UPDATE frame_transactions SET event_id=NULL WHERE event_id=?]],values={e.id}},
+      {query=[[UPDATE frame_audit_logs SET event_id=NULL WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_notification_deliveries WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_votes WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_results WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE m FROM frame_submission_media m INNER JOIN frame_submissions s ON s.id=m.submission_id WHERE s.event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_submissions WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_awards WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_sponsors WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_promotions WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_judges WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_invites WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_favorites WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_access_rules WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_participants WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_rules WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_events WHERE id=?]],values={e.id}}
+    })
+  end)
+
+  if not ok or not tx then
+    print(('[FRAME] event delete failed: public=%s id=%s result=%s'):format(tostring(e.public_id),tostring(e.id),tostring(tx)))
+    return {ok=false,error='DELETE_FAILED'}
+  end
   return {ok=true}
 end

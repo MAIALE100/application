@@ -166,3 +166,34 @@ CreateThread(function()
   Wait(3600000)
  end
 end)
+
+
+-- Integration-test safety guard. Keep disabled for production deployment.
+CreateThread(function()
+ local cfg=FrameConfig.TestGuard or {}
+ if cfg.Enabled~=true or cfg.AutoRevive~=true then return end
+ local interval=math.max(30000,tonumber(cfg.IntervalMs) or 120000)
+ print(('[FRAME] test guard enabled: auto revive every %dms'):format(interval))
+ while true do
+  Wait(interval)
+  if GetResourceState('qbx_medical')=='started' then
+   for _,rawSrc in ipairs(GetPlayers()) do
+    local src=tonumber(rawSrc)
+    if src then
+     local state=Player(src).state
+     if state and state.isDead==true then
+      local okRevive,reviveErr=pcall(function()
+       exports.qbx_medical:Revive(src)
+       exports.qbx_medical:Heal(src)
+      end)
+      if okRevive then
+       print(('[FRAME] test guard auto-revived player %d'):format(src))
+      else
+       print(('[FRAME] test guard revive failed for %d: %s'):format(src,tostring(reviveErr)))
+      end
+     end
+    end
+   end
+  end
+ end
+end)

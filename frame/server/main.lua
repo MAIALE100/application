@@ -1,3 +1,29 @@
+local function loadFrameServerModule(path,label)
+  local source=LoadResourceFile(GetCurrentResourceName(),path)
+  if not source then
+    print(('[FRAME] failed to load %s: file not found (%s)'):format(label,path))
+    return false
+  end
+
+  local chunk,compileError=load(source,'@'..path,'t',_ENV)
+  if not chunk then
+    print(('[FRAME] failed to compile %s: %s'):format(label,tostring(compileError)))
+    return false
+  end
+
+  local ok,runtimeError=pcall(chunk)
+  if not ok then
+    print(('[FRAME] failed to start %s: %s'):format(label,tostring(runtimeError)))
+    return false
+  end
+
+  print(('[FRAME] loaded %s'):format(label))
+  return true
+end
+
+local notificationsReady=loadFrameServerModule('server/services/notifications.lua','notifications')
+local selftestReady=loadFrameServerModule('server/services/selftest.lua','selftest')
+
 local function viewer(source)
  local id=FrameFramework.GetIdentifier(source)
  return {name=FrameFramework.GetCharacterName(source),staff=FramePermissions.IsStaff(id),admin=FramePermissions.IsAdmin(id)}
@@ -94,5 +120,17 @@ CreateThread(function()
  while GetResourceState('lb-phone')~='started' do Wait(500) end; Wait(500)
  for name,fn in pairs(callbacks) do exports['lb-phone']:RegisterCallback(name,fn,{preventSpam=true,rateLimit=(name=='frame:createEvent' or name=='frame:createAd') and 5 or 30,defaultReturn={ok=false,error='CALLBACK_FAILED'}}) end
  print('[FRAME] server callbacks registered')
+ print(('[FRAME] notifications ready: %s'):format(tostring(notificationsReady)))
+ print(('[FRAME] selftest ready: %s'):format(tostring(selftestReady)))
 end)
-CreateThread(function() while true do pcall(FrameEventsRepository.AdvanceLifecycle); pcall(FrameAds.Advance); pcall(FrameNotifications.Scan); Wait(60000) end end)
+CreateThread(function()
+ while true do
+  pcall(FrameEventsRepository.AdvanceLifecycle)
+  pcall(FrameAds.Advance)
+  if notificationsReady and FrameNotifications and type(FrameNotifications.Scan)=='function' then
+   local ok,err=pcall(FrameNotifications.Scan)
+   if not ok then print('[FRAME] notification scan failed: '..tostring(err)) end
+  end
+  Wait(60000)
+ end
+end)

@@ -62,6 +62,7 @@ local callbacks={
  ['frame:getVoteCandidates']=function(source,data) return FrameManagement.VoteCandidates(source,data) end,
  ['frame:castVote']=function(source,data) return FrameManagement.CastVote(source,data) end,
  ['frame:applyPublicVoteAward']=function(source,data) return FrameManagement.ApplyPublicVoteAward(source,data) end,
+ ['frame:getEventAnalytics']=function(source,data) return FrameManagement.EventAnalytics(source,data) end,
  ['frame:getStaffDashboard']=function(source) return FrameManagement.StaffDashboard(source) end,
  ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end
 }

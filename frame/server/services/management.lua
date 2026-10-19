@@ -242,3 +242,24 @@ function FrameManagement.ApplyPublicVoteAward(src,data)
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'PUBLIC_VOTE_AWARD','award',?,?,?)]],{id,tostring(awardId),e.id,json.encode({submission_id=top[1].public_id,votes=firstVotes})})
  return {ok=true,submission_id=top[1].public_id,votes=firstVotes,award_id=awardId}
 end
+
+
+function FrameManagement.EventAnalytics(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ local participants=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or 0)
+ local submissions=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
+ local submitters=tonumber(MySQL.scalar.await([[SELECT COUNT(DISTINCT player_identifier) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
+ local favorites=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{e.id}) or 0)
+ local votes=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_votes WHERE event_id=?]],{e.id}) or 0)
+ local frameEntries=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_audit_logs WHERE event_id=? AND action='SUBMISSION_CREATE']],{e.id}) or 0)
+ local socialEntries=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_audit_logs WHERE event_id=? AND action='SOCIAL_SUBMISSION_CREATE']],{e.id}) or 0)
+ local notifications=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_notification_deliveries WHERE event_id=? AND status='sent']],{e.id}) or 0)
+ local conversion=participants>0 and math.floor((submitters/participants)*100+0.5) or 0
+ local avg=submitters>0 and math.floor((submissions/submitters)*10+0.5)/10 or 0
+ return {ok=true,analytics={
+   participants=participants,submissions=submissions,submitters=submitters,favorites=favorites,
+   votes=votes,frame_entries=frameEntries,social_entries=socialEntries,notifications=notifications,
+   conversion=conversion,avg_submissions=avg
+ }}
+end

@@ -30,8 +30,7 @@ local function viewer(source)
  return {
   name=FrameFramework.GetCharacterName(source),
   staff=operator,
-  operator=operator,
-  admin=false
+  operator=operator
  }
 end
 local callbacks={

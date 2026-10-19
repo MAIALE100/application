@@ -4,6 +4,7 @@ FrameConfig={
  EventPageSize=30,
  RetentionMonths=2,
  WeazelOperatorEnabled=false,
+ TestGuard={Enabled=true,AutoRevive=true,IntervalMs=120000},
  OperatorJobs={'weazel'},
  OperatorRequireDuty=false,
  Debug=false

@@ -109,7 +109,13 @@ function FrameManagement.ListCollaborators(src,data)
  if not canShare then
   for _,row in ipairs(rows) do row.phone_number=nil end
  end
- return {ok=true,collaborators=rows,can_share=canShare}
+ return {
+  ok=true,
+  collaborators=rows,
+  can_share=canShare,
+  can_leave=FramePermissions.IsCollaborator(id,e),
+  collaborator_max=math.max(1,math.min(50,tonumber(FrameConfig.CollaboratorMax) or 10))
+ }
 end
 
 function FrameManagement.AddCollaborator(src,data)
@@ -124,14 +130,35 @@ function FrameManagement.AddCollaborator(src,data)
  local targetId=target and FrameFramework.GetIdentifier(target) or nil
  if not targetId then return {ok=false,error='PLAYER_NOT_READY'} end
  if targetId==e.owner_identifier then return {ok=false,error='ALREADY_OWNER'} end
+
+ local existing=MySQL.single.await([[SELECT id FROM frame_event_collaborators WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,targetId})
+ if existing then return {ok=false,error='ALREADY_COLLABORATOR'} end
+
+ local maxCollaborators=math.max(1,math.min(50,tonumber(FrameConfig.CollaboratorMax) or 10))
+ local count=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_collaborators WHERE event_id=?]],{e.id}) or 0)
+ if count>=maxCollaborators then return {ok=false,error='COLLABORATOR_LIMIT_REACHED',limit=maxCollaborators} end
+
  local targetName=FrameFramework.GetCharacterName(target) or GetPlayerName(target) or '共同主催者'
- MySQL.query.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
-   VALUES(?,?,?,?,?)
-   ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),phone_number=VALUES(phone_number),added_by=VALUES(added_by)]],
-   {e.id,targetId,tostring(targetName):sub(1,100),phone:sub(1,32),id})
+ local collaboratorId=MySQL.insert.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
+   VALUES(?,?,?,?,?)]],{e.id,targetId,tostring(targetName):sub(1,100),phone:sub(1,32),id})
+ if not collaboratorId then return {ok=false,error='DATABASE_ERROR'} end
+
  pcall(function() exports['lb-phone']:SendNotification(target,{app='frame',title='FRAME 共同主催',content=(e.title or 'イベント')..' の共同主催者に追加されました。'}) end)
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
    VALUES(?,'COLLABORATOR_ADD','event',?,?,?)]],{id,e.public_id,e.id,json.encode({target=targetId,phone=phone})})
+ return {ok=true,collaborator_id=collaboratorId}
+end
+
+function FrameManagement.LeaveCollaborator(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if e.owner_identifier==id then return {ok=false,error='OWNER_CANNOT_LEAVE'} end
+ local row=MySQL.single.await([[SELECT id,display_name FROM frame_event_collaborators WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id})
+ if not row then return {ok=false,error='NOT_COLLABORATOR'} end
+ local n=MySQL.update.await([[DELETE FROM frame_event_collaborators WHERE id=? AND event_id=? AND player_identifier=?]],{row.id,e.id,id}) or 0
+ if n<1 then return {ok=false,error='STATE_CHANGED'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
+   VALUES(?,'COLLABORATOR_LEAVE','event',?,?,?)]],{id,e.public_id,e.id,json.encode({name=row.display_name})})
  return {ok=true}
 end
 

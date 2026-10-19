@@ -31,7 +31,7 @@ function FrameManagement.SetWinner(src,data)
 end
 function FrameManagement.Results(src,data)
  local e=event(data); if not e then return {ok=false,error='NOT_FOUND'} end
- local id=ident(src); local can=FramePermissions.CanManageEvent(id,e); if e.status~='results' and e.status~='ended' and not can then return {ok=false,error='NOT_PUBLISHED'} end
+ local id=ident(src); local can=FramePermissions.CanManageEvent(id,e); if not FramePermissions.CanViewEvent(id,e) then return {ok=false,error='FORBIDDEN'} end; if e.status~='results' and e.status~='ended' and not can then return {ok=false,error='NOT_PUBLISHED'} end
  local rows=MySQL.query.await([[SELECT a.name award_name,a.prize_text,r.placement,r.comment,s.public_id submission_id,m.media_ref FROM frame_results r JOIN frame_awards a ON a.id=r.award_id JOIN frame_submissions s ON s.id=r.submission_id JOIN frame_submission_media m ON m.submission_id=s.id WHERE r.event_id=? ORDER BY COALESCE(r.placement,9999),a.sort_order,a.id]],{e.id}) or {}
  return {ok=true,results=rows}
 end

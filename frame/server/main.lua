@@ -12,6 +12,7 @@ local callbacks={
  ['frame:getEvent']=function(source,data)
   local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end
   local e=FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or nil); if not e then return {ok=false,error='NOT_FOUND'} end
+  if not FramePermissions.CanViewEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
   local joined=MySQL.scalar.await([[SELECT 1 FROM frame_event_participants WHERE event_id=? AND player_identifier=? AND status='active' LIMIT 1]],{e.id,id}) ~= nil
   local ownCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND player_identifier=? AND status='submitted']],{e.id,id}) or 0)
   local participantCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or 0)

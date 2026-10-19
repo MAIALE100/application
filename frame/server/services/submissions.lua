@@ -14,7 +14,12 @@ end
 function FrameSubmissionsService.Join(source,data)
  local identifier=FrameFramework.GetIdentifier(source); local e=eventFor(type(data)=='table' and data.public_id or nil); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end; if not e then return {ok=false,error='NOT_FOUND'} end
  if e.status~='active' then return {ok=false,error='EVENT_NOT_ACTIVE'} end
- if e.visibility=='private' or e.visibility=='restricted' then return {ok=false,error='ACCESS_RULE_REQUIRED'} end
+ if e.visibility=='private' then
+   local invited=MySQL.scalar.await([[SELECT 1 FROM frame_event_invites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,identifier})
+   if not invited and e.owner_identifier~=identifier and not FramePermissions.IsStaff(identifier) then return {ok=false,error='INVITE_REQUIRED'} end
+ elseif e.visibility=='restricted' then
+   return {ok=false,error='ACCESS_RULE_REQUIRED'}
+ end
  return {ok=FrameSubmissionsRepository.Join(e.id,identifier)}
 end
 function FrameSubmissionsService.Submit(source,data)

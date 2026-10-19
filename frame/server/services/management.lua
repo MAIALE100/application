@@ -74,6 +74,13 @@ function FrameManagement.PublishResults(src,data)
  end
  local n=MySQL.update.await([[UPDATE frame_events SET status='results',results_at=UTC_TIMESTAMP() WHERE id=? AND status='judging']],{e.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end
+ local participants=MySQL.query.await([[SELECT DISTINCT player_identifier FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or {}
+ for _,p in ipairs(participants) do
+   pcall(function()
+     local number=exports['lb-phone']:GetEquippedPhoneNumber(p.player_identifier)
+     if number then exports['lb-phone']:SendNotification(number,{app='frame',title='結果発表',content=(e.title or 'FRAMEイベント')..' の結果が発表されました。'}) end
+   end)
+ end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'RESULT_PUBLISH','event',?,?)]],{id,e.public_id,e.id})
  return {ok=true}
 end
@@ -88,5 +95,22 @@ function FrameManagement.DeleteSubmission(src,data)
  local n=MySQL.update.await([[DELETE FROM frame_submissions WHERE id=?]],{row.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SUBMISSION_MOD_DELETE','submission',?,?)]],{id,sid,e.id})
+ return {ok=true}
+end
+
+
+function FrameManagement.InviteByPhone(src,data)
+ local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.visibility~='private' then return {ok=false,error='NOT_PRIVATE_EVENT'} end
+ if e.status=='ended' or e.status=='cancelled' or e.status=='results' then return {ok=false,error='EVENT_ALREADY_CLOSED'} end
+ local phone=type(data)=='table' and tostring(data.phone_number or ''):gsub('%s+','') or ''
+ if phone=='' then return {ok=false,error='PHONE_REQUIRED'} end
+ local ok,target=pcall(function() return exports['lb-phone']:GetSourceFromNumber(phone) end)
+ if not ok or not target or target==false then return {ok=false,error='INVITEE_OFFLINE'} end
+ target=tonumber(target); local targetId=target and FrameFramework.GetIdentifier(target) or nil
+ if not targetId then return {ok=false,error='PLAYER_NOT_READY'} end
+ MySQL.query.await([[INSERT INTO frame_event_invites(event_id,player_identifier,invited_by) VALUES(?,?,?) ON DUPLICATE KEY UPDATE invited_by=VALUES(invited_by)]],{e.id,targetId,id})
+ pcall(function() exports['lb-phone']:SendNotification(target,{app='frame',title='FRAME 招待',content=(e.title or 'イベント')..' に招待されました。'}) end)
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'EVENT_INVITE','event',?,?,?)]],{id,e.public_id,e.id,json.encode({target=targetId})})
  return {ok=true}
 end

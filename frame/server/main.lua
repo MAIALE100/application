@@ -3,7 +3,12 @@ local function viewer(source)
  return {name=FrameFramework.GetCharacterName(source),staff=FramePermissions.IsStaff(id),admin=FramePermissions.IsAdmin(id)}
 end
 local callbacks={
- ['frame:getEvents']=function(source) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY',events={}} end; local ok,rows=pcall(FrameEventsRepository.ListPublic,FrameConfig.EventPageSize); return ok and {ok=true,viewer=viewer(source),events=rows} or {ok=false,error='DATABASE_ERROR',events={}} end,
+ ['frame:getEvents']=function(source)
+  local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY',events={},invited={}} end
+  local ok,rows=pcall(FrameEventsRepository.ListPublic,FrameConfig.EventPageSize); if not ok then return {ok=false,error='DATABASE_ERROR',events={},invited={}} end
+  local invited=FrameEventsRepository.ListInvited(id,FrameConfig.EventPageSize)
+  return {ok=true,viewer=viewer(source),events=rows,invited=invited}
+ end,
  ['frame:getEvent']=function(source,data)
   local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end
   local e=FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or nil); if not e then return {ok=false,error='NOT_FOUND'} end
@@ -25,6 +30,7 @@ local callbacks={
  ['frame:deleteMySubmission']=function(source,data) return FrameSubmissionsService.DeleteMine(source,data) end,
  ['frame:getEventSubmissions']=function(source,data) return FrameManagement.ListSubmissions(source,data) end,
  ['frame:deleteSubmission']=function(source,data) return FrameManagement.DeleteSubmission(source,data) end,
+ ['frame:invitePhone']=function(source,data) return FrameManagement.InviteByPhone(source,data) end,
  ['frame:getEventAwards']=function(source,data) return FrameManagement.ListAwards(source,data) end,
  ['frame:beginJudging']=function(source,data) return FrameManagement.BeginJudging(source,data) end,
  ['frame:publishResults']=function(source,data) return FrameManagement.PublishResults(source,data) end,

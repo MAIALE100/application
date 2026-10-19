@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 author 'FRAME Project'
 description 'FRAME - Flecity Photo Event Platform'
-version '0.11.0-integration'
+version '0.12.0-integration'
 dependency 'oxmysql'
 dependency 'lb-phone'
 shared_scripts {'config/shared.lua'}

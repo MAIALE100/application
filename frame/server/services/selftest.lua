@@ -36,6 +36,9 @@ RegisterCommand('frame_selftest',function(source)
       MySQL.insert.await([[INSERT INTO frame_event_participants(event_id,player_identifier,status) VALUES(?,?,'active')]],{eventId,owner})
       MySQL.insert.await([[INSERT INTO frame_event_access_rules(event_id,rule_type,rule_value) VALUES(?,'job','selftest')]],{eventId})
       MySQL.insert.await([[INSERT INTO frame_event_favorites(event_id,player_identifier) VALUES(?,?)]],{eventId,owner})
+      MySQL.insert.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
+        VALUES(?,?,?,'0000000000',?)]],{eventId,voter,'FRAME Selftest Co-Organizer',owner})
+      assert(scalar([[SELECT COUNT(*) FROM frame_event_collaborators WHERE event_id=?]],{eventId})==1,'collaborator insert failed')
       MySQL.insert.await([[INSERT INTO frame_event_invites(event_id,player_identifier,invited_by) VALUES(?,?,?)]],{eventId,voter,owner})
       MySQL.insert.await([[INSERT INTO frame_judges(event_id,player_identifier,assigned_by) VALUES(?,?,?)]],{eventId,voter,owner})
 
@@ -83,6 +86,7 @@ RegisterCommand('frame_selftest',function(source)
       assert(scalar([[SELECT COUNT(*) FROM frame_awards WHERE event_id=?]],{eventId})==0,'awards remain')
       assert(scalar([[SELECT COUNT(*) FROM frame_sponsors WHERE event_id=?]],{eventId})==0,'sponsors remain')
       assert(scalar([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{eventId})==0,'favorites remain')
+      assert(scalar([[SELECT COUNT(*) FROM frame_event_collaborators WHERE event_id=?]],{eventId})==0,'collaborator cleanup failed')
       assert(scalar([[SELECT COUNT(*) FROM frame_notification_deliveries WHERE event_id=?]],{eventId})==0,'notifications remain')
 
       if transactionId then
@@ -98,7 +102,7 @@ RegisterCommand('frame_selftest',function(source)
     MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier LIKE ?]],{SELFTEST_ACTOR..'%'})
 
     if ok then
-      out('PASS: participant/favorite/submission/vote aggregates')
+      out('PASS: participant/favorite/submission/vote/collaborator aggregates')
       out('PASS: one-vote-per-event database constraint')
       out('PASS: create -> dependencies -> production delete -> orphan checks')
       out('PASS: transaction/ad history detached safely')

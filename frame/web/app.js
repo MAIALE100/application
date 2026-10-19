@@ -41,6 +41,7 @@ function boolish(v){return v===true||Number(v)===1}
 function dateValue(v){if(v===null||v===undefined||v==='')return null;if(typeof v==='number'||/^\d{10,13}$/.test(String(v))){let n=Number(v);if(n<1e12)n*=1000;const d=new Date(n);return Number.isNaN(d.getTime())?null:d}const s=String(v);const d=new Date(s.includes('T')?s:(s.replace(' ','T')+'Z'));return Number.isNaN(d.getTime())?null:d}
 function fmtDate(v){if(!v)return '';const d=dateValue(v);if(!d)return esc(String(v));return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
 function retentionDate(v,months){const d=dateValue(v);if(!d)return '';d.setUTCMonth(d.getUTCMonth()+Number(months||2));return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function retentionRemaining(v){const d=dateValue(v);if(!d)return '';const days=Math.ceil((d.getTime()-Date.now())/86400000);if(days<0)return '削除待ち';if(days===0)return '今日';if(days===1)return 'あと1日';return 'あと'+days+'日'}
 function inputDate(v){if(!v)return '';const d=dateValue(v);if(!d)return String(v).replace(' ','T').slice(0,16);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
 function option(value,label,current){return '<option value="'+esc(value)+'"'+(value===current?' selected':'')+'>'+esc(label)+'</option>'}
 function parseRules(v){if(!v)return {};if(typeof v==='object')return v;try{return JSON.parse(v)||{}}catch{return {}}}
@@ -54,8 +55,9 @@ function cards(a,owned=false){return a?.length?a.map(e=>{
  const type='<span class="chip chip-dark">'+esc(typeLabel(e.event_type))+'</span>';
  const shared=owned&&boolish(e.is_collaborator)?'<span class="chip chip-shared">共同主催</span>':'';
  const fav=!owned?'<button class="favorite-btn '+(favoriteIds.has(e.public_id)?'active':'')+'" data-favorite="'+esc(e.public_id)+'">'+(favoriteIds.has(e.public_id)?'保存済み':'保存')+'</button>':'';
+ const retention=owned&&e.retention_delete_at?'<span class="retention-card '+((()=>{const x=retentionRemaining(e.retention_delete_at);return x==='削除待ち'||x==='今日'||/^あと[1-7]日$/.test(x)})()?'urgent':'')+'">自動削除 '+esc(retentionRemaining(e.retention_delete_at))+'</span>':'';
  const foot=owned
-   ?'<span>参加 '+Number(e.participant_count||0)+'人 / 応募 '+Number(e.submission_count||0)+'件 / 保存 '+Number(e.favorite_count||0)+'</span>'
+   ?'<span>参加 '+Number(e.participant_count||0)+'人 / 応募 '+Number(e.submission_count||0)+'件 / 保存 '+Number(e.favorite_count||0)+'</span>'+retention
    :(e.starts_at?'<span>'+esc(fmtDate(e.starts_at))+'</span>':'');
  const closedDelete=['draft','cancelled','results','ended'].includes(e.status);
  const tools=owned?'<div class="card-tools"><button data-duplicate="'+esc(e.public_id)+'">複製</button>'+(closedDelete?'<button class="danger-soft" data-delete-event="'+esc(e.public_id)+'" data-delete-title="'+esc(e.title)+'" data-delete-force="0">削除</button>':'')+'</div>':'';
@@ -169,7 +171,7 @@ async function detail(id){
  let controls='<button id="favoriteEvent" class="save-action '+(d.favorited?'active':'')+'">'+(d.favorited?'保存済み':'イベントを保存')+'</button><div class="notification-hint">保存するとイベント開始・結果発表を通知します。</div>',dates='',entry='<dt>応募方式</dt><dd>'+esc(entryLabel(mode))+'</dd>';
  if(platforms.length)entry+='<dt>対象SNS</dt><dd>'+platforms.map(platformLabel).map(esc).join(' / ')+'</dd>';
  if(rules.required_hashtag)entry+='<dt>ハッシュタグ</dt><dd>#'+esc(rules.required_hashtag)+'</dd>';if(boolish(e.voting_enabled))entry+='<dt>市民投票</dt><dd>有効</dd>';if(e.visibility==='restricted'&&d.access_jobs?.length)entry+='<dt>参加条件</dt><dd>Job: '+d.access_jobs.map(x=>esc(x.rule_value)).join(' / ')+'</dd>';
- if(e.created_at)dates+='<dt>自動削除</dt><dd class="retention-date">'+esc(retentionDate(e.created_at,d.retention_months))+'</dd>';if(e.starts_at)dates+='<dt>開始</dt><dd>'+esc(fmtDate(e.starts_at))+'</dd>';if(e.submissions_close_at)dates+='<dt>投稿締切</dt><dd>'+esc(fmtDate(e.submissions_close_at))+'</dd>';if(e.results_at)dates+='<dt>結果発表</dt><dd>'+esc(fmtDate(e.results_at))+'</dd>';if(e.ends_at)dates+='<dt>終了</dt><dd>'+esc(fmtDate(e.ends_at))+'</dd>';
+ if(d.retention_delete_at||e.created_at){const deadline=d.retention_delete_at||retentionDate(e.created_at,d.retention_months);dates+='<dt>自動削除</dt><dd class="retention-date">'+esc(fmtDate(deadline))+' <small>'+esc(retentionRemaining(deadline))+'</small></dd>';}if(e.starts_at)dates+='<dt>開始</dt><dd>'+esc(fmtDate(e.starts_at))+'</dd>';if(e.submissions_close_at)dates+='<dt>投稿締切</dt><dd>'+esc(fmtDate(e.submissions_close_at))+'</dd>';if(e.results_at)dates+='<dt>結果発表</dt><dd>'+esc(fmtDate(e.results_at))+'</dd>';if(e.ends_at)dates+='<dt>終了</dt><dd>'+esc(fmtDate(e.ends_at))+'</dd>';
  if(d.can_manage&&e.status==='draft')controls+='<button id="editEvent">編集</button><button id="publish" class="primary">イベントを公開</button>';
  if(e.status==='active'){
    controls+=d.joined?'<button disabled class="done">参加済み</button>':'<button id="join">参加する</button>';

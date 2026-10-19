@@ -498,3 +498,107 @@ input::placeholder,textarea::placeholder{opacity:.78!important}
   .template-grid{gap:.45rem!important}
   .template-grid button{height:4rem!important;padding:.55rem .58rem!important}
 }
+
+
+/* ===== 0.19.1 overlap / spacing hotfix ===== */
+/* Hero: reserve a safe text zone after the readability enlargement. */
+#hero{
+  min-height:14.25rem!important;
+  padding:1.1rem 1.15rem 1.25rem!important;
+}
+.hero-eyebrow{
+  position:relative!important;
+  z-index:3!important;
+  display:block!important;
+  max-width:72%!important;
+}
+.hero-copy{
+  left:1.15rem!important;
+  right:auto!important;
+  bottom:1.25rem!important;
+  width:72%!important;
+  max-width:72%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+}
+.hero-copy>span{
+  display:block!important;
+  margin:0 0 .48rem!important;
+  line-height:1.35!important;
+}
+.hero-copy strong{
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+  font-size:1.68rem!important;
+  line-height:1.16!important;
+  letter-spacing:.005em!important;
+  white-space:normal!important;
+  word-break:keep-all!important;
+}
+.hero-copy p{
+  display:block!important;
+  width:100%!important;
+  margin:.72rem 0 0!important;
+  padding:0!important;
+  font-size:.68rem!important;
+  line-height:1.45!important;
+  letter-spacing:.055em!important;
+}
+.hero-mark{
+  right:.68rem!important;
+  bottom:-.35rem!important;
+  z-index:1!important;
+  font-size:5.15rem!important;
+}
+
+/* Card meta chips: keep labels from touching each other after font enlargement. */
+.card-chips{
+  gap:.38rem!important;
+  margin-bottom:.62rem!important;
+  align-items:center!important;
+}
+.chip{
+  height:auto!important;
+  min-height:1.52rem!important;
+  padding:.22rem .52rem!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+.card-foot{
+  margin-top:.72rem!important;
+  padding-top:.66rem!important;
+}
+
+/* Organizer card actions: keep action pills separated from analytics text. */
+.card-tools{
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:.48rem!important;
+  margin-top:.78rem!important;
+  padding-top:.62rem!important;
+  border-top:1px solid var(--frame-line)!important;
+}
+.card-tools button{
+  margin:0!important;
+  min-width:3.4rem!important;
+}
+
+/* Prevent compact screens from collapsing the hero text zone. */
+@media (max-width:360px){
+  #hero{min-height:13.7rem!important}
+  .hero-copy{
+    width:76%!important;
+    max-width:76%!important;
+    left:1rem!important;
+    bottom:1.12rem!important;
+  }
+  .hero-copy strong{
+    font-size:1.58rem!important;
+    line-height:1.17!important;
+  }
+  .hero-copy p{margin-top:.65rem!important}
+}

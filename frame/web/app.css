@@ -839,3 +839,19 @@ input,textarea,select{
 .submission-awards{margin:.5rem 0;padding:.46rem .56rem;border-radius:.62rem;background:rgba(43,106,66,.09);color:#315d40;font-size:.72rem;font-weight:750;line-height:1.45}
 .submission-meta{display:flex!important;justify-content:space-between!important;gap:.5rem!important;margin:.45rem 0!important}
 .submission-meta span{font-size:.68rem!important;color:var(--frame-muted)}
+
+
+/* ===== 0.30 judging collection tools ===== */
+.submission-tools{
+ display:grid;grid-template-columns:1fr 1fr;gap:.42rem;margin:.55rem 0 .8rem;
+ padding:.65rem;border:1px solid var(--frame-line);border-radius:.82rem;background:var(--frame-panel-soft)
+}
+.submission-tools input{grid-column:1/-1}
+.submission-tools input,.submission-tools select{min-height:2.35rem!important;font-size:.72rem!important}
+.submission-tools button{grid-column:1/-1;width:100%!important;min-height:2.4rem!important;border-radius:.68rem!important;font-size:.72rem!important;font-weight:700!important}
+.submission-tools .hint{grid-column:1/-1;min-height:1rem;text-align:center}
+#submissionList{display:grid;gap:.35rem}
+@media(max-width:360px){
+ .submission-tools{grid-template-columns:1fr}
+ .submission-tools input,.submission-tools button,.submission-tools .hint{grid-column:1}
+}

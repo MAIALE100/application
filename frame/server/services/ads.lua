@@ -6,18 +6,18 @@ function FrameAds.Products(src)
  return {ok=true,products=MySQL.query.await([[SELECT code,name,placement,base_price,duration_hours,requires_review FROM frame_ad_products WHERE active=1 ORDER BY id]]) or {}}
 end
 function FrameAds.Create(src,d)
- local who=id(src); d=type(d)=='table' and d or {}; if not who then return {ok=false,error='PLAYER_NOT_READY'} end; if not FramePermissions.IsOrganizer(who) and not FramePermissions.IsStaff(who) then return {ok=false,error='ORGANIZER_REQUIRED'} end
+ local who=id(src); d=type(d)=='table' and d or {}; if not who then return {ok=false,error='PLAYER_NOT_READY'} end; if not FramePermissions.IsOrganizer(who) and not FramePermissions.IsStaff(who,src) then return {ok=false,error='ORGANIZER_REQUIRED'} end
  local p=MySQL.single.await([[SELECT * FROM frame_ad_products WHERE code=? AND active=1 LIMIT 1]],{d.product_code}); if not p then return {ok=false,error='INVALID_PRODUCT'} end
  local media=type(d.media_ref)=='string' and d.media_ref or ''; if #media<8 or #media>1024 or not media:match('^https://') then return {ok=false,error='INVALID_MEDIA'} end
- local eventId=nil; if d.event_public_id and d.event_public_id~='' then local e=FrameEventsRepository.GetByPublicId(d.event_public_id); if not e or not FramePermissions.CanManageEvent(who,e) then return {ok=false,error='INVALID_EVENT'} end; eventId=e.id end
+ local eventId=nil; if d.event_public_id and d.event_public_id~='' then local e=FrameEventsRepository.GetByPublicId(d.event_public_id); if not e or not FramePermissions.CanManageEvent(who,e,src) then return {ok=false,error='INVALID_EVENT'} end; eventId=e.id end
  local start=type(d.starts_at)=='string' and d.starts_at:gsub('T',' '):sub(1,19) or nil; local finish=type(d.ends_at)=='string' and d.ends_at:gsub('T',' '):sub(1,19) or nil; if not start or not finish or start>=finish then return {ok=false,error='INVALID_WINDOW'} end
- local advertiser=(type(d.advertiser_name)=='string' and d.advertiser_name:sub(1,120) or FrameFramework.GetCharacterName(src)); local status=(FramePermissions.IsStaff(who) and p.requires_review==0) and 'approved' or 'pending_review'
+ local advertiser=(type(d.advertiser_name)=='string' and d.advertiser_name:sub(1,120) or FrameFramework.GetCharacterName(src)); local status=(FramePermissions.IsStaff(who,src) and p.requires_review==0) and 'approved' or 'pending_review'
  local pub=pid(); local n=MySQL.insert.await([[INSERT INTO frame_ads(public_id,creator_identifier,event_id,product_id,advertiser_name,title,media_ref,link_type,link_value,starts_at,ends_at,status,price_snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)]],{pub,who,eventId,p.id,advertiser,type(d.title)=='string' and d.title:sub(1,160) or nil,media,d.link_type=='none' and 'none' or 'event',d.link_value,start,finish,status,p.base_price})
  if not n then return {ok=false,error='DATABASE_ERROR'} end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id) VALUES(?,'AD_CREATE','ad',?)]],{who,pub}); return {ok=true,public_id=pub,status=status,price=p.base_price}
 end
 function FrameAds.Review(src,d)
- local who=id(src); if not FramePermissions.IsStaff(who) then return {ok=false,error='FORBIDDEN'} end
+ local who=id(src); if not FramePermissions.IsStaff(who,src) then return {ok=false,error='FORBIDDEN'} end
  d=type(d)=='table' and d or {}; local decision=d.decision=='approve' and 'approve' or (d.decision=='reject' and 'reject' or nil); if not decision then return {ok=false,error='INVALID_DECISION'} end
  local ad=MySQL.single.await([[SELECT * FROM frame_ads WHERE public_id=? AND status='pending_review' LIMIT 1]],{d.public_id}); if not ad then return {ok=false,error='NOT_PENDING'} end
  if decision=='reject' then

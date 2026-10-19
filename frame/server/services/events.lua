@@ -156,3 +156,39 @@ function FrameEventsService.Delete(source,raw)
   if not closed[e.status] and not force then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
   return deleteEventInternal(e,identifier,force)
 end
+
+
+function FrameEventsService.DeleteMany(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source)
+  if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local ids=type(raw.public_ids)=='table' and raw.public_ids or {}
+  if #ids<1 then return {ok=false,error='NO_EVENTS_SELECTED'} end
+  if #ids>50 then return {ok=false,error='TOO_MANY_EVENTS'} end
+
+  local isAdmin=FramePermissions.IsAdmin(identifier)
+  local force=raw.force==true or tonumber(raw.force)==1
+  local closed={draft=true,cancelled=true,results=true,ended=true}
+  local seen,deleted,failed={},{},{}
+
+  for _,publicId in ipairs(ids) do
+    publicId=tostring(publicId or ''):sub(1,64)
+    if publicId~='' and not seen[publicId] then
+      seen[publicId]=true
+      local e=FrameEventsRepository.GetByPublicId(publicId)
+      if not e then
+        failed[#failed+1]={public_id=publicId,error='NOT_FOUND'}
+      elseif e.owner_identifier~=identifier and not isAdmin then
+        failed[#failed+1]={public_id=publicId,error='FORBIDDEN'}
+      elseif not closed[e.status] and not force then
+        failed[#failed+1]={public_id=publicId,error='DELETE_REQUIRES_CLOSED'}
+      else
+        local r=FrameEventsService.DeleteInternal(e,identifier,force)
+        if r and r.ok then deleted[#deleted+1]=publicId
+        else failed[#failed+1]={public_id=publicId,error=(r and r.error) or 'DELETE_FAILED'} end
+      end
+    end
+  end
+
+  return {ok=#failed==0,deleted=deleted,failed=failed,deleted_count=#deleted,failed_count=#failed}
+end

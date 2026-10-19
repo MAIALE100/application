@@ -26,7 +26,13 @@ local selftestReady=loadFrameServerModule('server/services/selftest.lua','selfte
 
 local function viewer(source)
  local id=FrameFramework.GetIdentifier(source)
- return {name=FrameFramework.GetCharacterName(source),staff=FramePermissions.IsStaff(id),admin=FramePermissions.IsAdmin(id)}
+ local operator=FramePermissions.IsOperator(id,source)
+ return {
+  name=FrameFramework.GetCharacterName(source),
+  staff=operator,
+  operator=operator,
+  admin=FramePermissions.IsAdmin(id)
+ }
 end
 local callbacks={
  ['frame:getEvents']=function(source)
@@ -52,7 +58,7 @@ local callbacks={
   local submissionCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
   local favoriteCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{e.id}) or 0)
   local favorited=MySQL.scalar.await([[SELECT 1 FROM frame_event_favorites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id}) ~= nil
-  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e,source),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
  end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,
@@ -61,7 +67,7 @@ local callbacks={
  ['frame:cancelEvent']=function(source,data) return FrameEventsService.Cancel(source,data) end,
  ['frame:deleteEvent']=function(source,data) return FrameEventsService.Delete(source,data) end,
  ['frame:deleteEventsBulk']=function(source,data) return FrameEventsService.DeleteMany(source,data) end,
- ['frame:publishEvent']=function(source,data) local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end; local n=FrameEventsRepository.PublishOwned(type(data)=='table' and data.public_id or '',id); if n>0 then MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id) VALUES(?,'EVENT_PUBLISH','event',?)]],{id,data.public_id}); return {ok=true} end; return {ok=false,error='NOT_OWNER_OR_NOT_DRAFT'} end,
+ ['frame:publishEvent']=function(source,data) return FrameEventsService.Publish(source,data) end,
  ['frame:joinEvent']=function(source,data) return FrameSubmissionsService.Join(source,data) end,
  ['frame:submitPhoto']=function(source,data) return FrameSubmissionsService.Submit(source,data) end,
  ['frame:submitSocialPhoto']=function(source,data) return FrameSubmissionsService.SubmitSocial(source,data) end,

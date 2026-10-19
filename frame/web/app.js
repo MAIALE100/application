@@ -27,7 +27,7 @@ const ERRORS={
  EVENT_NOT_ACTIVE:'イベント開催中のみ操作できます。',SUBMISSIONS_CLOSED:'投稿受付期間外です。',JOIN_REQUIRED:'先にイベントへ参加してください。',
  SUBMISSION_LIMIT_REACHED:'投稿上限に達しています。',INVALID_MEDIA:'画像を取得できませんでした。',NOT_OWNER_OR_NOT_DRAFT:'下書きの主催イベントだけ公開できます。',
  EDIT_DRAFT_ONLY:'編集できるのは下書き中だけです。',EVENT_ALREADY_CLOSED:'このイベントはすでに終了しています。',
- ACCESS_RULE_REQUIRED:'このイベントには参加条件があります。',NO_SUBMISSIONS:'応募作品がまだありません。',NO_RESULTS:'受賞作品を1件以上設定してください。',
+ ACCESS_RULE_REQUIRED:'このイベントには参加条件があります。',ACCESS_JOB_REQUIRED:'条件付きイベントでは対象Jobを1つ以上指定してください。',ACCESS_RULE_FAILED:'現在のJobではこのイベントに参加できません。',NO_SUBMISSIONS:'応募作品がまだありません。',NO_RESULTS:'受賞作品を1件以上設定してください。',
  NOT_JUDGING:'審査中ではありません。',NOT_CONTEST:'コンテスト形式のイベントではありません。',INVALID_AWARD:'賞が見つかりません。',
  INVALID_SUBMISSION:'応募作品が見つかりません。',NAME_REQUIRED:'賞の名前を入力してください。',CAPTION_REQUIRED:'コメントを入力してください。',INVALID_EVENT_WINDOW:'イベントの開始・終了日時を確認してください。',INVALID_SUBMISSION_WINDOW:'投稿受付期間を確認してください。',TITLE_REQUIRED:'イベント名を入力してください。',DESCRIPTION_REQUIRED:'説明を入力してください。',STATE_CHANGED:'状態が更新されています。画面を再読み込みしてください。',
  DIRECT_UPLOAD_DISABLED:'このイベントはSNS投稿からのみ応募できます。',DELETE_DISABLED:'このイベントでは投稿を削除できません。',DELETE_CLOSED:'投稿削除の受付は終了しています。',SUBMISSION_LOCKED_OR_NOT_FOUND:'受賞設定済み、または削除できない応募作品です。',SOCIAL_ENTRY_DISABLED:'このイベントはSNS応募方式ではありません。',SOCIAL_PLATFORM_NOT_ALLOWED:'このSNSは応募先に指定されていません。',SOCIAL_ACCOUNT_REQUIRED:'LB Phoneで対象SNSにログインしてください。',PHONE_NUMBER_UNAVAILABLE:'電話番号を取得できませんでした。',SOCIAL_POST_FAILED:'SNSへの投稿に失敗しました。',ORGANIZER_REQUIRED:'先にイベントを作成してください。',INVALID_PRODUCT:'広告商品が見つかりません。',INVALID_EVENT:'紐付けるイベントを確認してください。',INVALID_WINDOW:'掲載期間を確認してください。', INVITE_REQUIRED:'このイベントは招待者のみ参加できます。',NOT_PRIVATE_EVENT:'招待制イベントではありません。',PHONE_REQUIRED:'電話番号を入力してください。',INVITEE_OFFLINE:'招待相手がオンラインではありません。', PHONE_CALLBACK_FAILED:'LB Phoneとの通信に失敗しました。',CALLBACK_FAILED:'処理に失敗しました。',NUI_ERROR:'アプリ通信に失敗しました。'
@@ -79,7 +79,7 @@ async function mine(){
  bindDeleteEventButtons();
 }
 function create(){renderEventForm(null)}
-async function editEvent(id){const d=await nui('frame:getEvent',{public_id:id});if(!d.ok)return action(d);renderEventForm(d.event)}
+async function editEvent(id){const d=await nui('frame:getEvent',{public_id:id});if(!d.ok)return action(d);d.event.access_jobs=(d.access_jobs||[]).map(x=>x.rule_value);renderEventForm(d.event)}
 function renderEventForm(e){
  const editing=!!e,rules=parseRules(e?.extra_rules),platforms=Array.isArray(rules.social_platforms)?rules.social_platforms:[];
  let h='<div class="page-head"><span>EVENT BUILDER</span><h2>'+(editing?'イベント編集':'イベント作成')+'</h2><p>写真イベントの内容と応募方法を設定します。</p></div>';
@@ -92,7 +92,8 @@ function renderEventForm(e){
  h+='<label>タイプ<select name="event_type" id="eventTypeField">'+option('contest','Photo Contest',e?.event_type||'contest')+option('mission','Photo Mission',e?.event_type)+option('collection','Photo Collection',e?.event_type)+option('memorial','Memorial / Album',e?.event_type)+'</select></label>';
  h+='<label>応募方式<select name="entry_mode" id="entryMode">'+option('frame','FRAME応募',rules.entry_mode||'frame')+option('sns','SNS応募',rules.entry_mode)+option('hybrid','HYBRID応募',rules.entry_mode)+'</select></label>';
  h+='<div id="socialSettings" class="social-settings"><label class="check"><input type="checkbox" name="social_birdy"'+checked(platforms.includes('birdy'))+'> Birdy</label><label class="check"><input type="checkbox" name="social_instapic"'+checked(platforms.includes('instapic'))+'> InstaPic</label><label>公式ハッシュタグ<input name="required_hashtag" maxlength="100" placeholder="例：FRAME2026" value="'+esc(rules.required_hashtag||'')+'"></label><span class="hint">SNS応募では、FRAMEからSNSへ実投稿が成功した場合のみ応募登録します。</span></div>';
- h+='<label>公開範囲<select name="visibility">'+option('public','公開',e?.visibility||'public')+option('unlisted','限定リンク',e?.visibility)+option('private','招待制',e?.visibility)+option('restricted','条件付き',e?.visibility)+'</select></label>';
+ h+='<label>公開範囲<select name="visibility" id="visibilityField">'+option('public','公開',e?.visibility||'public')+option('unlisted','限定リンク',e?.visibility)+option('private','招待制',e?.visibility)+option('restricted','条件付き',e?.visibility)+'</select></label>';
+ h+='<div id="restrictedSettings" class="restricted-settings"><label>対象Job<input name="allowed_jobs" maxlength="300" placeholder="例：police, ambulance, weazel" value="'+esc(Array.isArray(e?.access_jobs)?e.access_jobs.join(', '):'')+'"></label><span class="hint">カンマ区切りで指定。対象Jobのプレイヤーだけ一覧表示・参加できます。</span></div>';
  h+='<label>投稿上限<input type="number" id="maxSubmissionsField" name="max_submissions" min="1" max="50" value="'+esc(e?.max_submissions||1)+'"></label>';
  h+='<label>開始日時<input type="datetime-local" name="starts_at" value="'+esc(inputDate(e?.starts_at))+'"></label><label>投稿開始<input type="datetime-local" name="submissions_open_at" value="'+esc(inputDate(e?.submissions_open_at))+'"></label><label>投稿締切<input type="datetime-local" name="submissions_close_at" value="'+esc(inputDate(e?.submissions_close_at))+'"></label><label>結果発表<input type="datetime-local" name="results_at" value="'+esc(inputDate(e?.results_at))+'"></label><label>終了日時<input type="datetime-local" name="ends_at" value="'+esc(inputDate(e?.ends_at))+'"></label>';
  h+='<button class="primary">'+(editing?'変更を保存':'下書きを作成')+'</button><p id="formStatus"></p></form>';view.innerHTML=h;document.querySelectorAll('#eventForm>label').forEach(x=>x.classList.add('field-card'));
@@ -110,7 +111,7 @@ function renderEventForm(e){
    const birdy=document.querySelector('[name="social_birdy"]'),insta=document.querySelector('[name="social_instapic"]');if(birdy)birdy.checked=p.birdy;if(insta)insta.checked=p.insta;
    toggleSocial();document.querySelectorAll('[data-template]').forEach(x=>x.classList.toggle('selected',x===b));
  });
- $('#entryMode').onchange=toggleSocial;
+ $('#entryMode').onchange=toggleSocial;const toggleRestricted=()=>{$('#restrictedSettings').hidden=$('#visibilityField').value!=='restricted'};toggleRestricted();$('#visibilityField').onchange=toggleRestricted;
  $('#pickCover').onclick=async()=>{const m=await nui('frame:pickGallery');if(m?.media?.src){$('#coverMedia').value=m.media.src;$('#coverPreview').innerHTML='<img class="cover-preview" src="'+esc(m.media.src)+'">'}};
  $('#eventForm').onsubmit=async ev=>{ev.preventDefault();const fd=new FormData(ev.currentTarget),o=Object.fromEntries(fd);o.max_submissions=+o.max_submissions;o.participation_required=true;o.submission_enabled=true;o.allow_submission_delete=true;o.allow_submission_edit=false;o.social_birdy=fd.has('social_birdy');o.social_instapic=fd.has('social_instapic');if(o.entry_mode!=='frame'&&!o.social_birdy&&!o.social_instapic){$('#formStatus').textContent='SNS応募ではBirdyまたはInstaPicを1つ以上選択してください。';return}if(editing)o.public_id=e.public_id;utcDates(o);const d=await nui(editing?'frame:updateEvent':'frame:createEvent',o);$('#formStatus').textContent=d.ok?(editing?'保存しました':'作成しました'):errorText(d.error);if(d.ok)setTimeout(()=>editing?detail(e.public_id):mine(),250)}
 }
@@ -122,7 +123,7 @@ async function detail(id){
  const e=d.event,rules=parseRules(e.extra_rules),mode=rules.entry_mode||'frame',platforms=Array.isArray(rules.social_platforms)?rules.social_platforms:[],max=Number(e.max_submissions||1),used=Number(d.own_submission_count||0),remaining=Math.max(0,max-used);
  let controls='',dates='',entry='<dt>応募方式</dt><dd>'+esc(entryLabel(mode))+'</dd>';
  if(platforms.length)entry+='<dt>対象SNS</dt><dd>'+platforms.map(platformLabel).map(esc).join(' / ')+'</dd>';
- if(rules.required_hashtag)entry+='<dt>ハッシュタグ</dt><dd>#'+esc(rules.required_hashtag)+'</dd>';
+ if(rules.required_hashtag)entry+='<dt>ハッシュタグ</dt><dd>#'+esc(rules.required_hashtag)+'</dd>';if(e.visibility==='restricted'&&d.access_jobs?.length)entry+='<dt>参加条件</dt><dd>Job: '+d.access_jobs.map(x=>esc(x.rule_value)).join(' / ')+'</dd>';
  if(e.starts_at)dates+='<dt>開始</dt><dd>'+esc(fmtDate(e.starts_at))+'</dd>';if(e.submissions_close_at)dates+='<dt>投稿締切</dt><dd>'+esc(fmtDate(e.submissions_close_at))+'</dd>';if(e.results_at)dates+='<dt>結果発表</dt><dd>'+esc(fmtDate(e.results_at))+'</dd>';if(e.ends_at)dates+='<dt>終了</dt><dd>'+esc(fmtDate(e.ends_at))+'</dd>';
  if(d.is_owner&&e.status==='draft')controls+='<button id="editEvent">編集</button><button id="publish" class="primary">イベントを公開</button>';
  if(e.status==='active'){

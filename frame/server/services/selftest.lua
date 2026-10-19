@@ -109,3 +109,149 @@ RegisterCommand('frame_selftest',function(source)
     end
   end)
 end,false)
+
+
+local DEV_CATEGORY='__frame_dev__'
+
+local function devOut(msg)
+  print('[FRAME DEV] '..tostring(msg))
+end
+
+local function resolveDevPlayer(arg)
+  local sid=tonumber(arg)
+  if sid and sid>0 and GetPlayerName(sid) then return sid end
+  local players=GetPlayers()
+  if #players==1 then return tonumber(players[1]) end
+  if #players==0 then return nil,'NO_PLAYERS' end
+  return nil,'MULTIPLE_PLAYERS'
+end
+
+local function makePublic(prefix,stamp,n)
+  local raw=tostring(prefix)..tostring(stamp)..tostring(n)
+  if #raw<26 then raw=raw..string.rep('X',26-#raw) end
+  return raw:sub(1,26)
+end
+
+local function latestMedia()
+  local row=MySQL.single.await([[SELECT media_ref FROM frame_submission_media ORDER BY id DESC LIMIT 1]])
+  return row and row.media_ref or nil
+end
+
+local function insertDevEvent(owner,name,title,status,stamp,n,mediaRef)
+  local publicId=makePublic('DEV',stamp,n)
+  local eventId=MySQL.insert.await([[INSERT INTO frame_events(
+    public_id,owner_identifier,organizer_name,organizer_type,title,description,event_type,category,cover_media_ref,visibility,status,
+    starts_at,submissions_open_at,submissions_close_at,judging_starts_at,results_at,ends_at
+  ) VALUES(?,?,?,'individual',?,?, 'contest',?,?, 'public',?,
+    UTC_TIMESTAMP()-INTERVAL 1 HOUR,
+    UTC_TIMESTAMP()-INTERVAL 1 HOUR,
+    UTC_TIMESTAMP()+INTERVAL 2 HOUR,
+    UTC_TIMESTAMP()+INTERVAL 2 HOUR,
+    CASE WHEN ?='results' THEN UTC_TIMESTAMP() ELSE NULL END,
+    UTC_TIMESTAMP()+INTERVAL 4 HOUR)]],
+    {publicId,owner,name,title,'FRAME開発用の自動生成イベントです。',DEV_CATEGORY,mediaRef,status,status})
+  assert(eventId,'dev event insert failed')
+
+  MySQL.insert.await([[INSERT INTO frame_event_rules(
+    event_id,participation_required,submission_enabled,judging_enabled,ranking_enabled,voting_enabled,awards_enabled,max_submissions,
+    allow_submission_edit,allow_submission_delete,comment_mode,approval_mode
+  ) VALUES(?,1,1,1,1,1,1,3,0,1,'optional','auto')]],{eventId})
+
+  local fake1='frame_dev:citizen:a:'..stamp..':'..n
+  local fake2='frame_dev:citizen:b:'..stamp..':'..n
+  MySQL.insert.await([[INSERT INTO frame_event_participants(event_id,player_identifier,status) VALUES(?,?,'active'),(?,?,'active'),(?,?,'active')]],
+    {eventId,owner,eventId,fake1,eventId,fake2})
+  MySQL.insert.await([[INSERT INTO frame_event_favorites(event_id,player_identifier) VALUES(?,?)]],{eventId,owner})
+
+  local subIds={}
+  local subPublics={}
+  if mediaRef then
+    for i,who in ipairs({fake1,fake2}) do
+      local sp=makePublic('DEVSUB',stamp,n*10+i)
+      local sid=MySQL.insert.await([[INSERT INTO frame_submissions(public_id,event_id,player_identifier,submission_slot,caption,status)
+        VALUES(?,?,?,1,?,'submitted')]],{sp,eventId,who,'DEV応募作品 '..i})
+      MySQL.insert.await([[INSERT INTO frame_submission_media(submission_id,provider,media_ref,media_type) VALUES(?,'lbphone',?,'image')]],{sid,mediaRef})
+      subIds[#subIds+1]=sid
+      subPublics[#subPublics+1]=sp
+    end
+  end
+
+  local sponsorId=MySQL.insert.await([[INSERT INTO frame_sponsors(event_id,name,sort_order) VALUES(?,'Weazel News DEV',0)]],{eventId})
+  local awardId=MySQL.insert.await([[INSERT INTO frame_awards(event_id,name,description,prize_text,sort_order,sponsor_id)
+    VALUES(?,'DEVグランプリ','開発確認用の賞です。','テスト賞品',1,?)]],{eventId,sponsorId})
+
+  if #subIds>0 then
+    MySQL.insert.await([[INSERT INTO frame_votes(event_id,submission_id,voter_identifier,score) VALUES(?,?,?,1)]],{eventId,subIds[1],owner})
+    MySQL.insert.await([[INSERT INTO frame_votes(event_id,submission_id,voter_identifier,score) VALUES(?,?,?,1)]],{eventId,subIds[1],'frame_dev:voter:'..stamp..':'..n})
+    if status=='judging' or status=='results' then
+      MySQL.insert.await([[INSERT INTO frame_results(event_id,award_id,submission_id,placement,comment)
+        VALUES(?,?,?,1,'DEV自動選出')]],{eventId,awardId,subIds[1]})
+    end
+  end
+
+  return {id=eventId,public_id=publicId,status=status}
+end
+
+RegisterCommand('frame_dev_seed',function(source,args)
+  if source~=0 then
+    devOut('DENIED: run frame_dev_seed from the txAdmin/server console.')
+    return
+  end
+  CreateThread(function()
+    local target,why=resolveDevPlayer(args and args[1])
+    if not target then
+      if why=='MULTIPLE_PLAYERS' then devOut('Multiple players online. Use: frame_dev_seed <serverId>') else devOut('No online player found.') end
+      return
+    end
+    local owner=FrameFramework.GetIdentifier(target)
+    if not owner then devOut('Could not resolve player identifier for server id '..tostring(target)); return end
+    local name=FrameFramework.GetCharacterName(target) or GetPlayerName(target) or ('Player '..target)
+    local stamp=os.time()
+    local mediaRef=latestMedia()
+
+    local ok,res=pcall(function()
+      local made={}
+      made[#made+1]=insertDevEvent(owner,name,'[DEV] 開催中フォトコンテスト','active',stamp,1,mediaRef)
+      made[#made+1]=insertDevEvent(owner,name,'[DEV] 審査中フォトコンテスト','judging',stamp,2,mediaRef)
+      made[#made+1]=insertDevEvent(owner,name,'[DEV] 結果発表フォトコンテスト','results',stamp,3,mediaRef)
+      return made
+    end)
+    if not ok then devOut('SEED FAILED: '..tostring(res)); return end
+    devOut(('Seeded %d events for %s (server id %s).'):format(#res,name,target))
+    if mediaRef then
+      devOut('Reused the latest existing LB Phone image for submission cards.')
+    else
+      devOut('No existing submission image was found; events were created without sample submissions.')
+    end
+    devOut('Open FRAME -> 主催 / イベント to test the UI. Cleanup: frame_dev_clean '..tostring(target))
+  end)
+end,false)
+
+RegisterCommand('frame_dev_clean',function(source,args)
+  if source~=0 then
+    devOut('DENIED: run frame_dev_clean from the txAdmin/server console.')
+    return
+  end
+  CreateThread(function()
+    local target,why=resolveDevPlayer(args and args[1])
+    if not target then
+      if why=='MULTIPLE_PLAYERS' then devOut('Multiple players online. Use: frame_dev_clean <serverId>') else devOut('No online player found.') end
+      return
+    end
+    local owner=FrameFramework.GetIdentifier(target)
+    if not owner then devOut('Could not resolve player identifier for server id '..tostring(target)); return end
+    local rows=MySQL.query.await([[SELECT public_id FROM frame_events WHERE owner_identifier=? AND category=? ORDER BY id]],{owner,DEV_CATEGORY}) or {}
+    if #rows==0 then devOut('No FRAME DEV events found for this player.'); return end
+
+    local deleted,failed=0,0
+    for _,row in ipairs(rows) do
+      local e=FrameEventsRepository.GetByPublicId(row.public_id)
+      if e then
+        local r=FrameEventsService.DeleteInternal(e,'__frame_dev_clean__',true)
+        if r and r.ok then deleted=deleted+1 else failed=failed+1 end
+      end
+    end
+    MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier='__frame_dev_clean__']])
+    devOut(('Cleanup complete. deleted=%d failed=%d'):format(deleted,failed))
+  end)
+end,false)

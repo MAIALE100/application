@@ -31,7 +31,7 @@ local function viewer(source)
   name=FrameFramework.GetCharacterName(source),
   staff=operator,
   operator=operator,
-  admin=FramePermissions.IsAdmin(id)
+  admin=false
  }
 end
 local callbacks={
@@ -58,7 +58,8 @@ local callbacks={
   local submissionCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
   local favoriteCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{e.id}) or 0)
   local favorited=MySQL.scalar.await([[SELECT 1 FROM frame_event_favorites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id}) ~= nil
-  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e,source),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
+  local isCollaborator=FramePermissions.IsCollaborator(id,e)
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,is_collaborator=isCollaborator,can_manage=FramePermissions.CanManageEvent(id,e,source),can_share=FramePermissions.CanShareEvent(id,e,source),retention_months=tonumber(FrameConfig.RetentionMonths) or 2,joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
  end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,
@@ -76,6 +77,9 @@ local callbacks={
  ['frame:getEventSubmissions']=function(source,data) return FrameManagement.ListSubmissions(source,data) end,
  ['frame:deleteSubmission']=function(source,data) return FrameManagement.DeleteSubmission(source,data) end,
  ['frame:invitePhone']=function(source,data) return FrameManagement.InviteByPhone(source,data) end,
+ ['frame:getCollaborators']=function(source,data) return FrameManagement.ListCollaborators(source,data) end,
+ ['frame:addCollaborator']=function(source,data) return FrameManagement.AddCollaborator(source,data) end,
+ ['frame:removeCollaborator']=function(source,data) return FrameManagement.RemoveCollaborator(source,data) end,
  ['frame:getEventAwards']=function(source,data) return FrameManagement.ListAwards(source,data) end,
  ['frame:getSponsors']=function(source,data) return FrameManagement.ListSponsors(source,data) end,
  ['frame:addSponsor']=function(source,data) return FrameManagement.AddSponsor(source,data) end,
@@ -116,6 +120,18 @@ CreateThread(function()
    INDEX idx_frame_notification_status (status,attempted_at),
    CONSTRAINT fk_frame_notification_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
  )]]) end)
+ pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_event_collaborators (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   event_id BIGINT UNSIGNED NOT NULL,
+   player_identifier VARCHAR(128) NOT NULL,
+   display_name VARCHAR(100) NULL,
+   phone_number VARCHAR(32) NULL,
+   added_by VARCHAR(128) NOT NULL,
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   UNIQUE KEY uq_event_collaborator (event_id,player_identifier),
+   INDEX idx_collaborator_player (player_identifier,created_at),
+   CONSTRAINT fk_collaborator_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+ )]]) end)
  pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_event_favorites (
    event_id BIGINT UNSIGNED NOT NULL,
    player_identifier VARCHAR(128) NOT NULL,
@@ -139,5 +155,14 @@ CreateThread(function()
    if not ok then print('[FRAME] notification scan failed: '..tostring(err)) end
   end
   Wait(60000)
+ end
+end)
+
+CreateThread(function()
+ Wait(10000)
+ while true do
+  local ok,err=pcall(FrameEventsService.PurgeExpired)
+  if not ok then print('[FRAME] retention cleanup failed: '..tostring(err)) end
+  Wait(3600000)
  end
 end)

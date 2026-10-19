@@ -53,6 +53,7 @@ local callbacks={
  ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end
 }
 CreateThread(function()
+ pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)
  while GetResourceState('lb-phone')~='started' do Wait(500) end; Wait(500)
  for name,fn in pairs(callbacks) do exports['lb-phone']:RegisterCallback(name,fn,{preventSpam=true,rateLimit=(name=='frame:createEvent' or name=='frame:createAd') and 5 or 30,defaultReturn={ok=false,error='CALLBACK_FAILED'}}) end
  print('[FRAME] server callbacks registered')

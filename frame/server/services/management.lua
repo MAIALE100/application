@@ -17,7 +17,12 @@ function FrameManagement.AddAward(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
  if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
  local name=type(data.name)=='string' and data.name:sub(1,100) or ''; if name=='' then return {ok=false,error='NAME_REQUIRED'} end
- local aid=MySQL.insert.await([[INSERT INTO frame_awards(event_id,name,description,prize_text,sort_order) VALUES(?,?,?,?,?)]],{e.id,name,type(data.description)=='string' and data.description:sub(1,2000) or nil,type(data.prize_text)=='string' and data.prize_text:sub(1,2000) or nil,tonumber(data.sort_order) or 0})
+ local sponsorId=tonumber(data.sponsor_id)
+ if sponsorId then
+   local sponsor=MySQL.scalar.await([[SELECT 1 FROM frame_sponsors WHERE id=? AND event_id=? LIMIT 1]],{sponsorId,e.id})
+   if not sponsor then return {ok=false,error='INVALID_SPONSOR'} end
+ end
+ local aid=MySQL.insert.await([[INSERT INTO frame_awards(event_id,name,description,prize_text,sort_order,sponsor_id) VALUES(?,?,?,?,?,?)]],{e.id,name,type(data.description)=='string' and data.description:sub(1,2000) or nil,type(data.prize_text)=='string' and data.prize_text:sub(1,2000) or nil,tonumber(data.sort_order) or 0,sponsorId})
  return {ok=aid~=nil,award_id=aid}
 end
 function FrameManagement.SetWinner(src,data)
@@ -32,7 +37,7 @@ end
 function FrameManagement.Results(src,data)
  local e=event(data); if not e then return {ok=false,error='NOT_FOUND'} end
  local id=ident(src); local can=FramePermissions.CanManageEvent(id,e); if not FramePermissions.CanViewEvent(id,e) then return {ok=false,error='FORBIDDEN'} end; if e.status~='results' and e.status~='ended' and not can then return {ok=false,error='NOT_PUBLISHED'} end
- local rows=MySQL.query.await([[SELECT a.name award_name,a.prize_text,r.placement,r.comment,s.public_id submission_id,m.media_ref FROM frame_results r JOIN frame_awards a ON a.id=r.award_id JOIN frame_submissions s ON s.id=r.submission_id JOIN frame_submission_media m ON m.submission_id=s.id WHERE r.event_id=? ORDER BY COALESCE(r.placement,9999),a.sort_order,a.id]],{e.id}) or {}
+ local rows=MySQL.query.await([[SELECT a.name award_name,a.description award_description,a.prize_text,a.sponsor_id,sp.name sponsor_name,sp.logo_media_ref sponsor_logo,r.placement,r.comment,s.public_id submission_id,m.media_ref FROM frame_results r JOIN frame_awards a ON a.id=r.award_id LEFT JOIN frame_sponsors sp ON sp.id=a.sponsor_id AND sp.event_id=a.event_id JOIN frame_submissions s ON s.id=r.submission_id JOIN frame_submission_media m ON m.submission_id=s.id WHERE r.event_id=? ORDER BY COALESCE(r.placement,9999),a.sort_order,a.id]],{e.id}) or {}
  return {ok=true,results=rows}
 end
 function FrameManagement.StaffDashboard(src)
@@ -40,14 +45,15 @@ function FrameManagement.StaffDashboard(src)
  local ads=MySQL.query.await([[SELECT a.public_id,a.advertiser_name,a.title,a.status,a.starts_at,a.ends_at,p.name product_name,a.price_snapshot FROM frame_ads a JOIN frame_ad_products p ON p.id=a.product_id ORDER BY a.created_at DESC LIMIT 100]]) or {}
  local events=MySQL.query.await([[SELECT e.public_id,e.title,e.organizer_name,e.event_type,e.status,e.created_at,(SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active') participant_count,(SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted') submission_count FROM frame_events e ORDER BY e.created_at DESC LIMIT 100]]) or {}
  local stats={events=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events]]) or 0),active=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events WHERE status='active']]) or 0),submissions=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE status='submitted']]) or 0),pending_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='pending_review']]) or 0)}
- return {ok=true,ads=ads,events=events,stats=stats}
+ local audit=MySQL.query.await([[SELECT action,entity_type,entity_id,created_at FROM frame_audit_logs ORDER BY id DESC LIMIT 40]]) or {}
+ return {ok=true,ads=ads,events=events,stats=stats,audit=audit}
 end
 
 
 function FrameManagement.ListAwards(src,data)
  local id=ident(src); local e=event(data); if not id or not e then return {ok=false,error='NOT_FOUND'} end
  if not FramePermissions.CanManageEvent(id,e) and e.status~='results' and e.status~='ended' then return {ok=false,error='FORBIDDEN'} end
- local rows=MySQL.query.await([[SELECT a.id,a.name,a.description,a.prize_text,a.sort_order,s.public_id AS submission_id,m.media_ref FROM frame_awards a LEFT JOIN frame_results r ON r.award_id=a.id AND r.event_id=a.event_id LEFT JOIN frame_submissions s ON s.id=r.submission_id LEFT JOIN frame_submission_media m ON m.submission_id=s.id WHERE a.event_id=? ORDER BY a.sort_order,a.id]],{e.id}) or {}
+ local rows=MySQL.query.await([[SELECT a.id,a.name,a.description,a.prize_text,a.sort_order,a.sponsor_id,sp.name sponsor_name,sp.logo_media_ref sponsor_logo,s.public_id AS submission_id,m.media_ref FROM frame_awards a LEFT JOIN frame_sponsors sp ON sp.id=a.sponsor_id AND sp.event_id=a.event_id LEFT JOIN frame_results r ON r.award_id=a.id AND r.event_id=a.event_id LEFT JOIN frame_submissions s ON s.id=r.submission_id LEFT JOIN frame_submission_media m ON m.submission_id=s.id WHERE a.event_id=? ORDER BY a.sort_order,a.id]],{e.id}) or {}
  return {ok=true,awards=rows}
 end
 
@@ -142,6 +148,7 @@ function FrameManagement.DeleteSponsor(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
  if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
  local sponsorId=tonumber(type(data)=='table' and data.sponsor_id or nil); if not sponsorId then return {ok=false,error='NOT_FOUND'} end
+ MySQL.update.await([[UPDATE frame_awards SET sponsor_id=NULL WHERE sponsor_id=? AND event_id=?]],{sponsorId,e.id})
  local n=MySQL.update.await([[DELETE FROM frame_sponsors WHERE id=? AND event_id=?]],{sponsorId,e.id}) or 0
  if n<1 then return {ok=false,error='NOT_FOUND'} end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SPONSOR_DELETE','sponsor',?,?)]],{id,tostring(sponsorId),e.id})

@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS frame_awards (
   description TEXT NULL,
   prize_text TEXT NULL,
   sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  sponsor_id BIGINT UNSIGNED NULL,
   CONSTRAINT fk_award_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
 );
 
@@ -278,3 +279,5 @@ INSERT INTO frame_ad_products(code,name,placement,base_price,duration_hours,requ
  ('featured','Featured Event','featured',0,168,1,1),
  ('top_placement','Top Placement','top_placement',0,168,1,1)
 ON DUPLICATE KEY UPDATE name=VALUES(name),placement=VALUES(placement),active=VALUES(active);
+
+ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order;

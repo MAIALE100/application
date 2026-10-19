@@ -1,4 +1,4 @@
-fx_version '0.14.0-integration'
+fx_version '0.15.0-integration'
 game 'gta5'
 lua54 'yes'
 author 'FRAME Project'

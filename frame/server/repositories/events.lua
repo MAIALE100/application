@@ -12,7 +12,10 @@ function FrameEventsRepository.GetByPublicId(publicId)
   return MySQL.single.await([[SELECT e.*,r.participation_required,r.submission_enabled,r.judging_enabled,r.ranking_enabled,r.voting_enabled,r.awards_enabled,r.max_submissions,r.allow_submission_edit,r.allow_submission_delete,r.comment_mode,r.approval_mode,r.extra_rules, CASE WHEN (e.submissions_open_at IS NULL OR e.submissions_open_at<=UTC_TIMESTAMP()) AND (e.submissions_close_at IS NULL OR e.submissions_close_at>=UTC_TIMESTAMP()) THEN 1 ELSE 0 END AS submission_window_open FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE e.public_id=? LIMIT 1]],{publicId})
 end
 function FrameEventsRepository.ListOwned(identifier)
-  return MySQL.query.await([[SELECT public_id,title,event_type,status,visibility,starts_at,submissions_close_at,ends_at,created_at FROM frame_events WHERE owner_identifier=? ORDER BY created_at DESC LIMIT 100]],{identifier}) or {}
+  return MySQL.query.await([[SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.status,e.visibility,e.starts_at,e.submissions_close_at,e.ends_at,e.created_at,
+  COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active'),0) participant_count,
+  COALESCE((SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted'),0) submission_count
+  FROM frame_events e WHERE e.owner_identifier=? ORDER BY e.created_at DESC LIMIT 100]],{identifier}) or {}
 end
 function FrameEventsRepository.Create(identifier,name,input,publicId)
   return MySQL.transaction.await({

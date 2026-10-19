@@ -114,3 +114,36 @@ function FrameManagement.InviteByPhone(src,data)
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'EVENT_INVITE','event',?,?,?)]],{id,e.public_id,e.id,json.encode({target=targetId})})
  return {ok=true}
 end
+
+
+function FrameManagement.ListSponsors(src,data)
+ local id=ident(src); local e=event(data); if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanViewEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ local rows=MySQL.query.await([[SELECT id,name,logo_media_ref,link_value,sort_order FROM frame_sponsors WHERE event_id=? ORDER BY sort_order,id]],{e.id}) or {}
+ return {ok=true,sponsors=rows}
+end
+
+function FrameManagement.AddSponsor(src,data)
+ local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
+ local name=type(data.name)=='string' and data.name:gsub('^%s+',''):gsub('%s+$',''):sub(1,120) or ''
+ if name=='' then return {ok=false,error='SPONSOR_NAME_REQUIRED'} end
+ local logo=type(data.logo_media_ref)=='string' and data.logo_media_ref:sub(1,512) or nil
+ if logo=='' then logo=nil end
+ local link=type(data.link_value)=='string' and data.link_value:sub(1,255) or nil
+ if link=='' then link=nil end
+ local sponsorId=MySQL.insert.await([[INSERT INTO frame_sponsors(event_id,name,logo_media_ref,link_value,sort_order) VALUES(?,?,?,?,?)]],{e.id,name,logo,link,tonumber(data.sort_order) or 0})
+ if not sponsorId then return {ok=false,error='DATABASE_ERROR'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SPONSOR_ADD','sponsor',?,?)]],{id,tostring(sponsorId),e.id})
+ return {ok=true,id=sponsorId}
+end
+
+function FrameManagement.DeleteSponsor(src,data)
+ local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
+ local sponsorId=tonumber(type(data)=='table' and data.sponsor_id or nil); if not sponsorId then return {ok=false,error='NOT_FOUND'} end
+ local n=MySQL.update.await([[DELETE FROM frame_sponsors WHERE id=? AND event_id=?]],{sponsorId,e.id}) or 0
+ if n<1 then return {ok=false,error='NOT_FOUND'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SPONSOR_DELETE','sponsor',?,?)]],{id,tostring(sponsorId),e.id})
+ return {ok=true}
+end

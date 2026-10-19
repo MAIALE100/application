@@ -191,7 +191,7 @@ function FrameEventsService.DeleteMany(source,raw)
       local e=FrameEventsRepository.GetByPublicId(publicId)
       if not e then
         failed[#failed+1]={public_id=publicId,error='NOT_FOUND'}
-      elseif e.owner_identifier~=identifier and not operator then
+      elseif not FramePermissions.CanManageEvent(identifier,e,source) then
         failed[#failed+1]={public_id=publicId,error='FORBIDDEN'}
       elseif not closed[e.status] and not operator then
         failed[#failed+1]={public_id=publicId,error='DELETE_REQUIRES_CLOSED'}
@@ -204,4 +204,23 @@ function FrameEventsService.DeleteMany(source,raw)
   end
 
   return {ok=#failed==0,deleted=deleted,failed=failed,deleted_count=#deleted,failed_count=#failed}
+end
+
+
+function FrameEventsService.PurgeExpired()
+ local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+ local query=('SELECT public_id FROM frame_events WHERE created_at<=DATE_SUB(UTC_TIMESTAMP(),INTERVAL %d MONTH) ORDER BY created_at ASC LIMIT 50'):format(months)
+ local rows=MySQL.query.await(query) or {}
+ local deleted,failed=0,0
+ for _,row in ipairs(rows) do
+  local ev=FrameEventsRepository.GetByPublicId(row.public_id)
+  if ev then
+   local result=FrameEventsService.DeleteInternal(ev,'__frame_retention__',true)
+   if result and result.ok then deleted=deleted+1 else failed=failed+1 end
+  end
+ end
+ if deleted>0 or failed>0 then
+  print(('[FRAME] retention cleanup: deleted=%d failed=%d months=%d'):format(deleted,failed,months))
+ end
+ return {deleted=deleted,failed=failed}
 end

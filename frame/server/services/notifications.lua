@@ -79,6 +79,21 @@ function FrameNotifications.NotifyResults(e)
   return sent
 end
 
+function FrameNotifications.NotifyRetention(e)
+  if not e or not e.id then return 0 end
+  local rows=MySQL.query.await([[SELECT owner_identifier AS player_identifier FROM frame_events WHERE id=?
+    UNION
+    SELECT player_identifier FROM frame_event_collaborators WHERE event_id=?]],{e.id,e.id}) or {}
+  local sent=0
+  for _,identifier in ipairs(uniqueRecipients(rows)) do
+    if sendOne(e,identifier,'retention_7d','自動削除のお知らせ',
+      (e.title or 'FRAMEイベント')..' は7日以内に自動削除されます。必要な応募作品や結果は事前に保存してください。') then
+      sent=sent+1
+    end
+  end
+  return sent
+end
+
 function FrameNotifications.Scan()
   local starts=MySQL.query.await([[SELECT id,public_id,title FROM frame_events
     WHERE status='active' AND starts_at IS NOT NULL

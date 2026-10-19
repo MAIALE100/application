@@ -924,3 +924,6 @@ input,textarea,select{
  .ad-admin-filter input{grid-column:1}
  .top-ad-card,.featured-ad-card{grid-template-columns:5.3rem 1fr}
 }
+
+.home-ad-banner .ad-surface-copy span{position:static!important;left:auto!important;bottom:auto!important;background:transparent!important;padding:0!important;border-radius:0!important;color:inherit!important}
+.home-ad-banner .ad-surface-copy b{display:block}

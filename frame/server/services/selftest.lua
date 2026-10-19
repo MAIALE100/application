@@ -316,3 +316,51 @@ RegisterCommand('frame_retention_status',function(source)
     end
   end)
 end,false)
+
+
+RegisterCommand('frame_healthcheck',function(source)
+  if source~=0 then
+    devOut('DENIED: run frame_healthcheck from the txAdmin/server console.')
+    return
+  end
+  CreateThread(function()
+    local checks={
+      {'events_without_rules',[[SELECT COUNT(*) FROM frame_events e LEFT JOIN frame_event_rules r ON r.event_id=e.id WHERE r.event_id IS NULL]]},
+      {'submissions_without_event',[[SELECT COUNT(*) FROM frame_submissions s LEFT JOIN frame_events e ON e.id=s.event_id WHERE e.id IS NULL]]},
+      {'media_without_submission',[[SELECT COUNT(*) FROM frame_submission_media m LEFT JOIN frame_submissions s ON s.id=m.submission_id WHERE s.id IS NULL]]},
+      {'collaborators_without_event',[[SELECT COUNT(*) FROM frame_event_collaborators c LEFT JOIN frame_events e ON e.id=c.event_id WHERE e.id IS NULL]]},
+      {'votes_without_event',[[SELECT COUNT(*) FROM frame_votes v LEFT JOIN frame_events e ON e.id=v.event_id WHERE e.id IS NULL]]},
+      {'results_without_event',[[SELECT COUNT(*) FROM frame_results r LEFT JOIN frame_events e ON e.id=r.event_id WHERE e.id IS NULL]]},
+      {'notifications_without_event',[[SELECT COUNT(*) FROM frame_notification_deliveries n LEFT JOIN frame_events e ON e.id=n.event_id WHERE e.id IS NULL]]},
+      {'stale_notification_claims',[[SELECT COUNT(*) FROM frame_notification_deliveries WHERE status='pending' AND attempted_at<UTC_TIMESTAMP()-INTERVAL 15 MINUTE]]},
+      {'active_past_submission_close',[[SELECT COUNT(*) FROM frame_events WHERE status='active' AND submissions_close_at IS NOT NULL AND submissions_close_at<UTC_TIMESTAMP()-INTERVAL 5 MINUTE]]}
+    }
+    local warnings=0
+    devOut('Healthcheck starting...')
+    for _,check in ipairs(checks) do
+      local count=scalar(check[2])
+      if count>0 then
+        warnings=warnings+1
+        devOut(('WARN: %s = %d'):format(check[1],count))
+      else
+        devOut(('PASS: %s = 0'):format(check[1]))
+      end
+    end
+
+    local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+    local expiredSql=('SELECT COUNT(*) FROM frame_events WHERE created_at<=DATE_SUB(UTC_TIMESTAMP(),INTERVAL %d MONTH)'):format(months)
+    local expired=scalar(expiredSql)
+    if expired>0 then
+      warnings=warnings+1
+      devOut(('WARN: retention_delete_pending = %d'):format(expired))
+    else
+      devOut('PASS: retention_delete_pending = 0')
+    end
+
+    if warnings==0 then
+      devOut('HEALTHCHECK PASS: no integrity warnings.')
+    else
+      devOut(('HEALTHCHECK WARN: %d check(s) need attention.'):format(warnings))
+    end
+  end)
+end,false)

@@ -83,3 +83,23 @@ function FrameEventsService.Duplicate(source,raw)
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,metadata) VALUES(?,'EVENT_DUPLICATE','event',?,?)]],{identifier,newId,json.encode({source=e.public_id})})
   return {ok=true,public_id=newId}
 end
+
+
+function FrameEventsService.Delete(source,raw)
+  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+  raw=type(raw)=='table' and raw or {}
+  local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+  local isOwner=e.owner_identifier==identifier
+  local isAdmin=FramePermissions.IsAdmin(identifier)
+  if not isOwner and not isAdmin then return {ok=false,error='FORBIDDEN'} end
+  local allowed={draft=true,cancelled=true,results=true,ended=true}
+  if not allowed[e.status] then return {ok=false,error='DELETE_REQUIRES_CLOSED'} end
+
+  local metadata=json.encode({title=e.title,status=e.status})
+  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'EVENT_DELETE','event',?,?,?)]],{identifier,e.public_id,e.id,metadata})
+
+  MySQL.update.await([[UPDATE frame_ads SET status='ended',link_type='none',link_value=NULL WHERE event_id=? AND status IN ('pending_review','scheduled','active')]],{e.id})
+  local n=MySQL.update.await([[DELETE FROM frame_events WHERE id=?]],{e.id}) or 0
+  if n<1 then return {ok=false,error='STATE_CHANGED'} end
+  return {ok=true}
+end

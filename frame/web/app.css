@@ -212,3 +212,7 @@ label{font-size:.62rem !important}.hint{font-size:.64rem !important}
 .sponsor-strip{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.4rem 0 1rem}.sponsor-card{display:flex;align-items:center;gap:.45rem;padding:.5rem;border-radius:.72rem;background:var(--frame-panel-soft);border:1px solid var(--frame-line)}
 .sponsor-card img,.sponsor-logo-fallback{width:2rem;height:2rem;border-radius:.5rem;object-fit:cover}.sponsor-logo-fallback{display:grid;place-items:center;background:var(--frame-button);color:var(--frame-button-ink);font-family:Georgia,serif}.sponsor-card span{font-size:.62rem;font-weight:700}
 @media (max-width:360px){body.frame-active main{padding-top:2.35rem !important}}
+
+.danger-delete{background:#8f2d2d!important;color:#fff!important;border-color:transparent!important;font-weight:700}
+body[data-theme="c"] .danger-delete{background:#8f3c3c!important;color:#fff!important}
+.card-tools .danger-soft{color:#9b3434!important}

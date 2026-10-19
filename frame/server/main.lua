@@ -59,7 +59,9 @@ local callbacks={
   local favoriteCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{e.id}) or 0)
   local favorited=MySQL.scalar.await([[SELECT 1 FROM frame_event_favorites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id}) ~= nil
   local isCollaborator=FramePermissions.IsCollaborator(id,e)
-  return {ok=true,event=e,is_owner=e.owner_identifier==id,is_collaborator=isCollaborator,can_manage=FramePermissions.CanManageEvent(id,e,source),can_share=FramePermissions.CanShareEvent(id,e,source),retention_months=tonumber(FrameConfig.RetentionMonths) or 2,joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
+  local retentionMonths=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+  local retentionDeleteAt=MySQL.scalar.await(([[SELECT DATE_ADD(created_at,INTERVAL %d MONTH) FROM frame_events WHERE id=?]]):format(retentionMonths),{e.id})
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,is_collaborator=isCollaborator,can_manage=FramePermissions.CanManageEvent(id,e,source),can_share=FramePermissions.CanShareEvent(id,e,source),retention_months=retentionMonths,retention_delete_at=retentionDeleteAt,joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
  end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,

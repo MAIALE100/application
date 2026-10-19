@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function nui(ev,data={}){try{const r=await fetch(`https://${(typeof GetParentResourceName==='function'?GetParentResourceName():(globalThis.resourceName||'frame'))}/${ev}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});return await r.json()}catch{return {ok:false,error:'NUI_ERROR'}}}
-const view=$('#view');let viewer={},appReady=false,playerRetryTimer=null;
+const view=$('#view');let viewer={},appReady=false,playerRetryTimer=null,favoriteIds=new Set();
 const THEMES={
  a:{label:'A',name:'Gallery',description:'クリーン高級'},
  b:{label:'B',name:'Social',description:'モダンSNS'},
@@ -51,39 +51,53 @@ function cards(a,owned=false){return a?.length?a.map(e=>{
  const cat=e.category?'<span class="chip chip-soft">'+esc(e.category)+'</span>':'';
  const status='<span class="chip chip-status chip-'+esc(e.status)+'">'+esc(statusLabel(e.status))+'</span>';
  const type='<span class="chip chip-dark">'+esc(typeLabel(e.event_type))+'</span>';
- const foot=(e.starts_at?'<span>'+esc(fmtDate(e.starts_at))+'</span>':'')+(owned?'<span>'+Number(e.participant_count||0)+'人 / '+Number(e.submission_count||0)+'件</span>':'');
- const deletable=['draft','cancelled','results','ended'].includes(e.status);const tools=owned?'<div class="card-tools"><button data-duplicate="'+esc(e.public_id)+'">複製</button>'+(deletable?'<button class="danger-soft" data-delete-event="'+esc(e.public_id)+'" data-delete-title="'+esc(e.title)+'">削除</button>':'')+'</div>':'';
- return '<article class="card" data-id="'+esc(e.public_id)+'">'+cover+'<div class="card-body"><div class="card-chips">'+status+type+cat+'</div><h3>'+esc(e.title)+'</h3>'+(e.description?'<p>'+esc(e.description)+'</p>':'')+'<div class="card-foot">'+foot+'</div>'+tools+'</div></article>'
+ const fav=!owned?'<button class="favorite-btn '+(favoriteIds.has(e.public_id)?'active':'')+'" data-favorite="'+esc(e.public_id)+'">'+(favoriteIds.has(e.public_id)?'保存済み':'保存')+'</button>':'';
+ const foot=owned
+   ?'<span>参加 '+Number(e.participant_count||0)+'人 / 応募 '+Number(e.submission_count||0)+'件 / 保存 '+Number(e.favorite_count||0)+'</span>'
+   :(e.starts_at?'<span>'+esc(fmtDate(e.starts_at))+'</span>':'');
+ const deletable=['draft','cancelled','results','ended'].includes(e.status);
+ const tools=owned?'<div class="card-tools"><button data-duplicate="'+esc(e.public_id)+'">複製</button>'+(deletable?'<button class="danger-soft" data-delete-event="'+esc(e.public_id)+'" data-delete-title="'+esc(e.title)+'">削除</button>':'')+'</div>':'';
+ return '<article class="card" data-id="'+esc(e.public_id)+'">'+cover+fav+'<div class="card-body"><div class="card-chips">'+status+type+cat+'</div><h3>'+esc(e.title)+'</h3>'+(e.description?'<p>'+esc(e.description)+'</p>':'')+'<div class="card-foot">'+foot+'</div>'+tools+'</div></article>'
 }).join(''):'<div class="empty"><div class="empty-mark">□</div><strong>まだイベントがありません</strong><span>新しい写真イベントを待ちましょう。</span></div>'}
+function bindFavoriteButtons(onChange){
+ document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=async ev=>{
+   ev.stopPropagation();const id=b.dataset.favorite;b.disabled=true;
+   const r=await nui('frame:toggleFavorite',{public_id:id});
+   if(r.ok){
+     if(r.favorited)favoriteIds.add(id);else favoriteIds.delete(id);
+     b.classList.toggle('active',r.favorited);b.textContent=r.favorited?'保存済み':'保存';
+     if(typeof onChange==='function')onChange();
+   }else b.textContent=errorText(r.error);
+   b.disabled=false;
+ })
+}
 async function banners(){const d=await nui('frame:getActiveAds');if(!d.ok)return '';return (d.ads||[]).filter(x=>x.placement==='home_banner').slice(0,2).map(x=>`<div class="banner" data-ad="${esc(x.public_id)}" data-link="${esc(x.link_value||'')}"><img src="${esc(x.media_ref)}"><span>${esc(x.title||'Sponsored')}</span></div>`).join('')}
 async function home(){
  clearTimeout(playerRetryTimer);const d=await nui('frame:getInitialData');
  if(!d.ok&&d.error==='PLAYER_NOT_READY'){appReady=false;viewer={};$('#staffNav').hidden=true;view.innerHTML='<section id="hero"><p>FRAME</p><strong>キャラクター選択を待っています。</strong></section><div class="empty">キャラクターを選択すると自動で読み込みます。</div>';playerRetryTimer=setTimeout(home,1500);return}
- appReady=!!d.ok;viewer=d.viewer||{};$('#staffNav').hidden=!viewer.staff;
- const events=d.events||[],invited=d.invited||[],cats=[...new Set(events.map(x=>x.category).filter(Boolean))].sort();
+ appReady=!!d.ok;viewer=d.viewer||{};favoriteIds=new Set(d.favorite_ids||[]);$('#staffNav').hidden=!viewer.staff;
+ const events=d.events||[],invited=d.invited||[],cats=[...new Set(events.map(x=>x.category).filter(Boolean))].sort();let favoriteOnly=false;
  let body=(await banners())+'<section id="hero"><div class="hero-eyebrow">PHOTO EVENTS / FLECITY</div><div class="hero-copy"><span>'+esc(viewer.name||'Flecity')+'さんへ</span><strong>見つける。<br>撮る。参加する。</strong><p>街の瞬間を、イベントに。</p></div><div class="hero-mark">F</div></section>';
  if(invited.length)body+='<div class="section-title"><h2>招待イベント</h2><span>'+invited.length+'件</span></div><div id="inviteList">'+cards(invited)+'</div>';
- body+='<div class="discover"><input id="eventSearch" placeholder="イベント名・説明を検索"><select id="eventCategory"><option value="">すべてのカテゴリ</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select><select id="eventType"><option value="">すべての形式</option>'+Object.entries(TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></div><div class="section-title"><h2>イベント</h2><span id="eventCount"></span></div><div id="eventList"></div>';
+ body+='<div class="discover"><input id="eventSearch" placeholder="イベント名・説明を検索"><select id="eventCategory"><option value="">すべてのカテゴリ</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select><select id="eventType"><option value="">すべての形式</option>'+Object.entries(TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></div><div class="quick-filter"><button id="favoriteOnly">保存済みだけ</button></div><div class="section-title"><h2>イベント</h2><span id="eventCount"></span></div><div id="eventList"></div>';
  view.innerHTML=body;
- const render=()=>{const q=$('#eventSearch').value.trim().toLowerCase(),cat=$('#eventCategory').value,typ=$('#eventType').value;const rows=events.filter(e=>(!q||String(e.title+' '+(e.description||'')).toLowerCase().includes(q))&&(!cat||e.category===cat)&&(!typ||e.event_type===typ));$('#eventCount').textContent=rows.length+'件';$('#eventList').innerHTML=cards(rows);bindCards()};
- $('#eventSearch').oninput=render;$('#eventCategory').onchange=render;$('#eventType').onchange=render;render();bindCards();
+ const render=()=>{const q=$('#eventSearch').value.trim().toLowerCase(),cat=$('#eventCategory').value,typ=$('#eventType').value;const rows=events.filter(e=>(!q||String(e.title+' '+(e.description||'')).toLowerCase().includes(q))&&(!cat||e.category===cat)&&(!typ||e.event_type===typ)&&(!favoriteOnly||favoriteIds.has(e.public_id)));$('#eventCount').textContent=rows.length+'件';$('#eventList').innerHTML=cards(rows);bindCards();bindFavoriteButtons(render)};
+ $('#eventSearch').oninput=render;$('#eventCategory').onchange=render;$('#eventType').onchange=render;$('#favoriteOnly').onclick=()=>{favoriteOnly=!favoriteOnly;$('#favoriteOnly').classList.toggle('active',favoriteOnly);render()};render();bindCards();bindFavoriteButtons(render);
  document.querySelectorAll('.banner').forEach(async b=>{await nui('frame:adImpression',{public_id:b.dataset.ad});b.onclick=async()=>{await nui('frame:adClick',{public_id:b.dataset.ad});if(b.dataset.link)detail(b.dataset.link)}})
 }
 async function mine(){
  const d=await nui('frame:getMyEvents');
  if(!d.ok){view.innerHTML='<div class="empty">'+esc(errorText(d.error))+'</div>';return}
- const rows=d.events||[],total=rows.length,active=rows.filter(x=>x.status==='active').length,participants=rows.reduce((n,x)=>n+Number(x.participant_count||0),0),submissions=rows.reduce((n,x)=>n+Number(x.submission_count||0),0);
- view.innerHTML='<div class="page-head"><span>ORGANIZER</span><h2>主催ダッシュボード</h2><p>イベント運営の状況をひと目で確認できます。</p></div><div class="stats-grid organizer-stats"><div><b>'+total+'</b><span>イベント</span></div><div><b>'+active+'</b><span>開催中</span></div><div><b>'+participants+'</b><span>参加者</span></div><div><b>'+submissions+'</b><span>応募</span></div></div><div class="section-title"><h2>主催イベント</h2><span>'+total+'件</span></div>'+cards(rows,true);
- bindCards();
- bindDuplicateButtons();
- bindDeleteEventButtons();
+ const rows=d.events||[],total=rows.length,active=rows.filter(x=>x.status==='active').length,participants=rows.reduce((n,x)=>n+Number(x.participant_count||0),0),submissions=rows.reduce((n,x)=>n+Number(x.submission_count||0),0),submitters=rows.reduce((n,x)=>n+Number(x.submitter_count||0),0),favorites=rows.reduce((n,x)=>n+Number(x.favorite_count||0),0),conversion=participants>0?Math.round((submitters/participants)*100):0;
+ view.innerHTML='<div class="page-head"><span>ORGANIZER</span><h2>主催ダッシュボード</h2><p>イベント運営と反応をひと目で確認できます。</p></div><div class="stats-grid organizer-stats"><div><b>'+total+'</b><span>イベント</span></div><div><b>'+active+'</b><span>開催中</span></div><div><b>'+participants+'</b><span>参加者</span></div><div><b>'+submissions+'</b><span>応募作品</span></div><div><b>'+favorites+'</b><span>保存</span></div><div><b>'+conversion+'%</b><span>参加→応募率</span></div></div><div class="section-title"><h2>主催イベント</h2><span>'+total+'件</span></div>'+cards(rows,true);
+ bindCards();bindDuplicateButtons();bindDeleteEventButtons();
 }
 function create(){renderEventForm(null)}
 async function editEvent(id){const d=await nui('frame:getEvent',{public_id:id});if(!d.ok)return action(d);d.event.access_jobs=(d.access_jobs||[]).map(x=>x.rule_value);renderEventForm(d.event)}
 function renderEventForm(e){
  const editing=!!e,rules=parseRules(e?.extra_rules),platforms=Array.isArray(rules.social_platforms)?rules.social_platforms:[];
  let h='<div class="page-head"><span>EVENT BUILDER</span><h2>'+(editing?'イベント編集':'イベント作成')+'</h2><p>写真イベントの内容と応募方法を設定します。</p></div>';
- if(!editing)h+='<div class="template-box"><span>QUICK TEMPLATE</span><div class="template-grid"><button type="button" data-template="contest">フォトコンテスト</button><button type="button" data-template="pr">企業PR</button><button type="button" data-template="mission">Photo Mission</button><button type="button" data-template="memorial">思い出アルバム</button></div></div>';
+ if(!editing)h+='<div class="template-box"><span>QUICK TEMPLATE</span><div class="template-grid"><button type="button" data-template="contest"><b>コンテスト</b><small>審査・受賞あり</small></button><button type="button" data-template="pr"><b>企業PR</b><small>SNS連携向け</small></button><button type="button" data-template="mission"><b>ミッション</b><small>課題写真を募集</small></button><button type="button" data-template="memorial"><b>アルバム</b><small>思い出を収集</small></button></div></div>';
  h+='<form id="eventForm" class="panel-form">';
  h+='<label>イベント名<input name="title" maxlength="160" required value="'+esc(e?.title||'')+'"></label>';
  h+='<label>説明<textarea name="description" maxlength="8000" required>'+esc(e?.description||'')+'</textarea></label>';
@@ -121,7 +135,7 @@ function bindDeleteEventButtons(){document.querySelectorAll('[data-delete-event]
 async function detail(id){
  const d=await nui('frame:getEvent',{public_id:id});if(!d.ok){view.innerHTML='<div class="empty">'+esc(errorText(d.error))+'</div>';return}
  const e=d.event,rules=parseRules(e.extra_rules),mode=rules.entry_mode||'frame',platforms=Array.isArray(rules.social_platforms)?rules.social_platforms:[],max=Number(e.max_submissions||1),used=Number(d.own_submission_count||0),remaining=Math.max(0,max-used);
- let controls='',dates='',entry='<dt>応募方式</dt><dd>'+esc(entryLabel(mode))+'</dd>';
+ let controls='<button id="favoriteEvent" class="save-action '+(d.favorited?'active':'')+'">'+(d.favorited?'保存済み':'イベントを保存')+'</button>',dates='',entry='<dt>応募方式</dt><dd>'+esc(entryLabel(mode))+'</dd>';
  if(platforms.length)entry+='<dt>対象SNS</dt><dd>'+platforms.map(platformLabel).map(esc).join(' / ')+'</dd>';
  if(rules.required_hashtag)entry+='<dt>ハッシュタグ</dt><dd>#'+esc(rules.required_hashtag)+'</dd>';if(e.visibility==='restricted'&&d.access_jobs?.length)entry+='<dt>参加条件</dt><dd>Job: '+d.access_jobs.map(x=>esc(x.rule_value)).join(' / ')+'</dd>';
  if(e.starts_at)dates+='<dt>開始</dt><dd>'+esc(fmtDate(e.starts_at))+'</dd>';if(e.submissions_close_at)dates+='<dt>投稿締切</dt><dd>'+esc(fmtDate(e.submissions_close_at))+'</dd>';if(e.results_at)dates+='<dt>結果発表</dt><dd>'+esc(fmtDate(e.results_at))+'</dd>';if(e.ends_at)dates+='<dt>終了</dt><dd>'+esc(fmtDate(e.ends_at))+'</dd>';
@@ -137,8 +151,8 @@ async function detail(id){
    else controls+='<div class="hint">参加後に応募できます。</div>';
  }else if(e.status==='scheduled')controls+='<div class="hint">開始時刻になると参加・応募できます。</div>';else if(e.status==='judging')controls+='<div class="hint">現在、審査中です。</div>';else if(e.status==='results')controls+='<div class="hint">結果が発表されています。</div>';else if(e.status==='cancelled')controls+='<div class="hint">このイベントは中止されました。</div>';
  if(d.can_manage)controls+='<button id="manage">応募作品・審査を管理</button>';if(d.can_manage&&e.visibility==='private'&&['draft','scheduled','active'].includes(e.status))controls+='<div class="invite-box"><input id="invitePhone" placeholder="電話番号"><button id="invitePhoneBtn">電話番号で招待</button><span id="inviteStatus" class="hint"></span></div>';if(d.can_manage&&['draft','scheduled','active','judging'].includes(e.status))controls+='<button id="cancelEvent" class="danger-soft">イベントを中止</button>';if((d.is_owner||viewer.admin)&&['draft','cancelled','results','ended'].includes(e.status))controls+='<button id="deleteEvent" class="danger-delete">イベントを削除</button>';
- view.innerHTML='<button class="back">← 戻る</button><article class="detail">'+(e.cover_media_ref?'<div class="detail-cover-wrap"><img class="cover" src="'+esc(e.cover_media_ref)+'"><div class="detail-cover-shade"></div><div class="detail-cover-label"><span>'+esc(typeLabel(e.event_type))+'</span><b>'+esc(statusLabel(e.status))+'</b></div></div>':'<div class="detail-no-cover">FRAME / '+esc(typeLabel(e.event_type))+'</div>')+'<div class="detail-kicker">'+(e.category?esc(e.category)+' / ':'')+'PHOTO EVENT</div><h2>'+esc(e.title)+'</h2><p class="detail-desc">'+esc(e.description)+'</p><dl class="detail-grid"><dt>主催</dt><dd>'+esc(e.organizer_name)+'</dd><dt>参加者</dt><dd>'+Number(d.participant_count||0)+'人</dd><dt>応募作品</dt><dd>'+Number(d.submission_count||0)+'件</dd><dt>応募上限</dt><dd>'+max+'枚</dd>'+entry+dates+'</dl><div class="actions">'+controls+'</div><p id="actionStatus"></p><div id="sponsors"></div><div id="mineSubs"></div><div id="results"></div></article>';
- $('.back').onclick=home;if($('#editEvent'))$('#editEvent').onclick=()=>editEvent(id);if($('#publish'))$('#publish').onclick=async()=>{const r=await nui('frame:publishEvent',{public_id:id});r?.ok?detail(id):action(r)};if($('#join'))$('#join').onclick=async()=>{const r=await nui('frame:joinEvent',{public_id:id});r?.ok?detail(id):action(r)};
+ view.innerHTML='<button class="back">← 戻る</button><article class="detail">'+(e.cover_media_ref?'<div class="detail-cover-wrap"><img class="cover" src="'+esc(e.cover_media_ref)+'"><div class="detail-cover-shade"></div><div class="detail-cover-label"><span>'+esc(typeLabel(e.event_type))+'</span><b>'+esc(statusLabel(e.status))+'</b></div></div>':'<div class="detail-no-cover">FRAME / '+esc(typeLabel(e.event_type))+'</div>')+'<div class="detail-kicker">'+(e.category?esc(e.category)+' / ':'')+'PHOTO EVENT</div><h2>'+esc(e.title)+'</h2><p class="detail-desc">'+esc(e.description)+'</p><dl class="detail-grid"><dt>主催</dt><dd>'+esc(e.organizer_name)+'</dd><dt>参加者</dt><dd>'+Number(d.participant_count||0)+'人</dd><dt>応募作品</dt><dd>'+Number(d.submission_count||0)+'件</dd><dt>保存</dt><dd>'+Number(d.favorite_count||0)+'件</dd><dt>応募上限</dt><dd>'+max+'枚</dd>'+entry+dates+'</dl><div class="actions">'+controls+'</div><p id="actionStatus"></p><div id="sponsors"></div><div id="mineSubs"></div><div id="results"></div></article>';
+ $('.back').onclick=home;if($('#favoriteEvent'))$('#favoriteEvent').onclick=async()=>{const r=await nui('frame:toggleFavorite',{public_id:id});if(r.ok){if(r.favorited)favoriteIds.add(id);else favoriteIds.delete(id);detail(id)}else action(r)};if($('#editEvent'))$('#editEvent').onclick=()=>editEvent(id);if($('#publish'))$('#publish').onclick=async()=>{const r=await nui('frame:publishEvent',{public_id:id});r?.ok?detail(id):action(r)};if($('#join'))$('#join').onclick=async()=>{const r=await nui('frame:joinEvent',{public_id:id});r?.ok?detail(id):action(r)};
  if($('#gallery'))$('#gallery').onclick=async()=>{const m=await nui('frame:pickGallery');if(m?.media?.src){const r=await nui('frame:submitPhoto',{public_id:id,media_ref:m.media.src,caption:''});r?.ok?detail(id):action(r)}};
  if($('#camera'))$('#camera').onclick=async()=>{const m=await nui('frame:takePhoto');if(m?.url){const r=await nui('frame:submitPhoto',{public_id:id,media_ref:m.url,caption:''});r?.ok?detail(id):action(r)}};
  document.querySelectorAll('[data-social]').forEach(b=>b.onclick=async()=>{b.disabled=true;const m=await nui('frame:pickGallery');if(!m?.media?.src){b.disabled=false;return}const r=await nui('frame:submitSocialPhoto',{public_id:id,platform:b.dataset.social,media_ref:m.media.src,caption:''});if(r?.ok)detail(id);else{b.disabled=false;action(r)}});
@@ -164,7 +178,7 @@ async function manage(id){
  let h='<button class="back">← 戻る</button><div class="section-title"><h2>応募作品・審査</h2><span>'+esc(statusLabel(e.status))+'</span></div>';
  h+='<div class="manage-summary"><b>'+esc(e.title)+'</b><span>応募 '+subs.length+'件</span></div>';
  h+='<div class="ops-panel"><div class="section-title"><h3>スポンサー</h3><span>'+sponsors.length+'社</span></div>';
- if(!['results','ended','cancelled'].includes(e.status))h+='<form id="sponsorForm" class="sponsor-form"><input name="name" maxlength="120" placeholder="スポンサー名" required><input type="hidden" name="logo_media_ref" id="sponsorLogo"><button type="button" id="pickSponsorLogo" class="secondary">ロゴをGalleryから選択</button><div id="sponsorPreview" class="hint">ロゴ未設定</div><button class="primary">スポンサーを追加</button><p id="sponsorStatus"></p></form>';
+ if(!['results','ended','cancelled'].includes(e.status))h+='<form id="sponsorForm" class="sponsor-form"><label>スポンサー名<input name="name" maxlength="120" placeholder="例：Weazel News" required></label><input type="hidden" name="logo_media_ref" id="sponsorLogo"><div class="sponsor-logo-row"><button type="button" id="pickSponsorLogo" class="secondary">ロゴを選択</button><div id="sponsorPreview" class="hint">任意</div></div><button class="primary">スポンサーを追加</button><p id="sponsorStatus"></p></form>';
  if(sponsors.length)h+='<div class="sponsor-admin-list">'+sponsors.map(s=>'<div class="sponsor-admin-row">'+(s.logo_media_ref?'<img src="'+esc(s.logo_media_ref)+'">':'<span class="sponsor-mini-fallback">S</span>')+'<b>'+esc(s.name)+'</b>'+(!['results','ended','cancelled'].includes(e.status)?'<button class="danger-soft" data-delete-sponsor="'+s.id+'">削除</button>':'')+'</div>').join('')+'</div>';
  h+='</div>';
  if(e.event_type==='contest'){

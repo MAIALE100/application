@@ -232,3 +232,17 @@ body[data-theme="c"] .danger-delete{background:#8f3c3c!important;color:#fff!impo
 
 .restricted-settings{display:grid;gap:.45rem;padding:.72rem;border-radius:.82rem;background:var(--frame-panel-soft);border:1px solid var(--frame-line)}
 .restricted-settings input{margin-top:.25rem}.restricted-settings[hidden]{display:none}
+
+/* ===== 0.18 favorites / analytics / compact forms ===== */
+.template-grid{gap:.5rem}
+.template-grid button{height:3.25rem!important;padding:.48rem .58rem!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:.12rem;text-align:left;white-space:normal;line-height:1.15}
+.template-grid button b{font-size:.66rem;font-weight:700}.template-grid button small{font-size:.52rem;color:var(--frame-muted);letter-spacing:0}
+.template-grid button.selected small{color:color-mix(in srgb,var(--frame-button-ink) 72%,transparent)}
+.card{position:relative}.favorite-btn{position:absolute;top:.52rem;right:.52rem;z-index:3;width:auto;height:1.8rem;padding:0 .58rem;border-radius:999px;background:rgba(255,255,255,.88);color:#3f3b37;font-size:.54rem;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.12);backdrop-filter:blur(8px)}
+.favorite-btn.active{background:var(--frame-button);color:var(--frame-button-ink)}
+.quick-filter{display:flex;justify-content:flex-end;margin:-.35rem 0 .55rem}.quick-filter button{width:auto;height:1.9rem;padding:0 .65rem;border-radius:999px;background:var(--frame-panel-soft);color:var(--frame-muted);font-size:.56rem}.quick-filter button.active{background:var(--frame-button);color:var(--frame-button-ink)}
+.save-action{border:1px solid var(--frame-line)!important;background:var(--frame-panel)!important;color:var(--frame-ink)!important}.save-action.active{background:var(--frame-accent-soft)!important;color:var(--frame-accent)!important;font-weight:700}
+.organizer-stats{grid-template-columns:1fr 1fr!important}.organizer-stats>div{min-height:4.2rem;justify-content:center}.organizer-stats b{font-family:Georgia,serif}
+.sponsor-form{gap:.42rem!important}.sponsor-form label{display:grid;gap:.22rem}.sponsor-form input{height:2.35rem}.sponsor-logo-row{display:grid;grid-template-columns:1fr auto;gap:.45rem;align-items:center}.sponsor-logo-row button{min-height:2.1rem!important}.sponsor-logo-row .hint{min-width:2.6rem;text-align:right}.sponsor-logo-row .sponsor-preview{width:3.25rem;aspect-ratio:1/1;margin:0}
+.award-form{display:grid;gap:.48rem}.award-form label{display:grid;gap:.22rem}.award-form input,.award-form select{height:2.35rem}
+.ops-panel>.section-title{margin-top:.1rem}

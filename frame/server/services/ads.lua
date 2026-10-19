@@ -82,7 +82,8 @@ function FrameAds.Create(src,d)
 
  local finish=nil
  if tonumber(p.duration_hours) and tonumber(p.duration_hours)>0 then
-  finish=MySQL.scalar.await([[SELECT DATE_ADD(?,INTERVAL ? HOUR)]],{start,tonumber(p.duration_hours)})
+  local durationHours=math.max(1,math.min(8760,math.floor(tonumber(p.duration_hours))))
+  finish=MySQL.scalar.await(('SELECT DATE_ADD(?,INTERVAL %d HOUR)'):format(durationHours),{start})
  else
   finish=type(d.ends_at)=='string' and d.ends_at:gsub('T',' '):sub(1,19) or nil
  end

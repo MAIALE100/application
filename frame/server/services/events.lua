@@ -138,6 +138,7 @@ local function deleteEventInternal(e,identifier,force)
       {query=[[DELETE FROM frame_promotions WHERE event_id=?]],values={e.id}},
       {query=[[DELETE FROM frame_judges WHERE event_id=?]],values={e.id}},
       {query=[[DELETE FROM frame_event_invites WHERE event_id=?]],values={e.id}},
+      {query=[[DELETE FROM frame_event_collaborators WHERE event_id=?]],values={e.id}},
       {query=[[DELETE FROM frame_event_favorites WHERE event_id=?]],values={e.id}},
       {query=[[DELETE FROM frame_event_access_rules WHERE event_id=?]],values={e.id}},
       {query=[[DELETE FROM frame_event_participants WHERE event_id=?]],values={e.id}},

@@ -10,7 +10,7 @@ const ERRORS={
  EDIT_DRAFT_ONLY:'編集できるのは下書き中だけです。',EVENT_ALREADY_CLOSED:'このイベントはすでに終了しています。',
  ACCESS_RULE_REQUIRED:'このイベントには参加条件があります。',NO_SUBMISSIONS:'応募作品がまだありません。',NO_RESULTS:'受賞作品を1件以上設定してください。',
  NOT_JUDGING:'審査中ではありません。',NOT_CONTEST:'コンテスト形式のイベントではありません。',INVALID_AWARD:'賞が見つかりません。',
- INVALID_SUBMISSION:'応募作品が見つかりません。',NAME_REQUIRED:'賞の名前を入力してください。',STATE_CHANGED:'状態が更新されています。画面を再読み込みしてください。',
+ INVALID_SUBMISSION:'応募作品が見つかりません。',NAME_REQUIRED:'賞の名前を入力してください。',CAPTION_REQUIRED:'コメントを入力してください。',INVALID_EVENT_WINDOW:'イベントの開始・終了日時を確認してください。',INVALID_SUBMISSION_WINDOW:'投稿受付期間を確認してください。',TITLE_REQUIRED:'イベント名を入力してください。',DESCRIPTION_REQUIRED:'説明を入力してください。',STATE_CHANGED:'状態が更新されています。画面を再読み込みしてください。',
  PHONE_CALLBACK_FAILED:'LB Phoneとの通信に失敗しました。',CALLBACK_FAILED:'処理に失敗しました。',NUI_ERROR:'アプリ通信に失敗しました。'
 };
 const STATUS={draft:'下書き',scheduled:'公開予定',active:'開催中',judging:'審査中',results:'結果発表',ended:'終了',cancelled:'中止'};
@@ -19,8 +19,9 @@ function errorText(code){return ERRORS[code]||String(code||'不明なエラー�
 function statusLabel(v){return STATUS[v]||v||'-'}
 function typeLabel(v){return TYPES[v]||v||'-'}
 function boolish(v){return v===true||Number(v)===1}
-function fmtDate(v){if(!v)return '';const s=String(v);const d=new Date(s.includes('T')?s:(s.replace(' ','T')+'Z'));if(Number.isNaN(d.getTime()))return esc(s);return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
-function inputDate(v){if(!v)return '';const s=String(v);const d=new Date(s.includes('T')?s:(s.replace(' ','T')+'Z'));if(Number.isNaN(d.getTime()))return s.replace(' ','T').slice(0,16);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+function dateValue(v){if(v===null||v===undefined||v==='')return null;if(typeof v==='number'||/^\d{10,13}$/.test(String(v))){let n=Number(v);if(n<1e12)n*=1000;const d=new Date(n);return Number.isNaN(d.getTime())?null:d}const s=String(v);const d=new Date(s.includes('T')?s:(s.replace(' ','T')+'Z'));return Number.isNaN(d.getTime())?null:d}
+function fmtDate(v){if(!v)return '';const d=dateValue(v);if(!d)return esc(String(v));return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function inputDate(v){if(!v)return '';const d=dateValue(v);if(!d)return String(v).replace(' ','T').slice(0,16);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
 function option(value,label,current){return '<option value="'+esc(value)+'"'+(value===current?' selected':'')+'>'+esc(label)+'</option>'}
 function cards(a,owned=false){return a?.length?a.map(e=>'<article class="card" data-id="'+esc(e.public_id)+'"><div class="meta">'+esc(typeLabel(e.event_type))+' · '+esc(statusLabel(e.status))+'</div><h3>'+esc(e.title)+'</h3>'+(e.description?'<p>'+esc(e.description)+'</p>':'')+(e.starts_at?'<small>'+esc(fmtDate(e.starts_at))+'</small>':'')+(owned?'<small>あなたが主催</small>':'')+'</article>').join(''):'<div class="empty">まだありません。</div>'}
 async function banners(){const d=await nui('frame:getActiveAds');if(!d.ok)return '';return (d.ads||[]).filter(x=>x.placement==='home_banner').slice(0,2).map(x=>`<div class="banner" data-ad="${esc(x.public_id)}" data-link="${esc(x.link_value||'')}"><img src="${esc(x.media_ref)}"><span>${esc(x.title||'Sponsored')}</span></div>`).join('')}
@@ -69,7 +70,7 @@ async function detail(id){
  else if(e.status==='results')controls+='<div class="hint">結果が発表されています。</div>';
  else if(e.status==='cancelled')controls+='<div class="hint">このイベントは中止されました。</div>';
  if(d.can_manage)controls+='<button id="manage">応募作品・審査を管理</button>';
- if(d.can_manage&&!['ended','cancelled'].includes(e.status))controls+='<button id="cancelEvent" class="danger-soft">イベントを中止</button>';
+ if(d.can_manage&&['draft','scheduled','active','judging'].includes(e.status))controls+='<button id="cancelEvent" class="danger-soft">イベントを中止</button>';
  view.innerHTML='<button class="back">← 戻る</button><article class="detail">'+(e.cover_media_ref?'<img class="cover" src="'+esc(e.cover_media_ref)+'">':'')+'<div class="meta">'+esc(typeLabel(e.event_type))+' · '+esc(statusLabel(e.status))+'</div><h2>'+esc(e.title)+'</h2><p>'+esc(e.description)+'</p><dl><dt>主催</dt><dd>'+esc(e.organizer_name)+'</dd><dt>参加者</dt><dd>'+Number(d.participant_count||0)+'人</dd><dt>応募作品</dt><dd>'+Number(d.submission_count||0)+'件</dd><dt>投稿上限</dt><dd>'+max+'枚</dd>'+dates+'</dl><div class="actions">'+controls+'</div><p id="actionStatus"></p><div id="mineSubs"></div><div id="results"></div></article>';
  $('.back').onclick=home;
  if($('#editEvent'))$('#editEvent').onclick=()=>editEvent(id);

@@ -52,8 +52,8 @@ function FrameEventsService.Cancel(source,raw)
   raw=type(raw)=='table' and raw or {}
   local e=FrameEventsRepository.GetByPublicId(raw.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
   if not FramePermissions.CanManageEvent(identifier,e) then return {ok=false,error='FORBIDDEN'} end
-  if e.status=='ended' or e.status=='cancelled' then return {ok=false,error='EVENT_ALREADY_CLOSED'} end
-  local n=MySQL.update.await([[UPDATE frame_events SET status='cancelled',ends_at=COALESCE(ends_at,UTC_TIMESTAMP()) WHERE id=? AND status<>'ended' AND status<>'cancelled']],{e.id}) or 0
+  if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='EVENT_ALREADY_CLOSED'} end
+  local n=MySQL.update.await([[UPDATE frame_events SET status='cancelled',ends_at=COALESCE(ends_at,UTC_TIMESTAMP()) WHERE id=? AND status IN ('draft','scheduled','active','judging')]],{e.id}) or 0
   if n<1 then return {ok=false,error='STATE_CHANGED'} end
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'EVENT_CANCEL','event',?,?)]],{identifier,e.public_id,e.id})
   return {ok=true}

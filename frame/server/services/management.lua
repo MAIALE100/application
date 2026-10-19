@@ -99,6 +99,54 @@ function FrameManagement.DeleteSubmission(src,data)
 end
 
 
+function FrameManagement.ListCollaborators(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local rows=MySQL.query.await([[SELECT id,player_identifier,display_name,phone_number,created_at
+   FROM frame_event_collaborators WHERE event_id=? ORDER BY created_at,id]],{e.id}) or {}
+ return {ok=true,collaborators=rows,can_share=FramePermissions.CanShareEvent(id,e,src)}
+end
+
+function FrameManagement.AddCollaborator(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanShareEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local phone=type(data)=='table' and tostring(data.phone_number or ''):gsub('%s+','') or ''
+ if phone=='' then return {ok=false,error='PHONE_REQUIRED'} end
+ local ok,target=pcall(function() return exports['lb-phone']:GetSourceFromNumber(phone) end)
+ if not ok or not target or target==false then return {ok=false,error='INVITEE_OFFLINE'} end
+ target=tonumber(target)
+ local targetId=target and FrameFramework.GetIdentifier(target) or nil
+ if not targetId then return {ok=false,error='PLAYER_NOT_READY'} end
+ if targetId==e.owner_identifier then return {ok=false,error='ALREADY_OWNER'} end
+ local targetName=FrameFramework.GetCharacterName(target) or GetPlayerName(target) or '共同主催者'
+ MySQL.query.await([[INSERT INTO frame_event_collaborators(event_id,player_identifier,display_name,phone_number,added_by)
+   VALUES(?,?,?,?,?)
+   ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),phone_number=VALUES(phone_number),added_by=VALUES(added_by)]],
+   {e.id,targetId,tostring(targetName):sub(1,100),phone:sub(1,32),id})
+ pcall(function() exports['lb-phone']:SendNotification(target,{app='frame',title='FRAME 共同主催',content=(e.title or 'イベント')..' の共同主催者に追加されました。'}) end)
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
+   VALUES(?,'COLLABORATOR_ADD','event',?,?,?)]],{id,e.public_id,e.id,json.encode({target=targetId,phone=phone})})
+ return {ok=true}
+end
+
+function FrameManagement.RemoveCollaborator(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanShareEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local collaboratorId=tonumber(type(data)=='table' and data.collaborator_id or nil)
+ if not collaboratorId then return {ok=false,error='NOT_FOUND'} end
+ local row=MySQL.single.await([[SELECT player_identifier,display_name FROM frame_event_collaborators WHERE id=? AND event_id=? LIMIT 1]],{collaboratorId,e.id})
+ if not row then return {ok=false,error='NOT_FOUND'} end
+ local n=MySQL.update.await([[DELETE FROM frame_event_collaborators WHERE id=? AND event_id=?]],{collaboratorId,e.id}) or 0
+ if n<1 then return {ok=false,error='STATE_CHANGED'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata)
+   VALUES(?,'COLLABORATOR_REMOVE','event',?,?,?)]],{id,e.public_id,e.id,json.encode({target=row.player_identifier,name=row.display_name})})
+ return {ok=true}
+end
+
+
 function FrameManagement.InviteByPhone(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
  if e.visibility~='private' then return {ok=false,error='NOT_PRIVATE_EVENT'} end

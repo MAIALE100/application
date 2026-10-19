@@ -629,3 +629,35 @@ input::placeholder,textarea::placeholder{opacity:.78!important}
     letter-spacing:.025em!important;
   }
 }
+
+
+/* ===== 0.19.3 hero structure fix ===== */
+/* Old hero flex alignment was pushing the eyebrow label down into the caption area. */
+#hero{
+  display:block!important;
+  justify-content:initial!important;
+}
+.hero-eyebrow{
+  position:absolute!important;
+  top:1.08rem!important;
+  left:1.15rem!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:auto!important;
+  max-width:68%!important;
+  margin:0!important;
+  line-height:1.35!important;
+  white-space:nowrap!important;
+  z-index:4!important;
+}
+.hero-copy{
+  position:absolute!important;
+  top:auto!important;
+}
+@media (max-width:360px){
+  .hero-eyebrow{
+    top:.98rem!important;
+    left:1rem!important;
+    max-width:72%!important;
+  }
+}

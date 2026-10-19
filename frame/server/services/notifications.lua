@@ -110,4 +110,11 @@ function FrameNotifications.Scan()
     WHERE status='results' AND results_at IS NOT NULL
       AND results_at<=UTC_TIMESTAMP() AND results_at>=UTC_TIMESTAMP()-INTERVAL 10 MINUTE]]) or {}
   for _,e in ipairs(results) do FrameNotifications.NotifyResults(e) end
+
+  local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+  local retentionSql=([[SELECT id,public_id,title FROM frame_events
+    WHERE DATE_ADD(created_at,INTERVAL %d MONTH)>UTC_TIMESTAMP()
+      AND DATE_ADD(created_at,INTERVAL %d MONTH)<=UTC_TIMESTAMP()+INTERVAL 7 DAY]]):format(months,months)
+  local expiring=MySQL.query.await(retentionSql) or {}
+  for _,e in ipairs(expiring) do FrameNotifications.NotifyRetention(e) end
 end

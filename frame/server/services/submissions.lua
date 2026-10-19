@@ -5,6 +5,14 @@ local function eventFor(publicId)
  if type(publicId)~='string' or #publicId~=26 then return nil end
  return FrameEventsRepository.GetByPublicId(publicId)
 end
+local function restrictedAllowed(source,e)
+ if not e or e.visibility~='restricted' then return true end
+ local identifier=FrameFramework.GetIdentifier(source)
+ if identifier and (e.owner_identifier==identifier or FramePermissions.IsStaff(identifier)) then return true end
+ local job=FrameFramework.GetJob(source)
+ if not job or not job.name then return false end
+ return MySQL.scalar.await([[SELECT 1 FROM frame_event_access_rules WHERE event_id=? AND rule_type='job' AND LOWER(rule_value)=LOWER(?) LIMIT 1]],{e.id,tostring(job.name)}) ~= nil
+end
 local function openForSubmission(e)
  if not e or not enabled(e.submission_enabled) then return false,'SUBMISSIONS_DISABLED' end
  if e.status~='active' then return false,'EVENT_NOT_ACTIVE' end
@@ -18,12 +26,13 @@ function FrameSubmissionsService.Join(source,data)
    local invited=MySQL.scalar.await([[SELECT 1 FROM frame_event_invites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,identifier})
    if not invited and e.owner_identifier~=identifier and not FramePermissions.IsStaff(identifier) then return {ok=false,error='INVITE_REQUIRED'} end
  elseif e.visibility=='restricted' then
-   return {ok=false,error='ACCESS_RULE_REQUIRED'}
+   if not restrictedAllowed(source,e) then return {ok=false,error='ACCESS_RULE_FAILED'} end
  end
  return {ok=FrameSubmissionsRepository.Join(e.id,identifier)}
 end
 function FrameSubmissionsService.Submit(source,data)
  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end; data=type(data)=='table' and data or {}; local e=eventFor(data.public_id); local ok,err=openForSubmission(e); if not ok then return {ok=false,error=err} end
+ if not restrictedAllowed(source,e) then return {ok=false,error='ACCESS_RULE_FAILED'} end
  local media=type(data.media_ref)=='string' and data.media_ref or ''; if #media<8 or #media>1024 or not media:match('^https://') then return {ok=false,error='INVALID_MEDIA'} end
  local rules={}
  if type(e.extra_rules)=='table' then rules=e.extra_rules elseif type(e.extra_rules)=='string' and e.extra_rules~='' then local ok,r=pcall(json.decode,e.extra_rules); if ok and type(r)=='table' then rules=r end end
@@ -78,6 +87,7 @@ end
 function FrameSubmissionsService.SubmitSocial(source,data)
  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
  data=type(data)=='table' and data or {}; local e=eventFor(data.public_id); local ok,err=openForSubmission(e); if not ok then return {ok=false,error=err} end
+ if not restrictedAllowed(source,e) then return {ok=false,error='ACCESS_RULE_FAILED'} end
  local rules=decodedRules(e); local mode=rules.entry_mode or 'frame'; if mode=='frame' then return {ok=false,error='SOCIAL_ENTRY_DISABLED'} end
  local platform=data.platform=='birdy' and 'birdy' or (data.platform=='instapic' and 'instapic' or nil); if not platform or not platformAllowed(rules,platform) then return {ok=false,error='SOCIAL_PLATFORM_NOT_ALLOWED'} end
  local media=type(data.media_ref)=='string' and data.media_ref or ''; if #media<8 or #media>1024 or not media:match('^https://') then return {ok=false,error='INVALID_MEDIA'} end

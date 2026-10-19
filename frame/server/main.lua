@@ -7,17 +7,21 @@ local callbacks={
   local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY',events={},invited={}} end
   local ok,rows=pcall(FrameEventsRepository.ListPublic,FrameConfig.EventPageSize); if not ok then return {ok=false,error='DATABASE_ERROR',events={},invited={}} end
   local invited=FrameEventsRepository.ListInvited(id,FrameConfig.EventPageSize)
+  local job=FrameFramework.GetJob(source)
+  local restricted=FrameEventsRepository.ListRestrictedForJob(job and job.name or nil,FrameConfig.EventPageSize)
+  for _,e in ipairs(restricted) do rows[#rows+1]=e end
   return {ok=true,viewer=viewer(source),events=rows,invited=invited}
  end,
  ['frame:getEvent']=function(source,data)
   local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end
   local e=FrameEventsRepository.GetByPublicId(type(data)=='table' and data.public_id or nil); if not e then return {ok=false,error='NOT_FOUND'} end
-  if not FramePermissions.CanViewEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+  if not FramePermissions.CanViewEvent(id,e,source) then return {ok=false,error='FORBIDDEN'} end
+  local accessJobs=MySQL.query.await([[SELECT rule_value FROM frame_event_access_rules WHERE event_id=? AND rule_type='job' ORDER BY rule_value]],{e.id}) or {}
   local joined=MySQL.scalar.await([[SELECT 1 FROM frame_event_participants WHERE event_id=? AND player_identifier=? AND status='active' LIMIT 1]],{e.id,id}) ~= nil
   local ownCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND player_identifier=? AND status='submitted']],{e.id,id}) or 0)
   local participantCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or 0)
   local submissionCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
-  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount}
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,access_jobs=accessJobs}
  end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,

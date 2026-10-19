@@ -10,11 +10,28 @@ local function bool(v,default) if type(v)=='boolean' then return v end return de
 local function number(v,min,max,default) v=tonumber(v); if not v then return default end; v=math.floor(v); if v<min then v=min elseif v>max then v=max end; return v end
 local function dt(v) if v==nil or v=='' then return nil end if type(v)~='string' or not v:match('^%d%d%d%d%-%d%d%-%d%d[T ]%d%d:%d%d') then return nil end return v:gsub('T',' '):sub(1,19) end
 local function publicId() local t={} local chars='0123456789ABCDEFGHJKMNPQRSTVWXYZ'; for i=1,26 do local n=math.random(1,#chars); t[i]=chars:sub(n,n) end return table.concat(t) end
+local function accessJobs(v)
+  if type(v)~='string' then return {} end
+  local out,seen={},{}
+  for job in v:gmatch('[^,%s]+') do
+    job=job:lower():gsub('[^%w_%-]',''):sub(1,64)
+    if job~='' and not seen[job] then seen[job]=true;out[#out+1]=job end
+  end
+  return out
+end
+local function saveAccessJobs(eventId,jobs)
+  MySQL.update.await([[DELETE FROM frame_event_access_rules WHERE event_id=? AND rule_type='job']],{eventId})
+  for _,job in ipairs(jobs or {}) do
+    MySQL.insert.await([[INSERT INTO frame_event_access_rules(event_id,rule_type,rule_value) VALUES(?,'job',?)]],{eventId,job})
+  end
+end
 function FrameEventsService.NormalizeCreate(raw)
   raw=type(raw)=='table' and raw or {}; local title=cleanText(raw.title,160,true); local description=cleanText(raw.description,8000,true)
   if not title then return nil,'TITLE_REQUIRED' end; if not description then return nil,'DESCRIPTION_REQUIRED' end
   local typ=allowedTypes[raw.event_type] and raw.event_type or 'collection'; local vis=allowedVisibility[raw.visibility] and raw.visibility or 'public'
   local i={title=title,description=description,event_type=typ,visibility=vis,category=cleanText(raw.category,64,false),cover_media_ref=cleanText(raw.cover_media_ref,512,false)}
+  i.access_jobs=accessJobs(raw.allowed_jobs)
+  if vis=='restricted' and #i.access_jobs<1 then return nil,'ACCESS_JOB_REQUIRED' end
   for _,k in ipairs({'publish_at','starts_at','submissions_open_at','submissions_close_at','judging_starts_at','results_at','ends_at'}) do i[k]=dt(raw[k]) end
   i.participation_required=bool(raw.participation_required,true); i.submission_enabled=bool(raw.submission_enabled,true); i.judging_enabled=bool(raw.judging_enabled,typ=='contest'); i.ranking_enabled=bool(raw.ranking_enabled,typ=='contest'); i.voting_enabled=bool(raw.voting_enabled,false); i.awards_enabled=bool(raw.awards_enabled,typ=='contest'); i.max_submissions=number(raw.max_submissions,1,50,1); i.allow_submission_edit=bool(raw.allow_submission_edit,false); i.allow_submission_delete=bool(raw.allow_submission_delete,true); i.comment_mode=({none=true,optional=true,required=true})[raw.comment_mode] and raw.comment_mode or 'optional'; i.approval_mode='auto'
   local entryMode=({frame=true,sns=true,hybrid=true})[raw.entry_mode] and raw.entry_mode or 'frame'
@@ -33,6 +50,7 @@ function FrameEventsService.Create(source,raw)
   local input,err=FrameEventsService.NormalizeCreate(raw); if not input then return {ok=false,error=err} end
   local id=publicId(); local ok=FrameEventsRepository.Create(identifier,FrameFramework.GetCharacterName(source),input,id)
   if not ok then return {ok=false,error='DATABASE_ERROR'} end
+  local created=FrameEventsRepository.GetByPublicId(id); if created then saveAccessJobs(created.id,input.access_jobs) end
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,metadata) VALUES(?,'EVENT_CREATE','event',?,?)]],{identifier,id,json.encode({type=input.event_type})})
   return {ok=true,public_id=id}
 end
@@ -50,6 +68,7 @@ function FrameEventsService.Update(source,raw)
     {query=[[UPDATE frame_event_rules SET participation_required=?,submission_enabled=?,judging_enabled=?,ranking_enabled=?,voting_enabled=?,awards_enabled=?,max_submissions=?,allow_submission_edit=?,allow_submission_delete=?,comment_mode=?,approval_mode=?,extra_rules=? WHERE event_id=?]],values={input.participation_required and 1 or 0,input.submission_enabled and 1 or 0,input.judging_enabled and 1 or 0,input.ranking_enabled and 1 or 0,input.voting_enabled and 1 or 0,input.awards_enabled and 1 or 0,input.max_submissions,input.allow_submission_edit and 1 or 0,input.allow_submission_delete and 1 or 0,input.comment_mode,input.approval_mode,input.extra_rules,e.id}}
   })
   if not ok then return {ok=false,error='DATABASE_ERROR'} end
+  saveAccessJobs(e.id,input.access_jobs)
   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'EVENT_EDIT','event',?,?)]],{identifier,e.public_id,e.id})
   return {ok=true}
 end

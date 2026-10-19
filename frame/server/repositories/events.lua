@@ -5,6 +5,14 @@ COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id 
 FROM frame_events e WHERE LOWER(TRIM(COALESCE(e.visibility,'public')))='public' AND e.status IN ('scheduled','active','judging','results','ended')
 ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'results' THEN 2 WHEN 'judging' THEN 3 ELSE 4 END,COALESCE(e.starts_at,e.created_at) DESC LIMIT ?]]
 function FrameEventsRepository.ListPublic(limit) return MySQL.query.await(LIST_SQL,{limit}) or {} end
+function FrameEventsRepository.ListRestrictedForJob(jobName,limit)
+ if not jobName or jobName=='' then return {} end
+ return MySQL.query.await([[SELECT DISTINCT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.organizer_name,e.status,e.starts_at,e.ends_at,e.submissions_close_at,
+ COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active'),0) participant_count
+ FROM frame_events e JOIN frame_event_access_rules ar ON ar.event_id=e.id AND ar.rule_type='job'
+ WHERE e.visibility='restricted' AND LOWER(ar.rule_value)=LOWER(?) AND e.status IN ('scheduled','active','judging','results','ended')
+ ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'results' THEN 2 WHEN 'judging' THEN 3 ELSE 4 END,COALESCE(e.starts_at,e.created_at) DESC LIMIT ?]],{jobName,limit}) or {}
+end
 function FrameEventsRepository.ListInvited(identifier,limit)
  return MySQL.query.await([[SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.organizer_name,e.status,e.starts_at,e.ends_at,e.submissions_close_at FROM frame_event_invites i JOIN frame_events e ON e.id=i.event_id WHERE i.player_identifier=? AND e.status IN ('scheduled','active','judging','results','ended') ORDER BY COALESCE(e.starts_at,e.created_at) DESC LIMIT ?]],{identifier,limit}) or {}
 end

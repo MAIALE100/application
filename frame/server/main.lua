@@ -95,6 +95,8 @@ local callbacks={
  ['frame:getResults']=function(source,data) return FrameManagement.Results(source,data) end,
  ['frame:getAdProducts']=function(source) return FrameAds.Products(source) end,
  ['frame:createAd']=function(source,data) return FrameAds.Create(source,data) end,
+ ['frame:getMyAds']=function(source) return FrameAds.Mine(source) end,
+ ['frame:withdrawAd']=function(source,data) return FrameAds.Withdraw(source,data) end,
  ['frame:getActiveAds']=function(source) return FrameAds.Active(source) end,
  ['frame:adImpression']=function(source,data) return FrameAds.Stat(source,data,'impression') end,
  ['frame:adClick']=function(source,data) return FrameAds.Stat(source,data,'click') end,
@@ -105,7 +107,8 @@ local callbacks={
  ['frame:getEventAnalytics']=function(source,data) return FrameManagement.EventAnalytics(source,data) end,
  ['frame:getEventActivity']=function(source,data) return FrameManagement.EventActivity(source,data) end,
  ['frame:getStaffDashboard']=function(source) return FrameManagement.StaffDashboard(source) end,
- ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end
+ ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end,
+ ['frame:stopAd']=function(source,data) return FrameAds.Stop(source,data) end
 }
 CreateThread(function()
  pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)

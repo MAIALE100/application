@@ -2,8 +2,7 @@ FrameEventsRepository = {}
 local LIST_SQL = [[
 SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.organizer_name,e.status,e.starts_at,e.ends_at,e.submissions_close_at,
 COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active'),0) participant_count
-FROM frame_events e WHERE e.visibility='public' AND e.status IN ('scheduled','active','judging','results','ended')
-AND (e.publish_at IS NULL OR e.publish_at<=UTC_TIMESTAMP())
+FROM frame_events e WHERE LOWER(TRIM(COALESCE(e.visibility,'public')))='public' AND e.status IN ('scheduled','active','judging','results','ended')
 ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'results' THEN 2 WHEN 'judging' THEN 3 ELSE 4 END,COALESCE(e.starts_at,e.created_at) DESC LIMIT ?]]
 function FrameEventsRepository.ListPublic(limit) return MySQL.query.await(LIST_SQL,{limit}) or {} end
 function FrameEventsRepository.GetByPublicId(publicId)

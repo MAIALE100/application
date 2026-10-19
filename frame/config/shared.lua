@@ -6,7 +6,7 @@ FrameConfig={
  CollaboratorMax=10,
  RetentionBatchSize=50,
  RetentionMaxPerRun=500,
- WeazelOperatorEnabled=false,
+ WeazelOperatorEnabled=true,
  TestGuard={Enabled=true,AutoRevive=true,AutoHealthcheck=true,AutoSelftest=true,StartupCheckDelayMs=20000,IntervalMs=120000},
  OperatorJobs={'weazel'},
  OperatorRequireDuty=false,

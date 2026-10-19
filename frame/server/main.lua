@@ -111,6 +111,21 @@ local callbacks={
  ['frame:stopAd']=function(source,data) return FrameAds.Stop(source,data) end
 }
 CreateThread(function()
+ local hasReviewToken=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.COLUMNS
+   WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='frame_ads' AND COLUMN_NAME='review_token']]) or 0)>0
+ if not hasReviewToken then
+  pcall(function() MySQL.query.await([[ALTER TABLE frame_ads ADD COLUMN review_token VARCHAR(64) NULL AFTER reviewed_at]]) end)
+ end
+ pcall(function() MySQL.query.await([[INSERT INTO frame_ad_products(code,name,placement,base_price,duration_hours,requires_review,active) VALUES
+   ('home_banner','Home Banner','home_banner',0,168,1,1),
+   ('category_banner','Category Banner','category_banner',0,168,1,1),
+   ('featured','Featured Event','featured',0,168,1,1),
+   ('top_placement','Top Placement','top_placement',0,168,1,1)
+   ON DUPLICATE KEY UPDATE name=VALUES(name),placement=VALUES(placement),active=VALUES(active)]]) end)
+end)
+
+-- idx_frame_ads_review_token_check
+CreateThread(function()
  pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)
  pcall(function() MySQL.query.await([[ALTER TABLE frame_votes ADD UNIQUE INDEX IF NOT EXISTS uq_vote_event_voter (event_id,voter_identifier)]]) end)
  pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_notification_deliveries (

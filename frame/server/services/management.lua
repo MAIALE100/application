@@ -103,9 +103,13 @@ function FrameManagement.ListCollaborators(src,data)
  local id=ident(src); local e=event(data)
  if not id or not e then return {ok=false,error='NOT_FOUND'} end
  if not FramePermissions.CanManageEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local canShare=FramePermissions.CanShareEvent(id,e,src)
  local rows=MySQL.query.await([[SELECT id,player_identifier,display_name,phone_number,created_at
    FROM frame_event_collaborators WHERE event_id=? ORDER BY created_at,id]],{e.id}) or {}
- return {ok=true,collaborators=rows,can_share=FramePermissions.CanShareEvent(id,e,src)}
+ if not canShare then
+  for _,row in ipairs(rows) do row.phone_number=nil end
+ end
+ return {ok=true,collaborators=rows,can_share=canShare}
 end
 
 function FrameManagement.AddCollaborator(src,data)

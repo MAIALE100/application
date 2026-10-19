@@ -74,6 +74,11 @@ RegisterCommand('frame_selftest',function(source)
 
       local e=FrameEventsRepository.GetByPublicId(eventPublic)
       assert(e and tonumber(e.id)==tonumber(eventId),'event fetch failed')
+      assert(FramePermissions.CanManageEvent(owner,e,nil)==true,'owner manage permission failed')
+      assert(FramePermissions.CanShareEvent(owner,e,nil)==true,'owner share permission failed')
+      assert(FramePermissions.IsCollaborator(voter,e)==true,'collaborator recognition failed')
+      assert(FramePermissions.CanManageEvent(voter,e,nil)==true,'collaborator manage permission failed')
+      assert(FramePermissions.CanShareEvent(voter,e,nil)==false,'collaborator must not grant collaborators')
       local deleted=FrameEventsService.DeleteInternal(e,SELFTEST_ACTOR,true)
       assert(deleted and deleted.ok,'DeleteInternal failed: '..tostring(deleted and deleted.error))
 
@@ -102,6 +107,7 @@ RegisterCommand('frame_selftest',function(source)
     MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier LIKE ?]],{SELFTEST_ACTOR..'%'})
 
     if ok then
+      out('PASS: owner/collaborator permission boundaries')
       out('PASS: participant/favorite/submission/vote/collaborator aggregates')
       out('PASS: one-vote-per-event database constraint')
       out('PASS: create -> dependencies -> production delete -> orphan checks')
@@ -279,5 +285,34 @@ RegisterCommand('frame_dev_clean_all',function(source)
     end
     MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier='__frame_dev_clean_all__']])
     devOut(('Global DEV cleanup complete. deleted=%d failed=%d'):format(deleted,failed))
+  end)
+end,false)
+
+
+RegisterCommand('frame_retention_status',function(source)
+  if source~=0 then
+    devOut('DENIED: run frame_retention_status from the txAdmin/server console.')
+    return
+  end
+  CreateThread(function()
+    local months=math.max(1,math.min(24,tonumber(FrameConfig.RetentionMonths) or 2))
+    local sql=([[SELECT public_id,title,status,created_at,
+      DATE_ADD(created_at,INTERVAL %d MONTH) AS delete_at,
+      TIMESTAMPDIFF(DAY,UTC_TIMESTAMP(),DATE_ADD(created_at,INTERVAL %d MONTH)) AS days_left
+      FROM frame_events
+      ORDER BY delete_at ASC
+      LIMIT 50]]):format(months,months)
+    local rows=MySQL.query.await(sql) or {}
+    devOut(('Retention policy: %d month(s). Showing %d event(s).'):format(months,#rows))
+    if #rows==0 then
+      devOut('No FRAME events exist.')
+      return
+    end
+    for _,row in ipairs(rows) do
+      local days=tonumber(row.days_left)
+      local state=(days and days<0) and 'DELETE_PENDING' or ((days and days<=7) and 'EXPIRING' or 'OK')
+      devOut(('[%s] %s | %s | days_left=%s | delete_at=%s | %s'):format(
+        tostring(row.public_id),tostring(row.title),tostring(row.status),tostring(days),tostring(row.delete_at),state))
+    end
   end)
 end,false)

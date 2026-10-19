@@ -37,7 +37,10 @@ function FrameManagement.Results(src,data)
 end
 function FrameManagement.StaffDashboard(src)
  local id=ident(src); if not FramePermissions.IsStaff(id) then return {ok=false,error='FORBIDDEN'} end
- return {ok=true,ads=MySQL.query.await([[SELECT a.public_id,a.advertiser_name,a.title,a.status,a.starts_at,a.ends_at,p.name product_name,a.price_snapshot FROM frame_ads a JOIN frame_ad_products p ON p.id=a.product_id ORDER BY a.created_at DESC LIMIT 100]]) or {}}
+ local ads=MySQL.query.await([[SELECT a.public_id,a.advertiser_name,a.title,a.status,a.starts_at,a.ends_at,p.name product_name,a.price_snapshot FROM frame_ads a JOIN frame_ad_products p ON p.id=a.product_id ORDER BY a.created_at DESC LIMIT 100]]) or {}
+ local events=MySQL.query.await([[SELECT e.public_id,e.title,e.organizer_name,e.event_type,e.status,e.created_at,(SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active') participant_count,(SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted') submission_count FROM frame_events e ORDER BY e.created_at DESC LIMIT 100]]) or {}
+ local stats={events=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events]]) or 0),active=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_events WHERE status='active']]) or 0),submissions=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE status='submitted']]) or 0),pending_ads=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_ads WHERE status='pending_review']]) or 0)}
+ return {ok=true,ads=ads,events=events,stats=stats}
 end
 
 
@@ -72,5 +75,18 @@ function FrameManagement.PublishResults(src,data)
  local n=MySQL.update.await([[UPDATE frame_events SET status='results',results_at=UTC_TIMESTAMP() WHERE id=? AND status='judging']],{e.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'RESULT_PUBLISH','event',?,?)]],{id,e.public_id,e.id})
+ return {ok=true}
+end
+
+
+function FrameManagement.DeleteSubmission(src,data)
+ local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
+ local sid=type(data)=='table' and data.submission_id or ''
+ local row=MySQL.single.await([[SELECT s.id FROM frame_submissions s LEFT JOIN frame_results r ON r.submission_id=s.id WHERE s.event_id=? AND s.public_id=? AND r.id IS NULL LIMIT 1]],{e.id,sid})
+ if not row then return {ok=false,error='SUBMISSION_LOCKED_OR_NOT_FOUND'} end
+ local n=MySQL.update.await([[DELETE FROM frame_submissions WHERE id=?]],{row.id}) or 0
+ if n<1 then return {ok=false,error='STATE_CHANGED'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SUBMISSION_MOD_DELETE','submission',?,?)]],{id,sid,e.id})
  return {ok=true}
 end

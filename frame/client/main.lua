@@ -6,7 +6,7 @@ local function registerApp()
 end
 CreateThread(registerApp)
 AddEventHandler('onResourceStart',function(r) if r=='lb-phone' and GetCurrentResourceName()~='lb-phone' then CreateThread(registerApp) end end)
-local names={'getInitialData','getEvent','getMyEvents','createEvent','updateEvent','cancelEvent','publishEvent','joinEvent','submitPhoto','getMySubmissions','getEventSubmissions','getEventAwards','beginJudging','publishResults','addAward','setWinner','getResults','getAdProducts','createAd','getActiveAds','adImpression','adClick','getStaffDashboard','reviewAd'}
+local names={'getInitialData','getEvent','getMyEvents','createEvent','updateEvent','cancelEvent','publishEvent','joinEvent','submitPhoto','getMySubmissions','deleteMySubmission','getEventSubmissions','deleteSubmission','getEventAwards','beginJudging','publishResults','addAward','setWinner','getResults','getAdProducts','createAd','getActiveAds','adImpression','adClick','getStaffDashboard','reviewAd'}
 for _,n in ipairs(names) do RegisterNUICallback('frame:'..n,function(data,cb) local ok,res=pcall(function() return exports['lb-phone']:AwaitCallback(n=='getInitialData' and 'frame:getEvents' or 'frame:'..n,data or {}) end); cb(ok and (res or {ok=false,error='EMPTY_RESPONSE'}) or {ok=false,error='PHONE_CALLBACK_FAILED'}) end) end
 RegisterNUICallback('frame:pickGallery',function(_,cb) exports['lb-phone']:ShowComponent({component='gallery',includeVideos=false,includeImages=true,multiSelect=false},function(media) cb({ok=media~=nil,media=media}) end) end)
 RegisterNUICallback('frame:takePhoto',function(_,cb) local url=exports['lb-phone']:SetCameraComponent({default={type='Photo',camera='rear'},permissions={takeVideo=false},saveToGallery=true}); cb({ok=url~=nil,url=url}) end)

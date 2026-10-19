@@ -20,6 +20,9 @@ end
 function FrameSubmissionsService.Submit(source,data)
  local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end; data=type(data)=='table' and data or {}; local e=eventFor(data.public_id); local ok,err=openForSubmission(e); if not ok then return {ok=false,error=err} end
  local media=type(data.media_ref)=='string' and data.media_ref or ''; if #media<8 or #media>1024 or not media:match('^https://') then return {ok=false,error='INVALID_MEDIA'} end
+ local rules={}
+ if type(e.extra_rules)=='table' then rules=e.extra_rules elseif type(e.extra_rules)=='string' and e.extra_rules~='' then local ok,r=pcall(json.decode,e.extra_rules); if ok and type(r)=='table' then rules=r end end
+ if rules.direct_upload_allowed==false then return {ok=false,error='DIRECT_UPLOAD_DISABLED'} end
  local caption=type(data.caption)=='string' and data.caption:sub(1,2000) or ''
  if e.comment_mode=='required' and caption:gsub('%s+','')=='' then return {ok=false,error='CAPTION_REQUIRED'} end
  if enabled(e.participation_required) then local p=MySQL.scalar.await([[SELECT 1 FROM frame_event_participants WHERE event_id=? AND player_identifier=? AND status='active' LIMIT 1]],{e.id,identifier}); if not p then return {ok=false,error='JOIN_REQUIRED'} end end
@@ -29,4 +32,19 @@ function FrameSubmissionsService.Submit(source,data)
 end
 function FrameSubmissionsService.ListMine(source,data)
  local identifier=FrameFramework.GetIdentifier(source); local e=eventFor(type(data)=='table' and data.public_id or nil); if not identifier or not e then return {ok=false,error='NOT_FOUND',submissions={}} end; return {ok=true,submissions=FrameSubmissionsRepository.ListMine(e.id,identifier)}
+end
+
+
+function FrameSubmissionsService.DeleteMine(source,data)
+ local identifier=FrameFramework.GetIdentifier(source); if not identifier then return {ok=false,error='PLAYER_NOT_READY'} end
+ data=type(data)=='table' and data or {}; local e=eventFor(data.public_id); if not e then return {ok=false,error='NOT_FOUND'} end
+ if not enabled(e.allow_submission_delete) then return {ok=false,error='DELETE_DISABLED'} end
+ if e.status~='active' then return {ok=false,error='DELETE_CLOSED'} end
+ local sid=type(data.submission_id)=='string' and data.submission_id or ''
+ local row=MySQL.single.await([[SELECT id FROM frame_submissions WHERE event_id=? AND player_identifier=? AND public_id=? AND status='submitted' LIMIT 1]],{e.id,identifier,sid})
+ if not row then return {ok=false,error='NOT_FOUND'} end
+ local n=MySQL.update.await([[DELETE FROM frame_submissions WHERE id=?]],{row.id}) or 0
+ if n<1 then return {ok=false,error='STATE_CHANGED'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SUBMISSION_DELETE','submission',?,?)]],{identifier,sid,e.id})
+ return {ok=true}
 end

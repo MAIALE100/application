@@ -15,13 +15,14 @@ function FrameManagement.AuthorizeSave(src,data)
 end
 function FrameManagement.AddAward(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.status=='results' or e.status=='ended' or e.status=='cancelled' then return {ok=false,error='RESULTS_LOCKED'} end
  local name=type(data.name)=='string' and data.name:sub(1,100) or ''; if name=='' then return {ok=false,error='NAME_REQUIRED'} end
  local aid=MySQL.insert.await([[INSERT INTO frame_awards(event_id,name,description,prize_text,sort_order) VALUES(?,?,?,?,?)]],{e.id,name,type(data.description)=='string' and data.description:sub(1,2000) or nil,type(data.prize_text)=='string' and data.prize_text:sub(1,2000) or nil,tonumber(data.sort_order) or 0})
  return {ok=aid~=nil,award_id=aid}
 end
 function FrameManagement.SetWinner(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
- if e.status~='judging' and e.status~='results' then return {ok=false,error='NOT_JUDGING'} end
+ if e.status~='judging' then return {ok=false,error='NOT_JUDGING'} end
  local award=MySQL.single.await('SELECT id FROM frame_awards WHERE id=? AND event_id=?',{tonumber(data.award_id),e.id}); if not award then return {ok=false,error='INVALID_AWARD'} end
  local sub=MySQL.single.await('SELECT id FROM frame_submissions WHERE public_id=? AND event_id=?',{data.submission_id,e.id}); if not sub then return {ok=false,error='INVALID_SUBMISSION'} end
  MySQL.query.await([[INSERT INTO frame_results(event_id,award_id,submission_id,placement,comment) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE submission_id=VALUES(submission_id),placement=VALUES(placement),comment=VALUES(comment)]],{e.id,award.id,sub.id,tonumber(data.placement),type(data.comment)=='string' and data.comment:sub(1,2000) or nil})
@@ -63,8 +64,10 @@ function FrameManagement.PublishResults(src,data)
  local id=ident(src); local e=event(data); if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
  if e.status~='judging' then return {ok=false,error='NOT_JUDGING'} end
  if e.event_type=='contest' then
-   local count=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_results WHERE event_id=?]],{e.id}) or 0)
-   if count<1 then return {ok=false,error='NO_RESULTS'} end
+   local awardCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_awards WHERE event_id=?]],{e.id}) or 0)
+   if awardCount<1 then return {ok=false,error='NO_AWARDS'} end
+   local resultCount=tonumber(MySQL.scalar.await([[SELECT COUNT(DISTINCT award_id) FROM frame_results WHERE event_id=?]],{e.id}) or 0)
+   if resultCount<awardCount then return {ok=false,error='UNASSIGNED_AWARDS'} end
  end
  local n=MySQL.update.await([[UPDATE frame_events SET status='results',results_at=UTC_TIMESTAMP() WHERE id=? AND status='judging']],{e.id}) or 0
  if n<1 then return {ok=false,error='STATE_CHANGED'} end

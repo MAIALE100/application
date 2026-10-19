@@ -93,7 +93,7 @@ async function manage(id){
  h+='<div class="manage-summary"><b>'+esc(e.title)+'</b><span>応募 '+subs.length+'件</span></div>';
  if(e.event_type==='contest'){
    if(e.status==='active')h+='<button id="beginJudging" class="primary wide-btn">審査を開始して投稿受付を終了</button>';
-   h+='<form id="awardForm" class="award-form"><label>賞の名前<input name="name" maxlength="100" placeholder="例：グランプリ" required></label><label>賞品・説明<input name="prize_text" maxlength="2000" placeholder="例：賞金 $50,000"></label><button class="primary">賞を追加</button><p id="awardStatus"></p></form>';
+   if(e.status!=='results'&&e.status!=='ended'&&e.status!=='cancelled')h+='<form id="awardForm" class="award-form"><label>賞の名前<input name="name" maxlength="100" placeholder="例：グランプリ" required></label><label>賞品・説明<input name="prize_text" maxlength="2000" placeholder="例：賞金 $50,000"></label><button class="primary">賞を追加</button><p id="awardStatus"></p></form>';
    if(awards.length)h+='<div class="award-list"><h3>賞</h3>'+awards.map(a=>'<div class="award-row"><b>'+esc(a.name)+'</b><span>'+(a.submission_id?'受賞作品設定済み':'未設定')+'</span></div>').join('')+'</div>';
    if(e.status==='judging')h+='<button id="publishResults" class="primary wide-btn">結果を公開</button>';
  }

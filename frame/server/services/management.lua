@@ -169,3 +169,82 @@ function FrameManagement.ToggleFavorite(src,data)
  MySQL.query.await([[INSERT IGNORE INTO frame_event_favorites(event_id,player_identifier) VALUES(?,?)]],{e.id,id})
  return {ok=true,favorited=true}
 end
+
+
+local function frameBool(v) return v==true or tonumber(v)==1 end
+
+function FrameManagement.VoteCandidates(src,data)
+ local id=ident(src); local e=event(data)
+ if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+ if not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanViewEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ if not frameBool(e.voting_enabled) then return {ok=false,error='VOTING_DISABLED'} end
+ local canVote=(e.status=='active' or e.status=='judging')
+ local canManage=FramePermissions.CanManageEvent(id,e)
+ local chosen=MySQL.scalar.await([[SELECT s.public_id FROM frame_votes v JOIN frame_submissions s ON s.id=v.submission_id WHERE v.event_id=? AND v.voter_identifier=? LIMIT 1]],{e.id,id})
+ local rows=MySQL.query.await([[SELECT s.public_id,s.caption,m.media_ref,(s.player_identifier=?) own_submission,COUNT(v.id) vote_count
+   FROM frame_submissions s
+   JOIN frame_submission_media m ON m.submission_id=s.id
+   LEFT JOIN frame_votes v ON v.submission_id=s.id AND v.event_id=s.event_id
+   WHERE s.event_id=? AND s.status='submitted'
+   GROUP BY s.id,s.public_id,s.caption,m.media_ref,s.player_identifier
+   ORDER BY COUNT(v.id) DESC,s.submitted_at ASC]],{id,e.id}) or {}
+ local total=0
+ for _,r in ipairs(rows) do
+   r.vote_count=tonumber(r.vote_count) or 0
+   total=total+r.vote_count
+   r.own_submission=tonumber(r.own_submission)==1 or r.own_submission==true
+   if canVote and not canManage then r.vote_count=nil end
+ end
+ return {ok=true,candidates=rows,can_vote=canVote,voted_submission_id=chosen,total_votes=total,show_counts=(not canVote) or canManage}
+end
+
+function FrameManagement.CastVote(src,data)
+ local id=ident(src); local e=event(data)
+ if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+ if not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanViewEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ if not frameBool(e.voting_enabled) then return {ok=false,error='VOTING_DISABLED'} end
+ if e.status~='active' and e.status~='judging' then return {ok=false,error='VOTING_CLOSED'} end
+ local sid=type(data)=='table' and tostring(data.submission_id or '') or ''
+ local sub=MySQL.single.await([[SELECT id,player_identifier,public_id FROM frame_submissions WHERE event_id=? AND public_id=? AND status='submitted' LIMIT 1]],{e.id,sid})
+ if not sub then return {ok=false,error='INVALID_SUBMISSION'} end
+ if sub.player_identifier==id then return {ok=false,error='SELF_VOTE_DISABLED'} end
+ local current=MySQL.single.await([[SELECT id,submission_id FROM frame_votes WHERE event_id=? AND voter_identifier=? LIMIT 1]],{e.id,id})
+ if current and tonumber(current.submission_id)==tonumber(sub.id) then
+   MySQL.update.await([[DELETE FROM frame_votes WHERE event_id=? AND voter_identifier=?]],{e.id,id})
+   MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'VOTE_REMOVE','submission',?,?)]],{id,sid,e.id})
+   return {ok=true,voted=false}
+ end
+ local ok=MySQL.transaction.await({
+   {query=[[DELETE FROM frame_votes WHERE event_id=? AND voter_identifier=?]],values={e.id,id}},
+   {query=[[INSERT INTO frame_votes(event_id,submission_id,voter_identifier,score) VALUES(?,?,?,1)]],values={e.id,sub.id,id}}
+ })
+ if not ok then return {ok=false,error='DATABASE_ERROR'} end
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'VOTE_CAST','submission',?,?)]],{id,sid,e.id})
+ return {ok=true,voted=true,submission_id=sid}
+end
+
+function FrameManagement.ApplyPublicVoteAward(src,data)
+ local id=ident(src); local e=event(data)
+ if not id or not FramePermissions.CanManageEvent(id,e) then return {ok=false,error='FORBIDDEN'} end
+ if e.event_type~='contest' then return {ok=false,error='NOT_CONTEST'} end
+ if e.status~='judging' then return {ok=false,error='NOT_JUDGING'} end
+ if not frameBool(e.voting_enabled) then return {ok=false,error='VOTING_DISABLED'} end
+ local top=MySQL.query.await([[SELECT s.id,s.public_id,COUNT(v.id) votes
+   FROM frame_submissions s
+   LEFT JOIN frame_votes v ON v.submission_id=s.id AND v.event_id=s.event_id
+   WHERE s.event_id=? AND s.status='submitted'
+   GROUP BY s.id,s.public_id
+   HAVING COUNT(v.id)>0
+   ORDER BY COUNT(v.id) DESC,s.submitted_at ASC LIMIT 2]],{e.id}) or {}
+ if #top<1 then return {ok=false,error='NO_VOTES'} end
+ local firstVotes=tonumber(top[1].votes) or 0
+ if #top>1 and (tonumber(top[2].votes) or 0)==firstVotes then return {ok=false,error='VOTE_TIE'} end
+ local award=MySQL.single.await([[SELECT id FROM frame_awards WHERE event_id=? AND name='市民投票賞' LIMIT 1]],{e.id})
+ local awardId=award and tonumber(award.id) or MySQL.insert.await([[INSERT INTO frame_awards(event_id,name,description,prize_text,sort_order) VALUES(?,'市民投票賞','FRAME内の市民投票で最も多く票を集めた作品です。',NULL,900)]],{e.id})
+ if not awardId then return {ok=false,error='DATABASE_ERROR'} end
+ MySQL.query.await([[INSERT INTO frame_results(event_id,award_id,submission_id,placement,comment) VALUES(?,?,?,NULL,?) ON DUPLICATE KEY UPDATE submission_id=VALUES(submission_id),comment=VALUES(comment)]],{e.id,awardId,top[1].id,('市民投票 %d票'):format(firstVotes)})
+ MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id,metadata) VALUES(?,'PUBLIC_VOTE_AWARD','award',?,?,?)]],{id,tostring(awardId),e.id,json.encode({submission_id=top[1].public_id,votes=firstVotes})})
+ return {ok=true,submission_id=top[1].public_id,votes=firstVotes,award_id=awardId}
+end

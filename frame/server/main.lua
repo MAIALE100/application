@@ -59,11 +59,15 @@ local callbacks={
  ['frame:adImpression']=function(source,data) return FrameAds.Stat(source,data,'impression') end,
  ['frame:adClick']=function(source,data) return FrameAds.Stat(source,data,'click') end,
  ['frame:toggleFavorite']=function(source,data) return FrameManagement.ToggleFavorite(source,data) end,
+ ['frame:getVoteCandidates']=function(source,data) return FrameManagement.VoteCandidates(source,data) end,
+ ['frame:castVote']=function(source,data) return FrameManagement.CastVote(source,data) end,
+ ['frame:applyPublicVoteAward']=function(source,data) return FrameManagement.ApplyPublicVoteAward(source,data) end,
  ['frame:getStaffDashboard']=function(source) return FrameManagement.StaffDashboard(source) end,
  ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end
 }
 CreateThread(function()
  pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)
+ pcall(function() MySQL.query.await([[ALTER TABLE frame_votes ADD UNIQUE INDEX IF NOT EXISTS uq_vote_event_voter (event_id,voter_identifier)]]) end)
  pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_event_favorites (
    event_id BIGINT UNSIGNED NOT NULL,
    player_identifier VARCHAR(128) NOT NULL,

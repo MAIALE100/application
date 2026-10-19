@@ -225,6 +225,7 @@ CREATE TABLE IF NOT EXISTS frame_votes (
   score SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_vote (event_id, submission_id, voter_identifier),
+  UNIQUE KEY uq_vote_event_voter (event_id, voter_identifier),
   INDEX idx_votes_event_submission (event_id, submission_id),
   CONSTRAINT fk_vote_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE,
   CONSTRAINT fk_vote_submission FOREIGN KEY (submission_id) REFERENCES frame_submissions(id) ON DELETE CASCADE

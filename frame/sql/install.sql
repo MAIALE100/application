@@ -190,6 +190,15 @@ CREATE TABLE IF NOT EXISTS frame_event_access_rules (
   CONSTRAINT fk_access_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS frame_event_favorites (
+  event_id BIGINT UNSIGNED NOT NULL,
+  player_identifier VARCHAR(128) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (event_id, player_identifier),
+  INDEX idx_favorite_player (player_identifier, created_at),
+  CONSTRAINT fk_favorite_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS frame_event_invites (
   event_id BIGINT UNSIGNED NOT NULL,
   player_identifier VARCHAR(128) NOT NULL,

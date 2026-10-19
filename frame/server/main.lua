@@ -10,7 +10,10 @@ local callbacks={
   local job=FrameFramework.GetJob(source)
   local restricted=FrameEventsRepository.ListRestrictedForJob(job and job.name or nil,FrameConfig.EventPageSize)
   for _,e in ipairs(restricted) do rows[#rows+1]=e end
-  return {ok=true,viewer=viewer(source),events=rows,invited=invited}
+  local favRows=MySQL.query.await([[SELECT e.public_id FROM frame_event_favorites f JOIN frame_events e ON e.id=f.event_id WHERE f.player_identifier=?]],{id}) or {}
+  local favoriteIds={}
+  for _,f in ipairs(favRows) do favoriteIds[#favoriteIds+1]=f.public_id end
+  return {ok=true,viewer=viewer(source),events=rows,invited=invited,favorite_ids=favoriteIds}
  end,
  ['frame:getEvent']=function(source,data)
   local id=FrameFramework.GetIdentifier(source); if not id then return {ok=false,error='PLAYER_NOT_READY'} end
@@ -21,7 +24,9 @@ local callbacks={
   local ownCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND player_identifier=? AND status='submitted']],{e.id,id}) or 0)
   local participantCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_participants WHERE event_id=? AND status='active']],{e.id}) or 0)
   local submissionCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_submissions WHERE event_id=? AND status='submitted']],{e.id}) or 0)
-  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,access_jobs=accessJobs}
+  local favoriteCount=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM frame_event_favorites WHERE event_id=?]],{e.id}) or 0)
+  local favorited=MySQL.scalar.await([[SELECT 1 FROM frame_event_favorites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id}) ~= nil
+  return {ok=true,event=e,is_owner=e.owner_identifier==id,can_manage=FramePermissions.CanManageEvent(id,e),joined=joined,own_submission_count=ownCount,participant_count=participantCount,submission_count=submissionCount,favorite_count=favoriteCount,favorited=favorited,access_jobs=accessJobs}
  end,
  ['frame:getMyEvents']=function(source) local id=FrameFramework.GetIdentifier(source); return id and {ok=true,events=FrameEventsRepository.ListOwned(id)} or {ok=false,error='PLAYER_NOT_READY',events={}} end,
  ['frame:createEvent']=function(source,data) return FrameEventsService.Create(source,data) end,
@@ -53,11 +58,20 @@ local callbacks={
  ['frame:getActiveAds']=function(source) return FrameAds.Active(source) end,
  ['frame:adImpression']=function(source,data) return FrameAds.Stat(source,data,'impression') end,
  ['frame:adClick']=function(source,data) return FrameAds.Stat(source,data,'click') end,
+ ['frame:toggleFavorite']=function(source,data) return FrameManagement.ToggleFavorite(source,data) end,
  ['frame:getStaffDashboard']=function(source) return FrameManagement.StaffDashboard(source) end,
  ['frame:reviewAd']=function(source,data) return FrameAds.Review(source,data) end
 }
 CreateThread(function()
  pcall(function() MySQL.query.await([[ALTER TABLE frame_awards ADD COLUMN IF NOT EXISTS sponsor_id BIGINT UNSIGNED NULL AFTER sort_order]]) end)
+ pcall(function() MySQL.query.await([[CREATE TABLE IF NOT EXISTS frame_event_favorites (
+   event_id BIGINT UNSIGNED NOT NULL,
+   player_identifier VARCHAR(128) NOT NULL,
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (event_id, player_identifier),
+   INDEX idx_favorite_player (player_identifier, created_at),
+   CONSTRAINT fk_favorite_event FOREIGN KEY (event_id) REFERENCES frame_events(id) ON DELETE CASCADE
+ )]]) end)
  while GetResourceState('lb-phone')~='started' do Wait(500) end; Wait(500)
  for name,fn in pairs(callbacks) do exports['lb-phone']:RegisterCallback(name,fn,{preventSpam=true,rateLimit=(name=='frame:createEvent' or name=='frame:createAd') and 5 or 30,defaultReturn={ok=false,error='CALLBACK_FAILED'}}) end
  print('[FRAME] server callbacks registered')

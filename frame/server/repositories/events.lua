@@ -22,7 +22,9 @@ end
 function FrameEventsRepository.ListOwned(identifier)
   return MySQL.query.await([[SELECT e.public_id,e.title,e.description,e.event_type,e.category,e.cover_media_ref,e.status,e.visibility,e.starts_at,e.submissions_close_at,e.ends_at,e.created_at,
   COALESCE((SELECT COUNT(*) FROM frame_event_participants p WHERE p.event_id=e.id AND p.status='active'),0) participant_count,
-  COALESCE((SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted'),0) submission_count
+  COALESCE((SELECT COUNT(*) FROM frame_submissions s WHERE s.event_id=e.id AND s.status='submitted'),0) submission_count,
+  COALESCE((SELECT COUNT(DISTINCT s2.player_identifier) FROM frame_submissions s2 WHERE s2.event_id=e.id AND s2.status='submitted'),0) submitter_count,
+  COALESCE((SELECT COUNT(*) FROM frame_event_favorites f WHERE f.event_id=e.id),0) favorite_count
   FROM frame_events e WHERE e.owner_identifier=? ORDER BY e.created_at DESC LIMIT 100]],{identifier}) or {}
 end
 function FrameEventsRepository.Create(identifier,name,input,publicId)

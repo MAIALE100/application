@@ -154,3 +154,18 @@ function FrameManagement.DeleteSponsor(src,data)
  MySQL.insert.await([[INSERT INTO frame_audit_logs(actor_identifier,action,entity_type,entity_id,event_id) VALUES(?,'SPONSOR_DELETE','sponsor',?,?)]],{id,tostring(sponsorId),e.id})
  return {ok=true}
 end
+
+
+function FrameManagement.ToggleFavorite(src,data)
+ local id=ident(src); local e=event(data)
+ if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+ if not e then return {ok=false,error='NOT_FOUND'} end
+ if not FramePermissions.CanViewEvent(id,e,src) then return {ok=false,error='FORBIDDEN'} end
+ local exists=MySQL.scalar.await([[SELECT 1 FROM frame_event_favorites WHERE event_id=? AND player_identifier=? LIMIT 1]],{e.id,id}) ~= nil
+ if exists then
+   MySQL.update.await([[DELETE FROM frame_event_favorites WHERE event_id=? AND player_identifier=?]],{e.id,id})
+   return {ok=true,favorited=false}
+ end
+ MySQL.query.await([[INSERT IGNORE INTO frame_event_favorites(event_id,player_identifier) VALUES(?,?)]],{e.id,id})
+ return {ok=true,favorited=true}
+end

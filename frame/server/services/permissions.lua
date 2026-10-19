@@ -12,10 +12,6 @@ local function isOperatorJob(source)
  return false
 end
 
-function FramePermissions.IsAdmin(identifier)
- return false
-end
-
 function FramePermissions.IsOperator(identifier,source)
  return isOperatorJob(source)
 end

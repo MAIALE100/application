@@ -73,8 +73,17 @@ RegisterCommand('frame_selftest',function(source)
       local productId=MySQL.scalar.await([[SELECT id FROM frame_ad_products ORDER BY id LIMIT 1]])
       if productId then
         adId=MySQL.insert.await([[INSERT INTO frame_ads(public_id,creator_identifier,event_id,product_id,advertiser_name,title,media_ref,link_type,link_value,starts_at,ends_at,status,price_snapshot)
-          VALUES(?,?,?,?,?,'Selftest','https://example.invalid/frame-selftest.jpg','event',?,UTC_TIMESTAMP(),UTC_TIMESTAMP()+INTERVAL 1 HOUR,'active',0)]],
+          VALUES(?,?,?,?,?,'Selftest','https://example.invalid/frame-selftest.jpg','event',?,UTC_TIMESTAMP()+INTERVAL 10 MINUTE,UTC_TIMESTAMP()+INTERVAL 1 HOUR,'scheduled',0)]],
           {('TSTAD'..stamp..string.rep('A',26)):sub(1,26),owner,eventId,productId,'FRAME Selftest',eventPublic})
+        assert(adId,'ad insert failed')
+
+        MySQL.update.await([[UPDATE frame_ads SET starts_at=UTC_TIMESTAMP()-INTERVAL 1 MINUTE,ends_at=UTC_TIMESTAMP()+INTERVAL 1 HOUR,status='scheduled' WHERE id=?]],{adId})
+        FrameAds.Advance()
+        assert(MySQL.scalar.await([[SELECT status FROM frame_ads WHERE id=?]],{adId})=='active','ad scheduled -> active transition failed')
+
+        MySQL.update.await([[UPDATE frame_ads SET ends_at=UTC_TIMESTAMP()-INTERVAL 1 MINUTE,status='active' WHERE id=?]],{adId})
+        FrameAds.Advance()
+        assert(MySQL.scalar.await([[SELECT status FROM frame_ads WHERE id=?]],{adId})=='ended','ad active -> ended transition failed')
       end
 
       local e=FrameEventsRepository.GetByPublicId(eventPublic)
@@ -116,6 +125,7 @@ RegisterCommand('frame_selftest',function(source)
       out('PASS: participant/favorite/submission/vote/collaborator aggregates')
       out('PASS: one-vote-per-event database constraint')
       out('PASS: create -> dependencies -> production delete -> orphan checks')
+      out('PASS: advertisement scheduled -> active -> ended lifecycle')
       out('PASS: transaction/ad history detached safely')
       out('No selftest event data remains.')
     else

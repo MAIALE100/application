@@ -91,6 +91,7 @@ local callbacks={
  ['frame:authorizeSave']=function(source,data) return FrameManagement.AuthorizeSave(source,data) end,
  ['frame:addAward']=function(source,data) return FrameManagement.AddAward(source,data) end,
  ['frame:setWinner']=function(source,data) return FrameManagement.SetWinner(source,data) end,
+ ['frame:clearWinner']=function(source,data) return FrameManagement.ClearWinner(source,data) end,
  ['frame:getResults']=function(source,data) return FrameManagement.Results(source,data) end,
  ['frame:getAdProducts']=function(source) return FrameAds.Products(source) end,
  ['frame:createAd']=function(source,data) return FrameAds.Create(source,data) end,

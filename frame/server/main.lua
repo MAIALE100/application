@@ -81,6 +81,7 @@ local callbacks={
  ['frame:getCollaborators']=function(source,data) return FrameManagement.ListCollaborators(source,data) end,
  ['frame:addCollaborator']=function(source,data) return FrameManagement.AddCollaborator(source,data) end,
  ['frame:removeCollaborator']=function(source,data) return FrameManagement.RemoveCollaborator(source,data) end,
+ ['frame:leaveCollaborator']=function(source,data) return FrameManagement.LeaveCollaborator(source,data) end,
  ['frame:getEventAwards']=function(source,data) return FrameManagement.ListAwards(source,data) end,
  ['frame:getSponsors']=function(source,data) return FrameManagement.ListSponsors(source,data) end,
  ['frame:addSponsor']=function(source,data) return FrameManagement.AddSponsor(source,data) end,

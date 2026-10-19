@@ -255,3 +255,25 @@ RegisterCommand('frame_dev_clean',function(source,args)
     devOut(('Cleanup complete. deleted=%d failed=%d'):format(deleted,failed))
   end)
 end,false)
+
+
+RegisterCommand('frame_dev_clean_all',function(source)
+  if source~=0 then
+    devOut('DENIED: run frame_dev_clean_all from the txAdmin/server console.')
+    return
+  end
+  CreateThread(function()
+    local rows=MySQL.query.await([[SELECT public_id FROM frame_events WHERE category=? ORDER BY id]],{DEV_CATEGORY}) or {}
+    if #rows==0 then devOut('No FRAME DEV events exist.'); return end
+    local deleted,failed=0,0
+    for _,row in ipairs(rows) do
+      local e=FrameEventsRepository.GetByPublicId(row.public_id)
+      if e then
+        local r=FrameEventsService.DeleteInternal(e,'__frame_dev_clean_all__',true)
+        if r and r.ok then deleted=deleted+1 else failed=failed+1 end
+      end
+    end
+    MySQL.update.await([[DELETE FROM frame_audit_logs WHERE actor_identifier='__frame_dev_clean_all__']])
+    devOut(('Global DEV cleanup complete. deleted=%d failed=%d'):format(deleted,failed))
+  end)
+end,false)

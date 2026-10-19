@@ -199,7 +199,7 @@ async function loadCollaborators(id,canShare,canManage){
  const rows=d.collaborators||[];
  let h='<section class="collab-panel"><div class="section-title"><h3>共同主催者</h3><span>'+rows.length+'人</span></div><p class="collab-help">追加された人は、このイベントを主催者側として編集・運営・審査できます。</p>';
  if(canShare)h+='<div class="collab-add"><input id="collabPhone" placeholder="相手の電話番号"><button id="addCollaborator">共同主催者に追加</button><span id="collabStatus" class="hint">追加時のみ相手がオンラインである必要があります。</span></div>';
- if(rows.length)h+='<div class="collab-list">'+rows.map(x=>'<div class="collab-row"><div><b>'+esc(x.display_name||'共同主催者')+'</b><small>'+esc(x.phone_number||'電話番号未保存')+'</small></div>'+(canShare?'<button class="danger-soft" data-remove-collab="'+x.id+'">解除</button>':'')+'</div>').join('')+'</div>';
+ if(rows.length)h+='<div class="collab-list">'+rows.map(x=>'<div class="collab-row"><div><b>'+esc(x.display_name||'共同主催者')+'</b><small>'+(x.phone_number?esc(x.phone_number):'共同主催者')+'</small></div>'+(canShare?'<button class="danger-soft" data-remove-collab="'+x.id+'">解除</button>':'')+'</div>').join('')+'</div>';
  else h+='<div class="collab-empty">まだ共同主催者はいません。</div>';
  h+='</section>';$('#collaborators').innerHTML=h;
  if($('#addCollaborator'))$('#addCollaborator').onclick=async()=>{const phone=$('#collabPhone').value.trim();const r=await nui('frame:addCollaborator',{public_id:id,phone_number:phone});if(r.ok)loadCollaborators(id,canShare,canManage);else $('#collabStatus').textContent=errorText(r.error)};

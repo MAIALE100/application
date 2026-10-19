@@ -1,7 +1,7 @@
 FramePermissions={}
 
 local function isOperatorJob(source)
- if FrameConfig.WeazelOperatorEnabled~=true or not source then return false end
+ if (FrameConfig.WeazelOperatorEnabled~=true and GetConvarInt('frame_weazel_operator',0)~=1) or not source then return false end
  local job=FrameFramework.GetJob(source)
  if not job or not job.name then return false end
  if FrameConfig.OperatorRequireDuty==true and job.onduty~=true then return false end

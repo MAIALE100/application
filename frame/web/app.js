@@ -1,6 +1,25 @@
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function nui(ev,data={}){try{const r=await fetch(`https://${(typeof GetParentResourceName==='function'?GetParentResourceName():(globalThis.resourceName||'frame'))}/${ev}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});return await r.json()}catch{return {ok:false,error:'NUI_ERROR'}}}
 const view=$('#view');let viewer={},appReady=false,playerRetryTimer=null;
+const THEMES={
+ a:{label:'A',name:'Gallery',description:'クリーン高級'},
+ b:{label:'B',name:'Social',description:'モダンSNS'},
+ c:{label:'C',name:'Noir',description:'ダーク高級'}
+};
+function getTheme(){
+ const saved=localStorage.getItem('frame.theme');
+ return THEMES[saved]?saved:'a';
+}
+function applyTheme(theme,save=true){
+ const t=THEMES[theme]?theme:'a';
+ document.body.dataset.theme=t;
+ if(save)localStorage.setItem('frame.theme',t);
+ const btn=$('#themeToggle');
+ if(btn){btn.textContent=THEMES[t].label;btn.title=THEMES[t].name+' / '+THEMES[t].description}
+ document.querySelectorAll('[data-theme-choice]').forEach(x=>x.classList.toggle('selected',x.dataset.themeChoice===t));
+}
+function closeThemeMenu(){const m=$('#themeMenu');if(m)m.hidden=true}
+applyTheme(getTheme(),false);
 function utcDates(o){for(const k of ['starts_at','submissions_open_at','submissions_close_at','judging_starts_at','results_at','ends_at'])if(o[k])o[k]=new Date(o[k]).toISOString().slice(0,19).replace('T',' ');return o}
 const ERRORS={
  PLAYER_NOT_READY:'キャラクター情報を取得できません。',NOT_FOUND:'対象が見つかりません。',DATABASE_ERROR:'データベース処理に失敗しました。',
@@ -134,4 +153,7 @@ async function staff(){
 const views={home,mine,create,ads,staff};
 function activateNav(name){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name))}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{if(!appReady&&b.dataset.view!=='home')return home();activateNav(b.dataset.view);views[b.dataset.view]?.()});
-$('#refresh').onclick=()=>{activateNav('home');home()};activateNav('home');home();
+$('#themeToggle').onclick=()=>{const m=$('#themeMenu');m.hidden=!m.hidden;applyTheme(getTheme(),false)};
+document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice,true);closeThemeMenu()});
+document.addEventListener('click',e=>{const m=$('#themeMenu');if(!m||m.hidden)return;if(!m.contains(e.target)&&e.target!==$('#themeToggle'))closeThemeMenu()});
+$('#refresh').onclick=()=>{activateNav('home');home()};activateNav('home');applyTheme(getTheme(),false);home();

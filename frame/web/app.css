@@ -812,3 +812,30 @@ input,textarea,select{
 .activity-row small{flex:0 0 auto;font-size:.62rem!important;letter-spacing:0!important;opacity:.72!important}
 
 .chip-owner{background:rgba(31,77,48,.11)!important;color:#315d40!important}
+
+
+/* ===== 0.29 judging workflow ===== */
+.judging-progress{
+ display:grid;gap:.18rem;margin:.75rem 0;padding:.72rem .78rem;
+ border-radius:.82rem;border:1px solid var(--frame-line);background:var(--frame-panel-soft)
+}
+.judging-progress b{font-size:.82rem;line-height:1.35}
+.judging-progress span{font-size:.70rem;line-height:1.55;color:var(--frame-muted)}
+.judging-progress.ready{background:rgba(43,106,66,.08);border-color:rgba(43,106,66,.18)}
+.judging-progress.ready b{color:#315d40}
+.judging-progress.pending{background:rgba(183,109,69,.08);border-color:rgba(183,109,69,.18)}
+
+.award-row{align-items:center!important}
+.award-row.assigned{background:rgba(43,106,66,.055);border-radius:.62rem;padding:.6rem!important}
+.award-row.pending{background:rgba(183,109,69,.055);border-radius:.62rem;padding:.6rem!important}
+.award-state{display:flex;align-items:center;gap:.4rem;flex:0 0 auto}
+.award-state span{font-size:.68rem;font-weight:700}
+.award-state button{width:auto!important;height:2rem!important;border-radius:.6rem!important;padding:.35rem .52rem!important;font-size:.64rem!important}
+
+.submission{padding:.85rem 0!important}
+.submission.awarded{padding:.8rem!important;margin:.55rem 0;border:1px solid rgba(43,106,66,.16)!important;border-radius:.85rem;background:rgba(43,106,66,.045)}
+.submission-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.winner-badge{display:inline-flex;padding:.2rem .45rem;border-radius:999px;background:rgba(43,106,66,.12);color:#315d40;font-size:.65rem;font-weight:800}
+.submission-awards{margin:.5rem 0;padding:.46rem .56rem;border-radius:.62rem;background:rgba(43,106,66,.09);color:#315d40;font-size:.72rem;font-weight:750;line-height:1.45}
+.submission-meta{display:flex!important;justify-content:space-between!important;gap:.5rem!important;margin:.45rem 0!important}
+.submission-meta span{font-size:.68rem!important;color:var(--frame-muted)}

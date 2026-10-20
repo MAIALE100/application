@@ -517,14 +517,17 @@ function renderStack(){
  stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+history.length*20)+'px';
  stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(38+history.length*20)+'px';
 }
+function stackPosition(elapsedMs,width,speed,reverse){
+ const w=Math.max(.1,Math.min(100,Number(width)||72)),max=Math.max(0,100-w);
+ if(max<=0)return 0;
+ const distance=(Math.max(0,Number(elapsedMs)||0)/1000)*Math.max(1,Number(speed)||65),period=max*2,cycle=distance%period;
+ let x=cycle<=max?cycle:period-cycle;
+ if(reverse)x=max-x;
+ return x;
+}
 function stackLoop(now){
  if(!stackGame||stackGame.finished)return;
- if(!stackGame.lastFrame)stackGame.lastFrame=now;
- const dt=Math.min(50,now-stackGame.lastFrame);stackGame.lastFrame=now;
- stackGame.x+=stackGame.direction*stackGame.speed*(dt/1000);
- const max=100-stackGame.width;
- if(stackGame.x<=0){stackGame.x=0;stackGame.direction=1;}
- if(stackGame.x>=max){stackGame.x=max;stackGame.direction=-1;}
+ stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
  renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function openStack(){
@@ -532,21 +535,33 @@ async function openStack(){
  const session=await FlecityBridge.call('playStartSession',{gameId:'stack'});
  if(!session.ok){setStatus('STACKを開始できません: '+session.error,'error');showHome();return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
- stackGame={sessionToken:session.sessionToken,startedAt:performance.now(),layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,direction:1,lastFrame:0,finished:false};
+ const startedAt=performance.now();
+ stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
  stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK開始。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){
  if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='終了';
  const durationMs=Math.round(elapsedStack());
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs});
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs,history:stackGame.history});
  if(res.ok){setStatus('STACKスコア保存: '+res.score,'good');stackGame.sessionToken=null;await refreshPlatform();}
  else{setStatus('STACKスコア拒否: '+FlecityErrors.text(res.error),'error');}
 }
 stackDrop.onclick=async()=>{
  if(!stackGame||stackGame.finished)return;
+ const now=performance.now(),previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
+ const actionMs=Math.max(previous+1,Math.round(now-stackGame.startedAt));
+ stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
+ stackGame.history.push(actionMs);
  const base=stackGame.layers[stackGame.layers.length-1],left=Math.max(base.x,stackGame.x),right=Math.min(base.x+base.width,stackGame.x+stackGame.width),overlap=right-left;
- if(overlap<=0){await finishStack();return;}
- stackGame.layers.push({x:left,width:overlap});stackGame.score+=1;stackGame.width=overlap;stackGame.x=stackGame.direction>0?0:100-overlap;stackGame.direction*=-1;stackGame.speed=Math.min(180,stackGame.speed+4);renderStack();
+ if(overlap<=.0001){await finishStack();return;}
+ stackGame.layers.push({x:left,width:overlap});
+ stackGame.score+=1;
+ stackGame.width=overlap;
+ stackGame.speed=Math.min(180,stackGame.speed+4);
+ stackGame.reverse=(stackGame.score%2)===1;
+ stackGame.layerStartedAt=now;
+ stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);
+ renderStack();
 };
 stackBack.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;showHome();};
 stackNew.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;await openStack();};

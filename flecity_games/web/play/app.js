@@ -148,7 +148,7 @@ async function bootstrap(){
    setStatus('Could not load PLAY: '+res.error,'error');
    return;
  }
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY ready.','good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY ready · v'+String(res.version||'unknown'),'good');
 }
 
 /* QUICK TAP */

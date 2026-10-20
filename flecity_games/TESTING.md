@@ -139,6 +139,17 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - Dailyでは全員が同じカード配置になる
 - 8手で全ペアを揃えると `PERFECT MEMORY` が解除される
 
+## COLOR MATCH
+
+- STARTで10問のランが始まる
+- 表示される文字の意味ではなく、文字そのものの色を選ぶ
+- 正解すると次の問題へ進む
+- 不正解でそのランは終了し、スコアは保存されない
+- 10問連続正解時だけクリアタイムが保存される
+- 同じSeedでは同じ10問が生成される
+- 回答履歴を改変した送信は `INVALID_COLOR_MATCH_REPLAY` で拒否される
+- ランキングはクリア時間が短い順
+
 ---
 
 # 2. 複数人確認へ進む条件
@@ -146,7 +157,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 8ゲームが1クライアントで起動
+- PLAY 9ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる

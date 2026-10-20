@@ -466,28 +466,40 @@ function FlecityGamesPlay.Save(source,data)
     local token=tostring(data.sessionToken or '')
     local session=sessions[token]
     if not session or session.playerIdentifier~=id or session.gameId~=game.id then return {ok=false,error='INVALID_SESSION'} end
+    if session.dailyDate then return {ok=false,error='DAILY_SAVE_DISABLED'} end
     local seedNumber=math.floor(tonumber(session.seed) or 0)
     if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
 
-    local encoded=json.encode(data.state)
-    if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end
+    local serverElapsed=math.max(0,GetGameTimer()-(tonumber(session.startedTick) or GetGameTimer()))
+    local elapsed=math.max(0,math.min(28800000,
+        math.floor((tonumber(session.baseElapsedMs) or 0)+serverElapsed)))
+    local saveState=data.state
     local score=tonumber(data.score) or 0
+
     if game.id=='block' then
-        local verified=replayBlock(session.seed,data.state.history)
-        if verified==nil or verified~=math.floor(score) or tonumber(data.state.score)~=verified then return {ok=false,error='INVALID_BLOCK_SAVE'} end
+        local canonical=replayBlockState(session.seed,data.state.history)
+        if not canonical or canonical.score~=math.floor(score) then return {ok=false,error='INVALID_BLOCK_SAVE'} end
+        saveState=canonical
+        score=canonical.score
     elseif game.id=='merge' then
-        local verified=replayMerge(session.seed,data.state.history)
-        if verified==nil or verified~=math.floor(score) or tonumber(data.state.score)~=verified then return {ok=false,error='INVALID_MERGE_SAVE'} end
+        local canonical=replayMergeState(session.seed,data.state.history)
+        if not canonical or canonical.score~=math.floor(score) then return {ok=false,error='INVALID_MERGE_SAVE'} end
+        saveState=canonical
+        score=canonical.score
+    elseif game.id=='mines' or game.id=='nonogram' then
+        score=elapsed
     end
-    local elapsed=math.max(0,math.min(28800000,math.floor(tonumber(data.elapsedMs) or 0)))
-    local seed=tostring(math.floor(seedNumber)):sub(1,64)
+
+    local encoded=json.encode(saveState)
+    if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end
+    local seed=tostring(seedNumber):sub(1,64)
     MySQL.query.await([[INSERT INTO flecity_game_saves
         (player_identifier,game_id,state_json,score,elapsed_ms,seed,game_version)
         VALUES (?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE state_json=VALUES(state_json),score=VALUES(score),elapsed_ms=VALUES(elapsed_ms),
         seed=VALUES(seed),game_version=VALUES(game_version),updated_at=CURRENT_TIMESTAMP]],
         {id,game.id,encoded,score,elapsed,seed,game.version or 1})
-    return {ok=true,updatedAt=os.time()}
+    return {ok=true,updatedAt=os.time(),elapsedMs=elapsed,score=score,state=saveState}
 end
 
 local function validateScore(game,score)

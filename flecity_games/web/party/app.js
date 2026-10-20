@@ -206,7 +206,7 @@ function setupTelephone(room){
  const changed=beginRoundToken(rs);if(changed){telephoneStroke=null;telephoneStrokes=[];telephoneText.value='';}
  if(rs.complete){renderResults(room);return;}
  const current=room.players.find(p=>p.memberId===rs.currentMemberId);
- telephoneStatus.textContent='STEP '+Number(rs.step||0)+' / '+Number(rs.totalSteps||0);
+ telephoneStatus.textContent='ステップ '+Number(rs.step||0)+' / '+Number(rs.totalSteps||0);
  telephoneHint.textContent=rs.isCurrent?'あなたの番です。':(current?current.name+' の入力を待っています。':'次のプレイヤーを待っています。');
  telephoneTextPrompt.classList.add('hidden');telephoneCanvas.classList.add('hidden');telephoneDrawControls.classList.add('hidden');telephoneTextControls.classList.add('hidden');
  if(!rs.isCurrent)return;

@@ -15,11 +15,12 @@ const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
+const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,mergePointer=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -67,7 +68,7 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');}
 function showHome(){
  clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
@@ -90,7 +91,8 @@ const achievementLabels={
  stack_master:'STACK MASTER · STACK 25段以上',
  block_master:'BLOCK MASTER · BLOCK 5,000点以上',
  perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
- number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内'
+ number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
+ high_low_streak:'HIGH ROLLER · HIGH & LOW 10連勝'
 };
 function renderPlatform(data){
  const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
@@ -141,6 +143,7 @@ function renderGames(games){
      else if(game.id==='memory')openMemory();
      else if(game.id==='color_match')openColorMatch();
      else if(game.id==='number_rush')openNumberRush(false);
+     else if(game.id==='high_low')openHighLow();
    };
    gamesEl.appendChild(btn);
  });
@@ -922,6 +925,96 @@ numberRushNew.onclick=async()=>{
  const daily=(numberRush&&numberRush.daily)||numberRushEl.dataset.daily==='1';
  if(numberRush&&numberRush.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:numberRush.sessionToken});
  numberRush=null;openNumberRush(daily);
+};
+
+/* HIGH & LOW */
+function highLowNext(state){
+ let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
+ x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
+}
+function highLowSequenceFromSeed(seed,rounds=30){
+ const count=Math.max(1,Math.min(100,Math.floor(Number(rounds)||30)));
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ let value;[state,value]=highLowNext(state);
+ const sequence=[1+Math.floor(value*13)];
+ for(let i=1;i<=count;i++){
+   let nextValue=sequence[i-1],guard=0;
+   do{[state,value]=highLowNext(state);nextValue=1+Math.floor(value*13);guard++;}while(nextValue===sequence[i-1]&&guard<20);
+   if(nextValue===sequence[i-1])nextValue=(nextValue%13)+1;
+   sequence.push(nextValue);
+ }
+ return sequence;
+}
+function highLowLabel(value){
+ const n=Number(value)||0;
+ if(n===1)return 'A';
+ if(n===11)return 'J';
+ if(n===12)return 'Q';
+ if(n===13)return 'K';
+ return String(n);
+}
+function renderHighLow(){
+ if(!highLow){
+   highLowCard.textContent='?';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30';
+   highLowHigher.disabled=true;highLowLower.disabled=true;return;
+ }
+ highLowCard.textContent=highLowLabel(highLow.sequence[highLow.index]);
+ highLowStreak.textContent=String(highLow.streak);
+ highLowMeta.textContent='ROUND '+String(Math.min(highLow.index+1,highLow.maxRounds))+' / '+String(highLow.maxRounds);
+ highLowHigher.disabled=!highLow.running;highLowLower.disabled=!highLow.running;
+}
+function openHighLow(){
+ hideAll();highLowEl.classList.remove('hidden');highLow=null;
+ highLowStart.classList.remove('hidden');highLowStart.disabled=false;highLowStart.textContent='スタート';
+ highLowNew.classList.add('hidden');renderHighLow();setStatus('次の数字が今よりHIGHかLOWか予想してください。','good');
+}
+async function startHighLow(){
+ if(highLow&&highLow.running)return;
+ highLowStart.disabled=true;
+ const session=await FlecityBridge.call('playStartSession',{gameId:'high_low'});
+ if(!session.ok){highLowStart.disabled=false;setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
+ highLow={sessionToken:session.sessionToken,seed:Number(session.seed)||1,maxRounds,sequence:highLowSequenceFromSeed(session.seed,maxRounds),index:0,streak:0,history:[],startedAt:performance.now(),running:true,finished:false};
+ highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();setStatus('HIGH & LOW開始。','good');
+}
+async function guessHighLow(guess){
+ if(!highLow||!highLow.running||highLow.finished)return;
+ highLowHigher.disabled=true;highLowLower.disabled=true;
+ const current=highLow.sequence[highLow.index],nextValue=highLow.sequence[highLow.index+1];
+ highLow.history.push(guess);
+ const correct=(guess==='high'&&nextValue>current)||(guess==='low'&&nextValue<current);
+ highLow.index+=1;
+ if(correct){
+   highLow.streak+=1;tone(720+Math.min(220,highLow.streak*12),35);renderHighLow();
+   if(highLow.index>=highLow.maxRounds){await finishHighLow(true);return;}
+   setStatus('正解 · '+highLow.streak+'連勝','good');return;
+ }
+ renderHighLow();tone(160,80);await finishHighLow(false);
+}
+async function finishHighLow(cleared){
+ if(!highLow||highLow.finished)return;
+ highLow.finished=true;highLow.running=false;renderHighLow();
+ const durationMs=Math.max(0,Math.round(performance.now()-highLow.startedAt));
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:highLow.sessionToken,score:highLow.streak,durationMs,history:highLow.history});
+ if(res.ok){
+   highLow.sessionToken=null;
+   setStatus((cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝を記録しました。','good');
+   await refreshPlatform();
+ }else{
+   highLow.finished=false;highLow.running=true;renderHighLow();
+   setStatus('HIGH & LOW記録失敗: '+FlecityErrors.text(res.error),'error');
+ }
+}
+highLowStart.onclick=startHighLow;
+highLowHigher.onclick=()=>guessHighLow('high');
+highLowLower.onclick=()=>guessHighLow('low');
+highLowBack.onclick=async()=>{
+ if(highLow&&highLow.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:highLow.sessionToken});
+ highLow=null;showHome();
+};
+highLowNew.onclick=async()=>{
+ if(highLow&&highLow.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:highLow.sessionToken});
+ highLow=null;openHighLow();
 };
 
 /* MEMORY */

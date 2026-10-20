@@ -31,3 +31,13 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .mines-cell.revealed{background:#11141a}
 .mines-cell.flagged{outline:1px solid #fff}
 @media(max-width:360px){.mines-board{gap:3px}.mines-cell{font-size:.72rem}}
+.stack-arena{position:relative;height:260px;border-radius:14px;background:#11141a;border:1px solid #303641;overflow:hidden}
+.stack-base,.stack-mover{position:absolute;height:18px;border-radius:5px;background:#f3f3f3}
+.stack-base{bottom:18px}
+.stack-mover{bottom:42px}
+.nonogram-grid{display:grid;grid-template-columns:72px repeat(5,1fr);gap:4px}
+.nonogram-clue{min-height:46px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.75rem;line-height:1.15;background:#11141a;border-radius:8px;padding:4px}
+.nonogram-cell{min-height:46px;padding:0;border-radius:8px;background:#242832;border:1px solid #343b47;color:#fff}
+.nonogram-cell.filled{background:#f3f3f3;color:#111}
+.nonogram-cell.crossed{background:#11141a;color:#aaa}
+@media(max-width:360px){.nonogram-grid{grid-template-columns:60px repeat(5,1fr);gap:3px}.nonogram-clue,.nonogram-cell{min-height:40px}}

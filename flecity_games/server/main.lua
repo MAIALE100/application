@@ -74,6 +74,12 @@ end
 
 local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
 
+local function requireServerConsole(source,commandName)
+    if source==0 then return true end
+    print(('[FlecityGames] ignored player invocation of %s from source=%s'):format(commandName,tostring(source)))
+    return false
+end
+
 local function startupDiagnostics()
     local failures={}
     local function check(name,ok)
@@ -161,6 +167,7 @@ CreateThread(function()
 end)
 
 RegisterCommand('game_selftest',function(source)
+    if not requireServerConsole(source,'game_selftest') then return end
     local prefix=source==0 and '[FlecityGames selftest]' or ('[FlecityGames selftest source=%s]'):format(source)
     local failures=0
     local function check(name,ok)
@@ -199,6 +206,7 @@ RegisterCommand('game_selftest',function(source)
 end,false)
 
 RegisterCommand('game_preflight',function(source)
+    if not requireServerConsole(source,'game_preflight') then return end
     local prefix=source==0 and '[FlecityGames preflight]' or ('[FlecityGames preflight source=%s]'):format(source)
     local failures=0
     local function check(name,ok,detail)
@@ -242,14 +250,7 @@ RegisterCommand('game_preflight',function(source)
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end
     for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
 
-    if source~=0 then
-        local id=FlecityGamesFramework.GetIdentifier(source)
-        check('current character identifier',type(id)=='string' and id~='',id and 'resolved' or 'missing')
-        local settings=FlecityGamesProfile.GetSettings(source)
-        check('profile settings read',settings and settings.ok==true)
-    else
-        print(prefix..' player-specific identity/settings check SKIPPED from server console')
-    end
+    print(prefix..' player-specific identity/settings check SKIPPED from server console')
 
     local roomCount,memberTotal=FlecityGamesParty.DebugCounts()
     print(('%s active_rooms=%d active_members=%d'):format(prefix,roomCount,memberTotal))
@@ -258,6 +259,7 @@ end,false)
 
 
 RegisterCommand('game_status',function(source)
+    if not requireServerConsole(source,'game_status') then return end
     local prefix=source==0 and '[FlecityGames status]' or ('[FlecityGames status source=%s]'):format(source)
     local function scalar(sql,fallback)
         local ok,value=pcall(function() return MySQL.scalar.await(sql) end)
@@ -281,6 +283,7 @@ RegisterCommand('game_status',function(source)
 end,false)
 
 RegisterCommand('game_healthcheck',function(source)
+    if not requireServerConsole(source,'game_healthcheck') then return end
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)
     local invalidScores,invalidSaves,invalidDaily,invalidAchievements=0,0,0,0
 

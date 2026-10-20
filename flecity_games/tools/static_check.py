@@ -49,8 +49,8 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 19:
-    fail(f"expected 19 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 20:
+    fail(f"expected 20 enabled games, found {len(enabled)}: {enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -135,6 +135,8 @@ if "numberRushBoardFromSeed" not in play_js or "finishNumberRush" not in play_js
     fail("NUMBER RUSH client implementation is missing")
 if "highLowSequenceFromSeed" not in play_js or "finishHighLow" not in play_js:
     fail("HIGH & LOW client implementation is missing")
+if "simonSequenceFromSeed" not in play_js or "finishSimon" not in play_js:
+    fail("SIMON client implementation is missing")
 
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",
@@ -144,6 +146,7 @@ required_security_markers = (
     "INVALID_COLOR_MATCH_REPLAY",
     "INVALID_NUMBER_RUSH_REPLAY",
     "INVALID_HIGH_LOW_REPLAY",
+    "INVALID_SIMON_REPLAY",
     "INVALID_SESSION_SEED",
 )
 play_lua = read("flecity_games/server/core/play.lua")
@@ -166,6 +169,8 @@ if "replayNumberRush" not in play_lua or "numberRushReplay" not in play_lua:
     fail("NUMBER RUSH server replay/selftest is missing")
 if "replayHighLow" not in play_lua or "highLowReplay" not in play_lua:
     fail("HIGH & LOW server replay/selftest is missing")
+if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
+    fail("SIMON server replay/selftest is missing")
 
 party_lua = read("flecity_games/server/core/party.lua")
 framework_lua = read("flecity_games/server/bridge/framework.lua")
@@ -190,7 +195,7 @@ for marker in (
     if marker not in party_lua:
         fail(f"PARTY selftest missing: {marker}")
 
-expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "color_match", "number_rush", "high_low"]
+expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "color_match", "number_rush", "high_low", "simon"]
 expected_party_order = ["reaction", "stop_battle", "vote", "majority", "word_wolf", "liar", "draw", "telephone"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)

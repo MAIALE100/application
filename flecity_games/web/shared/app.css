@@ -156,3 +156,5 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .game-tip{font-size:.74rem;line-height:1.45;opacity:.66}.card-tip{margin:-2px 2px -2px;padding:0 2px}
 
 .inline-count{margin-left:6px;font-size:.72rem;opacity:.6;font-variant-numeric:tabular-nums}.achievement-row.locked{opacity:.48}.achievement-row.unlocked strong{font-weight:900}.achievement-row.locked strong{font-size:.68rem;letter-spacing:.08em}
+
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid currentColor;outline-offset:2px;box-shadow:0 0 0 3px rgba(255,255,255,.08)}

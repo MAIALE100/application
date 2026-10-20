@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PARTY</title>
+  <link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="header"><div><div class="kicker">PLAY TOGETHER.</div><h1>PARTY</h1><div class="muted">One room. Multiple games.</div></div></header>
+    <section id="status" class="status">Create or join a room.</section>
+    <section id="entry" class="card stack">
+      <button id="create">CREATE ROOM</button>
+      <div class="row"><input id="code" inputmode="numeric" maxlength="4" placeholder="ROOM CODE"><button id="join" class="secondary">JOIN</button></div>
+    </section>
+    <section id="room" class="hidden">
+      <div class="card stack">
+        <div class="row"><div><div class="kicker">ROOM</div><div id="roomCode" class="big-number">----</div></div><button id="leave" class="danger">LEAVE</button></div>
+        <div id="players" class="players"></div>
+      </div>
+      <div class="card stack">
+        <label class="kicker" for="game">GAME</label>
+        <select id="game"><option value="reaction">REACTION</option><option value="vote">VOTE</option></select>
+        <div class="row"><button id="ready" class="secondary">READY</button><button id="start">START ROUND</button></div>
+        <button id="lobby" class="secondary hidden">RETURN TO LOBBY</button>
+      </div>
+    </section>
+  </main>
+  <script src="../shared/bridge.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

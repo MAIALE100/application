@@ -40,6 +40,19 @@ local function generateMines(seed,size,mineCount)
     return mines
 end
 
+local function generateNonogram(seed,size)
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local filled={}
+    local count=0
+    for index=0,(size*size)-1 do
+        state=(state*16807)%2147483647
+        if ((state-1)%100)<45 then filled[index]=true count=count+1 end
+    end
+    if count==0 then filled[0]=true count=1 end
+    return filled,count
+end
+
 function FlecityGamesPlay.Bootstrap(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
@@ -85,6 +98,13 @@ function FlecityGamesPlay.StartSession(source,data)
     if game.id=='mines' then
         challenge.size=8
         challenge.mines=10
+    end
+    if game.id=='stack' then
+        challenge.initialWidthPct=72
+        challenge.speedPctPerSec=65
+    end
+    if game.id=='nonogram' then
+        challenge.size=5
     end
 
     local startedTick=GetGameTimer()
@@ -150,8 +170,12 @@ local function validateScore(game,score)
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
     end
-    if game.id=='mines' then
+    if game.id=='mines' or game.id=='nonogram' then
         if score<1000 or score>28800000 then return nil end
+        return math.floor(score)
+    end
+    if game.id=='stack' then
+        if score<0 or score>500 then return nil end
         return math.floor(score)
     end
     if score<-100000000 or score>100000000 then return nil end
@@ -194,6 +218,12 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.targetPct=target
         metadata.distancePct=math.floor(distance*100+0.5)/100
         metadata.actionMs=actionMs
+    elseif game.id=='stack' then
+        local layers=math.floor(tonumber(data.score) or -1)
+        if layers<0 or layers>500 then return {ok=false,error='INVALID_SCORE'} end
+        if serverElapsed+300<layers*120 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        rawScore=layers
+        metadata.layers=layers
     elseif game.id=='mines' then
         if type(data.revealed)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
         local size=tonumber(session.challenge.size) or 8
@@ -212,6 +242,23 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.revealedCount=revealedCount
         metadata.boardSize=size
         metadata.mineCount=mineCount
+    elseif game.id=='nonogram' then
+        if type(data.filled)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
+        local size=tonumber(session.challenge.size) or 5
+        local solution,solutionCount=generateNonogram(session.seed,size)
+        local submitted={}
+        local count=0
+        for _,value in ipairs(data.filled) do
+            local index=tonumber(value)
+            if not index or index~=math.floor(index) or index<0 or index>=size*size then return {ok=false,error='INVALID_CLEAR_STATE'} end
+            if not submitted[index] then submitted[index]=true count=count+1 end
+        end
+        if count~=solutionCount then return {ok=false,error='INCORRECT_SOLUTION'} end
+        for index in pairs(solution) do if not submitted[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
+        for index in pairs(submitted) do if not solution[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
+        rawScore=durationMs
+        metadata.boardSize=size
+        metadata.filledCount=count
     end
 
     local score=validateScore(game,rawScore)
@@ -265,8 +312,12 @@ function FlecityGamesPlay.DebugSelftest()
     local block=gameFor('block')
     local merge=gameFor('merge')
     local minesGame=gameFor('mines')
+    local stack=gameFor('stack')
+    local nonogram=gameFor('nonogram')
     local testMines=generateMines(12345,8,10)
     local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
+    local testNonogram,testNonogramCount=generateNonogram(12345,5)
+    local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample)
     local decoded=encoded and json.decode(encoded) or nil
@@ -280,6 +331,9 @@ function FlecityGamesPlay.DebugSelftest()
         mergeAcceptInteger=merge and validateScore(merge,2048)==2048 or false,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         minesSeedCount=testMineCount==10,
+        stackValidateLayers=stack and validateScore(stack,25)==25 or false,
+        nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
+        nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false
     }

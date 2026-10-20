@@ -1,11 +1,17 @@
 local RESOURCE = GetCurrentResourceName()
 
 local function addApp(app)
-    local ok, err = exports['lb-phone']:AddCustomApp({
-        identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
-        defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
-        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=false
-    })
+    local callOk, ok, err = pcall(function()
+        return exports['lb-phone']:AddCustomApp({
+            identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
+            defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
+            icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=false
+        })
+    end)
+    if not callOk then
+        print(('[FlecityGames] AddCustomApp(%s) API error: %s'):format(app.identifier,tostring(ok)))
+        return false
+    end
     if ok or err=='APP_ALREADY_EXISTS' then return true end
     print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))
     return false

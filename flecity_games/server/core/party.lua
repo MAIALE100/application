@@ -822,7 +822,8 @@ local function reconcileRound(room)
 
     local game=partyGame(rs.gameId)
     local minimum=game and tonumber(game.minPlayers) or FlecityGamesConfig.Party.MinPlayers
-    if connectedCount(room)<math.max(1,minimum or 1) then
+    local continuationMinimum=rs.gameId=='telephone' and 2 or minimum
+    if connectedCount(room)<math.max(1,continuationMinimum or 1) then
         abortRound(room,'NOT_ENOUGH_PLAYERS')
         return
     end
@@ -1017,6 +1018,7 @@ function FlecityGamesParty.DebugSelftest()
         chain={{kind='text',text='秘密のお題'}}
     }}
     advanceTelephone(telephoneSkipRoom,true)
+    reconcileRound(telephoneSkipRoom)
 
     return {
         roomRevision=revisionValue==4 and revisionRoom.revision==4,
@@ -1056,7 +1058,8 @@ function FlecityGamesParty.DebugSelftest()
         telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false,
         telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3
             and telephoneSkipRoom.roundState.currentIdentifier=='c'
-            and telephoneSkipRoom.roundState.mode=='text'
+            and telephoneSkipRoom.roundState.mode=='text',
+        telephoneContinuesWithTwo=telephoneSkipRoom.roundState.complete~=true
     }
 end
 

@@ -40,6 +40,12 @@ end
 CreateThread(function()
     while GetResourceState('lb-phone')~='started' or GetResourceState('oxmysql')~='started' do Wait(500) end
     MySQL.ready(function()
+        local dbOk,dbErr=FlecityGamesDatabase.Ensure()
+        if not dbOk then
+            print(('[FlecityGames] database bootstrap failed: %s'):format(tostring(dbErr)))
+            return
+        end
+        print('[FlecityGames] database schema ready')
         for name,fn in pairs(callbacks) do
             exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,{
                 preventSpam=true,rateLimit=30,defaultReturn={ok=false,error='CALLBACK_FAILED'}

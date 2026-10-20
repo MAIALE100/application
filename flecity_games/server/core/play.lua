@@ -1706,12 +1706,18 @@ function FlecityGamesPlay.DropSource(source)
     for token,session in pairs(sessions) do
         if session.source==src then sessions[token]=nil end
     end
+    for key,request in pairs(startRequests) do
+        if request.source==src then startRequests[key]=nil end
+    end
 end
 
 function FlecityGamesPlay.Cleanup()
     local now=os.time()
     for token,session in pairs(sessions) do
         if now-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil end
+    end
+    for key,request in pairs(startRequests) do
+        if now-(tonumber(request.createdAt) or now)>30 then startRequests[key]=nil end
     end
 end
 
@@ -1723,12 +1729,15 @@ end
 
 function FlecityGamesPlay.DebugSessionHealth()
     local now=os.time()
-    local total,expired,missingGame,invalidSource=0,0,0,0
+    local total,expired,missingGame,invalidSource,pendingStarts=0,0,0,0,0
     for _,session in pairs(sessions) do
         total=total+1
         if now-(tonumber(session.startedAt) or now)>FlecityGamesConfig.Play.SessionMaxAgeSeconds then expired=expired+1 end
         if not gameFor(session.gameId) then missingGame=missingGame+1 end
         if not tonumber(session.source) then invalidSource=invalidSource+1 end
     end
-    return {total=total,expired=expired,missingGame=missingGame,invalidSource=invalidSource}
+    for _,request in pairs(startRequests) do
+        if request.pending then pendingStarts=pendingStarts+1 end
+    end
+    return {total=total,expired=expired,missingGame=missingGame,invalidSource=invalidSource,pendingStarts=pendingStarts}
 end

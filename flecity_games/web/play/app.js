@@ -469,7 +469,10 @@ async function finishBlock(){
  block.finished=true;
  const res=await submitScoreWithRetry({sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
  if(res.ok){if(!block.daily)delete saves.block;showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');await refreshPlatform();}
- else{block.finished=false;setStatus('BLOCKを終了できません: '+FlecityErrors.text(res.error),'error');}
+ else{
+   await cancelPlaySession(block.sessionToken);block.sessionToken=null;block.finished=true;
+   setStatus('BLOCKの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');
+ }
 }
 blockBack.onclick=async()=>{
  if(block&&!block.finished&&!block.daily){
@@ -589,7 +592,10 @@ async function finishMerge(){
  merge.finished=true;
  const res=await submitScoreWithRetry({sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
  if(res.ok){delete saves.merge;showScoreResult('merge',res,'MERGE '+res.score+'点');await refreshPlatform();}
- else{merge.finished=false;setStatus('MERGEを終了できません: '+FlecityErrors.text(res.error),'error');}
+ else{
+   await cancelPlaySession(merge.sessionToken);merge.sessionToken=null;merge.finished=true;
+   setStatus('MERGEの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');
+ }
 }
 mergeBack.onclick=async()=>{
  if(merge&&!merge.finished){

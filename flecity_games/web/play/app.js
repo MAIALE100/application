@@ -47,7 +47,10 @@ tapButton.onclick=async()=>{
  tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='WAIT';tapButton.textContent='WAIT…';tapButton.disabled=false;
  tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='TAP!';tapButton.textContent='TAP!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
 };
-tapBack.onclick=showHome;
+tapBack.onclick=async()=>{
+ if(tapSession)await FlecityBridge.call('playCancelSession',{sessionToken:tapSession.sessionToken});
+ clearTimeout(tapTimer);tapSession=null;showHome();
+};
 
 function emptyBoard(){return Array.from({length:8},()=>Array(8).fill(0));}
 function newPiece(){return {shape:Math.floor(Math.random()*SHAPES.length)};}
@@ -123,7 +126,16 @@ async function finishBlock(){
  if(res.ok){delete saves.block;setStatus('BLOCK score saved: '+res.score,'good');}
  else{block.finished=false;setStatus('Could not finish BLOCK: '+res.error,'error');}
 }
-blockBack.onclick=async()=>{await persistBlock();showHome();};
-blockNew.onclick=async()=>{if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});await openBlock(true);};
+blockBack.onclick=async()=>{
+ await persistBlock();
+ if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
+ block=null;showHome();
+};
+blockNew.onclick=async()=>{
+ if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
+ const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
+ if(!reset.ok){setStatus('Could not reset BLOCK save: '+reset.error,'error');return;}
+ delete saves.block;block=null;await openBlock(true);
+};
 blockFinish.onclick=finishBlock;
 bootstrap();

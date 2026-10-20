@@ -619,7 +619,14 @@ function seededMines(seed,size,mineCount){
  while(result.size<mineCount){state=(state*16807)%2147483647;result.add((state-1)%total);}
  return result;
 }
-function elapsedMines(){return (mines?mines.elapsedBase:0)+(mines?performance.now()-mines.sessionStarted:0);}
+function elapsedMines(){return (mines?mines.elapsedBase:0)+(mines&&mines.timingStarted?performance.now()-mines.timingStartedAt:0);}
+async function activateMinesTiming(){
+ if(!mines||mines.finished)return false;
+ if(mines.timingStarted)return true;
+ const res=await FlecityBridge.call('playActivateSession',{sessionToken:mines.sessionToken});
+ if(!res.ok){setStatus('MINESのタイマーを開始できません: '+FlecityErrors.text(res.error),'error');return false;}
+ mines.elapsedBase=Number(res.elapsedMs??mines.elapsedBase)||0;mines.timingStarted=true;mines.timingStartedAt=performance.now();return true;
+}
 function mineNeighbors(index){
  const out=[],x=index%mines.size,y=Math.floor(index/mines.size);
  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -665,10 +672,10 @@ async function openMines(forceNew,daily=false){
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
-     elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
+     elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
    setStatus('MINESを途中保存から再開しました。','good');
  }else{
-   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,timingStarted:false,timingStartedAt:null,sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
    setStatus(mines.daily?'デイリーMINES開始。':'新しいMINESを開始しました。','good');
  }
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
@@ -687,6 +694,7 @@ async function loseMines(index){
 }
 async function touchMine(index){
  if(!mines||mines.finished)return;
+ if(!(await activateMinesTiming()))return;
  if(mines.mode==='flag'){
    if(mines.flags.has(index))mines.flags.delete(index);else mines.flags.add(index);renderMines();await persistMines();return;
  }
@@ -822,7 +830,14 @@ function nonogramClue(values){
  for(let i=0;i<n;i++){if(values[i])run++;else if(run){groups.push(run);run=0;}}
  if(run)groups.push(run);return groups.length?groups.join(' '):'0';
 }
-function elapsedNonogram(){return (nonogram?nonogram.elapsedBase:0)+(nonogram?performance.now()-nonogram.startedAt:0);}
+function elapsedNonogram(){return (nonogram?nonogram.elapsedBase:0)+(nonogram&&nonogram.timingStarted?performance.now()-nonogram.timingStartedAt:0);}
+async function activateNonogramTiming(){
+ if(!nonogram||nonogram.finished)return false;
+ if(nonogram.timingStarted)return true;
+ const res=await FlecityBridge.call('playActivateSession',{sessionToken:nonogram.sessionToken});
+ if(!res.ok){setStatus('NONOGRAMのタイマーを開始できません: '+FlecityErrors.text(res.error),'error');return false;}
+ nonogram.elapsedBase=Number(res.elapsedMs??nonogram.elapsedBase)||0;nonogram.timingStarted=true;nonogram.timingStartedAt=performance.now();return true;
+}
 function updateNonogramTime(){if(nonogram)nonogramTime.textContent=(elapsedNonogram()/1000).toFixed(1)+'s';}
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
@@ -861,11 +876,12 @@ async function openNonogram(forceNew,daily=false){
  if(!session.ok){setStatus('NONOGRAMを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
-   elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
+   elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
  setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  if(!nonogram||nonogram.finished)return;
+ if(!(await activateNonogramTiming()))return;
  if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);}
  else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);}
  else nonogram.filled.add(index);

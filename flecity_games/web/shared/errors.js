@@ -19,6 +19,7 @@ window.FlecityErrors = {
         SAVE_NOT_FOUND: '途中保存データが見つかりません',
         SAVE_VERSION_MISMATCH: 'この途中保存は現在のゲームバージョンと互換性がありません',
         SAVE_RESET: '途中保存は新しいゲーム開始のためリセットされました',
+        SAVE_RESET_FAILED: '途中保存を削除できませんでした。現在のゲームはそのまま続けられます',
         RESUME_NOT_SUPPORTED: 'このゲームは途中再開に対応していません',
         INVALID_SESSION: 'ゲームSessionが無効です',
         EXPIRED_SESSION: 'ゲームSessionの有効期限が切れました',

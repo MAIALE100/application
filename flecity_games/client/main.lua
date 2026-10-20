@@ -4,7 +4,7 @@ local function addApp(app)
     local ok, err = exports['lb-phone']:AddCustomApp({
         identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
         defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
-        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
+        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon)
     })
     if not ok and err~='APP_ALREADY_EXISTS' then
         print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))
@@ -58,6 +58,18 @@ local callbackMap={
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }
+
+RegisterNetEvent('flecity_games:client:partyInvalidate',function()
+    if GetResourceState('lb-phone')~='started' then return end
+    local ok,success,err=pcall(function()
+        return exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
+            type='partyInvalidate'
+        })
+    end)
+    if FlecityGamesConfig.Debug and (not ok or success==false) then
+        print(('[FlecityGames] PARTY push failed: %s'):format(tostring(err or success)))
+    end
+end)
 
 RegisterNUICallback('flecityGames:callback',function(data,cb)
     if type(data)~='table' then return cb({ok=false,error='INVALID_REQUEST'}) end

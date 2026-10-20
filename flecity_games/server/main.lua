@@ -23,6 +23,8 @@ local callbacks={
     ['flecity_games:party:addDrawStroke']=function(source,data) return FlecityGamesParty.AddDrawStroke(source,data) end,
     ['flecity_games:party:clearDrawing']=function(source,data) return FlecityGamesParty.ClearDrawing(source,data) end,
     ['flecity_games:party:submitDrawGuess']=function(source,data) return FlecityGamesParty.SubmitDrawGuess(source,data) end,
+    ['flecity_games:party:submitTelephoneDrawing']=function(source,data) return FlecityGamesParty.SubmitTelephoneDrawing(source,data) end,
+    ['flecity_games:party:submitTelephoneText']=function(source,data) return FlecityGamesParty.SubmitTelephoneText(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

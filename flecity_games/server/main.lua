@@ -71,8 +71,10 @@ RegisterCommand('game_selftest',function(source)
     end
 
     print(prefix..' begin')
-    check('registry PLAY populated',#FlecityGamesRegistry.List('play',false)>0)
-    check('registry PARTY populated',#FlecityGamesRegistry.List('party',false)>0)
+    check('registry PLAY definitions',#FlecityGamesRegistry.List('play',false)==7)
+    check('registry PARTY definitions',#FlecityGamesRegistry.List('party',false)==8)
+    check('registry PLAY enabled',#FlecityGamesRegistry.List('play',true)==7)
+    check('registry PARTY enabled',#FlecityGamesRegistry.List('party',true)==8)
 
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0

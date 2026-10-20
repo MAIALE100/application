@@ -350,8 +350,13 @@ leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEnt
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};
 
 async function bootstrap(){
- await loadSettings();
  const res=await FlecityBridge.call('partyGetRoom',{});
+ if(!res.ok&&res.error==='PLAYER_NOT_READY'){
+   status('Waiting for character…','warn');
+   setTimeout(bootstrap,1000);
+   return;
+ }
+ await loadSettings();
  if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('Room connection restored.','good');return;}
  showEntry();if(res.error!=='NOT_IN_ROOM')status('Could not restore room: '+res.error,'error');
 }

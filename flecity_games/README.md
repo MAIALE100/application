@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.17.0-test**
+- Resource version: **0.18.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **22/22 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -68,6 +68,7 @@ Implemented:
 - resumable PLAY saves
 - save-generation guards prevent stale in-flight autosaves from resurrecting a reset run
 - phone-hide lifecycle cleanup, stale session-start cancellation, and score-finalization race protection
+- Daily runs expire cleanly at the database date boundary and refresh to the new challenge
 - TODAY / WEEK / ALL TIME ranking
 - period-specific personal BEST + rank, tie-aware leaderboard positions, and a privacy-safe highlighted self row
 - one leaderboard slot per character

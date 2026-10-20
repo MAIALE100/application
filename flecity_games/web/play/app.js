@@ -549,7 +549,7 @@ async function finishStack(){
 stackDrop.onclick=async()=>{
  if(!stackGame||stackGame.finished)return;
  const now=performance.now(),previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
- const actionMs=Math.max(previous+1,Math.round(now-stackGame.startedAt));
+ const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
  stackGame.history.push(actionMs);
  const base=stackGame.layers[stackGame.layers.length-1],left=Math.max(base.x,stackGame.x),right=Math.min(base.x+base.width,stackGame.x+stackGame.width),overlap=right-left;

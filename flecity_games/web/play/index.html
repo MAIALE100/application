@@ -19,12 +19,12 @@
 <section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div class="game-tip">「タップ！」が出たらすぐ押す。早すぎるとフライング。</div><div id="tapBest" class="game-meta">BEST ---</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">スタート</button><button id="tapBack" class="secondary">戻る</button></div></section>
 <section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div class="game-tip">動くマーカーをターゲットの中心で止める。</div><div id="stopBest" class="game-meta">BEST ---</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
 <section id="blockGame" class="hidden">
-  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div><div id="blockMeta" class="game-meta">COMBO 0</div></div><button id="blockBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div><div id="blockMeta" class="game-meta">COMBO 0</div><div id="blockBest" class="game-meta">BEST ---</div></div><button id="blockBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">3つのピースを置き、縦または横1列をそろえて消す。</div><div class="card"><div id="blockBoard" class="block-board"></div></div>
   <div class="card stack"><div class="kicker">ピース</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">新しく始める</button><button id="blockFinish" class="danger">終了して記録</button></div></div>
 </section>
 <section id="mergeGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div><div id="mergeMeta" class="game-meta">0 MOVES · MAX 0</div></div><button id="mergeBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div><div id="mergeMeta" class="game-meta">0 MOVES · MAX 0</div><div id="mergeBest" class="game-meta">BEST ---</div></div><button id="mergeBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">同じ数字を重ねて大きいタイルを作る。盤面はスワイプでも動かせます。</div><div class="card"><div id="mergeBoard" class="merge-board"></div></div>
   <div class="card stack">
     <div class="merge-controls"><span></span><button id="mergeUp" class="secondary">▲</button><span></span><button id="mergeLeft" class="secondary">◀</button><button id="mergeDown" class="secondary">▼</button><button id="mergeRight" class="secondary">▶</button></div>
@@ -32,17 +32,17 @@
   </div>
 </section>
 <section id="minesGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div><div id="minesMeta" class="game-meta">地雷 10 · FLAG 0</div></div><button id="minesBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div><div id="minesMeta" class="game-meta">地雷 10 · FLAG 0</div><div id="minesBest" class="game-meta">BEST ---</div></div><button id="minesBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">数字を手掛かりに安全マスを全部開く。最初に開くマスは安全です。</div><div class="card"><div id="minesBoard" class="mines-board"></div></div>
   <div class="card stack"><button id="minesMode" class="secondary">モード: 開く</button><button id="minesNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="stackGame" class="hidden">
-  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div><div id="stackMeta" class="game-meta">幅 72% · 速度 65</div></div><button id="stackBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div><div id="stackMeta" class="game-meta">幅 72% · 速度 65</div><div id="stackBest" class="game-meta">BEST ---</div></div><button id="stackBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">動くブロックをDROPして、ずれないよう高く積む。</div><div class="card"><div id="stackArena" class="stack-arena"><div id="stackBase" class="stack-base"></div><div id="stackMover" class="stack-mover"></div></div></div>
   <div class="card stack"><button id="stackDrop">置く</button><button id="stackNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="nonogramGame" class="hidden">
-  <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div><div id="nonogramMeta" class="game-meta">0 / 0 FILLED</div></div><button id="nonogramBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div><div id="nonogramMeta" class="game-meta">0 / 0 FILLED</div><div id="nonogramBest" class="game-meta">BEST ---</div></div><button id="nonogramBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">行と列の数字どおりに塗る。マスは「塗る → × → 空白」の順に切り替わります。</div><div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
   <div class="card stack"><button id="nonogramCheck">答え合わせ</button><button id="nonogramNew" class="secondary">新しい問題</button></div>
 </section>
@@ -52,22 +52,22 @@
   <div class="card stack"><button id="colorMatchStart">スタート</button><button id="colorMatchNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="numberRushGame" class="hidden">
-  <div class="card row"><div><div class="kicker">NUMBER RUSH</div><div id="numberRushProgress" class="big-number small-number">1 / 25</div><div id="numberRushTime" class="game-meta">0.00s</div><div id="numberRushMeta" class="game-meta">MISS 0 · ペナルティ 0.0s</div></div><button id="numberRushBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">NUMBER RUSH</div><div id="numberRushProgress" class="big-number small-number">1 / 25</div><div id="numberRushTime" class="game-meta">0.00s</div><div id="numberRushMeta" class="game-meta">MISS 0 · ペナルティ 0.0s</div><div id="numberRushBest" class="game-meta">BEST ---</div></div><button id="numberRushBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">1から25まで順番にタップ。ミス1回ごとに0.5秒加算。</div><div class="card"><div id="numberRushBoard" class="number-rush-board"></div></div>
   <div class="card stack"><button id="numberRushStart">スタート</button><button id="numberRushNew" class="secondary hidden">もう一度</button></div>
 </section>
 <section id="highLowGame" class="hidden">
-  <div class="card row"><div><div class="kicker">HIGH & LOW</div><div id="highLowStreak" class="big-number small-number">0</div><div id="highLowMeta" class="game-meta">ROUND 0 / 30</div></div><button id="highLowBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">HIGH & LOW</div><div id="highLowStreak" class="big-number small-number">0</div><div id="highLowMeta" class="game-meta">ROUND 0 / 30</div><div id="highLowBest" class="game-meta">BEST ---</div></div><button id="highLowBack" class="secondary">戻る</button></div>
   <div class="card big-center high-low-stage"><div class="muted">現在の数字</div><div id="highLowCard" class="high-low-card">?</div><div class="high-low-actions"><button id="highLowLower" class="secondary" disabled>LOW ↓</button><button id="highLowHigher" disabled>HIGH ↑</button></div></div>
   <div class="card stack"><button id="highLowStart">スタート</button><button id="highLowNew" class="secondary hidden">もう一度</button></div>
 </section>
 <section id="simonGame" class="hidden">
-  <div class="card row"><div><div class="kicker">SIMON</div><div id="simonRound" class="big-number small-number">0</div><div id="simonMeta" class="game-meta">ROUND 0 · BEST 0</div></div><button id="simonBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">SIMON</div><div id="simonRound" class="big-number small-number">0</div><div id="simonMeta" class="game-meta">ROUND 0 / 30</div><div id="simonBest" class="game-meta">BEST ---</div></div><button id="simonBack" class="secondary">戻る</button></div>
   <div class="card stack"><div id="simonBoard" class="simon-board"><button class="simon-pad" data-pad="0" aria-label="左上"></button><button class="simon-pad" data-pad="1" aria-label="右上"></button><button class="simon-pad" data-pad="2" aria-label="左下"></button><button class="simon-pad" data-pad="3" aria-label="右下"></button></div><div id="simonMessage" class="status">スタートを押してください。</div></div>
   <div class="card stack"><button id="simonStart">スタート</button><button id="simonNew" class="secondary hidden">もう一度</button></div>
 </section>
 <section id="memoryGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MEMORY</div><div id="memoryTime" class="big-number small-number">0.0s</div><div id="memoryMeta" class="game-meta">0 / 8 PAIRS · 0 MOVES</div></div><button id="memoryBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">MEMORY</div><div id="memoryTime" class="big-number small-number">0.0s</div><div id="memoryMeta" class="game-meta">0 / 8 PAIRS · 0 MOVES</div><div id="memoryBest" class="game-meta">BEST ---</div></div><button id="memoryBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">最初の1.2秒で配置を覚え、同じ絵柄の8組をそろえる。</div><div class="card"><div id="memoryBoard" class="memory-board"></div></div>
   <div class="card stack"><button id="memoryNew" class="secondary">新しく始める</button></div>
 </section>

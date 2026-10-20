@@ -127,6 +127,8 @@ if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
 if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
+if "startSessionWithRetry" not in play_js:
+    fail("PLAY session-start retry helper is missing")
 if "submitScoreWithRetry" not in play_js:
     fail("PLAY score submission retry helper is missing")
 if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:

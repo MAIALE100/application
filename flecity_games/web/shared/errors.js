@@ -15,6 +15,7 @@ window.FlecityErrors = {
         DAILY_UNAVAILABLE: '今日のチャレンジを取得できません',
         DAILY_GAME_MISMATCH: '今日のチャレンジ内容が一致しません',
         SAVE_NOT_FOUND: '途中保存データが見つかりません',
+        SAVE_VERSION_MISMATCH: 'この途中保存は現在のゲームバージョンと互換性がありません',
         RESUME_NOT_SUPPORTED: 'このゲームは途中再開に対応していません',
         INVALID_SESSION: 'ゲームSessionが無効です',
         EXPIRED_SESSION: 'ゲームSessionの有効期限が切れました',

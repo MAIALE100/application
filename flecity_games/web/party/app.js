@@ -6,11 +6,13 @@ const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessa
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
+const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
+const drawCtx=drawCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0;
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null;
+let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false;
 
 function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
 function estimatedServerTick(){return performance.now()+serverOffsetMs;}
@@ -23,7 +25,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;resetRoundRuntime();clearInterval(poll);poll=null;
@@ -59,6 +61,9 @@ function renderResults(room){
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';d.innerHTML='<span>'+e.name+liar+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
+ }else if(rs.gameId==='draw'){
+   const reveal=document.createElement('div');reveal.className=rs.results.aborted?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':'正解: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   (rs.results.entries||[]).forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>正解</strong>';resultsEl.appendChild(d);});
  }
 }
 function beginRoundToken(rs){
@@ -132,6 +137,28 @@ function setupDeduction(room){
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);
  });
 }
+function paintDrawStroke(points){
+ if(!Array.isArray(points)||points.length<2)return;drawCtx.beginPath();drawCtx.lineWidth=4;drawCtx.lineCap='round';drawCtx.lineJoin='round';drawCtx.strokeStyle='#111';
+ drawCtx.moveTo(points[0].x*drawCanvas.width,points[0].y*drawCanvas.height);
+ for(let i=1;i<points.length;i++)drawCtx.lineTo(points[i].x*drawCanvas.width,points[i].y*drawCanvas.height);
+ drawCtx.stroke();
+}
+function renderDrawCanvas(strokes,temp){
+ drawCtx.fillStyle='#f7f7f7';drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
+ (strokes||[]).forEach(paintDrawStroke);if(temp&&temp.length>1)paintDrawStroke(temp);
+}
+function setupDraw(room){
+ const rs=room.roundState;hideRoundGames();drawPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ drawIsDrawer=rs.isDrawer===true;
+ const drawer=room.players.find(p=>p.memberId===rs.drawerMemberId);
+ drawPrompt.textContent=drawIsDrawer?'お題: '+String(rs.prompt||'---'):(drawer?drawer.name+' が描いています':'DRAWING…');
+ drawProgress.textContent='正解: '+Number(rs.guessedCount||0)+' / '+Math.max(0,room.connectedCount-1);
+ drawDrawerControls.classList.toggle('hidden',!drawIsDrawer);
+ drawGuessControls.classList.toggle('hidden',drawIsDrawer||rs.selfGuessed===true);
+ if(rs.selfGuessed&&!drawIsDrawer)drawProgress.textContent='正解しました。ほかの参加者を待っています。';
+ if(!drawStroke)renderDrawCanvas(rs.strokes||[]);
+}
 function renderRoom(room){
  currentRoom=room;ready=room.selfReady===true;
  if(Number.isFinite(Number(room.serverTick)))serverOffsetMs=Number(room.serverTick)-performance.now();
@@ -147,6 +174,7 @@ function renderRoom(room){
    else if(rs&&rs.gameId==='vote')setupVote(room);
    else if(rs&&rs.gameId==='majority')setupMajority(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
+   else if(rs&&rs.gameId==='draw')setupDraw(room);
  }
 }
 async function refresh(){
@@ -196,6 +224,42 @@ async function submitDeduction(gameId,token,targetMemberId){
  const res=await FlecityBridge.call(action,{token,targetMemberId});
  if(!res.ok){status('Vote failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
+function drawPointFromEvent(event){
+ const rect=drawCanvas.getBoundingClientRect();
+ return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
+}
+drawCanvas.onpointerdown=event=>{
+ if(!drawIsDrawer||!currentRoom||!currentRoom.roundState||currentRoom.roundState.gameId!=='draw'||currentRoom.roundState.complete)return;
+ drawStroke=[drawPointFromEvent(event)];drawCanvas.setPointerCapture(event.pointerId);
+};
+drawCanvas.onpointermove=event=>{
+ if(!drawStroke||!drawIsDrawer)return;const p=drawPointFromEvent(event),last=drawStroke[drawStroke.length-1];
+ if(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<0.006)return;
+ if(drawStroke.length<48)drawStroke.push(p);
+ renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[],drawStroke);
+};
+drawCanvas.onpointerup=async event=>{
+ if(!drawStroke)return;const points=drawStroke;drawStroke=null;
+ try{drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ if(points.length<2){renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);return;}
+ const rs=currentRoom&&currentRoom.roundState;if(!rs)return;
+ const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points});
+ if(!res.ok){status('Draw update failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+};
+drawClear.onclick=async()=>{
+ const rs=currentRoom&&currentRoom.roundState;if(!rs)return;drawClear.disabled=true;
+ const res=await FlecityBridge.call('partyClearDrawing',{token:rs.token});drawClear.disabled=false;
+ if(!res.ok){status('Clear failed: '+res.error,'error');return;}renderRoom(res.room);
+};
+async function submitDrawGuess(){
+ const rs=currentRoom&&currentRoom.roundState,guess=drawGuess.value.trim();if(!rs||!guess)return;
+ drawGuessSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitDrawGuess',{token:rs.token,guess});drawGuessSubmit.disabled=false;
+ if(!res.ok){status('Guess failed: '+res.error,'error');return;}
+ if(res.correct){drawGuess.value='';status('正解！','good');}else status('違います。もう一度！','warn');
+ renderRoom(res.room);
+}
+drawGuessSubmit.onclick=submitDrawGuess;
+drawGuess.onkeydown=e=>{if(e.key==='Enter')submitDrawGuess();};
 lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
 leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};

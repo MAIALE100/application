@@ -141,7 +141,9 @@ CreateThread(function()
         local frameworkVersion=FlecityGamesFramework.GetVersion() or 'unknown'
         local databaseVersion=tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown')
         local artifactVersion=tostring(GetConvar('version','unknown'))
-        print(('[FlecityGames] version=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,frameworkVersion,phoneVersion,databaseVersion))
+        local buildCommit=FlecityGamesText.Normalize(LoadResourceFile(GetCurrentResourceName(),'dev-build.txt') or '')
+        if buildCommit=='' then buildCommit='packaged' end
+        print(('[FlecityGames] version=%s build=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,buildCommit:sub(1,12),frameworkVersion,phoneVersion,databaseVersion))
         print(('[FlecityGames] artifact=%s'):format(artifactVersion))
         print('[FlecityGames] database schema ready')
         registerPhoneCallbacks()
@@ -288,13 +290,15 @@ RegisterCommand('game_status',function(source)
     local qbox=tostring(FlecityGamesFramework.GetVersion() or 'unknown')
     local phone=tostring(GetResourceMetadata('lb-phone','version',0) or 'unknown')
     local database=tostring(scalar('SELECT VERSION()','unavailable') or 'unavailable')
+    local build=FlecityGamesText.Normalize(LoadResourceFile(GetCurrentResourceName(),'dev-build.txt') or '')
+    if build=='' then build='packaged' end
     local playSessions=FlecityGamesPlay.DebugCounts()
     local rooms,members=FlecityGamesParty.DebugCounts()
     local scores=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_scores',0) or 0) or 0
     local saves=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_saves',0) or 0) or 0
     local achievements=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_achievements',0) or 0) or 0
-    print(('%s version=%s qbox=%s lb-phone=%s(%s) oxmysql=%s db=%s callbacks=%d/%d'):format(
-        prefix,version,qbox,phone,GetResourceState('lb-phone'),GetResourceState('oxmysql'),database,
+    print(('%s version=%s build=%s qbox=%s lb-phone=%s(%s) oxmysql=%s db=%s callbacks=%d/%d'):format(
+        prefix,version,build:sub(1,12),qbox,phone,GetResourceState('lb-phone'),GetResourceState('oxmysql'),database,
         registeredPhoneCallbacks,expectedPhoneCallbacks))
     print(('%s play_sessions=%d rooms=%d members=%d scores=%d saves=%d achievements=%d'):format(
         prefix,playSessions,rooms,members,scores,saves,achievements))

@@ -79,8 +79,27 @@ if len(identifiers) < 2 or len(set(identifiers[:2])) != 2:
     fail("PLAY and PARTY app identifiers must both exist and be unique")
 
 sql = read("flecity_games/sql/001_initial.sql")
+database_lua = read("flecity_games/server/core/database.lua")
 if re.search(r"\b(DROP\s+TABLE|TRUNCATE\s+TABLE)\b", sql, re.I):
     fail("destructive DDL found in initial SQL")
+
+required_schema_markers = (
+    "flecity_game_profiles",
+    "display_name VARCHAR(100)",
+    "settings_json LONGTEXT",
+    "flecity_game_scores",
+    "session_token VARCHAR(192)",
+    "uq_flecity_game_session_token",
+    "flecity_game_saves",
+    "game_version INT UNSIGNED",
+    "flecity_game_achievements",
+    "flecity_game_daily",
+)
+for marker in required_schema_markers:
+    if marker not in sql:
+        fail(f"manual SQL missing schema marker: {marker}")
+    if marker not in database_lua:
+        fail(f"automatic DB schema missing marker: {marker}")
 
 lua_sources = [
     p for p in GAME.rglob("*.lua")

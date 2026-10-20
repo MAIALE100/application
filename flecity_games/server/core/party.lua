@@ -955,9 +955,26 @@ local function abortRound(room,reason)
     return true
 end
 
+local function purgeDisconnectedTargets(room)
+    local rs=room and room.roundState or nil
+    if not rs or rs.complete then return 0 end
+    if rs.gameId~='vote' and rs.gameId~='word_wolf' and rs.gameId~='liar' then return 0 end
+    local removed=0
+    for voterId,targetId in pairs(rs.submissions or {}) do
+        local target=room.members[targetId]
+        if not target or target.disconnected then
+            rs.submissions[voterId]=nil
+            removed=removed+1
+        end
+    end
+    return removed
+end
+
 reconcileRound=function(room)
     local rs=room.roundState
     if not rs or rs.complete then return end
+
+    purgeDisconnectedTargets(room)
 
     local game=partyGame(rs.gameId)
     local minimum=game and tonumber(game.minPlayers) or FlecityGamesConfig.Party.MinPlayers
@@ -1131,6 +1148,17 @@ function FlecityGamesParty.DebugSelftest()
     drawRoom.roundState.submissions={b=true,c=true}
     maybeFinishDraw(drawRoom)
 
+    local targetDisconnectRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,joinOrder=3},
+        d={memberId='D',name='Delta',disconnected=false,joinOrder=4}
+    },roundState={
+        token='target-disconnect',gameId='vote',startedAt=0,startedTick=0,complete=false,
+        submissions={a='b',c='a'}
+    }}
+    reconcileRound(targetDisconnectRoom)
+
     local lowPlayerRoom={members={
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=true,joinOrder=2}
@@ -1195,6 +1223,9 @@ function FlecityGamesParty.DebugSelftest()
         drawCompletion=drawRoom.roundState.complete==true
             and #drawRoom.roundState.results.entries==2
             and drawRoom.roundState.results.entries[1].memberId=='B',
+        disconnectedTargetVoteReset=targetDisconnectRoom.roundState.complete~=true
+            and targetDisconnectRoom.roundState.submissions.a==nil
+            and targetDisconnectRoom.roundState.submissions.c=='a',
         roundAbortLowPlayers=lowPlayerRoom.roundState.complete==true
             and lowPlayerRoom.roundState.results.reason=='NOT_ENOUGH_PLAYERS',
         secretRoleDisconnectAbort=secretLeftRoom.roundState.complete==true

@@ -441,8 +441,8 @@ function FlecityGamesPlay.Save(source,data)
     local token=tostring(data.sessionToken or '')
     local session=sessions[token]
     if not session or session.playerIdentifier~=id or session.gameId~=game.id then return {ok=false,error='INVALID_SESSION'} end
-    local seedNumber=tonumber(data.seed)
-    if not seedNumber or math.floor(seedNumber)~=math.floor(tonumber(session.seed) or -1) then return {ok=false,error='INVALID_SAVE_SEED'} end
+    local seedNumber=math.floor(tonumber(session.seed) or 0)
+    if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
 
     local encoded=json.encode(data.state)
     if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end

@@ -100,6 +100,17 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
+async function startSessionWithRetry(payload){
+ const snapshot=JSON.parse(JSON.stringify(payload||{}));
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
+   res=await FlecityBridge.call('playStartSession',snapshot);
+   if(res.ok||!retryable.has(res.error))return res;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?450:180*(attempt+1));
+ }
+ return res;
+}
 async function submitScoreWithRetry(payload){
  const snapshot=JSON.parse(JSON.stringify(payload));
  const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SCORE_SAVE_FAILED','SERVER_ERROR']);
@@ -348,7 +359,7 @@ tapButton.onclick=async()=>{
    tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
  }
  if(tapState!=='idle')return;
- tapButton.disabled=true;const res=await FlecityBridge.call('playStartSession',{gameId:'quick_tap',daily:tapDaily});
+ tapButton.disabled=true;const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
  if(!res.ok){tapButton.disabled=false;setStatus('開始できません: '+FlecityErrors.text(res.error),'error');return;}
  tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
  tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
@@ -386,7 +397,7 @@ stopButton.onclick=async()=>{
  }
  if(stopState!=='idle')return;
  stopButton.disabled=true;
- const res=await FlecityBridge.call('playStartSession',{gameId:'stop',daily:stopDaily});
+ const res=await startSessionWithRetry({gameId:'stop',daily:stopDaily});
  if(!res.ok){stopButton.disabled=false;setStatus('STOP!を開始できません: '+FlecityErrors.text(res.error),'error');return;}
  stopSession=res;stopState='running';stopStartedAt=performance.now();
  stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';
@@ -461,7 +472,7 @@ async function openBlock(forceNew,daily=false){
  hideAll();blockEl.classList.remove('hidden');
  const saved=!forceNew&&!daily&&saves.block;
  const payload={gameId:'block',daily:daily===true};if(saved)payload.resume=true;
- const session=await FlecityBridge.call('playStartSession',payload);
+ const session=await startSessionWithRetry(payload);
  if(!session.ok){setStatus('BLOCKを開始できません: '+session.error,'error');showHome();return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
@@ -583,7 +594,7 @@ async function persistMerge(showError=false){
 async function openMerge(forceNew){
  hideAll();mergeEl.classList.remove('hidden');
  const saved=!forceNew&&saves.merge,payload={gameId:'merge'};if(saved)payload.resume=true;
- const session=await FlecityBridge.call('playStartSession',payload);
+ const session=await startSessionWithRetry(payload);
  if(!session.ok){setStatus('MERGEを開始できません: '+session.error,'error');showHome();return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
@@ -741,7 +752,7 @@ async function openMines(forceNew,daily=false){
  hideAll();minesEl.classList.remove('hidden');clearInterval(minesClock);
  const saved=!forceNew&&!daily&&saves.mines;
  const payload={gameId:'mines',daily:daily===true};if(saved)payload.resume=true;
- const session=await FlecityBridge.call('playStartSession',payload);
+ const session=await startSessionWithRetry(payload);
  if(!session.ok){setStatus('MINESを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
@@ -860,7 +871,7 @@ function stackLoop(now){
 }
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
- const session=await FlecityBridge.call('playStartSession',{gameId:'stack'});
+ const session=await startSessionWithRetry({gameId:'stack'});
  if(!session.ok){setStatus('STACKを開始できません: '+session.error,'error');showHome();return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
@@ -980,7 +991,7 @@ async function persistNonogram(showError=false){
 async function openNonogram(forceNew,daily=false){
  hideAll();nonogramEl.classList.remove('hidden');clearInterval(nonogramClock);
  const saved=!forceNew&&!daily&&saves.nonogram,payload={gameId:'nonogram',daily:daily===true};if(saved)payload.resume=true;
- const session=await FlecityBridge.call('playStartSession',payload);
+ const session=await startSessionWithRetry(payload);
  if(!session.ok){setStatus('NONOGRAMを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
@@ -1074,7 +1085,7 @@ function openColorMatch(){
 async function startColorMatch(){
  if(colorMatch&&colorMatch.running)return;
  colorMatchStart.disabled=true;
- const session=await FlecityBridge.call('playStartSession',{gameId:'color_match'});
+ const session=await startSessionWithRetry({gameId:'color_match'});
  if(!session.ok){colorMatchStart.disabled=false;setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||10);
  colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],startedAt:performance.now(),running:true,finished:false};
@@ -1160,7 +1171,7 @@ async function startNumberRush(){
  if(numberRush&&numberRush.running)return;
  numberRushStart.disabled=true;
  const daily=numberRushEl.dataset.daily==='1';
- const session=await FlecityBridge.call('playStartSession',{gameId:'number_rush',daily});
+ const session=await startSessionWithRetry({gameId:'number_rush',daily});
  if(!session.ok){numberRushStart.disabled=false;setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const count=Number(session.challenge&&session.challenge.count)||25;
  numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
@@ -1246,7 +1257,7 @@ function openHighLow(){
 async function startHighLow(){
  if(highLow&&highLow.running)return;
  highLowStart.disabled=true;
- const session=await FlecityBridge.call('playStartSession',{gameId:'high_low'});
+ const session=await startSessionWithRetry({gameId:'high_low'});
  if(!session.ok){highLowStart.disabled=false;setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const currentValue=Number(session.challenge&&session.challenge.currentValue)||0;
@@ -1355,7 +1366,7 @@ function openSimon(){
 async function startSimon(){
  if(simon&&!simon.finished)return;
  simonStart.disabled=true;
- const session=await FlecityBridge.call('playStartSession',{gameId:'simon'});
+ const session=await startSessionWithRetry({gameId:'simon'});
  if(!session.ok){simonStart.disabled=false;setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const sequence=Array.isArray(session.challenge&&session.challenge.sequence)?session.challenge.sequence.map(Number):[];
@@ -1480,7 +1491,7 @@ function renderMemory(){
 }
 async function openMemory(daily=false){
  hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
- const session=await FlecityBridge.call('playStartSession',{gameId:'memory',daily:daily===true});
+ const session=await startSessionWithRetry({gameId:'memory',daily:daily===true});
  if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
  const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
  memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};

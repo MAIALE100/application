@@ -129,6 +129,8 @@ if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
 if "startSessionWithRetry" not in play_js:
     fail("PLAY session-start retry helper is missing")
+if "startRequestId" not in play_js or "startRequestId" not in play_lua or "startRequests" not in play_lua or "START_PENDING" not in play_js:
+    fail("PLAY session-start retries must be idempotent")
 if play_js.count("startSessionWithRetry(") != 13:
     fail("all 12 PLAY games must start through the shared retry/lifecycle wrapper")
 if play_js.count("FlecityBridge.call('playStartSession'") != 1:

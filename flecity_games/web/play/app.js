@@ -5,8 +5,8 @@ const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getEleme
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementCount=document.getElementById('achievementCount'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 const confirmOverlay=document.getElementById('confirmOverlay'),confirmTitle=document.getElementById('confirmTitle'),confirmMessage=document.getElementById('confirmMessage'),confirmCancel=document.getElementById('confirmCancel'),confirmAccept=document.getElementById('confirmAccept');
-const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
-const stopEl=document.getElementById('stopGame'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
+const quickEl=document.getElementById('quickTap'),tapBest=document.getElementById('tapBest'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
+const stopEl=document.getElementById('stopGame'),stopBest=document.getElementById('stopBest'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore'),blockMeta=document.getElementById('blockMeta');
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
@@ -15,7 +15,7 @@ const minesEl=document.getElementById('minesGame'),minesBoard=document.getElemen
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
-const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
+const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchBest=document.getElementById('colorMatchBest'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
 const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
@@ -362,7 +362,7 @@ async function bootstrap(){
 }
 
 /* QUICK TAP */
-function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
+function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapBest.textContent='BEST '+personalBestText('quick_tap');tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
 tapButton.onclick=async()=>{
  if(tapState==='waiting'){
    clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
@@ -399,7 +399,7 @@ function animateStop(){
  stopRaf=requestAnimationFrame(animateStop);
 }
 function openStop(daily=false){
- stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopBest.textContent='BEST '+personalBestText('stop');stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
@@ -1090,7 +1090,7 @@ function colorMatchRounds(seed,count=10){
 function elapsedColorMatch(){return colorMatch?performance.now()-colorMatch.startedAt:0;}
 function updateColorMatchTime(){if(colorMatch&&colorMatch.running)colorMatchTime.textContent=(elapsedColorMatch()/1000).toFixed(1)+'s';}
 function renderColorMatch(){
- colorMatchChoices.innerHTML='';
+ colorMatchChoices.innerHTML='';colorMatchBest.textContent='BEST '+personalBestText('color_match');
  if(!colorMatch||!colorMatch.running){
    colorMatchProgress.textContent='0 / 10';colorMatchTime.textContent='0.0s';colorMatchWord.textContent='READY';colorMatchWord.style.color='';
    return;

@@ -214,6 +214,17 @@ local function notifyRoom(room,excludeSource)
     end
 end
 
+function FlecityGamesParty.GetConfig()
+    return {
+        ok=true,
+        config={
+            roomCodeLength=roomCodeLength(),
+            minPlayers=FlecityGamesConfig.Party.MinPlayers,
+            maxPlayers=FlecityGamesConfig.Party.MaxPlayers
+        }
+    }
+end
+
 function FlecityGamesParty.CreateRoom(source)
     if not FlecityGamesRateLimit.Allow(source,'room_create',FlecityGamesConfig.RateLimits.RoomCreateMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)

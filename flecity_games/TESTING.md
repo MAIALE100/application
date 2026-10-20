@@ -159,13 +159,17 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - AがRoomを作成し、Bが4桁Codeで参加
 - A/B双方のplayer listが同じ
 - Ready状態が双方へ同期
+- 古い状態が新しいRoom状態を巻き戻さない
+- 人数不足・未Ready時はHostの開始ボタンが理由付きで無効
 - Host以外はGame Select/Start不可
 - REACTIONのRevealが概ね同時
 - STOP! BATTLEで同じTargetが表示
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - Hostが切断するとBへHostが即移行
+- 投票済みプレイヤーが切断した場合、その切断プレイヤーの票を集計へ残さない
 - 元Hostが60秒以内に戻ると同Roomへ復帰
+- 切断中の同一キャラクターが別Roomへ重複所属しない
 - Phoneを閉じて開いてもRoomを自動復帰
 
 ---

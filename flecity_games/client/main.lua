@@ -50,6 +50,8 @@ local callbackMap={
     partyAddDrawStroke='flecity_games:party:addDrawStroke',
     partyClearDrawing='flecity_games:party:clearDrawing',
     partySubmitDrawGuess='flecity_games:party:submitDrawGuess',
+    partySubmitTelephoneDrawing='flecity_games:party:submitTelephoneDrawing',
+    partySubmitTelephoneText='flecity_games:party:submitTelephoneText',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

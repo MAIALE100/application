@@ -466,17 +466,19 @@ function renderBlock(){
    const cell=document.createElement('button');
    const valid=!block.board[y][x]&&selectedPiece&&canPlace(selectedPiece,x,y);
    cell.className='block-cell'+(block.board[y][x]?' filled':'')+(valid?' valid-origin':'');
-   cell.disabled=!!block.board[y][x];
+   cell.disabled=block.finished||block.finalizing||!valid;
    cell.setAttribute('aria-label',valid?'ここに置けます':'マス');
    cell.onclick=()=>placeBlock(x,y);blockBoard.appendChild(cell);
  }
  blockPieces.innerHTML='';
  block.pieces.forEach((p,i)=>{
-   const b=document.createElement('button');b.className='piece'+(block.selected===i?' selected':'');b.disabled=!p;
+   const b=document.createElement('button');b.className='piece'+(block.selected===i?' selected':'');b.disabled=block.finished||block.finalizing||!p;
    if(p){const mini=document.createElement('div');mini.className='mini-piece';for(const [x,y] of SHAPES[p.shape]){const d=document.createElement('span');d.style.gridColumn=String(x+1);d.style.gridRow=String(y+1);mini.appendChild(d);}b.appendChild(mini);}
    else b.textContent='USED';
    b.onclick=()=>{block.selected=i;renderBlock();};blockPieces.appendChild(b);
  });
+ blockFinish.disabled=block.finished||block.finalizing;
+ blockNew.disabled=block.finalizing===true;
 }
 async function openBlock(forceNew,daily=false){
  hideAll();blockEl.classList.remove('hidden');
@@ -586,7 +588,10 @@ function renderMerge(){
    if(v>maxTile)maxTile=v;
    d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
- mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile);
+ mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+(merge.finished?' · FINISHED':'');
+ const locked=merge.finished||merge.finalizing;
+ mergeUp.disabled=locked;mergeDown.disabled=locked;mergeLeft.disabled=locked;mergeRight.disabled=locked;
+ mergeFinish.disabled=locked;mergeNew.disabled=merge.finalizing===true;
 }
 async function persistMerge(showError=false){
  if(!merge||merge.finished)return true;
@@ -744,6 +749,8 @@ function renderMines(){
    b.disabled=mines.finished||revealed;b.onclick=()=>touchMine(i);minesBoard.appendChild(b);
  }
  minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');
+ minesMode.disabled=mines.finished||mines.finalizing;
+ minesNew.disabled=mines.finalizing===true;
 }
 async function persistMines(showError=false){
  if(!mines||mines.finished||mines.daily)return true;
@@ -976,6 +983,8 @@ function renderNonogram(){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
    const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
  }
+ nonogramCheck.disabled=nonogram.finished||nonogram.finalizing;
+ nonogramNew.disabled=nonogram.finalizing===true;
  for(let y=0;y<nonogram.size;y++){
    const vals=[];for(let x=0;x<nonogram.size;x++)vals.push(nonogram.solution.has(y*nonogram.size+x));
    const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);

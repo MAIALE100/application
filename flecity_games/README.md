@@ -66,6 +66,7 @@ Implemented:
 - deterministic Daily BLOCK piece sequence
 - deterministic Daily MINES board
 - deterministic Daily NONOGRAM puzzle
+- deterministic Daily MEMORY card layout
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
 - common achievements:
@@ -74,6 +75,7 @@ Implemented:
   - LIGHTNING
   - STACK MASTER
   - BLOCK MASTER
+  - PERFECT MEMORY
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
 - deterministic server replay validation for BLOCK, MERGE, STACK, and MEMORY final scores

@@ -100,7 +100,9 @@ CreateThread(function()
         local phoneVersion=GetResourceMetadata('lb-phone','version',0) or 'unknown'
         local frameworkVersion=FlecityGamesFramework.GetVersion() or 'unknown'
         local databaseVersion=tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown')
+        local artifactVersion=tostring(GetConvar('version','unknown'))
         print(('[FlecityGames] version=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,frameworkVersion,phoneVersion,databaseVersion))
+        print(('[FlecityGames] artifact=%s'):format(artifactVersion))
         print('[FlecityGames] database schema ready')
         for name,fn in pairs(callbacks) do
             exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
@@ -172,6 +174,7 @@ RegisterCommand('game_preflight',function(source)
         ('%s / %s'):format(FlecityGamesConfig.Framework,tostring(FlecityGamesFramework.GetVersion() or 'unknown')))
     check('LB Phone runtime detected',GetResourceState('lb-phone')=='started',
         tostring(GetResourceMetadata('lb-phone','version',0) or 'version metadata unavailable'))
+    check('FiveM artifact runtime',true,tostring(GetConvar('version','unknown')))
 
     local dbOk,dbErr=FlecityGamesDatabase.Ensure()
     check('database bootstrap',dbOk,dbErr)

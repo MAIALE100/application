@@ -842,7 +842,29 @@ stackBack.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackG
 stackNew.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;await openStack();};
 
 /* NONOGRAM */
+const NONOGRAM_PATTERNS_5=[
+ ['01010','11111','11111','01110','00100'],
+ ['00100','00100','11111','00100','00100'],
+ ['00100','01110','11111','01110','00100'],
+ ['00100','01110','11111','10001','11111'],
+ ['00100','01100','11111','01100','00100'],
+ ['10001','10001','00000','10001','01110'],
+ ['10001','10001','10001','01110','00100'],
+ ['00100','01110','11111','00100','00100'],
+ ['10000','11000','11100','11110','11111'],
+ ['10101','01010','10101','01010','10101'],
+ ['11111','10001','10001','10001','11111'],
+ ['10101','11111','01110','01110','11111'],
+ ['00100','01110','11111','01110','10101'],
+ ['00100','01110','11111','01110','00101']
+];
 function seededNonogram(seed,size){
+ if(Number(size)===5){
+   const numeric=Math.max(1,Math.floor(Number(seed)||1));
+   const pattern=NONOGRAM_PATTERNS_5[(numeric-1)%NONOGRAM_PATTERNS_5.length],filled=new Set();
+   pattern.forEach((row,y)=>{[...row].forEach((cell,x)=>{if(cell==='1')filled.add(y*5+x);});});
+   return filled;
+ }
  let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
  const filled=new Set();
  for(let i=0;i<size*size;i++){state=(state*16807)%2147483647;if(((state-1)%100)<45)filled.add(i);}

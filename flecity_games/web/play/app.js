@@ -86,7 +86,8 @@ const achievementLabels={
  '100_games':'100 GAMES · 100回プレイ',
  lightning:'LIGHTNING · QUICK TAP 200ms以下',
  stack_master:'STACK MASTER · STACK 25段以上',
- block_master:'BLOCK MASTER · BLOCK 5,000点以上'
+ block_master:'BLOCK MASTER · BLOCK 5,000点以上',
+ perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア'
 };
 function renderPlatform(data){
  const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);

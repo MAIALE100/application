@@ -573,6 +573,7 @@ async function placeBlock(x,y){
 async function finishBlock(){
  const game=block;if(!game||game.finished||game.finalizing)return;
  game.finished=true;game.finalizing=true;if(block===game)renderBlock();
+ await saveQueue.catch(()=>{});
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
  if(res.ok){if(!game.daily)delete saves.block;if(block===game){showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');renderBlock();}await refreshPlatform();}
@@ -704,6 +705,7 @@ async function moveMerge(direction){
 async function finishMerge(){
  const game=merge;if(!game||game.finished||game.finalizing)return;
  game.finished=true;game.finalizing=true;if(merge===game)renderMerge();
+ await saveQueue.catch(()=>{});
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
  if(res.ok){delete saves.merge;if(merge===game){showScoreResult('merge',res,'MERGE '+res.score+'点');renderMerge();}await refreshPlatform();}
@@ -883,6 +885,7 @@ async function touchMine(index){
 async function finishMines(){
  const game=mines;if(!game||game.finished||game.finalizing)return;
  game.finished=true;game.finalizing=true;clearInterval(minesClock);
+ await saveQueue.catch(()=>{});
  const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,revealed:[...game.revealed]});
  game.finalizing=false;
@@ -1096,6 +1099,8 @@ async function touchNonogram(index){
 nonogramCheck.onclick=async()=>{
  const game=nonogram;if(!game||game.finished||game.finalizing)return;
  game.finalizing=true;nonogramCheck.disabled=true;
+ await saveQueue.catch(()=>{});
+ if(nonogram!==game){game.finalizing=false;return;}
  const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,filled:[...game.filled]});
  game.finalizing=false;if(nonogram===game)nonogramCheck.disabled=false;

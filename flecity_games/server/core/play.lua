@@ -7,8 +7,13 @@ local function gameFor(id)
     if not game or game.app~='play' or game.enabled~=true then return nil end
     return game
 end
-local function newToken(playerIdentifier,gameId)
-    return ('%s:%s:%d:%06d'):format(playerIdentifier,gameId,os.time(),math.random(0,999999))
+local function newToken(_,gameId)
+    return ('play:%s:%d:%06d:%06d'):format(
+        tostring(gameId or 'game'),
+        os.time(),
+        GetGameTimer()%1000000,
+        math.random(0,999999)
+    )
 end
 local function touchProfile(source,playerIdentifier)
     local displayName=FlecityGamesFramework.GetCharacterName(source):sub(1,100)

@@ -930,6 +930,17 @@ function FlecityGamesParty.DebugSelftest()
     }}
     maybeFinishVote(voteRoom)
 
+    local disconnectedVoteMembers={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+    }
+    local disconnectedVoteRoom={members=disconnectedVoteMembers,roundState={
+        token='vote-disconnect',gameId='vote',startedAt=0,startedTick=0,complete=false,
+        submissions={a='c',b='a',c='a'}
+    }}
+    maybeFinishVote(disconnectedVoteRoom)
+
     drawRoom.roundState.guessed={b=true,c=true}
     drawRoom.roundState.guessedAt={b=100,c=200}
     drawRoom.roundState.submissions={b=true,c=true}
@@ -962,6 +973,11 @@ function FlecityGamesParty.DebugSelftest()
         voteAggregation=voteRoom.roundState.complete==true
             and voteRoom.roundState.results.entries[1].memberId=='B'
             and voteRoom.roundState.results.entries[1].votes==2,
+        disconnectedVoteIgnored=disconnectedVoteRoom.roundState.complete==true
+            and disconnectedVoteRoom.roundState.results.entries[1].memberId=='A'
+            and disconnectedVoteRoom.roundState.results.entries[1].votes==1
+            and disconnectedVoteRoom.roundState.results.entries[2].memberId=='C'
+            and disconnectedVoteRoom.roundState.results.entries[2].votes==1,
         wordWolfPrompts=#wordWolfPairs>=6,
         wordWolfPrivacy=wolfA.secretTopic=='猫' and wolfC.secretTopic=='犬' and wolfA.topics==nil and wolfC.topics==nil,
         liarPrompts=#liarPrompts>=4,

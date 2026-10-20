@@ -1,31 +1,17 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PLAY</title>
-  <link rel="stylesheet" href="../shared/app.css">
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PLAY</title><link rel="stylesheet" href="../shared/app.css"></head>
 <body>
-  <main class="wrap">
-    <header class="header">
-      <div><div class="kicker">PLAY WHEN YOU WAIT.</div><h1>PLAY</h1><div class="muted">Quick breaks. Endless runs.</div></div>
-    </header>
-    <section id="status" class="status">Loading…</section>
-    <section id="home">
-      <div class="card"><h2>Available now</h2><p class="muted">Phase 1 CORE is active. Reference games are being validated before the remaining catalog is enabled.</p></div>
-      <div id="games" class="grid"></div>
-    </section>
-    <section id="quickTap" class="card hidden">
-      <div class="big-center">
-        <div class="kicker">QUICK TAP</div>
-        <div id="tapMessage" class="big-number">READY?</div>
-        <button id="tapButton">START</button>
-        <button id="tapBack" class="secondary">BACK</button>
-      </div>
-    </section>
-  </main>
-  <script src="../shared/bridge.js"></script>
-  <script src="./app.js"></script>
-</body>
-</html>
+<main class="wrap">
+<header class="header"><div><div class="kicker">PLAY WHEN YOU WAIT.</div><h1>PLAY</h1><div class="muted">Quick breaks. Endless runs.</div></div></header>
+<section id="status" class="status">Loading…</section>
+<section id="home"><div class="card"><h2>Reference games</h2><p class="muted">QUICK TAP and BLOCK are enabled while the shared CORE is verified.</p></div><div id="games" class="grid"></div></section>
+<section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">READY?</div><button id="tapButton">START</button><button id="tapBack" class="secondary">BACK</button></div></section>
+<section id="blockGame" class="hidden">
+  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div></div><button id="blockBack" class="secondary">BACK</button></div>
+  <div class="card"><div id="blockBoard" class="block-board"></div></div>
+  <div class="card stack"><div class="kicker">PIECES</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">NEW GAME</button><button id="blockFinish" class="danger">END RUN</button></div></div>
+</section>
+</main>
+<script src="../shared/bridge.js"></script><script src="./app.js"></script>
+</body></html>

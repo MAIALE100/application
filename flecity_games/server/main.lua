@@ -1,8 +1,9 @@
-math.randomseed(os.time() + GetGameTimer())
+math.randomseed(os.time()+GetGameTimer())
 
-local callbacks = {
+local callbacks={
     ['flecity_games:play:bootstrap']=function(source) return FlecityGamesPlay.Bootstrap(source) end,
     ['flecity_games:play:startSession']=function(source,data) return FlecityGamesPlay.StartSession(source,data) end,
+    ['flecity_games:play:cancelSession']=function(source,data) return FlecityGamesPlay.CancelSession(source,data) end,
     ['flecity_games:play:save']=function(source,data) return FlecityGamesPlay.Save(source,data) end,
     ['flecity_games:play:submitScore']=function(source,data) return FlecityGamesPlay.SubmitScore(source,data) end,
     ['flecity_games:play:ranking']=function(source,data) return FlecityGamesPlay.Ranking(source,data) end,
@@ -12,6 +13,8 @@ local callbacks = {
     ['flecity_games:party:setReady']=function(source,data) return FlecityGamesParty.SetReady(source,data) end,
     ['flecity_games:party:selectGame']=function(source,data) return FlecityGamesParty.SelectGame(source,data) end,
     ['flecity_games:party:startRound']=function(source) return FlecityGamesParty.StartRound(source) end,
+    ['flecity_games:party:submitReaction']=function(source,data) return FlecityGamesParty.SubmitReaction(source,data) end,
+    ['flecity_games:party:submitVote']=function(source,data) return FlecityGamesParty.SubmitVote(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }
@@ -43,11 +46,7 @@ AddEventHandler('playerDropped',function()
 end)
 
 CreateThread(function()
-    while true do
-        Wait(5000)
-        FlecityGamesPlay.Cleanup()
-        FlecityGamesParty.Cleanup()
-    end
+    while true do Wait(5000) FlecityGamesPlay.Cleanup() FlecityGamesParty.Cleanup() end
 end)
 
 local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
@@ -70,10 +69,7 @@ RegisterCommand('game_healthcheck',function(source)
     local rows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_scores GROUP BY game_id') or {}
     local invalid=0
     for _,row in ipairs(rows) do
-        if not FlecityGamesRegistry.Get(row.game_id) then
-            invalid=invalid+tonumber(row.n or 0)
-            print(('%s invalid game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n)))
-        end
+        if not FlecityGamesRegistry.Get(row.game_id) then invalid=invalid+tonumber(row.n or 0) print(('%s invalid game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n))) end
     end
     print(('%s invalid_score_rows=%d (diagnostic only; no data changed)'):format(prefix,invalid))
 end,false)

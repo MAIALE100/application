@@ -136,6 +136,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 8ペア完成時のみ記録される
 - 選択履歴を改変したクリアは `INVALID_MEMORY_REPLAY` で拒否される
 - ランキングはクリア時間が短い順
+- Dailyでは全員が同じカード配置になる
+- 8手で全ペアを揃えると `PERFECT MEMORY` が解除される
 
 ---
 

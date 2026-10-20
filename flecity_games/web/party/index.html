@@ -23,5 +23,21 @@
 </section>
 <section class="card stack"><div class="kicker">SETTINGS</div><label class="setting-row"><span>SOUND</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>REDUCED MOTION</span><input id="settingMotion" type="checkbox"></label></section>
 </main>
-<script src="../shared/bridge.js"></script><script src="./app.js"></script>
+<script src="../shared/bridge.js"></script>
+<script>
+(()=>{
+  let loaded=false;
+  const loadApp=()=>{
+    if(loaded)return;
+    loaded=true;
+    const script=document.createElement('script');
+    script.src='./app.js';
+    document.body.appendChild(script);
+  };
+  window.addEventListener('message',event=>{
+    if(event.data==='componentsLoaded')loadApp();
+  });
+  if(typeof globalThis.fetchNui==='function'||!window.invokeNative)loadApp();
+})();
+</script>
 </body></html>

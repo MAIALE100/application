@@ -271,10 +271,6 @@ async function persistBlock(showError=false){
  if(res.ok){
    const canonical=res.state||state;
    saves.block={game_id:'block',state:canonical,score:Number(res.score??block.score),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
-   if(res.state){
-     block.board=canonical.board;block.pieces=canonical.pieces;block.score=Number(canonical.score||0);block.combo=Number(canonical.combo||0);
-     block.rngState=Number(canonical.rngState||block.rngState);block.history=Array.isArray(canonical.history)?canonical.history:block.history;
-   }
    return true;
  }
  if(showError)setStatus('BLOCKの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
@@ -390,10 +386,6 @@ async function persistMerge(showError=false){
  if(res.ok){
    const canonical=res.state||state;
    saves.merge={game_id:'merge',state:canonical,score:Number(res.score??merge.score),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
-   if(res.state){
-     merge.board=canonical.board;merge.score=Number(canonical.score||0);merge.moves=Number(canonical.moves||0);
-     merge.rngState=Number(canonical.rngState||merge.rngState);merge.history=Array.isArray(canonical.history)?canonical.history:merge.history;
-   }
    return true;
  }
  if(showError)setStatus('MERGEの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
@@ -491,7 +483,6 @@ async function persistMines(showError=false){
  if(res.ok){
    const canonical=res.state||state;
    saves.mines={game_id:'mines',state:canonical,score:Number(res.score??res.elapsedMs??elapsedMs),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
-   if(res.state){mines.revealed=new Set(canonical.revealed||[]);mines.flags=new Set(canonical.flags||[]);mines.mode=canonical.mode==='flag'?'flag':'reveal';}
    return true;
  }
  if(showError)setStatus('MINESの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
@@ -661,7 +652,6 @@ async function persistNonogram(showError=false){
  if(res.ok){
    const canonical=res.state||state;
    saves.nonogram={game_id:'nonogram',state:canonical,score:Number(res.score??res.elapsedMs??elapsedMs),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
-   if(res.state){nonogram.filled=new Set(canonical.filled||[]);nonogram.crossed=new Set(canonical.crossed||[]);}
    return true;
  }
  if(showError)setStatus('NONOGRAMの保存に失敗しました: '+FlecityErrors.text(res.error),'error');

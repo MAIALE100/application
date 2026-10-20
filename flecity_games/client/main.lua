@@ -35,6 +35,7 @@ local callbackMap={
     playSave='flecity_games:play:save',
     playSubmitScore='flecity_games:play:submitScore',
     playRanking='flecity_games:play:ranking',
+    playStatistics='flecity_games:play:statistics',
     partyCreateRoom='flecity_games:party:createRoom',
     partyJoinRoom='flecity_games:party:joinRoom',
     partyGetRoom='flecity_games:party:getRoom',

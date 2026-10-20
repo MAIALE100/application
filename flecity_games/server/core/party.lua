@@ -251,22 +251,33 @@ function FlecityGamesParty.JoinRoom(source,data)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+
     local current=roomForSource(source)
     if current then return {ok=true,room=snapshot(current,id)} end
+
     local code=tostring(data.code or ''):gsub('%s+','')
     local length=roomCodeLength()
-    if #code~=length or not code:match('^%d+    local room=roomId and rooms[roomId] or nil
+    if #code~=length or not code:match('^%d+$') then return {ok=false,error='INVALID_ROOM_CODE'} end
+
+    local roomId=roomsByCode[code]
+    local room=roomId and rooms[roomId] or nil
     if not room then return {ok=false,error='ROOM_NOT_FOUND'} end
+
     local existing=room.members[id]
     if existing then
         reconnectMember(room,id,source)
         notifyRoom(room,source)
         return {ok=true,reconnected=true,room=snapshot(room,id)}
     end
+
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
+
     nextJoinOrder=nextJoinOrder+1
-    room.members[id]={source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
+    room.members[id]={
+        source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),
+        ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()
+    }
     sourceToRoom[tonumber(source)]=room.id
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}

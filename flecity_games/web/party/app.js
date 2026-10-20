@@ -428,6 +428,11 @@ drawCanvas.onpointerup=async event=>{
  const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points});
  if(!res.ok){status('描画同期失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
 };
+drawCanvas.onpointercancel=event=>{
+ drawStroke=null;
+ try{drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);
+};
 drawClear.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs)return;drawClear.disabled=true;
  const res=await FlecityBridge.call('partyClearDrawing',{token:rs.token});drawClear.disabled=false;
@@ -458,6 +463,11 @@ telephoneCanvas.onpointermove=event=>{
 telephoneCanvas.onpointerup=event=>{
  if(!telephoneStroke)return;const stroke=telephoneStroke;telephoneStroke=null;try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
  if(stroke.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stroke);paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
+};
+telephoneCanvas.onpointercancel=event=>{
+ telephoneStroke=null;
+ try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
 };
 telephoneClear.onclick=()=>{telephoneStroke=null;telephoneStrokes=[];paintCanvas(telephoneCtx,telephoneCanvas,[]);};
 telephoneDrawSubmit.onclick=async()=>{

@@ -365,7 +365,39 @@ local function generateMines(seed,size,mineCount)
     end
     return mines
 end
+local NONOGRAM_PATTERNS_5={
+    {'01010','11111','11111','01110','00100'}, -- heart
+    {'00100','00100','11111','00100','00100'}, -- cross
+    {'00100','01110','11111','01110','00100'}, -- diamond
+    {'00100','01110','11111','10001','11111'}, -- house
+    {'00100','01100','11111','01100','00100'}, -- arrow
+    {'10001','10001','00000','10001','01110'}, -- smile
+    {'10001','10001','10001','01110','00100'}, -- cup
+    {'00100','01110','11111','00100','00100'}, -- tree
+    {'10000','11000','11100','11110','11111'}, -- stairs
+    {'10101','01010','10101','01010','10101'}, -- checker
+    {'11111','10001','10001','10001','11111'}, -- frame
+    {'10101','11111','01110','01110','11111'}, -- crown
+    {'00100','01110','11111','01110','10101'}, -- rocket
+    {'00100','01110','11111','01110','00101'}  -- fish
+}
 local function generateNonogram(seed,size)
+    if tonumber(size)==5 then
+        local numeric=math.max(1,math.floor(tonumber(seed) or 1))
+        local pattern=NONOGRAM_PATTERNS_5[((numeric-1)%#NONOGRAM_PATTERNS_5)+1]
+        local filled={} local count=0
+        for y=0,4 do
+            local row=pattern[y+1]
+            for x=0,4 do
+                if row:sub(x+1,x+1)=='1' then
+                    filled[y*5+x]=true
+                    count=count+1
+                end
+            end
+        end
+        return filled,count
+    end
+
     local state=math.floor(tonumber(seed) or 1)%2147483647
     if state<=0 then state=1 end
     local filled={} local count=0
@@ -1445,6 +1477,7 @@ function FlecityGamesPlay.DebugSelftest()
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,
         stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
+        nonogramCuratedSet=#NONOGRAM_PATTERNS_5==14 and testNonogramCount>0,
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         memoryDeckPairs=memory and memoryReplay and memoryReplay.complete==true and memoryReplay.pairs==8,
         memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,

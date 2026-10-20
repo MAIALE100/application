@@ -26,6 +26,16 @@
   <div class="card"><div id="minesBoard" class="mines-board"></div></div>
   <div class="card stack"><button id="minesMode" class="secondary">MODE: REVEAL</button><button id="minesNew" class="secondary">NEW GAME</button></div>
 </section>
+<section id="stackGame" class="hidden">
+  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div></div><button id="stackBack" class="secondary">BACK</button></div>
+  <div class="card"><div id="stackArena" class="stack-arena"><div id="stackBase" class="stack-base"></div><div id="stackMover" class="stack-mover"></div></div></div>
+  <div class="card stack"><button id="stackDrop">DROP</button><button id="stackNew" class="secondary">NEW GAME</button></div>
+</section>
+<section id="nonogramGame" class="hidden">
+  <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div></div><button id="nonogramBack" class="secondary">BACK</button></div>
+  <div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
+  <div class="card stack"><button id="nonogramCheck">CHECK</button><button id="nonogramNew" class="secondary">NEW PUZZLE</button></div>
+</section>
 </main>
 <script src="../shared/bridge.js"></script><script src="./app.js"></script>
 </body></html>

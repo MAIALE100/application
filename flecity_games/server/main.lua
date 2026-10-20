@@ -90,7 +90,7 @@ local function startupDiagnostics()
     check('lb-phone resource',GetResourceState('lb-phone')=='started')
     check('LB Phone callback API',registeredPhoneCallbacks==expectedPhoneCallbacks)
     check('oxmysql resource',GetResourceState('oxmysql')=='started')
-    check('PLAY registry',#FlecityGamesRegistry.List('play',true)==8)
+    check('PLAY registry',#FlecityGamesRegistry.List('play',true)==9)
     check('PARTY registry',#FlecityGamesRegistry.List('party',true)==8)
 
     for _,tableName in ipairs(requiredTables) do
@@ -200,7 +200,7 @@ RegisterCommand('game_selftest',function(source)
     print(prefix..' begin')
     check('registry PLAY definitions',#FlecityGamesRegistry.List('play',false)==8)
     check('registry PARTY definitions',#FlecityGamesRegistry.List('party',false)==8)
-    check('registry PLAY enabled',#FlecityGamesRegistry.List('play',true)==8)
+    check('registry PLAY enabled',#FlecityGamesRegistry.List('play',true)==9)
     check('registry PARTY enabled',#FlecityGamesRegistry.List('party',true)==8)
 
     for _,tableName in ipairs(requiredTables) do
@@ -270,7 +270,7 @@ RegisterCommand('game_preflight',function(source)
         check('unique score session index',uniqueSession)
     end
 
-    check('PLAY 8/8 enabled',#FlecityGamesRegistry.List('play',true)==8)
+    check('PLAY 9/9 enabled',#FlecityGamesRegistry.List('play',true)==9)
     check('PARTY 8/8 enabled',#FlecityGamesRegistry.List('party',true)==8)
 
     for name,ok in pairs(FlecityGamesText.DebugSelftest()) do check('TEXT '..name,ok==true) end

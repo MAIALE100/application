@@ -50,3 +50,9 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 @media(max-width:360px){.memory-board{gap:6px}.memory-card{font-size:1.3rem}}
 .draw-canvas,#drawCanvas,#telephoneCanvas{width:100%;height:auto;aspect-ratio:18/13;background:#f7f7f7;border-radius:14px;border:1px solid #303641;touch-action:none;display:block}
 .setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:46px;padding:8px 0}.setting-row input[type="checkbox"]{width:24px;height:24px;min-height:24px;flex:0 0 auto;accent-color:#fff}.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+
+.color-match-stage{min-height:300px}
+.color-match-word{font-size:3rem;font-weight:900;letter-spacing:.06em;line-height:1.05;text-align:center}
+.color-match-choices{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.color-match-choice{min-height:58px;background:#242832;color:#fff;border:1px solid #343b47}
+@media(max-width:360px){.color-match-word{font-size:2.45rem}.color-match-choices{gap:8px}}

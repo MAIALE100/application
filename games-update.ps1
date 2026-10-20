@@ -157,7 +157,7 @@ try {
     $registryText = Get-Content $registryPath -Raw
 
     if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
-    if ($bridgeText -notmatch 'globalThis\.fetchNui') { throw 'LB Phone fetchNui bridge check failed.' }
+    if ($bridgeText -notmatch 'globalThis\.fetchNui' -or $bridgeText -notmatch "typeof fetchNui === 'function'") { throw 'LB Phone fetchNui compatibility check failed.' }
     if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
     if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PLAY custom-app loader fallback check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PARTY custom-app loader fallback check failed.' }

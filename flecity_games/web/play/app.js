@@ -1269,7 +1269,7 @@ function memoryDeckFromSeed(seed){
  }
  return deck;
 }
-function elapsedMemory(){return memory?performance.now()-memory.startedAt:0;}
+function elapsedMemory(){return memory&&memory.playStartedAt?performance.now()-memory.playStartedAt:0;}
 function updateMemoryTime(){if(memory)memoryTime.textContent=(elapsedMemory()/1000).toFixed(1)+'s';}
 function renderMemory(){
  if(!memory)return;
@@ -1290,14 +1290,15 @@ async function openMemory(daily=false){
  hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
  const session=await FlecityBridge.call('playStartSession',{gameId:'memory',daily:daily===true});
  if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false,previewing:true,daily:session.daily===true};
- setStatus('1.2秒だけカードを覚えてください。','good');
+ const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
+ setStatus((previewMs/1000).toFixed(1)+'秒だけカードを覚えてください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
  memoryFlipTimer=setTimeout(()=>{
    if(!memory||memory.finished)return;
-   memory.previewing=false;memoryFlipTimer=null;renderMemory();
+   memory.previewing=false;memory.playStartedAt=performance.now();memoryFlipTimer=null;renderMemory();
    setStatus(memory.daily?'デイリーMEMORY開始。同じ配置でタイムを競います。':'MEMORY開始。8組のペアを探してください。','good');
- },1200);
+ },previewMs);
 }
 async function flipMemory(index){
  if(!memory||memory.previewing||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;

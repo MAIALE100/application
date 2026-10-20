@@ -176,6 +176,19 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 10連勝で `HIGH ROLLER` 実績が解除される
 
 
+## SIMON
+
+- START後に4パネルの光る順番が再生される
+- 1Round目は1手、以降1手ずつ長くなる
+- 再生中は入力できず、自分の番だけ押せる
+- 正しい順番を最後まで押すと次Roundへ進む
+- 1回でも間違えるとRun終了
+- 同じSeedなら同じ光る順番になる
+- 到達Round数がランキングへ保存される
+- 入力履歴を改変した送信は `INVALID_SIMON_REPLAY` で拒否される
+- 30Round完走でALL CLEARになる
+
+
 ---
 
 # 2. 複数人確認へ進む条件
@@ -183,7 +196,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 11ゲームが1クライアントで起動
+- PLAY 12ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる

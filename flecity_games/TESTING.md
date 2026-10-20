@@ -150,6 +150,19 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 回答履歴を改変した送信は `INVALID_COLOR_MATCH_REPLAY` で拒否される
 - ランキングはクリア時間が短い順
 
+## NUMBER RUSH
+
+- START後に1〜25が5x5へランダム配置される
+- 1→25の正しい順番だけ進行する
+- 誤タップでMISSが増え、1回につき0.5秒ペナルティ
+- クリア時に実時間＋ペナルティで記録される
+- 同じSeedなら同じ配置になる
+- Dailyでは全員が同じ配置になる
+- タップ履歴を改変した送信は `INVALID_NUMBER_RUSH_REPLAY` で拒否される
+- 3秒未満など成立しないクリア時間はSERVERで拒否される
+- ノーミス12秒以内で `NUMBER ACE` 実績が解除される
+
+
 ---
 
 # 2. 複数人確認へ進む条件
@@ -157,7 +170,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 9ゲームが1クライアントで起動
+- PLAY 10ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる

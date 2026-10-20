@@ -57,8 +57,8 @@ if disabled:
 if "ui_page" in fx:
     fail("fxmanifest must not declare ui_page; LB Phone owns the custom app iframe")
 
-if "globalThis.fetchNui" not in bridge:
-    fail("LB Phone fetchNui bridge is missing")
+if "globalThis.fetchNui" not in bridge or "typeof fetchNui === 'function'" not in bridge:
+    fail("LB Phone fetchNui bridge must support both property and direct-global bindings")
 if "../shared/errors.js" not in play_html or "../shared/errors.js" not in party_html:
     fail("shared error dictionary must be loaded by both apps")
 if "NUI_UNAVAILABLE" not in errors_js or "NOT_IN_ROOM" not in errors_js:

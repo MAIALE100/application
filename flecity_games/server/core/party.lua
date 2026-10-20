@@ -110,11 +110,14 @@ end
 local function reconnectMember(room,id,source)
     local member=room and room.members[id] or nil
     if not member then return false end
-    member.source=tonumber(source)
+    local src=tonumber(source)
+    local previousSource=member.source and tonumber(member.source) or nil
+    if previousSource and previousSource~=src then sourceToRoom[previousSource]=nil end
+    member.source=src
     member.disconnected=false
     member.disconnectedAt=nil
     member.name=FlecityGamesFramework.GetCharacterName(source)
-    sourceToRoom[tonumber(source)]=room.id
+    sourceToRoom[src]=room.id
     migrateHost(room)
     return true
 end

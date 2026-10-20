@@ -644,12 +644,44 @@ local function dailyRankingRows(challenge,limit)
         ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,order,safeLimit)
     return MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
 end
-local function publicDaily(challenge)
+local function personalBestForGame(playerIdentifier,game)
+    if not playerIdentifier or not game or game.supportsRanking~=true then return nil end
+    local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
+    return MySQL.single.await(([[SELECT score,duration_ms,created_at FROM flecity_game_scores
+        WHERE player_identifier=? AND game_id=?
+        AND (metadata_json IS NULL OR metadata_json NOT LIKE '%%"dailyDate":%%')
+        ORDER BY score %s,created_at ASC LIMIT 1]]):format(order),{playerIdentifier,game.id})
+end
+
+local function bestScoresFor(playerIdentifier)
+    local best={}
+    for _,game in ipairs(FlecityGamesRegistry.List('play',true)) do
+        local row=personalBestForGame(playerIdentifier,game)
+        if row then best[game.id]=row end
+    end
+    return best
+end
+
+local function dailyPersonalBest(challenge,playerIdentifier)
+    if not challenge or not playerIdentifier then return nil end
+    local game=gameFor(challenge.gameId)
+    if not game then return nil end
+    local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
+    local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
+    return MySQL.single.await(([[SELECT score,duration_ms,created_at FROM flecity_game_scores
+        WHERE player_identifier=? AND game_id=?
+        AND created_at>=? AND created_at<DATE_ADD(?,INTERVAL 1 DAY)
+        AND metadata_json LIKE ?
+        ORDER BY score %s,created_at ASC LIMIT 1]]):format(order),
+        {playerIdentifier,challenge.gameId,challenge.date,challenge.date,dailyPattern})
+end
+
+local function publicDaily(challenge,playerIdentifier)
     if not challenge then return nil end
     local rows=dailyRankingRows(challenge,FlecityGamesConfig.Play.RankingLimit or 20)
     return {
         date=challenge.date,gameId=challenge.gameId,game=challenge.game,seed=challenge.seed,
-        best=rows[1],ranking=rows
+        best=rows[1],selfBest=dailyPersonalBest(challenge,playerIdentifier),ranking=rows
     }
 end
 
@@ -671,23 +703,13 @@ function FlecityGamesPlay.Bootstrap(source)
         end
     end
 
-    local best={}
-    for _,game in ipairs(FlecityGamesRegistry.List('play',true)) do
-        if game.supportsRanking then
-            local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
-            local row=MySQL.single.await(([[SELECT score,duration_ms,created_at FROM flecity_game_scores
-                WHERE player_identifier=? AND game_id=?
-                AND (metadata_json IS NULL OR metadata_json NOT LIKE '%%"dailyDate":%%')
-                ORDER BY score %s,created_at ASC LIMIT 1]]):format(order),{id,game.id})
-            if row then best[game.id]=row end
-        end
-    end
+    local best=bestScoresFor(id)
 
     return {
         ok=true,
         version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
         games=FlecityGamesRegistry.List('play',false),saves=saves,best=best,
-        daily=publicDaily(dailyChallenge()),statistics=statisticsFor(id),achievements=achievementsFor(id)
+        daily=publicDaily(dailyChallenge(),id),statistics=statisticsFor(id),achievements=achievementsFor(id)
     }
 end
 
@@ -1084,7 +1106,7 @@ end
 function FlecityGamesPlay.Statistics(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    return {ok=true,statistics=statisticsFor(id),achievements=achievementsFor(id),daily=publicDaily(dailyChallenge())}
+    return {ok=true,statistics=statisticsFor(id),achievements=achievementsFor(id),best=bestScoresFor(id),daily=publicDaily(dailyChallenge(),id)}
 end
 
 function FlecityGamesPlay.DebugSelftest()

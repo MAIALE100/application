@@ -211,10 +211,16 @@ function renderPlatform(data){
    row.append(left,right);gameStatRows.appendChild(row);
  });
  achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
- const totalAchievements=Object.keys(achievementLabels).length;
- achievementCount.textContent=String(achievements.length)+'/'+String(totalAchievements);
- if(!achievements.length)achievementRows.innerHTML='<div class="muted">まだ実績はありません。</div>';
- achievements.forEach(a=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent=String(achievementLabels[a.achievement_id]||a.achievement_id);right.textContent='✓';d.append(left,right);achievementRows.appendChild(d);});
+ const unlockedIds=new Set(achievements.map(a=>String(a.achievement_id||'')));
+ const achievementEntries=Object.entries(achievementLabels);
+ achievementCount.textContent=String(unlockedIds.size)+'/'+String(achievementEntries.length);
+ achievementEntries.forEach(([id,label])=>{
+   const unlocked=unlockedIds.has(id);
+   const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+   d.className='player achievement-row'+(unlocked?' unlocked':' locked');
+   left.textContent=String(label);right.textContent=unlocked?'✓':'LOCK';
+   d.append(left,right);achievementRows.appendChild(d);
+ });
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');

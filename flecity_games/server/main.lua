@@ -11,6 +11,7 @@ local callbacks={
     ['flecity_games:play:statistics']=function(source) return FlecityGamesPlay.Statistics(source) end,
     ['flecity_games:profile:getSettings']=function(source) return FlecityGamesProfile.GetSettings(source) end,
     ['flecity_games:profile:updateSettings']=function(source,data) return FlecityGamesProfile.UpdateSettings(source,data) end,
+    ['flecity_games:party:getConfig']=function() return FlecityGamesParty.GetConfig() end,
     ['flecity_games:party:createRoom']=function(source) return FlecityGamesParty.CreateRoom(source) end,
     ['flecity_games:party:joinRoom']=function(source,data) return FlecityGamesParty.JoinRoom(source,data) end,
     ['flecity_games:party:getRoom']=function(source) return FlecityGamesParty.GetRoom(source) end,

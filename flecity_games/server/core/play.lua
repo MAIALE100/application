@@ -1062,12 +1062,32 @@ local function validateScore(game,score)
     return score
 end
 
+local function existingScoreResponse(playerIdentifier,token)
+    if not playerIdentifier or token=='' then return nil end
+    local row=MySQL.single.await([[SELECT score,duration_ms,metadata_json FROM flecity_game_scores
+        WHERE player_identifier=? AND session_token=? LIMIT 1]],{playerIdentifier,token})
+    if not row then return nil end
+    local metadata=json.decode(row.metadata_json or '{}') or {}
+    return {
+        ok=true,
+        score=tonumber(row.score) or row.score,
+        details=metadata,
+        unlocked={},
+        daily=metadata.dailyDate~=nil,
+        duplicate=true
+    }
+end
+
 function FlecityGamesPlay.SubmitScore(source,data)
     if not FlecityGamesRateLimit.Allow(source,'score_submit',FlecityGamesConfig.RateLimits.ScoreSubmitMs) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source) local token=tostring(data.sessionToken or '') local session=sessions[token]
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    if not session or session.playerIdentifier~=id then return {ok=false,error='INVALID_SESSION'} end
+    if not session or session.playerIdentifier~=id then
+        local existing=existingScoreResponse(id,token)
+        if existing then return existing end
+        return {ok=false,error='INVALID_SESSION'}
+    end
     local game=gameFor(session.gameId)
     if not game then sessions[token]=nil return {ok=false,error='GAME_UNAVAILABLE'} end
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil return {ok=false,error='EXPIRED_SESSION'} end
@@ -1208,8 +1228,10 @@ function FlecityGamesPlay.SubmitScore(source,data)
 
     local score=validateScore(game,rawScore)
     if score==nil then return {ok=false,error='INVALID_SCORE'} end
-    if MySQL.scalar.await('SELECT 1 FROM flecity_game_scores WHERE session_token=? LIMIT 1',{token}) then
-        sessions[token]=nil return {ok=false,error='DUPLICATE_SUBMIT'}
+    local existing=existingScoreResponse(id,token)
+    if existing then
+        sessions[token]=nil
+        return existing
     end
 
     local ok,insertId=pcall(function()

@@ -133,6 +133,14 @@ if "submitScoreWithRetry" not in play_js:
     fail("PLAY score submission retry helper is missing")
 if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:
     fail("PLAY phone-hide lifecycle protection is missing")
+if "appEpoch" not in play_js or "APP_SUSPENDED" not in play_js or "APP_SUSPENDED" not in errors_js:
+    fail("PLAY stale session-start cancellation guard is missing")
+if play_js.count("rankingGame.onchange=") != 1 or play_js.count("rankingPeriod.onchange=") != 1:
+    fail("PLAY ranking change handlers must each be assigned exactly once")
+if "finalizing" not in play_js or "記録を保存中です" not in play_js:
+    fail("PLAY score-finalization interaction guards are missing")
+if "competitionRank" not in play_js or "selfRank" not in play_js:
+    fail("PLAY leaderboard self-rank/tie handling is missing")
 if "playActivateSession" not in play_js or "activateMinesTiming" not in play_js or "activateNonogramTiming" not in play_js:
     fail("MINES/NONOGRAM first-action timer flow is missing")
 if "confirmAction" not in play_js or 'id="confirmOverlay"' not in play_html:

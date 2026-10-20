@@ -183,6 +183,10 @@ for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","col
         fail(f"PLAY achievement missing: {marker}")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
+if "NONOGRAM_PATTERNS_5" not in play_lua or "NONOGRAM_PATTERNS_5" not in play_js or "nonogramCuratedSet" not in play_lua:
+    fail("curated NONOGRAM puzzle set is missing")
+if not re.search(r"id='nonogram'[^\n]*version=2", registry):
+    fail("NONOGRAM save version must be 2 for curated puzzles")
 if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:
     fail("MEMORY server replay/selftest is missing")
 if "previewMs=1200" not in play_lua or "memoryPreviewConfigured" not in play_lua:

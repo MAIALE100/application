@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.13.0-test**
+- Resource version: **0.14.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **19/19 enabled**.
+- Initial game registry: **20/20 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,7 +29,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 11/11 enabled
+### PLAY — 12/12 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
@@ -42,6 +42,8 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - COLOR MATCH — 10-round Stroop-style color recognition, server-replayed answer history, time ranking
 - NUMBER RUSH — deterministic 5x5 number hunt, server-replayed tap history, miss penalties, time ranking
 - HIGH & LOW — deterministic number sequence, server-replayed guesses, streak ranking
+
+- SIMON — repeat an increasingly long seeded four-pad sequence; server replay validates every input
 
 ### PARTY — 8/8 enabled
 

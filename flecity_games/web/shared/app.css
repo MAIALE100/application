@@ -111,3 +111,14 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .settings-card summary>span:first-child{display:flex;flex-direction:column;gap:3px}.summary-chevron{font-size:1.2rem;opacity:.55;transition:transform .16s ease}.settings-card[open] .summary-chevron{transform:rotate(180deg)}
 .settings-body{padding:0 16px 10px;border-top:1px solid #262b34}
 @media(max-width:360px){.quick-actions{grid-template-columns:1fr}.game{min-height:96px}.app-header h1{font-size:1.95rem}.stat-tile strong{font-size:1.15rem}}
+
+
+/* PARTY polish */
+.party-entry{padding:15px}.party-entry h2{margin:.18rem 0 .35rem}.party-entry p{margin:.25rem 0 .5rem}
+.party-primary{min-height:52px;font-size:.98rem}
+.join-row{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px}
+.room-hero{padding:14px}.room-code-row{align-items:flex-start}.room-code{font-size:2.45rem;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.choice-hint{font-size:.8rem;line-height:1.4;padding:2px 2px 4px}.choice-button{min-height:52px;text-align:left}
+#lobbyPanel{padding:14px}#roundPanel{padding:14px}
+#players .player{padding:9px 10px}
+@media(max-width:360px){.join-row{grid-template-columns:1fr}.room-code{font-size:2.1rem}}

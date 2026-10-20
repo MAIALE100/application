@@ -181,6 +181,8 @@ if "SELECT s.player_identifier" in play_lua:
     fail("ranking payload must not select internal player_identifier")
 if "dailyNumber(date)" not in play_lua or "dailyDateParsing" not in play_lua:
     fail("Daily date parsing regression guard is missing")
+if "currentDatabaseDate" not in play_lua or "DAILY_EXPIRED" not in play_lua or "DAILY_EXPIRED" not in errors_js:
+    fail("Daily database-date rollover guard is missing")
 if "metadata_json NOT LIKE '%%\"dailyDate\":%%'" not in play_lua:
     fail("normal leaderboard must exclude Daily runs")
 for marker in required_security_markers:

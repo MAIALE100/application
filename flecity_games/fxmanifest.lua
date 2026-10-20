@@ -26,7 +26,6 @@ server_scripts {
     'server/main.lua'
 }
 
-ui_page 'web/play/index.html'
 
 files {
     'web/**/*',

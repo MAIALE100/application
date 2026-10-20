@@ -64,7 +64,7 @@ end
 local function publicRoundState(room,viewerId)
     local rs=room.roundState
     if not rs then return nil end
-    local out={token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false}
+    local out={token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,startedTick=rs.startedTick,complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false}
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
     if rs.gameId=='vote' then out.prompt=rs.prompt end
     if rs.gameId=='stop_battle' then
@@ -288,10 +288,15 @@ function FlecityGamesParty.SubmitReaction(source,data)
 
     local flying=data.flying==true
     local reaction=nil
+    local revealTick=(tonumber(rs.startedTick) or GetGameTimer())+(tonumber(rs.revealAfterMs) or 0)
+    local serverSinceReveal=GetGameTimer()-revealTick
     if not flying then
         reaction=tonumber(data.reactionMs)
         if not reaction or reaction<70 or reaction>3000 then return {ok=false,error='INVALID_REACTION'} end
+        if serverSinceReveal<0 or reaction>serverSinceReveal+350 or serverSinceReveal-reaction>1800 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
         reaction=math.floor(reaction*1000+0.5)/1000
+    elseif serverSinceReveal>250 then
+        return {ok=false,error='FLYING_WINDOW_PASSED'}
     end
 
     rs.submissions[id]={flying=flying,reactionMs=reaction}

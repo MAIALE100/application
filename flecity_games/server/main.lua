@@ -3,6 +3,7 @@ math.randomseed(os.time()+GetGameTimer())
 local callbacks={
     ['flecity_games:play:bootstrap']=function(source) return FlecityGamesPlay.Bootstrap(source) end,
     ['flecity_games:play:startSession']=function(source,data) return FlecityGamesPlay.StartSession(source,data) end,
+    ['flecity_games:play:activateSession']=function(source,data) return FlecityGamesPlay.ActivateSession(source,data) end,
     ['flecity_games:play:cancelSession']=function(source,data) return FlecityGamesPlay.CancelSession(source,data) end,
     ['flecity_games:play:resetSave']=function(source,data) return FlecityGamesPlay.ResetSave(source,data) end,
     ['flecity_games:play:save']=function(source,data) return FlecityGamesPlay.Save(source,data) end,

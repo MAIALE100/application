@@ -948,11 +948,23 @@ local function clearForeignSourceSessions(source,currentIdentifier)
     return removed
 end
 
+local function clearPlayerStartRequests(playerIdentifier)
+    local removed=0
+    for key,request in pairs(startRequests) do
+        if request.playerIdentifier==playerIdentifier then
+            startRequests[key]=nil
+            removed=removed+1
+        end
+    end
+    return removed
+end
+
 function FlecityGamesPlay.Bootstrap(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     clearForeignSourceSessions(source,id)
     clearPlayerSessions(id)
+    clearPlayerStartRequests(id)
     touchProfile(source,id)
 
     local saveRows=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
@@ -998,13 +1010,13 @@ function FlecityGamesPlay.StartSession(source,data)
             end
             startRequests[requestKey]=nil
         end
-        startRequests[requestKey]={pending=true,createdAt=os.time(),source=tonumber(source)}
+        startRequests[requestKey]={pending=true,createdAt=os.time(),source=tonumber(source),playerIdentifier=id}
     end
 
     local function finish(result)
         if requestKey then
             if result and result.ok then
-                startRequests[requestKey]={response=result,createdAt=os.time(),source=tonumber(source)}
+                startRequests[requestKey]={response=result,createdAt=os.time(),source=tonumber(source),playerIdentifier=id}
             else
                 startRequests[requestKey]=nil
             end

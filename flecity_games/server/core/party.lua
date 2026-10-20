@@ -206,10 +206,10 @@ end
 local function notifyRoom(room,excludeSource)
     if not room or not rooms[room.id] then return end
     local excluded=excludeSource and tonumber(excludeSource) or nil
-    for _,member in pairs(room.members) do
+    for viewerId,member in pairs(room.members) do
         local src=member.source and tonumber(member.source) or nil
         if src and not member.disconnected and src~=excluded then
-            TriggerClientEvent('flecity_games:client:partyInvalidate',src)
+            TriggerClientEvent('flecity_games:client:partyUpdate',src,snapshot(room,viewerId))
         end
     end
 end

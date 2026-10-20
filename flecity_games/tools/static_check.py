@@ -149,6 +149,9 @@ if "playActivateSession" not in play_js or "activateMinesTiming" not in play_js 
     fail("MINES/NONOGRAM first-action timer flow is missing")
 if "confirmAction" not in play_js or 'id="confirmOverlay"' not in play_html:
     fail("PLAY destructive reset confirmation is missing")
+for best_id in ("tapBest","stopBest","stackBest","blockBest","mergeBest","minesBest","nonogramBest","memoryBest","colorMatchBest","numberRushBest","highLowBest","simonBest"):
+    if f'id="{best_id}"' not in play_html:
+        fail(f"PLAY game-screen BEST label missing: {best_id}")
 for name, html in (("PLAY", play_html), ("PARTY", party_html)):
     if "componentsLoaded" not in html or "devMode=!window.invokeNative" not in html:
         fail(f"{name} must wait for LB Phone componentsLoaded before bootstrapping")

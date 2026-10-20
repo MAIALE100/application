@@ -133,3 +133,12 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .tic-tac-cell{min-height:0;padding:0;border-radius:15px;background:#242832;color:#fff;border:1px solid #3a404b;font-size:2.35rem;font-weight:900}
 .tic-tac-cell:disabled{opacity:1}.tic-tac-cell:not(:disabled):active{transform:scale(.95)}
 @media(max-width:360px){.tic-tac-board{gap:6px}.tic-tac-cell{font-size:2rem}}
+
+
+/* PLAY confirmation */
+.confirm-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:14px;background:rgba(5,7,10,.72);backdrop-filter:blur(6px)}
+.confirm-overlay.hidden{display:none}
+.confirm-card{width:min(100%,420px);padding:16px;border-radius:18px;background:#181c23;border:1px solid #343a45;box-shadow:0 18px 60px rgba(0,0,0,.42)}
+.confirm-card h2{margin:.25rem 0 .35rem;font-size:1.1rem}.confirm-card p{margin:.15rem 0 1rem;line-height:1.5}
+.confirm-card .row button{min-height:46px}
+.game-best{display:block;margin-top:6px;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:#d7dce5}

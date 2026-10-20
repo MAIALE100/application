@@ -774,7 +774,7 @@ function renderColorMatch(){
    return;
  }
  const round=colorMatch.rounds[colorMatch.index];
- colorMatchProgress.textContent=String(colorMatch.index)+' / '+String(colorMatch.rounds.length);
+ colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length);
  colorMatchWord.textContent=COLOR_MATCH_COLORS[round.word].name;
  colorMatchWord.style.color=COLOR_MATCH_COLORS[round.ink].css;
  COLOR_MATCH_COLORS.forEach((entry,index)=>{
@@ -987,9 +987,11 @@ async function guessHighLow(guess){
  if(correct){
    highLow.streak+=1;tone(720+Math.min(220,highLow.streak*12),35);renderHighLow();
    if(highLow.index>=highLow.maxRounds){await finishHighLow(true);return;}
-   setStatus('正解 · '+highLow.streak+'連勝','good');return;
+   setStatus(highLowLabel(current)+' → '+highLowLabel(nextValue)+' · 正解 · '+highLow.streak+'連勝','good');return;
  }
- renderHighLow();tone(160,80);await finishHighLow(false);
+ renderHighLow();tone(160,80);
+ setStatus(highLowLabel(current)+' → '+highLowLabel(nextValue)+' · 不正解','warn');
+ await finishHighLow(false);
 }
 async function finishHighLow(cleared){
  if(!highLow||highLow.finished)return;
@@ -1037,13 +1039,13 @@ function updateMemoryTime(){if(memory)memoryTime.textContent=(elapsedMemory()/10
 function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
- memoryMeta.textContent=String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES';
+ memoryMeta.textContent=memory.previewing?'記憶中…':String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES';
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
-   const shown=memory.revealed.includes(i),matched=memory.matched.has(i);
-   b.className='memory-card'+(shown?' revealed':'')+(matched?' matched':'');
+   const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);
+   b.className='memory-card'+(shown?' revealed':'')+(matched?' matched':'')+(memory.previewing?' preview':'');
    b.textContent=(shown||matched)?MEMORY_SYMBOLS[memory.deck[i]-1]:'?';
-   b.disabled=memory.finished||memory.busy||matched;
+   b.disabled=memory.previewing||memory.finished||memory.busy||matched;
    b.setAttribute('aria-label',matched?'一致済み':(shown?'カード '+String(memory.deck[i]):'伏せたカード'));
    b.onclick=()=>flipMemory(i);
    memoryBoard.appendChild(b);
@@ -1053,12 +1055,17 @@ async function openMemory(daily=false){
  hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
  const session=await FlecityBridge.call('playStartSession',{gameId:'memory',daily:daily===true});
  if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false,daily:session.daily===true};
- setStatus(memory.daily?'デイリーMEMORY開始。同じ配置でタイムを競います。':'MEMORY開始。8組のペアを探してください。','good');
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false,previewing:true,daily:session.daily===true};
+ setStatus('1.2秒だけカードを覚えてください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
+ memoryFlipTimer=setTimeout(()=>{
+   if(!memory||memory.finished)return;
+   memory.previewing=false;memoryFlipTimer=null;renderMemory();
+   setStatus(memory.daily?'デイリーMEMORY開始。同じ配置でタイムを競います。':'MEMORY開始。8組のペアを探してください。','good');
+ },1200);
 }
 async function flipMemory(index){
- if(!memory||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
+ if(!memory||memory.previewing||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
  memory.revealed.push(index);renderMemory();
  if(memory.revealed.length<2)return;
  const pair=memory.revealed.slice(0,2);memory.history.push(pair);memory.moves+=1;

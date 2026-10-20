@@ -98,6 +98,15 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
+async function submitScoreWithRetry(payload){
+ const snapshot=JSON.parse(JSON.stringify(payload));
+ let res=await FlecityBridge.call('playSubmitScore',snapshot);
+ if(!res.ok&&['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE'].includes(res.error)){
+   await sleep(res.error==='RATE_LIMIT'?800:220);
+   res=await FlecityBridge.call('playSubmitScore',snapshot);
+ }
+ return res;
+}
 function scrollAppTop(){window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});}
 function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
@@ -290,7 +299,7 @@ tapButton.onclick=async()=>{
  if(tapState==='shown'){
    const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
-   const res=await FlecityBridge.call('playSubmitScore',{sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
+   const res=await submitScoreWithRetry({sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
    if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');await refreshPlatform();}
    else{tapMessage.textContent='保存できませんでした';setStatus('スコア拒否: '+FlecityErrors.text(res.error),'error');}
    tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
@@ -324,7 +333,7 @@ stopButton.onclick=async()=>{
  if(stopState==='running'){
    stopState='submitting';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
    const actionMs=Math.max(0,Math.round(performance.now()-stopStartedAt));
-   const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stopSession.sessionToken,score:0,durationMs:actionMs,actionMs});
+   const res=await submitScoreWithRetry({sessionToken:stopSession.sessionToken,score:0,durationMs:actionMs,actionMs});
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
@@ -435,7 +444,7 @@ async function placeBlock(x,y){
 async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
+ const res=await submitScoreWithRetry({sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
  if(res.ok){if(!block.daily)delete saves.block;showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');await refreshPlatform();}
  else{block.finished=false;setStatus('BLOCKを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
@@ -555,7 +564,7 @@ async function moveMerge(direction){
 async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
+ const res=await submitScoreWithRetry({sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
  if(res.ok){delete saves.merge;showScoreResult('merge',res,'MERGE '+res.score+'点');await refreshPlatform();}
  else{merge.finished=false;setStatus('MERGEを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
@@ -687,7 +696,7 @@ async function touchMine(index){
 async function finishMines(){
  if(!mines||mines.finished)return;
  mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
+ const res=await submitScoreWithRetry({sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
  if(res.ok){if(!mines.daily)delete saves.mines;showScoreResult('mines',res,(res.daily?'デイリー · ':'')+'MINES '+(Number(res.score)/1000).toFixed(2)+'s');mines.sessionToken=null;await refreshPlatform();}
  else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINESクリア判定失敗: '+FlecityErrors.text(res.error),'error');}
  renderMines();
@@ -764,7 +773,7 @@ async function openStack(){
 async function finishStack(){
  if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='終了';
  const durationMs=Math.round(elapsedStack());
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs,history:stackGame.history});
+ const res=await submitScoreWithRetry({sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs,history:stackGame.history});
  if(res.ok){showScoreResult('stack',res,'STACK '+res.score+'段');stackGame.sessionToken=null;await refreshPlatform();}
  else{setStatus('STACKスコア拒否: '+FlecityErrors.text(res.error),'error');}
 }
@@ -855,7 +864,7 @@ async function touchNonogram(index){
 }
 nonogramCheck.onclick=async()=>{
  if(!nonogram||nonogram.finished)return;nonogramCheck.disabled=true;const durationMs=Math.round(elapsedNonogram());
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
+ const res=await submitScoreWithRetry({sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
  nonogramCheck.disabled=false;
  if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;showScoreResult('nonogram',res,(res.daily?'デイリー · ':'')+'NONOGRAM '+(Number(res.score)/1000).toFixed(2)+'s');renderNonogram();await refreshPlatform();}
  else if(res.error==='INCORRECT_SOLUTION')setStatus('まだ正解ではありません。','warn');
@@ -949,7 +958,7 @@ async function answerColorMatch(choice){
  if(colorMatch.index>=colorMatch.rounds.length){
    colorMatch.running=false;colorMatch.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
    const durationMs=Math.round(elapsedColorMatch());
-   const res=await FlecityBridge.call('playSubmitScore',{sessionToken:colorMatch.sessionToken,score:durationMs,durationMs,history:colorMatch.history});
+   const res=await submitScoreWithRetry({sessionToken:colorMatch.sessionToken,score:durationMs,durationMs,history:colorMatch.history});
    if(res.ok){
      colorMatch.sessionToken=null;colorMatchProgress.textContent='10 / 10';colorMatchWord.textContent='CLEAR';colorMatchWord.style.color='';
      colorMatchChoices.innerHTML='';colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
@@ -1040,7 +1049,7 @@ async function finishNumberRush(){
  if(!numberRush||numberRush.finished)return;
  numberRush.finished=true;numberRush.running=false;clearInterval(numberRushClock);numberRushClock=null;
  const durationMs=Math.round(performance.now()-numberRush.startedAt);
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:numberRush.sessionToken,score:durationMs+(numberRush.misses*500),durationMs,history:numberRush.history});
+ const res=await submitScoreWithRetry({sessionToken:numberRush.sessionToken,score:durationMs+(numberRush.misses*500),durationMs,history:numberRush.history});
  if(res.ok){
    numberRush.sessionToken=null;
    numberRushTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';
@@ -1129,7 +1138,7 @@ async function finishHighLow(cleared){
  if(!highLow||highLow.finished)return;
  highLow.finished=true;highLow.running=false;highLow.busy=true;renderHighLow();
  const durationMs=Math.max(0,Math.round(performance.now()-highLow.startedAt));
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:highLow.sessionToken,score:highLow.streak,durationMs});
+ const res=await submitScoreWithRetry({sessionToken:highLow.sessionToken,score:highLow.streak,durationMs});
  if(res.ok){
    highLow.sessionToken=null;highLow.busy=false;
    showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝');
@@ -1216,7 +1225,7 @@ async function finishSimon(clearedAll=false){
  const game=simon;if(!game||game.finished)return;
  game.finished=true;game.accepting=false;game.submitting=false;clearTimeout(simonTimer);simonTimer=null;renderSimon();
  const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:game.sessionToken,score:game.cleared,durationMs});
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.cleared,durationMs});
  if(res.ok){
    game.sessionToken=null;simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
    showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
@@ -1342,7 +1351,7 @@ async function finishMemory(){
  if(!memory||memory.finished)return;
  memory.finished=true;memory.busy=true;clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
  const durationMs=Math.round(elapsedMemory());
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:memory.sessionToken,score:durationMs,durationMs,history:memory.history});
+ const res=await submitScoreWithRetry({sessionToken:memory.sessionToken,score:durationMs,durationMs,history:memory.history});
  if(res.ok){
    memory.sessionToken=null;memory.busy=false;showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES');renderMemory();await refreshPlatform();
  }else{

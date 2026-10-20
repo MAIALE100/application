@@ -58,11 +58,12 @@ try {
     $AutoReloadWasInstalled = Test-Path (Join-Path $Destination 'dev-auto-reload.enabled')
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 
-    & robocopy $Source $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP
+    & robocopy $Source $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
     $robocopyCode = $LASTEXITCODE
     if ($robocopyCode -gt 7) {
         throw "robocopy failed with exit code $robocopyCode."
     }
+    $ResourceChanged = $robocopyCode -ne 0
 
     Step 'Verifying copied test build'
     $manifestPath = Join-Path $Destination 'fxmanifest.lua'
@@ -93,8 +94,10 @@ try {
     Write-Host ("Verified build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
 
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
-    $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
-    Set-Content -Path (Join-Path $Destination 'dev-reload.token') -Value $token -NoNewline -Encoding ascii
+    if (-not $AutoReloadWasInstalled -or $ResourceChanged) {
+        $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
+        Set-Content -Path (Join-Path $Destination 'dev-reload.token') -Value $token -NoNewline -Encoding ascii
+    }
 
     Step 'Checking server.cfg'
     if (Test-Path $ServerCfg) {
@@ -112,9 +115,11 @@ try {
     Write-Host "Source : $Source"
     Write-Host "Target : $Destination"
     Write-Host ''
-    if ($AutoReloadWasInstalled) {
-        Write-Host 'Auto-reload is installed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
+    if ($AutoReloadWasInstalled -and $ResourceChanged) {
+        Write-Host 'Resource files changed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
         Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($AutoReloadWasInstalled) {
+        Write-Host 'flecity_games is already current. No resource restart was requested.' -ForegroundColor Green
     } else {
         Write-Host 'ONE-TIME SETUP: run this once in the server console:' -ForegroundColor Yellow
         Write-Host '    restart flecity_games' -ForegroundColor White

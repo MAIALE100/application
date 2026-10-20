@@ -7,12 +7,13 @@ const votePanel=document.getElementById('votePanel'),votePrompt=document.getElem
 const majorityPanel=document.getElementById('majorityPanel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
-const drawCtx=drawCanvas.getContext('2d');
+const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
+const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0;
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false;
+let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
 function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
 function estimatedServerTick(){return performance.now()+serverOffsetMs;}
@@ -25,7 +26,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;resetRoundRuntime();clearInterval(poll);poll=null;
@@ -64,6 +65,14 @@ function renderResults(room){
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':'正解: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    (rs.results.entries||[]).forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>正解</strong>';resultsEl.appendChild(d);});
+ }else if(rs.gameId==='telephone'){
+   (rs.results.chain||[]).forEach((entry,i)=>{
+     const wrap=document.createElement('div');wrap.className='card stack';
+     const head=document.createElement('div');head.className='kicker';head.textContent=(i===0?'START':entry.name)+' · '+String(entry.kind||'').toUpperCase();wrap.appendChild(head);
+     if(entry.kind==='text'){const p=document.createElement('div');p.textContent=entry.text||'';wrap.appendChild(p);}
+     else{const canvas=document.createElement('canvas');canvas.width=320;canvas.height=220;canvas.className='draw-canvas';wrap.appendChild(canvas);paintCanvas(canvas.getContext('2d'),canvas,entry.strokes||[]);}
+     resultsEl.appendChild(wrap);
+   });
  }
 }
 function beginRoundToken(rs){
@@ -137,6 +146,11 @@ function setupDeduction(room){
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);
  });
 }
+function paintCanvas(ctx,canvas,strokes,temp){
+ ctx.fillStyle='#f7f7f7';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';
+ const drawOne=points=>{if(!Array.isArray(points)||points.length<2)return;ctx.beginPath();ctx.moveTo(points[0].x*canvas.width,points[0].y*canvas.height);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x*canvas.width,points[i].y*canvas.height);ctx.stroke();};
+ (strokes||[]).forEach(drawOne);if(temp&&temp.length>1)drawOne(temp);
+}
 function paintDrawStroke(points){
  if(!Array.isArray(points)||points.length<2)return;drawCtx.beginPath();drawCtx.lineWidth=4;drawCtx.lineCap='round';drawCtx.lineJoin='round';drawCtx.strokeStyle='#111';
  drawCtx.moveTo(points[0].x*drawCanvas.width,points[0].y*drawCanvas.height);
@@ -144,8 +158,7 @@ function paintDrawStroke(points){
  drawCtx.stroke();
 }
 function renderDrawCanvas(strokes,temp){
- drawCtx.fillStyle='#f7f7f7';drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
- (strokes||[]).forEach(paintDrawStroke);if(temp&&temp.length>1)paintDrawStroke(temp);
+ paintCanvas(drawCtx,drawCanvas,strokes,temp);
 }
 function setupDraw(room){
  const rs=room.roundState;hideRoundGames();drawPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
@@ -158,6 +171,24 @@ function setupDraw(room){
  drawGuessControls.classList.toggle('hidden',drawIsDrawer||rs.selfGuessed===true);
  if(rs.selfGuessed&&!drawIsDrawer)drawProgress.textContent='正解しました。ほかの参加者を待っています。';
  if(!drawStroke)renderDrawCanvas(rs.strokes||[]);
+}
+function setupTelephone(room){
+ const rs=room.roundState;hideRoundGames();telephonePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
+ const changed=beginRoundToken(rs);if(changed){telephoneStroke=null;telephoneStrokes=[];telephoneText.value='';}
+ if(rs.complete){renderResults(room);return;}
+ const current=room.players.find(p=>p.memberId===rs.currentMemberId);
+ telephoneStatus.textContent='STEP '+Number(rs.step||0)+' / '+Number(rs.totalSteps||0);
+ telephoneHint.textContent=rs.isCurrent?'あなたの番です。':(current?current.name+' の入力を待っています。':'次のプレイヤーを待っています。');
+ telephoneTextPrompt.classList.add('hidden');telephoneCanvas.classList.add('hidden');telephoneDrawControls.classList.add('hidden');telephoneTextControls.classList.add('hidden');
+ if(!rs.isCurrent)return;
+ if(rs.mode==='draw'){
+   telephoneTextPrompt.textContent='これを絵で伝えてください: '+String(rs.promptText||'---');telephoneTextPrompt.classList.remove('hidden');
+   telephoneCanvas.classList.remove('hidden');telephoneDrawControls.classList.remove('hidden');paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes,telephoneStroke);
+ }else{
+   telephoneCanvas.classList.remove('hidden');telephoneTextControls.classList.remove('hidden');
+   paintCanvas(telephoneCtx,telephoneCanvas,rs.promptStrokes||[]);
+   telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
+ }
 }
 function renderRoom(room){
  currentRoom=room;ready=room.selfReady===true;
@@ -175,6 +206,7 @@ function renderRoom(room){
    else if(rs&&rs.gameId==='majority')setupMajority(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
+   else if(rs&&rs.gameId==='telephone')setupTelephone(room);
  }
 }
 async function refresh(){
@@ -260,6 +292,37 @@ async function submitDrawGuess(){
 }
 drawGuessSubmit.onclick=submitDrawGuess;
 drawGuess.onkeydown=e=>{if(e.key==='Enter')submitDrawGuess();};
+function telephonePoint(event){
+ const rect=telephoneCanvas.getBoundingClientRect();
+ return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
+}
+telephoneCanvas.onpointerdown=event=>{
+ const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||!rs.isCurrent||rs.mode!=='draw'||rs.complete)return;
+ telephoneStroke=[telephonePoint(event)];telephoneCanvas.setPointerCapture(event.pointerId);
+};
+telephoneCanvas.onpointermove=event=>{
+ if(!telephoneStroke)return;const p=telephonePoint(event),last=telephoneStroke[telephoneStroke.length-1];
+ if(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<0.006)return;if(telephoneStroke.length<48)telephoneStroke.push(p);
+ paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes,telephoneStroke);
+};
+telephoneCanvas.onpointerup=event=>{
+ if(!telephoneStroke)return;const stroke=telephoneStroke;telephoneStroke=null;try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ if(stroke.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stroke);paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
+};
+telephoneClear.onclick=()=>{telephoneStroke=null;telephoneStrokes=[];paintCanvas(telephoneCtx,telephoneCanvas,[]);};
+telephoneDrawSubmit.onclick=async()=>{
+ const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||rs.mode!=='draw'||!rs.isCurrent)return;
+ if(!telephoneStrokes.length){status('絵を描いてから送信してください。','warn');return;}
+ telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
+ if(!res.ok){status('Drawing submit failed: '+res.error,'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
+};
+async function submitTelephoneText(){
+ const rs=currentRoom&&currentRoom.roundState,value=telephoneText.value.trim();if(!rs||rs.gameId!=='telephone'||rs.mode!=='text'||!rs.isCurrent||!value)return;
+ telephoneTextSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneText',{token:rs.token,text:value});telephoneTextSubmit.disabled=false;
+ if(!res.ok){status('Text submit failed: '+res.error,'error');return;}telephoneText.value='';renderRoom(res.room);
+}
+telephoneTextSubmit.onclick=submitTelephoneText;
+telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
 lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
 leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};

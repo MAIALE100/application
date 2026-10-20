@@ -297,11 +297,15 @@ RegisterCommand('game_status',function(source)
     local scores=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_scores',0) or 0) or 0
     local saves=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_saves',0) or 0) or 0
     local achievements=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_achievements',0) or 0) or 0
+    local dbBytes=tonumber(scalar([[SELECT COALESCE(SUM(data_length+index_length),0)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'flecity_game_%']],0) or 0) or 0
+    local dbMiB=dbBytes/1048576
     print(('%s version=%s build=%s qbox=%s lb-phone=%s(%s) oxmysql=%s db=%s callbacks=%d/%d'):format(
         prefix,version,build:sub(1,12),qbox,phone,GetResourceState('lb-phone'),GetResourceState('oxmysql'),database,
         registeredPhoneCallbacks,expectedPhoneCallbacks))
-    print(('%s play_sessions=%d rooms=%d members=%d scores=%d saves=%d achievements=%d'):format(
-        prefix,playSessions,rooms,members,scores,saves,achievements))
+    print(('%s play_sessions=%d rooms=%d members=%d scores=%d saves=%d achievements=%d db_size=%.2fMiB'):format(
+        prefix,playSessions,rooms,members,scores,saves,achievements,dbMiB))
 end,false)
 
 RegisterCommand('game_healthcheck',function(source)

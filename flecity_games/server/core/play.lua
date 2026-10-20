@@ -246,7 +246,7 @@ local function dailyChallenge()
         local seed=((numeric*48271)%2147483646)+1
         MySQL.query.await([[INSERT IGNORE INTO flecity_game_daily (challenge_date,game_id,seed,config_json)
             VALUES (?,?,?,?)]],{date,candidates[index].id,tostring(seed),json.encode({version=1})})
-        row=MySQL.single.await([[SELECT challenge_date,game_id,seed,config_json
+        row=MySQL.single.await([[SELECT DATE_FORMAT(challenge_date,'%Y-%m-%d') AS challenge_date,game_id,seed,config_json
             FROM flecity_game_daily WHERE challenge_date=? LIMIT 1]],{date})
     end
     if not row then return nil end

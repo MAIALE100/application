@@ -43,6 +43,7 @@ jobs:
 
       - name: Check JavaScript syntax
         run: |
+          node --check flecity_games/web/shared/errors.js
           node --check flecity_games/web/shared/bridge.js
           node --check flecity_games/web/play/app.js
           node --check flecity_games/web/party/app.js

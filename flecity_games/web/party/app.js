@@ -66,3 +66,15 @@ async function submitVote(token,targetMemberId){voteChoices.querySelectorAll('bu
 lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
 leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};
+
+async function bootstrap(){
+ const res=await FlecityBridge.call('partyGetRoom',{});
+ if(res.ok){
+   renderRoom(res.room);beginPolling();
+   if(res.reconnected)status('Room connection restored.','good');
+   return;
+ }
+ showEntry();
+ if(res.error!=='NOT_IN_ROOM')status('Could not restore room: '+res.error,'error');
+}
+bootstrap();

@@ -459,6 +459,7 @@ blockNew.onclick=async()=>{
    if(wasDaily){
      if(block&&!block.finished&&block.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
    }else{
+     await saveQueue.catch(()=>{});
      const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
      if(!reset.ok){setStatus('BLOCKの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
      delete saves.block;
@@ -572,6 +573,7 @@ mergeNew.onclick=async()=>{
  if(!ok)return;
  mergeNew.disabled=true;
  try{
+   await saveQueue.catch(()=>{});
    const reset=await FlecityBridge.call('playResetSave',{gameId:'merge'});
    if(!reset.ok){setStatus('MERGEの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
    delete saves.merge;merge=null;await openMerge(true);
@@ -713,6 +715,7 @@ minesNew.onclick=async()=>{
    if(wasDaily){
      if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
    }else{
+     await saveQueue.catch(()=>{});
      const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});
      if(!reset.ok){setStatus('MINESをリセットできません: '+FlecityErrors.text(reset.error),'error');if(mines&&!mines.finished)minesClock=setInterval(updateMinesTime,250);return;}
      delete saves.mines;
@@ -872,6 +875,7 @@ nonogramNew.onclick=async()=>{
    if(wasDaily){
      if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});
    }else{
+     await saveQueue.catch(()=>{});
      const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});
      if(!reset.ok){setStatus('NONOGRAMをリセットできません: '+FlecityErrors.text(reset.error),'error');if(nonogram&&!nonogram.finished)nonogramClock=setInterval(updateNonogramTime,250);return;}
      delete saves.nonogram;

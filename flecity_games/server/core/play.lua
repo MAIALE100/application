@@ -1011,10 +1011,23 @@ function FlecityGamesPlay.HighLowGuess(source,data)
         sessions[token]=nil
         return {ok=false,error='EXPIRED_SESSION'}
     end
-    if not session.highLow or session.highLow.ended then return {ok=false,error='ROUND_COMPLETE'} end
-    local result=applyHighLowGuess(session.highLow,data.guess)
+
+    local state=session.highLow
+    if not state then return {ok=false,error='INVALID_SESSION'} end
+    local step=math.floor(tonumber(data.step) or -1)
+    local guess=tostring(data.guess or ''):lower()
+    if state.lastStep==step and state.lastResult and state.lastGuess==guess then
+        return state.lastResult
+    end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if step~=#state.history+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+
+    local result=applyHighLowGuess(state,guess)
     if not result then return {ok=false,error='INVALID_CHOICE'} end
     result.ok=true
+    state.lastStep=step
+    state.lastGuess=guess
+    state.lastResult=result
     return result
 end
 
@@ -1030,10 +1043,21 @@ function FlecityGamesPlay.SubmitSimonRound(source,data)
         sessions[token]=nil
         return {ok=false,error='EXPIRED_SESSION'}
     end
-    if not session.simon or session.simon.ended then return {ok=false,error='ROUND_COMPLETE'} end
-    local result=applySimonRound(session.simon,data.inputs)
+
+    local state=session.simon
+    if not state then return {ok=false,error='INVALID_SESSION'} end
+    local round=math.floor(tonumber(data.round) or -1)
+    if state.lastRound==round and state.lastResult then
+        return state.lastResult
+    end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if round~=math.floor(tonumber(state.round) or -2) then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+
+    local result=applySimonRound(state,data.inputs)
     if not result then return {ok=false,error='INVALID_CHOICE'} end
     result.ok=true
+    state.lastRound=round
+    state.lastResult=result
     return result
 end
 
@@ -1519,6 +1543,7 @@ function FlecityGamesPlay.DebugSelftest()
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
         highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 or false,
         highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and #highLowState.history==30 or false,
+        highLowActionIdempotent=highLow and highLowState.lastStep==nil,
         highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
         simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,
         simonServerState=simon and simonServerOk and simonState.ended==true and simonState.cleared==5 or false,

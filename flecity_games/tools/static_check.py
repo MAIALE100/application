@@ -138,8 +138,8 @@ if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:
     fail("COLOR MATCH client implementation is missing")
 if "numberRushBoardFromSeed" not in play_js or "finishNumberRush" not in play_js:
     fail("NUMBER RUSH client implementation is missing")
-if "highLowSequenceFromSeed" not in play_js or "finishHighLow" not in play_js:
-    fail("HIGH & LOW client implementation is missing")
+if "playHighLowGuess" not in play_js or "finishHighLow" not in play_js:
+    fail("HIGH & LOW server-authoritative client flow is missing")
 if "simonSequenceFromSeed" not in play_js or "finishSimon" not in play_js:
     fail("SIMON client implementation is missing")
 
@@ -174,6 +174,8 @@ if "replayNumberRush" not in play_lua or "numberRushReplay" not in play_lua:
     fail("NUMBER RUSH server replay/selftest is missing")
 if "replayHighLow" not in play_lua or "highLowReplay" not in play_lua:
     fail("HIGH & LOW server replay/selftest is missing")
+if "HighLowGuess" not in play_lua or "highLowServerState" not in play_lua or "serverAuthoritative=true" not in play_lua:
+    fail("HIGH & LOW server-authoritative state validation is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")
 

@@ -34,11 +34,17 @@ local telephonePrompts={
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function characterName(source)
-    local value=tostring(characterName(source) or ''):gsub('%c',' '):gsub('%s+',' ')
-    value=value:gsub('^%s+',''):gsub('%s+    local game=FlecityGamesRegistry.Get(id)
+    local value=tostring(FlecityGamesFramework.GetCharacterName(source) or ''):gsub('%c',' '):gsub('%s+',' ')
+    value=value:gsub('^%s+',''):gsub('%s+$','')
+    if value=='' then value=('Player %s'):format(tostring(source)) end
+    return value:sub(1,64)
+end
+local function partyGame(id)
+    local game=FlecityGamesRegistry.Get(id)
     if not game or game.app~='party' or game.enabled~=true then return nil end
     return game
 end
+
 local function makeInternalId() return ('room:%d:%06d:%06d'):format(os.time(),GetGameTimer()%1000000,math.random(0,999999)) end
 local function makeMemberId(room)
     for _=1,50 do

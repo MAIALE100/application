@@ -118,3 +118,23 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 - ranking and achievement writes under real database load
 
 BLOCK and MERGE now submit deterministic operation histories and the server replays them from the server-issued seed before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
+
+
+## Low-effort test-server update workflow
+
+The repository root includes:
+
+- `games-update.cmd`
+- `games-update.ps1`
+
+On the local Flecity test machine, run `games-update.cmd`. It:
+
+1. fetches and pulls `games/platform-core`
+2. mirrors only `flecity_games/` into the configured test-server resource folder
+3. preserves the rest of the server
+4. writes a test-only reload marker
+
+The test copy enables the optional `dev_reload.lua` watcher by creating `dev-auto-reload.enabled` only in the test-server destination. This marker is not committed into the production resource.
+
+The first time the watcher is installed, run `restart flecity_games` once in the server console. After that, future `games-update.cmd` runs update and restart only `flecity_games` automatically; the whole FiveM server does not need to restart.
+

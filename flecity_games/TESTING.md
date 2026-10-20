@@ -32,9 +32,6 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 ---
 
 # 1. 1人で行う確認
----
-
-# 1. 1人で行う確認
 
 ## LB Phone
 
@@ -49,25 +46,32 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 - SOUND / REDUCED MOTIONが保存される
 - TODAY / WEEK / ALL TIMEランキングが開く
+- 選択期間に対応した「あなたのBEST」と順位が表示される
+- 同点は同順位として表示される
+- 上位表示外でも自分の順位行が表示される
 - 同一キャラクターがランキングを複数枠占有しない
 - ゲームカードへ自分のBESTが表示される
 - ゲーム別記録へPlay Count / Play Time / BESTが表示される
 - Daily Challenge、自分のDaily BEST、上位ランキングが表示される
 - Dailyを再度開始しても同日のSeed/問題が変わらない
 - NEW BEST / 実績解除が共通フィードバックで分かる
-- 実績解除数 / 総数が表示される
+- 実績14個がLOCK / ✓で一覧表示され、解除数 / 総数が表示される
 - 連打しても同じゲームが二重Session起動しない
 - 一時的な開始通信失敗は自動再試行される
 - 最終スコア送信は同じSession Tokenで安全に再送でき、二重Scoreにならない
 - 最終送信中にBACK / Phone CloseしてもSessionを先に破棄しない
 - Phoneを閉じると非再開ゲームはSession / Timerが安全停止する
+- Session開始通信の途中でPhoneを閉じても、遅れて返ったSessionが残らない
+- 判定通信 / 最終Score保存中にPhoneを閉じても古い画面状態へ書き戻さない
 - Phoneを閉じるとBLOCK / MERGE / MINES / NONOGRAMは通常プレイを保存してSessionを閉じる
 - Phone再表示までのバックグラウンド時間がスコアへ加算されない
 - 「新しく始める」は本当に進行中保存を消す場合だけ確認を出す
+- 非再開ゲームの進行中にBACK / NEWを押すと破棄確認が出る
+- 各ゲーム画面にルールの短い説明と自己BESTが表示される
+- キーボード / コントローラー操作時にフォーカス位置が見える
 - Reset直前の古いautosaveが後から保存を復活させない
 - Completed / Play Time / AchievementがDBへ反映される
 
-## QUICK TAP
 ## QUICK TAP
 
 - START → WAIT → TAP
@@ -157,7 +161,6 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 8手クリアで PERFECT MEMORY
 
 ## COLOR MATCH
-## COLOR MATCH
 
 - STARTで10問のランが始まる
 - 表示される文字の意味ではなく、文字そのものの色を選ぶ
@@ -207,12 +210,6 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 提出スコア改変は `INVALID_SIMON_REPLAY`
 - 15Round到達で SIMON MASTER
 - 30Round完走でALL CLEAR
-
----
-
-# 2. 複数人確認へ進む条件
-
----
 
 # 2. 複数人確認へ進む条件
 

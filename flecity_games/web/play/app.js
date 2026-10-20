@@ -165,6 +165,17 @@ function personalBestText(gameId){
  const game=gameById(gameId),row=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
  return row&&game?formatGameScore(game,row.score):'---';
 }
+const screenBestIds={
+ quick_tap:'tapBest',stop:'stopBest',stack:'stackBest',block:'blockBest',merge:'mergeBest',mines:'minesBest',
+ nonogram:'nonogramBest',memory:'memoryBest',color_match:'colorMatchBest',number_rush:'numberRushBest',
+ high_low:'highLowBest',simon:'simonBest'
+};
+function refreshScreenBests(){
+ Object.entries(screenBestIds).forEach(([gameId,elementId])=>{
+   const el=document.getElementById(elementId);
+   if(el)el.textContent='BEST '+personalBestText(gameId);
+ });
+}
 function competitionRank(rows,index){
  if(index<=0)return 1;
  const score=Number(rows[index]&&rows[index].score);
@@ -307,6 +318,7 @@ function renderContinue(games){
  });
 }
 function renderGames(games){
+ refreshScreenBests();
  gamesEl.innerHTML='';
  const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
  gameCount.textContent=String(enabled.length);

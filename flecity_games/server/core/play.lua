@@ -211,14 +211,6 @@ local function challengeFor(game,seed)
         state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
     elseif game.id=='mines' then
         challenge.size=8 challenge.mines=10
-    elseif game.id=='block' then
-        local score=replayBlock(session.seed,data.history)
-        if score==nil or score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_BLOCK_REPLAY'} end
-        rawScore=score metadata.moves=#data.history metadata.replayValidated=true
-    elseif game.id=='merge' then
-        local score=replayMerge(session.seed,data.history)
-        if score==nil or score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
-        rawScore=score metadata.moves=#data.history metadata.replayValidated=true
     elseif game.id=='stack' then
         challenge.initialWidthPct=72 challenge.speedPctPerSec=65
     elseif game.id=='nonogram' then
@@ -526,6 +518,16 @@ function FlecityGamesPlay.SubmitScore(source,data)
         rawScore=math.max(0,1000-(distance*10)) durationMs=actionMs
         metadata.markerPct=math.floor(marker*100+0.5)/100
         metadata.targetPct=target metadata.distancePct=math.floor(distance*100+0.5)/100 metadata.actionMs=actionMs
+    elseif game.id=='block' then
+        if type(data.history)~='table' then return {ok=false,error='INVALID_BLOCK_REPLAY'} end
+        local replayed=replayBlock(session.seed,data.history)
+        if replayed==nil or replayed~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_BLOCK_REPLAY'} end
+        rawScore=replayed metadata.moves=#data.history metadata.replayValidated=true
+    elseif game.id=='merge' then
+        if type(data.history)~='table' then return {ok=false,error='INVALID_MERGE_REPLAY'} end
+        local replayed=replayMerge(session.seed,data.history)
+        if replayed==nil or replayed~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
+        rawScore=replayed metadata.moves=#data.history metadata.replayValidated=true
     elseif game.id=='stack' then
         local layers=math.floor(tonumber(data.score) or -1)
         if layers<0 or layers>500 then return {ok=false,error='INVALID_SCORE'} end
@@ -622,6 +624,7 @@ function FlecityGamesPlay.DebugSelftest()
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
+    local blockChallenge=challengeFor(block,12345) local mergeChallenge=challengeFor(merge,12345)
     local opaqueToken=newToken('SECRET_CITIZEN_ID','quick_tap')
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -635,6 +638,8 @@ function FlecityGamesPlay.DebugSelftest()
         blockRejectNegative=block and validateScore(block,-1)==nil or false,
         blockAcceptInteger=block and validateScore(block,120)==120 or false,
         mergeAcceptInteger=merge and validateScore(merge,2048)==2048 or false,
+        blockChallengeClean=type(blockChallenge)=='table' and next(blockChallenge)==nil,
+        mergeChallengeClean=type(mergeChallenge)=='table' and next(mergeChallenge)==nil,
         blockReplayEmpty=replayBlock(12345,{})==0,
         mergeReplayEmpty=replayMerge(12345,{})==0,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,

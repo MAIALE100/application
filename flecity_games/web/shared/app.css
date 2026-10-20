@@ -63,3 +63,10 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .number-rush-cell.done{background:#11141a;color:#777;opacity:.42;transform:scale(.9)}
 .number-rush-cell.wrong{background:#3a2020;color:#ffb3b3;transform:scale(.92)}
 @media(max-width:360px){.number-rush-board{gap:6px}.number-rush-cell{font-size:.92rem}}
+
+
+.high-low-stage{min-height:300px}
+.high-low-card{display:flex;align-items:center;justify-content:center;width:132px;height:164px;border-radius:20px;background:#f3f3f3;color:#111;font-size:4rem;font-weight:900;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.high-low-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.high-low-actions button{min-height:58px}
+@media(max-width:360px){.high-low-card{width:112px;height:144px;font-size:3.3rem}}

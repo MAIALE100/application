@@ -53,6 +53,7 @@ local callbackMap={
     playResetSave='flecity_games:play:resetSave',
     playSave='flecity_games:play:save',
     playSubmitScore='flecity_games:play:submitScore',
+    playHighLowGuess='flecity_games:play:highLowGuess',
     playRanking='flecity_games:play:ranking',
     playStatistics='flecity_games:play:statistics',
     profileGetSettings='flecity_games:profile:getSettings',

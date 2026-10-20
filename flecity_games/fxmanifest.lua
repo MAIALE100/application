@@ -20,6 +20,7 @@ server_scripts {
     'server/bridge/framework.lua',
     'server/core/rate_limit.lua',
     'server/core/database.lua',
+    'server/core/text.lua',
     'server/core/profile.lua',
     'server/core/dev_reload.lua',
     'server/core/play.lua',

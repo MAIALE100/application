@@ -1,3 +1,10 @@
+## Current test candidate
+
+- Resource version: **0.9.1-test**
+- PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
+- Initial game registry: **15/15 enabled**.
+- Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
+
 # Flecity Games
 
 LB Phone game platform with two independent apps:
@@ -43,7 +50,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - DRAW — drawer-private prompt, server-owned strokes and guesses
 - TELEPHONE — sequential private text/drawing chain with final reveal
 
-PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented.
+PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use LB Phone push messages for near-immediate refresh, with a 2.5-second polling fallback.
 
 ## Platform features
 
@@ -70,6 +77,7 @@ Implemented:
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
 - deterministic server replay validation for BLOCK and MERGE final scores
 - autosave bound to the active server session and server-issued seed
+- resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`
 - rate limits and duplicate score-token protection
 

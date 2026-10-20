@@ -44,6 +44,7 @@ local callbackMap={
     playStatistics='flecity_games:play:statistics',
     profileGetSettings='flecity_games:profile:getSettings',
     profileUpdateSettings='flecity_games:profile:updateSettings',
+    partyGetConfig='flecity_games:party:getConfig',
     partyCreateRoom='flecity_games:party:createRoom',
     partyJoinRoom='flecity_games:party:joinRoom',
     partyGetRoom='flecity_games:party:getRoom',

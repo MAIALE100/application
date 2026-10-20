@@ -112,9 +112,34 @@ for marker in required_security_markers:
         fail(f"PLAY security marker missing: {marker}")
 
 party_lua = read("flecity_games/server/core/party.lua")
-for marker in ("wordWolfPrivacy", "liarPrivacy", "drawPrivacy", "telephonePrivacy"):
+for marker in (
+    "wordWolfPrivacy",
+    "liarPrivacy",
+    "drawPrivacy",
+    "telephonePrivacy",
+    "roomRevision",
+    "disconnectedVoteIgnored",
+    "roundAbortLowPlayers",
+    "secretRoleDisconnectAbort",
+):
     if marker not in party_lua:
-        fail(f"PARTY privacy selftest missing: {marker}")
+        fail(f"PARTY selftest missing: {marker}")
+
+expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram"]
+expected_party_order = ["reaction", "stop_battle", "vote", "majority", "word_wolf", "liar", "draw", "telephone"]
+ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
+normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
+play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
+party_order = [game_id for _, game_id, app in normalized_defs if app == "party"]
+if play_order != expected_play_order:
+    fail(f"PLAY registry order mismatch: {play_order}")
+if party_order != expected_party_order:
+    fail(f"PARTY registry order mismatch: {party_order}")
+
+server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
+missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)
+if missing_error_messages:
+    fail(f"shared error dictionary missing codes: {', '.join(missing_error_messages)}")
 
 scan_files = [
     p for p in GAME.rglob("*")

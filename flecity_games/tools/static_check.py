@@ -49,8 +49,8 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 20:
-    fail(f"expected 20 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 21:
+    fail(f"expected 21 enabled games, found {len(enabled)}: {enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -196,12 +196,13 @@ for marker in (
     "disconnectedVoteIgnored",
     "roundAbortLowPlayers",
     "secretRoleDisconnectAbort",
+    "minorityAggregation",
 ):
     if marker not in party_lua:
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["reaction", "stop_battle", "vote", "majority", "word_wolf", "liar", "draw", "telephone"]
+expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "word_wolf", "liar", "draw", "telephone"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]

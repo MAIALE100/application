@@ -66,6 +66,12 @@ if "NUI_UNAVAILABLE" not in errors_js or "NOT_IN_ROOM" not in errors_js:
 
 if "'lb-phone'" not in fx or "'oxmysql'" not in fx:
     fail("fxmanifest dependencies must include lb-phone and oxmysql")
+if "'server/core/text.lua'" not in fx:
+    fail("UTF-8 text helper is not loaded by fxmanifest")
+
+text_lua = read("flecity_games/server/core/text.lua")
+if "utf8.len" not in text_lua or "utf8.offset" not in text_lua or "utf8Truncate" not in text_lua:
+    fail("UTF-8 text helper/selftest is incomplete")
 
 config = read("flecity_games/config/shared.lua")
 identifiers = re.findall(r"identifier\s*=\s*'([^']+)'", config)
@@ -112,6 +118,8 @@ for marker in required_security_markers:
         fail(f"PLAY security marker missing: {marker}")
 
 party_lua = read("flecity_games/server/core/party.lua")
+if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
+    fail("PARTY user text limits must use UTF-8 character length")
 for marker in (
     "wordWolfPrivacy",
     "liarPrivacy",

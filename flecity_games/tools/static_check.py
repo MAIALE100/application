@@ -92,6 +92,7 @@ if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",
     "INVALID_MERGE_REPLAY",
+    "INVALID_STACK_REPLAY",
     "INVALID_SESSION_SEED",
 )
 play_lua = read("flecity_games/server/core/play.lua")

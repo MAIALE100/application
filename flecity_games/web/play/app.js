@@ -353,7 +353,7 @@ async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge())});
- if(res.ok){delete saves.merge;setStatus('MERGE score saved: '+res.score,'good');}
+ if(res.ok){delete saves.merge;setStatus('MERGE score saved: '+res.score,'good');await refreshPlatform();}
  else{merge.finished=false;setStatus('Could not finish MERGE: '+res.error,'error');}
 }
 mergeBack.onclick=async()=>{
@@ -400,33 +400,33 @@ function renderMines(){
  minesMode.textContent='MODE: '+(mines.mode==='flag'?'FLAG':'REVEAL');
 }
 async function persistMines(){
- if(!mines||mines.finished)return;
+ if(!mines||mines.finished||mines.daily)return;
  const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode};
  const elapsedMs=Math.round(elapsedMines());
  const res=await FlecityBridge.call('playSave',{gameId:'mines',state,score:elapsedMs,elapsedMs,seed:String(mines.seed)});
  if(res.ok)saves.mines={game_id:'mines',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(mines.seed)};
 }
-async function openMines(forceNew){
+async function openMines(forceNew,daily=false){
  hideAll();minesEl.classList.remove('hidden');clearInterval(minesClock);
- const saved=!forceNew&&saves.mines;
- const payload={gameId:'mines'};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const saved=!forceNew&&!daily&&saves.mines;
+ const payload={gameId:'mines',daily:daily===true};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
  const session=await FlecityBridge.call('playStartSession',payload);
  if(!session.ok){setStatus('Could not start MINES: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(saved.seed)||Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
-     elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false};
+     elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
    setStatus('MINES continued from auto-save.','good');
  }else{
-   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false};
-   setStatus('New MINES board.','good');
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
+   setStatus(mines.daily?'Daily MINES started.':'New MINES board.','good');
  }
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
 }
 async function loseMines(index){
  if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('Mine hit. Run ended.','warn');
  if(mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
- await FlecityBridge.call('playResetSave',{gameId:'mines'});delete saves.mines;mines.sessionToken=null;
+ if(!mines.daily){await FlecityBridge.call('playResetSave',{gameId:'mines'});delete saves.mines;}mines.sessionToken=null;
 }
 async function touchMine(index){
  if(!mines||mines.finished)return;
@@ -449,7 +449,7 @@ async function finishMines(){
  if(!mines||mines.finished)return;
  mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
- if(res.ok){delete saves.mines;setStatus('MINES cleared in '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;}
+ if(res.ok){if(!mines.daily)delete saves.mines;setStatus((res.daily?'Daily ':'')+'MINES cleared in '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;await refreshPlatform();}
  else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINES clear rejected: '+res.error,'error');}
  renderMines();
 }
@@ -460,10 +460,10 @@ minesBack.onclick=async()=>{
  mines=null;showHome();
 };
 minesNew.onclick=async()=>{
- clearInterval(minesClock);minesClock=null;
+ clearInterval(minesClock);minesClock=null;const wasDaily=!!(mines&&mines.daily);
  if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
- const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('Could not reset MINES: '+reset.error,'error');return;}
- delete saves.mines;mines=null;await openMines(true);
+ if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('Could not reset MINES: '+reset.error,'error');return;}delete saves.mines;}
+ mines=null;await openMines(true,wasDaily);
 };
 
 /* STACK */
@@ -501,7 +501,7 @@ async function finishStack(){
  if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='RUN COMPLETE';
  const durationMs=Math.round(elapsedStack());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs});
- if(res.ok){setStatus('STACK score saved: '+res.score,'good');stackGame.sessionToken=null;}
+ if(res.ok){setStatus('STACK score saved: '+res.score,'good');stackGame.sessionToken=null;await refreshPlatform();}
  else{setStatus('STACK score rejected: '+res.error,'error');}
 }
 stackDrop.onclick=async()=>{
@@ -544,20 +544,20 @@ function renderNonogram(){
  }
 }
 async function persistNonogram(){
- if(!nonogram||nonogram.finished)return;const elapsedMs=Math.round(elapsedNonogram());
+ if(!nonogram||nonogram.finished||nonogram.daily)return;const elapsedMs=Math.round(elapsedNonogram());
  const state={filled:[...nonogram.filled],crossed:[...nonogram.crossed]};
  const res=await FlecityBridge.call('playSave',{gameId:'nonogram',state,score:elapsedMs,elapsedMs,seed:String(nonogram.seed)});
  if(res.ok)saves.nonogram={game_id:'nonogram',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(nonogram.seed)};
 }
-async function openNonogram(forceNew){
+async function openNonogram(forceNew,daily=false){
  hideAll();nonogramEl.classList.remove('hidden');clearInterval(nonogramClock);
- const saved=!forceNew&&saves.nonogram,payload={gameId:'nonogram'};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const saved=!forceNew&&!daily&&saves.nonogram,payload={gameId:'nonogram',daily:daily===true};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
  const session=await FlecityBridge.call('playStartSession',payload);
  if(!session.ok){setStatus('Could not start NONOGRAM: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(saved&&saved.seed)||Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
-   elapsedBase:Number(saved&&saved.elapsed_ms||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false};
- setStatus(saved?'NONOGRAM continued from auto-save.':'New NONOGRAM puzzle.','good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+   elapsedBase:Number(saved&&saved.elapsed_ms||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
+ setStatus(saved?'NONOGRAM continued from auto-save.':(nonogram.daily?'Daily NONOGRAM started.':'New NONOGRAM puzzle.'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  if(!nonogram||nonogram.finished)return;
@@ -570,11 +570,11 @@ nonogramCheck.onclick=async()=>{
  if(!nonogram||nonogram.finished)return;nonogramCheck.disabled=true;const durationMs=Math.round(elapsedNonogram());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
  nonogramCheck.disabled=false;
- if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);delete saves.nonogram;setStatus('NONOGRAM solved in '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();}
+ if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;setStatus((res.daily?'Daily ':'')+'NONOGRAM solved in '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();await refreshPlatform();}
  else if(res.error==='INCORRECT_SOLUTION')setStatus('Not solved yet. Keep going.','warn');
  else setStatus('NONOGRAM check failed: '+res.error,'error');
 };
 nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished){await persistNonogram();if(nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});}nonogram=null;showHome();};
-nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('Could not reset NONOGRAM: '+reset.error,'error');return;}delete saves.nonogram;nonogram=null;await openNonogram(true);};
+nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;const wasDaily=!!(nonogram&&nonogram.daily);if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('Could not reset NONOGRAM: '+reset.error,'error');return;}delete saves.nonogram;}nonogram=null;await openNonogram(true,wasDaily);};
 
 bootstrap();

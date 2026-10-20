@@ -35,7 +35,7 @@ function applySettings(settings){
 async function loadSettings(){const res=await FlecityBridge.call('profileGetSettings',{});if(res.ok)applySettings(res.settings);}
 async function saveSettings(){
  const res=await FlecityBridge.call('profileUpdateSettings',{sound:settingSound.checked,reducedMotion:settingMotion.checked});
- if(res.ok){applySettings(res.settings);tone(520,55);}else status('Settings save failed: '+res.error,'error');
+ if(res.ok){applySettings(res.settings);tone(520,55);}else status('設定を保存できません: '+res.error,'error');
 }
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
@@ -60,7 +60,7 @@ function renderPlayers(room){
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
    const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+p.name;
-   const right=document.createElement('span');right.textContent=p.disconnected?'OFFLINE':(p.ready?'READY':'WAITING');right.className=p.ready?'good':(p.disconnected?'error':'muted');
+   const right=document.createElement('span');right.textContent=p.disconnected?'OFFLINE':(p.ready?'READY':'待機ING');right.className=p.ready?'good':(p.disconnected?'error':'muted');
    row.append(left,right);playersEl.appendChild(row);
  });
 }
@@ -112,9 +112,9 @@ function reactionLoop(){
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
  const rs=currentRoom.roundState,revealTick=Number(rs.startedTick||0)+Number(rs.revealAfterMs||0),until=revealTick-estimatedServerTick();
  if(until>0){
-   reactionState='waiting';reactionMessage.textContent='WAIT';reactionTap.textContent='WAIT…';reactionTap.disabled=false;
+   reactionState='waiting';reactionMessage.textContent='待機';reactionTap.textContent='待機…';reactionTap.disabled=false;
  }else{
-   reactionState='shown';reactionMessage.textContent='TAP!';reactionTap.textContent='TAP!';reactionTap.disabled=false;
+   reactionState='shown';reactionMessage.textContent='タップ!';reactionTap.textContent='タップ!';reactionTap.disabled=false;
  }
  reactionRaf=requestAnimationFrame(reactionLoop);
 }
@@ -122,14 +122,14 @@ function setupReaction(room){
  const rs=room.roundState;hideRoundGames();reactionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  if(rs.complete){renderResults(room);return;}
  beginRoundToken(rs);
- if(rs.selfSubmitted){cancelAnimationFrame(reactionRaf);reactionMessage.textContent='LOCKED';reactionTap.disabled=true;reactionTap.textContent='WAIT FOR OTHERS';reactionState='submitted';return;}
+ if(rs.selfSubmitted){cancelAnimationFrame(reactionRaf);reactionMessage.textContent='入力済み';reactionTap.disabled=true;reactionTap.textContent='ほかの参加者を待っています';reactionState='submitted';return;}
  if(reactionState==='idle')reactionLoop();
 }
 function stopBattleLoop(){
  if(!currentRoom||!currentRoom.roundState||stopBattleState==='submitted')return;
  const rs=currentRoom.roundState,elapsed=estimatedServerTick()-Number(rs.motionStartTick||0);
  if(elapsed<0){
-   stopBattleState='waiting';stopBattleMessage.textContent='WAIT';stopBattleButton.textContent='WAIT…';stopBattleButton.disabled=true;
+   stopBattleState='waiting';stopBattleMessage.textContent='待機';stopBattleButton.textContent='待機…';stopBattleButton.disabled=true;
  }else{
    stopBattleState='running';stopBattleMessage.textContent='STOP!';stopBattleButton.textContent='STOP';stopBattleButton.disabled=false;
    stopBattleMarker.style.left=trianglePosition(elapsed,rs.periodMs,rs.phaseMs)+'%';
@@ -140,16 +140,16 @@ function setupStopBattle(room){
  const rs=room.roundState;hideRoundGames();stopBattlePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  if(rs.complete){renderResults(room);return;}
  beginRoundToken(rs);stopBattleTarget.style.left=String(Number(rs.targetPct)||50)+'%';
- if(rs.selfSubmitted){cancelAnimationFrame(stopBattleRaf);stopBattleMessage.textContent='LOCKED';stopBattleButton.disabled=true;stopBattleButton.textContent='WAIT FOR OTHERS';stopBattleState='submitted';return;}
+ if(rs.selfSubmitted){cancelAnimationFrame(stopBattleRaf);stopBattleMessage.textContent='入力済み';stopBattleButton.disabled=true;stopBattleButton.textContent='ほかの参加者を待っています';stopBattleState='submitted';return;}
  if(stopBattleState==='idle')stopBattleLoop();
 }
-function setupVote(room){
+function setup投票(room){
  const rs=room.roundState;hideRoundGames();votePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
- votePrompt.textContent=rs.prompt||'Vote';voteChoices.innerHTML='';beginRoundToken(rs);
+ votePrompt.textContent=rs.prompt||'投票';voteChoices.innerHTML='';beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){voteChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
-   const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitVote(rs.token,p.memberId);voteChoices.appendChild(b);
+   const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submit投票(rs.token,p.memberId);voteChoices.appendChild(b);
  });
 }
 function setupMajority(room){
@@ -194,7 +194,7 @@ function setupDraw(room){
  if(rs.complete){renderResults(room);return;}
  drawIsDrawer=rs.isDrawer===true;
  const drawer=room.players.find(p=>p.memberId===rs.drawerMemberId);
- drawPrompt.textContent=drawIsDrawer?'お題: '+String(rs.prompt||'---'):(drawer?drawer.name+' が描いています':'DRAWING…');
+ drawPrompt.textContent=drawIsDrawer?'お題: '+String(rs.prompt||'---'):(drawer?drawer.name+' が描いています':'描画中…');
  drawProgress.textContent='正解: '+Number(rs.guessedCount||0)+' / '+Math.max(0,room.connectedCount-1);
  drawDrawerControls.classList.toggle('hidden',!drawIsDrawer);
  drawGuessControls.classList.toggle('hidden',drawIsDrawer||rs.selfGuessed===true);
@@ -225,13 +225,13 @@ function renderRoom(room){
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
-   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;startBtn.disabled=!room.isHost;readyBtn.disabled=false;readyBtn.textContent=ready?'UNREADY':'READY';status('Lobby ready.','good');
+   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;startBtn.disabled=!room.isHost;readyBtn.disabled=false;readyBtn.textContent=ready?'UNREADY':'READY';status('ロビー準備完了。','good');
  }else{
-   lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');lobbyBtn.classList.toggle('hidden',!room.isHost);status('Round '+room.round+' / '+room.selectedGame,'good');
+   lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');lobbyBtn.classList.toggle('hidden',!room.isHost);status('ラウンド '+room.round+' / '+room.selectedGame,'good');
    const rs=room.roundState;
    if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
-   else if(rs&&rs.gameId==='vote')setupVote(room);
+   else if(rs&&rs.gameId==='vote')setup投票(room);
    else if(rs&&rs.gameId==='majority')setupMajority(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
@@ -246,7 +246,7 @@ async function refresh(){
    const res=await FlecityBridge.call('partyGetRoom',{});
    if(!res.ok){
      if(res.error==='NOT_IN_ROOM')showEntry();
-     else status('Room update failed: '+res.error,'error');
+     else status('ルーム更新失敗: '+res.error,'error');
      return;
    }
    renderRoom(res.room);
@@ -285,44 +285,44 @@ window.addEventListener('message',event=>{
  if(message.type==='partyInvalidate')refresh();
 });
 
-createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('Create failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
-joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('Join failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
-readyBtn.onclick=async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('Ready failed: '+res.error,'error');return;}renderRoom(res.room);};
-gameEl.onchange=async()=>{const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('Game change failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);};
-startBtn.onclick=async()=>{const res=await FlecityBridge.call('partyStartRound',{});if(!res.ok){status('Start failed: '+res.error,'error');return;}renderRoom(res.room);};
+createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('ルーム作成失敗: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
+joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('参加失敗: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
+readyBtn.onclick=async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+res.error,'error');return;}renderRoom(res.room);};
+gameEl.onchange=async()=>{const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);};
+startBtn.onclick=async()=>{const res=await FlecityBridge.call('partyStartRound',{});if(!res.ok){status('ゲーム開始失敗: '+res.error,'error');return;}renderRoom(res.room);};
 
 reactionTap.onclick=async()=>{
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
  const rs=currentRoom.roundState,revealTick=Number(rs.startedTick||0)+Number(rs.revealAfterMs||0),serverNow=estimatedServerTick();
  let payload={token:rs.token};
- if(serverNow<revealTick){payload.flying=true;reactionMessage.textContent='FLYING!';}
+ if(serverNow<revealTick){payload.flying=true;reactionMessage.textContent='フライング!';}
  else{payload.flying=false;payload.reactionMs=Math.max(0,serverNow-revealTick);reactionMessage.textContent=payload.reactionMs.toFixed(3)+' ms';}
  reactionState='submitted';cancelAnimationFrame(reactionRaf);reactionTap.disabled=true;
  const res=await FlecityBridge.call('partySubmitReaction',payload);
- if(!res.ok){status('Reaction rejected: '+res.error,'error');reactionState='idle';await refresh();return;}renderRoom(res.room);
+ if(!res.ok){status('REACTION送信失敗: '+res.error,'error');reactionState='idle';await refresh();return;}renderRoom(res.room);
 };
 stopBattleButton.onclick=async()=>{
  if(!currentRoom||!currentRoom.roundState||stopBattleState!=='running')return;
  const rs=currentRoom.roundState,actionMs=Math.max(0,Math.round(estimatedServerTick()-Number(rs.motionStartTick||0)));
- stopBattleState='submitted';cancelAnimationFrame(stopBattleRaf);stopBattleButton.disabled=true;stopBattleMessage.textContent='LOCKED';
+ stopBattleState='submitted';cancelAnimationFrame(stopBattleRaf);stopBattleButton.disabled=true;stopBattleMessage.textContent='入力済み';
  const res=await FlecityBridge.call('partySubmitStopBattle',{token:rs.token,actionMs});
- if(!res.ok){status('STOP! rejected: '+res.error,'error');stopBattleState='idle';await refresh();return;}renderRoom(res.room);
+ if(!res.ok){status('STOP!送信失敗: '+res.error,'error');stopBattleState='idle';await refresh();return;}renderRoom(res.room);
 };
-async function submitVote(token,targetMemberId){
+async function submit投票(token,targetMemberId){
  voteChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
- const res=await FlecityBridge.call('partySubmitVote',{token,targetMemberId});
- if(!res.ok){status('Vote failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+ const res=await FlecityBridge.call('partySubmit投票',{token,targetMemberId});
+ if(!res.ok){status('投票失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
 async function submitMajority(token,choice){
  majorityChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
  const res=await FlecityBridge.call('partySubmitMajority',{token,choice});
- if(!res.ok){status('Majority failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+ if(!res.ok){status('MAJORITY回答失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
 async function submitDeduction(gameId,token,targetMemberId){
  deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
- const action=gameId==='word_wolf'?'partySubmitWordWolfVote':'partySubmitLiarVote';
+ const action=gameId==='word_wolf'?'partySubmitWordWolf投票':'partySubmitLiar投票';
  const res=await FlecityBridge.call(action,{token,targetMemberId});
- if(!res.ok){status('Vote failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+ if(!res.ok){status('投票失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
 function drawPointFromEvent(event){
  const rect=drawCanvas.getBoundingClientRect();
@@ -344,17 +344,17 @@ drawCanvas.onpointerup=async event=>{
  if(points.length<2){renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);return;}
  const rs=currentRoom&&currentRoom.roundState;if(!rs)return;
  const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points});
- if(!res.ok){status('Draw update failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+ if(!res.ok){status('描画同期失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 };
 drawClear.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs)return;drawClear.disabled=true;
  const res=await FlecityBridge.call('partyClearDrawing',{token:rs.token});drawClear.disabled=false;
- if(!res.ok){status('Clear failed: '+res.error,'error');return;}renderRoom(res.room);
+ if(!res.ok){status('消去失敗: '+res.error,'error');return;}renderRoom(res.room);
 };
 async function submitDrawGuess(){
  const rs=currentRoom&&currentRoom.roundState,guess=drawGuess.value.trim();if(!rs||!guess)return;
  drawGuessSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitDrawGuess',{token:rs.token,guess});drawGuessSubmit.disabled=false;
- if(!res.ok){status('Guess failed: '+res.error,'error');return;}
+ if(!res.ok){status('回答送信失敗: '+res.error,'error');return;}
  if(res.correct){drawGuess.value='';status('正解！','good');}else status('違います。もう一度！','warn');
  renderRoom(res.room);
 }
@@ -382,17 +382,17 @@ telephoneDrawSubmit.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||rs.mode!=='draw'||!rs.isCurrent)return;
  if(!telephoneStrokes.length){status('絵を描いてから送信してください。','warn');return;}
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
- if(!res.ok){status('Drawing submit failed: '+res.error,'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
+ if(!res.ok){status('絵の送信失敗: '+res.error,'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
 async function submitTelephoneText(){
  const rs=currentRoom&&currentRoom.roundState,value=telephoneText.value.trim();if(!rs||rs.gameId!=='telephone'||rs.mode!=='text'||!rs.isCurrent||!value)return;
  telephoneTextSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneText',{token:rs.token,text:value});telephoneTextSubmit.disabled=false;
- if(!res.ok){status('Text submit failed: '+res.error,'error');return;}telephoneText.value='';renderRoom(res.room);
+ if(!res.ok){status('文章の送信失敗: '+res.error,'error');return;}telephoneText.value='';renderRoom(res.room);
 }
 telephoneTextSubmit.onclick=submitTelephoneText;
 telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
-lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
-leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};
+lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+res.error,'error');return;}renderRoom(res.room);};
+leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('ルームから退出しました。');};
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
 
 async function bootstrap(){
@@ -401,15 +401,15 @@ async function bootstrap(){
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
-     status(res.error==='PLAYER_NOT_READY'?'Waiting for character…':'Reconnecting PARTY…','warn');
+     status(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'PARTYへ再接続中…','warn');
      setTimeout(bootstrap,1000);
      return;
    }
  }
  await loadSettings();
- if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('Room connection restored.','good');return;}
+ if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('ルームへ再接続しました。','good');return;}
  showEntry();
- if(res.error==='NOT_IN_ROOM')status('PARTY ready · v'+String(partyConfig.version||'unknown'),'good');
- else status('Could not restore room: '+res.error,'error');
+ if(res.error==='NOT_IN_ROOM')status('PARTY 準備完了 · v'+String(partyConfig.version||'unknown'),'good');
+ else status('ルーム復元失敗: '+res.error,'error');
 }
 bootstrap();

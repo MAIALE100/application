@@ -111,6 +111,7 @@ async function launchDaily(){
  else if(daily.gameId==='block')openBlock(true,true);
  else if(daily.gameId==='mines')openMines(true,true);
  else if(daily.gameId==='nonogram')openNonogram(true,true);
+ else if(daily.gameId==='memory')openMemory(true);
 }
 dailyPlay.onclick=launchDaily;
 
@@ -769,12 +770,12 @@ function renderMemory(){
    memoryBoard.appendChild(b);
  }
 }
-async function openMemory(){
+async function openMemory(daily=false){
  hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
- const session=await FlecityBridge.call('playStartSession',{gameId:'memory'});
+ const session=await FlecityBridge.call('playStartSession',{gameId:'memory',daily:daily===true});
  if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false};
- setStatus('MEMORY開始。8組のペアを探してください。','good');
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false,daily:session.daily===true};
+ setStatus(memory.daily?'デイリーMEMORY開始。同じ配置でタイムを競います。':'MEMORY開始。8組のペアを探してください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
 }
 async function flipMemory(index){
@@ -800,7 +801,7 @@ async function finishMemory(){
  const durationMs=Math.round(elapsedMemory());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:memory.sessionToken,score:durationMs,durationMs,history:memory.history});
  if(res.ok){
-   memory.sessionToken=null;memory.busy=false;setStatus('MEMORYクリア: '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES','good');renderMemory();await refreshPlatform();
+   memory.sessionToken=null;memory.busy=false;setStatus((res.daily?'デイリー ':'')+'MEMORYクリア: '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES','good');renderMemory();await refreshPlatform();
  }else{
    memory.finished=false;memory.busy=false;memoryClock=setInterval(updateMemoryTime,200);setStatus('MEMORYクリア判定失敗: '+FlecityErrors.text(res.error),'error');renderMemory();
  }

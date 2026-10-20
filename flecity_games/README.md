@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.9.1-test**
+- Resource version: **0.9.3-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **15/15 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -50,7 +50,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - DRAW — drawer-private prompt, server-owned strokes and guesses
 - TELEPHONE — sequential private text/drawing chain with final reveal
 
-PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use LB Phone push messages for near-immediate refresh, with a 2.5-second polling fallback.
+PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use viewer-safe LB Phone push messages for near-immediate refresh, DRAW uses incremental stroke pushes, and a 10-second poll remains only as recovery fallback.
 
 ## Platform features
 
@@ -75,7 +75,7 @@ Implemented:
   - BLOCK MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
-- deterministic server replay validation for BLOCK and MERGE final scores
+- deterministic server replay validation for BLOCK, MERGE, and STACK final scores
 - autosave bound to the active server session and server-issued seed
 - resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`
@@ -102,8 +102,8 @@ No destructive migration or data deletion is performed by the resource.
 3. Ensure the framework adapter matches the actual server framework.
 4. Add `ensure flecity_games` to the test server config.
 5. Start the resource; the Flecity Games tables are created automatically.
-6. Run `game_preflight` and require `READY_FOR_LIVE_TEST`.
-7. Run `game_selftest` and `game_healthcheck`.
+6. Confirm the automatic startup log reports `startup preflight READY_FOR_LIVE_TEST`.
+7. Use `game_preflight`, `game_selftest`, and `game_healthcheck` only when additional diagnosis is needed.
 8. Follow `TESTING.md` for the one-client smoke test.
 9. Continue to the two-client and three-client PARTY matrix.
 
@@ -125,7 +125,7 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 - Daily Challenge rollover at the server/database date boundary
 - ranking and achievement writes under real database load
 
-BLOCK and MERGE now submit deterministic operation histories and the server replays them from the server-issued seed before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
+BLOCK, MERGE, and STACK now submit deterministic operation/timing histories and the server replays them before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
 
 
 ## Low-effort test-server update workflow
@@ -144,5 +144,5 @@ On the local Flecity test machine, run `games-update.cmd`. It:
 
 The test copy enables the optional `dev_reload.lua` watcher by creating `dev-auto-reload.enabled` only in the test-server destination. This marker is not committed into the production resource.
 
-The first time the watcher is installed, run `restart flecity_games` once in the server console. After that, future `games-update.cmd` runs update and restart only `flecity_games` automatically; the whole FiveM server does not need to restart.
+The first time the watcher is installed, run `restart flecity_games` once in the server console. After that, future `games-update.cmd` runs update only `flecity_games`; it restarts that resource automatically only when resource files actually changed. If nothing changed, no restart is requested. The whole FiveM server does not need to restart.
 

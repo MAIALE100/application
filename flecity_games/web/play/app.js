@@ -43,7 +43,7 @@ async function loadSettings(){
 }
 async function saveSettings(){
  const res=await FlecityBridge.call('profileUpdateSettings',{sound:settingSound.checked,reducedMotion:settingMotion.checked});
- if(res.ok){applySettings(res.settings);tone(520,55);}else setStatus('Settings save failed: '+res.error,'error');
+ if(res.ok){applySettings(res.settings);tone(520,55);}else setStatus('設定を保存できません: '+res.error,'error');
 }
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 function setStatus(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');if(type==='good'&&!/ready/i.test(String(text)))tone();}
@@ -77,7 +77,7 @@ function renderPlatform(data){
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
- const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'Today\'s Best · '+formatGameScore(game,daily.best.score):'No daily score yet.';
+ const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'Today\'s Best · '+formatGameScore(game,daily.best.score):'今日の記録はまだありません。';
  dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
 }
 async function refreshPlatform(){
@@ -99,7 +99,7 @@ function renderGames(games){
  (games||[]).filter(g=>g.app==='play'&&g.enabled).forEach(game=>{
    const btn=document.createElement('button');btn.className='game';
    const hasSave=!!saves[game.id];
-   btn.innerHTML='<span class="tag">'+game.category+'</span><strong>'+game.name+'</strong><span class="muted">'+(hasSave?'CONTINUE AVAILABLE · ':'')+game.description+'</span>';
+   btn.innerHTML='<span class="tag">'+game.category+'</span><strong>'+game.name+'</strong><span class="muted">'+(hasSave?'途中から再開できます · ':'')+game.description+'</span>';
    btn.onclick=()=>{
      if(game.id==='quick_tap')showQuick();
      else if(game.id==='stop')openStop();
@@ -119,11 +119,11 @@ function populateRankingGames(games){
 }
 async function loadRanking(){
  const gameId=rankingGame.value;if(!gameId)return;
- rankingLoad.disabled=true;rankingRows.innerHTML='<div class="muted">Loading…</div>';
+ rankingLoad.disabled=true;rankingRows.innerHTML='<div class="muted">読み込み中…</div>';
  const res=await FlecityBridge.call('playRanking',{gameId,period:rankingPeriod.value});
  rankingLoad.disabled=false;rankingRows.innerHTML='';
- if(!res.ok){rankingRows.innerHTML='<div class="status error">Ranking failed: '+res.error+'</div>';return;}
- if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">No scores yet.</div>';return;}
+ if(!res.ok){rankingRows.innerHTML='<div class="status error">ランキング取得失敗: '+res.error+'</div>';return;}
+ if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">まだ記録がありません。</div>';return;}
  const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
  res.rows.forEach((r,i)=>{
    const d=document.createElement('div');d.className='player';
@@ -141,36 +141,36 @@ async function bootstrap(){
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
-     setStatus(res.error==='PLAYER_NOT_READY'?'Waiting for character…':'Reconnecting PLAY…','warn');
+     setStatus(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'PLAYへ再接続中…','warn');
      setTimeout(bootstrap,1000);
      return;
    }
-   setStatus('Could not load PLAY: '+res.error,'error');
+   setStatus('PLAYを読み込めません: '+res.error,'error');
    return;
  }
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY ready · v'+String(res.version||'unknown'),'good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY 準備完了 · v'+String(res.version||'unknown'),'good');
 }
 
 /* QUICK TAP */
-function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapMessage.textContent=tapDaily?'DAILY READY?':'READY?';tapButton.textContent='START';tapButton.disabled=false;tapState='idle';}
+function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
 tapButton.onclick=async()=>{
  if(tapState==='waiting'){
-   clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='FLYING!';tapButton.textContent='TRY AGAIN';
+   clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
    if(tapSession)await FlecityBridge.call('playCancelSession',{sessionToken:tapSession.sessionToken});tapSession=null;return;
  }
  if(tapState==='shown'){
    const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
    const res=await FlecityBridge.call('playSubmitScore',{sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
-   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'Daily score accepted.':'Score accepted.','good');await refreshPlatform();}
-   else{tapMessage.textContent='NOT SAVED';setStatus('Score rejected: '+res.error,'error');}
-   tapState='idle';tapSession=null;tapButton.textContent='AGAIN';tapButton.disabled=false;return;
+   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'デイリー score accepted.':'スコアを保存しました。','good');await refreshPlatform();}
+   else{tapMessage.textContent='保存できませんでした';setStatus('スコア拒否: '+res.error,'error');}
+   tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
  }
  if(tapState!=='idle')return;
  tapButton.disabled=true;const res=await FlecityBridge.call('playStartSession',{gameId:'quick_tap',daily:tapDaily});
- if(!res.ok){tapButton.disabled=false;setStatus('Could not start: '+res.error,'error');return;}
- tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='WAIT';tapButton.textContent='WAIT…';tapButton.disabled=false;
- tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='TAP!';tapButton.textContent='TAP!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
+ if(!res.ok){tapButton.disabled=false;setStatus('開始できません: '+res.error,'error');return;}
+ tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
+ tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
 };
 tapBack.onclick=async()=>{
  if(tapSession)await FlecityBridge.call('playCancelSession',{sessionToken:tapSession.sessionToken});
@@ -189,7 +189,7 @@ function animateStop(){
  stopRaf=requestAnimationFrame(animateStop);
 }
 function openStop(daily=false){
- stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopMessage.textContent=stopDaily?'DAILY READY?':'READY?';stopButton.textContent='START';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
@@ -199,14 +199,14 @@ stopButton.onclick=async()=>{
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
-     setStatus((res.daily?'Daily ':'')+'STOP! score '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'% away':''),'good');await refreshPlatform();
-   }else{stopMessage.textContent='NOT SAVED';setStatus('STOP! rejected: '+res.error,'error');}
-   stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='AGAIN';return;
+     setStatus((res.daily?'デイリー ':'')+'STOP! スコア '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'% away':''),'good');await refreshPlatform();
+   }else{stopMessage.textContent='保存できませんでした';setStatus('STOP! rejected: '+res.error,'error');}
+   stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';return;
  }
  if(stopState!=='idle')return;
  stopButton.disabled=true;
  const res=await FlecityBridge.call('playStartSession',{gameId:'stop',daily:stopDaily});
- if(!res.ok){stopButton.disabled=false;setStatus('Could not start STOP!: '+res.error,'error');return;}
+ if(!res.ok){stopButton.disabled=false;setStatus('STOP!を開始できません: '+res.error,'error');return;}
  stopSession=res;stopState='running';stopStartedAt=performance.now();
  stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';
  stopMessage.textContent='STOP!';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
@@ -272,17 +272,17 @@ async function openBlock(forceNew,daily=false){
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
      rngState:Number(saved.state.rngState||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:false};
-   if(!block.pieces.length)refillPieces();setStatus('BLOCK continued from auto-save.','good');
+   if(!block.pieces.length)refillPieces();setStatus('BLOCKを途中保存から再開しました。','good');
  }else{
    block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
-   refillPieces();setStatus(block.daily?'Daily BLOCK started.':'New BLOCK run.','good');
+   refillPieces();setStatus(block.daily?'デイリー BLOCK started.':'新しいBLOCKを開始しました。','good');
  }
  renderBlock();
 }
 async function placeBlock(x,y){
  if(!block||block.finished)return;
  const slot=block.selected,piece=block.pieces[slot];
- if(!canPlace(piece,x,y)){setStatus('That piece does not fit there.','warn');return;}
+ if(!canPlace(piece,x,y)){setStatus('そこには置けません。','warn');return;}
  block.history.push([slot,x,y]);
  for(const [dx,dy] of SHAPES[piece.shape])block.board[y+dy][x+dx]=1;
  block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;clearLines();
@@ -294,7 +294,7 @@ async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
- if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'Daily ':'')+'BLOCK score saved: '+res.score,'good');await refreshPlatform();}
+ if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'デイリー ':'')+'BLOCKスコア保存: '+res.score,'good');await refreshPlatform();}
  else{block.finished=false;setStatus('Could not finish BLOCK: '+res.error,'error');}
 }
 blockBack.onclick=async()=>{
@@ -307,7 +307,7 @@ blockNew.onclick=async()=>{
  if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
  if(!wasDaily){
    const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
-   if(!reset.ok){setStatus('Could not reset BLOCK save: '+reset.error,'error');return;}
+   if(!reset.ok){setStatus('BLOCKの保存をリセットできません: '+reset.error,'error');return;}
    delete saves.block;
  }
  block=null;await openBlock(true,wasDaily);
@@ -363,10 +363,10 @@ async function openMerge(forceNew){
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
      history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
-   setStatus('MERGE continued from auto-save.','good');
+   setStatus('MERGEを途中保存から再開しました。','good');
  }else{
    merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
-   spawnMergeTile();spawnMergeTile();setStatus('New MERGE run.','good');
+   spawnMergeTile();spawnMergeTile();setStatus('新しいMERGEを開始しました。','good');
  }
  renderMerge();
 }
@@ -390,7 +390,7 @@ async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
- if(res.ok){delete saves.merge;setStatus('MERGE score saved: '+res.score,'good');await refreshPlatform();}
+ if(res.ok){delete saves.merge;setStatus('MERGEスコア保存: '+res.score,'good');await refreshPlatform();}
  else{merge.finished=false;setStatus('Could not finish MERGE: '+res.error,'error');}
 }
 mergeBack.onclick=async()=>{
@@ -401,7 +401,7 @@ mergeBack.onclick=async()=>{
 mergeNew.onclick=async()=>{
  if(merge&&!merge.finished)await FlecityBridge.call('playCancelSession',{sessionToken:merge.sessionToken});
  const reset=await FlecityBridge.call('playResetSave',{gameId:'merge'});
- if(!reset.ok){setStatus('Could not reset MERGE save: '+reset.error,'error');return;}
+ if(!reset.ok){setStatus('MERGEの保存をリセットできません: '+reset.error,'error');return;}
  delete saves.merge;merge=null;await openMerge(true);
 };
 mergeFinish.onclick=finishMerge;
@@ -453,15 +453,15 @@ async function openMines(forceNew,daily=false){
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
      elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
-   setStatus('MINES continued from auto-save.','good');
+   setStatus('MINESを途中保存から再開しました。','good');
  }else{
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
-   setStatus(mines.daily?'Daily MINES started.':'New MINES board.','good');
+   setStatus(mines.daily?'デイリー MINES started.':'新しいMINESを開始しました。','good');
  }
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
 }
 async function loseMines(index){
- if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('Mine hit. Run ended.','warn');
+ if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('地雷を踏みました。ゲーム終了。','warn');
  if(mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
  if(!mines.daily){await FlecityBridge.call('playResetSave',{gameId:'mines'});delete saves.mines;}mines.sessionToken=null;
 }
@@ -486,8 +486,8 @@ async function finishMines(){
  if(!mines||mines.finished)return;
  mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
- if(res.ok){if(!mines.daily)delete saves.mines;setStatus((res.daily?'Daily ':'')+'MINES cleared in '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;await refreshPlatform();}
- else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINES clear rejected: '+res.error,'error');}
+ if(res.ok){if(!mines.daily)delete saves.mines;setStatus((res.daily?'デイリー ':'')+'MINESクリア: '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;await refreshPlatform();}
+ else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINESクリア判定失敗: '+res.error,'error');}
  renderMines();
 }
 minesMode.onclick=()=>{if(!mines||mines.finished)return;mines.mode=mines.mode==='flag'?'reveal':'flag';renderMines();};
@@ -499,7 +499,7 @@ minesBack.onclick=async()=>{
 minesNew.onclick=async()=>{
  clearInterval(minesClock);minesClock=null;const wasDaily=!!(mines&&mines.daily);
  if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
- if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('Could not reset MINES: '+reset.error,'error');return;}delete saves.mines;}
+ if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('MINESをリセットできません: '+reset.error,'error');return;}delete saves.mines;}
  mines=null;await openMines(true,wasDaily);
 };
 
@@ -532,14 +532,14 @@ async function openStack(){
  if(!session.ok){setStatus('Could not start STACK: '+session.error,'error');showHome();return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  stackGame={sessionToken:session.sessionToken,startedAt:performance.now(),layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,direction:1,lastFrame:0,finished:false};
- stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK started.','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
+ stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK開始。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){
- if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='RUN COMPLETE';
+ if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='終了';
  const durationMs=Math.round(elapsedStack());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs});
- if(res.ok){setStatus('STACK score saved: '+res.score,'good');stackGame.sessionToken=null;await refreshPlatform();}
- else{setStatus('STACK score rejected: '+res.error,'error');}
+ if(res.ok){setStatus('STACKスコア保存: '+res.score,'good');stackGame.sessionToken=null;await refreshPlatform();}
+ else{setStatus('STACKスコア拒否: '+res.error,'error');}
 }
 stackDrop.onclick=async()=>{
  if(!stackGame||stackGame.finished)return;
@@ -594,7 +594,7 @@ async function openNonogram(forceNew,daily=false){
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
- setStatus(saved?'NONOGRAM continued from auto-save.':(nonogram.daily?'Daily NONOGRAM started.':'New NONOGRAM puzzle.'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+ setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリー NONOGRAM started.':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  if(!nonogram||nonogram.finished)return;
@@ -607,11 +607,11 @@ nonogramCheck.onclick=async()=>{
  if(!nonogram||nonogram.finished)return;nonogramCheck.disabled=true;const durationMs=Math.round(elapsedNonogram());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
  nonogramCheck.disabled=false;
- if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;setStatus((res.daily?'Daily ':'')+'NONOGRAM solved in '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();await refreshPlatform();}
- else if(res.error==='INCORRECT_SOLUTION')setStatus('Not solved yet. Keep going.','warn');
- else setStatus('NONOGRAM check failed: '+res.error,'error');
+ if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;setStatus((res.daily?'デイリー ':'')+'NONOGRAMクリア: '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();await refreshPlatform();}
+ else if(res.error==='INCORRECT_SOLUTION')setStatus('まだ正解ではありません。','warn');
+ else setStatus('NONOGRAM判定失敗: '+res.error,'error');
 };
 nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished){await persistNonogram();if(nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});}nonogram=null;showHome();};
-nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;const wasDaily=!!(nonogram&&nonogram.daily);if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('Could not reset NONOGRAM: '+reset.error,'error');return;}delete saves.nonogram;}nonogram=null;await openNonogram(true,wasDaily);};
+nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;const wasDaily=!!(nonogram&&nonogram.daily);if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('NONOGRAMをリセットできません: '+reset.error,'error');return;}delete saves.nonogram;}nonogram=null;await openNonogram(true,wasDaily);};
 
 bootstrap();

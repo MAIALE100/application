@@ -94,6 +94,7 @@ function renderResults(room){
    const reason=String(rs.results.reason||'ROUND_ABORTED');
    if(reason==='NOT_ENOUGH_PLAYERS')box.textContent='参加人数が足りなくなったため、このラウンドを終了しました。';
    else if(reason==='SECRET_PLAYER_LEFT')box.textContent='役職プレイヤーが退出したため、このラウンドを終了しました。';
+   else if(reason==='DRAWER_LEFT')box.textContent='描き手が退出したため、このラウンドを終了しました。';
    else box.textContent='このラウンドは中断されました。';
    resultsEl.appendChild(box);
    return;

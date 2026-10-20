@@ -1068,7 +1068,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
@@ -1120,6 +1120,12 @@ function FlecityGamesPlay.DebugSelftest()
         highLowHistory[#highLowHistory+1]=highLowSequence[i+1]>highLowSequence[i] and 'high' or 'low'
     end
     local highLowReplay=replayHighLow(12345,highLowHistory,30)
+    local simonSequence=generateSimonSequence(12345,5)
+    local simonHistory={}
+    for round=1,5 do
+        for i=1,round do simonHistory[#simonHistory+1]=simonSequence[i] end
+    end
+    local simonReplay=replaySimon(12345,simonHistory,5)
 
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -1155,6 +1161,8 @@ function FlecityGamesPlay.DebugSelftest()
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
         highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 or false,
         highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
+        simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,
+        simonValidateRounds=simon and validateScore(simon,12)==12 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false

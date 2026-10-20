@@ -17,6 +17,14 @@ local majorityPrompts={
     {question='遊びに行くなら？',options={'海','山'}},
     {question='選ぶなら？',options={'スピード','安定感'}}
 }
+local wordWolfPairs={
+    {'コーヒー','紅茶'},{'海','プール'},{'猫','犬'},{'警察','救急隊'},{'スポーツカー','バイク'},
+    {'寿司','焼肉'},{'映画館','ライブ会場'},{'朝','夜'},{'雨','雪'},{'写真','動画'}
+}
+local liarPrompts={
+    '最近一番よく行く場所は？','車を1台だけ選ぶなら何を選ぶ？','休みの日は何をして過ごす？',
+    'Flecityで一番好きな景色は？','急に大金が入ったら最初に何をする？','得意なことを1つ挙げるなら？'
+}
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function partyGame(id)
@@ -34,6 +42,13 @@ local function makeCode()
 end
 local function memberCount(room) local n=0 for _ in pairs(room.members) do n=n+1 end return n end
 local function connectedCount(room) local n=0 for _,m in pairs(room.members) do if not m.disconnected then n=n+1 end end return n end
+local function connectedIdentifiers(room)
+    local list={}
+    for id,m in pairs(room.members) do if not m.disconnected then list[#list+1]={id=id,joinOrder=m.joinOrder} end end
+    table.sort(list,function(a,b) return a.joinOrder<b.joinOrder end)
+    local out={} for _,entry in ipairs(list) do out[#out+1]=entry.id end
+    return out
+end
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -76,6 +91,13 @@ local function publicRoundState(room,viewerId)
     if rs.gameId=='majority' then
         out.prompt=rs.prompt
         out.options=rs.options
+    end
+    if rs.gameId=='word_wolf' then
+        out.secretTopic=rs.topics and rs.topics[viewerId] or nil
+    end
+    if rs.gameId=='liar' then
+        out.prompt=rs.prompt
+        out.role=rs.roles and rs.roles[viewerId] or nil
     end
     if rs.complete then out.results=rs.results end
     return out
@@ -241,6 +263,24 @@ function FlecityGamesParty.StartRound(source)
         local prompt=majorityPrompts[math.random(1,#majorityPrompts)]
         room.roundState.prompt=prompt.question
         room.roundState.options={prompt.options[1],prompt.options[2]}
+    end
+    if game.id=='word_wolf' then
+        local pair=wordWolfPairs[math.random(1,#wordWolfPairs)]
+        local ids=connectedIdentifiers(room)
+        local wolfId=ids[math.random(1,#ids)]
+        room.roundState.wolfIdentifier=wolfId
+        room.roundState.majorityTopic=pair[1]
+        room.roundState.wolfTopic=pair[2]
+        room.roundState.topics={}
+        for _,memberId in ipairs(ids) do room.roundState.topics[memberId]=memberId==wolfId and pair[2] or pair[1] end
+    end
+    if game.id=='liar' then
+        local ids=connectedIdentifiers(room)
+        local liarId=ids[math.random(1,#ids)]
+        room.roundState.liarIdentifier=liarId
+        room.roundState.prompt=liarPrompts[math.random(1,#liarPrompts)]
+        room.roundState.roles={}
+        for _,memberId in ipairs(ids) do room.roundState.roles[memberId]=memberId==liarId and 'LIAR' or 'TRUTH' end
     end
     for _,m in pairs(room.members) do m.ready=false end
     return {ok=true,room=snapshot(room,id)}
@@ -437,6 +477,70 @@ function FlecityGamesParty.SubmitVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+local function maybeFinishWordWolf(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='word_wolf' or rs.complete then return end
+    if completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={}
+    for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local entries={}
+    for id,m in pairs(room.members) do
+        if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end
+    end
+    table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
+    local wolf=room.members[rs.wolfIdentifier]
+    rs.complete=true
+    rs.results={entries=entries,wolfMemberId=wolf and wolf.memberId or nil,majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic}
+end
+
+function FlecityGamesParty.SubmitWordWolfVote(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'word_wolf_vote',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForSource(source)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='word_wolf' then return {ok=false,error='INVALID_ROUND'} end
+    local rs=room.roundState
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
+    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
+    rs.submissions[id]=targetId
+    maybeFinishWordWolf(room)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+local function maybeFinishLiar(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='liar' or rs.complete then return end
+    if completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={}
+    for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local entries={}
+    for id,m in pairs(room.members) do
+        if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end
+    end
+    table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
+    local liar=room.members[rs.liarIdentifier]
+    rs.complete=true
+    rs.results={entries=entries,liarMemberId=liar and liar.memberId or nil,prompt=rs.prompt}
+end
+
+function FlecityGamesParty.SubmitLiarVote(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'liar_vote',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForSource(source)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='liar' then return {ok=false,error='INVALID_ROUND'} end
+    local rs=room.roundState
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
+    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
+    rs.submissions[id]=targetId
+    maybeFinishLiar(room)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
@@ -456,6 +560,8 @@ function FlecityGamesParty.LeaveRoom(source)
         if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
         if room.roundState.gameId=='vote' then maybeFinishVote(room) end
         if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
+        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
+        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
     end
     return {ok=true}
 end
@@ -474,6 +580,8 @@ function FlecityGamesParty.DropSource(source)
         if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
         if room.roundState.gameId=='vote' then maybeFinishVote(room) end
         if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
+        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
+        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
     end
 end
 
@@ -493,6 +601,10 @@ function FlecityGamesParty.Cleanup()
                 if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
                 if room.roundState.gameId=='vote' then maybeFinishVote(room) end
                 if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
+                if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
+                if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
+        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
+        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
             end
         end
     end
@@ -513,7 +625,9 @@ function FlecityGamesParty.DebugSelftest()
         connectedCount=connectedCount(room)==2,
         memberCount=memberCount(room)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
-        majorityPrompts=#majorityPrompts>=4
+        majorityPrompts=#majorityPrompts>=4,
+        wordWolfPrompts=#wordWolfPairs>=6,
+        liarPrompts=#liarPrompts>=4
     }
 end
 

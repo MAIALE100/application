@@ -47,6 +47,9 @@ local callbackMap={
     partySubmitMajority='flecity_games:party:submitMajority',
     partySubmitWordWolfVote='flecity_games:party:submitWordWolfVote',
     partySubmitLiarVote='flecity_games:party:submitLiarVote',
+    partyAddDrawStroke='flecity_games:party:addDrawStroke',
+    partyClearDrawing='flecity_games:party:clearDrawing',
+    partySubmitDrawGuess='flecity_games:party:submitDrawGuess',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

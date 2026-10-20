@@ -144,6 +144,14 @@ local function connectedIdentifiers(room)
     local out={} for _,entry in ipairs(list) do out[#out+1]=entry.id end
     return out
 end
+
+local function rotatedIdentifiers(ids,startIndex)
+    if type(ids)~='table' or #ids<1 then return {} end
+    local start=math.max(1,math.min(#ids,math.floor(tonumber(startIndex) or 1)))
+    local out={}
+    for offset=0,#ids-1 do out[#out+1]=ids[((start-1+offset)%#ids)+1] end
+    return out
+end
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -372,7 +380,7 @@ function FlecityGamesParty.CreateRoom(source)
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},createdAt=os.time()}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=os.time()}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -499,9 +507,11 @@ function FlecityGamesParty.StartRound(source)
     end
     if game.id=='word_wolf' then
         local pair=pickRoomPrompt(room,'word_wolf',wordWolfPairs)
+        local majorityTopic,wolfTopic=pair[1],pair[2]
+        if math.random(0,1)==1 then majorityTopic,wolfTopic=wolfTopic,majorityTopic end
         local ids=connectedIdentifiers(room) local wolfId=ids[math.random(1,#ids)]
-        rs.wolfIdentifier=wolfId rs.majorityTopic=pair[1] rs.wolfTopic=pair[2] rs.topics={}
-        for _,memberId in ipairs(ids) do rs.topics[memberId]=memberId==wolfId and pair[2] or pair[1] end
+        rs.wolfIdentifier=wolfId rs.majorityTopic=majorityTopic rs.wolfTopic=wolfTopic rs.topics={}
+        for _,memberId in ipairs(ids) do rs.topics[memberId]=memberId==wolfId and wolfTopic or majorityTopic end
     end
     if game.id=='liar' then
         local ids=connectedIdentifiers(room) local liarId=ids[math.random(1,#ids)]
@@ -510,12 +520,17 @@ function FlecityGamesParty.StartRound(source)
     end
     if game.id=='draw' then
         local ids=connectedIdentifiers(room)
-        rs.drawerIdentifier=ids[((room.round-1)%#ids)+1]
+        room.rotation=room.rotation or {draw=0,telephone=0}
+        room.rotation.draw=((tonumber(room.rotation.draw) or 0)%#ids)+1
+        rs.drawerIdentifier=ids[room.rotation.draw]
         rs.prompt=pickRoomPrompt(room,'draw',drawPrompts)
         rs.strokes={} rs.guessed={} rs.guessedAt={}
     end
     if game.id=='telephone' then
-        rs.turnOrder=connectedIdentifiers(room)
+        local ids=connectedIdentifiers(room)
+        room.rotation=room.rotation or {draw=0,telephone=0}
+        room.rotation.telephone=((tonumber(room.rotation.telephone) or 0)%#ids)+1
+        rs.turnOrder=rotatedIdentifiers(ids,room.rotation.telephone)
         rs.step=1 rs.mode='draw' rs.currentIdentifier=rs.turnOrder[1]
         rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
     end
@@ -976,6 +991,7 @@ end
 function FlecityGamesParty.DebugSelftest()
     local promptRoom={promptIndexes={test=1}}
     local noRepeatPrompt=pickRoomPrompt(promptRoom,'test',{'A','B'})
+    local rotated=rotatedIdentifiers({'a','b','c'},2)
 
     local revisionRoom={revision=3}
     local revisionValue=bumpRoom(revisionRoom)
@@ -1108,6 +1124,7 @@ function FlecityGamesParty.DebugSelftest()
 
     return {
         promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
+        turnRotation=rotated[1]=='b' and rotated[2]=='c' and rotated[3]=='a',
         roomRevision=revisionValue==4 and revisionRoom.revision==4,
         hostMigration=hostRoom.hostIdentifier=='second',
         connectedCount=connectedCount(hostRoom)==2,

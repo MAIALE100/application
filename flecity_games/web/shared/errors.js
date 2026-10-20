@@ -78,7 +78,11 @@ window.FlecityErrors = {
 
     text(code) {
         const key = String(code || 'UNKNOWN_ERROR');
-        const message = this.messages[key] || '処理に失敗しました';
-        return message + ' (' + key + ')';
+        return this.messages[key] || '処理に失敗しました。もう一度お試しください';
+    },
+
+    debug(code) {
+        const key = String(code || 'UNKNOWN_ERROR');
+        return (this.messages[key] || '処理に失敗しました') + ' (' + key + ')';
     }
 };

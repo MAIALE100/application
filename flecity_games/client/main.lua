@@ -31,6 +31,7 @@ local callbackMap={
     playBootstrap='flecity_games:play:bootstrap',
     playStartSession='flecity_games:play:startSession',
     playCancelSession='flecity_games:play:cancelSession',
+    playResetSave='flecity_games:play:resetSave',
     playSave='flecity_games:play:save',
     playSubmitScore='flecity_games:play:submitScore',
     playRanking='flecity_games:play:ranking',

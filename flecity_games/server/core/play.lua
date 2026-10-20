@@ -2,6 +2,7 @@ FlecityGamesPlay = FlecityGamesPlay or {}
 local sessions={}
 local sessionCounter=0
 local saveEpochs={}
+local startRequests={}
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function gameFor(id)
@@ -960,81 +961,122 @@ local function clearForeignSourceSessions(source,currentIdentifier)
 end
 
 function FlecityGamesPlay.StartSession(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'play_start',FlecityGamesConfig.RateLimits.PlayStartMs) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then data={} end
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    clearForeignSourceSessions(source,id)
 
-    local game=gameFor(data.gameId)
-    local dailyDate=nil
-    local seed=nil
-    if data.daily==true then
-        local daily=dailyChallenge()
-        if not daily then return {ok=false,error='DAILY_UNAVAILABLE'} end
-        if game and game.id~=daily.gameId then return {ok=false,error='DAILY_GAME_MISMATCH'} end
-        game=gameFor(daily.gameId) seed=daily.seed dailyDate=daily.date
+    local requestId=tostring(data.startRequestId or '')
+    local requestKey=nil
+    if requestId~='' then
+        if #requestId>96 or not requestId:match('^[%w%._:%-]+$') then
+            return {ok=false,error='INVALID_REQUEST'}
+        end
+        requestKey=id..':'..requestId
+        local cached=startRequests[requestKey]
+        if cached then
+            if cached.response then return cached.response end
+            if cached.pending and os.time()-(tonumber(cached.createdAt) or os.time())<=10 then
+                return {ok=false,error='START_PENDING'}
+            end
+            startRequests[requestKey]=nil
+        end
+        startRequests[requestKey]={pending=true,createdAt=os.time(),source=tonumber(source)}
     end
-    if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
 
-    local baseElapsedMs=0
-    local resumeState=nil
-    if not seed then
-        if game.supportsResume==true and data.resume==true then
-            local saved=MySQL.single.await([[SELECT seed,elapsed_ms,game_version,state_json FROM flecity_game_saves
-                WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
-            if not saved then return {ok=false,error='SAVE_NOT_FOUND'} end
-            if tonumber(saved.game_version or 1)~=tonumber(game.version or 1) then
-                return {ok=false,error='SAVE_VERSION_MISMATCH'}
+    local function finish(result)
+        if requestKey then
+            if result and result.ok then
+                startRequests[requestKey]={response=result,createdAt=os.time(),source=tonumber(source)}
+            else
+                startRequests[requestKey]=nil
             end
-            local resumeSeed=tonumber(saved.seed)
-            if not resumeSeed or resumeSeed<1 or resumeSeed>2147483646 then
-                return {ok=false,error='SAVE_NOT_FOUND'}
+        end
+        return result
+    end
+
+    local ok,result=pcall(function()
+        if not FlecityGamesRateLimit.Allow(source,'play_start',FlecityGamesConfig.RateLimits.PlayStartMs) then
+            return {ok=false,error='RATE_LIMIT'}
+        end
+        clearForeignSourceSessions(source,id)
+
+        local game=gameFor(data.gameId)
+        local dailyDate=nil
+        local seed=nil
+        if data.daily==true then
+            local daily=dailyChallenge()
+            if not daily then return {ok=false,error='DAILY_UNAVAILABLE'} end
+            if game and game.id~=daily.gameId then return {ok=false,error='DAILY_GAME_MISMATCH'} end
+            game=gameFor(daily.gameId) seed=daily.seed dailyDate=daily.date
+        end
+        if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
+
+        local baseElapsedMs=0
+        local resumeState=nil
+        if not seed then
+            if game.supportsResume==true and data.resume==true then
+                local saved=MySQL.single.await([[SELECT seed,elapsed_ms,game_version,state_json FROM flecity_game_saves
+                    WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
+                if not saved then return {ok=false,error='SAVE_NOT_FOUND'} end
+                if tonumber(saved.game_version or 1)~=tonumber(game.version or 1) then
+                    return {ok=false,error='SAVE_VERSION_MISMATCH'}
+                end
+                local resumeSeed=tonumber(saved.seed)
+                if not resumeSeed or resumeSeed<1 or resumeSeed>2147483646 then
+                    return {ok=false,error='SAVE_NOT_FOUND'}
+                end
+                seed=math.floor(resumeSeed)
+                baseElapsedMs=math.max(0,math.min(28800000,math.floor(tonumber(saved.elapsed_ms) or 0)))
+                resumeState=json.decode(saved.state_json or '{}') or {}
+            else
+                seed=math.random(1,2147483646)
             end
-            seed=math.floor(resumeSeed)
-            baseElapsedMs=math.max(0,math.min(28800000,math.floor(tonumber(saved.elapsed_ms) or 0)))
-            resumeState=json.decode(saved.state_json or '{}') or {}
-        else
-            seed=math.random(1,2147483646)
         end
-    end
-    clearPlayerGameSessions(id,game.id)
-    local challenge=challengeFor(game,seed)
-    local token=newToken(id,game.id)
-    local startedTick=GetGameTimer()
-    sessions[token]={
-        playerIdentifier=id,source=tonumber(source),gameId=game.id,seed=seed,startedAt=os.time(),
-        startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate,
-        saveEpoch=currentSaveEpoch(id,game.id),
-        timingDeferred=(game.id=='mines' or game.id=='nonogram'),
-        timingActivated=false,
-        activeStartedTick=nil,
-        minesAvoidIndex=nil
-    }
-    if game.id=='mines' and resumeState then
-        local avoid=tonumber(resumeState.avoidIndex)
-        local size=tonumber(challenge.size) or 8
-        if avoid and avoid==math.floor(avoid) and avoid>=0 and avoid<size*size then
-            sessions[token].minesAvoidIndex=avoid
+        clearPlayerGameSessions(id,game.id)
+        local challenge=challengeFor(game,seed)
+        local token=newToken(id,game.id)
+        local startedTick=GetGameTimer()
+        sessions[token]={
+            playerIdentifier=id,source=tonumber(source),gameId=game.id,seed=seed,startedAt=os.time(),
+            startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate,
+            saveEpoch=currentSaveEpoch(id,game.id),
+            timingDeferred=(game.id=='mines' or game.id=='nonogram'),
+            timingActivated=false,
+            activeStartedTick=nil,
+            minesAvoidIndex=nil,
+            startRequestId=requestId~='' and requestId or nil
+        }
+        if game.id=='mines' and resumeState then
+            local avoid=tonumber(resumeState.avoidIndex)
+            local size=tonumber(challenge.size) or 8
+            if avoid and avoid==math.floor(avoid) and avoid>=0 and avoid<size*size then
+                sessions[token].minesAvoidIndex=avoid
+            end
         end
+        local publicSeed=seed
+        if game.id=='high_low' then
+            local highLow=newHighLowState(seed,challenge.rounds)
+            sessions[token].highLow=highLow
+            challenge.currentValue=highLow.sequence[1]
+            publicSeed=nil
+        elseif game.id=='simon' then
+            local simonState=newSimonState(seed,challenge.rounds)
+            sessions[token].simon=simonState
+            challenge.sequence=simonRoundSequence(simonState)
+            publicSeed=nil
+        end
+        return {
+            ok=true,game=game,sessionToken=token,seed=publicSeed,challenge=challenge,
+            baseElapsedMs=baseElapsedMs,serverTick=GetGameTimer(),startedTick=startedTick,
+            daily=dailyDate~=nil,dailyDate=dailyDate
+        }
+    end)
+
+    if not ok then
+        if requestKey then startRequests[requestKey]=nil end
+        error(result)
     end
-    local publicSeed=seed
-    if game.id=='high_low' then
-        local highLow=newHighLowState(seed,challenge.rounds)
-        sessions[token].highLow=highLow
-        challenge.currentValue=highLow.sequence[1]
-        publicSeed=nil
-    elseif game.id=='simon' then
-        local simonState=newSimonState(seed,challenge.rounds)
-        sessions[token].simon=simonState
-        challenge.sequence=simonRoundSequence(simonState)
-        publicSeed=nil
-    end
-    return {
-        ok=true,game=game,sessionToken=token,seed=publicSeed,challenge=challenge,
-        baseElapsedMs=baseElapsedMs,serverTick=GetGameTimer(),startedTick=startedTick,
-        daily=dailyDate~=nil,dailyDate=dailyDate
-    }
+    return finish(result)
 end
 
 function FlecityGamesPlay.HighLowGuess(source,data)

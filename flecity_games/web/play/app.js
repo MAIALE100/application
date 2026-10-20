@@ -1,5 +1,7 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
 const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
+const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
+const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),achievementRows=document.getElementById('achievementRows');
 const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
 const stopEl=document.getElementById('stopGame'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore');
@@ -11,8 +13,8 @@ const stackEl=document.getElementById('stackGame'),stackArena=document.getElemen
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 
 let bootstrapData=null,saves={};
-let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null;
-let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null;
+let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
+let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
 let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null;
 
 const SHAPES=[
@@ -27,6 +29,47 @@ function showHome(){
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
+function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
+function formatGameScore(game,value){
+ const n=Number(value);if(!Number.isFinite(n))return '---';
+ return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+' s':n.toFixed(3)+' ms'):String(n);
+}
+function formatDuration(ms){
+ const total=Math.max(0,Math.floor(Number(ms)||0)),minutes=Math.floor(total/60000),hours=Math.floor(minutes/60);
+ return hours>0?hours+'h '+(minutes%60)+'m':minutes+'m';
+}
+const achievementLabels={
+ first_play:'FIRST PLAY · 初めてゲームをクリア',
+ '100_games':'100 GAMES · 100回プレイ',
+ lightning:'LIGHTNING · QUICK TAP 200ms以下',
+ stack_master:'STACK MASTER · STACK 25段以上',
+ block_master:'BLOCK MASTER · BLOCK 5,000点以上'
+};
+function renderPlatform(data){
+ const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
+ achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
+ if(!achievements.length)achievementRows.innerHTML='<div class="muted">まだ実績はありません。</div>';
+ achievements.forEach(a=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>'+String(achievementLabels[a.achievement_id]||a.achievement_id)+'</span><strong>✓</strong>';achievementRows.appendChild(d);});
+ const daily=data&&data.daily;
+ if(!daily){dailyCard.classList.add('hidden');return;}
+ dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
+ const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'Today\'s Best · '+formatGameScore(game,daily.best.score):'No daily score yet.';
+ dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+formatGameScore(game,r.score)+'</strong>';dailyRanking.appendChild(d);});
+}
+async function refreshPlatform(){
+ const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;
+ bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;renderPlatform(res);
+}
+async function launchDaily(){
+ const daily=bootstrapData&&bootstrapData.daily;if(!daily)return;
+ if(daily.gameId==='quick_tap')showQuick(true);
+ else if(daily.gameId==='stop')openStop(true);
+ else if(daily.gameId==='block')openBlock(true,true);
+ else if(daily.gameId==='mines')openMines(true,true);
+ else if(daily.gameId==='nonogram')openNonogram(true,true);
+}
+dailyPlay.onclick=launchDaily;
+
 function renderGames(games){
  gamesEl.innerHTML='';
  (games||[]).filter(g=>g.app==='play'&&g.enabled).forEach(game=>{
@@ -59,8 +102,8 @@ async function loadRanking(){
  if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">No scores yet.</div>';return;}
  const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
  res.rows.forEach((r,i)=>{
-   const d=document.createElement('div');d.className='player',value=Number(r.score);
-   const formatted=game&&game.rankingOrder==='asc'?(value>=1000?(value/1000).toFixed(3)+' s':value.toFixed(3)+' ms'):String(value);
+   const d=document.createElement('div');d.className='player';
+   const formatted=formatGameScore(game,r.score);
    d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+formatted+'</strong>';rankingRows.appendChild(d);
  });
 }
@@ -70,11 +113,11 @@ rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
  const res=await FlecityBridge.call('playBootstrap',{});
  if(!res.ok){setStatus('Could not load PLAY: '+res.error,'error');return;}
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);setStatus('PLAY ready.','good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);setStatus('PLAY ready.','good');
 }
 
 /* QUICK TAP */
-function showQuick(){hideAll();quickEl.classList.remove('hidden');tapMessage.textContent='READY?';tapButton.textContent='START';tapButton.disabled=false;tapState='idle';}
+function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapMessage.textContent=tapDaily?'DAILY READY?':'READY?';tapButton.textContent='START';tapButton.disabled=false;tapState='idle';}
 tapButton.onclick=async()=>{
  if(tapState==='waiting'){
    clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='FLYING!';tapButton.textContent='TRY AGAIN';
@@ -84,12 +127,12 @@ tapButton.onclick=async()=>{
    const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
    const res=await FlecityBridge.call('playSubmitScore',{sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
-   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus('Score accepted.','good');}
+   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'Daily score accepted.':'Score accepted.','good');await refreshPlatform();}
    else{tapMessage.textContent='NOT SAVED';setStatus('Score rejected: '+res.error,'error');}
    tapState='idle';tapSession=null;tapButton.textContent='AGAIN';tapButton.disabled=false;return;
  }
  if(tapState!=='idle')return;
- tapButton.disabled=true;const res=await FlecityBridge.call('playStartSession',{gameId:'quick_tap'});
+ tapButton.disabled=true;const res=await FlecityBridge.call('playStartSession',{gameId:'quick_tap',daily:tapDaily});
  if(!res.ok){tapButton.disabled=false;setStatus('Could not start: '+res.error,'error');return;}
  tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='WAIT';tapButton.textContent='WAIT…';tapButton.disabled=false;
  tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='TAP!';tapButton.textContent='TAP!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
@@ -110,8 +153,8 @@ function animateStop(){
  stopMarker.style.left=trianglePosition(elapsed,stopSession.challenge.periodMs,stopSession.challenge.phaseMs)+'%';
  stopRaf=requestAnimationFrame(animateStop);
 }
-function openStop(){
- hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopMessage.textContent='READY?';stopButton.textContent='START';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+function openStop(daily=false){
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopMessage.textContent=stopDaily?'DAILY READY?':'READY?';stopButton.textContent='START';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
@@ -121,13 +164,13 @@ stopButton.onclick=async()=>{
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
-     setStatus('STOP! score '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'% away':''),'good');
+     setStatus((res.daily?'Daily ':'')+'STOP! score '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'% away':''),'good');await refreshPlatform();
    }else{stopMessage.textContent='NOT SAVED';setStatus('STOP! rejected: '+res.error,'error');}
    stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='AGAIN';return;
  }
  if(stopState!=='idle')return;
  stopButton.disabled=true;
- const res=await FlecityBridge.call('playStartSession',{gameId:'stop'});
+ const res=await FlecityBridge.call('playStartSession',{gameId:'stop',daily:stopDaily});
  if(!res.ok){stopButton.disabled=false;setStatus('Could not start STOP!: '+res.error,'error');return;}
  stopSession=res;stopState='running';stopStartedAt=performance.now();
  stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';

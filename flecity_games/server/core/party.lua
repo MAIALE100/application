@@ -852,6 +852,9 @@ function FlecityGamesParty.Cleanup()
 end
 
 function FlecityGamesParty.DebugSelftest()
+    local revisionRoom={revision=3}
+    local revisionValue=bumpRoom(revisionRoom)
+
     local hostRoom={
         hostIdentifier='host',
         members={
@@ -959,6 +962,7 @@ function FlecityGamesParty.DebugSelftest()
     advanceTelephone(telephoneSkipRoom,true)
 
     return {
+        roomRevision=revisionValue==4 and revisionRoom.revision==4,
         hostMigration=hostRoom.hostIdentifier=='second',
         connectedCount=connectedCount(hostRoom)==2,
         memberCount=memberCount(hostRoom)==3,

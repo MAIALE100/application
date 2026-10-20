@@ -39,7 +39,7 @@ FlecityGamesConfig = {
 
     RateLimits = {
         PlayStartMs = 400,
-        PlaySaveMs = 750,
+        PlaySaveMs = 250,
         ScoreSubmitMs = 750,
         RankingMs = 500,
         RoomCreateMs = 1500,

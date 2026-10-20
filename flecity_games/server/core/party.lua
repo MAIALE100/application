@@ -197,7 +197,7 @@ local function maybeFinishReaction(room)
     for id,m in pairs(room.members) do
         if not m.disconnected then
             local s=rs.submissions[id]
-            entries[#entries+1]={memberId=m.memberId,name=m.name,reactionMs=s and s.reactionMs or nil,flying=s and s.flying==true or true}
+            entries[#entries+1]={memberId=m.memberId,name=m.name,reactionMs=s and s.reactionMs or nil,flying=(not s) or s.flying==true}
         end
     end
     table.sort(entries,function(a,b)

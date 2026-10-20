@@ -324,7 +324,7 @@ tapButton.onclick=async()=>{
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
    const res=await submitScoreWithRetry({sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
    if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');await refreshPlatform();}
-   else{tapMessage.textContent='保存できませんでした';setStatus('スコア拒否: '+FlecityErrors.text(res.error),'error');}
+   else{tapMessage.textContent='保存できませんでした';await cancelPlaySession(tapSession&&tapSession.sessionToken);setStatus('スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
    tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
  }
  if(tapState!=='idle')return;
@@ -361,7 +361,7 @@ stopButton.onclick=async()=>{
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
      showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));await refreshPlatform();
-   }else{stopMessage.textContent='保存できませんでした';setStatus('STOP! スコア拒否: '+FlecityErrors.text(res.error),'error');}
+   }else{stopMessage.textContent='保存できませんでした';await cancelPlaySession(stopSession&&stopSession.sessionToken);setStatus('STOP! スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
    stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';return;
  }
  if(stopState!=='idle')return;
@@ -754,7 +754,7 @@ async function finishMines(){
  mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
  const res=await submitScoreWithRetry({sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
  if(res.ok){if(!mines.daily)delete saves.mines;showScoreResult('mines',res,(res.daily?'デイリー · ':'')+'MINES '+(Number(res.score)/1000).toFixed(2)+'s');mines.sessionToken=null;await refreshPlatform();}
- else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINESクリア判定失敗: '+FlecityErrors.text(res.error),'error');}
+ else{await cancelPlaySession(mines.sessionToken);mines.sessionToken=null;mines.finished=true;setStatus('MINESの記録を保存できませんでした。もう一度お試しください。','error');}
  renderMines();
 }
 minesMode.onclick=()=>{if(!mines||mines.finished)return;mines.mode=mines.mode==='flag'?'reveal':'flag';renderMines();};
@@ -831,7 +831,7 @@ async function finishStack(){
  const durationMs=Math.round(elapsedStack());
  const res=await submitScoreWithRetry({sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs,history:stackGame.history});
  if(res.ok){showScoreResult('stack',res,'STACK '+res.score+'段');stackGame.sessionToken=null;await refreshPlatform();}
- else{setStatus('STACKスコア拒否: '+FlecityErrors.text(res.error),'error');}
+ else{await cancelPlaySession(stackGame.sessionToken);stackGame.sessionToken=null;setStatus('STACKスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
 }
 stackDrop.onclick=async()=>{
  if(!stackGame||stackGame.finished)return;
@@ -1054,8 +1054,9 @@ async function answerColorMatch(choice){
      colorMatchChoices.innerHTML='';colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
      showScoreResult('color_match',res,'COLOR MATCH '+(Number(res.score)/1000).toFixed(3)+'s');await refreshPlatform();
    }else{
-     colorMatch.finished=false;colorMatch.running=true;colorMatchClock=setInterval(updateColorMatchTime,100);
-     setStatus('COLOR MATCH判定失敗: '+FlecityErrors.text(res.error),'error');
+     await cancelPlaySession(colorMatch.sessionToken);colorMatch.sessionToken=null;colorMatch.finished=true;colorMatch.running=false;
+     colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
+     setStatus('COLOR MATCHの記録を保存できませんでした。もう一度お試しください。','error');
    }
    return;
  }
@@ -1147,8 +1148,8 @@ async function finishNumberRush(){
    showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':''));
    renderNumberRush();await refreshPlatform();
  }else{
-   numberRush.finished=false;numberRush.running=true;numberRushClock=setInterval(updateNumberRushTime,50);
-   setStatus('NUMBER RUSH判定失敗: '+FlecityErrors.text(res.error),'error');
+   await cancelPlaySession(numberRush.sessionToken);numberRush.sessionToken=null;numberRush.finished=true;numberRush.running=false;
+   renderNumberRush();setStatus('NUMBER RUSHの記録を保存できませんでした。もう一度お試しください。','error');
  }
 }
 numberRushStart.onclick=startNumberRush;
@@ -1234,8 +1235,8 @@ async function finishHighLow(cleared){
    showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝');
    await refreshPlatform();
  }else{
-   highLow.finished=false;highLow.running=true;highLow.busy=false;renderHighLow();
-   setStatus('HIGH & LOW記録失敗: '+FlecityErrors.text(res.error),'error');
+   await cancelPlaySession(highLow.sessionToken);highLow.sessionToken=null;highLow.finished=true;highLow.running=false;highLow.busy=false;renderHighLow();
+   setStatus('HIGH & LOWの記録を保存できませんでした。もう一度お試しください。','error');
  }
 }
 highLowStart.onclick=startHighLow;
@@ -1321,9 +1322,9 @@ async function finishSimon(clearedAll=false){
    showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{
-   game.finished=false;game.accepting=false;renderSimon();
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
    simonMessage.textContent='記録保存に失敗しました';
-   setStatus('SIMON記録失敗: '+FlecityErrors.text(res.error),'error');
+   setStatus('SIMONの記録を保存できませんでした。もう一度お試しください。','error');
  }
 }
 async function pressSimon(index){
@@ -1445,7 +1446,7 @@ async function finishMemory(){
  if(res.ok){
    memory.sessionToken=null;memory.busy=false;showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES');renderMemory();await refreshPlatform();
  }else{
-   memory.finished=false;memory.busy=false;memoryClock=setInterval(updateMemoryTime,200);setStatus('MEMORYクリア判定失敗: '+FlecityErrors.text(res.error),'error');renderMemory();
+   await cancelPlaySession(memory.sessionToken);memory.sessionToken=null;memory.finished=true;memory.busy=false;setStatus('MEMORYの記録を保存できませんでした。もう一度お試しください。','error');renderMemory();
  }
 }
 memoryBack.onclick=async()=>{

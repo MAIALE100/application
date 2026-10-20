@@ -13,6 +13,7 @@ const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.ge
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null;
+let refreshInFlight=false,refreshQueued=false;
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
@@ -233,11 +234,25 @@ function renderRoom(room){
 }
 async function refresh(){
  if(!currentRoom)return;
- const res=await FlecityBridge.call('partyGetRoom',{});
- if(!res.ok){if(res.error==='NOT_IN_ROOM')showEntry();else status('Room update failed: '+res.error,'error');return;}
- renderRoom(res.room);
+ if(refreshInFlight){refreshQueued=true;return;}
+ refreshInFlight=true;
+ try{
+   const res=await FlecityBridge.call('partyGetRoom',{});
+   if(!res.ok){
+     if(res.error==='NOT_IN_ROOM')showEntry();
+     else status('Room update failed: '+res.error,'error');
+     return;
+   }
+   renderRoom(res.room);
+ }finally{
+   refreshInFlight=false;
+   if(refreshQueued){refreshQueued=false;setTimeout(refresh,0);}
+ }
 }
-function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,300);}
+function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,2500);}
+window.addEventListener('message',event=>{
+ if(event.data&&event.data.type==='partyInvalidate')refresh();
+});
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('Create failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
 joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,4);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('Join failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};

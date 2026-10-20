@@ -13,6 +13,7 @@ const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.ge
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null;
+let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false;
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
@@ -250,12 +251,20 @@ async function refresh(){
  }
 }
 function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,2500);}
+async function loadPartyConfig(){
+ const res=await FlecityBridge.call('partyGetConfig',{});
+ if(!res.ok||!res.config)return;
+ const length=Math.max(3,Math.min(6,Number(res.config.roomCodeLength)||4));
+ partyConfig={...partyConfig,...res.config,roomCodeLength:length};
+ codeEl.maxLength=length;
+ codeEl.placeholder=length+' DIGIT CODE';
+}
 window.addEventListener('message',event=>{
  if(event.data&&event.data.type==='partyInvalidate')refresh();
 });
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('Create failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
-joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,4);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('Join failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
+joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('Join failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
 readyBtn.onclick=async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('Ready failed: '+res.error,'error');return;}renderRoom(res.room);};
 gameEl.onchange=async()=>{const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('Game change failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);};
 startBtn.onclick=async()=>{const res=await FlecityBridge.call('partyStartRound',{});if(!res.ok){status('Start failed: '+res.error,'error');return;}renderRoom(res.room);};
@@ -362,9 +371,10 @@ telephoneTextSubmit.onclick=submitTelephoneText;
 telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
 lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
 leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};
-codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};
+codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
 
 async function bootstrap(){
+ await loadPartyConfig();
  const res=await FlecityBridge.call('partyGetRoom',{});
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];

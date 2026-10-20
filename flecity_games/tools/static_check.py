@@ -38,8 +38,9 @@ for name, js, html in (
 
 actions = sorted(set(re.findall(r"FlecityBridge\.call\('([^']+)'", play_js + "\n" + party_js)))
 mapped = dict(re.findall(r"([A-Za-z0-9_]+)='(flecity_games:[^']+)'", client))
+local_actions = {"bridgePing"}
 for action in actions:
-    if action not in mapped:
+    if action not in mapped and action not in local_actions:
         fail(f"client callback map missing action: {action}")
 
 for action, callback in mapped.items():
@@ -88,6 +89,16 @@ if "partyUpdate" not in client or "partyDrawStroke" not in client:
     fail("PARTY direct-push client wiring is missing")
 if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
     fail("PARTY direct-push UI wiring is missing")
+if "action=='bridgePing'" not in client:
+    fail("local LB Phone bridgePing diagnostic is missing")
+if "fixBlur=true" in client or "fixBlur=false" not in client:
+    fail("LB Phone fixBlur must remain disabled while the UI uses px-based CSS")
+if "globalThis.onNuiEvent" not in party_js or "registerPhonePushChannel" not in party_js:
+    fail("PARTY official LB Phone push listener is missing")
+if "lastRoomRevision" not in party_js:
+    fail("PARTY stale snapshot revision guard is missing")
+if "saveWithRetry" not in play_js:
+    fail("PLAY autosave retry helper is missing")
 
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",

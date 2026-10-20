@@ -19,10 +19,9 @@ local function newToken(_,gameId)
     )
 end
 local function touchProfile(source,playerIdentifier)
-    local displayName=tostring(FlecityGamesFramework.GetCharacterName(source) or ''):gsub('%c',' '):gsub('%s+',' ')
-    displayName=displayName:gsub('^%s+',''):gsub('%s+$','')
+    local displayName=FlecityGamesText.Normalize(FlecityGamesFramework.GetCharacterName(source))
     if displayName=='' then displayName=('Player %s'):format(tostring(source)) end
-    displayName=displayName:sub(1,100)
+    displayName=FlecityGamesText.Truncate(displayName,100)
     MySQL.query.await([[INSERT INTO flecity_game_profiles (player_identifier,display_name,last_seen_at)
         VALUES (?,?,CURRENT_TIMESTAMP)
         ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),last_seen_at=CURRENT_TIMESTAMP]],{playerIdentifier,displayName})

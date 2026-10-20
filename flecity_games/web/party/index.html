@@ -37,7 +37,7 @@
   window.addEventListener('message',event=>{
     if(event.data==='componentsLoaded')loadApp();
   });
-  if(typeof globalThis.fetchNui==='function'||!window.invokeNative)loadApp();
+  if(!window.invokeNative)loadApp();
 })();
 </script>
 </body></html>

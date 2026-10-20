@@ -52,3 +52,13 @@ function FlecityGamesFramework.GetCharacterName(source)
     local name = ((c.firstname or '') .. ' ' .. (c.lastname or '')):gsub('^%s+', ''):gsub('%s+$', '')
     return name ~= '' and name or ('Player %s'):format(source)
 end
+
+
+-- Qbox emits this before the loaded character is removed from core memory.
+-- Keep the framework-specific event name inside this adapter and expose a
+-- framework-neutral lifecycle event to the rest of Flecity Games.
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
+    if GetResourceState('qbx_core')~='started' then return end
+    local src=tonumber(source)
+    if src then TriggerEvent('flecity_games:framework:playerUnloaded',src) end
+end)

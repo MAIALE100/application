@@ -717,7 +717,7 @@ function FlecityGamesParty.Cleanup()
 end
 
 function FlecityGamesParty.DebugSelftest()
-    local room={
+    local hostRoom={
         hostIdentifier='host',
         members={
             host={disconnected=true,joinOrder=1},
@@ -725,17 +725,64 @@ function FlecityGamesParty.DebugSelftest()
             third={disconnected=false,joinOrder=3}
         }
     }
-    migrateHost(room)
+    migrateHost(hostRoom)
+
+    local members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+    }
+
+    local wolfRoom={members=members,roundState={
+        token='wolf',gameId='word_wolf',startedAt=0,startedTick=0,complete=false,submissions={},
+        topics={a='猫',b='猫',c='犬'},wolfIdentifier='c',majorityTopic='猫',wolfTopic='犬'
+    }}
+    local wolfA=publicRoundState(wolfRoom,'a')
+    local wolfC=publicRoundState(wolfRoom,'c')
+
+    local liarRoom={members=members,roundState={
+        token='liar',gameId='liar',startedAt=0,startedTick=0,complete=false,submissions={},
+        prompt='質問',roles={a='TRUTH',b='LIAR',c='TRUTH'},liarIdentifier='b'
+    }}
+    local liarA=publicRoundState(liarRoom,'a')
+    local liarB=publicRoundState(liarRoom,'b')
+
+    local drawRoom={members=members,roundState={
+        token='draw',gameId='draw',startedAt=0,startedTick=0,complete=false,submissions={},
+        drawerIdentifier='a',prompt='猫',strokes={},guessed={}
+    }}
+    local drawA=publicRoundState(drawRoom,'a')
+    local drawB=publicRoundState(drawRoom,'b')
+
+    local telephoneRoom={members=members,roundState={
+        token='tel',gameId='telephone',startedAt=0,startedTick=0,complete=false,submissions={},
+        turnOrder={'a','b','c'},step=1,mode='draw',currentIdentifier='a',
+        chain={{kind='text',text='秘密のお題'}}
+    }}
+    local telephoneA=publicRoundState(telephoneRoom,'a')
+    local telephoneB=publicRoundState(telephoneRoom,'b')
+
+    local majorityRoom={members=members,roundState={
+        token='majority',gameId='majority',startedAt=0,startedTick=0,complete=false,
+        submissions={a='A',b='A',c='B'},prompt='test',options={'one','two'}
+    }}
+    maybeFinishMajority(majorityRoom)
+
     return {
-        hostMigration=room.hostIdentifier=='second',
-        connectedCount=connectedCount(room)==2,
-        memberCount=memberCount(room)==3,
+        hostMigration=hostRoom.hostIdentifier=='second',
+        connectedCount=connectedCount(hostRoom)==2,
+        memberCount=memberCount(hostRoom)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
         majorityPrompts=#majorityPrompts>=4,
+        majorityAggregation=majorityRoom.roundState.complete==true and majorityRoom.roundState.results.counts.A==2 and majorityRoom.roundState.results.counts.B==1,
         wordWolfPrompts=#wordWolfPairs>=6,
+        wordWolfPrivacy=wolfA.secretTopic=='猫' and wolfC.secretTopic=='犬' and wolfA.topics==nil and wolfC.topics==nil,
         liarPrompts=#liarPrompts>=4,
+        liarPrivacy=liarA.role=='TRUTH' and liarB.role=='LIAR' and liarA.roles==nil and liarB.roles==nil,
         drawPrompts=#drawPrompts>=8,
-        telephonePrompts=#telephonePrompts>=6
+        drawPrivacy=drawA.prompt=='猫' and drawB.prompt==nil and drawA.isDrawer==true and drawB.isDrawer==false,
+        telephonePrompts=#telephonePrompts>=6,
+        telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false
     }
 end
 

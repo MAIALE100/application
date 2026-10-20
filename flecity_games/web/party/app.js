@@ -89,6 +89,15 @@ function renderResults(room){
  const rs=room.roundState;if(!rs||!rs.complete||!rs.results){resultsPanel.classList.add('hidden');return;}
  if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
+ if(rs.results.aborted===true){
+   const box=document.createElement('div');box.className='status warn';
+   const reason=String(rs.results.reason||'ROUND_ABORTED');
+   if(reason==='NOT_ENOUGH_PLAYERS')box.textContent='参加人数が足りなくなったため、このラウンドを終了しました。';
+   else if(reason==='SECRET_PLAYER_LEFT')box.textContent='役職プレイヤーが退出したため、このラウンドを終了しました。';
+   else box.textContent='このラウンドは中断されました。';
+   resultsEl.appendChild(box);
+   return;
+ }
  if(rs.gameId==='reaction'){
    rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.flying?'フライング':Number(e.reactionMs).toFixed(3)+' ms'));
  }else if(rs.gameId==='stop_battle'){

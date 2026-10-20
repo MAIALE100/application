@@ -57,7 +57,12 @@ async function loadRanking(){
  rankingLoad.disabled=false;rankingRows.innerHTML='';
  if(!res.ok){rankingRows.innerHTML='<div class="status error">Ranking failed: '+res.error+'</div>';return;}
  if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">No scores yet.</div>';return;}
- res.rows.forEach((r,i)=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+Number(r.score)+'</strong>';rankingRows.appendChild(d);});
+ const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
+ res.rows.forEach((r,i)=>{
+   const d=document.createElement('div');d.className='player',value=Number(r.score);
+   const formatted=game&&game.rankingOrder==='asc'?(value>=1000?(value/1000).toFixed(3)+' s':value.toFixed(3)+' ms'):String(value);
+   d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+formatted+'</strong>';rankingRows.appendChild(d);
+ });
 }
 rankingLoad.onclick=loadRanking;
 rankingGame.onchange=()=>{rankingRows.innerHTML='';};
@@ -415,13 +420,13 @@ function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0
 function renderStack(){
  if(!stackGame)return;stackScore.textContent=String(stackGame.score);
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
- const visible=stackGame.layers.slice(-10);
- visible.forEach((layer,i)=>{
+ const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
+ history.forEach((layer,i)=>{
    const d=document.createElement('div');d.className='stack-layer';d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=(18+i*20)+'px';stackArena.insertBefore(d,stackMover);
  });
  const top=stackGame.layers[stackGame.layers.length-1];
- stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+(visible.length-1)*20)+'px';
- stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(18+visible.length*20)+'px';
+ stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+history.length*20)+'px';
+ stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(38+history.length*20)+'px';
 }
 function stackLoop(now){
  if(!stackGame||stackGame.finished)return;

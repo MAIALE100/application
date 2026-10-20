@@ -12,7 +12,7 @@ const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContex
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
-let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1;
+let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false;
 let reactionState='idle',reactionRaf=null;
@@ -52,7 +52,7 @@ function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
- currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;resetRoundRuntime();clearInterval(poll);poll=null;
+ currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function selectedGameConfig(room){
@@ -240,7 +240,7 @@ function renderRoom(room,timing){
  const incomingRevision=Number(room.revision);
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
- currentRoom=room;ready=room.selfReady===true;
+ currentRoom=room;ready=room.selfReady===true;roomPushEnabled=true;
  if(Number.isFinite(Number(room.serverTick))){
    if(timing&&Number.isFinite(timing.started)&&Number.isFinite(timing.received)){
      const midpoint=(timing.started+timing.received)/2;
@@ -316,7 +316,7 @@ async function loadPartyConfig(){
 }
 function handlePartyMessage(message){
  if(!message||typeof message!=='object')return;
- if(message.type==='partyUpdate'&&message.room){renderRoom(message.room);return;}
+ if(message.type==='partyUpdate'&&message.room){if(roomPushEnabled)renderRoom(message.room);return;}
  if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
    const revision=Number(message.revision);
    if(Number.isFinite(revision)&&revision<=lastRoomRevision)return;

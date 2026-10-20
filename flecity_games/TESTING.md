@@ -58,6 +58,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 実績14個がLOCK / ✓で一覧表示され、解除数 / 総数が表示される
 - 連打しても同じゲームが二重Session起動しない
 - 一時的な開始通信失敗は自動再試行される
+- 開始応答だけ失われても同じ開始要求として再送され、Sessionが二重生成されない
+- PLAYを開き直した時に前画面の孤立Session / 開始キャッシュが残らない
 - 最終スコア送信は同じSession Tokenで安全に再送でき、二重Scoreにならない
 - 最終送信中にBACK / Phone CloseしてもSessionを先に破棄しない
 - Phoneを閉じると非再開ゲームはSession / Timerが安全停止する

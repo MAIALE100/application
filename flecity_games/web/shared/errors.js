@@ -34,6 +34,7 @@ window.FlecityErrors = {
         INVALID_COLOR_MATCH_REPLAY: 'COLOR MATCHの回答履歴とクリア状態が一致しません',
         INVALID_NUMBER_RUSH_REPLAY: 'NUMBER RUSHのタップ履歴とクリア状態が一致しません',
         INVALID_HIGH_LOW_REPLAY: 'HIGH & LOWの回答履歴と連勝数が一致しません',
+        INVALID_SIMON_REPLAY: 'SIMONの入力履歴と到達ラウンドが一致しません',
         INVALID_SCORE: 'スコアが不正です',
         INVALID_TIMING: '入力タイミングが不正です',
         IMPOSSIBLE_TIMING: '成立しない入力タイミングです',

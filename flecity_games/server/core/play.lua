@@ -63,6 +63,20 @@ local function generateNonogram(seed,size)
     if count==0 then filled[0]=true count=1 end
     return filled,count
 end
+local function normalizeIndexList(values,maxExclusive)
+    if type(values)~='table' then return nil end
+    local seen,out={},{}
+    for _,value in ipairs(values) do
+        local index=tonumber(value)
+        if not index or index~=math.floor(index) or index<0 or index>=maxExclusive then return nil end
+        if not seen[index] then
+            seen[index]=true
+            out[#out+1]=index
+        end
+    end
+    table.sort(out)
+    return out,seen
+end
 local BLOCK_SHAPES={
     {{0,0}},{{0,0},{1,0}},{{0,0},{1,0},{2,0}},{{0,0},{0,1}},{{0,0},{0,1},{0,2}},
     {{0,0},{1,0},{0,1},{1,1}},{{0,0},{0,1},{1,1}},{{1,0},{0,1},{1,1}},{{0,0},{1,0},{2,0},{1,1}}
@@ -486,7 +500,27 @@ function FlecityGamesPlay.Save(source,data)
         if not canonical or canonical.score~=math.floor(score) then return {ok=false,error='INVALID_MERGE_SAVE'} end
         saveState=canonical
         score=canonical.score
-    elseif game.id=='mines' or game.id=='nonogram' then
+    elseif game.id=='mines' then
+        local size=tonumber(session.challenge.size) or 8
+        local mineCount=tonumber(session.challenge.mines) or 10
+        local revealed,revealedSet=normalizeIndexList(data.state.revealed,size*size)
+        local flags,flagSet=normalizeIndexList(data.state.flags,size*size)
+        if not revealed or not flags then return {ok=false,error='INVALID_MINES_SAVE'} end
+        local mines=generateMines(session.seed,size,mineCount)
+        for _,index in ipairs(revealed) do
+            if mines[index] or flagSet[index] then return {ok=false,error='INVALID_MINES_SAVE'} end
+        end
+        saveState={revealed=revealed,flags=flags,mode=data.state.mode=='flag' and 'flag' or 'reveal'}
+        score=elapsed
+    elseif game.id=='nonogram' then
+        local size=tonumber(session.challenge.size) or 5
+        local filled,filledSet=normalizeIndexList(data.state.filled,size*size)
+        local crossed,crossedSet=normalizeIndexList(data.state.crossed,size*size)
+        if not filled or not crossed then return {ok=false,error='INVALID_NONOGRAM_SAVE'} end
+        for _,index in ipairs(filled) do
+            if crossedSet[index] then return {ok=false,error='INVALID_NONOGRAM_SAVE'} end
+        end
+        saveState={filled=filled,crossed=crossed}
         score=elapsed
     end
 

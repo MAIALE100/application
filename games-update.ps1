@@ -9,6 +9,8 @@ $Source = Join-Path $RepoRoot 'flecity_games'
 $Resources = Join-Path $ServerBase 'resources'
 $Destination = Join-Path $Resources 'flecity_games'
 $ServerCfg = Join-Path $ServerBase 'server.cfg'
+$UpdaterPath = $MyInvocation.MyCommand.Path
+$UpdaterHashBefore = if (Test-Path $UpdaterPath) { (Get-FileHash $UpdaterPath -Algorithm SHA256).Hash } else { '' }
 
 function Step([string]$message) {
     Write-Host ''
@@ -68,6 +70,15 @@ try {
 
     & git -C $RepoRoot pull --ff-only origin $Branch
     if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Resolve local Git conflicts before updating.' }
+
+    $UpdaterHashAfter = if (Test-Path $UpdaterPath) { (Get-FileHash $UpdaterPath -Algorithm SHA256).Hash } else { '' }
+    if ($UpdaterHashBefore -and $UpdaterHashAfter -and $UpdaterHashBefore -ne $UpdaterHashAfter) {
+        Step 'Updater refreshed'
+        Write-Host 'The updater itself changed. Restarting with the new version...' -ForegroundColor Green
+        $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$UpdaterPath,'-ServerBase',$ServerBase)
+        Start-Process powershell.exe -ArgumentList $args
+        exit 0
+    }
 
     Step 'Checking build safety'
     $headCommit = (& git -C $RepoRoot rev-parse HEAD).Trim()

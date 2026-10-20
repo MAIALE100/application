@@ -70,3 +70,12 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .high-low-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .high-low-actions button{min-height:58px}
 @media(max-width:360px){.high-low-card{width:112px;height:144px;font-size:3.3rem}}
+
+
+.simon-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;aspect-ratio:1}
+.simon-pad{min-height:0;border-radius:18px;background:#242832;border:1px solid #3a404b;transition:transform .08s ease,filter .08s ease,box-shadow .08s ease}
+.simon-pad:nth-child(1){background:#2f5a46}.simon-pad:nth-child(2){background:#5a4b2f}.simon-pad:nth-child(3){background:#4b315c}.simon-pad:nth-child(4){background:#31535c}
+.simon-pad.active{filter:brightness(2.1);transform:scale(.96);box-shadow:0 0 22px rgba(255,255,255,.22)}
+.simon-pad.wrong{background:#5a2f2f!important;filter:brightness(1.45)}
+.simon-pad:disabled{opacity:.72}
+@media(max-width:360px){.simon-board{gap:9px}.simon-pad{border-radius:14px}}

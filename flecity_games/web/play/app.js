@@ -1066,23 +1066,6 @@ numberRushNew.onclick=async()=>{
 };
 
 /* HIGH & LOW */
-function highLowNext(state){
- let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
- x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
-}
-function highLowSequenceFromSeed(seed,rounds=30){
- const count=Math.max(1,Math.min(100,Math.floor(Number(rounds)||30)));
- let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
- let value;[state,value]=highLowNext(state);
- const sequence=[1+Math.floor(value*13)];
- for(let i=1;i<=count;i++){
-   let nextValue=sequence[i-1],guard=0;
-   do{[state,value]=highLowNext(state);nextValue=1+Math.floor(value*13);guard++;}while(nextValue===sequence[i-1]&&guard<20);
-   if(nextValue===sequence[i-1])nextValue=(nextValue%13)+1;
-   sequence.push(nextValue);
- }
- return sequence;
-}
 function highLowLabel(value){
  const n=Number(value)||0;
  if(n===1)return 'A';
@@ -1096,10 +1079,11 @@ function renderHighLow(){
    highLowCard.textContent='?';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30';
    highLowHigher.disabled=true;highLowLower.disabled=true;return;
  }
- highLowCard.textContent=highLowLabel(highLow.sequence[highLow.index]);
+ highLowCard.textContent=highLowLabel(highLow.currentValue);
  highLowStreak.textContent=String(highLow.streak);
- highLowMeta.textContent='ROUND '+String(Math.min(highLow.index+1,highLow.maxRounds))+' / '+String(highLow.maxRounds);
- highLowHigher.disabled=!highLow.running;highLowLower.disabled=!highLow.running;
+ const round=Math.min(highLow.completed+1,highLow.maxRounds);
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds);
+ highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
 }
 function openHighLow(){
  hideAll();highLowEl.classList.remove('hidden');highLow=null;
@@ -1112,36 +1096,46 @@ async function startHighLow(){
  const session=await FlecityBridge.call('playStartSession',{gameId:'high_low'});
  if(!session.ok){highLowStart.disabled=false;setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
- highLow={sessionToken:session.sessionToken,seed:Number(session.seed)||1,maxRounds,sequence:highLowSequenceFromSeed(session.seed,maxRounds),index:0,streak:0,history:[],startedAt:performance.now(),running:true,finished:false};
- highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();setStatus('HIGH & LOW開始。','good');
+ const currentValue=Number(session.challenge&&session.challenge.currentValue)||0;
+ if(currentValue<1||currentValue>13){
+   await cancelPlaySession(session.sessionToken);
+   highLowStart.disabled=false;setStatus('HIGH & LOWの初期状態を取得できませんでした。','error');return;
+ }
+ highLow={sessionToken:session.sessionToken,maxRounds,currentValue,completed:0,streak:0,startedAt:performance.now(),running:true,finished:false,busy:false};
+ highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();setStatus('HIGH & LOW開始。未来の数字はSERVERで判定します。','good');
 }
 async function guessHighLow(guess){
- if(!highLow||!highLow.running||highLow.finished)return;
- highLowHigher.disabled=true;highLowLower.disabled=true;
- const current=highLow.sequence[highLow.index],nextValue=highLow.sequence[highLow.index+1];
- highLow.history.push(guess);
- const correct=(guess==='high'&&nextValue>current)||(guess==='low'&&nextValue<current);
- highLow.index+=1;
- if(correct){
-   highLow.streak+=1;tone(720+Math.min(220,highLow.streak*12),35);renderHighLow();
-   if(highLow.index>=highLow.maxRounds){await finishHighLow(true);return;}
-   setStatus(highLowLabel(current)+' → '+highLowLabel(nextValue)+' · 正解 · '+highLow.streak+'連勝','good');return;
+ if(!highLow||!highLow.running||highLow.finished||highLow.busy)return;
+ highLow.busy=true;renderHighLow();
+ const res=await FlecityBridge.call('playHighLowGuess',{sessionToken:highLow.sessionToken,guess});
+ if(!res.ok){
+   highLow.busy=false;renderHighLow();
+   setStatus('HIGH & LOW判定失敗: '+FlecityErrors.text(res.error),'error');return;
  }
- renderHighLow();tone(160,80);
- setStatus(highLowLabel(current)+' → '+highLowLabel(nextValue)+' · 不正解','warn');
- await finishHighLow(false);
+ highLow.currentValue=Number(res.nextValue)||highLow.currentValue;
+ highLow.streak=Math.max(0,Number(res.streak)||0);
+ highLow.completed=Math.max(0,Number(res.completed)||0);
+ highLow.busy=false;
+ if(res.correct){
+   tone(720+Math.min(220,highLow.streak*12),35);
+   setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+highLow.streak+'連勝','good');
+ }else{
+   tone(160,80);setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 不正解','warn');
+ }
+ renderHighLow();
+ if(res.ended===true){await finishHighLow(res.cleared===true);}
 }
 async function finishHighLow(cleared){
  if(!highLow||highLow.finished)return;
- highLow.finished=true;highLow.running=false;renderHighLow();
+ highLow.finished=true;highLow.running=false;highLow.busy=true;renderHighLow();
  const durationMs=Math.max(0,Math.round(performance.now()-highLow.startedAt));
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:highLow.sessionToken,score:highLow.streak,durationMs,history:highLow.history});
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:highLow.sessionToken,score:highLow.streak,durationMs});
  if(res.ok){
-   highLow.sessionToken=null;
+   highLow.sessionToken=null;highLow.busy=false;
    showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝');
    await refreshPlatform();
  }else{
-   highLow.finished=false;highLow.running=true;renderHighLow();
+   highLow.finished=false;highLow.running=true;highLow.busy=false;renderHighLow();
    setStatus('HIGH & LOW記録失敗: '+FlecityErrors.text(res.error),'error');
  }
 }

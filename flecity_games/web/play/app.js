@@ -1,4 +1,5 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
+const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
 const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),achievementRows=document.getElementById('achievementRows');
@@ -85,6 +86,7 @@ function formatDuration(ms){
  return hours>0?hours+'h '+(minutes%60)+'m':minutes+'m';
 }
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
+const categoryOrder=['quick','arcade','endless','puzzle'];
 const achievementLabels={
  first_play:'FIRST PLAY · 初めてゲームをクリア',
  '100_games':'100 GAMES · 100回プレイ',
@@ -122,32 +124,65 @@ async function launchDaily(){
 }
 dailyPlay.onclick=launchDaily;
 
+function launchGame(gameId){
+ if(gameId==='quick_tap')showQuick();
+ else if(gameId==='stop')openStop();
+ else if(gameId==='block')openBlock(false);
+ else if(gameId==='merge')openMerge(false);
+ else if(gameId==='mines')openMines(false);
+ else if(gameId==='stack')openStack();
+ else if(gameId==='nonogram')openNonogram(false);
+ else if(gameId==='memory')openMemory();
+ else if(gameId==='color_match')openColorMatch();
+ else if(gameId==='number_rush')openNumberRush(false);
+ else if(gameId==='high_low')openHighLow();
+ else if(gameId==='simon')openSimon();
+}
+function renderContinue(games){
+ const resumable=(games||[]).filter(game=>game.app==='play'&&game.enabled&&saves[game.id]);
+ continueGames.innerHTML='';continueCount.textContent=String(resumable.length);
+ continueCard.classList.toggle('hidden',resumable.length===0);
+ resumable.forEach(game=>{
+   const button=document.createElement('button');button.className='continue-game';
+   const text=document.createElement('span'),meta=document.createElement('span');
+   text.textContent=String(game.name||game.id);meta.className='muted';
+   const save=saves[game.id]||{};
+   meta.textContent=(Number(save.elapsed_ms)>0?formatDuration(save.elapsed_ms)+' · ':'')+'続きから';
+   button.append(text,meta);button.onclick=()=>launchGame(game.id);continueGames.appendChild(button);
+ });
+}
 function renderGames(games){
  gamesEl.innerHTML='';
- (games||[]).filter(g=>g.app==='play'&&g.enabled).forEach(game=>{
-   const btn=document.createElement('button');btn.className='game';
-   const hasSave=!!saves[game.id];
-   const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span');
-   tag.className='tag';description.className='muted';
-   tag.textContent=categoryLabels[game.category]||String(game.category||'');
-   name.textContent=String(game.name||game.id||'GAME');
-   description.textContent=(hasSave?'途中から再開できます · ':'')+String(game.description||'');
-   btn.append(tag,name,description);
-   btn.onclick=()=>{
-     if(game.id==='quick_tap')showQuick();
-     else if(game.id==='stop')openStop();
-     else if(game.id==='block')openBlock(false);
-     else if(game.id==='merge')openMerge(false);
-     else if(game.id==='mines')openMines(false);
-     else if(game.id==='stack')openStack();
-     else if(game.id==='nonogram')openNonogram(false);
-     else if(game.id==='memory')openMemory();
-     else if(game.id==='color_match')openColorMatch();
-     else if(game.id==='number_rush')openNumberRush(false);
-     else if(game.id==='high_low')openHighLow();
-     else if(game.id==='simon')openSimon();
-   };
-   gamesEl.appendChild(btn);
+ const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
+ gameCount.textContent=String(enabled.length);
+ renderContinue(enabled);
+ const groups=new Map();
+ enabled.forEach(game=>{
+   const category=String(game.category||'other');
+   if(!groups.has(category))groups.set(category,[]);
+   groups.get(category).push(game);
+ });
+ const ordered=[...categoryOrder.filter(key=>groups.has(key)),...([...groups.keys()].filter(key=>!categoryOrder.includes(key)))];
+ ordered.forEach(category=>{
+   const section=document.createElement('section');section.className='game-category';
+   const head=document.createElement('div');head.className='category-head';
+   const title=document.createElement('strong');title.textContent=categoryLabels[category]||category.toUpperCase();
+   const count=document.createElement('span');count.className='muted';count.textContent=String(groups.get(category).length)+' GAMES';
+   head.append(title,count);
+   const grid=document.createElement('div');grid.className='grid';
+   groups.get(category).forEach(game=>{
+     const btn=document.createElement('button');btn.className='game';
+     const hasSave=!!saves[game.id];
+     const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),meta=document.createElement('span');
+     tag.className='tag';description.className='muted';meta.className='game-card-meta';
+     tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':'PLAY');
+     name.textContent=String(game.name||game.id||'GAME');
+     description.textContent=String(game.description||'');
+     const traits=[];if(game.supportsRanking)traits.push('RANK');if(game.supportsResume)traits.push('SAVE');
+     meta.textContent=traits.join(' · ');
+     btn.append(tag,name,description,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
+   });
+   section.append(head,grid);gamesEl.appendChild(section);
  });
 }
 function populateRankingGames(games){
@@ -189,7 +224,8 @@ async function bootstrap(){
      setTimeout(bootstrap,1000);
      return;
    }
-   setStatus('PLAYを読み込めません: '+FlecityErrors.text(res.error),'error');
+   console.error('[PLAY] bootstrap failed',res.error);
+   setStatus('PLAYを起動できませんでした。アプリを開き直してもう一度お試しください。','error');
    return;
  }
  bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY 準備完了 · v'+String(res.version||'unknown'),'good');

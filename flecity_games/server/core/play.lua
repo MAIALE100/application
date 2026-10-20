@@ -850,12 +850,31 @@ local function dailyPersonalBest(challenge,playerIdentifier)
         {playerIdentifier,challenge.gameId,challenge.date,challenge.date,dailyPattern})
 end
 
+local function dailyPersonalRank(challenge,playerIdentifier,selfBest)
+    if not challenge or not playerIdentifier or not selfBest then return nil end
+    local game=gameFor(challenge.gameId)
+    if not game then return nil end
+    local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
+    local comparator=game.rankingOrder=='asc' and '<' or '>'
+    local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
+    local sql=([[SELECT 1+COUNT(*) FROM (
+        SELECT player_identifier,%s(score) AS best_score
+        FROM flecity_game_scores
+        WHERE game_id=? AND created_at>=? AND created_at<DATE_ADD(?,INTERVAL 1 DAY)
+        AND metadata_json LIKE ?
+        GROUP BY player_identifier
+    ) ranked WHERE ranked.best_score %s ?]]):format(aggregate,comparator)
+    local rank=tonumber(MySQL.scalar.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern,selfBest.score}) or 0)
+    return rank and math.max(1,math.floor(rank)) or nil
+end
+
 local function publicDaily(challenge,playerIdentifier)
     if not challenge then return nil end
     local rows=dailyRankingRows(challenge,FlecityGamesConfig.Play.RankingLimit or 20)
+    local selfBest=dailyPersonalBest(challenge,playerIdentifier)
     return {
         date=challenge.date,gameId=challenge.gameId,game=challenge.game,seed=challenge.seed,
-        best=rows[1],selfBest=dailyPersonalBest(challenge,playerIdentifier),ranking=rows
+        best=rows[1],selfBest=selfBest,selfRank=dailyPersonalRank(challenge,playerIdentifier,selfBest),ranking=rows
     }
 end
 

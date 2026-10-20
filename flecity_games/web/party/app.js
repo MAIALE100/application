@@ -331,7 +331,10 @@ function handlePartyMessage(message){
 
 window.addEventListener('message',event=>handlePartyMessage(event.data));
 
-if(typeof globalThis.onNuiEvent==='function'){
+let phonePushRegistered=false;
+function registerPhonePushChannel(){
+ if(phonePushRegistered||typeof globalThis.onNuiEvent!=='function')return;
+ phonePushRegistered=true;
  ['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate'].forEach(type=>{
    try{
      globalThis.onNuiEvent(type,data=>{
@@ -341,6 +344,7 @@ if(typeof globalThis.onNuiEvent==='function'){
    }catch(_){}
  });
 }
+registerPhonePushChannel();
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);beginPolling();};
 joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);beginPolling();};
@@ -459,6 +463,7 @@ async function bootstrap(){
    setTimeout(bootstrap,1000);
    return;
  }
+ registerPhonePushChannel();
  await loadPartyConfig();
  const res=await FlecityBridge.call('partyGetRoom',{});
  if(!res.ok){

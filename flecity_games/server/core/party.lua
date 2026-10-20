@@ -39,7 +39,17 @@ local function partyGame(id)
     return game
 end
 local function makeInternalId() return ('room:%d:%06d:%06d'):format(os.time(),GetGameTimer()%1000000,math.random(0,999999)) end
-local function makeMemberId() return ('%06d%06d'):format(math.random(0,999999),math.random(0,999999)) end
+local function makeMemberId(room)
+    for _=1,50 do
+        local candidate=('%06d%06d'):format(math.random(0,999999),math.random(0,999999))
+        local used=false
+        for _,member in pairs(room and room.members or {}) do
+            if member.memberId==candidate then used=true break end
+        end
+        if not used then return candidate end
+    end
+    return ('%06d%06d'):format(GetGameTimer()%1000000,nextJoinOrder%1000000)
+end
 local function roomCodeLength()
     return math.max(3,math.min(6,math.floor(tonumber(FlecityGamesConfig.Party.RoomCodeLength) or 4)))
 end
@@ -252,7 +262,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local room={id=roomId,code=code,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
-    room.members[id]={source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
+    room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -287,7 +297,7 @@ function FlecityGamesParty.JoinRoom(source,data)
 
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={
-        source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),
+        source=tonumber(source),memberId=makeMemberId(room),name=FlecityGamesFramework.GetCharacterName(source),
         ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()
     }
     sourceToRoom[tonumber(source)]=room.id

@@ -156,8 +156,8 @@ RegisterCommand('game_preflight',function(source)
     check('oxmysql resource started',GetResourceState('oxmysql')=='started',GetResourceState('oxmysql'))
     check('framework bridge ready',FlecityGamesFramework.IsReady()==true,
         ('%s / %s'):format(FlecityGamesConfig.Framework,tostring(FlecityGamesFramework.GetVersion() or 'unknown')))
-    check('LB Phone metadata available',GetResourceMetadata('lb-phone','version',0)~=nil,
-        tostring(GetResourceMetadata('lb-phone','version',0) or 'unknown'))
+    check('LB Phone runtime detected',GetResourceState('lb-phone')=='started',
+        tostring(GetResourceMetadata('lb-phone','version',0) or 'version metadata unavailable'))
 
     local dbOk,dbErr=FlecityGamesDatabase.Ensure()
     check('database bootstrap',dbOk,dbErr)

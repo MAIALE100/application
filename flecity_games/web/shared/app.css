@@ -127,3 +127,9 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .room-summary{padding:8px 10px;border-radius:11px;background:#11141a;border:1px solid #272d37;font-size:.76rem;opacity:.82}
 .game-info{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 11px;border-radius:12px;background:#11141a;border:1px solid #272d37}
 .game-info strong{font-size:.9rem}.game-info-meta{font-size:.72rem;opacity:.72;white-space:nowrap}.game-info .muted{grid-column:1/-1;font-size:.76rem;line-height:1.4}
+
+
+.tic-tac-board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;aspect-ratio:1}
+.tic-tac-cell{min-height:0;padding:0;border-radius:15px;background:#242832;color:#fff;border:1px solid #3a404b;font-size:2.35rem;font-weight:900}
+.tic-tac-cell:disabled{opacity:1}.tic-tac-cell:not(:disabled):active{transform:scale(.95)}
+@media(max-width:360px){.tic-tac-board{gap:6px}.tic-tac-cell{font-size:2rem}}

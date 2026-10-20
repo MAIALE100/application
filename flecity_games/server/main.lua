@@ -8,6 +8,7 @@ local callbacks={
     ['flecity_games:play:save']=function(source,data) return FlecityGamesPlay.Save(source,data) end,
     ['flecity_games:play:submitScore']=function(source,data) return FlecityGamesPlay.SubmitScore(source,data) end,
     ['flecity_games:play:ranking']=function(source,data) return FlecityGamesPlay.Ranking(source,data) end,
+    ['flecity_games:play:statistics']=function(source) return FlecityGamesPlay.Statistics(source) end,
     ['flecity_games:party:createRoom']=function(source) return FlecityGamesParty.CreateRoom(source) end,
     ['flecity_games:party:joinRoom']=function(source,data) return FlecityGamesParty.JoinRoom(source,data) end,
     ['flecity_games:party:getRoom']=function(source) return FlecityGamesParty.GetRoom(source) end,

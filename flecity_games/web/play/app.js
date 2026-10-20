@@ -411,12 +411,18 @@ tapButton.onclick=async()=>{
    if(tapSession)await FlecityBridge.call('playCancelSession',{sessionToken:tapSession.sessionToken});tapSession=null;return;
  }
  if(tapState==='shown'){
-   const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
+   const session=tapSession,reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
-   const res=await submitScoreWithRetry({sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
-   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');await refreshPlatform();}
-   else{tapMessage.textContent='保存できませんでした';await cancelPlaySession(tapSession&&tapSession.sessionToken);setStatus('スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
-   tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
+   const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:reaction,durationMs:duration});
+   const stillHere=tapSession===session;
+   if(res.ok){
+     if(stillHere){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');}
+     await refreshPlatform();
+   }else{
+     await cancelPlaySession(session&&session.sessionToken);
+     if(stillHere){tapMessage.textContent='保存できませんでした';setStatus('スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+   }
+   if(stillHere){tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;}return;
  }
  if(tapState!=='idle')return;
  tapButton.disabled=true;const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
@@ -425,8 +431,9 @@ tapButton.onclick=async()=>{
  tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
 };
 tapBack.onclick=async()=>{
- if(tapSession)await FlecityBridge.call('playCancelSession',{sessionToken:tapSession.sessionToken});
- clearTimeout(tapTimer);tapSession=null;showHome();
+ if(tapState==='submitting'){setStatus('QUICK TAPの記録を保存中です…','warn');return;}
+ if(tapSession)await cancelPlaySession(tapSession.sessionToken);
+ clearTimeout(tapTimer);tapSession=null;tapState='idle';showHome();
 };
 
 /* STOP */
@@ -445,15 +452,19 @@ function openStop(daily=false){
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
-   stopState='submitting';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
+   const session=stopSession;stopState='submitting';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
    const actionMs=Math.max(0,Math.round(performance.now()-stopStartedAt));
-   const res=await submitScoreWithRetry({sessionToken:stopSession.sessionToken,score:0,durationMs:actionMs,actionMs});
+   const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:0,durationMs:actionMs,actionMs});
+   const stillHere=stopSession===session;
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
-     stopMessage.textContent=String(res.score);
-     showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));await refreshPlatform();
-   }else{stopMessage.textContent='保存できませんでした';await cancelPlaySession(stopSession&&stopSession.sessionToken);setStatus('STOP! スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
-   stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';return;
+     if(stillHere){stopMessage.textContent=String(res.score);showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
+     await refreshPlatform();
+   }else{
+     await cancelPlaySession(session&&session.sessionToken);
+     if(stillHere){stopMessage.textContent='保存できませんでした';setStatus('STOP! スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+   }
+   if(stillHere){stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';}return;
  }
  if(stopState!=='idle')return;
  stopButton.disabled=true;
@@ -464,8 +475,9 @@ stopButton.onclick=async()=>{
  stopMessage.textContent='STOP!';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
 };
 stopBack.onclick=async()=>{
+ if(stopState==='submitting'){setStatus('STOP!の記録を保存中です…','warn');return;}
  cancelAnimationFrame(stopRaf);
- if(stopSession)await FlecityBridge.call('playCancelSession',{sessionToken:stopSession.sessionToken});
+ if(stopSession)await cancelPlaySession(stopSession.sessionToken);
  stopSession=null;stopState='idle';showHome();
 };
 

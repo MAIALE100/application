@@ -34,7 +34,13 @@ FlecityGamesConfig = {
             BlockMasterScore = 5000,
             GamesVeteranCount = 100,
             NumberRushAceMs = 12000,
-            HighLowStreak = 10
+            HighLowStreak = 10,
+            StopBullseyeScore = 990,
+            MergeMasterTile = 2048,
+            MinesSprinterMs = 60000,
+            NonogramQuickMs = 60000,
+            ColorMatchFocusMs = 6000,
+            SimonMasterRounds = 15
         }
     },
 

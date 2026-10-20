@@ -122,3 +122,8 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 #lobbyPanel{padding:14px}#roundPanel{padding:14px}
 #players .player{padding:9px 10px}
 @media(max-width:360px){.join-row{grid-template-columns:1fr}.room-code{font-size:2.1rem}}
+
+
+.room-summary{padding:8px 10px;border-radius:11px;background:#11141a;border:1px solid #272d37;font-size:.76rem;opacity:.82}
+.game-info{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 11px;border-radius:12px;background:#11141a;border:1px solid #272d37}
+.game-info strong{font-size:.9rem}.game-info-meta{font-size:.72rem;opacity:.72;white-space:nowrap}.game-info .muted{grid-column:1/-1;font-size:.76rem;line-height:1.4}

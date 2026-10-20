@@ -92,6 +92,7 @@ RegisterNetEvent('flecity_games:client:partyDrawStroke',function(data)
         exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyDrawStroke',
             token=data.token,
+            revision=data.revision,
             points=data.points
         })
     end)
@@ -102,7 +103,8 @@ RegisterNetEvent('flecity_games:client:partyDrawClear',function(data)
     pcall(function()
         exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyDrawClear',
-            token=data.token
+            token=data.token,
+            revision=data.revision
         })
     end)
 end)

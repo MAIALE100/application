@@ -898,38 +898,26 @@ local function publicDaily(challenge,playerIdentifier)
     }
 end
 
-function FlecityGamesPlay.Bootstrap(source)
-    local id=identifier(source)
-    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    clearForeignSourceSessions(source,id)
-    touchProfile(source,id)
-
-    local saveRows=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
-        FROM flecity_game_saves WHERE player_identifier=? ORDER BY updated_at DESC]],{id}) or {}
-    local saves={}
-    for _,save in ipairs(saveRows) do
-        local game=gameFor(save.game_id)
-        if game and tonumber(save.game_version or 1)==tonumber(game.version or 1) then
-            save.state=json.decode(save.state_json or '{}') or {}
-            save.state_json=nil
-            saves[#saves+1]=save
+local function clearPlayerSessions(playerIdentifier)
+    local removed=0
+    for token,session in pairs(sessions) do
+        if session.playerIdentifier==playerIdentifier then
+            sessions[token]=nil
+            removed=removed+1
         end
     end
-
-    local best=bestScoresFor(id)
-
-    return {
-        ok=true,
-        version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
-        games=FlecityGamesRegistry.List('play',false),saves=saves,best=best,
-        daily=publicDaily(dailyChallenge(),id),statistics=statisticsFor(id),achievements=achievementsFor(id)
-    }
+    return removed
 end
 
 local function clearPlayerGameSessions(playerIdentifier,gameId)
+    local removed=0
     for token,session in pairs(sessions) do
-        if session.playerIdentifier==playerIdentifier and session.gameId==gameId then sessions[token]=nil end
+        if session.playerIdentifier==playerIdentifier and session.gameId==gameId then
+            sessions[token]=nil
+            removed=removed+1
+        end
     end
+    return removed
 end
 
 local function saveEpochKey(playerIdentifier,gameId)
@@ -959,6 +947,36 @@ local function clearForeignSourceSessions(source,currentIdentifier)
     end
     return removed
 end
+
+function FlecityGamesPlay.Bootstrap(source)
+    local id=identifier(source)
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    clearForeignSourceSessions(source,id)
+    clearPlayerSessions(id)
+    touchProfile(source,id)
+
+    local saveRows=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
+        FROM flecity_game_saves WHERE player_identifier=? ORDER BY updated_at DESC]],{id}) or {}
+    local saves={}
+    for _,save in ipairs(saveRows) do
+        local game=gameFor(save.game_id)
+        if game and tonumber(save.game_version or 1)==tonumber(game.version or 1) then
+            save.state=json.decode(save.state_json or '{}') or {}
+            save.state_json=nil
+            saves[#saves+1]=save
+        end
+    end
+
+    local best=bestScoresFor(id)
+
+    return {
+        ok=true,
+        version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
+        games=FlecityGamesRegistry.List('play',false),saves=saves,best=best,
+        daily=publicDaily(dailyChallenge(),id),statistics=statisticsFor(id),achievements=achievementsFor(id)
+    }
+end
+
 
 function FlecityGamesPlay.StartSession(source,data)
     if type(data)~='table' then data={} end
@@ -1032,7 +1050,7 @@ function FlecityGamesPlay.StartSession(source,data)
                 seed=math.random(1,2147483646)
             end
         end
-        clearPlayerGameSessions(id,game.id)
+        clearPlayerSessions(id)
         local challenge=challengeFor(game,seed)
         local token=newToken(id,game.id)
         local startedTick=GetGameTimer()

@@ -23,3 +23,13 @@ function FlecityGamesText.Truncate(value,maxCharacters)
     end
     return text:sub(1,limit)
 end
+
+function FlecityGamesText.DebugSelftest()
+    local sample='日本語ABC'
+    local truncated=FlecityGamesText.Truncate(sample,4)
+    return {
+        utf8Length=FlecityGamesText.Length(sample)==6,
+        utf8Truncate=truncated=='日本語A',
+        normalize=FlecityGamesText.Normalize('  A   B  ')=='A B'
+    }
+end

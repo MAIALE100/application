@@ -4,7 +4,7 @@ const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getEl
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
-const majorityPanel=document.getElementById('majorityPanel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
+const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
@@ -109,13 +109,17 @@ function renderResults(room){
    const winnerNames=(rs.results.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
    if(winnerNames.length){const summary=document.createElement('div');summary.className='status good';summary.textContent=(winnerNames.length>1?'同票: ':'最多票: ')+winnerNames.join(' / ');resultsEl.appendChild(summary);}
    rs.results.entries.forEach(e=>appendResultRow(e.name,e.votes+'票'));
- }else if(rs.gameId==='majority'){
+ }else if(rs.gameId==='majority'||rs.gameId==='minority'){
    const options=rs.results.options||rs.options||['A','B'],counts=rs.results.counts||{A:0,B:0};
-   const summary=document.createElement('div');summary.className='status good';
-   const winning=rs.results.winningChoice;
-   summary.textContent=(winning?'多数派: '+(winning==='A'?options[0]:options[1]):'同数')+' · A '+Number(counts.A||0)+' / B '+Number(counts.B||0);
+   const summary=document.createElement('div');summary.className='status '+(rs.results.winningChoice?'good':'warn');
+   const winning=rs.results.winningChoice,isMinority=rs.gameId==='minority';
+   const winnerText=winning?(isMinority?'少数派: ':'多数派: ')+(winning==='A'?options[0]:options[1]):'同数のため勝者なし';
+   summary.textContent=winnerText+' · '+options[0]+' '+Number(counts.A||0)+' / '+options[1]+' '+Number(counts.B||0);
    resultsEl.appendChild(summary);
-   rs.results.entries.forEach(e=>{const label=e.choice==='A'?options[0]:options[1];appendResultRow(e.name,label);});
+   rs.results.entries.forEach(e=>{
+     const label=e.choice==='A'?options[0]:options[1];
+     appendResultRow(e.name,label+(winning&&e.choice===winning?' ✓':''));
+   });
  }else if(rs.gameId==='word_wolf'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(rs.results.caught?'少数派を見破りました！':'少数派を見破れませんでした')+' · 多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← 少数派':'';appendResultRow(e.name+wolf,e.votes+'票');});
@@ -184,12 +188,14 @@ function setupVote(room){
  });
 }
 function setupMajority(room){
- const rs=room.roundState;hideRoundGames();majorityPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
- majorityPrompt.textContent=rs.prompt||'MAJORITY';majorityChoices.innerHTML='';
+ const rs=room.roundState,isMinority=rs.gameId==='minority';hideRoundGames();majorityPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ majorityGameLabel.textContent=isMinority?'MINORITY':'MAJORITY';
+ majorityPrompt.textContent=rs.prompt||(isMinority?'MINORITY':'MAJORITY');majorityChoices.innerHTML='';
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){majorityChoices.innerHTML='<div class="status good">回答済みです。ほかの参加者を待っています。</div>';return;}
+ const hint=document.createElement('div');hint.className='muted choice-hint';hint.textContent=isMinority?'少ない方になりそうな選択肢を選んでください。':'多い方になりそうな選択肢を選んでください。';majorityChoices.appendChild(hint);
  const options=Array.isArray(rs.options)?rs.options:['A','B'];
- ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.token,choice);majorityChoices.appendChild(b);});
+ ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary choice-button';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.gameId,rs.token,choice);majorityChoices.appendChild(b);});
 }
 function setupDeduction(room){
  const rs=room.roundState;hideRoundGames();deductionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);deductionChoices.innerHTML='';
@@ -279,7 +285,7 @@ function renderRoom(room,timing){
    if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);
-   else if(rs&&rs.gameId==='majority')setupMajority(room);
+   else if(rs&&(rs.gameId==='majority'||rs.gameId==='minority'))setupMajority(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
@@ -405,10 +411,12 @@ async function submitVote(token,targetMemberId){
  const res=await FlecityBridge.call('partySubmitVote',{token,targetMemberId});
  if(!res.ok){status('投票失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
 }
-async function submitMajority(token,choice){
+async function submitMajority(gameId,token,choice){
  majorityChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
- const res=await FlecityBridge.call('partySubmitMajority',{token,choice});
- if(!res.ok){status('MAJORITY回答失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
+ const isMinority=gameId==='minority';
+ const action=isMinority?'partySubmitMinority':'partySubmitMajority';
+ const res=await FlecityBridge.call(action,{token,choice});
+ if(!res.ok){status((isMinority?'MINORITY':'MAJORITY')+'回答失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
 }
 async function submitDeduction(gameId,token,targetMemberId){
  deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=true);

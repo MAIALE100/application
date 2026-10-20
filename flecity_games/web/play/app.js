@@ -138,6 +138,12 @@ rankingLoad.onclick=loadRanking;
 rankingGame.onchange=()=>{rankingRows.innerHTML='';};
 rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
+ const bridge=await FlecityBridge.call('bridgePing',{});
+ if(!bridge.ok){
+   setStatus('LB Phoneへ再接続中…','warn');
+   setTimeout(bootstrap,1000);
+   return;
+ }
  const res=await FlecityBridge.call('playBootstrap',{});
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];

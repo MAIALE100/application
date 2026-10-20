@@ -802,7 +802,7 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
     return unlocked
 end
 
-local function dailyRankingRows(challenge,limit)
+local function dailyRankingRows(challenge,limit,viewerIdentifier)
     if not challenge then return {} end
     local game=gameFor(challenge.gameId)
     if not game then return {} end
@@ -810,13 +810,14 @@ local function dailyRankingRows(challenge,limit)
     local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
     local safeLimit=math.max(1,math.min(50,tonumber(limit) or 20))
     local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
-    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
+    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score,
+        MAX(CASE WHEN s.player_identifier=? THEN 1 ELSE 0 END) AS is_self
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? AND s.created_at>=? AND s.created_at<DATE_ADD(?,INTERVAL 1 DAY)
         AND s.metadata_json LIKE ?
         GROUP BY s.player_identifier,p.display_name
         ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,order,safeLimit)
-    return MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
+    return MySQL.query.await(sql,{viewerIdentifier or '',challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
 end
 local function personalBestForGame(playerIdentifier,game)
     if not playerIdentifier or not game or game.supportsRanking~=true then return nil end
@@ -870,7 +871,7 @@ end
 
 local function publicDaily(challenge,playerIdentifier)
     if not challenge then return nil end
-    local rows=dailyRankingRows(challenge,FlecityGamesConfig.Play.RankingLimit or 20)
+    local rows=dailyRankingRows(challenge,FlecityGamesConfig.Play.RankingLimit or 20,playerIdentifier)
     local selfBest=dailyPersonalBest(challenge,playerIdentifier)
     return {
         date=challenge.date,gameId=challenge.gameId,game=challenge.game,seed=challenge.seed,
@@ -1424,7 +1425,9 @@ function FlecityGamesPlay.Ranking(source,data)
     if period=='daily' then
         local daily=dailyChallenge()
         if not daily or daily.gameId~=game.id then return {ok=false,error='DAILY_GAME_MISMATCH'} end
-        return {ok=true,gameId=game.id,period=period,rows=dailyRankingRows(daily,limit),date=daily.date}
+        local selfBest=dailyPersonalBest(daily,id)
+        return {ok=true,gameId=game.id,period=period,rows=dailyRankingRows(daily,limit,id),date=daily.date,
+            self={score=selfBest and tonumber(selfBest.score) or nil,rank=dailyPersonalRank(daily,id,selfBest)}}
     end
 
     local wherePeriod=''
@@ -1439,13 +1442,14 @@ function FlecityGamesPlay.Ranking(source,data)
     local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
     local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
     local comparator=game.rankingOrder=='asc' and '<' or '>'
-    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
+    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score,
+        MAX(CASE WHEN s.player_identifier=? THEN 1 ELSE 0 END) AS is_self
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? %s
         AND (s.metadata_json IS NULL OR s.metadata_json NOT LIKE '%%"dailyDate":%%')
         GROUP BY s.player_identifier,p.display_name
         ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,wherePeriod,order,limit)
-    local rows=MySQL.query.await(sql,{game.id}) or {}
+    local rows=MySQL.query.await(sql,{id,game.id}) or {}
 
     local selfSql=([[SELECT %s(score) AS score FROM flecity_game_scores
         WHERE player_identifier=? AND game_id=? %s

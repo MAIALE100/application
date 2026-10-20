@@ -248,6 +248,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - VOTE
 - MAJORITY
 - MINORITY
+- TIC-TAC
 - WORD WOLF
 - LIAR
 - TELEPHONE
@@ -270,6 +271,16 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 人数が少ない選択肢が勝ちになる
 - 同数なら勝者なしになる
 - 切断者を集計へ含めない
+
+### TIC-TAC
+
+- 2人の時だけ開始できる
+- X/Oが別々に割り当てられる
+- 自分の番だけ空きマスを押せる
+- 使用済みマスへ置けない
+- 縦・横・斜め3つ揃いで勝者表示
+- 9マス埋まって揃わなければ引き分け
+- 途中切断時はRoundを安全終了
 
 ### WORD WOLF
 - 各自には自分のお題だけ見える

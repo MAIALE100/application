@@ -33,7 +33,8 @@ FlecityGamesConfig = {
             StackMasterLayers = 25,
             BlockMasterScore = 5000,
             GamesVeteranCount = 100,
-            NumberRushAceMs = 12000
+            NumberRushAceMs = 12000,
+            HighLowStreak = 10
         }
     },
 

@@ -23,6 +23,7 @@ server = read("flecity_games/server/main.lua")
 registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
 bridge = read("flecity_games/web/shared/bridge.js")
+errors_js = read("flecity_games/web/shared/errors.js")
 
 def dom_ids(js):
     return set(re.findall(r"getElementById\('([^']+)'\)", js))
@@ -57,6 +58,10 @@ if "ui_page" in fx:
 
 if "globalThis.fetchNui" not in bridge:
     fail("LB Phone fetchNui bridge is missing")
+if "../shared/errors.js" not in play_html or "../shared/errors.js" not in party_html:
+    fail("shared error dictionary must be loaded by both apps")
+if "NUI_UNAVAILABLE" not in errors_js or "NOT_IN_ROOM" not in errors_js:
+    fail("shared error dictionary is incomplete")
 
 if "'lb-phone'" not in fx or "'oxmysql'" not in fx:
     fail("fxmanifest dependencies must include lb-phone and oxmysql")

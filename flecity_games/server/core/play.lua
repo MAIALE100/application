@@ -408,24 +408,16 @@ local function dailyRankingRows(challenge,limit)
     local game=gameFor(challenge.gameId)
     if not game then return {} end
     local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
-    local fetchLimit=math.max(100,math.min(1000,(limit or 20)*20))
-    local sql=([[SELECT s.player_identifier,COALESCE(p.display_name,'Player') AS display_name,s.score,s.metadata_json
+    local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
+    local safeLimit=math.max(1,math.min(50,tonumber(limit) or 20))
+    local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
+    local sql=([[SELECT s.player_identifier,COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? AND s.created_at>=? AND s.created_at<DATE_ADD(?,INTERVAL 1 DAY)
         AND s.metadata_json LIKE ?
-        ORDER BY s.score %s,s.created_at ASC LIMIT %d]]):format(order,fetchLimit)
-    local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
-    local rows=MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
-    local out={} local seen={}
-    for _,row in ipairs(rows) do
-        local metadata=json.decode(row.metadata_json or '{}') or {}
-        if tostring(metadata.dailyDate or '')==challenge.date and not seen[row.player_identifier] then
-            seen[row.player_identifier]=true
-            out[#out+1]={display_name=row.display_name,score=row.score}
-            if #out>=limit then break end
-        end
-    end
-    return out
+        GROUP BY s.player_identifier,p.display_name
+        ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,order,safeLimit)
+    return MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
 end
 local function publicDaily(challenge)
     if not challenge then return nil end

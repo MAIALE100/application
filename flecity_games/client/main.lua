@@ -6,16 +6,23 @@ local function addApp(app)
         defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
         icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
     })
-    if not ok and err~='APP_ALREADY_EXISTS' then
-        print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))
-    end
+    if ok or err=='APP_ALREADY_EXISTS' then return true end
+    print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))
+    return false
 end
 
 local function registerApps()
     if GetResourceState('lb-phone')~='started' then return end
-    Wait(500)
-    addApp(FlecityGamesConfig.Apps.Play)
-    addApp(FlecityGamesConfig.Apps.Party)
+    for attempt=1,5 do
+        Wait(attempt==1 and 500 or 300)
+        local playOk=addApp(FlecityGamesConfig.Apps.Play)
+        local partyOk=addApp(FlecityGamesConfig.Apps.Party)
+        if playOk and partyOk then
+            print(('[FlecityGames] custom apps ready (attempt %d)'):format(attempt))
+            return
+        end
+    end
+    print('[FlecityGames] custom app registration did not fully complete after retries')
 end
 
 CreateThread(function()

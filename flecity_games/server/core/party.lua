@@ -2,6 +2,7 @@ FlecityGamesParty = FlecityGamesParty or {}
 
 local rooms,roomsByCode,sourceToRoom={},{},{}
 local nextJoinOrder=0
+local reconcileRound
 
 local votePrompts={
     '無人島で一番長く生き残りそうなのは？',
@@ -343,6 +344,30 @@ local function notifyRoomEvent(room,excludeSource,eventName,payload)
     end
 end
 
+local function roomForPlayer(source,id)
+    local src=tonumber(source)
+    local room=roomForSource(src)
+    if not room then return nil end
+
+    local member=id and room.members[id] or nil
+    if member and tonumber(member.source)==src and not member.disconnected then return room end
+
+    local staleId=nil
+    for memberId,m in pairs(room.members) do
+        if tonumber(m.source)==src then staleId=memberId break end
+    end
+
+    sourceToRoom[src]=nil
+    if staleId then removeMember(room,staleId) end
+
+    if rooms[room.id] then
+        migrateHost(room)
+        if reconcileRound then reconcileRound(room) end
+        notifyRoom(room)
+    end
+    return nil
+end
+
 function FlecityGamesParty.GetConfig()
     local games={}
     for _,game in ipairs(FlecityGamesRegistry.List('party',true)) do
@@ -370,7 +395,7 @@ function FlecityGamesParty.CreateRoom(source)
     if not FlecityGamesRateLimit.Allow(source,'room_create',FlecityGamesConfig.RateLimits.RoomCreateMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    local existingRoom=roomForSource(source) or roomForIdentifier(id)
+    local existingRoom=roomForPlayer(source,id) or roomForIdentifier(id)
     if existingRoom then
         reconnectMember(existingRoom,id,source)
         notifyRoom(existingRoom,source)
@@ -393,7 +418,7 @@ function FlecityGamesParty.JoinRoom(source,data)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
 
-    local current=roomForSource(source)
+    local current=roomForPlayer(source,id)
     if current then return {ok=true,room=snapshot(current,id)} end
 
     local existingRoom=roomForIdentifier(id)
@@ -434,7 +459,7 @@ end
 function FlecityGamesParty.GetRoom(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    local room=roomForSource(source)
+    local room=roomForPlayer(source,id)
     local reconnected=false
     if not room then
         room=roomForIdentifier(id)
@@ -447,7 +472,7 @@ end
 
 function FlecityGamesParty.SetReady(source,data)
     if not FlecityGamesRateLimit.Allow(source,'ready',FlecityGamesConfig.RateLimits.ReadyMs) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     room.members[id].ready=type(data)=='table' and data.ready==true
@@ -457,7 +482,7 @@ end
 
 function FlecityGamesParty.SelectGame(source,data)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
@@ -479,7 +504,7 @@ end
 
 function FlecityGamesParty.StartRound(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
@@ -568,7 +593,7 @@ end
 
 function FlecityGamesParty.SubmitReaction(source,data)
     if not FlecityGamesRateLimit.Allow(source,'reaction_submit',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='reaction' then return {ok=false,error='INVALID_ROUND'} end
@@ -607,7 +632,7 @@ end
 
 function FlecityGamesParty.SubmitStopBattle(source,data)
     if not FlecityGamesRateLimit.Allow(source,'stop_battle_submit',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='stop_battle' then return {ok=false,error='INVALID_ROUND'} end
@@ -645,7 +670,7 @@ end
 
 function FlecityGamesParty.SubmitMajority(source,data)
     if not FlecityGamesRateLimit.Allow(source,'majority_submit',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='majority' then return {ok=false,error='INVALID_ROUND'} end
@@ -681,7 +706,7 @@ end
 
 function FlecityGamesParty.SubmitVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'vote_submit',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='vote' then return {ok=false,error='INVALID_ROUND'} end
@@ -713,7 +738,7 @@ end
 
 function FlecityGamesParty.SubmitWordWolfVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'word_wolf_vote',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='word_wolf' then return {ok=false,error='INVALID_ROUND'} end
@@ -742,7 +767,7 @@ end
 
 function FlecityGamesParty.SubmitLiarVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'liar_vote',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='liar' then return {ok=false,error='INVALID_ROUND'} end
@@ -782,7 +807,7 @@ end
 
 function FlecityGamesParty.AddDrawStroke(source,data)
     if not FlecityGamesRateLimit.Allow(source,'draw_stroke',80) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
@@ -802,7 +827,7 @@ end
 
 function FlecityGamesParty.ClearDrawing(source,data)
     if not FlecityGamesRateLimit.Allow(source,'draw_clear',500) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
@@ -816,7 +841,7 @@ end
 
 function FlecityGamesParty.SubmitDrawGuess(source,data)
     if not FlecityGamesRateLimit.Allow(source,'draw_guess',300) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
@@ -858,7 +883,7 @@ end
 
 function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     if not FlecityGamesRateLimit.Allow(source,'telephone_draw',500) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='telephone' then return {ok=false,error='INVALID_ROUND'} end
@@ -877,7 +902,7 @@ end
 
 function FlecityGamesParty.SubmitTelephoneText(source,data)
     if not FlecityGamesRateLimit.Allow(source,'telephone_text',500) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='telephone' then return {ok=false,error='INVALID_ROUND'} end
@@ -897,7 +922,7 @@ end
 
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
     room.state='lobby' room.roundState=nil
@@ -914,7 +939,7 @@ local function abortRound(room,reason)
     return true
 end
 
-local function reconcileRound(room)
+reconcileRound=function(room)
     local rs=room.roundState
     if not rs or rs.complete then return end
 
@@ -946,7 +971,7 @@ local function reconcileRound(room)
 end
 
 function FlecityGamesParty.LeaveRoom(source)
-    local id=identifier(source) local room=roomForSource(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=true} end
     removeMember(room,id)
     if rooms[room.id] then

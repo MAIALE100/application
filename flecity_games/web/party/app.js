@@ -355,20 +355,25 @@ function handlePartyMessage(message){
  if(message.type==='partyInvalidate')refresh();
 }
 
-window.addEventListener('message',event=>handlePartyMessage(event.data));
-
 let phonePushRegistered=false;
+window.addEventListener('message',event=>{
+ if(!phonePushRegistered)handlePartyMessage(event.data);
+});
+
 function registerPhonePushChannel(){
  if(phonePushRegistered||typeof globalThis.onNuiEvent!=='function')return;
- phonePushRegistered=true;
- ['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate'].forEach(type=>{
-   try{
+ const types=['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate'];
+ try{
+   types.forEach(type=>{
      globalThis.onNuiEvent(type,data=>{
        if(data&&typeof data==='object'&&data.type)handlePartyMessage(data);
        else handlePartyMessage({type,...(data&&typeof data==='object'?data:{})});
      });
-   }catch(_){}
- });
+   });
+   phonePushRegistered=true;
+ }catch(_){
+   phonePushRegistered=false;
+ }
 }
 registerPhonePushChannel();
 

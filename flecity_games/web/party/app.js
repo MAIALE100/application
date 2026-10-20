@@ -237,7 +237,7 @@ async function refresh(){
  if(!res.ok){if(res.error==='NOT_IN_ROOM')showEntry();else status('Room update failed: '+res.error,'error');return;}
  renderRoom(res.room);
 }
-function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,700);}
+function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,300);}
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('Create failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};
 joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,4);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('Join failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};

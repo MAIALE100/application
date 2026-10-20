@@ -432,11 +432,25 @@ function FlecityGamesPlay.Save(source,data)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
     if game.supportsResume~=true then return {ok=false,error='RESUME_NOT_SUPPORTED'} end
     if type(data.state)~='table' then return {ok=false,error='INVALID_STATE'} end
+
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not session or session.playerIdentifier~=id or session.gameId~=game.id then return {ok=false,error='INVALID_SESSION'} end
+    local seedNumber=tonumber(data.seed)
+    if not seedNumber or math.floor(seedNumber)~=math.floor(tonumber(session.seed) or -1) then return {ok=false,error='INVALID_SAVE_SEED'} end
+
     local encoded=json.encode(data.state)
     if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end
     local score=tonumber(data.score) or 0
+    if game.id=='block' then
+        local verified=replayBlock(session.seed,data.state.history)
+        if verified==nil or verified~=math.floor(score) or tonumber(data.state.score)~=verified then return {ok=false,error='INVALID_BLOCK_SAVE'} end
+    elseif game.id=='merge' then
+        local verified=replayMerge(session.seed,data.state.history)
+        if verified==nil or verified~=math.floor(score) or tonumber(data.state.score)~=verified then return {ok=false,error='INVALID_MERGE_SAVE'} end
+    end
     local elapsed=math.max(0,math.min(28800000,math.floor(tonumber(data.elapsedMs) or 0)))
-    local seed=tostring(data.seed or ''):sub(1,64)
+    local seed=tostring(math.floor(seedNumber)):sub(1,64)
     MySQL.query.await([[INSERT INTO flecity_game_saves
         (player_identifier,game_id,state_json,score,elapsed_ms,seed,game_version)
         VALUES (?,?,?,?,?,?,?)

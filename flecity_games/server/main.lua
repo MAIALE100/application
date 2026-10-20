@@ -32,6 +32,13 @@ local callbacks={
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }
 
+local callbackOptions={
+    ['flecity_games:play:save']={preventSpam=true,rateLimit=300,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
+    ['flecity_games:party:getRoom']={preventSpam=true,rateLimit=240,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
+    ['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=900,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
+}
+local defaultCallbackOptions={preventSpam=true,rateLimit=120,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
+
 local function safeCall(name,fn,source,data)
     local ok,result=pcall(fn,source,data)
     if ok then return result or {ok=false,error='EMPTY_RESPONSE'} end
@@ -49,9 +56,8 @@ CreateThread(function()
         end
         print('[FlecityGames] database schema ready')
         for name,fn in pairs(callbacks) do
-            exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,{
-                preventSpam=true,rateLimit=30,defaultReturn={ok=false,error='CALLBACK_FAILED'}
-            })
+            exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
+                callbackOptions[name] or defaultCallbackOptions)
         end
         print('[FlecityGames] LB Phone callbacks registered')
     end)

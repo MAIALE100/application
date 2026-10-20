@@ -10,6 +10,7 @@ window.FlecityErrors = {
         PHONE_CALLBACK_FAILED: 'LB Phone経由の通信に失敗しました',
         NUI_REQUEST_FAILED: 'アプリ画面からの通信に失敗しました',
         NUI_UNAVAILABLE: 'LB Phoneとの接続準備ができていません',
+        APP_SUSPENDED: 'アプリを閉じたため開始を取り消しました',
 
         GAME_UNAVAILABLE: 'このゲームは現在利用できません',
         DAILY_UNAVAILABLE: '今日のチャレンジを取得できません',

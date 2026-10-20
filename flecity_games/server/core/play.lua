@@ -436,6 +436,7 @@ end
 function FlecityGamesPlay.Bootstrap(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    clearForeignSourceSessions(source,id)
     touchProfile(source,id)
 
     local saveRows=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
@@ -474,11 +475,25 @@ local function clearPlayerGameSessions(playerIdentifier,gameId)
     end
 end
 
+local function clearForeignSourceSessions(source,currentIdentifier)
+    local src=tonumber(source)
+    if not src or not currentIdentifier then return 0 end
+    local removed=0
+    for token,session in pairs(sessions) do
+        if tonumber(session.source)==src and session.playerIdentifier~=currentIdentifier then
+            sessions[token]=nil
+            removed=removed+1
+        end
+    end
+    return removed
+end
+
 function FlecityGamesPlay.StartSession(source,data)
     if not FlecityGamesRateLimit.Allow(source,'play_start',FlecityGamesConfig.RateLimits.PlayStartMs) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then data={} end
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    clearForeignSourceSessions(source,id)
 
     local game=gameFor(data.gameId)
     local dailyDate=nil

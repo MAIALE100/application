@@ -78,7 +78,7 @@ function renderPlatform(data){
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
  const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'Today\'s Best · '+formatGameScore(game,daily.best.score):'No daily score yet.';
- dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+formatGameScore(game,r.score)+'</strong>';dailyRanking.appendChild(d);});
+ dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
 }
 async function refreshPlatform(){
  const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;
@@ -127,8 +127,10 @@ async function loadRanking(){
  const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
  res.rows.forEach((r,i)=>{
    const d=document.createElement('div');d.className='player';
-   const formatted=formatGameScore(game,r.score);
-   d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+formatted+'</strong>';rankingRows.appendChild(d);
+   const left=document.createElement('span'),right=document.createElement('strong');
+   left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');
+   right.textContent=formatGameScore(game,r.score);
+   d.append(left,right);rankingRows.appendChild(d);
  });
 }
 rankingLoad.onclick=loadRanking;

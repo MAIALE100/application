@@ -4,6 +4,7 @@ const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
+const confirmOverlay=document.getElementById('confirmOverlay'),confirmTitle=document.getElementById('confirmTitle'),confirmMessage=document.getElementById('confirmMessage'),confirmCancel=document.getElementById('confirmCancel'),confirmAccept=document.getElementById('confirmAccept');
 const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
 const stopEl=document.getElementById('stopGame'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore'),blockMeta=document.getElementById('blockMeta');
@@ -60,6 +61,24 @@ function setStatus(text,type){
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
  if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
 }
+let confirmResolver=null;
+function closeConfirm(value){
+ if(!confirmResolver)return;
+ const resolve=confirmResolver;confirmResolver=null;confirmOverlay.classList.add('hidden');resolve(value===true);
+}
+function confirmAction(title,message,acceptLabel='続ける'){
+ if(confirmResolver)closeConfirm(false);
+ confirmTitle.textContent=String(title||'確認');
+ confirmMessage.textContent=String(message||'');
+ confirmAccept.textContent=String(acceptLabel||'続ける');
+ confirmOverlay.classList.remove('hidden');
+ return new Promise(resolve=>{confirmResolver=resolve;});
+}
+confirmCancel.onclick=()=>closeConfirm(false);
+confirmAccept.onclick=()=>closeConfirm(true);
+confirmOverlay.onclick=event=>{if(event.target===confirmOverlay)closeConfirm(false);};
+window.addEventListener('keydown',event=>{if(event.key==='Escape'&&confirmResolver)closeConfirm(false);});
+
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 let saveQueue=Promise.resolve();
 async function performSaveWithRetry(payload){
@@ -112,12 +131,12 @@ function renderPlatform(data){
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
- const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'今日のベスト · '+formatGameScore(game,daily.best.score):'今日の記録はまだありません。';
+ const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score):'今日はまだ挑戦していません。';
  dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
 }
 async function refreshPlatform(){
  const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;
- bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;renderPlatform(res);
+ bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;bootstrapData.best=res.best||bootstrapData.best||{};renderPlatform(res);renderGames(bootstrapData.games);
 }
 async function launchDaily(){
  const daily=bootstrapData&&bootstrapData.daily;if(!daily)return;
@@ -180,14 +199,16 @@ function renderGames(games){
    groups.get(category).forEach(game=>{
      const btn=document.createElement('button');btn.className='game';
      const hasSave=!!saves[game.id];
-     const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),meta=document.createElement('span');
-     tag.className='tag';description.className='muted';meta.className='game-card-meta';
+     const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
+     tag.className='tag';description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
      tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':'PLAY');
      name.textContent=String(game.name||game.id||'GAME');
      description.textContent=String(game.description||'');
+     const personalBest=bootstrapData&&bootstrapData.best&&bootstrapData.best[game.id];
+     bestLine.textContent=game.supportsRanking?(personalBest?'BEST · '+formatGameScore(game,personalBest.score):'BEST · ---'):'';
      const traits=[];if(game.supportsRanking)traits.push('RANK');if(game.supportsResume)traits.push('SAVE');
      meta.textContent=traits.join(' · ');
-     btn.append(tag,name,description,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
+     btn.append(tag,name,description,bestLine,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
    });
    section.append(head,grid);gamesEl.appendChild(section);
  });
@@ -406,14 +427,23 @@ blockBack.onclick=async()=>{
  block=null;showHome();
 };
 blockNew.onclick=async()=>{
+ if(blockNew.disabled)return;
  const wasDaily=!!(block&&block.daily);
- if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
  if(!wasDaily){
-   const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
-   if(!reset.ok){setStatus('BLOCKの保存をリセットできません: '+reset.error,'error');return;}
-   delete saves.block;
+   const ok=await confirmAction('BLOCKを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
  }
- block=null;await openBlock(true,wasDaily);
+ blockNew.disabled=true;
+ try{
+   if(wasDaily){
+     if(block&&!block.finished&&block.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
+   }else{
+     const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
+     if(!reset.ok){setStatus('BLOCKの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+     delete saves.block;
+   }
+   block=null;await openBlock(true,wasDaily);
+ }finally{blockNew.disabled=false;}
 };
 blockFinish.onclick=finishBlock;
 
@@ -516,10 +546,15 @@ mergeBack.onclick=async()=>{
  merge=null;showHome();
 };
 mergeNew.onclick=async()=>{
- if(merge&&!merge.finished)await FlecityBridge.call('playCancelSession',{sessionToken:merge.sessionToken});
- const reset=await FlecityBridge.call('playResetSave',{gameId:'merge'});
- if(!reset.ok){setStatus('MERGEの保存をリセットできません: '+reset.error,'error');return;}
- delete saves.merge;merge=null;await openMerge(true);
+ if(mergeNew.disabled)return;
+ const ok=await confirmAction('MERGEを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+ if(!ok)return;
+ mergeNew.disabled=true;
+ try{
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'merge'});
+   if(!reset.ok){setStatus('MERGEの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+   delete saves.merge;merge=null;await openMerge(true);
+ }finally{mergeNew.disabled=false;}
 };
 mergeFinish.onclick=finishMerge;
 mergeUp.onclick=()=>moveMerge('up');mergeDown.onclick=()=>moveMerge('down');mergeLeft.onclick=()=>moveMerge('left');mergeRight.onclick=()=>moveMerge('right');
@@ -645,10 +680,24 @@ minesBack.onclick=async()=>{
  mines=null;showHome();
 };
 minesNew.onclick=async()=>{
- clearInterval(minesClock);minesClock=null;const wasDaily=!!(mines&&mines.daily);
- if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
- if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('MINESをリセットできません: '+reset.error,'error');return;}delete saves.mines;}
- mines=null;await openMines(true,wasDaily);
+ if(minesNew.disabled)return;
+ const wasDaily=!!(mines&&mines.daily);
+ if(!wasDaily){
+   const ok=await confirmAction('MINESを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
+ }
+ minesNew.disabled=true;
+ try{
+   clearInterval(minesClock);minesClock=null;
+   if(wasDaily){
+     if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
+   }else{
+     const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});
+     if(!reset.ok){setStatus('MINESをリセットできません: '+FlecityErrors.text(reset.error),'error');if(mines&&!mines.finished)minesClock=setInterval(updateMinesTime,250);return;}
+     delete saves.mines;
+   }
+   mines=null;await openMines(true,wasDaily);
+ }finally{minesNew.disabled=false;}
 };
 
 /* STACK */
@@ -789,7 +838,26 @@ nonogramCheck.onclick=async()=>{
  else setStatus('NONOGRAM判定失敗: '+FlecityErrors.text(res.error),'error');
 };
 nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished&&!nonogram.daily){const saved=await persistNonogram(true);if(!saved){nonogramClock=setInterval(updateNonogramTime,250);return;}}if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});nonogram=null;showHome();};
-nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;const wasDaily=!!(nonogram&&nonogram.daily);if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('NONOGRAMをリセットできません: '+reset.error,'error');return;}delete saves.nonogram;}nonogram=null;await openNonogram(true,wasDaily);};
+nonogramNew.onclick=async()=>{
+ if(nonogramNew.disabled)return;
+ const wasDaily=!!(nonogram&&nonogram.daily);
+ if(!wasDaily){
+   const ok=await confirmAction('NONOGRAMを新しく始めますか？','現在の途中保存は削除されます。','新しい問題');
+   if(!ok)return;
+ }
+ nonogramNew.disabled=true;
+ try{
+   clearInterval(nonogramClock);nonogramClock=null;
+   if(wasDaily){
+     if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});
+   }else{
+     const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});
+     if(!reset.ok){setStatus('NONOGRAMをリセットできません: '+FlecityErrors.text(reset.error),'error');if(nonogram&&!nonogram.finished)nonogramClock=setInterval(updateNonogramTime,250);return;}
+     delete saves.nonogram;
+   }
+   nonogram=null;await openNonogram(true,wasDaily);
+ }finally{nonogramNew.disabled=false;}
+};
 
 
 /* COLOR MATCH */
@@ -1249,5 +1317,20 @@ memoryNew.onclick=async()=>{
  if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});
  memory=null;await openMemory(wasDaily);
 };
+
+let backgroundSaveRunning=false;
+async function saveActiveResumable(){
+ if(backgroundSaveRunning)return;
+ backgroundSaveRunning=true;
+ try{
+   if(block&&!block.finished&&!block.daily)await persistBlock(false);
+   else if(merge&&!merge.finished)await persistMerge(false);
+   else if(mines&&!mines.finished&&!mines.daily)await persistMines(false);
+   else if(nonogram&&!nonogram.finished&&!nonogram.daily)await persistNonogram(false);
+ }catch(_){}
+ finally{backgroundSaveRunning=false;}
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)void saveActiveResumable();});
+window.addEventListener('pagehide',()=>{void saveActiveResumable();});
 
 bootstrap();

@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.16.0-test**
+- Resource version: **0.17.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **22/22 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -66,7 +66,10 @@ Implemented:
 
 - per-character persistence through the framework adapter
 - resumable PLAY saves
+- save-generation guards prevent stale in-flight autosaves from resurrecting a reset run
+- phone-hide lifecycle cleanup, stale session-start cancellation, and score-finalization race protection
 - TODAY / WEEK / ALL TIME ranking
+- period-specific personal BEST + rank, tie-aware leaderboard positions, and a privacy-safe highlighted self row
 - one leaderboard slot per character
 - Daily Challenge with a shared daily game + seed
 - Daily leaderboard isolated from ordinary runs
@@ -77,13 +80,21 @@ Implemented:
 - deterministic Daily NUMBER RUSH number layout
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
-- common achievements:
+- 14 collection/title achievements across all 12 PLAY games:
   - FIRST PLAY
   - 100 GAMES
   - LIGHTNING
+  - BULLSEYE
   - STACK MASTER
   - BLOCK MASTER
+  - MERGE MASTER
+  - MINES SPRINTER
+  - LOGIC SOLVER
   - PERFECT MEMORY
+  - COLOR FOCUS
+  - NUMBER ACE
+  - HIGH ROLLER
+  - SIMON MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
 - deterministic server replay validation for BLOCK, MERGE, STACK, MEMORY, COLOR MATCH, NUMBER RUSH, and HIGH & LOW final scores
@@ -136,7 +147,7 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 - Daily Challenge rollover at the server/database date boundary
 - ranking and achievement writes under real database load
 
-BLOCK, MERGE, STACK, MEMORY, COLOR MATCH, NUMBER RUSH, and HIGH & LOW submit deterministic operation/selection histories and the server replays them before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
+BLOCK, MERGE, STACK, MEMORY, COLOR MATCH, and NUMBER RUSH submit deterministic operation/selection histories and the server replays them before accepting a score. HIGH & LOW and SIMON advance through server-authoritative per-action state. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! is recalculated from server-issued timing parameters. Real-client NUI behavior still requires the live tests in `TESTING.md`.
 
 
 ## Low-effort test-server update workflow

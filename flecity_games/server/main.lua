@@ -370,6 +370,9 @@ RegisterCommand('game_healthcheck',function(source)
         end
     end
 
+    local sessionHealth=FlecityGamesPlay.DebugSessionHealth()
+    print(('%s play_sessions=%d expired_sessions=%d missing_game_sessions=%d invalid_source_sessions=%d')
+        :format(prefix,sessionHealth.total,sessionHealth.expired,sessionHealth.missingGame,sessionHealth.invalidSource))
     print(('%s invalid_score_rows=%d invalid_save_rows=%d invalid_daily_rows=%d invalid_achievement_rows=%d (diagnostic only; no data changed)')
         :format(prefix,invalidScores,invalidSaves,invalidDaily,invalidAchievements))
 end,false)

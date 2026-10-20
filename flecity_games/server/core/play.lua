@@ -182,6 +182,46 @@ local function replayHighLow(seed,history,rounds)
     return {ended=ended,streak=streak,rounds=#normalized,sequence=sequence,history=normalized}
 end
 
+local function newHighLowState(seed,rounds)
+    local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    return {
+        sequence=generateHighLowSequence(seed,maxRounds),
+        maxRounds=maxRounds,
+        index=1,
+        streak=0,
+        history={},
+        ended=false
+    }
+end
+
+local function applyHighLowGuess(state,rawGuess)
+    if type(state)~='table' or state.ended then return nil end
+    local guess=tostring(rawGuess or ''):lower()
+    if guess~='high' and guess~='low' then return nil end
+    local index=math.floor(tonumber(state.index) or 1)
+    local maxRounds=math.floor(tonumber(state.maxRounds) or 30)
+    if index<1 or index>maxRounds then return nil end
+    local current=state.sequence and state.sequence[index]
+    local nextValue=state.sequence and state.sequence[index+1]
+    if not current or not nextValue then return nil end
+
+    state.history[#state.history+1]=guess
+    local correct=(guess=='high' and nextValue>current) or (guess=='low' and nextValue<current)
+    state.index=index+1
+    if correct then state.streak=(tonumber(state.streak) or 0)+1 end
+    if not correct or state.index>maxRounds then state.ended=true end
+
+    return {
+        currentValue=current,
+        nextValue=nextValue,
+        correct=correct,
+        streak=state.streak,
+        completed=#state.history,
+        ended=state.ended,
+        cleared=correct and state.index>maxRounds
+    }
+end
+
 local function generateSimonSequence(seed,rounds)
     local count=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
     local state=math.floor(tonumber(seed) or 1)%2147483647
@@ -795,11 +835,37 @@ function FlecityGamesPlay.StartSession(source,data)
         startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate,
         saveEpoch=currentSaveEpoch(id,game.id)
     }
+    local publicSeed=seed
+    if game.id=='high_low' then
+        local highLow=newHighLowState(seed,challenge.rounds)
+        sessions[token].highLow=highLow
+        challenge.currentValue=highLow.sequence[1]
+        publicSeed=nil
+    end
     return {
-        ok=true,game=game,sessionToken=token,seed=seed,challenge=challenge,
+        ok=true,game=game,sessionToken=token,seed=publicSeed,challenge=challenge,
         baseElapsedMs=baseElapsedMs,serverTick=GetGameTimer(),startedTick=startedTick,
         daily=dailyDate~=nil,dailyDate=dailyDate
     }
+end
+
+function FlecityGamesPlay.HighLowGuess(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'high_low_guess',120) then return {ok=false,error='RATE_LIMIT'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local id=identifier(source)
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    if not session or session.playerIdentifier~=id or session.gameId~='high_low' then return {ok=false,error='INVALID_SESSION'} end
+    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
+        sessions[token]=nil
+        return {ok=false,error='EXPIRED_SESSION'}
+    end
+    if not session.highLow or session.highLow.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    local result=applyHighLowGuess(session.highLow,data.guess)
+    if not result then return {ok=false,error='INVALID_CHOICE'} end
+    result.ok=true
+    return result
 end
 
 function FlecityGamesPlay.CancelSession(source,data)
@@ -1037,13 +1103,18 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.penaltyMs=replayed.misses*500
         metadata.replayValidated=true
     elseif game.id=='high_low' then
-        local replayed=replayHighLow(session.seed,data.history,session.challenge.rounds)
-        if not replayed or not replayed.ended then return {ok=false,error='INVALID_HIGH_LOW_REPLAY'} end
-        rawScore=replayed.streak
+        local state=session.highLow
+        if not state or state.ended~=true or type(state.history)~='table' or #state.history<1 then
+            return {ok=false,error='INVALID_HIGH_LOW_REPLAY'}
+        end
+        local submitted=math.floor(tonumber(data.score) or -1)
+        local streak=math.floor(tonumber(state.streak) or -1)
+        if submitted~=streak then return {ok=false,error='INVALID_HIGH_LOW_REPLAY'} end
+        rawScore=streak
         durationMs=math.min(serverElapsed,28800000)
-        metadata.rounds=replayed.rounds
-        metadata.streak=replayed.streak
-        metadata.replayValidated=true
+        metadata.rounds=#state.history
+        metadata.streak=streak
+        metadata.serverAuthoritative=true
     elseif game.id=='simon' then
         local replayed=replaySimon(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.ended then return {ok=false,error='INVALID_SIMON_REPLAY'} end
@@ -1166,6 +1237,12 @@ function FlecityGamesPlay.DebugSelftest()
         highLowHistory[#highLowHistory+1]=highLowSequence[i+1]>highLowSequence[i] and 'high' or 'low'
     end
     local highLowReplay=replayHighLow(12345,highLowHistory,30)
+    local highLowState=newHighLowState(12345,30)
+    local highLowServerOk=true
+    for i=1,30 do
+        local result=applyHighLowGuess(highLowState,highLowHistory[i])
+        if not result or result.correct~=true then highLowServerOk=false break end
+    end
     local simonSequence=generateSimonSequence(12345,5)
     local simonHistory={}
     for round=1,5 do
@@ -1207,6 +1284,7 @@ function FlecityGamesPlay.DebugSelftest()
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
         highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 or false,
+        highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and #highLowState.history==30 or false,
         highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
         simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,
         simonValidateRounds=simon and validateScore(simon,12)==12 or false,

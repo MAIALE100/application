@@ -268,6 +268,20 @@ window.addEventListener('message',event=>{
  const message=event.data;
  if(!message)return;
  if(message.type==='partyUpdate'&&message.room){renderRoom(message.room);return;}
+ if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
+   const points=Array.isArray(message.points)?message.points:null;
+   if(points){
+     currentRoom.roundState.strokes=currentRoom.roundState.strokes||[];
+     currentRoom.roundState.strokes.push(points);
+     if(!drawStroke)renderDrawCanvas(currentRoom.roundState.strokes);
+   }
+   return;
+ }
+ if(message.type==='partyDrawClear'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
+   currentRoom.roundState.strokes=[];
+   if(!drawStroke)renderDrawCanvas([]);
+   return;
+ }
  if(message.type==='partyInvalidate')refresh();
 });
 

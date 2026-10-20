@@ -864,7 +864,7 @@ local function validateScore(game,score)
     elseif game.id=='stack' then
         if score<0 or score>500 then return nil end
         return math.floor(score)
-    elseif game.id=='high_low' then
+    elseif game.id=='high_low' or game.id=='simon' then
         if score<0 or score>100 then return nil end
         return math.floor(score)
     end
@@ -997,6 +997,16 @@ function FlecityGamesPlay.SubmitScore(source,data)
         durationMs=math.min(serverElapsed,28800000)
         metadata.rounds=replayed.rounds
         metadata.streak=replayed.streak
+        metadata.replayValidated=true
+    elseif game.id=='simon' then
+        local replayed=replaySimon(session.seed,data.history,session.challenge.rounds)
+        if not replayed or not replayed.ended then return {ok=false,error='INVALID_SIMON_REPLAY'} end
+        local submitted=math.floor(tonumber(data.score) or -1)
+        if submitted~=replayed.cleared then return {ok=false,error='INVALID_SIMON_REPLAY'} end
+        rawScore=replayed.cleared
+        durationMs=math.min(serverElapsed,28800000)
+        metadata.rounds=replayed.cleared
+        metadata.inputs=#replayed.history
         metadata.replayValidated=true
     end
 

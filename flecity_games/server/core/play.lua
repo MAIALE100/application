@@ -321,6 +321,10 @@ local function currentDatabaseDate()
     local row=MySQL.single.await([[SELECT DATE_FORMAT(CURDATE(),'%Y-%m-%d') AS challenge_date]])
     return row and tostring(row.challenge_date or '') or os.date('%Y-%m-%d')
 end
+local function dailyNumber(date)
+    local compact=(tostring(date or ''):gsub('%D',''))
+    return tonumber(compact) or 1
+end
 local function dailyCandidates()
     local out={}
     for _,gameId in ipairs(FlecityGamesConfig.Play.DailyCandidates or {}) do
@@ -336,7 +340,7 @@ local function dailyChallenge()
     if not row then
         local candidates=dailyCandidates()
         if #candidates==0 then return nil end
-        local numeric=tonumber(date:gsub('%D','')) or 1
+        local numeric=dailyNumber(date)
         local index=(numeric%#candidates)+1
         local seed=((numeric*48271)%2147483646)+1
         MySQL.query.await([[INSERT IGNORE INTO flecity_game_daily (challenge_date,game_id,seed,config_json)
@@ -806,6 +810,8 @@ function FlecityGamesPlay.DebugSelftest()
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
+    local dailyNumberA=dailyNumber('2026-10-20')
+    local dailyNumberB=dailyNumber('2026-10-21')
     local blockChallenge=challengeFor(block,12345) local mergeChallenge=challengeFor(merge,12345)
     local opaqueToken=newToken('SECRET_CITIZEN_ID','quick_tap')
 
@@ -833,6 +839,7 @@ function FlecityGamesPlay.DebugSelftest()
         quickRejectLow=quick and validateScore(quick,69)==nil or false,
         quickAcceptNormal=quick and validateScore(quick,180)~=nil or false,
         deterministicChallenge=quickChallenge.delayMs==quickChallenge2.delayMs,
+        dailyDateParsing=dailyNumberA==20261020 and dailyNumberB==20261021 and dailyNumberA~=dailyNumberB,
         opaqueSessionToken=not string.find(opaqueToken,'SECRET_CITIZEN_ID',1,true),
         stopRejectHigh=stop and validateScore(stop,1001)==nil or false,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

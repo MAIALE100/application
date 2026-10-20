@@ -329,8 +329,6 @@ async function loadRanking(){
 rankingLoad.onclick=loadRanking;
 rankingGame.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
 rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
-rankingGame.onchange=()=>{rankingRows.innerHTML='';};
-rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
  const bridge=await FlecityBridge.call('bridgePing',{});
  if(!bridge.ok){

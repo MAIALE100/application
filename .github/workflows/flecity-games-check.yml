@@ -41,6 +41,12 @@ jobs:
           done < <(git diff --name-only origin/frame-integration-test...HEAD)
           exit "$bad"
 
+      - name: Check updater PowerShell syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-update.ps1))
+          if ((Get-Content -Raw games-update.cmd) -notmatch 'games-update\.ps1') { throw 'games-update.cmd does not launch games-update.ps1' }
+
       - name: Check JavaScript syntax
         run: |
           node --check flecity_games/web/shared/errors.js

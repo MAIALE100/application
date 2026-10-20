@@ -5,12 +5,21 @@
 <main class="wrap">
 <header class="header"><div><div class="kicker">PLAY WHEN YOU WAIT.</div><h1>PLAY</h1><div class="muted">Quick breaks. Endless runs.</div></div></header>
 <section id="status" class="status">Loading…</section>
-<section id="home"><div class="card"><h2>Reference games</h2><p class="muted">QUICK TAP and BLOCK are enabled while the shared CORE is verified.</p></div><div id="games" class="grid"></div></section>
+<section id="home"><div class="card"><h2>PLAY GAMES</h2><p class="muted">短時間でも、途中保存して長く遊ぶこともできます。</p></div><div id="games" class="grid"></div></section>
 <section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">READY?</div><button id="tapButton">START</button><button id="tapBack" class="secondary">BACK</button></div></section>
+<section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopMessage" class="big-number">READY?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">START</button><button id="stopBack" class="secondary">BACK</button></div></section>
 <section id="blockGame" class="hidden">
   <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div></div><button id="blockBack" class="secondary">BACK</button></div>
   <div class="card"><div id="blockBoard" class="block-board"></div></div>
   <div class="card stack"><div class="kicker">PIECES</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">NEW GAME</button><button id="blockFinish" class="danger">END RUN</button></div></div>
+</section>
+<section id="mergeGame" class="hidden">
+  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div></div><button id="mergeBack" class="secondary">BACK</button></div>
+  <div class="card"><div id="mergeBoard" class="merge-board"></div></div>
+  <div class="card stack">
+    <div class="merge-controls"><span></span><button id="mergeUp" class="secondary">▲</button><span></span><button id="mergeLeft" class="secondary">◀</button><button id="mergeDown" class="secondary">▼</button><button id="mergeRight" class="secondary">▶</button></div>
+    <div class="row"><button id="mergeNew" class="secondary">NEW GAME</button><button id="mergeFinish" class="danger">END RUN</button></div>
+  </div>
 </section>
 </main>
 <script src="../shared/bridge.js"></script><script src="./app.js"></script>

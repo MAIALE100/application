@@ -12,7 +12,7 @@ const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContex
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
-let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null;
+let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false;
 let reactionState='idle',reactionRaf=null;
@@ -52,7 +52,7 @@ function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
- currentRoom=null;ready=false;activeRoundToken=null;resetRoundRuntime();clearInterval(poll);poll=null;
+ currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;resetRoundRuntime();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function renderPlayers(room){
@@ -220,6 +220,10 @@ function setupTelephone(room){
  }
 }
 function renderRoom(room){
+ if(!room)return false;
+ const incomingRevision=Number(room.revision);
+ if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
+ if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
  currentRoom=room;ready=room.selfReady===true;
  if(Number.isFinite(Number(room.serverTick)))serverOffsetMs=Number(room.serverTick)-performance.now();
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
@@ -237,6 +241,7 @@ function renderRoom(room){
    else if(rs&&rs.gameId==='draw')setupDraw(room);
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
  }
+ return true;
 }
 async function refresh(){
  if(!currentRoom)return;
@@ -284,6 +289,9 @@ window.addEventListener('message',event=>{
  if(!message)return;
  if(message.type==='partyUpdate'&&message.room){renderRoom(message.room);return;}
  if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
+   const revision=Number(message.revision);
+   if(Number.isFinite(revision)&&revision<lastRoomRevision)return;
+   if(Number.isFinite(revision)){lastRoomRevision=Math.max(lastRoomRevision,revision);currentRoom.revision=lastRoomRevision;}
    const points=Array.isArray(message.points)?message.points:null;
    if(points){
      currentRoom.roundState.strokes=currentRoom.roundState.strokes||[];
@@ -293,6 +301,9 @@ window.addEventListener('message',event=>{
    return;
  }
  if(message.type==='partyDrawClear'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
+   const revision=Number(message.revision);
+   if(Number.isFinite(revision)&&revision<lastRoomRevision)return;
+   if(Number.isFinite(revision)){lastRoomRevision=Math.max(lastRoomRevision,revision);currentRoom.revision=lastRoomRevision;}
    currentRoom.roundState.strokes=[];
    if(!drawStroke)renderDrawCanvas([]);
    return;

@@ -33,6 +33,10 @@ local callbacks={
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }
 
+local registeredPhoneCallbacks=0
+local expectedPhoneCallbacks=0
+for _ in pairs(callbacks) do expectedPhoneCallbacks=expectedPhoneCallbacks+1 end
+
 local callbackOptions={
     ['flecity_games:play:save']={preventSpam=true,rateLimit=300,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
     ['flecity_games:party:getRoom']={preventSpam=true,rateLimit=240,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
@@ -57,6 +61,7 @@ local function startupDiagnostics()
 
     check('framework bridge',FlecityGamesFramework.IsReady()==true)
     check('lb-phone resource',GetResourceState('lb-phone')=='started')
+    check('LB Phone callback API',registeredPhoneCallbacks==expectedPhoneCallbacks)
     check('oxmysql resource',GetResourceState('oxmysql')=='started')
     check('PLAY registry',#FlecityGamesRegistry.List('play',true)==7)
     check('PARTY registry',#FlecityGamesRegistry.List('party',true)==8)
@@ -104,11 +109,19 @@ CreateThread(function()
         print(('[FlecityGames] version=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,frameworkVersion,phoneVersion,databaseVersion))
         print(('[FlecityGames] artifact=%s'):format(artifactVersion))
         print('[FlecityGames] database schema ready')
+        registeredPhoneCallbacks=0
         for name,fn in pairs(callbacks) do
-            exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
-                callbackOptions[name] or defaultCallbackOptions)
+            local ok,err=pcall(function()
+                exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
+                    callbackOptions[name] or defaultCallbackOptions)
+            end)
+            if ok then
+                registeredPhoneCallbacks=registeredPhoneCallbacks+1
+            else
+                print(('[FlecityGames] RegisterCallback(%s) API error: %s'):format(name,tostring(err)))
+            end
         end
-        print('[FlecityGames] LB Phone callbacks registered')
+        print(('[FlecityGames] LB Phone callbacks registered %d/%d'):format(registeredPhoneCallbacks,expectedPhoneCallbacks))
         startupDiagnostics()
     end)
 end)
@@ -174,6 +187,8 @@ RegisterCommand('game_preflight',function(source)
         ('%s / %s'):format(FlecityGamesConfig.Framework,tostring(FlecityGamesFramework.GetVersion() or 'unknown')))
     check('LB Phone runtime detected',GetResourceState('lb-phone')=='started',
         tostring(GetResourceMetadata('lb-phone','version',0) or 'version metadata unavailable'))
+    check('LB Phone callback API',registeredPhoneCallbacks==expectedPhoneCallbacks,
+        ('%d/%d registered'):format(registeredPhoneCallbacks,expectedPhoneCallbacks))
     check('FiveM artifact runtime',true,tostring(GetConvar('version','unknown')))
 
     local dbOk,dbErr=FlecityGamesDatabase.Ensure()

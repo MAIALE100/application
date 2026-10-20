@@ -37,6 +37,39 @@ local function seededInt(state,minValue,maxValue)
     local nextState,value=seededNext(state)
     return nextState,minValue+math.floor(value*(maxValue-minValue+1))
 end
+
+local function generateMemoryDeck(seed)
+    local deck={}
+    for value=1,8 do
+        deck[#deck+1]=value
+        deck[#deck+1]=value
+    end
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    for i=#deck,2,-1 do
+        local j
+        state,j=seededInt(state,1,i)
+        deck[i],deck[j]=deck[j],deck[i]
+    end
+    return deck,state
+end
+
+local function replayMemory(seed,history)
+    if type(history)~='table' or #history<8 or #history>128 then return nil end
+    local deck=generateMemoryDeck(seed)
+    local matched={} local pairs=0 local moves=0
+    for _,entry in ipairs(history) do
+        if type(entry)~='table' then return nil end
+        local a=tonumber(entry[1]) local b=tonumber(entry[2])
+        if not a or not b or a~=math.floor(a) or b~=math.floor(b) then return nil end
+        if a<0 or a>=16 or b<0 or b>=16 or a==b or matched[a] or matched[b] then return nil end
+        moves=moves+1
+        if deck[a+1]==deck[b+1] then
+            matched[a]=true matched[b]=true pairs=pairs+1
+        end
+    end
+    return {complete=pairs==8,pairs=pairs,moves=moves,deck=deck}
+end
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -643,7 +676,7 @@ local function validateScore(game,score)
     elseif game.id=='block' or game.id=='merge' then
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
-    elseif game.id=='mines' or game.id=='nonogram' then
+    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' then
         if score<1000 or score>28800000 then return nil end
         return math.floor(score)
     elseif game.id=='stack' then
@@ -669,7 +702,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
     local totalServerElapsed=math.max(0,math.min(28800000,
         math.floor((tonumber(session.baseElapsedMs) or 0)+serverElapsed)))
     local durationMs=clientDurationMs
-    if game.supportsResume==true or game.id=='stack' then durationMs=totalServerElapsed end
+    if game.supportsResume==true or game.id=='stack' or game.id=='memory' then durationMs=totalServerElapsed end
     local rawScore=tonumber(data.score)
     local metadata={serverElapsedMs=serverElapsed}
     if session.dailyDate then metadata.dailyDate=session.dailyDate end
@@ -745,6 +778,13 @@ function FlecityGamesPlay.SubmitScore(source,data)
         for index in pairs(solution) do if not submitted[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
         for index in pairs(submitted) do if not solution[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
         rawScore=durationMs metadata.boardSize=size metadata.filledCount=count
+    elseif game.id=='memory' then
+        local replayed=replayMemory(session.seed,data.history)
+        if not replayed or not replayed.complete then return {ok=false,error='INVALID_MEMORY_REPLAY'} end
+        if serverElapsed<2500 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=totalServerElapsed
+        rawScore=durationMs
+        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.replayValidated=true
     end
 
     local score=validateScore(game,rawScore)
@@ -805,7 +845,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
@@ -832,6 +872,14 @@ function FlecityGamesPlay.DebugSelftest()
     end
     local mergeSingle=mergeDirection and replayMergeState(12345,{mergeDirection}) or nil
     local normalizedIndexes=normalizeIndexList({2,1,2},5)
+    local memoryDeck=generateMemoryDeck(12345)
+    local memoryPairs={} local memorySeen={}
+    for index,value in ipairs(memoryDeck) do
+        local zero=index-1
+        if memorySeen[value] then memoryPairs[#memoryPairs+1]={memorySeen[value],zero}
+        else memorySeen[value]=zero end
+    end
+    local memoryReplay=replayMemory(12345,memoryPairs)
 
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -859,6 +907,8 @@ function FlecityGamesPlay.DebugSelftest()
         stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
+        memoryDeckPairs=memory and memoryReplay and memoryReplay.complete==true and memoryReplay.pairs==8,
+        memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false

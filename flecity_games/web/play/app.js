@@ -12,11 +12,12 @@ const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementBy
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesMeta=document.getElementById('minesMeta'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
+const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,mergePointer=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -64,9 +65,9 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');}
 function showHome(){
- clearTimeout(tapTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);minesClock=null;nonogramClock=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);minesClock=null;nonogramClock=null;memoryClock=null;memoryFlipTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -131,6 +132,7 @@ function renderGames(games){
      else if(game.id==='mines')openMines(false);
      else if(game.id==='stack')openStack();
      else if(game.id==='nonogram')openNonogram(false);
+     else if(game.id==='memory')openMemory();
    };
    gamesEl.appendChild(btn);
  });
@@ -732,5 +734,85 @@ nonogramCheck.onclick=async()=>{
 };
 nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished&&!nonogram.daily){const saved=await persistNonogram(true);if(!saved){nonogramClock=setInterval(updateNonogramTime,250);return;}}if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});nonogram=null;showHome();};
 nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;const wasDaily=!!(nonogram&&nonogram.daily);if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});if(!wasDaily){const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('NONOGRAMをリセットできません: '+reset.error,'error');return;}delete saves.nonogram;}nonogram=null;await openNonogram(true,wasDaily);};
+
+
+/* MEMORY */
+const MEMORY_SYMBOLS=['◆','●','▲','★','♣','♥','☀','☂'];
+function memorySeededNext(state){
+ let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
+ x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
+}
+function memoryDeckFromSeed(seed){
+ const deck=[];for(let value=1;value<=8;value++){deck.push(value,value);}
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ for(let i=deck.length-1;i>=1;i--){
+   let value;[state,value]=memorySeededNext(state);
+   const j=Math.floor(value*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];
+ }
+ return deck;
+}
+function elapsedMemory(){return memory?performance.now()-memory.startedAt:0;}
+function updateMemoryTime(){if(memory)memoryTime.textContent=(elapsedMemory()/1000).toFixed(1)+'s';}
+function renderMemory(){
+ if(!memory)return;
+ memoryBoard.innerHTML='';updateMemoryTime();
+ memoryMeta.textContent=String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES';
+ for(let i=0;i<memory.deck.length;i++){
+   const b=document.createElement('button');
+   const shown=memory.revealed.includes(i),matched=memory.matched.has(i);
+   b.className='memory-card'+(shown?' revealed':'')+(matched?' matched':'');
+   b.textContent=(shown||matched)?MEMORY_SYMBOLS[memory.deck[i]-1]:'?';
+   b.disabled=memory.finished||memory.busy||matched;
+   b.setAttribute('aria-label',matched?'一致済み':(shown?'カード '+String(memory.deck[i]):'伏せたカード'));
+   b.onclick=()=>flipMemory(i);
+   memoryBoard.appendChild(b);
+ }
+}
+async function openMemory(){
+ hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
+ const session=await FlecityBridge.call('playStartSession',{gameId:'memory'});
+ if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,startedAt:performance.now(),finished:false,busy:false};
+ setStatus('MEMORY開始。8組のペアを探してください。','good');
+ renderMemory();memoryClock=setInterval(updateMemoryTime,200);
+}
+async function flipMemory(index){
+ if(!memory||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
+ memory.revealed.push(index);renderMemory();
+ if(memory.revealed.length<2)return;
+ const pair=memory.revealed.slice(0,2);memory.history.push(pair);memory.moves+=1;
+ const matched=memory.deck[pair[0]]===memory.deck[pair[1]];
+ if(matched){
+   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];tone(760,55);renderMemory();
+   if(memory.matched.size===16){await finishMemory();}
+   return;
+ }
+ memory.busy=true;renderMemory();
+ memoryFlipTimer=setTimeout(()=>{
+   if(!memory||memory.finished)return;
+   memory.revealed=[];memory.busy=false;renderMemory();
+ },650);
+}
+async function finishMemory(){
+ if(!memory||memory.finished)return;
+ memory.finished=true;memory.busy=true;clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
+ const durationMs=Math.round(elapsedMemory());
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:memory.sessionToken,score:durationMs,durationMs,history:memory.history});
+ if(res.ok){
+   memory.sessionToken=null;memory.busy=false;setStatus('MEMORYクリア: '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES','good');renderMemory();await refreshPlatform();
+ }else{
+   memory.finished=false;memory.busy=false;memoryClock=setInterval(updateMemoryTime,200);setStatus('MEMORYクリア判定失敗: '+FlecityErrors.text(res.error),'error');renderMemory();
+ }
+}
+memoryBack.onclick=async()=>{
+ clearInterval(memoryClock);clearTimeout(memoryFlipTimer);memoryClock=null;memoryFlipTimer=null;
+ if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});
+ memory=null;showHome();
+};
+memoryNew.onclick=async()=>{
+ clearInterval(memoryClock);clearTimeout(memoryFlipTimer);memoryClock=null;memoryFlipTimer=null;
+ if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});
+ memory=null;await openMemory();
+};
 
 bootstrap();

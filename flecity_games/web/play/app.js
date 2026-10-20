@@ -495,7 +495,8 @@ blockBack.onclick=async()=>{
 blockNew.onclick=async()=>{
  if(blockNew.disabled)return;
  const wasDaily=!!(block&&block.daily);
- if(!wasDaily){
+ const destructive=!wasDaily&&(!!saves.block||!!(block&&!block.finished));
+ if(destructive){
    const ok=await confirmAction('BLOCKを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
    if(!ok)return;
  }
@@ -617,8 +618,11 @@ mergeBack.onclick=async()=>{
 };
 mergeNew.onclick=async()=>{
  if(mergeNew.disabled)return;
- const ok=await confirmAction('MERGEを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
- if(!ok)return;
+ const destructive=!!saves.merge||!!(merge&&!merge.finished);
+ if(destructive){
+   const ok=await confirmAction('MERGEを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
+ }
  mergeNew.disabled=true;
  try{
    await saveQueue.catch(()=>{});
@@ -786,7 +790,8 @@ minesBack.onclick=async()=>{
 minesNew.onclick=async()=>{
  if(minesNew.disabled)return;
  const wasDaily=!!(mines&&mines.daily);
- if(!wasDaily){
+ const destructive=!wasDaily&&(!!saves.mines||!!(mines&&!mines.finished));
+ if(destructive){
    const ok=await confirmAction('MINESを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
    if(!ok)return;
  }
@@ -980,7 +985,8 @@ nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;i
 nonogramNew.onclick=async()=>{
  if(nonogramNew.disabled)return;
  const wasDaily=!!(nonogram&&nonogram.daily);
- if(!wasDaily){
+ const destructive=!wasDaily&&(!!saves.nonogram||!!(nonogram&&!nonogram.finished));
+ if(destructive){
    const ok=await confirmAction('NONOGRAMを新しく始めますか？','現在の途中保存は削除されます。','新しい問題');
    if(!ok)return;
  }

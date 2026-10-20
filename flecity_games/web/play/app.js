@@ -1339,19 +1339,55 @@ memoryNew.onclick=async()=>{
  memory=null;await openMemory(wasDaily);
 };
 
-let backgroundSaveRunning=false;
-async function saveActiveResumable(){
- if(backgroundSaveRunning)return;
- backgroundSaveRunning=true;
- try{
-   if(block&&!block.finished&&!block.daily)await persistBlock(false);
-   else if(merge&&!merge.finished)await persistMerge(false);
-   else if(mines&&!mines.finished&&!mines.daily)await persistMines(false);
-   else if(nonogram&&!nonogram.finished&&!nonogram.daily)await persistNonogram(false);
- }catch(_){}
- finally{backgroundSaveRunning=false;}
+let suspendRunning=false;
+async function cancelPlaySession(token){
+ if(!token)return;
+ try{await FlecityBridge.call('playCancelSession',{sessionToken:token});}catch(_){}
 }
-document.addEventListener('visibilitychange',()=>{if(document.hidden)void saveActiveResumable();});
-window.addEventListener('pagehide',()=>{void saveActiveResumable();});
+async function suspendActivePlay(){
+ if(suspendRunning)return;
+ suspendRunning=true;
+ try{
+   clearTimeout(tapTimer);tapTimer=null;
+   cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
+   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);
+   clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
+   minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
+
+   if(block&&!block.finished){
+     if(!block.daily)await persistBlock(false);
+     await cancelPlaySession(block.sessionToken);
+   }
+   if(merge&&!merge.finished){
+     await persistMerge(false);
+     await cancelPlaySession(merge.sessionToken);
+   }
+   if(mines&&!mines.finished){
+     if(!mines.daily)await persistMines(false);
+     await cancelPlaySession(mines.sessionToken);
+   }
+   if(nonogram&&!nonogram.finished){
+     if(!nonogram.daily)await persistNonogram(false);
+     await cancelPlaySession(nonogram.sessionToken);
+   }
+
+   await cancelPlaySession(tapSession&&tapSession.sessionToken);
+   await cancelPlaySession(stopSession&&stopSession.sessionToken);
+   await cancelPlaySession(stackGame&&stackGame.sessionToken);
+   await cancelPlaySession(memory&&memory.sessionToken);
+   await cancelPlaySession(colorMatch&&colorMatch.sessionToken);
+   await cancelPlaySession(numberRush&&numberRush.sessionToken);
+   await cancelPlaySession(highLow&&highLow.sessionToken);
+   await cancelPlaySession(simon&&simon.sessionToken);
+
+   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;colorMatch=null;numberRush=null;highLow=null;simon=null;
+   tapSession=null;tapState='idle';stopSession=null;stopState='idle';
+   if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
+ }catch(error){
+   console.warn('[PLAY] suspend failed',error);
+ }finally{suspendRunning=false;}
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)void suspendActivePlay();});
+window.addEventListener('pagehide',()=>{void suspendActivePlay();});
 
 bootstrap();

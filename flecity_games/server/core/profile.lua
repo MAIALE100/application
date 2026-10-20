@@ -19,7 +19,10 @@ function FlecityGamesProfile.Touch(source)
     local id=identifier(source)
     if not id then return nil end
     local displayName=tostring(FlecityGamesFramework.GetCharacterName(source) or ''):gsub('%c',' '):gsub('%s+',' ')
-    displayName=displayName:gsub('^%s+',''):gsub('%s+    MySQL.query.await([[INSERT INTO flecity_game_profiles (player_identifier,display_name,last_seen_at)
+    displayName=displayName:gsub('^%s+',''):gsub('%s+$','')
+    if displayName=='' then displayName=('Player %s'):format(tostring(source)) end
+    displayName=displayName:sub(1,100)
+    MySQL.query.await([[INSERT INTO flecity_game_profiles (player_identifier,display_name,last_seen_at)
         VALUES (?,?,CURRENT_TIMESTAMP)
         ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),last_seen_at=CURRENT_TIMESTAMP]],{id,displayName})
     return id

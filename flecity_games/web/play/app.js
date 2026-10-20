@@ -6,11 +6,12 @@ const blockEl=document.getElementById('blockGame'),blockBoard=document.getElemen
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
+const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 
 let bootstrapData=null,saves={};
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null;
-let block=null,merge=null;
+let block=null,merge=null,mines=null,minesClock=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -18,9 +19,9 @@ const SHAPES=[
 ];
 
 function setStatus(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');}
 function showHome(){
- clearTimeout(tapTimer);cancelAnimationFrame(stopRaf);
+ clearTimeout(tapTimer);cancelAnimationFrame(stopRaf);clearInterval(minesClock);minesClock=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -35,6 +36,7 @@ function renderGames(games){
      else if(game.id==='stop')openStop();
      else if(game.id==='block')openBlock(false);
      else if(game.id==='merge')openMerge(false);
+     else if(game.id==='mines')openMines(false);
    };
    gamesEl.appendChild(btn);
  });
@@ -307,5 +309,101 @@ mergeNew.onclick=async()=>{
 };
 mergeFinish.onclick=finishMerge;
 mergeUp.onclick=()=>moveMerge('up');mergeDown.onclick=()=>moveMerge('down');mergeLeft.onclick=()=>moveMerge('left');mergeRight.onclick=()=>moveMerge('right');
+
+/* MINES */
+function seededMines(seed,size,mineCount){
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ const result=new Set(),total=size*size;
+ while(result.size<mineCount){state=(state*16807)%2147483647;result.add((state-1)%total);}
+ return result;
+}
+function elapsedMines(){return (mines?mines.elapsedBase:0)+(mines?performance.now()-mines.sessionStarted:0);}
+function mineNeighbors(index){
+ const out=[],x=index%mines.size,y=Math.floor(index/mines.size);
+ for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+   if(!dx&&!dy)continue;const xx=x+dx,yy=y+dy;if(xx>=0&&xx<mines.size&&yy>=0&&yy<mines.size)out.push(yy*mines.size+xx);
+ }
+ return out;
+}
+function mineCountAround(index){let n=0;mineNeighbors(index).forEach(i=>{if(mines.mineSet.has(i))n++;});return n;}
+function updateMinesTime(){if(mines)minesTime.textContent=(elapsedMines()/1000).toFixed(1)+'s';}
+function renderMines(){
+ if(!mines)return;minesBoard.innerHTML='';updateMinesTime();
+ for(let i=0;i<mines.size*mines.size;i++){
+   const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
+   b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'');
+   if(mines.lost&&mines.mineSet.has(i))b.textContent='✹';
+   else if(flagged)b.textContent='⚑';
+   else if(revealed){const n=mineCountAround(i);b.textContent=n?String(n):'';}
+   b.disabled=mines.finished||revealed;b.onclick=()=>touchMine(i);minesBoard.appendChild(b);
+ }
+ minesMode.textContent='MODE: '+(mines.mode==='flag'?'FLAG':'REVEAL');
+}
+async function persistMines(){
+ if(!mines||mines.finished)return;
+ const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode};
+ const elapsedMs=Math.round(elapsedMines());
+ const res=await FlecityBridge.call('playSave',{gameId:'mines',state,score:elapsedMs,elapsedMs,seed:String(mines.seed)});
+ if(res.ok)saves.mines={game_id:'mines',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(mines.seed)};
+}
+async function openMines(forceNew){
+ hideAll();minesEl.classList.remove('hidden');clearInterval(minesClock);
+ const saved=!forceNew&&saves.mines;
+ const payload={gameId:'mines'};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const session=await FlecityBridge.call('playStartSession',payload);
+ if(!session.ok){setStatus('Could not start MINES: '+session.error,'error');showHome();return;}
+ const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
+ if(saved&&saved.state){
+   mines={size,mineCount,seed:Number(saved.seed)||Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
+     elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false};
+   setStatus('MINES continued from auto-save.','good');
+ }else{
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false};
+   setStatus('New MINES board.','good');
+ }
+ mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
+}
+async function loseMines(index){
+ if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('Mine hit. Run ended.','warn');
+ if(mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
+ await FlecityBridge.call('playResetSave',{gameId:'mines'});delete saves.mines;mines.sessionToken=null;
+}
+async function touchMine(index){
+ if(!mines||mines.finished)return;
+ if(mines.mode==='flag'){
+   if(mines.flags.has(index))mines.flags.delete(index);else mines.flags.add(index);renderMines();await persistMines();return;
+ }
+ if(mines.flags.has(index))return;
+ if(mines.mineSet.has(index)){await loseMines(index);return;}
+ const queue=[index];
+ while(queue.length){
+   const current=queue.shift();if(mines.revealed.has(current)||mines.flags.has(current)||mines.mineSet.has(current))continue;
+   mines.revealed.add(current);
+   if(mineCountAround(current)===0)mineNeighbors(current).forEach(n=>{if(!mines.revealed.has(n))queue.push(n);});
+ }
+ renderMines();
+ if(mines.revealed.size===mines.size*mines.size-mines.mineCount){await finishMines();return;}
+ await persistMines();
+}
+async function finishMines(){
+ if(!mines||mines.finished)return;
+ mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
+ if(res.ok){delete saves.mines;setStatus('MINES cleared in '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;}
+ else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINES clear rejected: '+res.error,'error');}
+ renderMines();
+}
+minesMode.onclick=()=>{if(!mines||mines.finished)return;mines.mode=mines.mode==='flag'?'reveal':'flag';renderMines();};
+minesBack.onclick=async()=>{
+ clearInterval(minesClock);minesClock=null;
+ if(mines&&!mines.finished){await persistMines();if(mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});}
+ mines=null;showHome();
+};
+minesNew.onclick=async()=>{
+ clearInterval(minesClock);minesClock=null;
+ if(mines&&!mines.finished&&mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
+ const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('Could not reset MINES: '+reset.error,'error');return;}
+ delete saves.mines;mines=null;await openMines(true);
+};
 
 bootstrap();

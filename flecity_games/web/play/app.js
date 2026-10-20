@@ -73,7 +73,7 @@ function renderPlatform(data){
  const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
  achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
  if(!achievements.length)achievementRows.innerHTML='<div class="muted">まだ実績はありません。</div>';
- achievements.forEach(a=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>'+String(achievementLabels[a.achievement_id]||a.achievement_id)+'</span><strong>✓</strong>';achievementRows.appendChild(d);});
+ achievements.forEach(a=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent=String(achievementLabels[a.achievement_id]||a.achievement_id);right.textContent='✓';d.append(left,right);achievementRows.appendChild(d);});
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');

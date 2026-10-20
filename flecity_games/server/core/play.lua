@@ -1144,9 +1144,25 @@ function FlecityGamesPlay.ResetSave(source,data)
     local game=gameFor(data.gameId)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
     if game.supportsResume~=true then return {ok=false,error='RESUME_NOT_SUPPORTED'} end
-    bumpSaveEpoch(id,game.id)
+
+    local newEpoch=bumpSaveEpoch(id,game.id)
+    local deleted=pcall(function()
+        MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id})
+    end)
+
+    if not deleted then
+        -- Keep the current run usable if the DB reset itself failed. Any save
+        -- request that started before this reset captured the previous epoch
+        -- and will still be rejected by Save's final epoch check.
+        for _,session in pairs(sessions) do
+            if session.playerIdentifier==id and session.gameId==game.id then
+                session.saveEpoch=newEpoch
+            end
+        end
+        return {ok=false,error='SAVE_RESET_FAILED'}
+    end
+
     clearPlayerGameSessions(id,game.id)
-    MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id})
     return {ok=true}
 end
 
@@ -1162,7 +1178,8 @@ function FlecityGamesPlay.Save(source,data)
     local token=tostring(data.sessionToken or '')
     local session=sessions[token]
     if not session or session.playerIdentifier~=id or session.gameId~=game.id then return {ok=false,error='INVALID_SESSION'} end
-    if tonumber(session.saveEpoch or 0)~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
+    local requestEpoch=tonumber(session.saveEpoch or 0)
+    if requestEpoch~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
     if session.dailyDate then return {ok=false,error='DAILY_SAVE_DISABLED'} end
     local seedNumber=math.floor(tonumber(session.seed) or 0)
     if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
@@ -1209,7 +1226,7 @@ function FlecityGamesPlay.Save(source,data)
 
     local encoded=json.encode(saveState)
     if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end
-    if tonumber(session.saveEpoch or 0)~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
+    if requestEpoch~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
     local seed=tostring(seedNumber):sub(1,64)
     MySQL.query.await([[INSERT INTO flecity_game_saves
         (player_identifier,game_id,state_json,score,elapsed_ms,seed,game_version)

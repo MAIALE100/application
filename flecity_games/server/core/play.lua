@@ -370,7 +370,7 @@ function FlecityGamesPlay.Bootstrap(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     touchProfile(source,id)
 
-    local saves=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,seed,game_version,updated_at
+    local saves=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
         FROM flecity_game_saves WHERE player_identifier=? ORDER BY updated_at DESC]],{id}) or {}
     for _,save in ipairs(saves) do save.state=json.decode(save.state_json or '{}') or {} save.state_json=nil end
 
@@ -407,15 +407,17 @@ function FlecityGamesPlay.StartSession(source,data)
     end
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
 
+    local baseElapsedMs=0
     if not seed then
         if game.supportsResume==true and data.resume==true then
-            local savedSeed=MySQL.scalar.await([[SELECT seed FROM flecity_game_saves
+            local saved=MySQL.single.await([[SELECT seed,elapsed_ms FROM flecity_game_saves
                 WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
-            local resumeSeed=tonumber(savedSeed)
+            local resumeSeed=saved and tonumber(saved.seed) or nil
             if not resumeSeed or resumeSeed<1 or resumeSeed>2147483646 then
                 return {ok=false,error='SAVE_NOT_FOUND'}
             end
             seed=math.floor(resumeSeed)
+            baseElapsedMs=math.max(0,math.min(28800000,math.floor(tonumber(saved.elapsed_ms) or 0)))
         else
             seed=math.random(1,2147483646)
         end
@@ -425,11 +427,12 @@ function FlecityGamesPlay.StartSession(source,data)
     local startedTick=GetGameTimer()
     sessions[token]={
         playerIdentifier=id,source=tonumber(source),gameId=game.id,seed=seed,startedAt=os.time(),
-        startedTick=startedTick,challenge=challenge,dailyDate=dailyDate
+        startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate
     }
     return {
         ok=true,game=game,sessionToken=token,seed=seed,challenge=challenge,
-        serverTick=GetGameTimer(),startedTick=startedTick,daily=dailyDate~=nil,dailyDate=dailyDate
+        baseElapsedMs=baseElapsedMs,serverTick=GetGameTimer(),startedTick=startedTick,
+        daily=dailyDate~=nil,dailyDate=dailyDate
     }
 end
 

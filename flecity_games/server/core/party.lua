@@ -220,7 +220,8 @@ function FlecityGamesParty.GetConfig()
         config={
             roomCodeLength=roomCodeLength(),
             minPlayers=FlecityGamesConfig.Party.MinPlayers,
-            maxPlayers=FlecityGamesConfig.Party.MaxPlayers
+            maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
+            version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
         }
     }
 end

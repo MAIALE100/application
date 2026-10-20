@@ -97,6 +97,11 @@ local function startupDiagnostics()
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
             WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
         check('DB '..tableName,exists)
+        if exists then
+            local collation=tostring(MySQL.scalar.await([[SELECT TABLE_COLLATION FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? LIMIT 1]],{tableName}) or '')
+            check('DB '..tableName..' utf8mb4',collation:find('utf8mb4',1,true)==1)
+        end
     end
     local uniqueSession=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.STATISTICS
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_scores'
@@ -233,6 +238,11 @@ RegisterCommand('game_preflight',function(source)
             local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
                 WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
             check(('table %s'):format(tableName),exists)
+            if exists then
+                local collation=tostring(MySQL.scalar.await([[SELECT TABLE_COLLATION FROM information_schema.TABLES
+                    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? LIMIT 1]],{tableName}) or '')
+                check(('table %s utf8mb4'):format(tableName),collation:find('utf8mb4',1,true)==1,collation)
+            end
         end
         local settingsColumn=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.COLUMNS
             WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_profiles' AND COLUMN_NAME='settings_json']]) or 0)>0

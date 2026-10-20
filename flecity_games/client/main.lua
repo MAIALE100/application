@@ -49,6 +49,7 @@ end)
 local callbackMap={
     playBootstrap='flecity_games:play:bootstrap',
     playStartSession='flecity_games:play:startSession',
+    playActivateSession='flecity_games:play:activateSession',
     playCancelSession='flecity_games:play:cancelSession',
     playResetSave='flecity_games:play:resetSave',
     playSave='flecity_games:play:save',

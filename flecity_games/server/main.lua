@@ -157,7 +157,7 @@ end,false)
 
 RegisterCommand('game_healthcheck',function(source)
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)
-    local invalidScores,invalidSaves,invalidDaily=0,0,0
+    local invalidScores,invalidSaves,invalidDaily,invalidAchievements=0,0,0,0
 
     local scoreRows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_scores GROUP BY game_id') or {}
     for _,row in ipairs(scoreRows) do
@@ -185,6 +185,15 @@ RegisterCommand('game_healthcheck',function(source)
         end
     end
 
-    print(('%s invalid_score_rows=%d invalid_save_rows=%d invalid_daily_rows=%d (diagnostic only; no data changed)')
-        :format(prefix,invalidScores,invalidSaves,invalidDaily))
+    local achievementRows=MySQL.query.await([[SELECT game_id,COUNT(*) AS n FROM flecity_game_achievements
+        WHERE game_id IS NOT NULL GROUP BY game_id]]) or {}
+    for _,row in ipairs(achievementRows) do
+        if not FlecityGamesRegistry.Get(row.game_id) then
+            invalidAchievements=invalidAchievements+tonumber(row.n or 0)
+            print(('%s invalid achievement game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n)))
+        end
+    end
+
+    print(('%s invalid_score_rows=%d invalid_save_rows=%d invalid_daily_rows=%d invalid_achievement_rows=%d (diagnostic only; no data changed)')
+        :format(prefix,invalidScores,invalidSaves,invalidDaily,invalidAchievements))
 end,false)

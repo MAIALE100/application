@@ -72,7 +72,47 @@ try {
     Step 'Checking GitHub Actions gate'
     $headCommit = (& git -C $RepoRoot rev-parse HEAD).Trim()
     $repoSlug = (& git -C $RepoRoot remote get-url origin).Trim()
-    if ($repoSlug -match 'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?        throw "Source resource was not found: $Source"
+    if ($repoSlug -match 'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$') {
+        $repoSlug = $Matches[1]
+    } else {
+        throw 'Could not determine GitHub repository from origin remote.'
+    }
+
+    $workflowApi = "https://api.github.com/repos/$repoSlug/actions/runs?branch=$([uri]::EscapeDataString($Branch))&per_page=20"
+    $workflowDeadline = (Get-Date).AddMinutes(3)
+    $workflowReady = $false
+    do {
+        try {
+            $headers = @{ 'User-Agent' = 'Flecity-Games-Updater'; 'Accept' = 'application/vnd.github+json' }
+            $runs = Invoke-RestMethod -Uri $workflowApi -Headers $headers -Method Get -ErrorAction Stop
+            $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -eq 'Flecity Games Check' } | Select-Object -First 1
+            if ($run) {
+                if ($run.status -eq 'completed') {
+                    if ($run.conclusion -ne 'success') {
+                        throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+                    }
+                    $workflowReady = $true
+                    Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+                    break
+                }
+                Write-Host ("GitHub Actions: {0} - waiting..." -f $run.status) -ForegroundColor Yellow
+            } else {
+                Write-Host 'GitHub Actions run is not visible yet - waiting...' -ForegroundColor Yellow
+            }
+        }
+        catch {
+            if ($_.Exception.Message -like 'GitHub Actions rejected commit*') { throw }
+            Write-Host ("Could not verify GitHub Actions yet: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+        }
+        Start-Sleep -Seconds 5
+    } while ((Get-Date) -lt $workflowDeadline)
+
+    if (-not $workflowReady) {
+        throw 'GitHub Actions did not report a successful check within 3 minutes. Test server was not changed.'
+    }
+
+    if (-not (Test-Path $Source)) {
+        throw "Source resource was not found: $Source"
     }
     if (-not (Test-Path $Resources)) {
         throw "Test server resources folder was not found: $Resources"

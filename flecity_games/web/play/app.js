@@ -136,7 +136,15 @@ rankingGame.onchange=()=>{rankingRows.innerHTML='';};
 rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
  const res=await FlecityBridge.call('playBootstrap',{});
- if(!res.ok){setStatus('Could not load PLAY: '+res.error,'error');return;}
+ if(!res.ok){
+   if(res.error==='PLAYER_NOT_READY'){
+     setStatus('Waiting for character…','warn');
+     setTimeout(bootstrap,1000);
+     return;
+   }
+   setStatus('Could not load PLAY: '+res.error,'error');
+   return;
+ }
  bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY ready.','good');
 }
 

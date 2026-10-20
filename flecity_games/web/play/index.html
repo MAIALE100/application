@@ -1,47 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PLAY</title><link rel="stylesheet" href="../shared/app.css"></head>
 <body>
 <main class="wrap">
-<header class="header"><div><div class="kicker">PLAY WHEN YOU WAIT.</div><h1>PLAY</h1><div class="muted">Quick breaks. Endless runs.</div></div></header>
-<section id="status" class="status">Loading…</section>
+<header class="header"><div><div class="kicker">ちょっとした待ち時間に。</div><h1>PLAY</h1><div class="muted">短時間でも、じっくりでも。</div></div></header>
+<section id="status" class="status">読み込み中…</section>
 <section id="home">
-  <div class="card"><h2>PLAY GAMES</h2><p class="muted">短時間でも、途中保存して長く遊ぶこともできます。</p></div>
-  <div id="dailyCard" class="card stack hidden"><div class="kicker">TODAY'S CHALLENGE</div><div class="row"><div><h2 id="dailyGame">---</h2><div id="dailyDate" class="muted"></div></div><button id="dailyPlay">PLAY</button></div><div id="dailyBest" class="status">No score yet.</div><div id="dailyRanking" class="players"></div></div>
+  <div class="card"><h2>ゲーム一覧</h2><p class="muted">短時間でも、途中保存して長く遊ぶこともできます。</p></div>
+  <div id="dailyCard" class="card stack hidden"><div class="kicker">今日のチャレンジ</div><div class="row"><div><h2 id="dailyGame">---</h2><div id="dailyDate" class="muted"></div></div><button id="dailyPlay">挑戦する</button></div><div id="dailyBest" class="status">まだ記録がありません。</div><div id="dailyRanking" class="players"></div></div>
   <div id="games" class="grid"></div>
-  <div class="card stack"><div class="kicker">YOUR RECORDS</div><div class="row"><div><div class="muted">COMPLETED</div><strong id="statPlays">0</strong></div><div><div class="muted">PLAY TIME</div><strong id="statTime">0m</strong></div></div><div class="kicker">ACHIEVEMENTS</div><div id="achievementRows" class="players"></div></div>
-  <div class="card stack"><div class="kicker">RANKING</div><div class="row"><select id="rankingGame"></select><select id="rankingPeriod"><option value="today">TODAY</option><option value="week">WEEK</option><option value="all">ALL TIME</option></select></div><button id="rankingLoad" class="secondary">LOAD RANKING</button><div id="rankingRows" class="players"></div></div>
-  <div class="card stack"><div class="kicker">SETTINGS</div><label class="setting-row"><span>SOUND</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>REDUCED MOTION</span><input id="settingMotion" type="checkbox"></label></div>
+  <div class="card stack"><div class="kicker">あなたの記録</div><div class="row"><div><div class="muted">プレイ回数</div><strong id="statPlays">0</strong></div><div><div class="muted">プレイ時間</div><strong id="statTime">0m</strong></div></div><div class="kicker">実績</div><div id="achievementRows" class="players"></div></div>
+  <div class="card stack"><div class="kicker">ランキング</div><div class="row"><select id="rankingGame"></select><select id="rankingPeriod"><option value="today">今日</option><option value="week">7日間</option><option value="all">全期間</option></select></div><button id="rankingLoad" class="secondary">LOAD ランキング</button><div id="rankingRows" class="players"></div></div>
+  <div class="card stack"><div class="kicker">設定</div><label class="setting-row"><span>サウンド</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>動きを抑える</span><input id="settingMotion" type="checkbox"></label></div>
 </section>
-<section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">READY?</div><button id="tapButton">START</button><button id="tapBack" class="secondary">BACK</button></div></section>
-<section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopMessage" class="big-number">READY?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">START</button><button id="stopBack" class="secondary">BACK</button></div></section>
+<section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">スタート</button><button id="tapBack" class="secondary">戻る</button></div></section>
+<section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
 <section id="blockGame" class="hidden">
-  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div></div><button id="blockBack" class="secondary">BACK</button></div>
+  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div></div><button id="blockBack" class="secondary">戻る</button></div>
   <div class="card"><div id="blockBoard" class="block-board"></div></div>
-  <div class="card stack"><div class="kicker">PIECES</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">NEW GAME</button><button id="blockFinish" class="danger">END RUN</button></div></div>
+  <div class="card stack"><div class="kicker">ピース</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">新しく始める</button><button id="blockFinish" class="danger">終了して記録</button></div></div>
 </section>
 <section id="mergeGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div></div><button id="mergeBack" class="secondary">BACK</button></div>
+  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div></div><button id="mergeBack" class="secondary">戻る</button></div>
   <div class="card"><div id="mergeBoard" class="merge-board"></div></div>
   <div class="card stack">
     <div class="merge-controls"><span></span><button id="mergeUp" class="secondary">▲</button><span></span><button id="mergeLeft" class="secondary">◀</button><button id="mergeDown" class="secondary">▼</button><button id="mergeRight" class="secondary">▶</button></div>
-    <div class="row"><button id="mergeNew" class="secondary">NEW GAME</button><button id="mergeFinish" class="danger">END RUN</button></div>
+    <div class="row"><button id="mergeNew" class="secondary">新しく始める</button><button id="mergeFinish" class="danger">終了して記録</button></div>
   </div>
 </section>
 <section id="minesGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div></div><button id="minesBack" class="secondary">BACK</button></div>
+  <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div></div><button id="minesBack" class="secondary">戻る</button></div>
   <div class="card"><div id="minesBoard" class="mines-board"></div></div>
-  <div class="card stack"><button id="minesMode" class="secondary">MODE: REVEAL</button><button id="minesNew" class="secondary">NEW GAME</button></div>
+  <div class="card stack"><button id="minesMode" class="secondary">モード: 開く</button><button id="minesNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="stackGame" class="hidden">
-  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div></div><button id="stackBack" class="secondary">BACK</button></div>
+  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div></div><button id="stackBack" class="secondary">戻る</button></div>
   <div class="card"><div id="stackArena" class="stack-arena"><div id="stackBase" class="stack-base"></div><div id="stackMover" class="stack-mover"></div></div></div>
-  <div class="card stack"><button id="stackDrop">DROP</button><button id="stackNew" class="secondary">NEW GAME</button></div>
+  <div class="card stack"><button id="stackDrop">置く</button><button id="stackNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="nonogramGame" class="hidden">
-  <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div></div><button id="nonogramBack" class="secondary">BACK</button></div>
+  <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div></div><button id="nonogramBack" class="secondary">戻る</button></div>
   <div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
-  <div class="card stack"><button id="nonogramCheck">CHECK</button><button id="nonogramNew" class="secondary">NEW PUZZLE</button></div>
+  <div class="card stack"><button id="nonogramCheck">答え合わせ</button><button id="nonogramNew" class="secondary">新しい問題</button></div>
 </section>
 </main>
 <script src="../shared/bridge.js"></script>

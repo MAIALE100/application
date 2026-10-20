@@ -195,6 +195,8 @@ if "clearForeignSourceSessions" not in play_lua:
     fail("PLAY character-switch session cleanup is missing")
 if "existingScoreResponse" not in play_lua or "duplicate=true" not in play_lua:
     fail("PLAY idempotent score retry handling is missing")
+if "unlockedAchievements" not in play_lua:
+    fail("PLAY score retry must preserve achievement feedback")
 if "ActivateSession" not in play_lua or "timingDeferred" not in play_lua or "TIMER_NOT_STARTED" not in play_lua:
     fail("PLAY deferred timer activation is missing")
 for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master"):

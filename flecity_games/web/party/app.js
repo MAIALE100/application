@@ -262,7 +262,22 @@ async function loadPartyConfig(){
  const length=Math.max(3,Math.min(6,Number(res.config.roomCodeLength)||4));
  partyConfig={...partyConfig,...res.config,roomCodeLength:length};
  codeEl.maxLength=length;
- codeEl.placeholder=length+' DIGIT CODE';
+ codeEl.placeholder=length+'桁のルームコード';
+
+ const games=Array.isArray(res.config.games)?res.config.games:[];
+ if(games.length){
+   const current=gameEl.value;
+   gameEl.innerHTML='';
+   games.forEach(game=>{
+     const option=document.createElement('option');
+     option.value=game.id;
+     const min=Number(game.minPlayers)||2,max=Number(game.maxPlayers)||10;
+     option.textContent=game.name+' · '+(min===max?min+'人':min+'〜'+max+'人');
+     option.title=game.description||'';
+     gameEl.appendChild(option);
+   });
+   if([...gameEl.options].some(o=>o.value===current))gameEl.value=current;
+ }
 }
 window.addEventListener('message',event=>{
  const message=event.data;

@@ -353,15 +353,19 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     if cycle<=half then return (cycle/half)*100 end
     return ((period-cycle)/half)*100
 end
-local function generateMines(seed,size,mineCount)
+local function generateMines(seed,size,mineCount,avoidIndex)
     local total=size*size
+    local avoid=tonumber(avoidIndex)
+    if avoid and (avoid~=math.floor(avoid) or avoid<0 or avoid>=total) then avoid=nil end
+    local maxMines=math.max(0,total-(avoid and 1 or 0))
+    mineCount=math.max(0,math.min(maxMines,math.floor(tonumber(mineCount) or 0)))
     local state=math.floor(tonumber(seed) or 1)%2147483647
     if state<=0 then state=1 end
     local mines={} local count=0
     while count<mineCount do
         state=(state*16807)%2147483647
         local index=(state-1)%total
-        if not mines[index] then mines[index]=true count=count+1 end
+        if index~=avoid and not mines[index] then mines[index]=true count=count+1 end
     end
     return mines
 end
@@ -936,9 +940,10 @@ function FlecityGamesPlay.StartSession(source,data)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
 
     local baseElapsedMs=0
+    local resumeState=nil
     if not seed then
         if game.supportsResume==true and data.resume==true then
-            local saved=MySQL.single.await([[SELECT seed,elapsed_ms,game_version FROM flecity_game_saves
+            local saved=MySQL.single.await([[SELECT seed,elapsed_ms,game_version,state_json FROM flecity_game_saves
                 WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
             if not saved then return {ok=false,error='SAVE_NOT_FOUND'} end
             if tonumber(saved.game_version or 1)~=tonumber(game.version or 1) then
@@ -950,6 +955,7 @@ function FlecityGamesPlay.StartSession(source,data)
             end
             seed=math.floor(resumeSeed)
             baseElapsedMs=math.max(0,math.min(28800000,math.floor(tonumber(saved.elapsed_ms) or 0)))
+            resumeState=json.decode(saved.state_json or '{}') or {}
         else
             seed=math.random(1,2147483646)
         end
@@ -964,8 +970,16 @@ function FlecityGamesPlay.StartSession(source,data)
         saveEpoch=currentSaveEpoch(id,game.id),
         timingDeferred=(game.id=='mines' or game.id=='nonogram'),
         timingActivated=false,
-        activeStartedTick=nil
+        activeStartedTick=nil,
+        minesAvoidIndex=nil
     }
+    if game.id=='mines' and resumeState then
+        local avoid=tonumber(resumeState.avoidIndex)
+        local size=tonumber(challenge.size) or 8
+        if avoid and avoid==math.floor(avoid) and avoid>=0 and avoid<size*size then
+            sessions[token].minesAvoidIndex=avoid
+        end
+    end
     local publicSeed=seed
     if game.id=='high_low' then
         local highLow=newHighLowState(seed,challenge.rounds)
@@ -1032,11 +1046,26 @@ function FlecityGamesPlay.ActivateSession(source,data)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if not session or session.playerIdentifier~=id then return {ok=false,error='INVALID_SESSION'} end
     if session.timingDeferred~=true then return {ok=true,activated=true,elapsedMs=select(2,elapsedForSession(session))} end
+
+    if session.gameId=='mines' and not session.dailyDate and session.minesAvoidIndex==nil and data.firstIndex~=nil then
+        local size=tonumber(session.challenge and session.challenge.size) or 8
+        local firstIndex=tonumber(data.firstIndex)
+        if not firstIndex or firstIndex~=math.floor(firstIndex) or firstIndex<0 or firstIndex>=size*size then
+            return {ok=false,error='INVALID_CHOICE'}
+        end
+        session.minesAvoidIndex=firstIndex
+    end
+
     if session.timingActivated~=true then
         session.timingActivated=true
         session.activeStartedTick=GetGameTimer()
     end
-    return {ok=true,activated=true,elapsedMs=select(2,elapsedForSession(session))}
+    return {
+        ok=true,
+        activated=true,
+        elapsedMs=select(2,elapsedForSession(session)),
+        avoidIndex=session.minesAvoidIndex
+    }
 end
 
 function FlecityGamesPlay.CancelSession(source,data)
@@ -1096,11 +1125,11 @@ function FlecityGamesPlay.Save(source,data)
         local revealed,revealedSet=normalizeIndexList(data.state.revealed,size*size)
         local flags,flagSet=normalizeIndexList(data.state.flags,size*size)
         if not revealed or not flags then return {ok=false,error='INVALID_MINES_SAVE'} end
-        local mines=generateMines(session.seed,size,mineCount)
+        local mines=generateMines(session.seed,size,mineCount,session.minesAvoidIndex)
         for _,index in ipairs(revealed) do
             if mines[index] or flagSet[index] then return {ok=false,error='INVALID_MINES_SAVE'} end
         end
-        saveState={revealed=revealed,flags=flags,mode=data.state.mode=='flag' and 'flag' or 'reveal'}
+        saveState={revealed=revealed,flags=flags,mode=data.state.mode=='flag' and 'flag' or 'reveal',avoidIndex=session.minesAvoidIndex}
         score=elapsed
     elseif game.id=='nonogram' then
         local size=tonumber(session.challenge.size) or 5
@@ -1240,7 +1269,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         if session.timingActivated~=true then return {ok=false,error='TIMER_NOT_STARTED'} end
         if type(data.revealed)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
         local size=tonumber(session.challenge.size) or 8 local mineCount=tonumber(session.challenge.mines) or 10
-        local mines=generateMines(session.seed,size,mineCount)
+        local mines=generateMines(session.seed,size,mineCount,session.minesAvoidIndex)
         local seen={} local revealedCount=0
         for _,value in ipairs(data.revealed) do
             local index=tonumber(value)
@@ -1380,6 +1409,7 @@ function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
     local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
+    local testSafeMines=generateMines(12345,8,10,0) local testSafeMineCount=0 for _ in pairs(testSafeMines) do testSafeMineCount=testSafeMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
@@ -1474,6 +1504,7 @@ function FlecityGamesPlay.DebugSelftest()
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         deferredTimerGames=minesGame and nonogram and challengeFor(minesGame,12345).size==8 and challengeFor(nonogram,12345).size==5 or false,
         minesSeedCount=testMineCount==10,
+        minesFirstRevealSafe=testSafeMineCount==10 and testSafeMines[0]~=true,
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,
         stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,

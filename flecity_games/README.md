@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.9.7-test**
+- Resource version: **0.10.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **15/15 enabled**.
+- Initial game registry: **16/16 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,7 +29,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 7/7 enabled
+### PLAY — 8/8 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
@@ -38,6 +38,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - MERGE — deterministic 4x4 merge game, auto-save/resume
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
+- MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
 
 ### PARTY — 8/8 enabled
 
@@ -75,7 +76,7 @@ Implemented:
   - BLOCK MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
-- deterministic server replay validation for BLOCK, MERGE, and STACK final scores
+- deterministic server replay validation for BLOCK, MERGE, STACK, and MEMORY final scores
 - autosave bound to the active server session and server-issued seed
 - resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`
@@ -125,7 +126,7 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 - Daily Challenge rollover at the server/database date boundary
 - ranking and achievement writes under real database load
 
-BLOCK, MERGE, and STACK now submit deterministic operation/timing histories and the server replays them before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
+BLOCK, MERGE, STACK, and MEMORY submit deterministic operation/selection histories and the server replays them before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.
 
 
 ## Low-effort test-server update workflow

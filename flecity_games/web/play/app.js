@@ -100,13 +100,23 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
+let appEpoch=0;
 async function startSessionWithRetry(payload){
  const snapshot=JSON.parse(JSON.stringify(payload||{}));
+ const epoch=appEpoch;
  const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
  let res={ok:false,error:'EMPTY_RESPONSE'};
  for(let attempt=0;attempt<3;attempt++){
+   if(epoch!==appEpoch)return {ok:false,error:'APP_SUSPENDED'};
    res=await FlecityBridge.call('playStartSession',snapshot);
-   if(res.ok||!retryable.has(res.error))return res;
+   if(res.ok){
+     if(epoch!==appEpoch){
+       await cancelPlaySession(res.sessionToken);
+       return {ok:false,error:'APP_SUSPENDED'};
+     }
+     return res;
+   }
+   if(!retryable.has(res.error))return res;
    if(attempt<2)await sleep(res.error==='RATE_LIMIT'?450:180*(attempt+1));
  }
  return res;
@@ -1553,7 +1563,7 @@ async function cancelPlaySession(token){
 }
 async function suspendActivePlay(){
  if(suspendRunning)return;
- suspendRunning=true;
+ suspendRunning=true;appEpoch+=1;
  try{
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
@@ -1562,19 +1572,19 @@ async function suspendActivePlay(){
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
    minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
 
-   if(block&&!block.finished){
+   if(block&&!block.finished&&!block.finalizing){
      if(!block.daily)await persistBlock(false);
      await cancelPlaySession(block.sessionToken);
    }
-   if(merge&&!merge.finished){
+   if(merge&&!merge.finished&&!merge.finalizing){
      await persistMerge(false);
      await cancelPlaySession(merge.sessionToken);
    }
-   if(mines&&!mines.finished){
+   if(mines&&!mines.finished&&!mines.finalizing){
      if(!mines.daily)await persistMines(false);
      await cancelPlaySession(mines.sessionToken);
    }
-   if(nonogram&&!nonogram.finished){
+   if(nonogram&&!nonogram.finished&&!nonogram.finalizing){
      if(!nonogram.daily)await persistNonogram(false);
      await cancelPlaySession(nonogram.sessionToken);
    }
@@ -1595,7 +1605,10 @@ async function suspendActivePlay(){
    console.warn('[PLAY] suspend failed',error);
  }finally{suspendRunning=false;}
 }
-document.addEventListener('visibilitychange',()=>{if(document.hidden)void suspendActivePlay();});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){void suspendActivePlay();return;}
+ if(bootstrapData&&!suspendRunning)void refreshPlatform();
+});
 window.addEventListener('pagehide',()=>{void suspendActivePlay();});
 
 bootstrap();

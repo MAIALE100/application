@@ -122,8 +122,10 @@ function formatGameScore(game,value){
  return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+' s':n.toFixed(3)+' ms'):String(n);
 }
 function formatDuration(ms){
- const total=Math.max(0,Math.floor(Number(ms)||0)),minutes=Math.floor(total/60000),hours=Math.floor(minutes/60);
- return hours>0?hours+'h '+(minutes%60)+'m':minutes+'m';
+ const total=Math.max(0,Math.floor(Number(ms)||0)),seconds=Math.floor(total/1000),minutes=Math.floor(seconds/60),hours=Math.floor(minutes/60);
+ if(hours>0)return hours+'h '+(minutes%60)+'m';
+ if(minutes>0)return minutes+'m '+(seconds%60)+'s';
+ return seconds+'s';
 }
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];

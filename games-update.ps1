@@ -140,6 +140,7 @@ try {
         throw "deployment robocopy failed with exit code $robocopyCode."
     }
     $ResourceChanged = $robocopyCode -ne 0
+    Set-Content -Path (Join-Path $Destination 'dev-build.txt') -Value $commit -NoNewline -Encoding ascii
     Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
 
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii

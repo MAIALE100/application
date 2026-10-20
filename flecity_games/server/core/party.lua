@@ -3,11 +3,11 @@ FlecityGamesParty = FlecityGamesParty or {}
 local rooms,roomsByCode,sourceToRoom={},{},{}
 local nextJoinOrder=0
 local votePrompts={
-    'Who would survive longest on a deserted island?',
-    'Who is most likely to become famous in Flecity?',
-    'Who would be the best getaway driver?',
-    'Who is most likely to forget why they entered a room?',
-    'Who would make the best detective?'
+    '無人島で一番長く生き残りそうなのは？',
+    'Flecityで一番有名になりそうなのは？',
+    '逃走用ドライバーに一番向いていそうなのは？',
+    '何をしに来たか忘れそうなのは？',
+    '一番探偵に向いていそうなのは？'
 }
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
@@ -74,6 +74,24 @@ local function roomForSource(source)
     local roomId=sourceToRoom[tonumber(source)]
     return roomId and rooms[roomId] or nil
 end
+local function roomForIdentifier(id)
+    if not id then return nil end
+    for _,room in pairs(rooms) do
+        if room.members[id] then return room end
+    end
+    return nil
+end
+local function reconnectMember(room,id,source)
+    local member=room and room.members[id] or nil
+    if not member then return false end
+    member.source=tonumber(source)
+    member.disconnected=false
+    member.disconnectedAt=nil
+    member.name=FlecityGamesFramework.GetCharacterName(source)
+    sourceToRoom[tonumber(source)]=room.id
+    migrateHost(room)
+    return true
+end
 local function memberIdToIdentifier(room,memberId)
     for id,m in pairs(room.members) do if m.memberId==memberId then return id end end
 end
@@ -82,7 +100,11 @@ function FlecityGamesParty.CreateRoom(source)
     if not FlecityGamesRateLimit.Allow(source,'room_create',FlecityGamesConfig.RateLimits.RoomCreateMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    if roomForSource(source) then return {ok=false,error='ALREADY_IN_ROOM'} end
+    local existingRoom=roomForSource(source) or roomForIdentifier(id)
+    if existingRoom then
+        reconnectMember(existingRoom,id,source)
+        return {ok=true,reconnected=true,room=snapshot(existingRoom,id)}
+    end
     local code=makeCode()
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
 
@@ -110,8 +132,7 @@ function FlecityGamesParty.JoinRoom(source,data)
 
     local existing=room.members[id]
     if existing then
-        existing.source=tonumber(source) existing.disconnected=false existing.disconnectedAt=nil existing.name=FlecityGamesFramework.GetCharacterName(source)
-        sourceToRoom[tonumber(source)]=room.id migrateHost(room)
+        reconnectMember(room,id,source)
         return {ok=true,reconnected=true,room=snapshot(room,id)}
     end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
@@ -127,8 +148,13 @@ function FlecityGamesParty.GetRoom(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     local room=roomForSource(source)
+    local reconnected=false
+    if not room then
+        room=roomForIdentifier(id)
+        if room then reconnected=reconnectMember(room,id,source) end
+    end
     if not room then return {ok=false,error='NOT_IN_ROOM'} end
-    return {ok=true,room=snapshot(room,id)}
+    return {ok=true,reconnected=reconnected,room=snapshot(room,id)}
 end
 
 function FlecityGamesParty.SetReady(source,data)
@@ -290,6 +316,10 @@ function FlecityGamesParty.LeaveRoom(source)
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room then return {ok=true} end
     removeMember(room,id)
+    if rooms[room.id] and room.state=='round' and room.roundState and not room.roundState.complete then
+        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
+        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
+    end
     return {ok=true}
 end
 
@@ -301,6 +331,11 @@ function FlecityGamesParty.DropSource(source)
     for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
     if not id then return end
     local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
+    migrateHost(room)
+    if room.state=='round' and room.roundState and not room.roundState.complete then
+        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
+        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
+    end
 end
 
 function FlecityGamesParty.Cleanup()
@@ -320,6 +355,23 @@ function FlecityGamesParty.Cleanup()
             end
         end
     end
+end
+
+function FlecityGamesParty.DebugSelftest()
+    local room={
+        hostIdentifier='host',
+        members={
+            host={disconnected=true,joinOrder=1},
+            second={disconnected=false,joinOrder=2},
+            third={disconnected=false,joinOrder=3}
+        }
+    }
+    migrateHost(room)
+    return {
+        hostMigration=room.hostIdentifier=='second',
+        connectedCount=connectedCount(room)==2,
+        memberCount=memberCount(room)==3
+    }
 end
 
 function FlecityGamesParty.DebugCounts()

@@ -55,6 +55,22 @@ function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;resetRoundRuntime();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
+function selectedGameConfig(room){
+ const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
+ return games.find(g=>g.id===room.selectedGame)||null;
+}
+function startReadiness(room){
+ const game=selectedGameConfig(room);
+ const min=Math.max(1,Number(game&&game.minPlayers)||partyConfig.minPlayers||2);
+ const max=Math.max(min,Number(game&&game.maxPlayers)||partyConfig.maxPlayers||10);
+ const connected=Number(room.connectedCount)||0;
+ const waiting=(room.players||[]).filter(p=>!p.disconnected&&!p.ready).length;
+ if(!room.isHost)return {ok:false,text:'ホストのみ開始できます'};
+ if(connected<min)return {ok:false,text:'あと'+(min-connected)+'人必要です'};
+ if(connected>max)return {ok:false,text:'参加人数が上限を超えています'};
+ if(waiting>0)return {ok:false,text:'準備待ち '+waiting+'人'};
+ return {ok:true,text:'全員準備OK'};
+}
 function renderPlayers(room){
  playersEl.innerHTML='';
  room.players.forEach(p=>{
@@ -229,7 +245,10 @@ function renderRoom(room){
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
-   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;startBtn.disabled=!room.isHost;readyBtn.disabled=false;readyBtn.textContent=ready?'UNREADY':'READY';status('ロビー準備完了。','good');
+   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;
+   const readiness=startReadiness(room);
+   startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
+   readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';status('ロビー準備完了。','good');
  }else{
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');lobbyBtn.classList.toggle('hidden',!room.isHost);status('ラウンド '+room.round+' / '+room.selectedGame,'good');
    const rs=room.roundState;

@@ -58,6 +58,11 @@
   <div class="card big-center high-low-stage"><div class="muted">現在の数字</div><div id="highLowCard" class="high-low-card">?</div><div class="high-low-actions"><button id="highLowLower" class="secondary" disabled>LOW ↓</button><button id="highLowHigher" disabled>HIGH ↑</button></div></div>
   <div class="card stack"><button id="highLowStart">スタート</button><button id="highLowNew" class="secondary hidden">もう一度</button></div>
 </section>
+<section id="simonGame" class="hidden">
+  <div class="card row"><div><div class="kicker">SIMON</div><div id="simonRound" class="big-number small-number">0</div><div id="simonMeta" class="game-meta">ROUND 0 · BEST 0</div></div><button id="simonBack" class="secondary">戻る</button></div>
+  <div class="card stack"><div id="simonBoard" class="simon-board"><button class="simon-pad" data-pad="0" aria-label="左上"></button><button class="simon-pad" data-pad="1" aria-label="右上"></button><button class="simon-pad" data-pad="2" aria-label="左下"></button><button class="simon-pad" data-pad="3" aria-label="右下"></button></div><div id="simonMessage" class="status">スタートを押してください。</div></div>
+  <div class="card stack"><button id="simonStart">スタート</button><button id="simonNew" class="secondary hidden">もう一度</button></div>
+</section>
 <section id="memoryGame" class="hidden">
   <div class="card row"><div><div class="kicker">MEMORY</div><div id="memoryTime" class="big-number small-number">0.0s</div><div id="memoryMeta" class="game-meta">0 / 8 PAIRS · 0 MOVES</div></div><button id="memoryBack" class="secondary">戻る</button></div>
   <div class="card"><div id="memoryBoard" class="memory-board"></div></div>

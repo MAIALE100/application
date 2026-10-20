@@ -28,6 +28,15 @@ function FlecityGamesFramework.IsReady()
     return GetResourceState('qbx_core') == 'started'
 end
 
+function FlecityGamesFramework.GetVersion()
+    if GetResourceState('qbx_core')~='started' then return nil end
+    local ok,version=pcall(function()
+        return exports.qbx_core:GetCoreVersion(GetCurrentResourceName())
+    end)
+    if ok and version then return tostring(version) end
+    return GetResourceMetadata('qbx_core','version',0)
+end
+
 function FlecityGamesFramework.GetIdentifier(source)
     if FlecityGamesConfig.Framework == 'auto' or FlecityGamesConfig.Framework == 'qbox' then
         local pd = getQboxPlayerData(source)

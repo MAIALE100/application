@@ -109,7 +109,19 @@ end)
 
 RegisterNUICallback('flecityGames:callback',function(data,cb)
     if type(data)~='table' then return cb({ok=false,error='INVALID_REQUEST'}) end
-    local callbackName=callbackMap[tostring(data.action or '')]
+
+    local action=tostring(data.action or '')
+    if action=='bridgePing' then
+        return cb({
+            ok=true,
+            bridge='lb-phone',
+            resource=RESOURCE,
+            version=GetResourceMetadata(RESOURCE,'version',0) or 'unknown',
+            lbPhoneState=GetResourceState('lb-phone')
+        })
+    end
+
+    local callbackName=callbackMap[action]
     if not callbackName then return cb({ok=false,error='UNKNOWN_ACTION'}) end
     local ok,result=pcall(function()
         return exports['lb-phone']:AwaitCallback(callbackName,type(data.payload)=='table' and data.payload or {})

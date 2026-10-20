@@ -195,7 +195,7 @@ local function snapshot(room,viewerId)
     table.sort(players,function(a,b) return a.joinOrder<b.joinOrder end)
     local selfMember=room.members[viewerId]
     return {
-        id=room.id,code=room.code,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
+        code=room.code,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -333,7 +333,7 @@ function FlecityGamesParty.StartRound(source)
 
     room.round=room.round+1 room.state='round'
     local startedTick=GetGameTimer()
-    local rs={token=('%s:%d:%06d'):format(room.id,room.round,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
+    local rs={token=('round:%d:%06d:%06d'):format(room.round,GetGameTimer()%1000000,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
     room.roundState=rs
 
     if game.id=='reaction' then rs.revealAfterMs=math.random(1500,4000) end

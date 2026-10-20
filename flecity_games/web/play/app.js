@@ -184,7 +184,11 @@ stopBack.onclick=async()=>{
 
 /* BLOCK */
 function emptyBoard(){return Array.from({length:8},()=>Array(8).fill(0));}
-function newPiece(){return {shape:Math.floor(Math.random()*SHAPES.length)};}
+function blockRand(){
+ let x=Math.floor(Number(block.rngState)||1);if(x<=0||x>=2147483647)x=1;
+ x=(x*16807)%2147483647;block.rngState=x;return (x-1)/2147483646;
+}
+function newPiece(){return {shape:Math.floor(blockRand()*SHAPES.length)};}
 function refillPieces(){block.pieces=[newPiece(),newPiece(),newPiece()];block.selected=0;}
 function elapsedBlock(){return (block?block.elapsedBase:0)+(block?performance.now()-block.sessionStarted:0);}
 function canPlace(piece,x,y){
@@ -204,8 +208,8 @@ function clearLines(){
  if(lines>0){block.combo+=1;block.score+=Math.round(lines*100*(1+Math.min(block.combo,8)*0.2));}else block.combo=0;
 }
 async function persistBlock(){
- if(!block||block.finished)return;
- const state={board:block.board,pieces:block.pieces,score:block.score,combo:block.combo};
+ if(!block||block.finished||block.daily)return;
+ const state={board:block.board,pieces:block.pieces,score:block.score,combo:block.combo,rngState:block.rngState};
  const elapsedMs=Math.round(elapsedBlock());
  const res=await FlecityBridge.call('playSave',{gameId:'block',state,score:block.score,elapsedMs,seed:String(block.seed||'')});
  if(res.ok)saves.block={game_id:'block',state,score:block.score,elapsed_ms:elapsedMs,seed:String(block.seed||'')};
@@ -224,18 +228,18 @@ function renderBlock(){
    b.onclick=()=>{block.selected=i;renderBlock();};blockPieces.appendChild(b);
  });
 }
-async function openBlock(forceNew){
+async function openBlock(forceNew,daily=false){
  hideAll();blockEl.classList.remove('hidden');
- const session=await FlecityBridge.call('playStartSession',{gameId:'block'});
+ const session=await FlecityBridge.call('playStartSession',{gameId:'block',daily:daily===true});
  if(!session.ok){setStatus('Could not start BLOCK: '+session.error,'error');showHome();return;}
- const saved=!forceNew&&saves.block;
+ const saved=!forceNew&&!daily&&saves.block;
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
-     elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false};
+     rngState:Number(saved.state.rngState||saved.seed||session.seed),elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false,daily:false};
    if(!block.pieces.length)refillPieces();setStatus('BLOCK continued from auto-save.','good');
  }else{
-   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
-   refillPieces();setStatus('New BLOCK run.','good');
+   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
+   refillPieces();setStatus(block.daily?'Daily BLOCK started.':'New BLOCK run.','good');
  }
  renderBlock();
 }
@@ -253,7 +257,7 @@ async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock())});
- if(res.ok){delete saves.block;setStatus('BLOCK score saved: '+res.score,'good');}
+ if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'Daily ':'')+'BLOCK score saved: '+res.score,'good');await refreshPlatform();}
  else{block.finished=false;setStatus('Could not finish BLOCK: '+res.error,'error');}
 }
 blockBack.onclick=async()=>{
@@ -262,10 +266,14 @@ blockBack.onclick=async()=>{
  block=null;showHome();
 };
 blockNew.onclick=async()=>{
+ const wasDaily=!!(block&&block.daily);
  if(block&&!block.finished)await FlecityBridge.call('playCancelSession',{sessionToken:block.sessionToken});
- const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
- if(!reset.ok){setStatus('Could not reset BLOCK save: '+reset.error,'error');return;}
- delete saves.block;block=null;await openBlock(true);
+ if(!wasDaily){
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'block'});
+   if(!reset.ok){setStatus('Could not reset BLOCK save: '+reset.error,'error');return;}
+   delete saves.block;
+ }
+ block=null;await openBlock(true,wasDaily);
 };
 blockFinish.onclick=finishBlock;
 

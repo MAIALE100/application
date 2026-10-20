@@ -632,22 +632,35 @@ mergeBoard.onpointercancel=event=>{
 };
 
 /* MINES */
-function seededMines(seed,size,mineCount){
+function seededMines(seed,size,mineCount,avoidIndex=null){
  let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
- const result=new Set(),total=size*size;
- while(result.size<mineCount){state=(state*16807)%2147483647;result.add((state-1)%total);}
+ const result=new Set(),total=size*size,avoid=Number.isInteger(Number(avoidIndex))?Number(avoidIndex):null;
+ while(result.size<mineCount){
+   state=(state*16807)%2147483647;
+   const index=(state-1)%total;
+   if(index!==avoid)result.add(index);
+ }
  return result;
 }
 function elapsedMines(){return (mines?mines.elapsedBase:0)+(mines&&mines.timingStarted?performance.now()-mines.timingStartedAt:0);}
-async function activateMinesTiming(){
+async function activateMinesTiming(firstIndex=null){
  if(!mines||mines.finished)return false;
- if(mines.timingStarted)return true;
+ const wantsSafeIndex=!mines.daily&&mines.avoidIndex==null&&Number.isInteger(Number(firstIndex));
+ if(mines.timingStarted&&!wantsSafeIndex)return true;
  if(mines.timingActivating)return false;
  mines.timingActivating=true;
  try{
-   const res=await FlecityBridge.call('playActivateSession',{sessionToken:mines.sessionToken});
+   const payload={sessionToken:mines.sessionToken};
+   if(wantsSafeIndex)payload.firstIndex=Number(firstIndex);
+   const res=await FlecityBridge.call('playActivateSession',payload);
    if(!res.ok){setStatus('MINESのタイマーを開始できません: '+FlecityErrors.text(res.error),'error');return false;}
-   mines.elapsedBase=Number(res.elapsedMs??mines.elapsedBase)||0;mines.timingStarted=true;mines.timingStartedAt=performance.now();return true;
+   mines.elapsedBase=Number(res.elapsedMs??mines.elapsedBase)||0;
+   if(Number.isInteger(Number(res.avoidIndex))){
+     mines.avoidIndex=Number(res.avoidIndex);
+     mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount,mines.avoidIndex);
+   }
+   if(!mines.timingStarted){mines.timingStarted=true;mines.timingStartedAt=performance.now();}
+   return true;
  }finally{if(mines)mines.timingActivating=false;}
 }
 function mineNeighbors(index){
@@ -675,7 +688,7 @@ function renderMines(){
 }
 async function persistMines(showError=false){
  if(!mines||mines.finished||mines.daily)return true;
- const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode};
+ const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode,avoidIndex:mines.avoidIndex};
  const elapsedMs=Math.round(elapsedMines());
  const res=await saveWithRetry({gameId:'mines',sessionToken:mines.sessionToken,state,score:elapsedMs,elapsedMs});
  if(res.ok){
@@ -694,14 +707,14 @@ async function openMines(forceNew,daily=false){
  if(!session.ok){setStatus('MINESを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
-   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',avoidIndex:Number.isInteger(Number(saved.state.avoidIndex))?Number(saved.state.avoidIndex):null,
      elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
    setStatus('MINESを途中保存から再開しました。','good');
  }else{
-   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',avoidIndex:null,elapsedBase:0,timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
    setStatus(mines.daily?'デイリーMINES開始。':'新しいMINESを開始しました。','good');
  }
- mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
+ mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount,mines.avoidIndex);renderMines();minesClock=setInterval(updateMinesTime,250);
 }
 async function loseMines(index){
  if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('地雷を踏みました。ゲーム終了。','warn');
@@ -717,7 +730,8 @@ async function loseMines(index){
 }
 async function touchMine(index){
  if(!mines||mines.finished)return;
- if(!(await activateMinesTiming()))return;
+ const firstReveal=mines.mode==='reveal'?index:null;
+ if(!(await activateMinesTiming(firstReveal)))return;
  if(mines.mode==='flag'){
    if(mines.flags.has(index))mines.flags.delete(index);else mines.flags.add(index);renderMines();await persistMines();return;
  }

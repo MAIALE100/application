@@ -235,7 +235,7 @@ async function persistBlock(){
  if(!block||block.finished||block.daily)return;
  const state={board:block.board,pieces:block.pieces,score:block.score,combo:block.combo,rngState:block.rngState,history:block.history};
  const elapsedMs=Math.round(elapsedBlock());
- const res=await FlecityBridge.call('playSave',{gameId:'block',state,score:block.score,elapsedMs,seed:String(block.seed||'')});
+ const res=await FlecityBridge.call('playSave',{gameId:'block',sessionToken:block.sessionToken,state,score:block.score,elapsedMs,seed:String(block.seed||'')});
  if(res.ok)saves.block={game_id:'block',state,score:block.score,elapsed_ms:elapsedMs,seed:String(block.seed||'')};
 }
 function renderBlock(){
@@ -341,7 +341,7 @@ async function persistMerge(){
  if(!merge||merge.finished)return;
  const state={board:merge.board,score:merge.score,moves:merge.moves,rngState:merge.rngState,history:merge.history};
  const elapsedMs=Math.round(elapsedMerge());
- const res=await FlecityBridge.call('playSave',{gameId:'merge',state,score:merge.score,elapsedMs,seed:String(merge.seed||'')});
+ const res=await FlecityBridge.call('playSave',{gameId:'merge',sessionToken:merge.sessionToken,state,score:merge.score,elapsedMs,seed:String(merge.seed||'')});
  if(res.ok)saves.merge={game_id:'merge',state,score:merge.score,elapsed_ms:elapsedMs,seed:String(merge.seed||'')};
 }
 async function openMerge(forceNew){
@@ -429,7 +429,7 @@ async function persistMines(){
  if(!mines||mines.finished||mines.daily)return;
  const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode};
  const elapsedMs=Math.round(elapsedMines());
- const res=await FlecityBridge.call('playSave',{gameId:'mines',state,score:elapsedMs,elapsedMs,seed:String(mines.seed)});
+ const res=await FlecityBridge.call('playSave',{gameId:'mines',sessionToken:mines.sessionToken,state,score:elapsedMs,elapsedMs,seed:String(mines.seed)});
  if(res.ok)saves.mines={game_id:'mines',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(mines.seed)};
 }
 async function openMines(forceNew,daily=false){
@@ -572,7 +572,7 @@ function renderNonogram(){
 async function persistNonogram(){
  if(!nonogram||nonogram.finished||nonogram.daily)return;const elapsedMs=Math.round(elapsedNonogram());
  const state={filled:[...nonogram.filled],crossed:[...nonogram.crossed]};
- const res=await FlecityBridge.call('playSave',{gameId:'nonogram',state,score:elapsedMs,elapsedMs,seed:String(nonogram.seed)});
+ const res=await FlecityBridge.call('playSave',{gameId:'nonogram',sessionToken:nonogram.sessionToken,state,score:elapsedMs,elapsedMs,seed:String(nonogram.seed)});
  if(res.ok)saves.nonogram={game_id:'nonogram',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(nonogram.seed)};
 }
 async function openNonogram(forceNew,daily=false){

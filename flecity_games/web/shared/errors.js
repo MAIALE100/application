@@ -28,6 +28,7 @@ window.FlecityErrors = {
         INVALID_NONOGRAM_SAVE: 'NONOGRAMの途中保存検証に失敗しました',
         INVALID_BLOCK_REPLAY: 'BLOCKの操作履歴とスコアが一致しません',
         INVALID_MERGE_REPLAY: 'MERGEの操作履歴とスコアが一致しません',
+        INVALID_STACK_REPLAY: 'STACKのDROP履歴とスコアが一致しません',
         INVALID_SCORE: 'スコアが不正です',
         INVALID_TIMING: '入力タイミングが不正です',
         IMPOSSIBLE_TIMING: '成立しない入力タイミングです',

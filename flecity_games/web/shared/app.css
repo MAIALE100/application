@@ -152,3 +152,5 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .game-stat-row{gap:8px}.game-stat-row span{font-size:.73rem;line-height:1.35}.game-stat-row strong{white-space:nowrap;font-size:.76rem}
 
 .self-rank-row{border-color:#444c5a;background:#171b22}.self-rank-row strong{font-variant-numeric:tabular-nums}
+
+.game-tip{font-size:.74rem;line-height:1.45;opacity:.66}.card-tip{margin:-2px 2px -2px;padding:0 2px}

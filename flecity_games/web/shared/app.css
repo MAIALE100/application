@@ -42,5 +42,11 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .nonogram-cell.filled{background:#f3f3f3;color:#111}
 .nonogram-cell.crossed{background:#11141a;color:#aaa}
 @media(max-width:360px){.nonogram-grid{grid-template-columns:60px repeat(5,1fr);gap:3px}.nonogram-clue,.nonogram-cell{min-height:40px}}
+.memory-board{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;aspect-ratio:1}
+.memory-card{min-height:0;padding:0;border-radius:12px;background:#242832;color:transparent;border:1px solid #343b47;font-size:1.55rem;font-weight:900;transition:transform .12s ease,background .12s ease;color .12s ease;user-select:none}
+.memory-card.revealed,.memory-card.matched{background:#f3f3f3;color:#111;transform:scale(.96)}
+.memory-card.matched{opacity:.62}
+.memory-card:disabled{cursor:default}
+@media(max-width:360px){.memory-board{gap:6px}.memory-card{font-size:1.3rem}}
 .draw-canvas,#drawCanvas,#telephoneCanvas{width:100%;height:auto;aspect-ratio:18/13;background:#f7f7f7;border-radius:14px;border:1px solid #303641;touch-action:none;display:block}
 .setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:46px;padding:8px 0}.setting-row input[type="checkbox"]{width:24px;height:24px;min-height:24px;flex:0 0 auto;accent-color:#fff}.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}

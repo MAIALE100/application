@@ -1428,18 +1428,43 @@ function FlecityGamesPlay.Ranking(source,data)
     end
 
     local wherePeriod=''
-    if period=='today' then wherePeriod=' AND s.created_at >= CURDATE()'
-    elseif period=='week' then wherePeriod=' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
+    local selfWherePeriod=''
+    if period=='today' then
+        wherePeriod=' AND s.created_at >= CURDATE()'
+        selfWherePeriod=' AND created_at >= CURDATE()'
+    elseif period=='week' then
+        wherePeriod=' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
+        selfWherePeriod=' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
     elseif period~='all' then return {ok=false,error='INVALID_PERIOD'} end
     local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
     local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
+    local comparator=game.rankingOrder=='asc' and '<' or '>'
     local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? %s
         AND (s.metadata_json IS NULL OR s.metadata_json NOT LIKE '%%"dailyDate":%%')
         GROUP BY s.player_identifier,p.display_name
         ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,wherePeriod,order,limit)
-    return {ok=true,gameId=game.id,period=period,rows=MySQL.query.await(sql,{game.id}) or {}}
+    local rows=MySQL.query.await(sql,{game.id}) or {}
+
+    local selfSql=([[SELECT %s(score) AS score FROM flecity_game_scores
+        WHERE player_identifier=? AND game_id=? %s
+        AND (metadata_json IS NULL OR metadata_json NOT LIKE '%%"dailyDate":%%')]]):format(aggregate,selfWherePeriod)
+    local selfRow=MySQL.single.await(selfSql,{id,game.id})
+    local selfScore=selfRow and tonumber(selfRow.score) or nil
+    local selfRank=nil
+    if selfScore~=nil then
+        local rankSql=([[SELECT 1+COUNT(*) FROM (
+            SELECT player_identifier,%s(score) AS best_score
+            FROM flecity_game_scores
+            WHERE game_id=? %s
+            AND (metadata_json IS NULL OR metadata_json NOT LIKE '%%"dailyDate":%%')
+            GROUP BY player_identifier
+        ) ranked WHERE ranked.best_score %s ?]]):format(aggregate,selfWherePeriod,comparator)
+        selfRank=tonumber(MySQL.scalar.await(rankSql,{game.id,selfScore}) or 1) or 1
+    end
+
+    return {ok=true,gameId=game.id,period=period,rows=rows,self={score=selfScore,rank=selfRank}}
 end
 
 function FlecityGamesPlay.Statistics(source)

@@ -1279,9 +1279,9 @@ async function startHighLow(){
  highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();setStatus('HIGH & LOW開始。未来の数字はSERVERで判定します。','good');
 }
 async function guessHighLow(guess){
- if(!highLow||!highLow.running||highLow.finished||highLow.busy)return;
- highLow.busy=true;renderHighLow();
- const step=highLow.completed+1,payload={sessionToken:highLow.sessionToken,guess,step};
+ const game=highLow;if(!game||!game.running||game.finished||game.busy)return;
+ game.busy=true;if(highLow===game)renderHighLow();
+ const step=game.completed+1,payload={sessionToken:game.sessionToken,guess,step};
  const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
  let res={ok:false,error:'EMPTY_RESPONSE'};
  for(let attempt=0;attempt<3;attempt++){
@@ -1289,17 +1289,21 @@ async function guessHighLow(guess){
    if(res.ok||!retryable.has(res.error))break;
    if(attempt<2)await sleep(res.error==='RATE_LIMIT'?220:160*(attempt+1));
  }
+ if(highLow!==game){
+   await cancelPlaySession(game.sessionToken);
+   return;
+ }
  if(!res.ok){
-   await cancelPlaySession(highLow.sessionToken);highLow.sessionToken=null;highLow.busy=false;highLow.running=false;highLow.finished=true;renderHighLow();
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.busy=false;game.running=false;game.finished=true;renderHighLow();
    setStatus('HIGH & LOWの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
- highLow.currentValue=Number(res.nextValue)||highLow.currentValue;
- highLow.streak=Math.max(0,Number(res.streak)||0);
- highLow.completed=Math.max(0,Number(res.completed)||0);
- highLow.busy=false;
+ game.currentValue=Number(res.nextValue)||game.currentValue;
+ game.streak=Math.max(0,Number(res.streak)||0);
+ game.completed=Math.max(0,Number(res.completed)||0);
+ game.busy=false;
  if(res.correct){
-   tone(720+Math.min(220,highLow.streak*12),35);
-   setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+highLow.streak+'連勝','good');
+   tone(720+Math.min(220,game.streak*12),35);
+   setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+game.streak+'連勝','good');
  }else{
    tone(160,80);setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 不正解','warn');
  }
@@ -1426,6 +1430,7 @@ async function pressSimon(index){
    game.submitting=true;
    const res=await sendSimonRound(game.roundInputs.slice(),game.round);
    game.submitting=false;
+   if(simon!==game){await cancelPlaySession(game.sessionToken);return;}
    if(!res.ok){
      await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
      simonMessage.textContent='通信に失敗しました';
@@ -1444,6 +1449,7 @@ async function pressSimon(index){
  game.submitting=true;renderSimon();
  const res=await sendSimonRound(game.roundInputs.slice(),game.round);
  game.submitting=false;
+ if(simon!==game){await cancelPlaySession(game.sessionToken);return;}
  if(!res.ok){
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
    simonMessage.textContent='通信に失敗しました';

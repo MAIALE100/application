@@ -163,7 +163,7 @@ tapButton.onclick=async()=>{
    const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
    const res=await FlecityBridge.call('playSubmitScore',{sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
-   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'デイリー score accepted.':'スコアを保存しました。','good');await refreshPlatform();}
+   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'デイリースコアを保存しました。':'スコアを保存しました。','good');await refreshPlatform();}
    else{tapMessage.textContent='保存できませんでした';setStatus('スコア拒否: '+FlecityErrors.text(res.error),'error');}
    tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
  }
@@ -200,8 +200,8 @@ stopButton.onclick=async()=>{
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
-     setStatus((res.daily?'デイリー ':'')+'STOP! スコア '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'% away':''),'good');await refreshPlatform();
-   }else{stopMessage.textContent='保存できませんでした';setStatus('STOP! rejected: '+FlecityErrors.text(res.error),'error');}
+     setStatus((res.daily?'デイリー ':'')+'STOP! スコア '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''),'good');await refreshPlatform();
+   }else{stopMessage.textContent='保存できませんでした';setStatus('STOP! スコア拒否: '+FlecityErrors.text(res.error),'error');}
    stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';return;
  }
  if(stopState!=='idle')return;
@@ -269,14 +269,14 @@ async function openBlock(forceNew,daily=false){
  const saved=!forceNew&&!daily&&saves.block;
  const payload={gameId:'block',daily:daily===true};if(saved)payload.resume=true;
  const session=await FlecityBridge.call('playStartSession',payload);
- if(!session.ok){setStatus('Could not start BLOCK: '+session.error,'error');showHome();return;}
+ if(!session.ok){setStatus('BLOCKを開始できません: '+session.error,'error');showHome();return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
      rngState:Number(saved.state.rngState||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:false};
    if(!block.pieces.length)refillPieces();setStatus('BLOCKを途中保存から再開しました。','good');
  }else{
    block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
-   refillPieces();setStatus(block.daily?'デイリー BLOCK started.':'新しいBLOCKを開始しました。','good');
+   refillPieces();setStatus(block.daily?'デイリーBLOCK開始。':'新しいBLOCKを開始しました。','good');
  }
  renderBlock();
 }
@@ -289,14 +289,14 @@ async function placeBlock(x,y){
  block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;clearLines();
  if(block.pieces.every(p=>!p))refillPieces();else{const next=block.pieces.findIndex(Boolean);if(next>=0)block.selected=next;}
  renderBlock();await persistBlock();
- if(blockGameOver()){setStatus('No pieces fit. Run complete.','warn');await finishBlock();}
+ if(blockGameOver()){setStatus('置けるピースがありません。ゲーム終了。','warn');await finishBlock();}
 }
 async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
  if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'デイリー ':'')+'BLOCKスコア保存: '+res.score,'good');await refreshPlatform();}
- else{block.finished=false;setStatus('Could not finish BLOCK: '+FlecityErrors.text(res.error),'error');}
+ else{block.finished=false;setStatus('BLOCKを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
 blockBack.onclick=async()=>{
  await persistBlock();
@@ -360,7 +360,7 @@ async function openMerge(forceNew){
  hideAll();mergeEl.classList.remove('hidden');
  const saved=!forceNew&&saves.merge,payload={gameId:'merge'};if(saved)payload.resume=true;
  const session=await FlecityBridge.call('playStartSession',payload);
- if(!session.ok){setStatus('Could not start MERGE: '+session.error,'error');showHome();return;}
+ if(!session.ok){setStatus('MERGEを開始できません: '+session.error,'error');showHome();return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
      history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
@@ -383,16 +383,16 @@ async function moveMerge(direction){
      let col=[];for(let y=0;y<4;y++)col.push(merge.board[y][x]);if(direction==='down')col.reverse();col=compressMergeLine(col);if(direction==='down')col.reverse();for(let y=0;y<4;y++)merge.board[y][x]=col[y];
    }
  }
- if(before===JSON.stringify(merge.board)){setStatus('No tiles moved.','warn');return;}
+ if(before===JSON.stringify(merge.board)){setStatus('タイルを動かせませんでした。','warn');return;}
  merge.moves+=1;merge.history.push(direction);spawnMergeTile();renderMerge();await persistMerge();
- if(mergeGameOver()){setStatus('No more moves. Run complete.','warn');await finishMerge();}
+ if(mergeGameOver()){setStatus('動かせる場所がありません。ゲーム終了。','warn');await finishMerge();}
 }
 async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
  if(res.ok){delete saves.merge;setStatus('MERGEスコア保存: '+res.score,'good');await refreshPlatform();}
- else{merge.finished=false;setStatus('Could not finish MERGE: '+FlecityErrors.text(res.error),'error');}
+ else{merge.finished=false;setStatus('MERGEを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
 mergeBack.onclick=async()=>{
  await persistMerge();
@@ -435,7 +435,7 @@ function renderMines(){
    else if(revealed){const n=mineCountAround(i);b.textContent=n?String(n):'';}
    b.disabled=mines.finished||revealed;b.onclick=()=>touchMine(i);minesBoard.appendChild(b);
  }
- minesMode.textContent='MODE: '+(mines.mode==='flag'?'FLAG':'REVEAL');
+ minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');
 }
 async function persistMines(){
  if(!mines||mines.finished||mines.daily)return;
@@ -449,7 +449,7 @@ async function openMines(forceNew,daily=false){
  const saved=!forceNew&&!daily&&saves.mines;
  const payload={gameId:'mines',daily:daily===true};if(saved)payload.resume=true;
  const session=await FlecityBridge.call('playStartSession',payload);
- if(!session.ok){setStatus('Could not start MINES: '+session.error,'error');showHome();return;}
+ if(!session.ok){setStatus('MINESを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',
@@ -457,7 +457,7 @@ async function openMines(forceNew,daily=false){
    setStatus('MINESを途中保存から再開しました。','good');
  }else{
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
-   setStatus(mines.daily?'デイリー MINES started.':'新しいMINESを開始しました。','good');
+   setStatus(mines.daily?'デイリーMINES開始。':'新しいMINESを開始しました。','good');
  }
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount);renderMines();minesClock=setInterval(updateMinesTime,250);
 }
@@ -530,7 +530,7 @@ function stackLoop(now){
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
  const session=await FlecityBridge.call('playStartSession',{gameId:'stack'});
- if(!session.ok){setStatus('Could not start STACK: '+session.error,'error');showHome();return;}
+ if(!session.ok){setStatus('STACKを開始できません: '+session.error,'error');showHome();return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  stackGame={sessionToken:session.sessionToken,startedAt:performance.now(),layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,direction:1,lastFrame:0,finished:false};
  stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK開始。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
@@ -591,11 +591,11 @@ async function openNonogram(forceNew,daily=false){
  hideAll();nonogramEl.classList.remove('hidden');clearInterval(nonogramClock);
  const saved=!forceNew&&!daily&&saves.nonogram,payload={gameId:'nonogram',daily:daily===true};if(saved)payload.resume=true;
  const session=await FlecityBridge.call('playStartSession',payload);
- if(!session.ok){setStatus('Could not start NONOGRAM: '+session.error,'error');showHome();return;}
+ if(!session.ok){setStatus('NONOGRAMを開始できません: '+session.error,'error');showHome();return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
- setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリー NONOGRAM started.':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+ setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  if(!nonogram||nonogram.finished)return;

@@ -309,10 +309,17 @@ function renderGames(games){
    section.append(head,grid);gamesEl.appendChild(section);
  });
 }
+function rankingPeriodLabel(period){
+ if(period==='today')return '今日';
+ if(period==='week')return '7日間';
+ return '全期間';
+}
 function renderRankingSelf(){
- const gameId=rankingGame.value,game=gameById(gameId),best=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
+ const gameId=rankingGame.value,game=gameById(gameId),period=rankingPeriod.value;
  if(!game){rankingSelf.textContent='ゲームを選択してください。';return;}
- rankingSelf.textContent=best?'あなたのBEST · '+formatGameScore(game,best.score):'あなたのBEST · まだ記録がありません';
+ if(period!=='all'){rankingSelf.textContent='あなたの'+rankingPeriodLabel(period)+'BEST · ランキングを見ると表示します';return;}
+ const best=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
+ rankingSelf.textContent=best?'あなたの全期間BEST · '+formatGameScore(game,best.score):'あなたの全期間BEST · まだ記録がありません';
 }
 function populateRankingGames(games){
  const current=rankingGame.value;rankingGame.innerHTML='';
@@ -326,8 +333,14 @@ async function loadRanking(){
  const res=await FlecityBridge.call('playRanking',{gameId,period:rankingPeriod.value});
  rankingLoad.disabled=false;rankingRows.innerHTML='';
  if(!res.ok){rankingRows.innerHTML='<div class="status error">ランキング取得失敗: '+FlecityErrors.text(res.error)+'</div>';return;}
- if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">まだ記録がありません。</div>';return;}
  const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
+ const self=res.self||{};
+ if(Number.isFinite(Number(self.score))){
+   rankingSelf.textContent='あなたの'+rankingPeriodLabel(res.period)+'BEST · '+formatGameScore(game,self.score)+(Number(self.rank)>0?' · #'+String(self.rank):'');
+ }else{
+   rankingSelf.textContent='あなたの'+rankingPeriodLabel(res.period)+'BEST · まだ記録がありません';
+ }
+ if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">まだ記録がありません。</div>';return;}
  res.rows.forEach((r,i)=>{
    const d=document.createElement('div');d.className='player';
    const left=document.createElement('span'),right=document.createElement('strong');
@@ -338,7 +351,7 @@ async function loadRanking(){
 }
 rankingLoad.onclick=loadRanking;
 rankingGame.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
-rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
+rankingPeriod.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
 async function bootstrap(){
  const bridge=await FlecityBridge.call('bridgePing',{});
  if(!bridge.ok){

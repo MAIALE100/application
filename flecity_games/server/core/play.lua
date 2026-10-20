@@ -26,6 +26,20 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     return ((period-cycle)/half)*100
 end
 
+local function generateMines(seed,size,mineCount)
+    local total=size*size
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local mines={}
+    local count=0
+    while count<mineCount do
+        state=(state*16807)%2147483647
+        local index=(state-1)%total
+        if not mines[index] then mines[index]=true count=count+1 end
+    end
+    return mines
+end
+
 function FlecityGamesPlay.Bootstrap(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
@@ -58,13 +72,19 @@ function FlecityGamesPlay.StartSession(source,data)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
 
     local token=newToken(id,game.id)
+    local resumeSeed=type(data)=='table' and tonumber(data.resumeSeed) or nil
     local seed=math.random(1,2147483646)
+    if game.supportsResume==true and resumeSeed and resumeSeed>=1 and resumeSeed<=2147483646 then seed=math.floor(resumeSeed) end
     local challenge={}
     if game.id=='quick_tap' then challenge.delayMs=math.random(1200,3500) end
     if game.id=='stop' then
         challenge.targetPct=math.random(15,85)
         challenge.periodMs=math.random(1500,2400)
         challenge.phaseMs=math.random(0,challenge.periodMs-1)
+    end
+    if game.id=='mines' then
+        challenge.size=8
+        challenge.mines=10
     end
 
     local startedTick=GetGameTimer()
@@ -130,6 +150,10 @@ local function validateScore(game,score)
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
     end
+    if game.id=='mines' then
+        if score<1000 or score>28800000 then return nil end
+        return math.floor(score)
+    end
     if score<-100000000 or score>100000000 then return nil end
     return score
 end
@@ -170,6 +194,24 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.targetPct=target
         metadata.distancePct=math.floor(distance*100+0.5)/100
         metadata.actionMs=actionMs
+    elseif game.id=='mines' then
+        if type(data.revealed)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
+        local size=tonumber(session.challenge.size) or 8
+        local mineCount=tonumber(session.challenge.mines) or 10
+        local mines=generateMines(session.seed,size,mineCount)
+        local seen={}
+        local revealedCount=0
+        for _,value in ipairs(data.revealed) do
+            local index=tonumber(value)
+            if not index or index~=math.floor(index) or index<0 or index>=size*size then return {ok=false,error='INVALID_CLEAR_STATE'} end
+            if mines[index] then return {ok=false,error='MINE_REVEALED'} end
+            if not seen[index] then seen[index]=true revealedCount=revealedCount+1 end
+        end
+        if revealedCount~=(size*size-mineCount) then return {ok=false,error='INCOMPLETE_CLEAR'} end
+        rawScore=durationMs
+        metadata.revealedCount=revealedCount
+        metadata.boardSize=size
+        metadata.mineCount=mineCount
     end
 
     local score=validateScore(game,rawScore)
@@ -222,6 +264,9 @@ function FlecityGamesPlay.DebugSelftest()
     local stop=gameFor('stop')
     local block=gameFor('block')
     local merge=gameFor('merge')
+    local minesGame=gameFor('mines')
+    local testMines=generateMines(12345,8,10)
+    local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample)
     local decoded=encoded and json.decode(encoded) or nil
@@ -233,6 +278,8 @@ function FlecityGamesPlay.DebugSelftest()
         blockRejectNegative=block and validateScore(block,-1)==nil or false,
         blockAcceptInteger=block and validateScore(block,120)==120 or false,
         mergeAcceptInteger=merge and validateScore(merge,2048)==2048 or false,
+        minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
+        minesSeedCount=testMineCount==10,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false
     }

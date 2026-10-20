@@ -100,7 +100,12 @@ function renderGames(games){
  (games||[]).filter(g=>g.app==='play'&&g.enabled).forEach(game=>{
    const btn=document.createElement('button');btn.className='game';
    const hasSave=!!saves[game.id];
-   btn.innerHTML='<span class="tag">'+(categoryLabels[game.category]||game.category)+'</span><strong>'+game.name+'</strong><span class="muted">'+(hasSave?'途中から再開できます · ':'')+game.description+'</span>';
+   const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span');
+   tag.className='tag';description.className='muted';
+   tag.textContent=categoryLabels[game.category]||String(game.category||'');
+   name.textContent=String(game.name||game.id||'GAME');
+   description.textContent=(hasSave?'途中から再開できます · ':'')+String(game.description||'');
+   btn.append(tag,name,description);
    btn.onclick=()=>{
      if(game.id==='quick_tap')showQuick();
      else if(game.id==='stop')openStop();

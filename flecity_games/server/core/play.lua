@@ -58,6 +58,144 @@ local function generateNonogram(seed,size)
     if count==0 then filled[0]=true count=1 end
     return filled,count
 end
+local BLOCK_SHAPES={
+    {{0,0}},{{0,0},{1,0}},{{0,0},{1,0},{2,0}},{{0,0},{0,1}},{{0,0},{0,1},{0,2}},
+    {{0,0},{1,0},{0,1},{1,1}},{{0,0},{0,1},{1,1}},{{1,0},{0,1},{1,1}},{{0,0},{1,0},{2,0},{1,1}}
+}
+local function emptyBlockBoard()
+    local board={} for y=1,8 do board[y]={} for x=1,8 do board[y][x]=false end end
+    return board
+end
+local function nextBlockPiece(state)
+    local nextState,value=seededNext(state)
+    return nextState,1+math.floor(value*#BLOCK_SHAPES)
+end
+local function refillBlockPieces(state)
+    local pieces={}
+    for i=1,3 do state,pieces[i]=nextBlockPiece(state) end
+    return state,pieces
+end
+local function canPlaceBlock(board,shapeIndex,x,y)
+    local shape=BLOCK_SHAPES[shapeIndex]
+    if not shape then return false end
+    for _,point in ipairs(shape) do
+        local xx=x+point[1] local yy=y+point[2]
+        if xx<0 or xx>=8 or yy<0 or yy>=8 or board[yy+1][xx+1] then return false end
+    end
+    return true
+end
+local function clearBlockLines(board)
+    local rows,cols={},{}
+    for y=1,8 do
+        local full=true for x=1,8 do if not board[y][x] then full=false break end end
+        if full then rows[#rows+1]=y end
+    end
+    for x=1,8 do
+        local full=true for y=1,8 do if not board[y][x] then full=false break end end
+        if full then cols[#cols+1]=x end
+    end
+    for _,y in ipairs(rows) do for x=1,8 do board[y][x]=false end end
+    for _,x in ipairs(cols) do for y=1,8 do board[y][x]=false end end
+    return #rows+#cols
+end
+local function replayBlock(seed,history)
+    if type(history)~='table' or #history>5000 then return nil end
+    local board=emptyBlockBoard()
+    local state=seed
+    local pieces
+    state,pieces=refillBlockPieces(state)
+    local score,combo=0,0
+    for _,move in ipairs(history) do
+        if type(move)~='table' then return nil end
+        local slot=tonumber(move[1]) local x=tonumber(move[2]) local y=tonumber(move[3])
+        if not slot or not x or not y or slot~=math.floor(slot) or x~=math.floor(x) or y~=math.floor(y) then return nil end
+        if slot<0 or slot>2 or x<0 or x>7 or y<0 or y>7 then return nil end
+        local shapeIndex=pieces[slot+1]
+        if not shapeIndex or not canPlaceBlock(board,shapeIndex,x,y) then return nil end
+        local shape=BLOCK_SHAPES[shapeIndex]
+        for _,point in ipairs(shape) do board[y+point[2]+1][x+point[1]+1]=true end
+        score=score+(#shape*10)
+        pieces[slot+1]=false
+        local lines=clearBlockLines(board)
+        if lines>0 then
+            combo=combo+1
+            score=score+math.floor(lines*100*(1+math.min(combo,8)*0.2)+0.5)
+        else combo=0 end
+        if not pieces[1] and not pieces[2] and not pieces[3] then state,pieces=refillBlockPieces(state) end
+    end
+    return score
+end
+
+local function emptyMergeBoard()
+    local board={} for y=1,4 do board[y]={0,0,0,0} end
+    return board
+end
+local function spawnMergeTile(board,state)
+    local empty={}
+    for y=1,4 do for x=1,4 do if board[y][x]==0 then empty[#empty+1]={x=x,y=y} end end end
+    if #empty==0 then return state,false end
+    local pick,value
+    state,value=seededNext(state) pick=1+math.floor(value*#empty)
+    local spot=empty[pick]
+    state,value=seededNext(state)
+    board[spot.y][spot.x]=value<0.9 and 2 or 4
+    return state,true
+end
+local function compressMergeLine(line)
+    local values={} for _,v in ipairs(line) do if v~=0 then values[#values+1]=v end end
+    local out={} local gained=0 local i=1
+    while i<=#values do
+        if i<#values and values[i]==values[i+1] then
+            local v=values[i]*2 out[#out+1]=v gained=gained+v i=i+2
+        else out[#out+1]=values[i] i=i+1 end
+    end
+    while #out<4 do out[#out+1]=0 end
+    return out,gained
+end
+local function boardsEqual(a,b)
+    for y=1,4 do for x=1,4 do if a[y][x]~=b[y][x] then return false end end end
+    return true
+end
+local function cloneMergeBoard(board)
+    local out={} for y=1,4 do out[y]={board[y][1],board[y][2],board[y][3],board[y][4]} end
+    return out
+end
+local function applyMergeMove(board,direction)
+    local before=cloneMergeBoard(board) local gained=0
+    if direction=='left' or direction=='right' then
+        for y=1,4 do
+            local line={board[y][1],board[y][2],board[y][3],board[y][4]}
+            if direction=='right' then line={line[4],line[3],line[2],line[1]} end
+            local out,add=compressMergeLine(line) gained=gained+add
+            if direction=='right' then out={out[4],out[3],out[2],out[1]} end
+            board[y]=out
+        end
+    elseif direction=='up' or direction=='down' then
+        for x=1,4 do
+            local line={board[1][x],board[2][x],board[3][x],board[4][x]}
+            if direction=='down' then line={line[4],line[3],line[2],line[1]} end
+            local out,add=compressMergeLine(line) gained=gained+add
+            if direction=='down' then out={out[4],out[3],out[2],out[1]} end
+            for y=1,4 do board[y][x]=out[y] end
+        end
+    else return false,0 end
+    return not boardsEqual(before,board),gained
+end
+local function replayMerge(seed,history)
+    if type(history)~='table' or #history>10000 then return nil end
+    local board=emptyMergeBoard() local state=seed local score=0
+    state=select(1,spawnMergeTile(board,state))
+    state=select(1,spawnMergeTile(board,state))
+    for _,direction in ipairs(history) do
+        direction=tostring(direction or '')
+        local moved,gained=applyMergeMove(board,direction)
+        if not moved then return nil end
+        score=score+gained
+        state=select(1,spawnMergeTile(board,state))
+    end
+    return score
+end
+
 local function challengeFor(game,seed)
     local challenge={} local state=seed
     if game.id=='quick_tap' then
@@ -68,6 +206,14 @@ local function challengeFor(game,seed)
         state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
     elseif game.id=='mines' then
         challenge.size=8 challenge.mines=10
+    elseif game.id=='block' then
+        local score=replayBlock(session.seed,data.history)
+        if score==nil or score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_BLOCK_REPLAY'} end
+        rawScore=score metadata.moves=#data.history metadata.replayValidated=true
+    elseif game.id=='merge' then
+        local score=replayMerge(session.seed,data.history)
+        if score==nil or score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
+        rawScore=score metadata.moves=#data.history metadata.replayValidated=true
     elseif game.id=='stack' then
         challenge.initialWidthPct=72 challenge.speedPctPerSec=65
     elseif game.id=='nonogram' then
@@ -460,6 +606,8 @@ function FlecityGamesPlay.DebugSelftest()
         blockRejectNegative=block and validateScore(block,-1)==nil or false,
         blockAcceptInteger=block and validateScore(block,120)==120 or false,
         mergeAcceptInteger=merge and validateScore(merge,2048)==2048 or false,
+        blockReplayEmpty=replayBlock(12345,{})==0,
+        mergeReplayEmpty=replayMerge(12345,{})==0,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         minesSeedCount=testMineCount==10,
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,

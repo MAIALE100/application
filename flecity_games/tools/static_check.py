@@ -204,6 +204,8 @@ for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","col
         fail(f"PLAY achievement missing: {marker}")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
+if "requestEpoch" not in play_lua or "SAVE_RESET_FAILED" not in play_lua:
+    fail("PLAY reset failure recovery / in-flight save epoch snapshot is missing")
 if "minesFirstRevealSafe" not in play_lua or "avoidIndex" not in play_lua or "avoidIndex" not in play_js:
     fail("first-safe MINES flow is missing")
 if not re.search(r"id='mines'[^\n]*version=2", registry):

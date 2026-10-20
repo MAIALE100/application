@@ -59,7 +59,10 @@ function setStatus(text,type){
  clearTimeout(statusTimer);statusTimer=null;
  statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
- if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
+ if(type==='good'){
+   const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);
+ }
 }
 let confirmResolver=null;
 function closeConfirm(value){
@@ -123,6 +126,24 @@ const achievementLabels={
  number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
  high_low_streak:'HIGH ROLLER · HIGH & LOW 10連勝'
 };
+function scoreBeatsPrevious(gameId,score,daily){
+ const game=gameById(gameId);if(!game)return false;
+ const previous=daily?(bootstrapData&&bootstrapData.daily&&bootstrapData.daily.selfBest):(bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId]);
+ if(!previous||!Number.isFinite(Number(previous.score)))return true;
+ const current=Number(score),old=Number(previous.score);
+ return game.rankingOrder==='asc'?current<old:current>old;
+}
+function showScoreResult(gameId,res,message){
+ const parts=[];
+ if(scoreBeatsPrevious(gameId,res.score,res.daily===true))parts.push('NEW BEST');
+ parts.push(String(message||'記録を保存しました。'));
+ const unlocked=Array.isArray(res.unlocked)?res.unlocked:[];
+ if(unlocked.length){
+   const labels=unlocked.map(id=>String(achievementLabels[id]||id).split(' · ')[0]);
+   parts.push('実績解除: '+labels.join(', '));
+ }
+ setStatus(parts.join(' · '),'good');
+}
 function renderPlatform(data){
  const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
  achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
@@ -270,7 +291,7 @@ tapButton.onclick=async()=>{
    const reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
    const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
    const res=await FlecityBridge.call('playSubmitScore',{sessionToken:tapSession.sessionToken,score:reaction,durationMs:duration});
-   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';setStatus(res.daily?'デイリースコアを保存しました。':'スコアを保存しました。','good');await refreshPlatform();}
+   if(res.ok){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');await refreshPlatform();}
    else{tapMessage.textContent='保存できませんでした';setStatus('スコア拒否: '+FlecityErrors.text(res.error),'error');}
    tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;return;
  }
@@ -307,7 +328,7 @@ stopButton.onclick=async()=>{
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
      stopMessage.textContent=String(res.score);
-     setStatus((res.daily?'デイリー ':'')+'STOP! スコア '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''),'good');await refreshPlatform();
+     showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));await refreshPlatform();
    }else{stopMessage.textContent='保存できませんでした';setStatus('STOP! スコア拒否: '+FlecityErrors.text(res.error),'error');}
    stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';return;
  }
@@ -415,7 +436,7 @@ async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
- if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'デイリー ':'')+'BLOCKスコア保存: '+res.score,'good');await refreshPlatform();}
+ if(res.ok){if(!block.daily)delete saves.block;showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');await refreshPlatform();}
  else{block.finished=false;setStatus('BLOCKを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
 blockBack.onclick=async()=>{
@@ -534,7 +555,7 @@ async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
- if(res.ok){delete saves.merge;setStatus('MERGEスコア保存: '+res.score,'good');await refreshPlatform();}
+ if(res.ok){delete saves.merge;showScoreResult('merge',res,'MERGE '+res.score+'点');await refreshPlatform();}
  else{merge.finished=false;setStatus('MERGEを終了できません: '+FlecityErrors.text(res.error),'error');}
 }
 mergeBack.onclick=async()=>{
@@ -665,7 +686,7 @@ async function finishMines(){
  if(!mines||mines.finished)return;
  mines.finished=true;clearInterval(minesClock);const durationMs=Math.round(elapsedMines());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:mines.sessionToken,score:durationMs,durationMs,revealed:[...mines.revealed]});
- if(res.ok){if(!mines.daily)delete saves.mines;setStatus((res.daily?'デイリー ':'')+'MINESクリア: '+(Number(res.score)/1000).toFixed(2)+'s','good');mines.sessionToken=null;await refreshPlatform();}
+ if(res.ok){if(!mines.daily)delete saves.mines;showScoreResult('mines',res,(res.daily?'デイリー · ':'')+'MINES '+(Number(res.score)/1000).toFixed(2)+'s');mines.sessionToken=null;await refreshPlatform();}
  else{mines.finished=false;minesClock=setInterval(updateMinesTime,250);setStatus('MINESクリア判定失敗: '+FlecityErrors.text(res.error),'error');}
  renderMines();
 }
@@ -741,7 +762,7 @@ async function finishStack(){
  if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='終了';
  const durationMs=Math.round(elapsedStack());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs,history:stackGame.history});
- if(res.ok){setStatus('STACKスコア保存: '+res.score,'good');stackGame.sessionToken=null;await refreshPlatform();}
+ if(res.ok){showScoreResult('stack',res,'STACK '+res.score+'段');stackGame.sessionToken=null;await refreshPlatform();}
  else{setStatus('STACKスコア拒否: '+FlecityErrors.text(res.error),'error');}
 }
 stackDrop.onclick=async()=>{
@@ -833,7 +854,7 @@ nonogramCheck.onclick=async()=>{
  if(!nonogram||nonogram.finished)return;nonogramCheck.disabled=true;const durationMs=Math.round(elapsedNonogram());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
  nonogramCheck.disabled=false;
- if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;setStatus((res.daily?'デイリー ':'')+'NONOGRAMクリア: '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();await refreshPlatform();}
+ if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);if(!nonogram.daily)delete saves.nonogram;showScoreResult('nonogram',res,(res.daily?'デイリー · ':'')+'NONOGRAM '+(Number(res.score)/1000).toFixed(2)+'s');renderNonogram();await refreshPlatform();}
  else if(res.error==='INCORRECT_SOLUTION')setStatus('まだ正解ではありません。','warn');
  else setStatus('NONOGRAM判定失敗: '+FlecityErrors.text(res.error),'error');
 };
@@ -928,7 +949,7 @@ async function answerColorMatch(choice){
    if(res.ok){
      colorMatch.sessionToken=null;colorMatchProgress.textContent='10 / 10';colorMatchWord.textContent='CLEAR';colorMatchWord.style.color='';
      colorMatchChoices.innerHTML='';colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
-     setStatus('COLOR MATCHクリア: '+(Number(res.score)/1000).toFixed(3)+'s','good');await refreshPlatform();
+     showScoreResult('color_match',res,'COLOR MATCH '+(Number(res.score)/1000).toFixed(3)+'s');await refreshPlatform();
    }else{
      colorMatch.finished=false;colorMatch.running=true;colorMatchClock=setInterval(updateColorMatchTime,100);
      setStatus('COLOR MATCH判定失敗: '+FlecityErrors.text(res.error),'error');
@@ -1020,7 +1041,7 @@ async function finishNumberRush(){
    numberRush.sessionToken=null;
    numberRushTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';
    const penalty=Number(res.details&&res.details.penaltyMs)||0;
-   setStatus((res.daily?'デイリー ':'')+'NUMBER RUSHクリア: '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':''),'good');
+   showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':''));
    renderNumberRush();await refreshPlatform();
  }else{
    numberRush.finished=false;numberRush.running=true;numberRushClock=setInterval(updateNumberRushTime,50);
@@ -1113,7 +1134,7 @@ async function finishHighLow(cleared){
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:highLow.sessionToken,score:highLow.streak,durationMs,history:highLow.history});
  if(res.ok){
    highLow.sessionToken=null;
-   setStatus((cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝を記録しました。','good');
+   showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝');
    await refreshPlatform();
  }else{
    highLow.finished=false;highLow.running=true;renderHighLow();
@@ -1198,7 +1219,7 @@ async function finishSimon(clearedAll=false){
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:game.sessionToken,score:game.cleared,durationMs,history:game.history});
  if(res.ok){
    game.sessionToken=null;simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
-   setStatus((clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンドを記録しました。','good');
+   showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{
    game.finished=false;game.accepting=true;renderSimon();
@@ -1301,7 +1322,7 @@ async function finishMemory(){
  const durationMs=Math.round(elapsedMemory());
  const res=await FlecityBridge.call('playSubmitScore',{sessionToken:memory.sessionToken,score:durationMs,durationMs,history:memory.history});
  if(res.ok){
-   memory.sessionToken=null;memory.busy=false;setStatus((res.daily?'デイリー ':'')+'MEMORYクリア: '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES','good');renderMemory();await refreshPlatform();
+   memory.sessionToken=null;memory.busy=false;showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+memory.moves+' MOVES');renderMemory();await refreshPlatform();
  }else{
    memory.finished=false;memory.busy=false;memoryClock=setInterval(updateMemoryTime,200);setStatus('MEMORYクリア判定失敗: '+FlecityErrors.text(res.error),'error');renderMemory();
  }

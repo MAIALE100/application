@@ -4,7 +4,7 @@ local function addApp(app)
     local ok, err = exports['lb-phone']:AddCustomApp({
         identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
         defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
-        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
+        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=false
     })
     if ok or err=='APP_ALREADY_EXISTS' then return true end
     print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))

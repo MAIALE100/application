@@ -103,13 +103,14 @@ local function clearBlockLines(board)
     for _,x in ipairs(cols) do for y=1,8 do board[y][x]=false end end
     return #rows+#cols
 end
-local function replayBlock(seed,history)
+local function replayBlockState(seed,history)
     if type(history)~='table' or #history>5000 then return nil end
     local board=emptyBlockBoard()
     local state=seed
     local pieces
     state,pieces=refillBlockPieces(state)
     local score,combo=0,0
+    local normalizedHistory={}
     for _,move in ipairs(history) do
         if type(move)~='table' then return nil end
         local slot=tonumber(move[1]) local x=tonumber(move[2]) local y=tonumber(move[3])
@@ -117,6 +118,7 @@ local function replayBlock(seed,history)
         if slot<0 or slot>2 or x<0 or x>7 or y<0 or y>7 then return nil end
         local shapeIndex=pieces[slot+1]
         if not shapeIndex or not canPlaceBlock(board,shapeIndex,x,y) then return nil end
+        normalizedHistory[#normalizedHistory+1]={slot,x,y}
         local shape=BLOCK_SHAPES[shapeIndex]
         for _,point in ipairs(shape) do board[y+point[2]+1][x+point[1]+1]=true end
         score=score+(#shape*10)
@@ -128,7 +130,21 @@ local function replayBlock(seed,history)
         else combo=0 end
         if not pieces[1] and not pieces[2] and not pieces[3] then state,pieces=refillBlockPieces(state) end
     end
-    return score
+    local publicPieces={}
+    for i=1,3 do publicPieces[i]=pieces[i] and {shape=pieces[i]-1} or false end
+    local publicBoard={}
+    for y=1,8 do
+        publicBoard[y]={}
+        for x=1,8 do publicBoard[y][x]=board[y][x] and 1 or 0 end
+    end
+    return {
+        score=score,combo=combo,board=publicBoard,pieces=publicPieces,
+        rngState=state,history=normalizedHistory
+    }
+end
+local function replayBlock(seed,history)
+    local state=replayBlockState(seed,history)
+    return state and state.score or nil
 end
 
 local function emptyMergeBoard()
@@ -186,19 +202,25 @@ local function applyMergeMove(board,direction)
     else return false,0 end
     return not boardsEqual(before,board),gained
 end
-local function replayMerge(seed,history)
+local function replayMergeState(seed,history)
     if type(history)~='table' or #history>10000 then return nil end
     local board=emptyMergeBoard() local state=seed local score=0
+    local normalizedHistory={}
     state=select(1,spawnMergeTile(board,state))
     state=select(1,spawnMergeTile(board,state))
     for _,direction in ipairs(history) do
         direction=tostring(direction or '')
         local moved,gained=applyMergeMove(board,direction)
         if not moved then return nil end
+        normalizedHistory[#normalizedHistory+1]=direction
         score=score+gained
         state=select(1,spawnMergeTile(board,state))
     end
-    return score
+    return {score=score,board=board,rngState=state,moves=#normalizedHistory,history=normalizedHistory}
+end
+local function replayMerge(seed,history)
+    local state=replayMergeState(seed,history)
+    return state and state.score or nil
 end
 
 local function challengeFor(game,seed)

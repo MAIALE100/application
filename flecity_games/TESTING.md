@@ -90,6 +90,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 3個使用後に次の3個が生成される
 - 行/列消去、Combo加点
 - BACK → 再度開くと途中再開
+- 操作直後にBACKしても最後のautosaveがrate limitで欠落しない
+- 保存失敗時は画面を閉じず、理由を表示して再試行できる
 - NEW GAMEで古い途中保存が消える
 - END RUNでランキングへ保存
 - 操作履歴を改変したスコアは `INVALID_BLOCK_REPLAY` で拒否される
@@ -167,6 +169,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - Hostが切断するとBへHostが即移行
+- 最低人数を下回る切断が発生した場合、Roundが理由表示付きで安全終了
+- WORD WOLF / LIARの役職本人が切断した場合、不公平な継続をせずRound終了
 - 投票済みプレイヤーが切断した場合、その切断プレイヤーの票を集計へ残さない
 - 元Hostが60秒以内に戻ると同Roomへ復帰
 - 切断中の同一キャラクターが別Roomへ重複所属しない

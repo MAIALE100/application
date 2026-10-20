@@ -269,7 +269,7 @@ local function publicRoundState(room,viewerId)
     if rs.gameId=='stop_battle' then
         out.targetPct=rs.targetPct out.periodMs=rs.periodMs out.phaseMs=rs.phaseMs out.motionStartTick=rs.motionStartTick
     end
-    if rs.gameId=='majority' then out.prompt=rs.prompt out.options=rs.options end
+    if rs.gameId=='majority' or rs.gameId=='minority' then out.prompt=rs.prompt out.options=rs.options end
     if rs.gameId=='word_wolf' then out.secretTopic=rs.topics and rs.topics[viewerId] or nil end
     if rs.gameId=='liar' then out.prompt=rs.prompt out.role=rs.roles and rs.roles[viewerId] or nil end
     if rs.gameId=='draw' then
@@ -528,8 +528,8 @@ function FlecityGamesParty.StartRound(source)
     if game.id=='stop_battle' then
         rs.targetPct=math.random(15,85) rs.periodMs=math.random(1500,2400) rs.phaseMs=math.random(0,rs.periodMs-1) rs.motionStartTick=startedTick+1500
     end
-    if game.id=='majority' then
-        local prompt=pickRoomPrompt(room,'majority',majorityPrompts)
+    if game.id=='majority' or game.id=='minority' then
+        local prompt=pickRoomPrompt(room,game.id,majorityPrompts)
         rs.prompt=prompt.question rs.options={prompt.options[1],prompt.options[2]}
     end
     if game.id=='word_wolf' then
@@ -682,6 +682,41 @@ function FlecityGamesParty.SubmitMajority(source,data)
     local choice=tostring(data.choice or '')
     if choice~='A' and choice~='B' then return {ok=false,error='INVALID_CHOICE'} end
     rs.submissions[id]=choice maybeFinishMajority(room)
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+local function maybeFinishMinority(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='minority' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={A=0,B=0} local entries={}
+    for id,m in pairs(room.members) do
+        if not m.disconnected then
+            local choice=rs.submissions[id]
+            if choice=='A' or choice=='B' then counts[choice]=counts[choice]+1 end
+            entries[#entries+1]={memberId=m.memberId,name=m.name,choice=choice}
+        end
+    end
+    table.sort(entries,function(a,b) return a.name<b.name end)
+    local winningChoice=nil
+    if counts.A<counts.B then winningChoice='A' elseif counts.B<counts.A then winningChoice='B' end
+    rs.complete=true
+    rs.results={counts=counts,entries=entries,winningChoice=winningChoice,options=rs.options,mode='minority'}
+end
+
+function FlecityGamesParty.SubmitMinority(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'minority_submit',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='minority' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    local choice=tostring(data.choice or '')
+    if choice~='A' and choice~='B' then return {ok=false,error='INVALID_CHOICE'} end
+    rs.submissions[id]=choice
+    maybeFinishMinority(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -998,6 +1033,7 @@ reconcileRound=function(room)
     elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room)
     elseif rs.gameId=='vote' then maybeFinishVote(room)
     elseif rs.gameId=='majority' then maybeFinishMajority(room)
+    elseif rs.gameId=='minority' then maybeFinishMinority(room)
     elseif rs.gameId=='word_wolf' then maybeFinishWordWolf(room)
     elseif rs.gameId=='liar' then maybeFinishLiar(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
@@ -1108,6 +1144,12 @@ function FlecityGamesParty.DebugSelftest()
     }}
     maybeFinishMajority(majorityRoom)
 
+    local minorityRoom={members=members,roundState={
+        token='minority',gameId='minority',startedAt=0,startedTick=0,complete=false,
+        submissions={a='A',b='A',c='B'},prompt='test',options={'one','two'}
+    }}
+    maybeFinishMinority(minorityRoom)
+
     local reactionRoom={members=members,roundState={
         token='reaction',gameId='reaction',startedAt=0,startedTick=0,complete=false,
         submissions={
@@ -1204,6 +1246,10 @@ function FlecityGamesParty.DebugSelftest()
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
         majorityPrompts=#majorityPrompts>=4,
         majorityAggregation=majorityRoom.roundState.complete==true and majorityRoom.roundState.results.counts.A==2 and majorityRoom.roundState.results.counts.B==1,
+        minorityAggregation=minorityRoom.roundState.complete==true
+            and minorityRoom.roundState.results.winningChoice=='B'
+            and minorityRoom.roundState.results.counts.A==2
+            and minorityRoom.roundState.results.counts.B==1,
         reactionRanking=reactionRoom.roundState.complete==true
             and reactionRoom.roundState.results.entries[1].memberId=='C'
             and reactionRoom.roundState.results.entries[2].memberId=='A'

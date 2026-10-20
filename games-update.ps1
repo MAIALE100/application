@@ -92,8 +92,9 @@ try {
     $partyAppPath = Join-Path $Destination 'web\party\app.js'
     $partyCorePath = Join-Path $Destination 'server\core\party.lua'
     $clientMainPath = Join-Path $Destination 'client\main.lua'
+    $registryPath = Join-Path $Destination 'shared\game_registry.lua'
 
-    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
@@ -105,6 +106,7 @@ try {
     $partyAppText = Get-Content $partyAppPath -Raw
     $partyCoreText = Get-Content $partyCorePath -Raw
     $clientMainText = Get-Content $clientMainPath -Raw
+    $registryText = Get-Content $registryPath -Raw
 
     if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
     if ($bridgeText -notmatch 'globalThis\.fetchNui') { throw 'LB Phone fetchNui bridge check failed.' }
@@ -112,8 +114,10 @@ try {
     if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PLAY custom-app loader fallback check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PARTY custom-app loader fallback check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
-    if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored') { throw 'PARTY server synchronization check failed.' }
+    if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
     if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
+    if ($clientMainText -notmatch 'fixBlur=false' -or $clientMainText -match 'fixBlur=true') { throw 'LB Phone fixBlur compatibility check failed.' }
+    if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=10,id='reaction'") { throw 'Game registry order check failed.' }
 
     $version = 'unknown'
     if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }

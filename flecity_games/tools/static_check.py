@@ -136,10 +136,19 @@ play_lua = read("flecity_games/server/core/play.lua")
 for marker in required_security_markers:
     if marker not in play_lua:
         fail(f"PLAY security marker missing: {marker}")
+if "clearForeignSourceSessions" not in play_lua:
+    fail("PLAY character-switch session cleanup is missing")
 
 party_lua = read("flecity_games/server/core/party.lua")
+framework_lua = read("flecity_games/server/bridge/framework.lua")
 if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
     fail("PARTY user text limits must use UTF-8 character length")
+if "local function roomForPlayer(source,id)" not in party_lua:
+    fail("PARTY character-switch room guard is missing")
+if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framework:playerUnloaded" not in framework_lua:
+    fail("framework character-unload bridge is missing")
+if "flecity_games:framework:playerUnloaded" not in server:
+    fail("server character-unload cleanup handler is missing")
 for marker in (
     "wordWolfPrivacy",
     "liarPrivacy",

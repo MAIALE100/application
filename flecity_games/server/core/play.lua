@@ -261,7 +261,9 @@ local function replayStack(challenge,history)
 
     for i,value in ipairs(history) do
         local actionMs=tonumber(value)
-        if not actionMs or actionMs~=math.floor(actionMs) or actionMs<=previousAction or actionMs>28800000 then return nil end
+        if not actionMs or actionMs~=actionMs or actionMs<=previousAction or actionMs>28800000 then return nil end
+        actionMs=math.floor(actionMs*1000+0.5)/1000
+        if actionMs<=previousAction then return nil end
         local elapsed=actionMs-previousAction
         local reverse=(score%2)==1
         local moverX=stackPosition(elapsed,width,speed,reverse)

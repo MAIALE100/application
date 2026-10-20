@@ -46,6 +46,33 @@ local function safeCall(name,fn,source,data)
     return {ok=false,error='SERVER_ERROR'}
 end
 
+local function startupDiagnostics()
+    local failures={}
+    local function check(name,ok)
+        if not ok then failures[#failures+1]=name end
+    end
+
+    check('framework bridge',FlecityGamesFramework.IsReady()==true)
+    check('PLAY registry',#FlecityGamesRegistry.List('play',true)==7)
+    check('PARTY registry',#FlecityGamesRegistry.List('party',true)==8)
+
+    for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do
+        check('PLAY '..name,ok==true)
+    end
+    for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do
+        check('PARTY '..name,ok==true)
+    end
+
+    if #failures==0 then
+        print('[FlecityGames] startup selftest PASS')
+        return true
+    end
+
+    print(('[FlecityGames] startup selftest FAIL (%d)'):format(#failures))
+    for _,name in ipairs(failures) do print('[FlecityGames]   FAIL '..name) end
+    return false
+end
+
 CreateThread(function()
     while GetResourceState('lb-phone')~='started' or GetResourceState('oxmysql')~='started' do Wait(500) end
     MySQL.ready(function()
@@ -60,6 +87,7 @@ CreateThread(function()
                 callbackOptions[name] or defaultCallbackOptions)
         end
         print('[FlecityGames] LB Phone callbacks registered')
+        startupDiagnostics()
     end)
 end)
 

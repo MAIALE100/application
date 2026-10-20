@@ -90,7 +90,7 @@ local function dailyCandidates()
 end
 local function dailyChallenge()
     local date=currentDatabaseDate()
-    local row=MySQL.single.await([[SELECT challenge_date,game_id,seed,config_json
+    local row=MySQL.single.await([[SELECT DATE_FORMAT(challenge_date,'%Y-%m-%d') AS challenge_date,game_id,seed,config_json
         FROM flecity_game_daily WHERE challenge_date=? LIMIT 1]],{date})
     if not row then
         local candidates=dailyCandidates()

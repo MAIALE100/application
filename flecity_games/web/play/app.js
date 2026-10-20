@@ -2,7 +2,7 @@ const statusEl=document.getElementById('status'),gamesEl=document.getElementById
 const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
 const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
-const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),achievementRows=document.getElementById('achievementRows');
+const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 const confirmOverlay=document.getElementById('confirmOverlay'),confirmTitle=document.getElementById('confirmTitle'),confirmMessage=document.getElementById('confirmMessage'),confirmCancel=document.getElementById('confirmCancel'),confirmAccept=document.getElementById('confirmAccept');
 const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
@@ -156,7 +156,18 @@ function showScoreResult(gameId,res,message){
  setStatus(parts.join(' · '),'good');
 }
 function renderPlatform(data){
- const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
+ const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0,games:[]};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
+ gameStatRows.innerHTML='';
+ const gameStats=Array.isArray(stats.games)?stats.games:[];
+ if(!gameStats.length)gameStatRows.innerHTML='<div class="muted">まだゲーム記録はありません。</div>';
+ gameStats.forEach(stat=>{
+   const game=gameById(stat.gameId);if(!game)return;
+   const row=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+   row.className='player game-stat-row';
+   left.textContent=String(game.name||stat.gameId)+' · '+String(stat.playCount||0)+'回 · '+formatDuration(stat.totalPlayTimeMs||0);
+   right.textContent=formatGameScore(game,stat.bestScore);
+   row.append(left,right);gameStatRows.appendChild(row);
+ });
  achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
  if(!achievements.length)achievementRows.innerHTML='<div class="muted">まだ実績はありません。</div>';
  achievements.forEach(a=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent=String(achievementLabels[a.achievement_id]||a.achievement_id);right.textContent='✓';d.append(left,right);achievementRows.appendChild(d);});

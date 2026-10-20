@@ -126,6 +126,17 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - BACK → 再開
 - Dailyは同じ問題
 
+## MEMORY
+
+- 4×4で16枚 / 8ペアが表示される
+- 同じSeedでは同じカード配置になる
+- 1枚目 → 2枚目の順でめくれる
+- 不一致は短時間表示後に自動で伏せる
+- 一致したペアは開いたまま残る
+- 8ペア完成時のみ記録される
+- 選択履歴を改変したクリアは `INVALID_MEMORY_REPLAY` で拒否される
+- ランキングはクリア時間が短い順
+
 ---
 
 # 2. 複数人確認へ進む条件
@@ -133,7 +144,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 7ゲームが1クライアントで起動
+- PLAY 8ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる

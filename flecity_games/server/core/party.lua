@@ -797,9 +797,33 @@ function FlecityGamesParty.ReturnLobby(source)
     return {ok=true,room=snapshot(room,id)}
 end
 
+local function abortRound(room,reason)
+    local rs=room and room.roundState or nil
+    if not rs or rs.complete then return false end
+    rs.complete=true
+    rs.results={aborted=true,reason=reason or 'ROUND_ABORTED'}
+    return true
+end
+
 local function reconcileRound(room)
     local rs=room.roundState
     if not rs or rs.complete then return end
+
+    local game=partyGame(rs.gameId)
+    local minimum=game and tonumber(game.minPlayers) or FlecityGamesConfig.Party.MinPlayers
+    if connectedCount(room)<math.max(1,minimum or 1) then
+        abortRound(room,'NOT_ENOUGH_PLAYERS')
+        return
+    end
+
+    if rs.gameId=='word_wolf' then
+        local wolf=rs.wolfIdentifier and room.members[rs.wolfIdentifier] or nil
+        if not wolf or wolf.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return end
+    elseif rs.gameId=='liar' then
+        local liar=rs.liarIdentifier and room.members[rs.liarIdentifier] or nil
+        if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return end
+    end
+
     if rs.gameId=='reaction' then maybeFinishReaction(room)
     elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room)
     elseif rs.gameId=='vote' then maybeFinishVote(room)
@@ -952,6 +976,25 @@ function FlecityGamesParty.DebugSelftest()
     drawRoom.roundState.submissions={b=true,c=true}
     maybeFinishDraw(drawRoom)
 
+    local lowPlayerRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,joinOrder=2}
+    },roundState={
+        token='low-player',gameId='reaction',startedAt=0,startedTick=0,complete=false,submissions={}
+    }}
+    reconcileRound(lowPlayerRoom)
+
+    local secretLeftRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=true,joinOrder=3},
+        d={memberId='D',name='Delta',disconnected=false,joinOrder=4}
+    },roundState={
+        token='secret-left',gameId='word_wolf',startedAt=0,startedTick=0,complete=false,submissions={},
+        topics={a='猫',b='猫',c='犬',d='猫'},wolfIdentifier='c',majorityTopic='猫',wolfTopic='犬'
+    }}
+    reconcileRound(secretLeftRoom)
+
     local telephoneSkipMembers={
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=true,joinOrder=2},
@@ -994,6 +1037,10 @@ function FlecityGamesParty.DebugSelftest()
         drawCompletion=drawRoom.roundState.complete==true
             and #drawRoom.roundState.results.entries==2
             and drawRoom.roundState.results.entries[1].memberId=='B',
+        roundAbortLowPlayers=lowPlayerRoom.roundState.complete==true
+            and lowPlayerRoom.roundState.results.reason=='NOT_ENOUGH_PLAYERS',
+        secretRoleDisconnectAbort=secretLeftRoom.roundState.complete==true
+            and secretLeftRoom.roundState.results.reason=='SECRET_PLAYER_LEFT',
         telephonePrompts=#telephonePrompts>=6,
         telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false,
         telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3

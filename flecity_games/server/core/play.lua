@@ -511,6 +511,8 @@ local function challengeFor(game,seed)
         challenge.initialWidthPct=72 challenge.speedPctPerSec=65
     elseif game.id=='nonogram' then
         challenge.size=5
+    elseif game.id=='memory' then
+        challenge.previewMs=1200
     elseif game.id=='color_match' then
         challenge.rounds=10
     elseif game.id=='number_rush' then
@@ -1009,10 +1011,11 @@ function FlecityGamesPlay.SubmitScore(source,data)
     elseif game.id=='memory' then
         local replayed=replayMemory(session.seed,data.history)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_MEMORY_REPLAY'} end
-        if serverElapsed<2500 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        durationMs=totalServerElapsed
+        local previewMs=math.max(0,math.min(5000,math.floor(tonumber(session.challenge.previewMs) or 1200)))
+        if serverElapsed<previewMs+1300 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=math.max(0,totalServerElapsed-previewMs)
         rawScore=durationMs
-        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.replayValidated=true
+        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.replayValidated=true
     elseif game.id=='color_match' then
         local replayed=replayColorMatch(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_COLOR_MATCH_REPLAY'} end
@@ -1198,6 +1201,7 @@ function FlecityGamesPlay.DebugSelftest()
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         memoryDeckPairs=memory and memoryReplay and memoryReplay.complete==true and memoryReplay.pairs==8,
         memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,
+        memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
         colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==10 or false,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,

@@ -16,7 +16,8 @@ let currentRoom=null,ready=false,poll=null;
 function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
 function showEntry(){currentRoom=null;ready=false;clearInterval(poll);poll=null;roomEl.classList.add('hidden');entryEl.classList.remove('hidden');}
 function renderRoom(room){
-  currentRoom=room;entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;
+  currentRoom=room;ready=room.selfReady===true;entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;
+  readyBtn.textContent=ready?'UNREADY':'READY';
   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost||room.state!=='lobby';
   startBtn.disabled=!room.isHost||room.state!=='lobby';lobbyBtn.classList.toggle('hidden',!room.isHost||room.state==='lobby');readyBtn.disabled=room.state!=='lobby';
   playersEl.innerHTML='';

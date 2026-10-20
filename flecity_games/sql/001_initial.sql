@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS flecity_game_profiles (
     player_identifier VARCHAR(128) NOT NULL,
+    display_name VARCHAR(100) NULL,
     settings_json LONGTEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

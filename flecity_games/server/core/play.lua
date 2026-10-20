@@ -12,16 +12,17 @@ local function newToken(playerIdentifier, gameId)
     return ('%s:%s:%d:%06d'):format(playerIdentifier, gameId, os.time(), math.random(0, 999999))
 end
 
-local function touchProfile(playerIdentifier)
-    MySQL.query.await([[INSERT INTO flecity_game_profiles (player_identifier,last_seen_at)
-        VALUES (?,CURRENT_TIMESTAMP)
-        ON DUPLICATE KEY UPDATE last_seen_at=CURRENT_TIMESTAMP]], {playerIdentifier})
+local function touchProfile(source, playerIdentifier)
+    local displayName = FlecityGamesFramework.GetCharacterName(source):sub(1,100)
+    MySQL.query.await([[INSERT INTO flecity_game_profiles (player_identifier,display_name,last_seen_at)
+        VALUES (?,?,CURRENT_TIMESTAMP)
+        ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),last_seen_at=CURRENT_TIMESTAMP]], {playerIdentifier,displayName})
 end
 
 function FlecityGamesPlay.Bootstrap(source)
     local id = identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    touchProfile(id)
+    touchProfile(source,id)
 
     local saves = MySQL.query.await([[SELECT game_id,score,elapsed_ms,seed,game_version,updated_at
         FROM flecity_game_saves WHERE player_identifier=? ORDER BY updated_at DESC]], {id}) or {}
@@ -154,8 +155,10 @@ function FlecityGamesPlay.Ranking(source, data)
 
     local order = game.rankingOrder=='asc' and 'ASC' or 'DESC'
     local limit = math.max(1,math.min(50,FlecityGamesConfig.Play.RankingLimit or 20))
-    local sql = ([[SELECT s.player_identifier,s.score,s.duration_ms,s.created_at
-        FROM flecity_game_scores s WHERE s.game_id=? %s
+    local sql = ([[SELECT COALESCE(p.display_name,'Player') AS display_name,s.score,s.duration_ms,s.created_at
+        FROM flecity_game_scores s
+        LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
+        WHERE s.game_id=? %s
         ORDER BY s.score %s,s.created_at ASC LIMIT %d]]):format(wherePeriod,order,limit)
 
     return {ok=true,gameId=game.id,period=period,rows=MySQL.query.await(sql,{game.id}) or {}}

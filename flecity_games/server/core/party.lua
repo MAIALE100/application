@@ -45,7 +45,8 @@ local function snapshot(room,viewerId)
     table.sort(players,function(a,b) return a.joinOrder<b.joinOrder end)
     return {id=room.id,code=room.code,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
-        isHost=viewerId==room.hostIdentifier,createdAt=room.createdAt,roundState=room.roundState}
+        isHost=viewerId==room.hostIdentifier,selfReady=room.members[viewerId] and room.members[viewerId].ready==true or false,
+        createdAt=room.createdAt,roundState=room.roundState}
 end
 
 local function roomForSource(source)

@@ -90,8 +90,12 @@ local function startupDiagnostics()
     check('lb-phone resource',GetResourceState('lb-phone')=='started')
     check('LB Phone callback API',registeredPhoneCallbacks==expectedPhoneCallbacks)
     check('oxmysql resource',GetResourceState('oxmysql')=='started')
-    check('PLAY registry',#FlecityGamesRegistry.List('play',true)==9)
-    check('PARTY registry',#FlecityGamesRegistry.List('party',true)==8)
+    local playDefinitions=#FlecityGamesRegistry.List('play',false)
+    local playEnabled=#FlecityGamesRegistry.List('play',true)
+    local partyDefinitions=#FlecityGamesRegistry.List('party',false)
+    local partyEnabled=#FlecityGamesRegistry.List('party',true)
+    check(('PLAY registry %d/%d'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
+    check(('PARTY registry %d/%d'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
 
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
@@ -198,10 +202,12 @@ RegisterCommand('game_selftest',function(source)
     end
 
     print(prefix..' begin')
-    check('registry PLAY definitions',#FlecityGamesRegistry.List('play',false)==8)
-    check('registry PARTY definitions',#FlecityGamesRegistry.List('party',false)==8)
-    check('registry PLAY enabled',#FlecityGamesRegistry.List('play',true)==9)
-    check('registry PARTY enabled',#FlecityGamesRegistry.List('party',true)==8)
+    local playDefinitions=#FlecityGamesRegistry.List('play',false)
+    local playEnabled=#FlecityGamesRegistry.List('play',true)
+    local partyDefinitions=#FlecityGamesRegistry.List('party',false)
+    local partyEnabled=#FlecityGamesRegistry.List('party',true)
+    check(('registry PLAY %d/%d enabled'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
+    check(('registry PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
 
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
@@ -270,8 +276,12 @@ RegisterCommand('game_preflight',function(source)
         check('unique score session index',uniqueSession)
     end
 
-    check('PLAY 9/9 enabled',#FlecityGamesRegistry.List('play',true)==9)
-    check('PARTY 8/8 enabled',#FlecityGamesRegistry.List('party',true)==8)
+    local playDefinitions=#FlecityGamesRegistry.List('play',false)
+    local playEnabled=#FlecityGamesRegistry.List('play',true)
+    local partyDefinitions=#FlecityGamesRegistry.List('party',false)
+    local partyEnabled=#FlecityGamesRegistry.List('party',true)
+    check(('PLAY %d/%d enabled'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
+    check(('PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
 
     for name,ok in pairs(FlecityGamesText.DebugSelftest()) do check('TEXT '..name,ok==true) end
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end

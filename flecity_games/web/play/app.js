@@ -48,13 +48,20 @@ async function saveSettings(){
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 function setStatus(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');if(type==='good'&&!/ready/i.test(String(text)))tone();}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-async function saveWithRetry(payload){
+let saveQueue=Promise.resolve();
+async function performSaveWithRetry(payload){
  let res=await FlecityBridge.call('playSave',payload);
  if(!res.ok&&['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED'].includes(res.error)){
    await sleep(res.error==='RATE_LIMIT'?300:180);
    res=await FlecityBridge.call('playSave',payload);
  }
  return res;
+}
+function saveWithRetry(payload){
+ const snapshot=JSON.parse(JSON.stringify(payload));
+ const task=saveQueue.then(()=>performSaveWithRetry(snapshot));
+ saveQueue=task.catch(()=>{});
+ return task;
 }
 function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');}
 function showHome(){

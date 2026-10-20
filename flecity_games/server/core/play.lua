@@ -237,6 +237,61 @@ local function replayMerge(seed,history)
     return state and state.score or nil
 end
 
+local function stackPosition(elapsedMs,width,speed,reverse)
+    local blockWidth=math.max(0.1,math.min(100,tonumber(width) or 72))
+    local maxX=math.max(0,100-blockWidth)
+    if maxX<=0 then return 0 end
+    local distance=(math.max(0,tonumber(elapsedMs) or 0)/1000)*math.max(1,tonumber(speed) or 65)
+    local period=maxX*2
+    local cycle=distance%period
+    local x=cycle<=maxX and cycle or (period-cycle)
+    if reverse then x=maxX-x end
+    return x
+end
+
+local function replayStack(challenge,history)
+    if type(history)~='table' or #history<1 or #history>501 then return nil end
+    local width=tonumber(challenge and challenge.initialWidthPct) or 72
+    local speed=tonumber(challenge and challenge.speedPctPerSec) or 65
+    local baseX=(100-width)/2
+    local score=0
+    local previousAction=0
+    local ended=false
+    local normalized={}
+
+    for i,value in ipairs(history) do
+        local actionMs=tonumber(value)
+        if not actionMs or actionMs~=math.floor(actionMs) or actionMs<=previousAction or actionMs>28800000 then return nil end
+        local elapsed=actionMs-previousAction
+        local reverse=(score%2)==1
+        local moverX=stackPosition(elapsed,width,speed,reverse)
+        local left=math.max(baseX,moverX)
+        local right=math.min(baseX+width,moverX+width)
+        local overlap=right-left
+        normalized[#normalized+1]=actionMs
+
+        if overlap<=0.0001 then
+            if i~=#history then return nil end
+            ended=true
+            break
+        end
+
+        baseX=left
+        width=overlap
+        score=score+1
+        speed=math.min(180,speed+4)
+        previousAction=actionMs
+    end
+
+    return {
+        score=score,
+        ended=ended,
+        width=width,
+        baseX=baseX,
+        history=normalized
+    }
+end
+
 local function challengeFor(game,seed)
     local challenge={} local state=seed
     if game.id=='quick_tap' then
@@ -619,10 +674,18 @@ function FlecityGamesPlay.SubmitScore(source,data)
         if replayed==nil or replayed~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
         rawScore=replayed metadata.moves=#data.history metadata.replayValidated=true
     elseif game.id=='stack' then
+        local replayed=replayStack(session.challenge,data.history)
+        if not replayed or not replayed.ended then return {ok=false,error='INVALID_STACK_REPLAY'} end
         local layers=math.floor(tonumber(data.score) or -1)
-        if layers<0 or layers>500 then return {ok=false,error='INVALID_SCORE'} end
-        if serverElapsed+300<layers*120 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        rawScore=layers metadata.layers=layers
+        if layers~=replayed.score then return {ok=false,error='INVALID_STACK_REPLAY'} end
+        local lastAction=replayed.history[#replayed.history] or 0
+        if lastAction>serverElapsed+350 or serverElapsed-lastAction>1800 then
+            return {ok=false,error='IMPOSSIBLE_TIMING'}
+        end
+        rawScore=replayed.score
+        durationMs=math.min(serverElapsed,28800000)
+        metadata.layers=replayed.score
+        metadata.replayValidated=true
     elseif game.id=='mines' then
         if type(data.revealed)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
         local size=tonumber(session.challenge.size) or 8 local mineCount=tonumber(session.challenge.mines) or 10
@@ -757,6 +820,7 @@ function FlecityGamesPlay.DebugSelftest()
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         minesSeedCount=testMineCount==10,
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,
+        stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         dailyCandidates=#dailyCandidates()>=3,

@@ -27,6 +27,12 @@ AddEventHandler('onResourceStart',function(resource)
     if resource=='lb-phone' then CreateThread(registerApps) end
 end)
 
+AddEventHandler('onResourceStop',function(resource)
+    if resource~=RESOURCE or GetResourceState('lb-phone')~='started' then return end
+    pcall(function() exports['lb-phone']:RemoveCustomApp(FlecityGamesConfig.Apps.Play.identifier) end)
+    pcall(function() exports['lb-phone']:RemoveCustomApp(FlecityGamesConfig.Apps.Party.identifier) end)
+end)
+
 local callbackMap={
     playBootstrap='flecity_games:play:bootstrap',
     playStartSession='flecity_games:play:startSession',

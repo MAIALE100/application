@@ -898,11 +898,22 @@ local function publicDaily(challenge,playerIdentifier)
     }
 end
 
+local function removeSession(token)
+    local session=sessions[token]
+    if not session then return nil end
+    sessions[token]=nil
+    local requestId=tostring(session.startRequestId or '')
+    if requestId~='' and session.playerIdentifier then
+        startRequests[tostring(session.playerIdentifier)..':'..requestId]=nil
+    end
+    return session
+end
+
 local function clearPlayerSessions(playerIdentifier)
     local removed=0
     for token,session in pairs(sessions) do
         if session.playerIdentifier==playerIdentifier then
-            sessions[token]=nil
+            removeSession(token)
             removed=removed+1
         end
     end
@@ -913,7 +924,7 @@ local function clearPlayerGameSessions(playerIdentifier,gameId)
     local removed=0
     for token,session in pairs(sessions) do
         if session.playerIdentifier==playerIdentifier and session.gameId==gameId then
-            sessions[token]=nil
+            removeSession(token)
             removed=removed+1
         end
     end
@@ -941,7 +952,7 @@ local function clearForeignSourceSessions(source,currentIdentifier)
     local removed=0
     for token,session in pairs(sessions) do
         if tonumber(session.source)==src and session.playerIdentifier~=currentIdentifier then
-            sessions[token]=nil
+            removeSession(token)
             removed=removed+1
         end
     end
@@ -1118,7 +1129,7 @@ function FlecityGamesPlay.HighLowGuess(source,data)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if not session or session.playerIdentifier~=id or session.gameId~='high_low' then return {ok=false,error='INVALID_SESSION'} end
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
-        sessions[token]=nil
+        removeSession(token)
         return {ok=false,error='EXPIRED_SESSION'}
     end
 
@@ -1150,7 +1161,7 @@ function FlecityGamesPlay.SubmitSimonRound(source,data)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if not session or session.playerIdentifier~=id or session.gameId~='simon' then return {ok=false,error='INVALID_SESSION'} end
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
-        sessions[token]=nil
+        removeSession(token)
         return {ok=false,error='EXPIRED_SESSION'}
     end
 
@@ -1206,7 +1217,7 @@ function FlecityGamesPlay.CancelSession(source,data)
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source) local token=tostring(data.sessionToken or '') local session=sessions[token]
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    if session and session.playerIdentifier==id then sessions[token]=nil end
+    if session and session.playerIdentifier==id then removeSession(token) end
     return {ok=true}
 end
 
@@ -1361,10 +1372,10 @@ function FlecityGamesPlay.SubmitScore(source,data)
         return {ok=false,error='INVALID_SESSION'}
     end
     local game=gameFor(session.gameId)
-    if not game then sessions[token]=nil return {ok=false,error='GAME_UNAVAILABLE'} end
-    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil return {ok=false,error='EXPIRED_SESSION'} end
+    if not game then removeSession(token) return {ok=false,error='GAME_UNAVAILABLE'} end
+    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then removeSession(token) return {ok=false,error='EXPIRED_SESSION'} end
     if session.dailyDate and currentDatabaseDate()~=session.dailyDate then
-        sessions[token]=nil
+        removeSession(token)
         return {ok=false,error='DAILY_EXPIRED'}
     end
 
@@ -1517,7 +1528,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
     if score==nil then return {ok=false,error='INVALID_SCORE'} end
     local existing=existingScoreResponse(id,token)
     if existing then
-        sessions[token]=nil
+        removeSession(token)
         return existing
     end
 
@@ -1528,7 +1539,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
     end)
     if not ok or not insertId then return {ok=false,error='SCORE_SAVE_FAILED'} end
 
-    sessions[token]=nil
+    removeSession(token)
     if game.supportsResume and not session.dailyDate then MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id}) end
     local unlocked=evaluateAchievements(id,game,score,metadata)
     if #unlocked>0 then
@@ -1734,7 +1745,7 @@ end
 function FlecityGamesPlay.DropSource(source)
     local src=tonumber(source)
     for token,session in pairs(sessions) do
-        if session.source==src then sessions[token]=nil end
+        if session.source==src then removeSession(token) end
     end
     for key,request in pairs(startRequests) do
         if request.source==src then startRequests[key]=nil end
@@ -1744,7 +1755,7 @@ end
 function FlecityGamesPlay.Cleanup()
     local now=os.time()
     for token,session in pairs(sessions) do
-        if now-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil end
+        if now-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then removeSession(token) end
     end
     for key,request in pairs(startRequests) do
         if now-(tonumber(request.createdAt) or now)>30 then startRequests[key]=nil end

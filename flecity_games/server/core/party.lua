@@ -197,6 +197,17 @@ local function snapshot(room,viewerId)
     }
 end
 
+local function notifyRoom(room,excludeSource)
+    if not room or not rooms[room.id] then return end
+    local excluded=excludeSource and tonumber(excludeSource) or nil
+    for _,member in pairs(room.members) do
+        local src=member.source and tonumber(member.source) or nil
+        if src and not member.disconnected and src~=excluded then
+            TriggerClientEvent('flecity_games:client:partyInvalidate',src)
+        end
+    end
+end
+
 function FlecityGamesParty.CreateRoom(source)
     if not FlecityGamesRateLimit.Allow(source,'room_create',FlecityGamesConfig.RateLimits.RoomCreateMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)
@@ -204,6 +215,7 @@ function FlecityGamesParty.CreateRoom(source)
     local existingRoom=roomForSource(source) or roomForIdentifier(id)
     if existingRoom then
         reconnectMember(existingRoom,id,source)
+        notifyRoom(existingRoom,source)
         return {ok=true,reconnected=true,room=snapshot(existingRoom,id)}
     end
     local code=makeCode()
@@ -213,6 +225,7 @@ function FlecityGamesParty.CreateRoom(source)
     local room={id=roomId,code=code,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -231,6 +244,7 @@ function FlecityGamesParty.JoinRoom(source,data)
     local existing=room.members[id]
     if existing then
         reconnectMember(room,id,source)
+        notifyRoom(room,source)
         return {ok=true,reconnected=true,room=snapshot(room,id)}
     end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
@@ -238,6 +252,7 @@ function FlecityGamesParty.JoinRoom(source,data)
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     sourceToRoom[tonumber(source)]=room.id
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -251,6 +266,7 @@ function FlecityGamesParty.GetRoom(source)
         if room then reconnected=reconnectMember(room,id,source) end
     end
     if not room then return {ok=false,error='NOT_IN_ROOM'} end
+    if reconnected then notifyRoom(room,source) end
     return {ok=true,reconnected=reconnected,room=snapshot(room,id)}
 end
 
@@ -260,6 +276,7 @@ function FlecityGamesParty.SetReady(source,data)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     room.members[id].ready=type(data)=='table' and data.ready==true
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -275,6 +292,7 @@ function FlecityGamesParty.SelectGame(source,data)
     if count<game.minPlayers or count>game.maxPlayers then return {ok=false,error='PLAYER_COUNT_UNSUPPORTED'} end
     room.selectedGame=game.id
     for _,m in pairs(room.members) do m.ready=false end
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -334,6 +352,7 @@ function FlecityGamesParty.StartRound(source)
     end
 
     for _,m in pairs(room.members) do m.ready=false end
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -383,6 +402,7 @@ function FlecityGamesParty.SubmitReaction(source,data)
     elseif serverSinceReveal>250 then return {ok=false,error='FLYING_WINDOW_PASSED'} end
     rs.submissions[id]={flying=flying,reactionMs=reaction}
     maybeFinishReaction(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -419,6 +439,7 @@ function FlecityGamesParty.SubmitStopBattle(source,data)
     local score=math.floor(math.max(0,1000-(distance*10))+0.5)
     rs.submissions[id]={actionMs=actionMs,score=score,markerPct=math.floor(marker*100+0.5)/100,distancePct=math.floor(distance*100+0.5)/100}
     maybeFinishStopBattle(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -450,6 +471,7 @@ function FlecityGamesParty.SubmitMajority(source,data)
     local choice=tostring(data.choice or '')
     if choice~='A' and choice~='B' then return {ok=false,error='INVALID_CHOICE'} end
     rs.submissions[id]=choice maybeFinishMajority(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -482,6 +504,7 @@ function FlecityGamesParty.SubmitVote(source,data)
     if not targetId or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     if targetId==id then return {ok=false,error='SELF_VOTE_NOT_ALLOWED'} end
     rs.submissions[id]=targetId maybeFinishVote(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -507,6 +530,7 @@ function FlecityGamesParty.SubmitWordWolfVote(source,data)
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishWordWolf(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -531,6 +555,7 @@ function FlecityGamesParty.SubmitLiarVote(source,data)
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishLiar(room)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -566,6 +591,7 @@ function FlecityGamesParty.AddDrawStroke(source,data)
     local clean=sanitizedStrokes({data.points},1)
     if not clean then return {ok=false,error='INVALID_STROKE'} end
     rs.strokes[#rs.strokes+1]=clean[1]
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -579,6 +605,7 @@ function FlecityGamesParty.ClearDrawing(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     rs.strokes={}
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -595,7 +622,10 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     local guess=tostring(data.guess or ''):match('^%s*(.-)%s*$')
     if #guess<1 or #guess>40 then return {ok=false,error='INVALID_GUESS'} end
     local correct=string.lower(guess)==string.lower(rs.prompt)
-    if correct then rs.guessed[id]=true rs.guessedAt[id]=GetGameTimer() rs.submissions[id]=true maybeFinishDraw(room) end
+    if correct then
+        rs.guessed[id]=true rs.guessedAt[id]=GetGameTimer() rs.submissions[id]=true maybeFinishDraw(room)
+        notifyRoom(room,source)
+    end
     return {ok=true,correct=correct,room=snapshot(room,id)}
 end
 
@@ -635,6 +665,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -653,6 +684,7 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -663,6 +695,7 @@ function FlecityGamesParty.ReturnLobby(source)
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
     room.state='lobby' room.roundState=nil
     for _,m in pairs(room.members) do m.ready=false end
+    notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -684,7 +717,10 @@ function FlecityGamesParty.LeaveRoom(source)
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room then return {ok=true} end
     removeMember(room,id)
-    if rooms[room.id] then reconcileRound(room) end
+    if rooms[room.id] then
+        reconcileRound(room)
+        notifyRoom(room)
+    end
     return {ok=true}
 end
 
@@ -696,7 +732,7 @@ function FlecityGamesParty.DropSource(source)
     for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
     if not id then return end
     local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
-    migrateHost(room) reconcileRound(room)
+    migrateHost(room) reconcileRound(room) notifyRoom(room)
 end
 
 function FlecityGamesParty.Cleanup()
@@ -710,8 +746,12 @@ function FlecityGamesParty.Cleanup()
             for id,m in pairs(room.members) do
                 if expired or (m.disconnected and m.disconnectedAt and now-m.disconnectedAt>FlecityGamesConfig.Party.DisconnectGraceSeconds) then removals[#removals+1]=id end
             end
+            local changed=#removals>0
             for _,id in ipairs(removals) do if rooms[roomId] then removeMember(room,id) end end
-            if rooms[roomId] then migrateHost(room) reconcileRound(room) end
+            if rooms[roomId] then
+                migrateHost(room) reconcileRound(room)
+                if changed then notifyRoom(room) end
+            end
         end
     end
 end

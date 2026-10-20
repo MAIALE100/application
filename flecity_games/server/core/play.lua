@@ -133,6 +133,54 @@ local function replayNumberRush(seed,history,count)
     return {complete=expected==total+1,misses=misses,taps=#normalized,count=total,board=board,history=normalized}
 end
 
+local function generateHighLowSequence(seed,rounds)
+    local count=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local sequence={}
+    local value
+    state,value=seededNext(state)
+    sequence[1]=1+math.floor(value*13)
+    for i=2,count+1 do
+        local nextValue=sequence[i-1]
+        local guard=0
+        repeat
+            state,value=seededNext(state)
+            nextValue=1+math.floor(value*13)
+            guard=guard+1
+        until nextValue~=sequence[i-1] or guard>=20
+        if nextValue==sequence[i-1] then nextValue=(nextValue%13)+1 end
+        sequence[i]=nextValue
+    end
+    return sequence,state
+end
+
+local function replayHighLow(seed,history,rounds)
+    local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    if type(history)~='table' or #history<1 or #history>maxRounds then return nil end
+    local sequence=generateHighLowSequence(seed,maxRounds)
+    local streak=0
+    local ended=false
+    local normalized={}
+    for i,rawGuess in ipairs(history) do
+        local guess=tostring(rawGuess or ''):lower()
+        if guess~='high' and guess~='low' then return nil end
+        normalized[#normalized+1]=guess
+        local current=sequence[i]
+        local nextValue=sequence[i+1]
+        local correct=(guess=='high' and nextValue>current) or (guess=='low' and nextValue<current)
+        if correct then
+            streak=streak+1
+            if i==maxRounds then ended=true end
+        else
+            if i~=#history then return nil end
+            ended=true
+            break
+        end
+    end
+    return {ended=ended,streak=streak,rounds=#normalized,sequence=sequence,history=normalized}
+end
+
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -413,6 +461,8 @@ local function challengeFor(game,seed)
         challenge.rounds=10
     elseif game.id=='number_rush' then
         challenge.count=25
+    elseif game.id=='high_low' then
+        challenge.rounds=30
     end
     return challenge
 end
@@ -514,6 +564,10 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and score<=tonumber(cfg.NumberRushAceMs or 12000)
         and unlockAchievement(playerIdentifier,'number_rush_ace',game.id,{score=score,misses=0}) then
         unlocked[#unlocked+1]='number_rush_ace'
+    end
+    if game.id=='high_low' and score>=tonumber(cfg.HighLowStreak or 10)
+        and unlockAchievement(playerIdentifier,'high_low_streak',game.id,{score=score}) then
+        unlocked[#unlocked+1]='high_low_streak'
     end
     return unlocked
 end
@@ -755,6 +809,9 @@ local function validateScore(game,score)
     elseif game.id=='stack' then
         if score<0 or score>500 then return nil end
         return math.floor(score)
+    elseif game.id=='high_low' then
+        if score<0 or score>100 then return nil end
+        return math.floor(score)
     end
     if score<-100000000 or score>100000000 then return nil end
     return score
@@ -878,6 +935,14 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.count=replayed.count
         metadata.penaltyMs=replayed.misses*500
         metadata.replayValidated=true
+    elseif game.id=='high_low' then
+        local replayed=replayHighLow(session.seed,data.history,session.challenge.rounds)
+        if not replayed or not replayed.ended then return {ok=false,error='INVALID_HIGH_LOW_REPLAY'} end
+        rawScore=replayed.streak
+        durationMs=math.min(serverElapsed,28800000)
+        metadata.rounds=replayed.rounds
+        metadata.streak=replayed.streak
+        metadata.replayValidated=true
     end
 
     local score=validateScore(game,rawScore)
@@ -938,7 +1003,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
@@ -984,6 +1049,12 @@ function FlecityGamesPlay.DebugSelftest()
         end
     end
     local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
+    local highLowSequence=generateHighLowSequence(12345,30)
+    local highLowHistory={}
+    for i=1,30 do
+        highLowHistory[#highLowHistory+1]=highLowSequence[i+1]>highLowSequence[i] and 'high' or 'low'
+    end
+    local highLowReplay=replayHighLow(12345,highLowHistory,30)
 
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -1017,6 +1088,8 @@ function FlecityGamesPlay.DebugSelftest()
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
+        highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 or false,
+        highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false

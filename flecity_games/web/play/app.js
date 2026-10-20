@@ -1423,6 +1423,7 @@ async function suspendActivePlay(){
  if(suspendRunning)return;
  suspendRunning=true;
  try{
+   if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
    clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);

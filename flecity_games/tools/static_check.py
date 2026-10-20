@@ -205,7 +205,7 @@ if "replayHighLow" not in play_lua or "highLowReplay" not in play_lua:
     fail("HIGH & LOW server replay/selftest is missing")
 if "HighLowGuess" not in play_lua or "highLowServerState" not in play_lua or "serverAuthoritative=true" not in play_lua:
     fail("HIGH & LOW server-authoritative state validation is missing")
-if "lastStep" not in play_lua or "step=highLow.completed+1" not in play_js:
+if "lastStep" not in play_lua or not re.search(r"step\s*=\s*(?:highLow|game)\.completed\s*\+\s*1", play_js):
     fail("HIGH & LOW idempotent action numbering is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")

@@ -164,7 +164,7 @@ function competitionRank(rows,index){
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const achievementLabels={
- first_play:'FIRST PLAY · 初めてゲームをクリア',
+ first_play:'FIRST PLAY · 初めて記録を残す',
  '100_games':'100 GAMES · 100回プレイ',
  lightning:'LIGHTNING · QUICK TAP 200ms以下',
  stack_master:'STACK MASTER · STACK 25段以上',
@@ -213,7 +213,8 @@ function renderPlatform(data){
  achievementRows.innerHTML='';const achievements=data&&data.achievements||[];
  const unlockedIds=new Set(achievements.map(a=>String(a.achievement_id||'')));
  const achievementEntries=Object.entries(achievementLabels);
- achievementCount.textContent=String(unlockedIds.size)+'/'+String(achievementEntries.length);
+ const knownUnlocked=achievementEntries.reduce((count,[id])=>count+(unlockedIds.has(id)?1:0),0);
+ achievementCount.textContent=String(knownUnlocked)+'/'+String(achievementEntries.length);
  achievementEntries.forEach(([id,label])=>{
    const unlocked=unlockedIds.has(id);
    const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');

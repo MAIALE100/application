@@ -62,6 +62,8 @@ function setStatus(text,type){
  if(type==='good'){
    const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);
+ }else if(type==='warn'){
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),2600);
  }
 }
 let confirmResolver=null;

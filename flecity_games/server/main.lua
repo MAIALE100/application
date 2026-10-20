@@ -99,7 +99,8 @@ CreateThread(function()
         local gamesVersion=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
         local phoneVersion=GetResourceMetadata('lb-phone','version',0) or 'unknown'
         local frameworkVersion=FlecityGamesFramework.GetVersion() or 'unknown'
-        print(('[FlecityGames] version=%s qbox=%s lb-phone=%s'):format(gamesVersion,frameworkVersion,phoneVersion))
+        local databaseVersion=tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown')
+        print(('[FlecityGames] version=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,frameworkVersion,phoneVersion,databaseVersion))
         print('[FlecityGames] database schema ready')
         for name,fn in pairs(callbacks) do
             exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
@@ -175,6 +176,7 @@ RegisterCommand('game_preflight',function(source)
     local dbOk,dbErr=FlecityGamesDatabase.Ensure()
     check('database bootstrap',dbOk,dbErr)
     if dbOk then
+        check('database runtime version',true,tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown'))
         for _,tableName in ipairs(requiredTables) do
             local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
                 WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0

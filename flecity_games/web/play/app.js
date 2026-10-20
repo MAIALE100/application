@@ -102,10 +102,12 @@ function saveWithRetry(payload){
 }
 async function submitScoreWithRetry(payload){
  const snapshot=JSON.parse(JSON.stringify(payload));
- let res=await FlecityBridge.call('playSubmitScore',snapshot);
- if(!res.ok&&['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE'].includes(res.error)){
-   await sleep(res.error==='RATE_LIMIT'?800:220);
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SCORE_SAVE_FAILED','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
    res=await FlecityBridge.call('playSubmitScore',snapshot);
+   if(res.ok||!retryable.has(res.error))return res;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?800:(res.error==='SCORE_SAVE_FAILED'?600:240)*(attempt+1));
  }
  return res;
 }

@@ -10,11 +10,32 @@ const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElem
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
 const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
+const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
-let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0;
+let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null;
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
+function tone(freq=660,duration=70){
+ if(!appSettings.sound)return;
+ try{
+   audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+   const osc=audioCtx.createOscillator(),gain=audioCtx.createGain(),now=audioCtx.currentTime;
+   osc.frequency.value=freq;gain.gain.setValueAtTime(.035,now);gain.gain.exponentialRampToValueAtTime(.001,now+duration/1000);
+   osc.connect(gain);gain.connect(audioCtx.destination);osc.start(now);osc.stop(now+duration/1000);
+ }catch(_){}
+}
+function applySettings(settings){
+ appSettings={sound:settings&&settings.sound!==false,reducedMotion:settings&&settings.reducedMotion===true};
+ settingSound.checked=appSettings.sound;settingMotion.checked=appSettings.reducedMotion;
+ document.body.classList.toggle('reduced-motion',appSettings.reducedMotion);
+}
+async function loadSettings(){const res=await FlecityBridge.call('profileGetSettings',{});if(res.ok)applySettings(res.settings);}
+async function saveSettings(){
+ const res=await FlecityBridge.call('profileUpdateSettings',{sound:settingSound.checked,reducedMotion:settingMotion.checked});
+ if(res.ok){applySettings(res.settings);tone(520,55);}else status('Settings save failed: '+res.error,'error');
+}
+settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
 function estimatedServerTick(){return performance.now()+serverOffsetMs;}
 function trianglePosition(elapsedMs,periodMs,phaseMs){
@@ -43,6 +64,7 @@ function renderPlayers(room){
 }
 function renderResults(room){
  const rs=room.roundState;if(!rs||!rs.complete||!rs.results){resultsPanel.classList.add('hidden');return;}
+ if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
  if(rs.gameId==='reaction'){
    rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>'+(e.flying?'FLYING':Number(e.reactionMs).toFixed(3)+' ms')+'</strong>';resultsEl.appendChild(d);});
@@ -328,6 +350,7 @@ leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEnt
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};
 
 async function bootstrap(){
+ await loadSettings();
  const res=await FlecityBridge.call('partyGetRoom',{});
  if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('Room connection restored.','good');return;}
  showEntry();if(res.error!=='NOT_IN_ROOM')status('Could not restore room: '+res.error,'error');

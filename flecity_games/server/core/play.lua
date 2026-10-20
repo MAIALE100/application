@@ -181,6 +181,59 @@ local function replayHighLow(seed,history,rounds)
     return {ended=ended,streak=streak,rounds=#normalized,sequence=sequence,history=normalized}
 end
 
+local function generateSimonSequence(seed,rounds)
+    local count=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local sequence={}
+    for i=1,count do
+        local value
+        state,value=seededNext(state)
+        sequence[i]=math.min(3,math.floor(value*4))
+    end
+    return sequence,state
+end
+
+local function replaySimon(seed,history,rounds)
+    local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    local maxInputs=(maxRounds*(maxRounds+1))/2+1
+    if type(history)~='table' or #history<1 or #history>maxInputs then return nil end
+    local sequence=generateSimonSequence(seed,maxRounds)
+    local normalized={}
+    local round=1
+    local inputIndex=1
+    local cleared=0
+    local ended=false
+
+    for i,raw in ipairs(history) do
+        local guess=tonumber(raw)
+        if not guess or guess~=math.floor(guess) or guess<0 or guess>3 then return nil end
+        normalized[#normalized+1]=guess
+        local expected=sequence[inputIndex]
+
+        if guess~=expected then
+            if i~=#history then return nil end
+            ended=true
+            break
+        end
+
+        if inputIndex==round then
+            cleared=round
+            if round>=maxRounds then
+                if i~=#history then return nil end
+                ended=true
+                break
+            end
+            round=round+1
+            inputIndex=1
+        else
+            inputIndex=inputIndex+1
+        end
+    end
+
+    return {ended=ended,cleared=cleared,round=round,history=normalized,sequence=sequence}
+end
+
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -462,6 +515,8 @@ local function challengeFor(game,seed)
     elseif game.id=='number_rush' then
         challenge.count=25
     elseif game.id=='high_low' then
+        challenge.rounds=30
+    elseif game.id=='simon' then
         challenge.rounds=30
     end
     return challenge

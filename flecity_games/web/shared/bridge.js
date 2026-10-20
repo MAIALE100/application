@@ -1,5 +1,15 @@
-async function waitForPhoneBridge(timeoutMs = 3000) {
-    if (typeof globalThis.fetchNui === 'function') return true;
+function hasPhoneFetchNui() {
+    return typeof fetchNui === 'function' || typeof globalThis.fetchNui === 'function';
+}
+
+async function invokePhoneFetchNui(eventName, data) {
+    if (typeof fetchNui === 'function') return await fetchNui(eventName, data);
+    if (typeof globalThis.fetchNui === 'function') return await globalThis.fetchNui(eventName, data);
+    throw new Error('fetchNui unavailable');
+}
+
+async function waitForPhoneBridge(timeoutMs = 5000) {
+    if (hasPhoneFetchNui()) return true;
 
     const started = performance.now();
     return await new Promise((resolve) => {
@@ -13,15 +23,15 @@ async function waitForPhoneBridge(timeoutMs = 3000) {
         };
 
         const onMessage = (event) => {
-            if (event.data === 'componentsLoaded' || typeof globalThis.fetchNui === 'function') {
-                finish(typeof globalThis.fetchNui === 'function');
+            if (event.data === 'componentsLoaded' || hasPhoneFetchNui()) {
+                if (hasPhoneFetchNui()) return finish(true);
             }
         };
 
         window.addEventListener('message', onMessage);
 
         const poll = () => {
-            if (typeof globalThis.fetchNui === 'function') return finish(true);
+            if (hasPhoneFetchNui()) return finish(true);
             if (performance.now() - started >= timeoutMs) return finish(false);
             setTimeout(poll, 50);
         };
@@ -32,14 +42,14 @@ async function waitForPhoneBridge(timeoutMs = 3000) {
 
 async function callPhoneNui(request) {
     const ready = await waitForPhoneBridge();
-    if (!ready || typeof globalThis.fetchNui !== 'function') {
+    if (!ready || !hasPhoneFetchNui()) {
         return {ok:false,error:'NUI_UNAVAILABLE'};
     }
 
     let lastError = null;
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
-            const response = await globalThis.fetchNui('flecityGames:callback', request);
+            const response = await invokePhoneFetchNui('flecityGames:callback', request);
             return response || {ok:false,error:'EMPTY_RESPONSE'};
         } catch (error) {
             lastError = error;
@@ -57,7 +67,7 @@ window.FlecityBridge = {
         // LB Phone injects fetchNui into the custom-app iframe. Wait briefly for
         // the componentsLoaded handshake so resource restarts do not require the
         // user to close/reopen the phone.
-        if (typeof globalThis.fetchNui === 'function' || typeof window.invokeNative !== 'undefined') {
+        if (hasPhoneFetchNui() || typeof window.invokeNative !== 'undefined') {
             const response = await callPhoneNui(request);
             if (response.error !== 'NUI_UNAVAILABLE') return response;
         }

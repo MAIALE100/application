@@ -1,5 +1,6 @@
 FlecityGamesPlay = FlecityGamesPlay or {}
 local sessions={}
+local sessionCounter=0
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function gameFor(id)
@@ -8,10 +9,12 @@ local function gameFor(id)
     return game
 end
 local function newToken(_,gameId)
-    return ('play:%s:%d:%06d:%06d'):format(
+    sessionCounter=(sessionCounter+1)%1000000000
+    return ('play:%s:%d:%09d:%06d:%06d'):format(
         tostring(gameId or 'game'),
         os.time(),
-        GetGameTimer()%1000000,
+        sessionCounter,
+        math.random(0,999999),
         math.random(0,999999)
     )
 end

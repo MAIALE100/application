@@ -176,8 +176,10 @@ local function dailyRankingRows(challenge,limit)
     local sql=([[SELECT s.player_identifier,COALESCE(p.display_name,'Player') AS display_name,s.score,s.metadata_json
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? AND s.created_at>=? AND s.created_at<DATE_ADD(?,INTERVAL 1 DAY)
+        AND s.metadata_json LIKE ?
         ORDER BY s.score %s,s.created_at ASC LIMIT %d]]):format(order,fetchLimit)
-    local rows=MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date}) or {}
+    local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
+    local rows=MySQL.query.await(sql,{challenge.gameId,challenge.date,challenge.date,dailyPattern}) or {}
     local out={} local seen={}
     for _,row in ipairs(rows) do
         local metadata=json.decode(row.metadata_json or '{}') or {}

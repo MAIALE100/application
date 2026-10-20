@@ -100,11 +100,16 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
-let appEpoch=0;
+let appEpoch=0,startRequestCounter=0;
+function newStartRequestId(){
+ startRequestCounter=(startRequestCounter+1)%1000000000;
+ return 'start-'+Date.now().toString(36)+'-'+startRequestCounter.toString(36);
+}
 async function startSessionWithRetry(payload){
  const snapshot=JSON.parse(JSON.stringify(payload||{}));
+ snapshot.startRequestId=snapshot.startRequestId||newStartRequestId();
  const epoch=appEpoch;
- const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ const retryable=new Set(['RATE_LIMIT','START_PENDING','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
  let res={ok:false,error:'EMPTY_RESPONSE'};
  for(let attempt=0;attempt<3;attempt++){
    if(epoch!==appEpoch)return {ok:false,error:'APP_SUSPENDED'};
@@ -122,7 +127,7 @@ async function startSessionWithRetry(payload){
      }
      return res;
    }
-   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?450:180*(attempt+1));
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?450:(res.error==='START_PENDING'?140:180*(attempt+1)));
  }
  return res;
 }

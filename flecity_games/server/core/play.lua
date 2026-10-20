@@ -701,6 +701,25 @@ function FlecityGamesPlay.DebugSelftest()
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
     local blockChallenge=challengeFor(block,12345) local mergeChallenge=challengeFor(merge,12345)
     local opaqueToken=newToken('SECRET_CITIZEN_ID','quick_tap')
+
+    local _,initialBlockPieces=refillBlockPieces(12345)
+    local firstBlockShape=initialBlockPieces[1]
+    local blockSingle=replayBlockState(12345,{{0,0,0}})
+    local blockSingleExpected=firstBlockShape and (#BLOCK_SHAPES[firstBlockShape]*10) or -1
+
+    local mergeBoard=emptyMergeBoard()
+    local mergeState=12345
+    mergeState=select(1,spawnMergeTile(mergeBoard,mergeState))
+    mergeState=select(1,spawnMergeTile(mergeBoard,mergeState))
+    local mergeDirection,mergeExpectedGain=nil,nil
+    for _,direction in ipairs({'left','right','up','down'}) do
+        local candidate=cloneMergeBoard(mergeBoard)
+        local moved,gained=applyMergeMove(candidate,direction)
+        if moved then mergeDirection=direction mergeExpectedGain=gained break end
+    end
+    local mergeSingle=mergeDirection and replayMergeState(12345,{mergeDirection}) or nil
+    local normalizedIndexes=normalizeIndexList({2,1,2},5)
+
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
     return {
@@ -716,7 +735,10 @@ function FlecityGamesPlay.DebugSelftest()
         blockChallengeClean=type(blockChallenge)=='table' and next(blockChallenge)==nil,
         mergeChallengeClean=type(mergeChallenge)=='table' and next(mergeChallenge)==nil,
         blockReplayEmpty=replayBlock(12345,{})==0,
+        blockReplayMove=blockSingle and blockSingle.score==blockSingleExpected and #blockSingle.history==1 or false,
         mergeReplayEmpty=replayMerge(12345,{})==0,
+        mergeReplayMove=mergeSingle and mergeSingle.score==mergeExpectedGain and #mergeSingle.history==1 or false,
+        normalizedIndexes=normalizedIndexes and #normalizedIndexes==2 and normalizedIndexes[1]==1 and normalizedIndexes[2]==2 or false,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         minesSeedCount=testMineCount==10,
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,

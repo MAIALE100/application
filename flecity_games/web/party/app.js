@@ -303,14 +303,13 @@ async function loadPartyConfig(){
    if([...gameEl.options].some(o=>o.value===current))gameEl.value=current;
  }
 }
-window.addEventListener('message',event=>{
- const message=event.data;
- if(!message)return;
+function handlePartyMessage(message){
+ if(!message||typeof message!=='object')return;
  if(message.type==='partyUpdate'&&message.room){renderRoom(message.room);return;}
  if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
    const revision=Number(message.revision);
-   if(Number.isFinite(revision)&&revision<lastRoomRevision)return;
-   if(Number.isFinite(revision)){lastRoomRevision=Math.max(lastRoomRevision,revision);currentRoom.revision=lastRoomRevision;}
+   if(Number.isFinite(revision)&&revision<=lastRoomRevision)return;
+   if(Number.isFinite(revision)){lastRoomRevision=revision;currentRoom.revision=revision;}
    const points=Array.isArray(message.points)?message.points:null;
    if(points){
      currentRoom.roundState.strokes=currentRoom.roundState.strokes||[];
@@ -321,14 +320,27 @@ window.addEventListener('message',event=>{
  }
  if(message.type==='partyDrawClear'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
    const revision=Number(message.revision);
-   if(Number.isFinite(revision)&&revision<lastRoomRevision)return;
-   if(Number.isFinite(revision)){lastRoomRevision=Math.max(lastRoomRevision,revision);currentRoom.revision=lastRoomRevision;}
+   if(Number.isFinite(revision)&&revision<=lastRoomRevision)return;
+   if(Number.isFinite(revision)){lastRoomRevision=revision;currentRoom.revision=revision;}
    currentRoom.roundState.strokes=[];
    if(!drawStroke)renderDrawCanvas([]);
    return;
  }
  if(message.type==='partyInvalidate')refresh();
-});
+}
+
+window.addEventListener('message',event=>handlePartyMessage(event.data));
+
+if(typeof globalThis.onNuiEvent==='function'){
+ ['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate'].forEach(type=>{
+   try{
+     globalThis.onNuiEvent(type,data=>{
+       if(data&&typeof data==='object'&&data.type)handlePartyMessage(data);
+       else handlePartyMessage({type,...(data&&typeof data==='object'?data:{})});
+     });
+   }catch(_){}
+ });
+}
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);beginPolling();};
 joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const res=await FlecityBridge.call('partyJoinRoom',{code});if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);beginPolling();};

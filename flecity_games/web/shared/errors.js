@@ -22,6 +22,7 @@ window.FlecityErrors = {
         SAVE_RESET_FAILED: '途中保存を削除できませんでした。現在のゲームはそのまま続けられます',
         RESUME_NOT_SUPPORTED: 'このゲームは途中再開に対応していません',
         INVALID_SESSION: 'ゲームSessionが無効です',
+        START_PENDING: 'ゲーム開始処理を完了しています',
         EXPIRED_SESSION: 'ゲームSessionの有効期限が切れました',
         DAILY_SAVE_DISABLED: 'デイリーチャレンジは途中保存できません',
         TIMER_NOT_STARTED: 'ゲームのタイマーがまだ開始されていません',

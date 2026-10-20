@@ -411,6 +411,12 @@ leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEnt
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
 
 async function bootstrap(){
+ const bridge=await FlecityBridge.call('bridgePing',{});
+ if(!bridge.ok){
+   status('LB Phoneへ再接続中…','warn');
+   setTimeout(bootstrap,1000);
+   return;
+ }
  await loadPartyConfig();
  const res=await FlecityBridge.call('partyGetRoom',{});
  if(!res.ok){

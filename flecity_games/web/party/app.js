@@ -158,7 +158,9 @@ function renderResults(room){
 }
 function beginRoundToken(rs){
  if(activeRoundToken===rs.token)return false;
- activeRoundToken=rs.token;resetRoundRuntime();return true;
+ activeRoundToken=rs.token;resetRoundRuntime();
+ window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});
+ return true;
 }
 function reactionLoop(){
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;

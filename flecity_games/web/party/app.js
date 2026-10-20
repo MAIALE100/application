@@ -366,10 +366,13 @@ codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,4);};
 
 async function bootstrap(){
  const res=await FlecityBridge.call('partyGetRoom',{});
- if(!res.ok&&res.error==='PLAYER_NOT_READY'){
-   status('Waiting for character…','warn');
-   setTimeout(bootstrap,1000);
-   return;
+ if(!res.ok){
+   const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
+   if(transient.includes(res.error)){
+     status(res.error==='PLAYER_NOT_READY'?'Waiting for character…':'Reconnecting PARTY…','warn');
+     setTimeout(bootstrap,1000);
+     return;
+   }
  }
  await loadSettings();
  if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('Room connection restored.','good');return;}

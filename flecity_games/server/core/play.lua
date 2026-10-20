@@ -534,8 +534,12 @@ function FlecityGamesPlay.SubmitScore(source,data)
     if not game then sessions[token]=nil return {ok=false,error='GAME_UNAVAILABLE'} end
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil return {ok=false,error='EXPIRED_SESSION'} end
 
-    local durationMs=math.max(0,math.min(28800000,math.floor(tonumber(data.durationMs) or 0)))
-    local serverElapsed=math.max(0,GetGameTimer()-session.startedTick)
+    local clientDurationMs=math.max(0,math.min(28800000,math.floor(tonumber(data.durationMs) or 0)))
+    local serverElapsed=math.max(0,GetGameTimer()-(tonumber(session.startedTick) or GetGameTimer()))
+    local totalServerElapsed=math.max(0,math.min(28800000,
+        math.floor((tonumber(session.baseElapsedMs) or 0)+serverElapsed)))
+    local durationMs=clientDurationMs
+    if game.supportsResume==true or game.id=='stack' then durationMs=totalServerElapsed end
     local rawScore=tonumber(data.score)
     local metadata={serverElapsedMs=serverElapsed}
     if session.dailyDate then metadata.dailyDate=session.dailyDate end
@@ -544,7 +548,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         local quickScore=tonumber(data.score)
         if not quickScore then return {ok=false,error='INVALID_SCORE'} end
         local delayMs=tonumber(session.challenge.delayMs) or 0
-        if durationMs<quickScore or serverElapsed<math.max(0,delayMs+quickScore-350) then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        if clientDurationMs<quickScore or serverElapsed<math.max(0,delayMs+quickScore-350) then return {ok=false,error='IMPOSSIBLE_TIMING'} end
     elseif game.id=='stop' then
         local actionMs=math.floor(tonumber(data.actionMs) or -1)
         if actionMs<100 or actionMs>60000 then return {ok=false,error='INVALID_TIMING'} end
@@ -552,7 +556,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         local marker=trianglePosition(actionMs,session.challenge.periodMs,session.challenge.phaseMs)
         local target=tonumber(session.challenge.targetPct) or 50
         local distance=math.abs(marker-target)
-        rawScore=math.max(0,1000-(distance*10)) durationMs=actionMs
+        rawScore=math.max(0,1000-(distance*10)) durationMs=math.min(serverElapsed,28800000)
         metadata.markerPct=math.floor(marker*100+0.5)/100
         metadata.targetPct=target metadata.distancePct=math.floor(distance*100+0.5)/100 metadata.actionMs=actionMs
     elseif game.id=='block' then

@@ -97,6 +97,9 @@ local function startupDiagnostics()
         AND INDEX_NAME='uq_flecity_game_session_token' AND NON_UNIQUE=0]]) or 0)>0
     check('DB unique session token',uniqueSession)
 
+    for name,ok in pairs(FlecityGamesText.DebugSelftest()) do
+        check('TEXT '..name,ok==true)
+    end
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do
         check('PLAY '..name,ok==true)
     end
@@ -181,6 +184,9 @@ RegisterCommand('game_selftest',function(source)
         AND COLUMN_NAME='session_token' AND NON_UNIQUE=0]]) or 0)>0
     check('unique score session token index',uniqueSession)
 
+    local textTests=FlecityGamesText.DebugSelftest()
+    for name,ok in pairs(textTests) do check('TEXT '..name,ok==true) end
+
     local play=FlecityGamesPlay.DebugSelftest()
     for name,ok in pairs(play) do check('PLAY '..name,ok==true) end
 
@@ -232,6 +238,7 @@ RegisterCommand('game_preflight',function(source)
     check('PLAY 7/7 enabled',#FlecityGamesRegistry.List('play',true)==7)
     check('PARTY 8/8 enabled',#FlecityGamesRegistry.List('party',true)==8)
 
+    for name,ok in pairs(FlecityGamesText.DebugSelftest()) do check('TEXT '..name,ok==true) end
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end
     for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
 

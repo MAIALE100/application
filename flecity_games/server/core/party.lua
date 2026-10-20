@@ -599,19 +599,16 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     return {ok=true,correct=correct,room=snapshot(room,id)}
 end
 
-local function advanceTelephone(room)
+local function advanceTelephone(room,toggleMode)
     local rs=room.roundState
     if not rs or rs.gameId~='telephone' or rs.complete then return end
+    if toggleMode then rs.mode=rs.mode=='draw' and 'text' or 'draw' end
     while true do
         rs.step=(rs.step or 1)+1
         if rs.step>#(rs.turnOrder or {}) then rs.complete=true rs.currentIdentifier=nil return end
         local candidate=rs.turnOrder[rs.step]
         local member=room.members[candidate]
-        if member and not member.disconnected then
-            rs.currentIdentifier=candidate
-            rs.mode=rs.mode=='draw' and 'text' or 'draw'
-            return
-        end
+        if member and not member.disconnected then rs.currentIdentifier=candidate return end
     end
 end
 
@@ -620,7 +617,7 @@ local function ensureTelephoneTurn(room)
     if not rs or rs.gameId~='telephone' or rs.complete then return end
     local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
     if current and not current.disconnected then return end
-    advanceTelephone(room)
+    advanceTelephone(room,false)
 end
 
 function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
@@ -637,7 +634,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     if not clean then return {ok=false,error='INVALID_DRAWING'} end
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
-    advanceTelephone(room)
+    advanceTelephone(room,true)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -655,7 +652,7 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     if #value<1 or #value>80 then return {ok=false,error='INVALID_TEXT'} end
     rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
-    advanceTelephone(room)
+    advanceTelephone(room,true)
     return {ok=true,room=snapshot(room,id)}
 end
 

@@ -1268,6 +1268,9 @@ function FlecityGamesPlay.SubmitScore(source,data)
     local game=gameFor(session.gameId)
     if not game then sessions[token]=nil return {ok=false,error='GAME_UNAVAILABLE'} end
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil return {ok=false,error='EXPIRED_SESSION'} end
+    if session.dailyDate and currentDatabaseDate()~=session.dailyDate then
+        return {ok=false,error='DAILY_EXPIRED'}
+    end
 
     local clientDurationMs=math.max(0,math.min(28800000,math.floor(tonumber(data.durationMs) or 0)))
     local serverElapsed,totalServerElapsed=elapsedForSession(session)

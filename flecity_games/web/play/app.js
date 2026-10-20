@@ -1207,10 +1207,17 @@ async function startHighLow(){
 async function guessHighLow(guess){
  if(!highLow||!highLow.running||highLow.finished||highLow.busy)return;
  highLow.busy=true;renderHighLow();
- const res=await FlecityBridge.call('playHighLowGuess',{sessionToken:highLow.sessionToken,guess});
+ const step=highLow.completed+1,payload={sessionToken:highLow.sessionToken,guess,step};
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
+   res=await FlecityBridge.call('playHighLowGuess',payload);
+   if(res.ok||!retryable.has(res.error))break;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?220:160*(attempt+1));
+ }
  if(!res.ok){
-   highLow.busy=false;renderHighLow();
-   setStatus('HIGH & LOW判定失敗: '+FlecityErrors.text(res.error),'error');return;
+   await cancelPlaySession(highLow.sessionToken);highLow.sessionToken=null;highLow.busy=false;highLow.running=false;highLow.finished=true;renderHighLow();
+   setStatus('HIGH & LOWの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
  highLow.currentValue=Number(res.nextValue)||highLow.currentValue;
  highLow.streak=Math.max(0,Number(res.streak)||0);
@@ -1304,11 +1311,14 @@ async function startSimon(){
  simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus('SIMON開始。未来のラウンドはSERVERから順番に配信します。','good');
  await playSimonSequence();
 }
-async function sendSimonRound(inputs){
- let res=await FlecityBridge.call('playSubmitSimonRound',{sessionToken:simon&&simon.sessionToken,inputs});
- if(!res.ok&&['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED'].includes(res.error)){
-   await sleep(res.error==='RATE_LIMIT'?220:160);
-   res=await FlecityBridge.call('playSubmitSimonRound',{sessionToken:simon&&simon.sessionToken,inputs});
+async function sendSimonRound(inputs,round){
+ const payload={sessionToken:simon&&simon.sessionToken,inputs,round};
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
+   res=await FlecityBridge.call('playSubmitSimonRound',payload);
+   if(res.ok||!retryable.has(res.error))return res;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?240:170*(attempt+1));
  }
  return res;
 }
@@ -1336,10 +1346,12 @@ async function pressSimon(index){
    const pad=simonPads[index];if(pad)pad.classList.add('wrong');
    tone(150,100);simonMessage.textContent='MISS';
    game.submitting=true;
-   const res=await sendSimonRound(game.roundInputs.slice());
+   const res=await sendSimonRound(game.roundInputs.slice(),game.round);
    game.submitting=false;
    if(!res.ok){
-     game.accepting=true;renderSimon();setStatus('SIMON判定失敗: '+FlecityErrors.text(res.error),'error');return;
+     await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
+     simonMessage.textContent='通信に失敗しました';
+     setStatus('SIMONの判定通信に失敗しました。もう一度お試しください。','error');return;
    }
    game.cleared=Math.max(0,Number(res.cleared)||0);
    simonTimer=setTimeout(()=>{if(pad)pad.classList.remove('wrong');},260);
@@ -1352,10 +1364,12 @@ async function pressSimon(index){
  }
 
  game.submitting=true;renderSimon();
- const res=await sendSimonRound(game.roundInputs.slice());
+ const res=await sendSimonRound(game.roundInputs.slice(),game.round);
  game.submitting=false;
  if(!res.ok){
-   game.accepting=true;renderSimon();setStatus('SIMON判定失敗: '+FlecityErrors.text(res.error),'error');return;
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
+   simonMessage.textContent='通信に失敗しました';
+   setStatus('SIMONの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
  game.cleared=Math.max(0,Number(res.cleared)||0);renderSimon();
  if(res.ended===true){await finishSimon(res.clearedAll===true);return;}

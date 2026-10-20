@@ -750,7 +750,13 @@ local function statisticsFor(playerIdentifier)
             }
         end
     end
-    table.sort(out,function(a,b) return a.gameId<b.gameId end)
+    table.sort(out,function(a,b)
+        local ga,gb=gameFor(a.gameId),gameFor(b.gameId)
+        local oa=ga and tonumber(ga.order) or 9999
+        local ob=gb and tonumber(gb.order) or 9999
+        if oa==ob then return a.gameId<b.gameId end
+        return oa<ob
+    end)
     return {totalPlayCount=totalPlays,totalPlayTimeMs=totalTime,games=out}
 end
 local function achievementsFor(playerIdentifier)

@@ -854,3 +854,9 @@ function FlecityGamesPlay.Cleanup()
         if now-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil end
     end
 end
+
+function FlecityGamesPlay.DebugCounts()
+    local sessionCount=0
+    for _ in pairs(sessions) do sessionCount=sessionCount+1 end
+    return sessionCount
+end

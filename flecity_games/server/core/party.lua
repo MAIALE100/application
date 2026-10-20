@@ -214,6 +214,17 @@ local function notifyRoom(room,excludeSource)
     end
 end
 
+local function notifyRoomEvent(room,excludeSource,eventName,payload)
+    if not room or not rooms[room.id] then return end
+    local excluded=excludeSource and tonumber(excludeSource) or nil
+    for _,member in pairs(room.members) do
+        local src=member.source and tonumber(member.source) or nil
+        if src and not member.disconnected and src~=excluded then
+            TriggerClientEvent(eventName,src,payload)
+        end
+    end
+end
+
 function FlecityGamesParty.GetConfig()
     return {
         ok=true,
@@ -619,7 +630,10 @@ function FlecityGamesParty.AddDrawStroke(source,data)
     local clean=sanitizedStrokes({data.points},1)
     if not clean then return {ok=false,error='INVALID_STROKE'} end
     rs.strokes[#rs.strokes+1]=clean[1]
-    notifyRoom(room,source)
+    notifyRoomEvent(room,source,'flecity_games:client:partyDrawStroke',{
+        token=rs.token,
+        points=clean[1]
+    })
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -633,7 +647,7 @@ function FlecityGamesParty.ClearDrawing(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     rs.strokes={}
-    notifyRoom(room,source)
+    notifyRoomEvent(room,source,'flecity_games:client:partyDrawClear',{token=rs.token})
     return {ok=true,room=snapshot(room,id)}
 end
 

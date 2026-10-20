@@ -27,12 +27,13 @@ FlecityGamesConfig = {
         SessionMaxAgeSeconds = 8 * 60 * 60,
         SaveStateMaxBytes = 64 * 1024,
         RankingLimit = 20,
-        DailyCandidates = {'quick_tap','stop','block','mines','nonogram','memory'},
+        DailyCandidates = {'quick_tap','stop','block','mines','nonogram','memory','number_rush'},
         Achievements = {
             LightningReactionMs = 200,
             StackMasterLayers = 25,
             BlockMasterScore = 5000,
-            GamesVeteranCount = 100
+            GamesVeteranCount = 100,
+            NumberRushAceMs = 12000
         }
     },
 

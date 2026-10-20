@@ -15,7 +15,9 @@ local callbacks={
     ['flecity_games:party:selectGame']=function(source,data) return FlecityGamesParty.SelectGame(source,data) end,
     ['flecity_games:party:startRound']=function(source) return FlecityGamesParty.StartRound(source) end,
     ['flecity_games:party:submitReaction']=function(source,data) return FlecityGamesParty.SubmitReaction(source,data) end,
+    ['flecity_games:party:submitStopBattle']=function(source,data) return FlecityGamesParty.SubmitStopBattle(source,data) end,
     ['flecity_games:party:submitVote']=function(source,data) return FlecityGamesParty.SubmitVote(source,data) end,
+    ['flecity_games:party:submitMajority']=function(source,data) return FlecityGamesParty.SubmitMajority(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

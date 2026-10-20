@@ -41,3 +41,4 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .nonogram-cell.filled{background:#f3f3f3;color:#111}
 .nonogram-cell.crossed{background:#11141a;color:#aaa}
 @media(max-width:360px){.nonogram-grid{grid-template-columns:60px repeat(5,1fr);gap:3px}.nonogram-clue,.nonogram-cell{min-height:40px}}
+.draw-canvas,#drawCanvas{width:100%;height:auto;aspect-ratio:18/13;background:#f7f7f7;border-radius:14px;border:1px solid #303641;touch-action:none;display:block}

@@ -51,6 +51,27 @@ local function safeCall(name,fn,source,data)
     return {ok=false,error='SERVER_ERROR'}
 end
 
+local callbackRegistrationBusy=false
+local function registerPhoneCallbacks()
+    if callbackRegistrationBusy or GetResourceState('lb-phone')~='started' then return false end
+    callbackRegistrationBusy=true
+    registeredPhoneCallbacks=0
+    for name,fn in pairs(callbacks) do
+        local ok,err=pcall(function()
+            exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
+                callbackOptions[name] or defaultCallbackOptions)
+        end)
+        if ok then
+            registeredPhoneCallbacks=registeredPhoneCallbacks+1
+        else
+            print(('[FlecityGames] RegisterCallback(%s) API error: %s'):format(name,tostring(err)))
+        end
+    end
+    callbackRegistrationBusy=false
+    print(('[FlecityGames] LB Phone callbacks registered %d/%d'):format(registeredPhoneCallbacks,expectedPhoneCallbacks))
+    return registeredPhoneCallbacks==expectedPhoneCallbacks
+end
+
 local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
 
 local function startupDiagnostics()
@@ -109,20 +130,19 @@ CreateThread(function()
         print(('[FlecityGames] version=%s qbox=%s lb-phone=%s db=%s'):format(gamesVersion,frameworkVersion,phoneVersion,databaseVersion))
         print(('[FlecityGames] artifact=%s'):format(artifactVersion))
         print('[FlecityGames] database schema ready')
-        registeredPhoneCallbacks=0
-        for name,fn in pairs(callbacks) do
-            local ok,err=pcall(function()
-                exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
-                    callbackOptions[name] or defaultCallbackOptions)
-            end)
-            if ok then
-                registeredPhoneCallbacks=registeredPhoneCallbacks+1
-            else
-                print(('[FlecityGames] RegisterCallback(%s) API error: %s'):format(name,tostring(err)))
-            end
-        end
-        print(('[FlecityGames] LB Phone callbacks registered %d/%d'):format(registeredPhoneCallbacks,expectedPhoneCallbacks))
+        registerPhoneCallbacks()
         startupDiagnostics()
+    end)
+end)
+
+AddEventHandler('onResourceStart',function(resource)
+    if resource~='lb-phone' or resource==GetCurrentResourceName() then return end
+    CreateThread(function()
+        Wait(500)
+        if GetResourceState('lb-phone')=='started' then
+            print('[FlecityGames] lb-phone restarted; re-registering server callbacks')
+            registerPhoneCallbacks()
+        end
     end)
 end)
 

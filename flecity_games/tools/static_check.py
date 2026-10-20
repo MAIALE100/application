@@ -183,6 +183,10 @@ for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","col
         fail(f"PLAY achievement missing: {marker}")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
+if "minesFirstRevealSafe" not in play_lua or "avoidIndex" not in play_lua or "avoidIndex" not in play_js:
+    fail("first-safe MINES flow is missing")
+if not re.search(r"id='mines'[^\n]*version=2", registry):
+    fail("MINES save version must be 2 for first-safe boards")
 if "NONOGRAM_PATTERNS_5" not in play_lua or "NONOGRAM_PATTERNS_5" not in play_js or "nonogramCuratedSet" not in play_lua:
     fail("curated NONOGRAM puzzle set is missing")
 if not re.search(r"id='nonogram'[^\n]*version=2", registry):

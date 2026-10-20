@@ -105,6 +105,56 @@ RegisterCommand('game_selftest',function(source)
     print(('%s end failures=%d'):format(prefix,failures))
 end,false)
 
+RegisterCommand('game_preflight',function(source)
+    local prefix=source==0 and '[FlecityGames preflight]' or ('[FlecityGames preflight source=%s]'):format(source)
+    local failures=0
+    local function check(name,ok,detail)
+        if not ok then failures=failures+1 end
+        print(('%s %-42s %s%s'):format(prefix,name,ok and 'PASS' or 'FAIL',detail and (' · '..tostring(detail)) or ''))
+    end
+
+    print(prefix..' begin')
+    check('lb-phone resource started',GetResourceState('lb-phone')=='started',GetResourceState('lb-phone'))
+    check('oxmysql resource started',GetResourceState('oxmysql')=='started',GetResourceState('oxmysql'))
+    check('framework bridge ready',FlecityGamesFramework.IsReady()==true,FlecityGamesConfig.Framework)
+
+    local dbOk,dbErr=FlecityGamesDatabase.Ensure()
+    check('database bootstrap',dbOk,dbErr)
+    if dbOk then
+        for _,tableName in ipairs(requiredTables) do
+            local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
+            check(('table %s'):format(tableName),exists)
+        end
+        local settingsColumn=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_profiles' AND COLUMN_NAME='settings_json']]) or 0)>0
+        check('profile settings column',settingsColumn)
+        local uniqueSession=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_scores'
+            AND INDEX_NAME='uq_flecity_game_session_token' AND NON_UNIQUE=0]]) or 0)>0
+        check('unique score session index',uniqueSession)
+    end
+
+    check('PLAY 7/7 enabled',#FlecityGamesRegistry.List('play',true)==7)
+    check('PARTY 8/8 enabled',#FlecityGamesRegistry.List('party',true)==8)
+
+    for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end
+    for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
+
+    if source~=0 then
+        local id=FlecityGamesFramework.GetIdentifier(source)
+        check('current character identifier',type(id)=='string' and id~='',id and 'resolved' or 'missing')
+        local settings=FlecityGamesProfile.GetSettings(source)
+        check('profile settings read',settings and settings.ok==true)
+    else
+        print(prefix..' player-specific identity/settings check SKIPPED from server console')
+    end
+
+    local roomCount,memberTotal=FlecityGamesParty.DebugCounts()
+    print(('%s active_rooms=%d active_members=%d'):format(prefix,roomCount,memberTotal))
+    print(('%s result=%s failures=%d'):format(prefix,failures==0 and 'READY_FOR_LIVE_TEST' or 'NOT_READY',failures))
+end,false)
+
 RegisterCommand('game_healthcheck',function(source)
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)
     local invalidScores,invalidSaves,invalidDaily=0,0,0

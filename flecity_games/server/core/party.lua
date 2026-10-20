@@ -236,13 +236,24 @@ local function notifyRoomEvent(room,excludeSource,eventName,payload)
 end
 
 function FlecityGamesParty.GetConfig()
+    local games={}
+    for _,game in ipairs(FlecityGamesRegistry.List('party',true)) do
+        games[#games+1]={
+            id=game.id,
+            name=game.name,
+            description=game.description,
+            minPlayers=game.minPlayers,
+            maxPlayers=game.maxPlayers
+        }
+    end
     return {
         ok=true,
         config={
             roomCodeLength=roomCodeLength(),
             minPlayers=FlecityGamesConfig.Party.MinPlayers,
             maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
-            version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
+            version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
+            games=games
         }
     }
 end
@@ -337,8 +348,6 @@ function FlecityGamesParty.SelectGame(source,data)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(type(data)=='table' and data.gameId or nil)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
-    local count=connectedCount(room)
-    if count<game.minPlayers or count>game.maxPlayers then return {ok=false,error='PLAYER_COUNT_UNSUPPORTED'} end
     room.selectedGame=game.id
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
@@ -361,6 +370,10 @@ function FlecityGamesParty.StartRound(source)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(room.selectedGame)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
+    local count=connectedCount(room)
+    if count<(game.minPlayers or FlecityGamesConfig.Party.MinPlayers) or count>(game.maxPlayers or FlecityGamesConfig.Party.MaxPlayers) then
+        return {ok=false,error='PLAYER_COUNT_UNSUPPORTED'}
+    end
     if not allReady(room,game) then return {ok=false,error='NOT_ALL_READY'} end
 
     room.round=room.round+1 room.state='round'

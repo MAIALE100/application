@@ -9,6 +9,21 @@ local function gameFor(id)
     if not game or game.app~='play' or game.enabled~=true then return nil end
     return game
 end
+local function elapsedForSession(session)
+    local nowTick=GetGameTimer()
+    local activeElapsed=0
+    if session and session.timingDeferred==true then
+        if session.timingActivated==true then
+            activeElapsed=math.max(0,nowTick-(tonumber(session.activeStartedTick) or nowTick))
+        end
+    else
+        activeElapsed=math.max(0,nowTick-(tonumber(session and session.startedTick) or nowTick))
+    end
+    local total=math.max(0,math.min(28800000,
+        math.floor((tonumber(session and session.baseElapsedMs) or 0)+activeElapsed)))
+    return activeElapsed,total
+end
+
 local function newToken(_,gameId)
     sessionCounter=(sessionCounter+1)%1000000000
     return ('play:%s:%d:%09d:%06d:%06d'):format(
@@ -888,7 +903,10 @@ function FlecityGamesPlay.StartSession(source,data)
     sessions[token]={
         playerIdentifier=id,source=tonumber(source),gameId=game.id,seed=seed,startedAt=os.time(),
         startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate,
-        saveEpoch=currentSaveEpoch(id,game.id)
+        saveEpoch=currentSaveEpoch(id,game.id),
+        timingDeferred=(game.id=='mines' or game.id=='nonogram'),
+        timingActivated=false,
+        activeStartedTick=nil
     }
     local publicSeed=seed
     if game.id=='high_low' then
@@ -947,6 +965,22 @@ function FlecityGamesPlay.SubmitSimonRound(source,data)
     return result
 end
 
+function FlecityGamesPlay.ActivateSession(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'play_activate',120) then return {ok=false,error='RATE_LIMIT'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local id=identifier(source)
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    if not session or session.playerIdentifier~=id then return {ok=false,error='INVALID_SESSION'} end
+    if session.timingDeferred~=true then return {ok=true,activated=true,elapsedMs=select(2,elapsedForSession(session))} end
+    if session.timingActivated~=true then
+        session.timingActivated=true
+        session.activeStartedTick=GetGameTimer()
+    end
+    return {ok=true,activated=true,elapsedMs=select(2,elapsedForSession(session))}
+end
+
 function FlecityGamesPlay.CancelSession(source,data)
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source) local token=tostring(data.sessionToken or '') local session=sessions[token]
@@ -984,9 +1018,7 @@ function FlecityGamesPlay.Save(source,data)
     local seedNumber=math.floor(tonumber(session.seed) or 0)
     if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
 
-    local serverElapsed=math.max(0,GetGameTimer()-(tonumber(session.startedTick) or GetGameTimer()))
-    local elapsed=math.max(0,math.min(28800000,
-        math.floor((tonumber(session.baseElapsedMs) or 0)+serverElapsed)))
+    local _,elapsed=elapsedForSession(session)
     local saveState=data.state
     local score=tonumber(data.score) or 0
 
@@ -1093,9 +1125,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
     if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then sessions[token]=nil return {ok=false,error='EXPIRED_SESSION'} end
 
     local clientDurationMs=math.max(0,math.min(28800000,math.floor(tonumber(data.durationMs) or 0)))
-    local serverElapsed=math.max(0,GetGameTimer()-(tonumber(session.startedTick) or GetGameTimer()))
-    local totalServerElapsed=math.max(0,math.min(28800000,
-        math.floor((tonumber(session.baseElapsedMs) or 0)+serverElapsed)))
+    local serverElapsed,totalServerElapsed=elapsedForSession(session)
     local durationMs=clientDurationMs
     if game.supportsResume==true or game.id=='stack' or game.id=='memory' or game.id=='color_match' then durationMs=totalServerElapsed end
     local rawScore=tonumber(data.score)
@@ -1147,6 +1177,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.layers=replayed.score
         metadata.replayValidated=true
     elseif game.id=='mines' then
+        if session.timingActivated~=true then return {ok=false,error='TIMER_NOT_STARTED'} end
         if type(data.revealed)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
         local size=tonumber(session.challenge.size) or 8 local mineCount=tonumber(session.challenge.mines) or 10
         local mines=generateMines(session.seed,size,mineCount)
@@ -1160,6 +1191,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         if revealedCount~=(size*size-mineCount) then return {ok=false,error='INCOMPLETE_CLEAR'} end
         rawScore=durationMs metadata.revealedCount=revealedCount metadata.boardSize=size metadata.mineCount=mineCount
     elseif game.id=='nonogram' then
+        if session.timingActivated~=true then return {ok=false,error='TIMER_NOT_STARTED'} end
         if type(data.filled)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
         local size=tonumber(session.challenge.size) or 5
         local solution,solutionCount=generateNonogram(session.seed,size)
@@ -1380,6 +1412,7 @@ function FlecityGamesPlay.DebugSelftest()
         mergeReplayMove=mergeSingle and mergeSingle.score==mergeExpectedGain and #mergeSingle.history==1 or false,
         normalizedIndexes=normalizedIndexes and #normalizedIndexes==2 and normalizedIndexes[1]==1 and normalizedIndexes[2]==2 or false,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
+        deferredTimerGames=minesGame and nonogram and challengeFor(minesGame,12345).size==8 and challengeFor(nonogram,12345).size==5 or false,
         minesSeedCount=testMineCount==10,
         stackValidateLayers=stack and validateScore(stack,25)==25 or false,
         stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,

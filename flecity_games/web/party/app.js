@@ -40,7 +40,12 @@ async function saveSettings(){
  if(res.ok){applySettings(res.settings);tone(520,55);}else status('設定を保存できません: '+FlecityErrors.text(res.error),'error');
 }
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
-function status(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
+let statusTimer=null;
+function status(text,type){
+ clearTimeout(statusTimer);statusTimer=null;
+ statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
+ if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
+}
 function estimatedServerTick(){return performance.now()+serverOffsetMs;}
 function trianglePosition(elapsedMs,periodMs,phaseMs){
  const period=Math.max(400,Number(periodMs)||1800),cycle=(Math.max(0,Number(elapsedMs)||0)+(Number(phaseMs)||0))%period,half=period/2;

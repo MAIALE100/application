@@ -673,8 +673,15 @@ async function openMines(forceNew,daily=false){
 }
 async function loseMines(index){
  if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('地雷を踏みました。ゲーム終了。','warn');
- if(mines.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
- if(!mines.daily){await FlecityBridge.call('playResetSave',{gameId:'mines'});delete saves.mines;}mines.sessionToken=null;
+ if(!mines.daily){
+   await saveQueue.catch(()=>{});
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});
+   if(reset.ok)delete saves.mines;
+   else setStatus('MINESの終了処理に失敗しました: '+FlecityErrors.text(reset.error),'error');
+ }else if(mines.sessionToken){
+   await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
+ }
+ mines.sessionToken=null;
 }
 async function touchMine(index){
  if(!mines||mines.finished)return;

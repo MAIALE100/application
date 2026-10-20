@@ -35,10 +35,14 @@
     script.src='./app.js';
     document.body.appendChild(script);
   };
-  window.addEventListener('message',event=>{
-    if(event.data==='componentsLoaded')loadApp();
-  });
-  setTimeout(loadApp,1500);
+  const devMode=!window.invokeNative;
+  if(devMode){
+    loadApp();
+  }else{
+    window.addEventListener('message',event=>{
+      if(event.data==='componentsLoaded')loadApp();
+    });
+  }
 })();
 </script>
 </body></html>

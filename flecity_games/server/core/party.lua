@@ -603,8 +603,6 @@ function FlecityGamesParty.Cleanup()
                 if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
                 if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
                 if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
             end
         end
     end

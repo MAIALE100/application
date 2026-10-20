@@ -131,6 +131,8 @@ if "submitScoreWithRetry" not in play_js:
     fail("PLAY score submission retry helper is missing")
 if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:
     fail("PLAY phone-hide lifecycle protection is missing")
+if "playActivateSession" not in play_js or "activateMinesTiming" not in play_js or "activateNonogramTiming" not in play_js:
+    fail("MINES/NONOGRAM first-action timer flow is missing")
 if "confirmAction" not in play_js or 'id="confirmOverlay"' not in play_html:
     fail("PLAY destructive reset confirmation is missing")
 for name, html in (("PLAY", play_html), ("PARTY", party_html)):
@@ -174,6 +176,8 @@ if "clearForeignSourceSessions" not in play_lua:
     fail("PLAY character-switch session cleanup is missing")
 if "existingScoreResponse" not in play_lua or "duplicate=true" not in play_lua:
     fail("PLAY idempotent score retry handling is missing")
+if "ActivateSession" not in play_lua or "timingDeferred" not in play_lua or "TIMER_NOT_STARTED" not in play_lua:
+    fail("PLAY deferred timer activation is missing")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
 if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:

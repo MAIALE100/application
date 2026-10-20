@@ -162,6 +162,13 @@ AddEventHandler('onResourceStart',function(resource)
     end)
 end)
 
+AddEventHandler('onResourceStop',function(resource)
+    if resource=='lb-phone' then
+        registeredPhoneCallbacks=0
+        print('[FlecityGames] lb-phone stopped; callback state cleared')
+    end
+end)
+
 AddEventHandler('playerDropped',function()
     local src=source
     FlecityGamesRateLimit.Clear(src)

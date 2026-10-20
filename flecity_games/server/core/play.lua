@@ -97,6 +97,42 @@ local function replayColorMatch(seed,history,roundCount)
     end
     return {complete=true,rounds=count}
 end
+local function generateNumberRush(seed,count)
+    local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local board={}
+    for i=1,total do board[i]=i end
+    for i=total,2,-1 do
+        local value
+        state,value=seededNext(state)
+        local j=1+math.floor(value*i)
+        board[i],board[j]=board[j],board[i]
+    end
+    return board,state
+end
+
+local function replayNumberRush(seed,history,count)
+    local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
+    if type(history)~='table' or #history<total or #history>250 then return nil end
+    local board=generateNumberRush(seed,total)
+    local expected=1
+    local misses=0
+    local normalized={}
+    for i,value in ipairs(history) do
+        local index=tonumber(value)
+        if not index or index~=math.floor(index) or index<0 or index>=total then return nil end
+        if expected>total then return nil end
+        normalized[#normalized+1]=index
+        if board[index+1]==expected then
+            expected=expected+1
+        else
+            misses=misses+1
+        end
+    end
+    return {complete=expected==total+1,misses=misses,taps=#normalized,count=total,board=board,history=normalized}
+end
+
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -375,6 +411,8 @@ local function challengeFor(game,seed)
         challenge.size=5
     elseif game.id=='color_match' then
         challenge.rounds=10
+    elseif game.id=='number_rush' then
+        challenge.count=25
     end
     return challenge
 end
@@ -472,6 +510,11 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
     if game.id=='stack' and score>=tonumber(cfg.StackMasterLayers or 25) and unlockAchievement(playerIdentifier,'stack_master',game.id,{score=score}) then unlocked[#unlocked+1]='stack_master' end
     if game.id=='block' and score>=tonumber(cfg.BlockMasterScore or 5000) and unlockAchievement(playerIdentifier,'block_master',game.id,{score=score}) then unlocked[#unlocked+1]='block_master' end
     if game.id=='memory' and tonumber(metadata and metadata.moves)==8 and unlockAchievement(playerIdentifier,'perfect_memory',game.id,{score=score,moves=8}) then unlocked[#unlocked+1]='perfect_memory' end
+    if game.id=='number_rush' and tonumber(metadata and metadata.misses)==0
+        and score<=tonumber(cfg.NumberRushAceMs or 12000)
+        and unlockAchievement(playerIdentifier,'number_rush_ace',game.id,{score=score,misses=0}) then
+        unlocked[#unlocked+1]='number_rush_ace'
+    end
     return unlocked
 end
 
@@ -706,7 +749,7 @@ local function validateScore(game,score)
     elseif game.id=='block' or game.id=='merge' then
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
-    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' then
+    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' then
         if score<1000 or score>28800000 then return nil end
         return math.floor(score)
     elseif game.id=='stack' then
@@ -822,6 +865,19 @@ function FlecityGamesPlay.SubmitScore(source,data)
         durationMs=totalServerElapsed
         rawScore=durationMs
         metadata.rounds=replayed.rounds metadata.replayValidated=true
+    elseif game.id=='number_rush' then
+        local replayed=replayNumberRush(session.seed,data.history,session.challenge.count)
+        if not replayed or not replayed.complete then return {ok=false,error='INVALID_NUMBER_RUSH_REPLAY'} end
+        if clientDurationMs<3000 or clientDurationMs>serverElapsed+300 or serverElapsed-clientDurationMs>2500 then
+            return {ok=false,error='IMPOSSIBLE_TIMING'}
+        end
+        durationMs=clientDurationMs
+        rawScore=durationMs+(replayed.misses*500)
+        metadata.misses=replayed.misses
+        metadata.taps=replayed.taps
+        metadata.count=replayed.count
+        metadata.penaltyMs=replayed.misses*500
+        metadata.replayValidated=true
     end
 
     local score=validateScore(game,rawScore)
@@ -882,7 +938,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
@@ -920,6 +976,14 @@ function FlecityGamesPlay.DebugSelftest()
     local colorRounds=generateColorMatch(12345,10)
     local colorHistory={} for _,round in ipairs(colorRounds) do colorHistory[#colorHistory+1]=round.ink end
     local colorReplay=replayColorMatch(12345,colorHistory,10)
+    local numberRushBoard=generateNumberRush(12345,25)
+    local numberRushHistory={}
+    for expected=1,25 do
+        for index,value in ipairs(numberRushBoard) do
+            if value==expected then numberRushHistory[#numberRushHistory+1]=index-1 break end
+        end
+    end
+    local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
 
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -951,6 +1015,8 @@ function FlecityGamesPlay.DebugSelftest()
         memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,
         colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==10 or false,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
+        numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
+        numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
         saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false

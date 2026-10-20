@@ -5,18 +5,18 @@ const statPlays=document.getElementById('statPlays'),statTime=document.getElemen
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
 const stopEl=document.getElementById('stopGame'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
-const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore');
+const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore'),blockMeta=document.getElementById('blockMeta');
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
-const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
+const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
-const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
+const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -285,9 +285,16 @@ async function persistBlock(showError=false){
  return false;
 }
 function renderBlock(){
- blockScore.textContent=String(block.score);blockBoard.innerHTML='';
+ const selectedPiece=block.pieces[block.selected]||null;
+ blockScore.textContent=String(block.score);
+ blockMeta.textContent='COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES';
+ blockBoard.innerHTML='';
  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
-   const cell=document.createElement('button');cell.className='block-cell'+(block.board[y][x]?' filled':'');cell.disabled=!!block.board[y][x];
+   const cell=document.createElement('button');
+   const valid=!block.board[y][x]&&selectedPiece&&canPlace(selectedPiece,x,y);
+   cell.className='block-cell'+(block.board[y][x]?' filled':'')+(valid?' valid-origin':'');
+   cell.disabled=!!block.board[y][x];
+   cell.setAttribute('aria-label',valid?'ここに置けます':'マス');
    cell.onclick=()=>placeBlock(x,y);blockBoard.appendChild(cell);
  }
  blockPieces.innerHTML='';
@@ -381,10 +388,15 @@ function mergeGameOver(){
  return true;
 }
 function renderMerge(){
- mergeScore.textContent=String(merge.score);mergeBoard.innerHTML='';
+ mergeScore.textContent=String(merge.score);
+ let maxTile=0;
+ mergeBoard.innerHTML='';
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
-   const d=document.createElement('div'),v=Number(merge.board[y][x]||0);d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
+   const d=document.createElement('div'),v=Number(merge.board[y][x]||0);
+   if(v>maxTile)maxTile=v;
+   d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
+ mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile);
 }
 async function persistMerge(showError=false){
  if(!merge||merge.finished)return true;
@@ -453,6 +465,25 @@ mergeNew.onclick=async()=>{
 };
 mergeFinish.onclick=finishMerge;
 mergeUp.onclick=()=>moveMerge('up');mergeDown.onclick=()=>moveMerge('down');mergeLeft.onclick=()=>moveMerge('left');mergeRight.onclick=()=>moveMerge('right');
+
+function mergePointerPoint(event){return {x:Number(event.clientX)||0,y:Number(event.clientY)||0};}
+mergeBoard.onpointerdown=event=>{
+ if(!merge||merge.finished)return;
+ mergePointer={...mergePointerPoint(event),id:event.pointerId};
+ try{mergeBoard.setPointerCapture(event.pointerId);}catch(_){}
+};
+mergeBoard.onpointerup=event=>{
+ if(!mergePointer||mergePointer.id!==event.pointerId)return;
+ const end=mergePointerPoint(event),dx=end.x-mergePointer.x,dy=end.y-mergePointer.y;
+ mergePointer=null;
+ try{mergeBoard.releasePointerCapture(event.pointerId);}catch(_){}
+ if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+ moveMerge(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+};
+mergeBoard.onpointercancel=event=>{
+ if(mergePointer&&mergePointer.id===event.pointerId)mergePointer=null;
+ try{mergeBoard.releasePointerCapture(event.pointerId);}catch(_){}
+};
 
 /* MINES */
 function seededMines(seed,size,mineCount){
@@ -563,7 +594,9 @@ minesNew.onclick=async()=>{
 /* STACK */
 function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
 function renderStack(){
- if(!stackGame)return;stackScore.textContent=String(stackGame.score);
+ if(!stackGame)return;
+ stackScore.textContent=String(stackGame.score);
+ stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed);
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
  const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
  history.forEach((layer,i)=>{
@@ -612,7 +645,11 @@ stackDrop.onclick=async()=>{
  if(overlap<=.0001){await finishStack();return;}
  stackGame.layers.push({x:left,width:overlap});
  stackGame.score+=1;
+ const previousWidth=stackGame.width;
  stackGame.width=overlap;
+ const precision=previousWidth>0?overlap/previousWidth:0;
+ if(precision>=.985){setStatus('PERFECT! '+stackGame.score+'段','good');tone(880,55);}
+ else if(precision>=.9){setStatus('NICE! '+stackGame.score+'段','good');}
  stackGame.speed=Math.min(180,stackGame.speed+4);
  stackGame.reverse=(stackGame.score%2)===1;
  stackGame.layerStartedAt=now;

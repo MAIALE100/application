@@ -14,11 +14,12 @@ const stackEl=document.getElementById('stackGame'),stackArena=document.getElemen
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
+const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,mergePointer=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -66,9 +67,9 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;memoryFlipTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -88,7 +89,8 @@ const achievementLabels={
  lightning:'LIGHTNING · QUICK TAP 200ms以下',
  stack_master:'STACK MASTER · STACK 25段以上',
  block_master:'BLOCK MASTER · BLOCK 5,000点以上',
- perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア'
+ perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
+ number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内'
 };
 function renderPlatform(data){
  const stats=data&&data.statistics||{totalPlayCount:0,totalPlayTimeMs:0};statPlays.textContent=String(stats.totalPlayCount||0);statTime.textContent=formatDuration(stats.totalPlayTimeMs);
@@ -113,6 +115,7 @@ async function launchDaily(){
  else if(daily.gameId==='mines')openMines(true,true);
  else if(daily.gameId==='nonogram')openNonogram(true,true);
  else if(daily.gameId==='memory')openMemory(true);
+ else if(daily.gameId==='number_rush')openNumberRush(true);
 }
 dailyPlay.onclick=launchDaily;
 
@@ -137,6 +140,7 @@ function renderGames(games){
      else if(game.id==='nonogram')openNonogram(false);
      else if(game.id==='memory')openMemory();
      else if(game.id==='color_match')openColorMatch();
+     else if(game.id==='number_rush')openNumberRush(false);
    };
    gamesEl.appendChild(btn);
  });
@@ -820,6 +824,105 @@ async function answerColorMatch(choice){
 colorMatchStart.onclick=startColorMatch;
 colorMatchBack.onclick=async()=>{clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;showHome();};
 colorMatchNew.onclick=async()=>{clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;openColorMatch();};
+
+/* NUMBER RUSH */
+function numberRushNext(state){
+ let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
+ x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
+}
+function numberRushBoardFromSeed(seed,count=25){
+ const total=Math.max(2,Math.min(64,Math.floor(Number(count)||25)));
+ const board=Array.from({length:total},(_,i)=>i+1);
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ for(let i=board.length-1;i>=1;i--){
+   let value;[state,value]=numberRushNext(state);
+   const j=Math.floor(value*(i+1));[board[i],board[j]]=[board[j],board[i]];
+ }
+ return board;
+}
+function elapsedNumberRush(){return numberRush&&numberRush.running?performance.now()-numberRush.startedAt:0;}
+function updateNumberRushTime(){if(numberRush&&numberRush.running)numberRushTime.textContent=(elapsedNumberRush()/1000).toFixed(2)+'s';}
+function renderNumberRush(){
+ numberRushBoard.innerHTML='';
+ if(!numberRush){
+   numberRushProgress.textContent='1 / 25';numberRushTime.textContent='0.00s';numberRushMeta.textContent='MISS 0 · ペナルティ 0.0s';return;
+ }
+ numberRushProgress.textContent=(numberRush.finished?numberRush.count:Math.min(numberRush.next,numberRush.count))+' / '+numberRush.count;
+ numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
+ numberRush.board.forEach((value,index)=>{
+   const b=document.createElement('button');
+   const done=numberRush.completed.has(index);
+   b.className='number-rush-cell'+(done?' done':'');
+   b.textContent=String(value);
+   b.disabled=!numberRush.running||done;
+   b.setAttribute('aria-label',done?'完了 '+value:'数字 '+value);
+   b.onclick=()=>tapNumberRush(index);
+   numberRushBoard.appendChild(b);
+ });
+ updateNumberRushTime();
+}
+function openNumberRush(daily=false){
+ hideAll();numberRushEl.classList.remove('hidden');clearInterval(numberRushClock);numberRushClock=null;numberRush=null;
+ numberRushStart.classList.remove('hidden');numberRushStart.disabled=false;numberRushStart.textContent='スタート';
+ numberRushNew.classList.add('hidden');renderNumberRush();
+ setStatus(daily?'デイリーNUMBER RUSH。同じ配置でタイムを競います。':'1から25まで順番にタップしてください。','good');
+ numberRushEl.dataset.daily=daily===true?'1':'0';
+}
+async function startNumberRush(){
+ if(numberRush&&numberRush.running)return;
+ numberRushStart.disabled=true;
+ const daily=numberRushEl.dataset.daily==='1';
+ const session=await FlecityBridge.call('playStartSession',{gameId:'number_rush',daily});
+ if(!session.ok){numberRushStart.disabled=false;setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ const count=Number(session.challenge&&session.challenge.count)||25;
+ numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
+ numberRushStart.classList.add('hidden');numberRushNew.classList.remove('hidden');
+ setStatus(numberRush.daily?'デイリーNUMBER RUSH開始。':'NUMBER RUSH開始。','good');
+ renderNumberRush();numberRushClock=setInterval(updateNumberRushTime,50);
+}
+async function tapNumberRush(index){
+ if(!numberRush||!numberRush.running||numberRush.finished)return;
+ numberRush.history.push(index);
+ const value=numberRush.board[index];
+ if(value!==numberRush.next){
+   numberRush.misses+=1;tone(180,45);
+   const cell=numberRushBoard.children[index];
+   if(cell){cell.classList.add('wrong');setTimeout(()=>cell.classList.remove('wrong'),180);}
+   numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
+   return;
+ }
+ numberRush.completed.add(index);numberRush.next+=1;tone(600+Math.min(300,numberRush.next*8),28);
+ if(numberRush.next>numberRush.count){await finishNumberRush();return;}
+ renderNumberRush();
+}
+async function finishNumberRush(){
+ if(!numberRush||numberRush.finished)return;
+ numberRush.finished=true;numberRush.running=false;clearInterval(numberRushClock);numberRushClock=null;
+ const durationMs=Math.round(performance.now()-numberRush.startedAt);
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:numberRush.sessionToken,score:durationMs+(numberRush.misses*500),durationMs,history:numberRush.history});
+ if(res.ok){
+   numberRush.sessionToken=null;
+   numberRushTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';
+   const penalty=Number(res.details&&res.details.penaltyMs)||0;
+   setStatus((res.daily?'デイリー ':'')+'NUMBER RUSHクリア: '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':''),'good');
+   renderNumberRush();await refreshPlatform();
+ }else{
+   numberRush.finished=false;numberRush.running=true;numberRushClock=setInterval(updateNumberRushTime,50);
+   setStatus('NUMBER RUSH判定失敗: '+FlecityErrors.text(res.error),'error');
+ }
+}
+numberRushStart.onclick=startNumberRush;
+numberRushBack.onclick=async()=>{
+ clearInterval(numberRushClock);numberRushClock=null;
+ if(numberRush&&numberRush.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:numberRush.sessionToken});
+ numberRush=null;showHome();
+};
+numberRushNew.onclick=async()=>{
+ clearInterval(numberRushClock);numberRushClock=null;
+ const daily=(numberRush&&numberRush.daily)||numberRushEl.dataset.daily==='1';
+ if(numberRush&&numberRush.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:numberRush.sessionToken});
+ numberRush=null;openNumberRush(daily);
+};
 
 /* MEMORY */
 const MEMORY_SYMBOLS=['◆','●','▲','★','♣','♥','☀','☂'];

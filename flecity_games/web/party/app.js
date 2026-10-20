@@ -5,6 +5,7 @@ const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=doc
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
+const ticTacPanel=document.getElementById('ticTacPanel'),ticTacStatus=document.getElementById('ticTacStatus'),ticTacBoard=document.getElementById('ticTacBoard'),ticTacMeta=document.getElementById('ticTacMeta');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
@@ -50,7 +51,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();clearInterval(poll);poll=null;
@@ -137,6 +138,13 @@ function renderResults(room){
      const label=e.choice==='A'?options[0]:options[1];
      appendResultRow(e.name,label+(winning&&e.choice===winning?' ✓':''));
    });
+ }else if(rs.gameId==='tic_tac'){
+   const result=rs.results||{};
+   const banner=document.createElement('div');banner.className='status '+(result.draw?'warn':'good');
+   banner.textContent=result.draw?'引き分け':'勝者: '+String(result.winnerName||'Player')+' ('+String(result.winnerSymbol||'?')+')';
+   resultsEl.appendChild(banner);
+   const board=Array.isArray(result.board)?result.board:[];
+   appendResultRow('盤面',board.map(v=>v||'·').join(' '));
  }else if(rs.gameId==='word_wolf'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(rs.results.caught?'少数派を見破りました！':'少数派を見破れませんでした')+' · 多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← 少数派':'';appendResultRow(e.name+wolf,e.votes+'票');});
@@ -215,6 +223,24 @@ function setupMajority(room){
  const hint=document.createElement('div');hint.className='muted choice-hint';hint.textContent=isMinority?'少ない方になりそうな選択肢を選んでください。':'多い方になりそうな選択肢を選んでください。';majorityChoices.appendChild(hint);
  const options=Array.isArray(rs.options)?rs.options:['A','B'];
  ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary choice-button';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.gameId,rs.token,choice);majorityChoices.appendChild(b);});
+}
+
+function setupTicTac(room){
+ const rs=room.roundState;hideRoundGames();ticTacPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ const board=Array.isArray(rs.board)?rs.board:[];
+ const current=room.players.find(p=>p.memberId===rs.currentMemberId);
+ ticTacStatus.textContent=rs.isCurrent?'あなたの番です':(current?current.name+' の番です':'相手の番です');
+ ticTacMeta.textContent='あなたは '+String(rs.symbol||'?')+' · 3つ揃えたら勝ち';
+ ticTacBoard.innerHTML='';
+ for(let i=0;i<9;i++){
+   const button=document.createElement('button');button.className='tic-tac-cell';
+   const value=String(board[i]||'');button.textContent=value;
+   button.disabled=!rs.isCurrent||value!=='';
+   button.setAttribute('aria-label','マス '+(i+1)+(value?' '+value:''));
+   button.onclick=()=>submitTicTac(rs.token,i+1);
+   ticTacBoard.appendChild(button);
+ }
 }
 function setupDeduction(room){
  const rs=room.roundState;hideRoundGames();deductionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);deductionChoices.innerHTML='';
@@ -305,6 +331,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);
    else if(rs&&(rs.gameId==='majority'||rs.gameId==='minority'))setupMajority(room);
+   else if(rs&&rs.gameId==='tic_tac')setupTicTac(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
@@ -437,6 +464,13 @@ async function submitMajority(gameId,token,choice){
  const action=isMinority?'partySubmitMinority':'partySubmitMajority';
  const res=await FlecityBridge.call(action,{token,choice});
  if(!res.ok){status((isMinority?'MINORITY':'MAJORITY')+'回答失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
+}
+
+async function submitTicTac(token,cell){
+ ticTacBoard.querySelectorAll('button').forEach(b=>b.disabled=true);
+ const res=await FlecityBridge.call('partySubmitTicTac',{token,cell});
+ if(!res.ok){status('TIC-TAC操作失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ renderRoom(res.room);
 }
 async function submitDeduction(gameId,token,targetMemberId){
  deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=true);

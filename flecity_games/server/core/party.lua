@@ -34,10 +34,9 @@ local telephonePrompts={
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function characterName(source)
-    local value=tostring(FlecityGamesFramework.GetCharacterName(source) or ''):gsub('%c',' '):gsub('%s+',' ')
-    value=value:gsub('^%s+',''):gsub('%s+$','')
+    local value=FlecityGamesText.Normalize(FlecityGamesFramework.GetCharacterName(source))
     if value=='' then value=('Player %s'):format(tostring(source)) end
-    return value:sub(1,64)
+    return FlecityGamesText.Truncate(value,64)
 end
 local function partyGame(id)
     local game=FlecityGamesRegistry.Get(id)
@@ -728,8 +727,9 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier==id then return {ok=false,error='DRAWER_CANNOT_GUESS'} end
     if rs.guessed[id] then return {ok=false,error='ALREADY_GUESSED'} end
-    local guess=tostring(data.guess or ''):match('^%s*(.-)%s*$')
-    if #guess<1 or #guess>40 then return {ok=false,error='INVALID_GUESS'} end
+    local guess=FlecityGamesText.Normalize(data.guess)
+    local guessLength=FlecityGamesText.Length(guess)
+    if guessLength<1 or guessLength>40 then return {ok=false,error='INVALID_GUESS'} end
     local correct=string.lower(guess)==string.lower(rs.prompt)
     if correct then
         rs.guessed[id]=true rs.guessedAt[id]=GetGameTimer() rs.submissions[id]=true maybeFinishDraw(room)
@@ -788,8 +788,9 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     ensureTelephoneTurn(room)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.currentIdentifier~=id or rs.mode~='text' then return {ok=false,error='NOT_YOUR_TURN'} end
-    local value=tostring(data.text or ''):match('^%s*(.-)%s*$')
-    if #value<1 or #value>80 then return {ok=false,error='INVALID_TEXT'} end
+    local value=FlecityGamesText.Normalize(data.text)
+    local textLength=FlecityGamesText.Length(value)
+    if textLength<1 or textLength>80 then return {ok=false,error='INVALID_TEXT'} end
     rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)

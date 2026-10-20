@@ -2,6 +2,7 @@ FlecityGamesParty = FlecityGamesParty or {}
 
 local rooms,roomsByCode,sourceToRoom={},{},{}
 local nextJoinOrder=0
+
 local votePrompts={
     '無人島で一番長く生き残りそうなのは？',
     'Flecityで一番有名になりそうなのは？',
@@ -26,6 +27,10 @@ local liarPrompts={
     'Flecityで一番好きな景色は？','急に大金が入ったら最初に何をする？','得意なことを1つ挙げるなら？'
 }
 local drawPrompts={'猫','車','ピザ','飛行機','魚','スマホ','家','木','カメラ','時計','サメ','ハンバーガー'}
+local telephonePrompts={
+    '赤い車で海へ行く','猫がピザを食べている','警察官が魚を釣っている','雨の中をバイクで走る',
+    '大きな家の前にスポーツカー','カメラを持って山に登る','サメがスマホを使っている','夜の街で花火を見る'
+}
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function partyGame(id)
@@ -60,7 +65,7 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
 end
 
 local function migrateHost(room)
-    if room.members[room.hostIdentifier] and not room.members[room.hostIdentifier].disconnected then return end
+    if room.hostIdentifier and room.members[room.hostIdentifier] and not room.members[room.hostIdentifier].disconnected then return end
     local selected
     for id,m in pairs(room.members) do
         if not m.disconnected and (not selected or m.joinOrder<selected.member.joinOrder) then selected={id=id,member=m} end
@@ -77,40 +82,102 @@ local function removeMember(room,id)
     if memberCount(room)==0 then rooms[room.id]=nil roomsByCode[room.code]=nil end
 end
 
+local function roomForSource(source)
+    local roomId=sourceToRoom[tonumber(source)]
+    return roomId and rooms[roomId] or nil
+end
+local function roomForIdentifier(id)
+    if not id then return nil end
+    for _,room in pairs(rooms) do if room.members[id] then return room end end
+    return nil
+end
+local function reconnectMember(room,id,source)
+    local member=room and room.members[id] or nil
+    if not member then return false end
+    member.source=tonumber(source)
+    member.disconnected=false
+    member.disconnectedAt=nil
+    member.name=FlecityGamesFramework.GetCharacterName(source)
+    sourceToRoom[tonumber(source)]=room.id
+    migrateHost(room)
+    return true
+end
+local function memberIdToIdentifier(room,memberId)
+    for id,m in pairs(room.members) do if m.memberId==memberId then return id end end
+end
+local function memberPublicId(room,id)
+    local m=room.members[id]
+    return m and m.memberId or nil
+end
+local function memberName(room,id)
+    local m=room.members[id]
+    return m and m.name or 'Player'
+end
+
+local function sanitizedStrokes(strokes,maxStrokes)
+    if type(strokes)~='table' or #strokes<1 or #strokes>(maxStrokes or 80) then return nil end
+    local clean={}
+    for _,stroke in ipairs(strokes) do
+        if type(stroke)~='table' or #stroke<2 or #stroke>48 then return nil end
+        local points={}
+        for _,point in ipairs(stroke) do
+            if type(point)~='table' then return nil end
+            local x=tonumber(point.x) local y=tonumber(point.y)
+            if not x or not y or x<0 or x>1 or y<0 or y>1 then return nil end
+            points[#points+1]={x=math.floor(x*10000+0.5)/10000,y=math.floor(y*10000+0.5)/10000}
+        end
+        clean[#clean+1]=points
+    end
+    return clean
+end
+
+local function telephonePublicChain(room,rs)
+    local out={}
+    for _,entry in ipairs(rs.chain or {}) do
+        local item={kind=entry.kind,name=entry.byIdentifier and memberName(room,entry.byIdentifier) or 'START'}
+        if entry.kind=='text' then item.text=entry.text else item.strokes=entry.strokes end
+        out[#out+1]=item
+    end
+    return out
+end
+
 local function publicRoundState(room,viewerId)
     local rs=room.roundState
     if not rs then return nil end
-    local out={token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,startedTick=rs.startedTick,complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false}
+    local out={
+        token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,startedTick=rs.startedTick,
+        complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
+    }
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
     if rs.gameId=='vote' then out.prompt=rs.prompt end
     if rs.gameId=='stop_battle' then
-        out.targetPct=rs.targetPct
-        out.periodMs=rs.periodMs
-        out.phaseMs=rs.phaseMs
-        out.motionStartTick=rs.motionStartTick
+        out.targetPct=rs.targetPct out.periodMs=rs.periodMs out.phaseMs=rs.phaseMs out.motionStartTick=rs.motionStartTick
     end
-    if rs.gameId=='majority' then
-        out.prompt=rs.prompt
-        out.options=rs.options
-    end
-    if rs.gameId=='word_wolf' then
-        out.secretTopic=rs.topics and rs.topics[viewerId] or nil
-    end
-    if rs.gameId=='liar' then
-        out.prompt=rs.prompt
-        out.role=rs.roles and rs.roles[viewerId] or nil
-    end
+    if rs.gameId=='majority' then out.prompt=rs.prompt out.options=rs.options end
+    if rs.gameId=='word_wolf' then out.secretTopic=rs.topics and rs.topics[viewerId] or nil end
+    if rs.gameId=='liar' then out.prompt=rs.prompt out.role=rs.roles and rs.roles[viewerId] or nil end
     if rs.gameId=='draw' then
-        local drawer=room.members[rs.drawerIdentifier]
         out.isDrawer=viewerId==rs.drawerIdentifier
-        out.drawerMemberId=drawer and drawer.memberId or nil
+        out.drawerMemberId=memberPublicId(room,rs.drawerIdentifier)
         out.prompt=viewerId==rs.drawerIdentifier and rs.prompt or nil
         out.strokes=rs.strokes or {}
         out.selfGuessed=rs.guessed and rs.guessed[viewerId]==true or false
         local guessedCount=0 for _ in pairs(rs.guessed or {}) do guessedCount=guessedCount+1 end
         out.guessedCount=guessedCount
     end
-    if rs.complete then out.results=rs.results end
+    if rs.gameId=='telephone' then
+        out.step=rs.step out.totalSteps=#(rs.turnOrder or {}) out.mode=rs.mode
+        out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
+        out.isCurrent=viewerId==rs.currentIdentifier
+        if out.isCurrent and not rs.complete then
+            local previous=rs.chain and rs.chain[#rs.chain] or nil
+            if rs.mode=='draw' and previous and previous.kind=='text' then out.promptText=previous.text end
+            if rs.mode=='text' and previous and previous.kind=='draw' then out.promptStrokes=previous.strokes end
+        end
+    end
+    if rs.complete then
+        if rs.gameId=='telephone' then out.results={chain=telephonePublicChain(room,rs)} else out.results=rs.results end
+    end
     return out
 end
 
@@ -130,32 +197,6 @@ local function snapshot(room,viewerId)
     }
 end
 
-local function roomForSource(source)
-    local roomId=sourceToRoom[tonumber(source)]
-    return roomId and rooms[roomId] or nil
-end
-local function roomForIdentifier(id)
-    if not id then return nil end
-    for _,room in pairs(rooms) do
-        if room.members[id] then return room end
-    end
-    return nil
-end
-local function reconnectMember(room,id,source)
-    local member=room and room.members[id] or nil
-    if not member then return false end
-    member.source=tonumber(source)
-    member.disconnected=false
-    member.disconnectedAt=nil
-    member.name=FlecityGamesFramework.GetCharacterName(source)
-    sourceToRoom[tonumber(source)]=room.id
-    migrateHost(room)
-    return true
-end
-local function memberIdToIdentifier(room,memberId)
-    for id,m in pairs(room.members) do if m.memberId==memberId then return id end end
-end
-
 function FlecityGamesParty.CreateRoom(source)
     if not FlecityGamesRateLimit.Allow(source,'room_create',FlecityGamesConfig.RateLimits.RoomCreateMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)
@@ -167,7 +208,6 @@ function FlecityGamesParty.CreateRoom(source)
     end
     local code=makeCode()
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
-
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local room={id=roomId,code=code,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
@@ -183,13 +223,11 @@ function FlecityGamesParty.JoinRoom(source,data)
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local current=roomForSource(source)
     if current then return {ok=true,room=snapshot(current,id)} end
-
     local code=tostring(data.code or ''):gsub('%s+','')
     if not code:match('^%d%d%d%d$') then return {ok=false,error='INVALID_ROOM_CODE'} end
     local roomId=roomsByCode[code]
     local room=roomId and rooms[roomId] or nil
     if not room then return {ok=false,error='ROOM_NOT_FOUND'} end
-
     local existing=room.members[id]
     if existing then
         reconnectMember(room,id,source)
@@ -197,7 +235,6 @@ function FlecityGamesParty.JoinRoom(source,data)
     end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
-
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={source=tonumber(source),memberId=makeMemberId(),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     sourceToRoom[tonumber(source)]=room.id
@@ -234,7 +271,7 @@ function FlecityGamesParty.SelectGame(source,data)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(type(data)=='table' and data.gameId or nil)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
-    local count=memberCount(room)
+    local count=connectedCount(room)
     if count<game.minPlayers or count>game.maxPlayers then return {ok=false,error='PLAYER_COUNT_UNSUPPORTED'} end
     room.selectedGame=game.id
     for _,m in pairs(room.members) do m.ready=false end
@@ -261,62 +298,54 @@ function FlecityGamesParty.StartRound(source)
 
     room.round=room.round+1 room.state='round'
     local startedTick=GetGameTimer()
-    room.roundState={token=('%s:%d:%06d'):format(room.id,room.round,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
-    if game.id=='reaction' then room.roundState.revealAfterMs=math.random(1500,4000) end
-    if game.id=='vote' then room.roundState.prompt=votePrompts[math.random(1,#votePrompts)] end
+    local rs={token=('%s:%d:%06d'):format(room.id,room.round,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
+    room.roundState=rs
+
+    if game.id=='reaction' then rs.revealAfterMs=math.random(1500,4000) end
+    if game.id=='vote' then rs.prompt=votePrompts[math.random(1,#votePrompts)] end
     if game.id=='stop_battle' then
-        room.roundState.targetPct=math.random(15,85)
-        room.roundState.periodMs=math.random(1500,2400)
-        room.roundState.phaseMs=math.random(0,room.roundState.periodMs-1)
-        room.roundState.motionStartTick=startedTick+1500
+        rs.targetPct=math.random(15,85) rs.periodMs=math.random(1500,2400) rs.phaseMs=math.random(0,rs.periodMs-1) rs.motionStartTick=startedTick+1500
     end
     if game.id=='majority' then
         local prompt=majorityPrompts[math.random(1,#majorityPrompts)]
-        room.roundState.prompt=prompt.question
-        room.roundState.options={prompt.options[1],prompt.options[2]}
+        rs.prompt=prompt.question rs.options={prompt.options[1],prompt.options[2]}
     end
     if game.id=='word_wolf' then
         local pair=wordWolfPairs[math.random(1,#wordWolfPairs)]
-        local ids=connectedIdentifiers(room)
-        local wolfId=ids[math.random(1,#ids)]
-        room.roundState.wolfIdentifier=wolfId
-        room.roundState.majorityTopic=pair[1]
-        room.roundState.wolfTopic=pair[2]
-        room.roundState.topics={}
-        for _,memberId in ipairs(ids) do room.roundState.topics[memberId]=memberId==wolfId and pair[2] or pair[1] end
+        local ids=connectedIdentifiers(room) local wolfId=ids[math.random(1,#ids)]
+        rs.wolfIdentifier=wolfId rs.majorityTopic=pair[1] rs.wolfTopic=pair[2] rs.topics={}
+        for _,memberId in ipairs(ids) do rs.topics[memberId]=memberId==wolfId and pair[2] or pair[1] end
     end
     if game.id=='liar' then
-        local ids=connectedIdentifiers(room)
-        local liarId=ids[math.random(1,#ids)]
-        room.roundState.liarIdentifier=liarId
-        room.roundState.prompt=liarPrompts[math.random(1,#liarPrompts)]
-        room.roundState.roles={}
-        for _,memberId in ipairs(ids) do room.roundState.roles[memberId]=memberId==liarId and 'LIAR' or 'TRUTH' end
+        local ids=connectedIdentifiers(room) local liarId=ids[math.random(1,#ids)]
+        rs.liarIdentifier=liarId rs.prompt=liarPrompts[math.random(1,#liarPrompts)] rs.roles={}
+        for _,memberId in ipairs(ids) do rs.roles[memberId]=memberId==liarId and 'LIAR' or 'TRUTH' end
     end
     if game.id=='draw' then
         local ids=connectedIdentifiers(room)
-        room.roundState.drawerIdentifier=ids[((room.round-1)%#ids)+1]
-        room.roundState.prompt=drawPrompts[math.random(1,#drawPrompts)]
-        room.roundState.strokes={}
-        room.roundState.guessed={}
-        room.roundState.guessedAt={}
+        rs.drawerIdentifier=ids[((room.round-1)%#ids)+1]
+        rs.prompt=drawPrompts[math.random(1,#drawPrompts)]
+        rs.strokes={} rs.guessed={} rs.guessedAt={}
     end
+    if game.id=='telephone' then
+        rs.turnOrder=connectedIdentifiers(room)
+        rs.step=1 rs.mode='draw' rs.currentIdentifier=rs.turnOrder[1]
+        rs.chain={{kind='text',text=telephonePrompts[math.random(1,#telephonePrompts)]}}
+    end
+
     for _,m in pairs(room.members) do m.ready=false end
     return {ok=true,room=snapshot(room,id)}
 end
 
 local function completedSubmissionCount(room)
-    local rs=room.roundState
-    local n=0
+    local rs=room.roundState local n=0
     for id,m in pairs(room.members) do if not m.disconnected and rs.submissions[id]~=nil then n=n+1 end end
     return n
 end
 
 local function maybeFinishReaction(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='reaction' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-
+    if not rs or rs.gameId~='reaction' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -331,22 +360,19 @@ local function maybeFinishReaction(room)
         return a.reactionMs<b.reactionMs
     end)
     for i,e in ipairs(entries) do e.place=i end
-    rs.complete=true
-    rs.results={entries=entries,winnerMemberId=entries[1] and not entries[1].flying and entries[1].memberId or nil}
+    rs.complete=true rs.results={entries=entries,winnerMemberId=entries[1] and not entries[1].flying and entries[1].memberId or nil}
 end
 
 function FlecityGamesParty.SubmitReaction(source,data)
     if not FlecityGamesRateLimit.Allow(source,'reaction_submit',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='reaction' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='reaction' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
-
-    local flying=data.flying==true
-    local reaction=nil
+    local flying=data.flying==true local reaction=nil
     local revealTick=(tonumber(rs.startedTick) or GetGameTimer())+(tonumber(rs.revealAfterMs) or 0)
     local serverSinceReveal=GetGameTimer()-revealTick
     if not flying then
@@ -354,10 +380,7 @@ function FlecityGamesParty.SubmitReaction(source,data)
         if not reaction or reaction<70 or reaction>3000 then return {ok=false,error='INVALID_REACTION'} end
         if serverSinceReveal<0 or reaction>serverSinceReveal+350 or serverSinceReveal-reaction>1800 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
         reaction=math.floor(reaction*1000+0.5)/1000
-    elseif serverSinceReveal>250 then
-        return {ok=false,error='FLYING_WINDOW_PASSED'}
-    end
-
+    elseif serverSinceReveal>250 then return {ok=false,error='FLYING_WINDOW_PASSED'} end
     rs.submissions[id]={flying=flying,reactionMs=reaction}
     maybeFinishReaction(room)
     return {ok=true,room=snapshot(room,id)}
@@ -365,64 +388,44 @@ end
 
 local function maybeFinishStopBattle(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='stop_battle' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-
+    if not rs or rs.gameId~='stop_battle' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
             local s=rs.submissions[id]
-            entries[#entries+1]={
-                memberId=m.memberId,name=m.name,
-                score=s and s.score or 0,
-                distancePct=s and s.distancePct or 100,
-                markerPct=s and s.markerPct or nil
-            }
+            entries[#entries+1]={memberId=m.memberId,name=m.name,score=s and s.score or 0,distancePct=s and s.distancePct or 100,markerPct=s and s.markerPct or nil}
         end
     end
-    table.sort(entries,function(a,b)
-        if a.score==b.score then return a.name<b.name end
-        return a.score>b.score
-    end)
+    table.sort(entries,function(a,b) if a.score==b.score then return a.name<b.name end return a.score>b.score end)
     for i,e in ipairs(entries) do e.place=i end
-    rs.complete=true
-    rs.results={entries=entries,winnerMemberId=entries[1] and entries[1].memberId or nil,targetPct=rs.targetPct}
+    rs.complete=true rs.results={entries=entries,winnerMemberId=entries[1] and entries[1].memberId or nil,targetPct=rs.targetPct}
 end
 
 function FlecityGamesParty.SubmitStopBattle(source,data)
     if not FlecityGamesRateLimit.Allow(source,'stop_battle_submit',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='stop_battle' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='stop_battle' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
-
     local actionMs=math.floor(tonumber(data.actionMs) or -1)
     if actionMs<0 or actionMs>60000 then return {ok=false,error='INVALID_TIMING'} end
     local serverElapsed=math.max(0,GetGameTimer()-(tonumber(rs.motionStartTick) or GetGameTimer()))
     if actionMs>serverElapsed+350 or serverElapsed-actionMs>1800 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-
     local marker=trianglePosition(actionMs,rs.periodMs,rs.phaseMs)
     local distance=math.abs(marker-(tonumber(rs.targetPct) or 50))
     local score=math.floor(math.max(0,1000-(distance*10))+0.5)
-    rs.submissions[id]={
-        actionMs=actionMs,score=score,
-        markerPct=math.floor(marker*100+0.5)/100,
-        distancePct=math.floor(distance*100+0.5)/100
-    }
+    rs.submissions[id]={actionMs=actionMs,score=score,markerPct=math.floor(marker*100+0.5)/100,distancePct=math.floor(distance*100+0.5)/100}
     maybeFinishStopBattle(room)
     return {ok=true,room=snapshot(room,id)}
 end
 
 local function maybeFinishMajority(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='majority' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-
-    local counts={A=0,B=0}
-    local entries={}
+    if not rs or rs.gameId~='majority' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
             local choice=rs.submissions[id]
@@ -431,132 +434,103 @@ local function maybeFinishMajority(room)
         end
     end
     table.sort(entries,function(a,b) return a.name<b.name end)
-    local winningChoice=nil
-    if counts.A>counts.B then winningChoice='A' elseif counts.B>counts.A then winningChoice='B' end
-    rs.complete=true
-    rs.results={counts=counts,entries=entries,winningChoice=winningChoice,options=rs.options}
+    local winningChoice=nil if counts.A>counts.B then winningChoice='A' elseif counts.B>counts.A then winningChoice='B' end
+    rs.complete=true rs.results={counts=counts,entries=entries,winningChoice=winningChoice,options=rs.options}
 end
 
 function FlecityGamesParty.SubmitMajority(source,data)
     if not FlecityGamesRateLimit.Allow(source,'majority_submit',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='majority' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='majority' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
-
     local choice=tostring(data.choice or '')
     if choice~='A' and choice~='B' then return {ok=false,error='INVALID_CHOICE'} end
-    rs.submissions[id]=choice
-    maybeFinishMajority(room)
+    rs.submissions[id]=choice maybeFinishMajority(room)
     return {ok=true,room=snapshot(room,id)}
 end
 
 local function maybeFinishVote(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='vote' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-
-    local counts={}
-    for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
-    local entries={}
-    local maxVotes=-1
+    if not rs or rs.gameId~='vote' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local entries={} local maxVotes=-1
     for id,m in pairs(room.members) do
         if not m.disconnected then
-            local votes=counts[id] or 0
-            if votes>maxVotes then maxVotes=votes end
+            local votes=counts[id] or 0 if votes>maxVotes then maxVotes=votes end
             entries[#entries+1]={memberId=m.memberId,name=m.name,votes=votes}
         end
     end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
-    local winners={}
-    for _,e in ipairs(entries) do if e.votes==maxVotes then winners[#winners+1]=e.memberId end end
-    rs.complete=true
-    rs.results={entries=entries,winnerMemberIds=winners}
+    local winners={} for _,e in ipairs(entries) do if e.votes==maxVotes then winners[#winners+1]=e.memberId end end
+    rs.complete=true rs.results={entries=entries,winnerMemberIds=winners}
 end
 
 function FlecityGamesParty.SubmitVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'vote_submit',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='vote' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='vote' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
-
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     if targetId==id then return {ok=false,error='SELF_VOTE_NOT_ALLOWED'} end
-
-    rs.submissions[id]=targetId
-    maybeFinishVote(room)
+    rs.submissions[id]=targetId maybeFinishVote(room)
     return {ok=true,room=snapshot(room,id)}
 end
 
 local function maybeFinishWordWolf(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='word_wolf' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={}
-    for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    if not rs or rs.gameId~='word_wolf' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
     local entries={}
-    for id,m in pairs(room.members) do
-        if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end
-    end
+    for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
-    local wolf=room.members[rs.wolfIdentifier]
     rs.complete=true
-    rs.results={entries=entries,wolfMemberId=wolf and wolf.memberId or nil,majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic}
+    rs.results={entries=entries,wolfMemberId=memberPublicId(room,rs.wolfIdentifier),majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic}
 end
 
 function FlecityGamesParty.SubmitWordWolfVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'word_wolf_vote',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='word_wolf' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='word_wolf' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
-    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
-    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
-    rs.submissions[id]=targetId
-    maybeFinishWordWolf(room)
+    rs.submissions[id]=targetId maybeFinishWordWolf(room)
     return {ok=true,room=snapshot(room,id)}
 end
 
 local function maybeFinishLiar(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='liar' or rs.complete then return end
-    if completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={}
-    for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    if not rs or rs.gameId~='liar' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
     local entries={}
-    for id,m in pairs(room.members) do
-        if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end
-    end
+    for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
-    local liar=room.members[rs.liarIdentifier]
-    rs.complete=true
-    rs.results={entries=entries,liarMemberId=liar and liar.memberId or nil,prompt=rs.prompt}
+    rs.complete=true rs.results={entries=entries,liarMemberId=memberPublicId(room,rs.liarIdentifier),prompt=rs.prompt}
 end
 
 function FlecityGamesParty.SubmitLiarVote(source,data)
     if not FlecityGamesRateLimit.Allow(source,'liar_vote',300) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
-    if type(data)~='table' or room.state~='round' or not room.roundState or room.roundState.gameId~='liar' then return {ok=false,error='INVALID_ROUND'} end
     local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='liar' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
-    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
-    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
-    rs.submissions[id]=targetId
-    maybeFinishLiar(room)
+    rs.submissions[id]=targetId maybeFinishLiar(room)
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -564,30 +538,19 @@ local function maybeFinishDraw(room)
     local rs=room.roundState
     if not rs or rs.gameId~='draw' or rs.complete then return end
     local drawer=room.members[rs.drawerIdentifier]
-    if not drawer or drawer.disconnected then
-        rs.complete=true
-        rs.results={aborted=true,prompt=rs.prompt,entries={}}
-        return
-    end
-    local needed=0
-    local guessed=0
+    if not drawer or drawer.disconnected then rs.complete=true rs.results={aborted=true,prompt=rs.prompt,entries={}} return end
+    local needed=0 local guessed=0
     for id,m in pairs(room.members) do
-        if not m.disconnected and id~=rs.drawerIdentifier then
-            needed=needed+1
-            if rs.guessed[id] then guessed=guessed+1 end
-        end
+        if not m.disconnected and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
     end
     if guessed<needed then return end
     local entries={}
     for id,m in pairs(room.members) do
-        if id~=rs.drawerIdentifier and rs.guessed[id] then
-            entries[#entries+1]={memberId=m.memberId,name=m.name,guessedAt=rs.guessedAt[id] or 0}
-        end
+        if id~=rs.drawerIdentifier and rs.guessed[id] then entries[#entries+1]={memberId=m.memberId,name=m.name,guessedAt=rs.guessedAt[id] or 0} end
     end
     table.sort(entries,function(a,b) return a.guessedAt<b.guessedAt end)
     for i,e in ipairs(entries) do e.place=i e.guessedAt=nil end
-    rs.complete=true
-    rs.results={aborted=false,prompt=rs.prompt,entries=entries,drawerMemberId=drawer.memberId}
+    rs.complete=true rs.results={aborted=false,prompt=rs.prompt,entries=entries,drawerMemberId=drawer.memberId}
 end
 
 function FlecityGamesParty.AddDrawStroke(source,data)
@@ -599,16 +562,10 @@ function FlecityGamesParty.AddDrawStroke(source,data)
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
-    if type(data.points)~='table' or #data.points<2 or #data.points>48 then return {ok=false,error='INVALID_STROKE'} end
     if #(rs.strokes or {})>=160 then return {ok=false,error='DRAW_LIMIT'} end
-    local points={}
-    for _,point in ipairs(data.points) do
-        if type(point)~='table' then return {ok=false,error='INVALID_STROKE'} end
-        local x=tonumber(point.x) local y=tonumber(point.y)
-        if not x or not y or x<0 or x>1 or y<0 or y>1 then return {ok=false,error='INVALID_STROKE'} end
-        points[#points+1]={x=math.floor(x*10000+0.5)/10000,y=math.floor(y*10000+0.5)/10000}
-    end
-    rs.strokes[#rs.strokes+1]=points
+    local clean=sanitizedStrokes({data.points},1)
+    if not clean then return {ok=false,error='INVALID_STROKE'} end
+    rs.strokes[#rs.strokes+1]=clean[1]
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -619,6 +576,7 @@ function FlecityGamesParty.ClearDrawing(source,data)
     local rs=room.roundState
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     rs.strokes={}
     return {ok=true,room=snapshot(room,id)}
@@ -634,7 +592,75 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier==id then return {ok=false,error='DRAWER_CANNOT_GUESS'} end
     if rs.guessed[id] then return {ok=false,error='ALREADY_GUESSED'} end
-    local guess=tostring(data.guess or ''):match('^%s*(.-)%s*    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
+    local guess=tostring(data.guess or ''):match('^%s*(.-)%s*$')
+    if #guess<1 or #guess>40 then return {ok=false,error='INVALID_GUESS'} end
+    local correct=string.lower(guess)==string.lower(rs.prompt)
+    if correct then rs.guessed[id]=true rs.guessedAt[id]=GetGameTimer() rs.submissions[id]=true maybeFinishDraw(room) end
+    return {ok=true,correct=correct,room=snapshot(room,id)}
+end
+
+local function advanceTelephone(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='telephone' or rs.complete then return end
+    while true do
+        rs.step=(rs.step or 1)+1
+        if rs.step>#(rs.turnOrder or {}) then rs.complete=true rs.currentIdentifier=nil return end
+        local candidate=rs.turnOrder[rs.step]
+        local member=room.members[candidate]
+        if member and not member.disconnected then
+            rs.currentIdentifier=candidate
+            rs.mode=rs.mode=='draw' and 'text' or 'draw'
+            return
+        end
+    end
+end
+
+local function ensureTelephoneTurn(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='telephone' or rs.complete then return end
+    local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+    if current and not current.disconnected then return end
+    advanceTelephone(room)
+end
+
+function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'telephone_draw',500) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForSource(source)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='telephone' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    ensureTelephoneTurn(room)
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id or rs.mode~='draw' then return {ok=false,error='NOT_YOUR_TURN'} end
+    local clean=sanitizedStrokes(data.strokes,80)
+    if not clean then return {ok=false,error='INVALID_DRAWING'} end
+    rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
+    rs.submissions[id]=(rs.submissions[id] or 0)+1
+    advanceTelephone(room)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.SubmitTelephoneText(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'telephone_text',500) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForSource(source)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='telephone' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    ensureTelephoneTurn(room)
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id or rs.mode~='text' then return {ok=false,error='NOT_YOUR_TURN'} end
+    local value=tostring(data.text or ''):match('^%s*(.-)%s*$')
+    if #value<1 or #value>80 then return {ok=false,error='INVALID_TEXT'} end
+    rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
+    rs.submissions[id]=(rs.submissions[id] or 0)+1
+    advanceTelephone(room)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.ReturnLobby(source)
+    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
@@ -643,19 +669,25 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+local function reconcileRound(room)
+    local rs=room.roundState
+    if not rs or rs.complete then return end
+    if rs.gameId=='reaction' then maybeFinishReaction(room)
+    elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room)
+    elseif rs.gameId=='vote' then maybeFinishVote(room)
+    elseif rs.gameId=='majority' then maybeFinishMajority(room)
+    elseif rs.gameId=='word_wolf' then maybeFinishWordWolf(room)
+    elseif rs.gameId=='liar' then maybeFinishLiar(room)
+    elseif rs.gameId=='draw' then maybeFinishDraw(room)
+    elseif rs.gameId=='telephone' then ensureTelephoneTurn(room)
+    end
+end
+
 function FlecityGamesParty.LeaveRoom(source)
     local id=identifier(source) local room=roomForSource(source)
     if not id or not room then return {ok=true} end
     removeMember(room,id)
-    if rooms[room.id] and room.state=='round' and room.roundState and not room.roundState.complete then
-        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-        if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-        if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-    end
+    if rooms[room.id] then reconcileRound(room) end
     return {ok=true}
 end
 
@@ -667,39 +699,22 @@ function FlecityGamesParty.DropSource(source)
     for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
     if not id then return end
     local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
-    migrateHost(room)
-    if room.state=='round' and room.roundState and not room.roundState.complete then
-        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-        if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-        if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-    end
+    migrateHost(room) reconcileRound(room)
 end
 
 function FlecityGamesParty.Cleanup()
     local now=os.time()
-    for _,room in pairs(rooms) do
-        local expired=now-room.createdAt>FlecityGamesConfig.Party.RoomMaxAgeSeconds
-        local removals={}
-        for id,m in pairs(room.members) do
-            if expired or (m.disconnected and m.disconnectedAt and now-m.disconnectedAt>FlecityGamesConfig.Party.DisconnectGraceSeconds) then removals[#removals+1]=id end
-        end
-        for _,id in ipairs(removals) do if rooms[room.id] then removeMember(room,id) end end
-        if rooms[room.id] then
-            migrateHost(room)
-            if room.state=='round' and room.roundState and not room.roundState.complete then
-                if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-                if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-                if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-                if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-                if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-                if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-                if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
+    local roomIds={} for roomId in pairs(rooms) do roomIds[#roomIds+1]=roomId end
+    for _,roomId in ipairs(roomIds) do
+        local room=rooms[roomId]
+        if room then
+            local expired=now-room.createdAt>FlecityGamesConfig.Party.RoomMaxAgeSeconds
+            local removals={}
+            for id,m in pairs(room.members) do
+                if expired or (m.disconnected and m.disconnectedAt and now-m.disconnectedAt>FlecityGamesConfig.Party.DisconnectGraceSeconds) then removals[#removals+1]=id end
             end
+            for _,id in ipairs(removals) do if rooms[roomId] then removeMember(room,id) end end
+            if rooms[roomId] then migrateHost(room) reconcileRound(room) end
         end
     end
 end
@@ -722,116 +737,8 @@ function FlecityGamesParty.DebugSelftest()
         majorityPrompts=#majorityPrompts>=4,
         wordWolfPrompts=#wordWolfPairs>=6,
         liarPrompts=#liarPrompts>=4,
-        drawPrompts=#drawPrompts>=8
-    }
-end
-
-function FlecityGamesParty.DebugCounts()
-    local roomCount,memberTotal=0,0
-    for _,room in pairs(rooms) do roomCount=roomCount+1 memberTotal=memberTotal+memberCount(room) end
-    return roomCount,memberTotal
-end
-)
-    if #guess<1 or #guess>40 then return {ok=false,error='INVALID_GUESS'} end
-    local correct=string.lower(guess)==string.lower(rs.prompt)
-    if correct then
-        rs.guessed[id]=true
-        rs.guessedAt[id]=GetGameTimer()
-        rs.submissions[id]=true
-        maybeFinishDraw(room)
-    end
-    return {ok=true,correct=correct,room=snapshot(room,id)}
-end
-
-function FlecityGamesParty.ReturnLobby(source)
-    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
-    local id=identifier(source) local room=roomForSource(source)
-    if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
-    if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
-    room.state='lobby' room.roundState=nil
-    for _,m in pairs(room.members) do m.ready=false end
-    return {ok=true,room=snapshot(room,id)}
-end
-
-function FlecityGamesParty.LeaveRoom(source)
-    local id=identifier(source) local room=roomForSource(source)
-    if not id or not room then return {ok=true} end
-    removeMember(room,id)
-    if rooms[room.id] and room.state=='round' and room.roundState and not room.roundState.complete then
-        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-        if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-        if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-    end
-    return {ok=true}
-end
-
-function FlecityGamesParty.DropSource(source)
-    local src=tonumber(source) local room=roomForSource(src)
-    sourceToRoom[src]=nil
-    if not room then return end
-    local id
-    for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
-    if not id then return end
-    local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
-    migrateHost(room)
-    if room.state=='round' and room.roundState and not room.roundState.complete then
-        if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-        if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-        if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-        if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-        if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-        if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-    end
-end
-
-function FlecityGamesParty.Cleanup()
-    local now=os.time()
-    for _,room in pairs(rooms) do
-        local expired=now-room.createdAt>FlecityGamesConfig.Party.RoomMaxAgeSeconds
-        local removals={}
-        for id,m in pairs(room.members) do
-            if expired or (m.disconnected and m.disconnectedAt and now-m.disconnectedAt>FlecityGamesConfig.Party.DisconnectGraceSeconds) then removals[#removals+1]=id end
-        end
-        for _,id in ipairs(removals) do if rooms[room.id] then removeMember(room,id) end end
-        if rooms[room.id] then
-            migrateHost(room)
-            if room.state=='round' and room.roundState and not room.roundState.complete then
-                if room.roundState.gameId=='reaction' then maybeFinishReaction(room) end
-                if room.roundState.gameId=='stop_battle' then maybeFinishStopBattle(room) end
-                if room.roundState.gameId=='vote' then maybeFinishVote(room) end
-                if room.roundState.gameId=='majority' then maybeFinishMajority(room) end
-                if room.roundState.gameId=='word_wolf' then maybeFinishWordWolf(room) end
-                if room.roundState.gameId=='liar' then maybeFinishLiar(room) end
-                if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-        if room.roundState.gameId=='draw' then maybeFinishDraw(room) end
-            end
-        end
-    end
-end
-
-function FlecityGamesParty.DebugSelftest()
-    local room={
-        hostIdentifier='host',
-        members={
-            host={disconnected=true,joinOrder=1},
-            second={disconnected=false,joinOrder=2},
-            third={disconnected=false,joinOrder=3}
-        }
-    }
-    migrateHost(room)
-    return {
-        hostMigration=room.hostIdentifier=='second',
-        connectedCount=connectedCount(room)==2,
-        memberCount=memberCount(room)==3,
-        stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
-        majorityPrompts=#majorityPrompts>=4,
-        wordWolfPrompts=#wordWolfPairs>=6,
-        liarPrompts=#liarPrompts>=4
+        drawPrompts=#drawPrompts>=8,
+        telephonePrompts=#telephonePrompts>=6
     }
 end
 

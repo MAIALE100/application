@@ -27,11 +27,29 @@ try {
         $dbService = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'mysql|maria' } | Select-Object -First 1
     }
     if ($dbService) {
-        if ($dbService.Status -eq 'Running') {
+        if ($dbService.Status -ne 'Running') {
+            Write-Host ("Database service: {0} {1} - starting..." -f $dbService.Name,$dbService.Status) -ForegroundColor Yellow
+            try {
+                Start-Service -Name $dbService.Name -ErrorAction Stop
+            }
+            catch {
+                Write-Host 'Administrator permission is required to start the database. Windows may show one UAC prompt.' -ForegroundColor Yellow
+                try {
+                    $command = "Start-Service -Name '$($dbService.Name)'"
+                    $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @('-NoProfile','-Command',$command)
+                    if ($proc.ExitCode -ne 0) { throw "elevated database start exited with code $($proc.ExitCode)" }
+                }
+                catch {
+                    Write-Host ("Could not auto-start database: {0}" -f $_.Exception.Message) -ForegroundColor Red
+                }
+            }
+            $dbService = Get-Service -Name $dbService.Name -ErrorAction SilentlyContinue
+        }
+
+        if ($dbService -and $dbService.Status -eq 'Running') {
             Write-Host ("Database service: {0} RUNNING" -f $dbService.Name) -ForegroundColor Green
         } else {
-            Write-Host ("Database service: {0} {1}" -f $dbService.Name,$dbService.Status) -ForegroundColor Yellow
-            Write-Host 'The resource update can continue, but FiveM DB features need this service running.' -ForegroundColor Yellow
+            Write-Host 'Database is still stopped. Resource files can update, but DB-backed tests will not work until it is started.' -ForegroundColor Yellow
         }
     }
 

@@ -137,6 +137,8 @@ if "submitScoreWithRetry" not in play_js:
     fail("PLAY score submission retry helper is missing")
 if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:
     fail("PLAY phone-hide lifecycle protection is missing")
+if play_js.count("FlecityBridge.call('playCancelSession'") != 1 or "async function cancelPlaySession" not in play_js:
+    fail("PLAY session cancellation must go through the shared retry helper")
 if "appEpoch" not in play_js or "APP_SUSPENDED" not in play_js or "APP_SUSPENDED" not in errors_js:
     fail("PLAY stale session-start cancellation guard is missing")
 if play_js.count("rankingGame.onchange=") != 1 or play_js.count("rankingPeriod.onchange=") != 1:

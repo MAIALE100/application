@@ -8,10 +8,12 @@
 <section id="entry" class="card stack"><button id="create">CREATE ROOM</button><div class="row"><input id="code" inputmode="numeric" maxlength="4" placeholder="ROOM CODE"><button id="join" class="secondary">JOIN</button></div></section>
 <section id="room" class="hidden">
  <div class="card stack"><div class="row"><div><div class="kicker">ROOM</div><div id="roomCode" class="big-number">----</div></div><button id="leave" class="danger">LEAVE</button></div><div id="players" class="players"></div></div>
- <div id="lobbyPanel" class="card stack"><label class="kicker" for="game">GAME</label><select id="game"><option value="reaction">REACTION</option><option value="vote">VOTE</option></select><div class="row"><button id="ready" class="secondary">READY</button><button id="start">START ROUND</button></div></div>
+ <div id="lobbyPanel" class="card stack"><label class="kicker" for="game">GAME</label><select id="game"><option value="reaction">REACTION</option><option value="stop_battle">STOP! BATTLE</option><option value="vote">VOTE</option><option value="majority">MAJORITY</option></select><div class="row"><button id="ready" class="secondary">READY</button><button id="start">START ROUND</button></div></div>
  <div id="roundPanel" class="card stack hidden">
    <div id="reactionPanel" class="hidden big-center"><div class="kicker">REACTION</div><div id="reactionMessage" class="big-number">WAIT</div><button id="reactionTap">WAIT…</button></div>
+   <div id="stopBattlePanel" class="hidden big-center"><div class="kicker">STOP! BATTLE</div><div id="stopBattleMessage" class="big-number">WAIT</div><div class="stop-track"><div id="stopBattleTarget" class="stop-target"></div><div id="stopBattleMarker" class="stop-marker"></div></div><button id="stopBattleButton">WAIT…</button></div>
    <div id="votePanel" class="hidden"><div class="kicker">VOTE</div><h2 id="votePrompt"></h2><div id="voteChoices" class="stack"></div></div>
+   <div id="majorityPanel" class="hidden"><div class="kicker">MAJORITY</div><h2 id="majorityPrompt"></h2><div id="majorityChoices" class="stack"></div></div>
    <div id="resultsPanel" class="hidden"><div class="kicker">RESULT</div><div id="results" class="stack"></div></div>
    <button id="lobby" class="secondary hidden">RETURN TO LOBBY</button>
  </div>

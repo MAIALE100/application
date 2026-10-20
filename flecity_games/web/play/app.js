@@ -137,7 +137,13 @@ const achievementLabels={
  block_master:'BLOCK MASTER · BLOCK 5,000点以上',
  perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
  number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
- high_low_streak:'HIGH ROLLER · HIGH & LOW 10連勝'
+ high_low_streak:'HIGH ROLLER · HIGH & LOW 10連勝',
+ bullseye:'BULLSEYE · STOP! 990点以上',
+ merge_master:'MERGE MASTER · 2048タイル到達',
+ mines_sprinter:'MINES SPRINTER · 60秒以内クリア',
+ nonogram_solver:'LOGIC SOLVER · NONOGRAM 60秒以内',
+ color_focus:'COLOR FOCUS · COLOR MATCH 6秒以内',
+ simon_master:'SIMON MASTER · 15ラウンド到達'
 };
 function scoreBeatsPrevious(gameId,score,daily){
  const game=gameById(gameId);if(!game)return false;

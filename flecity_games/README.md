@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.14.0-test**
+- Resource version: **0.15.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **20/20 enabled**.
+- Initial game registry: **21/21 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -45,12 +45,13 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 - SIMON — repeat an increasingly long seeded four-pad sequence; server replay validates every input
 
-### PARTY — 8/8 enabled
+### PARTY — 9/9 enabled
 
 - REACTION — synchronized reveal and server timing validation
 - STOP! BATTLE — shared server-owned target/motion state
 - VOTE — server-owned voting and aggregation
 - MAJORITY — synchronized two-choice social voting
+- MINORITY — synchronized two-choice social voting where the less-popular choice wins
 - WORD WOLF — viewer-private topics, reveal only at result
 - LIAR — viewer-private roles, reveal only at result
 - DRAW — drawer-private prompt, server-owned strokes and guesses

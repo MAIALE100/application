@@ -16,12 +16,12 @@
 <section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">スタート</button><button id="tapBack" class="secondary">戻る</button></div></section>
 <section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
 <section id="blockGame" class="hidden">
-  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div></div><button id="blockBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div><div id="blockMeta" class="game-meta">COMBO 0</div></div><button id="blockBack" class="secondary">戻る</button></div>
   <div class="card"><div id="blockBoard" class="block-board"></div></div>
   <div class="card stack"><div class="kicker">ピース</div><div id="blockPieces" class="piece-list"></div><div class="row"><button id="blockNew" class="secondary">新しく始める</button><button id="blockFinish" class="danger">終了して記録</button></div></div>
 </section>
 <section id="mergeGame" class="hidden">
-  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div></div><button id="mergeBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">MERGE</div><div id="mergeScore" class="big-number small-number">0</div><div id="mergeMeta" class="game-meta">0 MOVES · MAX 0</div></div><button id="mergeBack" class="secondary">戻る</button></div>
   <div class="card"><div id="mergeBoard" class="merge-board"></div></div>
   <div class="card stack">
     <div class="merge-controls"><span></span><button id="mergeUp" class="secondary">▲</button><span></span><button id="mergeLeft" class="secondary">◀</button><button id="mergeDown" class="secondary">▼</button><button id="mergeRight" class="secondary">▶</button></div>
@@ -34,7 +34,7 @@
   <div class="card stack"><button id="minesMode" class="secondary">モード: 開く</button><button id="minesNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="stackGame" class="hidden">
-  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div></div><button id="stackBack" class="secondary">戻る</button></div>
+  <div class="card row"><div><div class="kicker">STACK</div><div id="stackScore" class="big-number small-number">0</div><div id="stackMeta" class="game-meta">幅 72% · 速度 65</div></div><button id="stackBack" class="secondary">戻る</button></div>
   <div class="card"><div id="stackArena" class="stack-arena"><div id="stackBase" class="stack-base"></div><div id="stackMover" class="stack-mover"></div></div></div>
   <div class="card stack"><button id="stackDrop">置く</button><button id="stackNew" class="secondary">新しく始める</button></div>
 </section>

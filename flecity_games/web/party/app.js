@@ -391,6 +391,8 @@ async function bootstrap(){
  }
  await loadSettings();
  if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('Room connection restored.','good');return;}
- showEntry();if(res.error!=='NOT_IN_ROOM')status('Could not restore room: '+res.error,'error');
+ showEntry();
+ if(res.error==='NOT_IN_ROOM')status('PARTY ready · v'+String(partyConfig.version||'unknown'),'good');
+ else status('Could not restore room: '+res.error,'error');
 }
 bootstrap();

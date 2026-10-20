@@ -297,6 +297,13 @@ function FlecityGamesParty.JoinRoom(source,data)
     local current=roomForSource(source)
     if current then return {ok=true,room=snapshot(current,id)} end
 
+    local existingRoom=roomForIdentifier(id)
+    if existingRoom then
+        reconnectMember(existingRoom,id,source)
+        notifyRoom(existingRoom,source)
+        return {ok=true,reconnected=true,room=snapshot(existingRoom,id)}
+    end
+
     local code=tostring(data.code or ''):gsub('%s+','')
     local length=roomCodeLength()
     if #code~=length or not code:match('^%d+$') then return {ok=false,error='INVALID_ROOM_CODE'} end
@@ -549,7 +556,11 @@ end
 local function maybeFinishVote(room)
     local rs=room.roundState
     if not rs or rs.gameId~='vote' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local counts={}
+    for voterId,targetId in pairs(rs.submissions) do
+        local voter=room.members[voterId]
+        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+    end
     local entries={} local maxVotes=-1
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -582,7 +593,11 @@ end
 local function maybeFinishWordWolf(room)
     local rs=room.roundState
     if not rs or rs.gameId~='word_wolf' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local counts={}
+    for voterId,targetId in pairs(rs.submissions) do
+        local voter=room.members[voterId]
+        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+    end
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
@@ -608,7 +623,11 @@ end
 local function maybeFinishLiar(room)
     local rs=room.roundState
     if not rs or rs.gameId~='liar' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={} for _,targetId in pairs(rs.submissions) do counts[targetId]=(counts[targetId] or 0)+1 end
+    local counts={}
+    for voterId,targetId in pairs(rs.submissions) do
+        local voter=room.members[voterId]
+        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+    end
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
@@ -642,7 +661,9 @@ local function maybeFinishDraw(room)
     if guessed<needed then return end
     local entries={}
     for id,m in pairs(room.members) do
-        if id~=rs.drawerIdentifier and rs.guessed[id] then entries[#entries+1]={memberId=m.memberId,name=m.name,guessedAt=rs.guessedAt[id] or 0} end
+        if not m.disconnected and id~=rs.drawerIdentifier and rs.guessed[id] then
+            entries[#entries+1]={memberId=m.memberId,name=m.name,guessedAt=rs.guessedAt[id] or 0}
+        end
     end
     table.sort(entries,function(a,b) return a.guessedAt<b.guessedAt end)
     for i,e in ipairs(entries) do e.place=i e.guessedAt=nil end

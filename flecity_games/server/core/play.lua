@@ -1255,7 +1255,7 @@ local function existingScoreResponse(playerIdentifier,token)
         ok=true,
         score=tonumber(row.score) or row.score,
         details=metadata,
-        unlocked={},
+        unlocked=type(metadata.unlockedAchievements)=='table' and metadata.unlockedAchievements or {},
         daily=metadata.dailyDate~=nil,
         duplicate=true
     }
@@ -1442,6 +1442,10 @@ function FlecityGamesPlay.SubmitScore(source,data)
     sessions[token]=nil
     if game.supportsResume and not session.dailyDate then MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id}) end
     local unlocked=evaluateAchievements(id,game,score,metadata)
+    if #unlocked>0 then
+        metadata.unlockedAchievements=unlocked
+        MySQL.query.await('UPDATE flecity_game_scores SET metadata_json=? WHERE session_token=?',{json.encode(metadata),token})
+    end
     return {ok=true,score=score,details=metadata,unlocked=unlocked,daily=session.dailyDate~=nil}
 end
 

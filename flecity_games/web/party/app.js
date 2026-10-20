@@ -143,13 +143,13 @@ function setupStopBattle(room){
  if(rs.selfSubmitted){cancelAnimationFrame(stopBattleRaf);stopBattleMessage.textContent='入力済み';stopBattleButton.disabled=true;stopBattleButton.textContent='ほかの参加者を待っています';stopBattleState='submitted';return;}
  if(stopBattleState==='idle')stopBattleLoop();
 }
-function setup投票(room){
+function setupVote(room){
  const rs=room.roundState;hideRoundGames();votePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  votePrompt.textContent=rs.prompt||'投票';voteChoices.innerHTML='';beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){voteChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
-   const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submit投票(rs.token,p.memberId);voteChoices.appendChild(b);
+   const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitVote(rs.token,p.memberId);voteChoices.appendChild(b);
  });
 }
 function setupMajority(room){
@@ -231,7 +231,7 @@ function renderRoom(room){
    const rs=room.roundState;
    if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
-   else if(rs&&rs.gameId==='vote')setup投票(room);
+   else if(rs&&rs.gameId==='vote')setupVote(room);
    else if(rs&&rs.gameId==='majority')setupMajority(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
@@ -308,9 +308,9 @@ stopBattleButton.onclick=async()=>{
  const res=await FlecityBridge.call('partySubmitStopBattle',{token:rs.token,actionMs});
  if(!res.ok){status('STOP!送信失敗: '+res.error,'error');stopBattleState='idle';await refresh();return;}renderRoom(res.room);
 };
-async function submit投票(token,targetMemberId){
+async function submitVote(token,targetMemberId){
  voteChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
- const res=await FlecityBridge.call('partySubmit投票',{token,targetMemberId});
+ const res=await FlecityBridge.call('partySubmitVote',{token,targetMemberId});
  if(!res.ok){status('投票失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
 async function submitMajority(token,choice){
@@ -320,7 +320,7 @@ async function submitMajority(token,choice){
 }
 async function submitDeduction(gameId,token,targetMemberId){
  deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
- const action=gameId==='word_wolf'?'partySubmitWordWolf投票':'partySubmitLiar投票';
+ const action=gameId==='word_wolf'?'partySubmitWordWolfVote':'partySubmitLiarVote';
  const res=await FlecityBridge.call(action,{token,targetMemberId});
  if(!res.ok){status('投票失敗: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }

@@ -918,8 +918,8 @@ stackDrop.onclick=async()=>{
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);
  renderStack();
 };
-stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;showHome();};
-stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;await openStack();};
+stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('STACKを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;showHome();};
+stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('STACKをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;await openStack();};
 
 /* NONOGRAM */
 const NONOGRAM_PATTERNS_5=[
@@ -1131,8 +1131,8 @@ async function answerColorMatch(choice){
  renderColorMatch();
 }
 colorMatchStart.onclick=startColorMatch;
-colorMatchBack.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;showHome();};
-colorMatchNew.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;openColorMatch();};
+colorMatchBack.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}if(colorMatch&&colorMatch.running&&!colorMatch.finished){const ok=await confirmAction('COLOR MATCHを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;showHome();};
+colorMatchNew.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}if(colorMatch&&colorMatch.running&&!colorMatch.finished){const ok=await confirmAction('COLOR MATCHをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;openColorMatch();};
 
 /* NUMBER RUSH */
 function numberRushNext(state){
@@ -1227,12 +1227,14 @@ async function finishNumberRush(){
 numberRushStart.onclick=startNumberRush;
 numberRushBack.onclick=async()=>{
  if(numberRush&&numberRush.finalizing){setStatus('NUMBER RUSHの記録を保存中です…','warn');return;}
+ if(numberRush&&numberRush.running&&!numberRush.finished){const ok=await confirmAction('NUMBER RUSHを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}
  clearInterval(numberRushClock);numberRushClock=null;
  if(numberRush&&numberRush.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:numberRush.sessionToken});
  numberRush=null;showHome();
 };
 numberRushNew.onclick=async()=>{
  if(numberRush&&numberRush.finalizing){setStatus('NUMBER RUSHの記録を保存中です…','warn');return;}
+ if(numberRush&&numberRush.running&&!numberRush.finished){const ok=await confirmAction('NUMBER RUSHをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}
  clearInterval(numberRushClock);numberRushClock=null;
  const daily=(numberRush&&numberRush.daily)||numberRushEl.dataset.daily==='1';
  if(numberRush&&numberRush.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:numberRush.sessionToken});
@@ -1330,11 +1332,13 @@ highLowHigher.onclick=()=>guessHighLow('high');
 highLowLower.onclick=()=>guessHighLow('low');
 highLowBack.onclick=async()=>{
  if(highLow&&highLow.finalizing){setStatus('HIGH & LOWの記録を保存中です…','warn');return;}
+ if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('HIGH & LOWを終了しますか？','現在の連勝記録は保存されず終了します。','終了する');if(!ok)return;}
  if(highLow&&highLow.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:highLow.sessionToken});
  highLow=null;showHome();
 };
 highLowNew.onclick=async()=>{
  if(highLow&&highLow.finalizing){setStatus('HIGH & LOWの記録を保存中です…','warn');return;}
+ if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('HIGH & LOWをやり直しますか？','現在の連勝記録は保存されず、新しく始めます。','やり直す');if(!ok)return;}
  if(highLow&&highLow.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:highLow.sessionToken});
  highLow=null;openHighLow();
 };
@@ -1470,8 +1474,8 @@ async function pressSimon(index){
 }
 simonPads.forEach((pad,index)=>{pad.onclick=()=>pressSimon(index);});
 simonStart.onclick=startSimon;
-simonBack.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;showHome();};
-simonNew.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;openSimon();};
+simonBack.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONを終了しますか？','現在の到達ラウンドは記録されず終了します。','終了する');if(!ok)return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;showHome();};
+simonNew.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONをやり直しますか？','現在の到達ラウンドは記録されず、新しく始めます。','やり直す');if(!ok)return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;openSimon();};
 
 /* MEMORY */
 const MEMORY_SYMBOLS=['◆','●','▲','★','♣','♥','☀','☂'];
@@ -1550,12 +1554,14 @@ async function finishMemory(){
 }
 memoryBack.onclick=async()=>{
  if(memory&&memory.finalizing){setStatus('MEMORYの記録を保存中です…','warn');return;}
+ if(memory&&!memory.finished){const ok=await confirmAction('MEMORYを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}
  clearInterval(memoryClock);clearTimeout(memoryFlipTimer);memoryClock=null;memoryFlipTimer=null;
  if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});
  memory=null;showHome();
 };
 memoryNew.onclick=async()=>{
  if(memory&&memory.finalizing){setStatus('MEMORYの記録を保存中です…','warn');return;}
+ if(memory&&!memory.finished){const ok=await confirmAction('MEMORYをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}
  clearInterval(memoryClock);clearTimeout(memoryFlipTimer);memoryClock=null;memoryFlipTimer=null;
  const wasDaily=!!(memory&&memory.daily);
  if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});

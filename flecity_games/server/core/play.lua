@@ -1,6 +1,7 @@
 FlecityGamesPlay = FlecityGamesPlay or {}
 local sessions={}
 local sessionCounter=0
+local saveEpochs={}
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
 local function gameFor(id)
@@ -696,6 +697,21 @@ local function clearPlayerGameSessions(playerIdentifier,gameId)
     end
 end
 
+local function saveEpochKey(playerIdentifier,gameId)
+    return tostring(playerIdentifier or '')..':'..tostring(gameId or '')
+end
+
+local function currentSaveEpoch(playerIdentifier,gameId)
+    return tonumber(saveEpochs[saveEpochKey(playerIdentifier,gameId)]) or 0
+end
+
+local function bumpSaveEpoch(playerIdentifier,gameId)
+    local key=saveEpochKey(playerIdentifier,gameId)
+    local value=currentSaveEpoch(playerIdentifier,gameId)+1
+    saveEpochs[key]=value
+    return value
+end
+
 local function clearForeignSourceSessions(source,currentIdentifier)
     local src=tonumber(source)
     if not src or not currentIdentifier then return 0 end
@@ -752,7 +768,8 @@ function FlecityGamesPlay.StartSession(source,data)
     local startedTick=GetGameTimer()
     sessions[token]={
         playerIdentifier=id,source=tonumber(source),gameId=game.id,seed=seed,startedAt=os.time(),
-        startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate
+        startedTick=startedTick,baseElapsedMs=baseElapsedMs,challenge=challenge,dailyDate=dailyDate,
+        saveEpoch=currentSaveEpoch(id,game.id)
     }
     return {
         ok=true,game=game,sessionToken=token,seed=seed,challenge=challenge,
@@ -775,6 +792,8 @@ function FlecityGamesPlay.ResetSave(source,data)
     local game=gameFor(data.gameId)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
     if game.supportsResume~=true then return {ok=false,error='RESUME_NOT_SUPPORTED'} end
+    bumpSaveEpoch(id,game.id)
+    clearPlayerGameSessions(id,game.id)
     MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id})
     return {ok=true}
 end
@@ -791,6 +810,7 @@ function FlecityGamesPlay.Save(source,data)
     local token=tostring(data.sessionToken or '')
     local session=sessions[token]
     if not session or session.playerIdentifier~=id or session.gameId~=game.id then return {ok=false,error='INVALID_SESSION'} end
+    if tonumber(session.saveEpoch or 0)~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
     if session.dailyDate then return {ok=false,error='DAILY_SAVE_DISABLED'} end
     local seedNumber=math.floor(tonumber(session.seed) or 0)
     if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
@@ -837,6 +857,7 @@ function FlecityGamesPlay.Save(source,data)
 
     local encoded=json.encode(saveState)
     if not encoded or #encoded>FlecityGamesConfig.Play.SaveStateMaxBytes then return {ok=false,error='STATE_TOO_LARGE'} end
+    if tonumber(session.saveEpoch or 0)~=currentSaveEpoch(id,game.id) then return {ok=false,error='SAVE_RESET'} end
     local seed=tostring(seedNumber):sub(1,64)
     MySQL.query.await([[INSERT INTO flecity_game_saves
         (player_identifier,game_id,state_json,score,elapsed_ms,seed,game_version)

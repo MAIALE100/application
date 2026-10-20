@@ -833,16 +833,18 @@ async function openMines(forceNew,daily=false){
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount,mines.avoidIndex);renderMines();minesClock=setInterval(updateMinesTime,250);
 }
 async function loseMines(index){
- if(!mines||mines.finished)return;mines.finished=true;mines.lost=true;clearInterval(minesClock);renderMines();setStatus('地雷を踏みました。ゲーム終了。','warn');
- if(!mines.daily){
+ const game=mines;if(!game||game.finished)return;
+ game.finished=true;game.lost=true;clearInterval(minesClock);
+ if(mines===game){renderMines();setStatus('地雷を踏みました。ゲーム終了。','warn');}
+ if(!game.daily){
    await saveQueue.catch(()=>{});
    const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});
    if(reset.ok)delete saves.mines;
-   else setStatus('MINESの終了処理に失敗しました: '+FlecityErrors.text(reset.error),'error');
- }else if(mines.sessionToken){
-   await FlecityBridge.call('playCancelSession',{sessionToken:mines.sessionToken});
+   else if(mines===game)setStatus('MINESの終了処理に失敗しました: '+FlecityErrors.text(reset.error),'error');
+ }else if(game.sessionToken){
+   await cancelPlaySession(game.sessionToken);
  }
- mines.sessionToken=null;
+ game.sessionToken=null;
 }
 async function touchMine(index){
  if(!mines||mines.finished)return;
@@ -1161,19 +1163,25 @@ async function startColorMatch(){
  colorMatchStart.classList.add('hidden');setStatus('COLOR MATCH開始。10問連続正解を目指してください。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
 }
 async function answerColorMatch(choice){
- if(!colorMatch||!colorMatch.running||colorMatch.finished)return;
- const round=colorMatch.rounds[colorMatch.index];colorMatch.history.push(choice);
+ const game=colorMatch;if(!game||!game.running||game.finished)return;
+ const round=game.rounds[game.index];game.history.push(choice);
  if(choice!==round.ink){
-   colorMatch.running=false;colorMatch.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
-   colorMatchChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
-   colorMatchWord.textContent='MISS';colorMatchWord.style.color='';
-   if(colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});
-   colorMatch.sessionToken=null;colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
-   setStatus('不正解。10問連続正解でクリアです。','warn');return;
+   game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
+   if(colorMatch===game){
+     colorMatchChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
+     colorMatchWord.textContent='MISS';colorMatchWord.style.color='';
+   }
+   if(game.sessionToken)await cancelPlaySession(game.sessionToken);
+   game.sessionToken=null;
+   if(colorMatch===game){
+     colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
+     setStatus('不正解。10問連続正解でクリアです。','warn');
+   }
+   return;
  }
- tone(720,35);colorMatch.index+=1;
- if(colorMatch.index>=colorMatch.rounds.length){
-   const game=colorMatch;game.running=false;game.finished=true;game.finalizing=true;clearInterval(colorMatchClock);colorMatchClock=null;
+ tone(720,35);game.index+=1;
+ if(game.index>=game.rounds.length){
+   game.running=false;game.finished=true;game.finalizing=true;clearInterval(colorMatchClock);colorMatchClock=null;
    const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
    const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,history:game.history});
    game.finalizing=false;
@@ -1187,7 +1195,7 @@ async function answerColorMatch(choice){
    }
    return;
  }
- renderColorMatch();
+ if(colorMatch===game)renderColorMatch();
 }
 colorMatchStart.onclick=startColorMatch;
 colorMatchBack.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}if(colorMatch&&colorMatch.running&&!colorMatch.finished){const ok=await confirmAction('COLOR MATCHを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:colorMatch.sessionToken});colorMatch=null;showHome();};
@@ -1524,7 +1532,9 @@ async function pressSimon(index){
  const nextSequence=Array.isArray(res.sequence)?res.sequence.map(Number):[];
  const nextRound=Math.max(1,Number(res.round)||game.round+1);
  if(nextSequence.length!==nextRound||nextSequence.some(v=>!Number.isInteger(v)||v<0||v>3)){
-   setStatus('SIMONの次ラウンドを取得できませんでした。','error');return;
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;
+   if(simon===game){renderSimon();simonMessage.textContent='通信状態が不正です';setStatus('SIMONの次ラウンドを取得できませんでした。もう一度お試しください。','error');}
+   return;
  }
  simonMessage.textContent='CLEAR · ROUND '+game.round;
  game.round=nextRound;game.sequence=nextSequence;game.inputIndex=0;game.roundInputs=[];

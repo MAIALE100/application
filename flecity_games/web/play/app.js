@@ -191,31 +191,41 @@ async function refreshPlatform(){
  const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;
  bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;bootstrapData.best=res.best||bootstrapData.best||{};renderPlatform(res);renderGames(bootstrapData.games);
 }
+let launchLocked=false;
+async function withLaunchLock(fn){
+ if(launchLocked)return;
+ launchLocked=true;dailyPlay.disabled=true;
+ try{await fn();}finally{launchLocked=false;dailyPlay.disabled=false;}
+}
 async function launchDaily(){
  const daily=bootstrapData&&bootstrapData.daily;if(!daily)return;
- if(daily.gameId==='quick_tap')showQuick(true);
- else if(daily.gameId==='stop')openStop(true);
- else if(daily.gameId==='block')openBlock(true,true);
- else if(daily.gameId==='mines')openMines(true,true);
- else if(daily.gameId==='nonogram')openNonogram(true,true);
- else if(daily.gameId==='memory')openMemory(true);
- else if(daily.gameId==='number_rush')openNumberRush(true);
+ await withLaunchLock(async()=>{
+   if(daily.gameId==='quick_tap')showQuick(true);
+   else if(daily.gameId==='stop')openStop(true);
+   else if(daily.gameId==='block')await openBlock(true,true);
+   else if(daily.gameId==='mines')await openMines(true,true);
+   else if(daily.gameId==='nonogram')await openNonogram(true,true);
+   else if(daily.gameId==='memory')await openMemory(true);
+   else if(daily.gameId==='number_rush')openNumberRush(true);
+ });
 }
 dailyPlay.onclick=launchDaily;
 
-function launchGame(gameId){
- if(gameId==='quick_tap')showQuick();
- else if(gameId==='stop')openStop();
- else if(gameId==='block')openBlock(false);
- else if(gameId==='merge')openMerge(false);
- else if(gameId==='mines')openMines(false);
- else if(gameId==='stack')openStack();
- else if(gameId==='nonogram')openNonogram(false);
- else if(gameId==='memory')openMemory();
- else if(gameId==='color_match')openColorMatch();
- else if(gameId==='number_rush')openNumberRush(false);
- else if(gameId==='high_low')openHighLow();
- else if(gameId==='simon')openSimon();
+async function launchGame(gameId){
+ await withLaunchLock(async()=>{
+   if(gameId==='quick_tap')showQuick();
+   else if(gameId==='stop')openStop();
+   else if(gameId==='block')await openBlock(false);
+   else if(gameId==='merge')await openMerge(false);
+   else if(gameId==='mines')await openMines(false);
+   else if(gameId==='stack')await openStack();
+   else if(gameId==='nonogram')await openNonogram(false);
+   else if(gameId==='memory')await openMemory();
+   else if(gameId==='color_match')openColorMatch();
+   else if(gameId==='number_rush')openNumberRush(false);
+   else if(gameId==='high_low')openHighLow();
+   else if(gameId==='simon')openSimon();
+ });
 }
 function renderContinue(games){
  const resumable=(games||[]).filter(game=>game.app==='play'&&game.enabled&&saves[game.id]);

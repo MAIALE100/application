@@ -62,6 +62,7 @@ function formatDuration(ms){
  const total=Math.max(0,Math.floor(Number(ms)||0)),minutes=Math.floor(total/60000),hours=Math.floor(minutes/60);
  return hours>0?hours+'h '+(minutes%60)+'m':minutes+'m';
 }
+const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const achievementLabels={
  first_play:'FIRST PLAY · 初めてゲームをクリア',
  '100_games':'100 GAMES · 100回プレイ',
@@ -77,7 +78,7 @@ function renderPlatform(data){
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
- const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'Today\'s Best · '+formatGameScore(game,daily.best.score):'今日の記録はまだありません。';
+ const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.best?'今日のベスト · '+formatGameScore(game,daily.best.score):'今日の記録はまだありません。';
  dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
 }
 async function refreshPlatform(){
@@ -99,7 +100,7 @@ function renderGames(games){
  (games||[]).filter(g=>g.app==='play'&&g.enabled).forEach(game=>{
    const btn=document.createElement('button');btn.className='game';
    const hasSave=!!saves[game.id];
-   btn.innerHTML='<span class="tag">'+game.category+'</span><strong>'+game.name+'</strong><span class="muted">'+(hasSave?'途中から再開できます · ':'')+game.description+'</span>';
+   btn.innerHTML='<span class="tag">'+(categoryLabels[game.category]||game.category)+'</span><strong>'+game.name+'</strong><span class="muted">'+(hasSave?'途中から再開できます · ':'')+game.description+'</span>';
    btn.onclick=()=>{
      if(game.id==='quick_tap')showQuick();
      else if(game.id==='stop')openStop();

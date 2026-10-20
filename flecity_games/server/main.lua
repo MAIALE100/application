@@ -249,6 +249,24 @@ RegisterCommand('game_preflight',function(source)
     print(('%s result=%s failures=%d'):format(prefix,failures==0 and 'READY_FOR_LIVE_TEST' or 'NOT_READY',failures))
 end,false)
 
+
+RegisterCommand('game_status',function(source)
+    local prefix=source==0 and '[FlecityGames status]' or ('[FlecityGames status source=%s]'):format(source)
+    local version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
+    local qbox=tostring(FlecityGamesFramework.GetVersion() or 'unknown')
+    local phone=tostring(GetResourceMetadata('lb-phone','version',0) or 'unknown')
+    local database=tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown')
+    local playSessions=FlecityGamesPlay.DebugCounts()
+    local rooms,members=FlecityGamesParty.DebugCounts()
+    local scores=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_scores') or 0) or 0
+    local saves=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_saves') or 0) or 0
+    local achievements=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_achievements') or 0) or 0
+    print(('%s version=%s qbox=%s lb-phone=%s db=%s callbacks=%d/%d'):format(
+        prefix,version,qbox,phone,database,registeredPhoneCallbacks,expectedPhoneCallbacks))
+    print(('%s play_sessions=%d rooms=%d members=%d scores=%d saves=%d achievements=%d'):format(
+        prefix,playSessions,rooms,members,scores,saves,achievements))
+end,false)
+
 RegisterCommand('game_healthcheck',function(source)
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)
     local invalidScores,invalidSaves,invalidDaily,invalidAchievements=0,0,0,0

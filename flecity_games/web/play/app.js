@@ -53,7 +53,13 @@ async function saveSettings(){
  if(res.ok){applySettings(res.settings);tone(520,55);}else setStatus('設定を保存できません: '+FlecityErrors.text(res.error),'error');
 }
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
-function setStatus(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();}
+let statusTimer=null;
+function setStatus(text,type){
+ clearTimeout(statusTimer);statusTimer=null;
+ statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
+ if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
+ if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
+}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 let saveQueue=Promise.resolve();
 async function performSaveWithRetry(payload){

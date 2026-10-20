@@ -765,15 +765,12 @@ local function achievementsFor(playerIdentifier)
         FROM flecity_game_achievements WHERE player_identifier=? ORDER BY unlocked_at ASC]],{playerIdentifier}) or {}
 end
 local function unlockAchievement(playerIdentifier,achievementId,gameId,metadata)
-    local exists=MySQL.scalar.await([[SELECT 1 FROM flecity_game_achievements
-        WHERE player_identifier=? AND achievement_id=? LIMIT 1]],{playerIdentifier,achievementId})
-    if exists then return false end
-    local ok=pcall(function()
-        MySQL.query.await([[INSERT IGNORE INTO flecity_game_achievements
+    local ok,affected=pcall(function()
+        return MySQL.update.await([[INSERT IGNORE INTO flecity_game_achievements
             (player_identifier,achievement_id,game_id,metadata_json) VALUES (?,?,?,?)]],
             {playerIdentifier,achievementId,gameId,json.encode(metadata or {})})
     end)
-    return ok==true
+    return ok==true and tonumber(affected or 0)>0
 end
 local function evaluateAchievements(playerIdentifier,game,score,metadata)
     local unlocked={}

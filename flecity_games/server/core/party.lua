@@ -153,6 +153,21 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     return ((period-cycle)/half)*100
 end
 
+local function pickRoomPrompt(room,key,pool)
+    if type(pool)~='table' or #pool<1 then return nil end
+    room.promptIndexes=room.promptIndexes or {}
+    local previous=tonumber(room.promptIndexes[key])
+    local index
+    if previous and previous>=1 and previous<=#pool and #pool>1 then
+        local roll=math.random(1,#pool-1)
+        index=roll>=previous and (roll+1) or roll
+    else
+        index=math.random(1,#pool)
+    end
+    room.promptIndexes[key]=index
+    return pool[index]
+end
+
 local function migrateHost(room)
     if room.hostIdentifier and room.members[room.hostIdentifier] and not room.members[room.hostIdentifier].disconnected then return end
     local selected
@@ -357,7 +372,7 @@ function FlecityGamesParty.CreateRoom(source)
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},createdAt=os.time()}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -474,35 +489,35 @@ function FlecityGamesParty.StartRound(source)
     room.roundState=rs
 
     if game.id=='reaction' then rs.revealAfterMs=math.random(1500,4000) end
-    if game.id=='vote' then rs.prompt=votePrompts[math.random(1,#votePrompts)] end
+    if game.id=='vote' then rs.prompt=pickRoomPrompt(room,'vote',votePrompts) end
     if game.id=='stop_battle' then
         rs.targetPct=math.random(15,85) rs.periodMs=math.random(1500,2400) rs.phaseMs=math.random(0,rs.periodMs-1) rs.motionStartTick=startedTick+1500
     end
     if game.id=='majority' then
-        local prompt=majorityPrompts[math.random(1,#majorityPrompts)]
+        local prompt=pickRoomPrompt(room,'majority',majorityPrompts)
         rs.prompt=prompt.question rs.options={prompt.options[1],prompt.options[2]}
     end
     if game.id=='word_wolf' then
-        local pair=wordWolfPairs[math.random(1,#wordWolfPairs)]
+        local pair=pickRoomPrompt(room,'word_wolf',wordWolfPairs)
         local ids=connectedIdentifiers(room) local wolfId=ids[math.random(1,#ids)]
         rs.wolfIdentifier=wolfId rs.majorityTopic=pair[1] rs.wolfTopic=pair[2] rs.topics={}
         for _,memberId in ipairs(ids) do rs.topics[memberId]=memberId==wolfId and pair[2] or pair[1] end
     end
     if game.id=='liar' then
         local ids=connectedIdentifiers(room) local liarId=ids[math.random(1,#ids)]
-        rs.liarIdentifier=liarId rs.prompt=liarPrompts[math.random(1,#liarPrompts)] rs.roles={}
+        rs.liarIdentifier=liarId rs.prompt=pickRoomPrompt(room,'liar',liarPrompts) rs.roles={}
         for _,memberId in ipairs(ids) do rs.roles[memberId]=memberId==liarId and 'LIAR' or 'TRUTH' end
     end
     if game.id=='draw' then
         local ids=connectedIdentifiers(room)
         rs.drawerIdentifier=ids[((room.round-1)%#ids)+1]
-        rs.prompt=drawPrompts[math.random(1,#drawPrompts)]
+        rs.prompt=pickRoomPrompt(room,'draw',drawPrompts)
         rs.strokes={} rs.guessed={} rs.guessedAt={}
     end
     if game.id=='telephone' then
         rs.turnOrder=connectedIdentifiers(room)
         rs.step=1 rs.mode='draw' rs.currentIdentifier=rs.turnOrder[1]
-        rs.chain={{kind='text',text=telephonePrompts[math.random(1,#telephonePrompts)]}}
+        rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
     end
 
     for _,m in pairs(room.members) do m.ready=false end
@@ -959,6 +974,9 @@ function FlecityGamesParty.Cleanup()
 end
 
 function FlecityGamesParty.DebugSelftest()
+    local promptRoom={promptIndexes={test=1}}
+    local noRepeatPrompt=pickRoomPrompt(promptRoom,'test',{'A','B'})
+
     local revisionRoom={revision=3}
     local revisionValue=bumpRoom(revisionRoom)
 
@@ -1089,6 +1107,7 @@ function FlecityGamesParty.DebugSelftest()
     reconcileRound(telephoneSkipRoom)
 
     return {
+        promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
         roomRevision=revisionValue==4 and revisionRoom.revision==4,
         hostMigration=hostRoom.hostIdentifier=='second',
         connectedCount=connectedCount(hostRoom)==2,

@@ -732,8 +732,17 @@ local function maybeFinishWordWolf(room)
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
+    local wolfMemberId=memberPublicId(room,rs.wolfIdentifier)
+    local topVotes=entries[1] and entries[1].votes or 0
+    local topCount=0 local topMemberId=nil
+    for _,entry in ipairs(entries) do
+        if entry.votes==topVotes then topCount=topCount+1 topMemberId=entry.memberId end
+    end
     rs.complete=true
-    rs.results={entries=entries,wolfMemberId=memberPublicId(room,rs.wolfIdentifier),majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic}
+    rs.results={
+        entries=entries,wolfMemberId=wolfMemberId,majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic,
+        caught=topCount==1 and topMemberId==wolfMemberId
+    }
 end
 
 function FlecityGamesParty.SubmitWordWolfVote(source,data)
@@ -762,7 +771,14 @@ local function maybeFinishLiar(room)
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
-    rs.complete=true rs.results={entries=entries,liarMemberId=memberPublicId(room,rs.liarIdentifier),prompt=rs.prompt}
+    local liarMemberId=memberPublicId(room,rs.liarIdentifier)
+    local topVotes=entries[1] and entries[1].votes or 0
+    local topCount=0 local topMemberId=nil
+    for _,entry in ipairs(entries) do
+        if entry.votes==topVotes then topCount=topCount+1 topMemberId=entry.memberId end
+    end
+    rs.complete=true
+    rs.results={entries=entries,liarMemberId=liarMemberId,prompt=rs.prompt,caught=topCount==1 and topMemberId==liarMemberId}
 end
 
 function FlecityGamesParty.SubmitLiarVote(source,data)

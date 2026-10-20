@@ -21,6 +21,20 @@ try {
         throw "Git repository was not found: $RepoRoot"
     }
 
+    Step 'Checking local database service'
+    $dbService = Get-Service -Name 'MariaDB' -ErrorAction SilentlyContinue
+    if (-not $dbService) {
+        $dbService = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'mysql|maria' } | Select-Object -First 1
+    }
+    if ($dbService) {
+        if ($dbService.Status -eq 'Running') {
+            Write-Host ("Database service: {0} RUNNING" -f $dbService.Name) -ForegroundColor Green
+        } else {
+            Write-Host ("Database service: {0} {1}" -f $dbService.Name,$dbService.Status) -ForegroundColor Yellow
+            Write-Host 'The resource update can continue, but FiveM DB features need this service running.' -ForegroundColor Yellow
+        }
+    }
+
     Step 'Pulling latest Flecity Games'
     & git -C $RepoRoot fetch origin
     if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
@@ -53,19 +67,23 @@ try {
     Step 'Verifying copied test build'
     $manifestPath = Join-Path $Destination 'fxmanifest.lua'
     $bridgePath = Join-Path $Destination 'web\shared\bridge.js'
+    $errorsPath = Join-Path $Destination 'web\shared\errors.js'
     $playIndexPath = Join-Path $Destination 'web\play\index.html'
     $partyIndexPath = Join-Path $Destination 'web\party\index.html'
 
-    foreach ($required in @($manifestPath,$bridgePath,$playIndexPath,$partyIndexPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
     $manifestText = Get-Content $manifestPath -Raw
     $bridgeText = Get-Content $bridgePath -Raw
+    $errorsText = Get-Content $errorsPath -Raw
     $playIndexText = Get-Content $playIndexPath -Raw
     $partyIndexText = Get-Content $partyIndexPath -Raw
 
+    if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
     if ($bridgeText -notmatch 'globalThis\.fetchNui') { throw 'LB Phone fetchNui bridge check failed.' }
+    if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
     if ($playIndexText -notmatch 'componentsLoaded') { throw 'PLAY componentsLoaded loader check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded') { throw 'PARTY componentsLoaded loader check failed.' }
 

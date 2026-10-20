@@ -4,38 +4,34 @@
 
 ## 0. 起動前・更新
 
-通常の更新は、開発PCのリポジトリ直下にある `games-update.cmd` をダブルクリックするだけでよい。
+現在のテストPCでは、確実性を優先して以下の同期手順を使う。SERVER全体の再起動は不要。
 
-自動で以下を行う。
-
-- `games/platform-core` の最新版取得
-- `flecity_games/` だけをテストSERVERへ同期
-- 配置後のLB Phone Bridge / HTML / version整合性確認
-- 差分がある場合だけ `flecity_games` を自動restart
-- 差分が無ければrestartしない
-- SERVER全体は再起動しない
-
-初回だけ `restart flecity_games` をSERVERコンソールで1回実行し、dev auto-reload watcherを有効にする。
-
-resource起動時にDB作成とnon-player preflightが自動実行され、正常ならSERVERログへ
-
-```text
-[FlecityGames] startup preflight READY_FOR_LIVE_TEST
+```cmd
+cd /d D:\FiveM_Dev\application
+git pull origin games/platform-core
+robocopy "D:\FiveM_Dev\application\flecity_games" "D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games" /MIR /R:2 /W:1 /XF dev-auto-reload.enabled dev-reload.token dev-build.txt
+powershell.exe -NoProfile -Command "Set-Content -Path 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games\dev-auto-reload.enabled' -Value '1' -NoNewline -Encoding ascii; Set-Content -Path 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games\dev-reload.token' -Value ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()) -NoNewline -Encoding ascii"
 ```
 
-と表示される。
+dev auto-reload watcherが有効なら、差分反映後に `flecity_games` だけが再読込される。反応しない場合のみSERVERコンソールで `restart flecity_games` を1回実行する。
 
-`game_preflight` / `game_selftest` / `game_healthcheck` は、問題が出た時の追加診断用として残す。通常更新ごとに手動実行する必要はない。
+`games-update.cmd` は開発補助として残しているが、このテストPCでは環境依存チェックに失敗した実績があるため、完成候補の検証では上記の明示的同期を基準にする。
+
+resource起動時にDB作成とnon-player preflightが自動実行され、正常ならSERVERログへ `[FlecityGames] startup preflight READY_FOR_LIVE_TEST` と表示される。
+
+`game_preflight` / `game_selftest` / `game_healthcheck` / `game_status` は問題発生時の追加診断用。通常更新ごとに手動実行する必要はない。
 
 前提:
 
-- `oxmysql` が起動済み
+- `oxmysql` / `lb-phone` が起動済み
 - 実SERVERのFramework Adapterが一致している
-- `lb-phone` が起動済み
 - `ensure flecity_games` がserver.cfgに存在する
 - Flecity GamesのDBテーブルはresource起動時に自動作成される
-- 手動SQLは通常不要。権限不足時の予備として `sql/001_initial.sql` を残す
+- 手動SQLは通常不要
 
+---
+
+# 1. 1人で行う確認
 ---
 
 # 1. 1人で行う確認
@@ -51,15 +47,27 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 ## PLAY 共通
 
-- SOUND ON/OFFが保存される
-- REDUCED MOTIONが保存される
+- SOUND / REDUCED MOTIONが保存される
 - TODAY / WEEK / ALL TIMEランキングが開く
 - 同一キャラクターがランキングを複数枠占有しない
-- Daily Challengeが表示される
+- ゲームカードへ自分のBESTが表示される
+- ゲーム別記録へPlay Count / Play Time / BESTが表示される
+- Daily Challenge、自分のDaily BEST、上位ランキングが表示される
 - Dailyを再度開始しても同日のSeed/問題が変わらない
-- FIRST PLAY実績が初回完了後に表示される
-- Completed / Play Timeが更新される
+- NEW BEST / 実績解除が共通フィードバックで分かる
+- 実績解除数 / 総数が表示される
+- 連打しても同じゲームが二重Session起動しない
+- 一時的な開始通信失敗は自動再試行される
+- 最終スコア送信は同じSession Tokenで安全に再送でき、二重Scoreにならない
+- 最終送信中にBACK / Phone CloseしてもSessionを先に破棄しない
+- Phoneを閉じると非再開ゲームはSession / Timerが安全停止する
+- Phoneを閉じるとBLOCK / MERGE / MINES / NONOGRAMは通常プレイを保存してSessionを閉じる
+- Phone再表示までのバックグラウンド時間がスコアへ加算されない
+- 「新しく始める」は本当に進行中保存を消す場合だけ確認を出す
+- Reset直前の古いautosaveが後から保存を復活させない
+- Completed / Play Time / AchievementがDBへ反映される
 
+## QUICK TAP
 ## QUICK TAP
 
 - START → WAIT → TAP
@@ -110,35 +118,45 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 ## MINES
 
 - Reveal / Flag切替
+- 盤面を開いただけではタイマーが進まず、最初の操作から計測開始
+- 通常プレイの最初のRevealは必ず安全マス
+- Dailyは全員同一盤面を優先し、個別の初手安全化をしない
 - 0周辺の連鎖Reveal
-- Mineを踏むと終了
-- BACK → 再開
+- Mineを踏むと終了し、古い途中保存が復活しない
+- BACK / Phone Close → 再開
+- 再開後も最初の操作までタイマーが止まる
+- avoidIndexを含む途中保存から同じ盤面を再生成
 - 正常Clearのみ記録
-- Seedから再生成した盤面と一致しないClearは拒否
-- Dailyは同じ盤面
+- 盤面と一致しないClearはSERVERで拒否
+- 60秒以内Clearで MINES SPRINTER 実績
 
 ## NONOGRAM
 
+- 5×5の一意解確認済み問題セットからSeedで問題選択
 - 行/列Clue表示
 - Cellを Filled → × → Empty と切替
+- 盤面を開いただけではタイマーが進まず、最初の操作から計測開始
 - 間違った状態でCHECKしても記録されない
 - 正解のみClear記録
-- BACK → 再開
-- Dailyは同じ問題
+- BACK / Phone Close → 再開
+- 再開後も最初の操作までタイマーが止まる
+- Dailyは同じSeedから同じ問題
+- 60秒以内Clearで LOGIC SOLVER 実績
 
 ## MEMORY
 
-- 4×4で16枚 / 8ペアが表示される
-- 同じSeedでは同じカード配置になる
-- 1枚目 → 2枚目の順でめくれる
+- 4×4 / 8ペア
+- 同じSeedでは同じカード配置
+- 1.2秒Preview中はランキングタイマーへ加算しない
+- Preview終了後から実プレイ時間を計測
 - 不一致は短時間表示後に自動で伏せる
-- 一致したペアは開いたまま残る
-- 8ペア完成時のみ記録される
-- 選択履歴を改変したクリアは `INVALID_MEMORY_REPLAY` で拒否される
+- 8ペア完成時のみ記録
+- 改変履歴は `INVALID_MEMORY_REPLAY`
 - ランキングはクリア時間が短い順
-- Dailyでは全員が同じカード配置になる
-- 8手で全ペアを揃えると `PERFECT MEMORY` が解除される
+- Dailyでは全員同じ配置
+- 8手クリアで PERFECT MEMORY
 
+## COLOR MATCH
 ## COLOR MATCH
 
 - STARTで10問のランが始まる
@@ -165,29 +183,34 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 ## HIGH & LOW
 
-- START後にA〜Kの現在値が表示される
-- HIGH / LOWの2択で次の数字を予想できる
-- 同じSeedなら同じ数列になる
-- 同値が連続して判定不能にならない
-- 正解で連勝数が増える
-- 1回でも不正解ならそのRunが終了し、正解数だけ記録される
-- 30連勝でRun完走になる
-- 回答履歴を改変した送信は `INVALID_HIGH_LOW_REPLAY` で拒否される
-- 10連勝で `HIGH ROLLER` 実績が解除される
-
+- START後にA〜Kの現在値だけClientへ表示
+- 未来の数列Seed / 配列をClientへ送らない
+- HIGH / LOWを1手ずつSERVER判定
+- SERVERが正誤、次の数字、連勝数を保持
+- 1回でも不正解ならRun終了
+- 30連勝でRun完走
+- step番号付きで、応答だけ失われても同じstepを安全再送
+- 提出スコア改変は `INVALID_HIGH_LOW_REPLAY`
+- 10連勝で HIGH ROLLER
 
 ## SIMON
 
-- START後に4パネルの光る順番が再生される
+- START時にClientへ渡すのは1Round目の配列だけ
 - 1Round目は1手、以降1手ずつ長くなる
-- 再生中は入力できず、自分の番だけ押せる
-- 正しい順番を最後まで押すと次Roundへ進む
+- 再生中は入力不可
+- Round入力をSERVERへ送り正誤判定
+- 正解Roundの後だけ次Round配列をSERVERが返す
+- 未来Roundの配列 / SeedをClientへ渡さない
 - 1回でも間違えるとRun終了
-- 同じSeedなら同じ光る順番になる
-- 到達Round数がランキングへ保存される
-- 入力履歴を改変した送信は `INVALID_SIMON_REPLAY` で拒否される
-- 30Round完走でALL CLEARになる
+- round番号付きで、応答だけ失われても同じRoundを安全再送
+- SERVER保持の到達Round数だけランキング保存
+- 提出スコア改変は `INVALID_SIMON_REPLAY`
+- 15Round到達で SIMON MASTER
+- 30Round完走でALL CLEAR
 
+---
+
+# 2. 複数人確認へ進む条件
 
 ---
 

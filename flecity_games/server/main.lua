@@ -7,6 +7,7 @@ local callbacks={
     ['flecity_games:play:resetSave']=function(source,data) return FlecityGamesPlay.ResetSave(source,data) end,
     ['flecity_games:play:save']=function(source,data) return FlecityGamesPlay.Save(source,data) end,
     ['flecity_games:play:submitScore']=function(source,data) return FlecityGamesPlay.SubmitScore(source,data) end,
+    ['flecity_games:play:highLowGuess']=function(source,data) return FlecityGamesPlay.HighLowGuess(source,data) end,
     ['flecity_games:play:ranking']=function(source,data) return FlecityGamesPlay.Ranking(source,data) end,
     ['flecity_games:play:statistics']=function(source) return FlecityGamesPlay.Statistics(source) end,
     ['flecity_games:profile:getSettings']=function(source) return FlecityGamesProfile.GetSettings(source) end,

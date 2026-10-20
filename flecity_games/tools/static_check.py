@@ -121,6 +121,8 @@ if "fixBlur=true" in client or "fixBlur=false" not in client:
     fail("LB Phone fixBlur must remain disabled while the UI uses px-based CSS")
 if "globalThis.onNuiEvent" not in party_js or "registerPhonePushChannel" not in party_js:
     fail("PARTY official LB Phone push listener is missing")
+if "if(!phonePushRegistered)handlePartyMessage(event.data)" not in party_js:
+    fail("PARTY raw push fallback must be gated when onNuiEvent is active")
 if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
 if "saveWithRetry" not in play_js:

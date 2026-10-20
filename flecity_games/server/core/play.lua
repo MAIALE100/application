@@ -1621,7 +1621,10 @@ function FlecityGamesPlay.DebugSelftest()
         simonValidateRounds=simon and validateScore(simon,12)==12 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
-        saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false
+        saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false,
+        clientTimingTolerance=verifiedClientElapsed(10000,10500,2500,500)==10000
+            and verifiedClientElapsed(7000,10000,2500,500)==nil
+            and verifiedClientElapsed(11000,10000,2500,500)==nil
     }
 end
 

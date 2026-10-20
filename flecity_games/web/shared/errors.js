@@ -32,6 +32,7 @@ window.FlecityErrors = {
         INVALID_STACK_REPLAY: 'STACKのDROP履歴とスコアが一致しません',
         INVALID_MEMORY_REPLAY: 'MEMORYの選択履歴とクリア状態が一致しません',
         INVALID_COLOR_MATCH_REPLAY: 'COLOR MATCHの回答履歴とクリア状態が一致しません',
+        INVALID_NUMBER_RUSH_REPLAY: 'NUMBER RUSHのタップ履歴とクリア状態が一致しません',
         INVALID_SCORE: 'スコアが不正です',
         INVALID_TIMING: '入力タイミングが不正です',
         IMPOSSIBLE_TIMING: '成立しない入力タイミングです',

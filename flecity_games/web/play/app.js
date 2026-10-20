@@ -16,11 +16,12 @@ const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getEle
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
 const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
+const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,mergePointer=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,simon=null,simonTimer=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -68,9 +69,9 @@ function saveWithRetry(payload){
  saveQueue=task.catch(()=>{});
  return task;
 }
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -144,6 +145,7 @@ function renderGames(games){
      else if(game.id==='color_match')openColorMatch();
      else if(game.id==='number_rush')openNumberRush(false);
      else if(game.id==='high_low')openHighLow();
+     else if(game.id==='simon')openSimon();
    };
    gamesEl.appendChild(btn);
  });
@@ -1018,6 +1020,107 @@ highLowNew.onclick=async()=>{
  if(highLow&&highLow.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:highLow.sessionToken});
  highLow=null;openHighLow();
 };
+
+/* SIMON */
+function simonNext(state){
+ let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
+ x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
+}
+function simonSequenceFromSeed(seed,rounds=30){
+ const count=Math.max(1,Math.min(100,Math.floor(Number(rounds)||30)));
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ const out=[];
+ for(let i=0;i<count;i++){let value;[state,value]=simonNext(state);out.push(Math.min(3,Math.floor(value*4)));}
+ return out;
+}
+function renderSimon(){
+ const game=simon;
+ if(!game){
+   simonRound.textContent='0';simonMeta.textContent='ROUND 0 · BEST 0';simonMessage.textContent='スタートを押してください。';
+   simonPads.forEach(p=>{p.disabled=true;p.classList.remove('active','wrong');});
+   return;
+ }
+ simonRound.textContent=String(game.cleared);
+ simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
+ simonPads.forEach(p=>p.disabled=!game.accepting);
+}
+function flashSimonPad(index,duration){
+ return new Promise(resolve=>{
+   if(!simon)return resolve();
+   const pad=simonPads[index];if(!pad)return resolve();
+   pad.classList.add('active');tone([420,560,700,840][index]||660,Math.min(120,duration));
+   simonTimer=setTimeout(()=>{pad.classList.remove('active');simonTimer=setTimeout(resolve,Math.max(70,Math.round(duration*.35)));},duration);
+ });
+}
+async function playSimonSequence(){
+ const game=simon;if(!game||game.finished)return;
+ game.accepting=false;game.inputIndex=0;renderSimon();
+ simonMessage.textContent='覚えてください · '+game.round+'手';
+ await sleep(260);
+ const flashMs=Math.max(180,430-(game.round*7));
+ for(let i=0;i<game.round;i++){
+   if(simon!==game||game.finished)return;
+   await flashSimonPad(game.sequence[i],flashMs);
+ }
+ if(simon!==game||game.finished)return;
+ game.accepting=true;game.inputIndex=0;renderSimon();simonMessage.textContent='あなたの番 · 1 / '+game.round;
+}
+function openSimon(){
+ hideAll();simonEl.classList.remove('hidden');clearTimeout(simonTimer);simonTimer=null;simon=null;
+ simonStart.classList.remove('hidden');simonNew.classList.add('hidden');simonStart.disabled=false;renderSimon();
+ setStatus('光った順番を覚えて、同じ順番で押してください。','good');
+}
+async function startSimon(){
+ if(simon&&!simon.finished)return;
+ simonStart.disabled=true;
+ const session=await FlecityBridge.call('playStartSession',{gameId:'simon'});
+ if(!session.ok){simonStart.disabled=false;setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
+ simon={sessionToken:session.sessionToken,seed:Number(session.seed)||1,maxRounds,sequence:simonSequenceFromSeed(session.seed,maxRounds),round:1,cleared:0,inputIndex:0,history:[],accepting:false,finished:false,startedAt:performance.now()};
+ simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus('SIMON開始。','good');
+ await playSimonSequence();
+}
+async function finishSimon(clearedAll=false){
+ const game=simon;if(!game||game.finished)return;
+ game.finished=true;game.accepting=false;clearTimeout(simonTimer);simonTimer=null;renderSimon();
+ const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:game.sessionToken,score:game.cleared,durationMs,history:game.history});
+ if(res.ok){
+   game.sessionToken=null;simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
+   setStatus((clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンドを記録しました。','good');
+   await refreshPlatform();
+ }else{
+   game.finished=false;game.accepting=true;renderSimon();
+   setStatus('SIMON記録失敗: '+FlecityErrors.text(res.error),'error');
+ }
+}
+async function pressSimon(index){
+ const game=simon;if(!game||game.finished||!game.accepting)return;
+ game.accepting=false;simonPads.forEach(p=>p.disabled=true);
+ game.history.push(index);
+ const expected=game.sequence[game.inputIndex];
+ if(index!==expected){
+   const pad=simonPads[index];if(pad)pad.classList.add('wrong');
+   tone(150,100);simonMessage.textContent='MISS';
+   simonTimer=setTimeout(()=>{if(pad)pad.classList.remove('wrong');},260);
+   await finishSimon(false);return;
+ }
+ tone([420,560,700,840][index]||660,45);
+ game.inputIndex+=1;
+ if(game.inputIndex<game.round){
+   game.accepting=true;renderSimon();simonMessage.textContent='あなたの番 · '+String(game.inputIndex+1)+' / '+game.round;return;
+ }
+ game.cleared=game.round;renderSimon();
+ if(game.round>=game.maxRounds){await finishSimon(true);return;}
+ simonMessage.textContent='CLEAR · ROUND '+game.round;
+ game.round+=1;game.inputIndex=0;
+ await sleep(520);
+ if(simon===game&&!game.finished)await playSimonSequence();
+}
+simonPads.forEach((pad,index)=>{pad.onclick=()=>pressSimon(index);});
+simonStart.onclick=startSimon;
+simonBack.onclick=async()=>{clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;showHome();};
+simonNew.onclick=async()=>{clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:simon.sessionToken});simon=null;openSimon();};
 
 /* MEMORY */
 const MEMORY_SYMBOLS=['◆','●','▲','★','♣','♥','☀','☂'];

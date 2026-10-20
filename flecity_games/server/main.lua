@@ -81,6 +81,10 @@ CreateThread(function()
             print(('[FlecityGames] database bootstrap failed: %s'):format(tostring(dbErr)))
             return
         end
+        local gamesVersion=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
+        local phoneVersion=GetResourceMetadata('lb-phone','version',0) or 'unknown'
+        local frameworkVersion=FlecityGamesFramework.GetVersion() or 'unknown'
+        print(('[FlecityGames] version=%s qbox=%s lb-phone=%s'):format(gamesVersion,frameworkVersion,phoneVersion))
         print('[FlecityGames] database schema ready')
         for name,fn in pairs(callbacks) do
             exports['lb-phone']:RegisterCallback(name,function(source,data) return safeCall(name,fn,source,data) end,
@@ -150,7 +154,10 @@ RegisterCommand('game_preflight',function(source)
     print(prefix..' begin')
     check('lb-phone resource started',GetResourceState('lb-phone')=='started',GetResourceState('lb-phone'))
     check('oxmysql resource started',GetResourceState('oxmysql')=='started',GetResourceState('oxmysql'))
-    check('framework bridge ready',FlecityGamesFramework.IsReady()==true,FlecityGamesConfig.Framework)
+    check('framework bridge ready',FlecityGamesFramework.IsReady()==true,
+        ('%s / %s'):format(FlecityGamesConfig.Framework,tostring(FlecityGamesFramework.GetVersion() or 'unknown')))
+    check('LB Phone metadata available',GetResourceMetadata('lb-phone','version',0)~=nil,
+        tostring(GetResourceMetadata('lb-phone','version',0) or 'unknown'))
 
     local dbOk,dbErr=FlecityGamesDatabase.Ensure()
     check('database bootstrap',dbOk,dbErr)

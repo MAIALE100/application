@@ -150,6 +150,10 @@ function formatDuration(ms){
  if(minutes>0)return minutes+'m '+(seconds%60)+'s';
  return seconds+'s';
 }
+function personalBestText(gameId){
+ const game=gameById(gameId),row=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
+ return row&&game?formatGameScore(game,row.score):'---';
+}
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const achievementLabels={
@@ -464,7 +468,7 @@ async function persistBlock(showError=false){
 function renderBlock(){
  const selectedPiece=block.pieces[block.selected]||null;
  blockScore.textContent=String(block.score);
- blockMeta.textContent='COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES';
+ blockMeta.textContent='COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES · BEST '+personalBestText('block');
  blockBoard.innerHTML='';
  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
    const cell=document.createElement('button');
@@ -592,7 +596,7 @@ function renderMerge(){
    if(v>maxTile)maxTile=v;
    d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
- mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+(merge.finished?' · FINISHED':'');
+ mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+' · BEST '+personalBestText('merge')+(merge.finished?' · FINISHED':'');
  const locked=merge.finished||merge.finalizing;
  mergeUp.disabled=locked;mergeDown.disabled=locked;mergeLeft.disabled=locked;mergeRight.disabled=locked;
  mergeFinish.disabled=locked;mergeNew.disabled=merge.finalizing===true;
@@ -743,7 +747,7 @@ function updateMinesTime(){if(mines)minesTime.textContent=(elapsedMines()/1000).
 function renderMines(){
  if(!mines)return;minesBoard.innerHTML='';updateMinesTime();
  const safeTotal=mines.size*mines.size-mines.mineCount;
- minesMeta.textContent='地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
+ minesMeta.textContent='地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal)+' · BEST '+personalBestText('mines');
  for(let i=0;i<mines.size*mines.size;i++){
    const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
    b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'');
@@ -867,7 +871,7 @@ function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0
 function renderStack(){
  if(!stackGame)return;
  stackScore.textContent=String(stackGame.score);
- stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed);
+ stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed)+' · BEST '+personalBestText('stack');
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
  const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
  history.forEach((layer,i)=>{
@@ -981,7 +985,7 @@ async function activateNonogramTiming(){
 function updateNonogramTime(){if(nonogram)nonogramTime.textContent=(elapsedNonogram()/1000).toFixed(1)+'s';}
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
- nonogramMeta.textContent=String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED';
+ nonogramMeta.textContent=String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED · BEST '+personalBestText('nonogram');
  const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
  for(let x=0;x<nonogram.size;x++){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
@@ -1170,7 +1174,7 @@ function renderNumberRush(){
    numberRushProgress.textContent='1 / 25';numberRushTime.textContent='0.00s';numberRushMeta.textContent='MISS 0 · ペナルティ 0.0s';return;
  }
  numberRushProgress.textContent=(numberRush.finished?numberRush.count:Math.min(numberRush.next,numberRush.count))+' / '+numberRush.count;
- numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
+ numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s · BEST '+personalBestText('number_rush');
  numberRush.board.forEach((value,index)=>{
    const b=document.createElement('button');
    const done=numberRush.completed.has(index);
@@ -1271,7 +1275,7 @@ function renderHighLow(){
  highLowCard.textContent=highLowLabel(highLow.currentValue);
  highLowStreak.textContent=String(highLow.streak);
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds);
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · BEST '+personalBestText('high_low');
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
 }
 function openHighLow(){
@@ -1360,12 +1364,12 @@ highLowNew.onclick=async()=>{
 function renderSimon(){
  const game=simon;
  if(!game){
-   simonRound.textContent='0';simonMeta.textContent='ROUND 0 · BEST 0';simonMessage.textContent='スタートを押してください。';
+   simonRound.textContent='0';simonMeta.textContent='ROUND 0 · BEST '+personalBestText('simon');simonMessage.textContent='スタートを押してください。';
    simonPads.forEach(p=>{p.disabled=true;p.classList.remove('active','wrong');});
    return;
  }
  simonRound.textContent=String(game.cleared);
- simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
+ simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · BEST '+personalBestText('simon');
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
@@ -1510,7 +1514,7 @@ function updateMemoryTime(){if(memory)memoryTime.textContent=(elapsedMemory()/10
 function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
- memoryMeta.textContent=memory.previewing?'記憶中…':String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES';
+ memoryMeta.textContent=memory.previewing?'記憶中… · BEST '+personalBestText('memory'):String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES · BEST '+personalBestText('memory');
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);

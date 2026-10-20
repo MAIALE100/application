@@ -12,7 +12,7 @@ const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContex
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
-let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1;
+let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false;
 let reactionState='idle',reactionRaf=null;
@@ -52,7 +52,7 @@ function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
- currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;resetRoundRuntime();clearInterval(poll);poll=null;
+ currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;resetRoundRuntime();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function selectedGameConfig(room){
@@ -235,13 +235,22 @@ function setupTelephone(room){
    telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
  }
 }
-function renderRoom(room){
+function renderRoom(room,timing){
  if(!room)return false;
  const incomingRevision=Number(room.revision);
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
  currentRoom=room;ready=room.selfReady===true;
- if(Number.isFinite(Number(room.serverTick)))serverOffsetMs=Number(room.serverTick)-performance.now();
+ if(Number.isFinite(Number(room.serverTick))){
+   if(timing&&Number.isFinite(timing.started)&&Number.isFinite(timing.received)){
+     const midpoint=(timing.started+timing.received)/2;
+     serverOffsetMs=Number(room.serverTick)-midpoint;
+     serverOffsetReady=true;
+   }else if(!serverOffsetReady){
+     serverOffsetMs=Number(room.serverTick)-performance.now();
+     serverOffsetReady=true;
+   }
+ }
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
@@ -267,13 +276,15 @@ async function refresh(){
  if(refreshInFlight){refreshQueued=true;return;}
  refreshInFlight=true;
  try{
+   const started=performance.now();
    const res=await FlecityBridge.call('partyGetRoom',{});
+   const received=performance.now();
    if(!res.ok){
      if(res.error==='NOT_IN_ROOM')showEntry();
      else status('ルーム更新失敗: '+FlecityErrors.text(res.error),'error');
      return;
    }
-   renderRoom(res.room);
+   renderRoom(res.room,{started,received});
  }finally{
    refreshInFlight=false;
    if(refreshQueued){refreshQueued=false;setTimeout(refresh,0);}
@@ -465,7 +476,9 @@ async function bootstrap(){
  }
  registerPhonePushChannel();
  await loadPartyConfig();
+ const roomRequestStarted=performance.now();
  const res=await FlecityBridge.call('partyGetRoom',{});
+ const roomRequestReceived=performance.now();
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
@@ -475,7 +488,7 @@ async function bootstrap(){
    }
  }
  await loadSettings();
- if(res.ok){renderRoom(res.room);beginPolling();if(res.reconnected)status('ルームへ再接続しました。','good');return;}
+ if(res.ok){renderRoom(res.room,{started:roomRequestStarted,received:roomRequestReceived});beginPolling();if(res.reconnected)status('ルームへ再接続しました。','good');return;}
  showEntry();
  if(res.error==='NOT_IN_ROOM')status('PARTY 準備完了 · v'+String(partyConfig.version||'unknown'),'good');
  else status('ルーム復元失敗: '+FlecityErrors.text(res.error),'error');

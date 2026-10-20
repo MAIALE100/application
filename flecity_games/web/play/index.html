@@ -43,6 +43,11 @@
   <div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
   <div class="card stack"><button id="nonogramCheck">答え合わせ</button><button id="nonogramNew" class="secondary">新しい問題</button></div>
 </section>
+<section id="memoryGame" class="hidden">
+  <div class="card row"><div><div class="kicker">MEMORY</div><div id="memoryTime" class="big-number small-number">0.0s</div><div id="memoryMeta" class="game-meta">0 / 8 PAIRS · 0 MOVES</div></div><button id="memoryBack" class="secondary">戻る</button></div>
+  <div class="card"><div id="memoryBoard" class="memory-board"></div></div>
+  <div class="card stack"><button id="memoryNew" class="secondary">新しく始める</button></div>
+</section>
 </main>
 <script src="../shared/errors.js"></script>
 <script src="../shared/bridge.js"></script>

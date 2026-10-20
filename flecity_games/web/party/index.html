@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PARTY</title><link rel="stylesheet" href="../shared/app.css"></head>
 <body>
 <main class="wrap">
-<header class="header"><div><div class="kicker">PLAY TOGETHER.</div><h1>PARTY</h1><div class="muted">One room. Multiple games.</div></div></header>
-<section id="status" class="status">Create or join a room.</section>
-<section id="entry" class="card stack"><button id="create">CREATE ROOM</button><div class="row"><input id="code" inputmode="numeric" maxlength="4" placeholder="ROOM CODE"><button id="join" class="secondary">JOIN</button></div></section>
+<header class="header"><div><div class="kicker">みんなで遊ぶ。</div><h1>PARTY</h1><div class="muted">同じルームで、いろいろなゲーム。</div></div></header>
+<section id="status" class="status">ルームを作成するか、参加してください。</section>
+<section id="entry" class="card stack"><button id="create">ルーム作成</button><div class="row"><input id="code" inputmode="numeric" maxlength="4" placeholder="ルームコード"><button id="join" class="secondary">参加</button></div></section>
 <section id="room" class="hidden">
- <div class="card stack"><div class="row"><div><div class="kicker">ROOM</div><div id="roomCode" class="big-number">----</div></div><button id="leave" class="danger">LEAVE</button></div><div id="players" class="players"></div></div>
- <div id="lobbyPanel" class="card stack"><label class="kicker" for="game">GAME</label><select id="game"><option value="reaction">REACTION</option><option value="stop_battle">STOP! BATTLE</option><option value="vote">VOTE</option><option value="majority">MAJORITY</option><option value="word_wolf">WORD WOLF</option><option value="liar">LIAR</option><option value="draw">DRAW</option><option value="telephone">TELEPHONE</option></select><div class="row"><button id="ready" class="secondary">READY</button><button id="start">START ROUND</button></div></div>
+ <div class="card stack"><div class="row"><div><div class="kicker">ルーム</div><div id="roomCode" class="big-number">----</div></div><button id="leave" class="danger">退出</button></div><div id="players" class="players"></div></div>
+ <div id="lobbyPanel" class="card stack"><label class="kicker" for="game">ゲーム</label><select id="game"><option value="reaction">REACTION</option><option value="stop_battle">STOP! BATTLE</option><option value="vote">VOTE</option><option value="majority">MAJORITY</option><option value="word_wolf">WORD WOLF</option><option value="liar">LIAR</option><option value="draw">DRAW</option><option value="telephone">TELEPHONE</option></select><div class="row"><button id="ready" class="secondary">準備OK</button><button id="start">ゲーム開始</button></div></div>
  <div id="roundPanel" class="card stack hidden">
-   <div id="reactionPanel" class="hidden big-center"><div class="kicker">REACTION</div><div id="reactionMessage" class="big-number">WAIT</div><button id="reactionTap">WAIT…</button></div>
-   <div id="stopBattlePanel" class="hidden big-center"><div class="kicker">STOP! BATTLE</div><div id="stopBattleMessage" class="big-number">WAIT</div><div class="stop-track"><div id="stopBattleTarget" class="stop-target"></div><div id="stopBattleMarker" class="stop-marker"></div></div><button id="stopBattleButton">WAIT…</button></div>
+   <div id="reactionPanel" class="hidden big-center"><div class="kicker">REACTION</div><div id="reactionMessage" class="big-number">待機</div><button id="reactionTap">待って…</button></div>
+   <div id="stopBattlePanel" class="hidden big-center"><div class="kicker">STOP! BATTLE</div><div id="stopBattleMessage" class="big-number">待機</div><div class="stop-track"><div id="stopBattleTarget" class="stop-target"></div><div id="stopBattleMarker" class="stop-marker"></div></div><button id="stopBattleButton">待って…</button></div>
    <div id="votePanel" class="hidden"><div class="kicker">VOTE</div><h2 id="votePrompt"></h2><div id="voteChoices" class="stack"></div></div>
    <div id="majorityPanel" class="hidden"><div class="kicker">MAJORITY</div><h2 id="majorityPrompt"></h2><div id="majorityChoices" class="stack"></div></div>
    <div id="deductionPanel" class="hidden"><div id="deductionGame" class="kicker">WORD WOLF</div><h2 id="deductionSecret"></h2><p id="deductionHint" class="muted"></p><div id="deductionChoices" class="stack"></div></div>
-   <div id="drawPanel" class="hidden"><div class="kicker">DRAW</div><h2 id="drawPrompt">DRAWING…</h2><p id="drawProgress" class="muted"></p><canvas id="drawCanvas" width="360" height="260"></canvas><div id="drawDrawerControls" class="stack"><button id="drawClear" class="secondary">CLEAR</button></div><div id="drawGuessControls" class="row"><input id="drawGuess" maxlength="40" placeholder="答えを入力"><button id="drawGuessSubmit">GUESS</button></div></div>
-   <div id="telephonePanel" class="hidden"><div class="kicker">TELEPHONE</div><h2 id="telephoneStatus">WAITING…</h2><p id="telephoneHint" class="muted"></p><div id="telephoneTextPrompt" class="status hidden"></div><canvas id="telephoneCanvas" class="hidden" width="360" height="260"></canvas><div id="telephoneDrawControls" class="stack hidden"><button id="telephoneClear" class="secondary">CLEAR</button><button id="telephoneDrawSubmit">SUBMIT DRAWING</button></div><div id="telephoneTextControls" class="row hidden"><input id="telephoneText" maxlength="80" placeholder="絵から読み取った内容"><button id="telephoneTextSubmit">SUBMIT</button></div></div>
-   <div id="resultsPanel" class="hidden"><div class="kicker">RESULT</div><div id="results" class="stack"></div></div>
-   <button id="lobby" class="secondary hidden">RETURN TO LOBBY</button>
+   <div id="drawPanel" class="hidden"><div class="kicker">DRAW</div><h2 id="drawPrompt">DRAWING…</h2><p id="drawProgress" class="muted"></p><canvas id="drawCanvas" width="360" height="260"></canvas><div id="drawDrawerControls" class="stack"><button id="drawClear" class="secondary">消去</button></div><div id="drawGuessControls" class="row"><input id="drawGuess" maxlength="40" placeholder="答えを入力"><button id="drawGuessSubmit">回答</button></div></div>
+   <div id="telephonePanel" class="hidden"><div class="kicker">TELEPHONE</div><h2 id="telephoneStatus">待機中…</h2><p id="telephoneHint" class="muted"></p><div id="telephoneTextPrompt" class="status hidden"></div><canvas id="telephoneCanvas" class="hidden" width="360" height="260"></canvas><div id="telephoneDrawControls" class="stack hidden"><button id="telephoneClear" class="secondary">消去</button><button id="telephoneDrawSubmit">絵を送信</button></div><div id="telephoneTextControls" class="row hidden"><input id="telephoneText" maxlength="80" placeholder="絵から読み取った内容"><button id="telephoneTextSubmit">送信</button></div></div>
+   <div id="resultsPanel" class="hidden"><div class="kicker">結果</div><div id="results" class="stack"></div></div>
+   <button id="lobby" class="secondary hidden">ロビーに戻る</button>
  </div>
 </section>
-<section class="card stack"><div class="kicker">SETTINGS</div><label class="setting-row"><span>SOUND</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>REDUCED MOTION</span><input id="settingMotion" type="checkbox"></label></section>
+<section class="card stack"><div class="kicker">設定</div><label class="setting-row"><span>サウンド</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>動きを抑える</span><input id="settingMotion" type="checkbox"></label></section>
 </main>
 <script src="../shared/bridge.js"></script>
 <script>

@@ -9,9 +9,9 @@ const blockEl=document.getElementById('blockGame'),blockBoard=document.getElemen
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
-const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
+const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesMeta=document.getElementById('minesMeta'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
-const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
+const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
@@ -504,6 +504,8 @@ function mineCountAround(index){let n=0;mineNeighbors(index).forEach(i=>{if(mine
 function updateMinesTime(){if(mines)minesTime.textContent=(elapsedMines()/1000).toFixed(1)+'s';}
 function renderMines(){
  if(!mines)return;minesBoard.innerHTML='';updateMinesTime();
+ const safeTotal=mines.size*mines.size-mines.mineCount;
+ minesMeta.textContent='地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
  for(let i=0;i<mines.size*mines.size;i++){
    const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
    b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'');
@@ -675,6 +677,7 @@ function elapsedNonogram(){return (nonogram?nonogram.elapsedBase:0)+(nonogram?pe
 function updateNonogramTime(){if(nonogram)nonogramTime.textContent=(elapsedNonogram()/1000).toFixed(1)+'s';}
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
+ nonogramMeta.textContent=String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED';
  const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
  for(let x=0;x<nonogram.size;x++){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));

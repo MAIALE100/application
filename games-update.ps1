@@ -59,7 +59,11 @@ try {
 
     $currentBranch = (& git -C $RepoRoot branch --show-current).Trim()
     if ($currentBranch -ne $Branch) {
-        throw "Current branch is '$currentBranch'. Switch to '$Branch' once before using this updater."
+        Write-Host ("Switching branch: {0} -> {1}" -f $currentBranch,$Branch) -ForegroundColor Yellow
+        & git -C $RepoRoot switch $Branch
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not switch to '$Branch'. Local edits may conflict; no files were discarded."
+        }
     }
 
     & git -C $RepoRoot pull --ff-only origin $Branch

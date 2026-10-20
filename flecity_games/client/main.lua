@@ -86,6 +86,27 @@ RegisterNetEvent('flecity_games:client:partyUpdate',function(room)
     end
 end)
 
+RegisterNetEvent('flecity_games:client:partyDrawStroke',function(data)
+    if GetResourceState('lb-phone')~='started' or type(data)~='table' then return end
+    pcall(function()
+        exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
+            type='partyDrawStroke',
+            token=data.token,
+            points=data.points
+        })
+    end)
+end)
+
+RegisterNetEvent('flecity_games:client:partyDrawClear',function(data)
+    if GetResourceState('lb-phone')~='started' or type(data)~='table' then return end
+    pcall(function()
+        exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
+            type='partyDrawClear',
+            token=data.token
+        })
+    end)
+end)
+
 RegisterNUICallback('flecityGames:callback',function(data,cb)
     if type(data)~='table' then return cb({ok=false,error='INVALID_REQUEST'}) end
     local callbackName=callbackMap[tostring(data.action or '')]

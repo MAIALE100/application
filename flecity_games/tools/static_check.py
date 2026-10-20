@@ -58,6 +58,32 @@ if "ui_page" in fx:
 if "globalThis.fetchNui" not in bridge:
     fail("LB Phone fetchNui bridge is missing")
 
+if "'lb-phone'" not in fx or "'oxmysql'" not in fx:
+    fail("fxmanifest dependencies must include lb-phone and oxmysql")
+
+config = read("flecity_games/config/shared.lua")
+identifiers = re.findall(r"identifier\s*=\s*'([^']+)'", config)
+if len(identifiers) < 2 or len(set(identifiers[:2])) != 2:
+    fail("PLAY and PARTY app identifiers must both exist and be unique")
+
+sql = read("flecity_games/sql/001_initial.sql")
+if re.search(r"\b(DROP\s+TABLE|TRUNCATE\s+TABLE)\b", sql, re.I):
+    fail("destructive DDL found in initial SQL")
+
+lua_sources = [
+    p for p in GAME.rglob("*.lua")
+    if p.as_posix() != (GAME / "server/bridge/framework.lua").as_posix()
+]
+for source in lua_sources:
+    text = source.read_text(encoding="utf-8", errors="ignore")
+    if "exports.qbx_core" in text or "exports['qbx_core']" in text or 'exports["qbx_core"]' in text:
+        fail(f"framework-specific qbx_core access outside adapter: {source.relative_to(ROOT)}")
+
+if "partyUpdate" not in client or "partyDrawStroke" not in client:
+    fail("PARTY direct-push client wiring is missing")
+if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
+    fail("PARTY direct-push UI wiring is missing")
+
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",
     "INVALID_MERGE_REPLAY",

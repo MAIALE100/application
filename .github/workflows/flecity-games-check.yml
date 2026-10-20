@@ -1,0 +1,26 @@
+name: Flecity Games Static Check
+
+on:
+  push:
+    branches:
+      - games/platform-core
+    paths:
+      - 'flecity_games/**'
+      - '.github/workflows/flecity-games-check.yml'
+  pull_request:
+    paths:
+      - 'flecity_games/**'
+      - '.github/workflows/flecity-games-check.yml'
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check flecity_games/web/shared/bridge.js
+          node --check flecity_games/web/play/app.js
+          node --check flecity_games/web/party/app.js
+      - name: Check Flecity Games wiring
+        run: python3 flecity_games/tools/static_check.py

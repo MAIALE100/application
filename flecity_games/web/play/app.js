@@ -813,8 +813,9 @@ memoryBack.onclick=async()=>{
 };
 memoryNew.onclick=async()=>{
  clearInterval(memoryClock);clearTimeout(memoryFlipTimer);memoryClock=null;memoryFlipTimer=null;
+ const wasDaily=!!(memory&&memory.daily);
  if(memory&&!memory.finished&&memory.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:memory.sessionToken});
- memory=null;await openMemory();
+ memory=null;await openMemory(wasDaily);
 };
 
 bootstrap();

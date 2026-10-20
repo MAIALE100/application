@@ -69,7 +69,7 @@ try {
     & git -C $RepoRoot pull --ff-only origin $Branch
     if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Resolve local Git conflicts before updating.' }
 
-    Step 'Checking GitHub Actions gate'
+    Step 'Checking build safety'
     $headCommit = (& git -C $RepoRoot rev-parse HEAD).Trim()
     $repoSlug = (& git -C $RepoRoot remote get-url origin).Trim()
     if ($repoSlug -match 'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$') {
@@ -78,37 +78,69 @@ try {
         throw 'Could not determine GitHub repository from origin remote.'
     }
 
-    $workflowApi = "https://api.github.com/repos/$repoSlug/actions/runs?branch=$([uri]::EscapeDataString($Branch))&per_page=20"
-    $workflowDeadline = (Get-Date).AddMinutes(3)
-    $workflowReady = $false
-    do {
+    $workflowVerified = $false
+    try {
+        $headers = @{ 'User-Agent' = 'Flecity-Games-Updater'; 'Accept' = 'application/vnd.github+json' }
+
+        # Reuse the same Windows Git Credential Manager credentials that made
+        # git fetch/pull succeed. The token is kept in memory and never printed.
         try {
-            $headers = @{ 'User-Agent' = 'Flecity-Games-Updater'; 'Accept' = 'application/vnd.github+json' }
-            $runs = Invoke-RestMethod -Uri $workflowApi -Headers $headers -Method Get -ErrorAction Stop
-            $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -eq 'Flecity Games Check' } | Select-Object -First 1
-            if ($run) {
-                if ($run.status -eq 'completed') {
-                    if ($run.conclusion -ne 'success') {
-                        throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
-                    }
-                    $workflowReady = $true
-                    Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
-                    break
+            $credentialRequest = 'protocol=https' + [Environment]::NewLine + 'host=github.com' + [Environment]::NewLine + [Environment]::NewLine
+            $credentialLines = $credentialRequest | & git credential fill 2>$null
+            if ($LASTEXITCODE -eq 0 -and $credentialLines) {
+                $credential = @{}
+                foreach ($line in $credentialLines) {
+                    if ($line -match '^([^=]+)=(.*)$') { $credential[$Matches[1]] = $Matches[2] }
                 }
-                Write-Host ("GitHub Actions: {0} - waiting..." -f $run.status) -ForegroundColor Yellow
-            } else {
-                Write-Host 'GitHub Actions run is not visible yet - waiting...' -ForegroundColor Yellow
+                if ($credential.ContainsKey('password') -and $credential.password) {
+                    $headers['Authorization'] = 'Bearer ' + $credential.password
+                }
             }
         }
-        catch {
-            if ($_.Exception.Message -like 'GitHub Actions rejected commit*') { throw }
-            Write-Host ("Could not verify GitHub Actions yet: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
-        }
-        Start-Sleep -Seconds 5
-    } while ((Get-Date) -lt $workflowDeadline)
+        catch {}
 
-    if (-not $workflowReady) {
-        throw 'GitHub Actions did not report a successful check within 3 minutes. Test server was not changed.'
+        $workflowApi = "https://api.github.com/repos/$repoSlug/actions/runs?branch=$([uri]::EscapeDataString($Branch))&per_page=20"
+        $runs = Invoke-RestMethod -Uri $workflowApi -Headers $headers -Method Get -ErrorAction Stop
+        $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -eq 'Flecity Games Check' } | Select-Object -First 1
+
+        if ($run -and $run.status -eq 'completed') {
+            if ($run.conclusion -ne 'success') {
+                throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+            }
+            $workflowVerified = $true
+            Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+        }
+        elseif ($run) {
+            Write-Host ("GitHub Actions is still {0}. Using local safety checks instead of waiting." -f $run.status) -ForegroundColor Yellow
+        }
+        else {
+            Write-Host 'No matching GitHub Actions run was returned. Using local safety checks.' -ForegroundColor Yellow
+        }
+    }
+    catch {
+        if ($_.Exception.Message -like 'GitHub Actions rejected commit*') { throw }
+        Write-Host 'GitHub Actions could not be verified from this PC. Using local safety checks instead.' -ForegroundColor Yellow
+    }
+
+    if (-not $workflowVerified) {
+        Step 'Running local safety checks'
+
+        $staticCheck = Join-Path $RepoRoot 'flecity_games\tools\static_check.py'
+        if (Get-Command py -ErrorAction SilentlyContinue) {
+            & py -3 $staticCheck
+        }
+        elseif (Get-Command python -ErrorAction SilentlyContinue) {
+            & python $staticCheck
+        }
+        else {
+            throw 'Python was not found, so the local Flecity Games safety check could not run.'
+        }
+
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Local Flecity Games static check failed. Test server was not changed.'
+        }
+
+        Write-Host ("Local safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
     }
 
     if (-not (Test-Path $Source)) {

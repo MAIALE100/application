@@ -5,6 +5,7 @@ const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=doc
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
+const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0;
@@ -22,7 +23,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');deductionPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;resetRoundRuntime();clearInterval(poll);poll=null;
@@ -52,6 +53,12 @@ function renderResults(room){
    summary.textContent='A: '+options[0]+' ('+Number(counts.A||0)+') / B: '+options[1]+' ('+Number(counts.B||0)+')';
    resultsEl.appendChild(summary);
    rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const label=e.choice==='A'?options[0]:options[1];d.innerHTML='<span>'+e.name+'</span><strong>'+label+'</strong>';resultsEl.appendChild(d);});
+ }else if(rs.gameId==='word_wolf'){
+   const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
+   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const wolf=e.memberId===rs.results.wolfMemberId?' ← WOLF':'';d.innerHTML='<span>'+e.name+wolf+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
+ }else if(rs.gameId==='liar'){
+   const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';d.innerHTML='<span>'+e.name+liar+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
  }
 }
 function beginRoundToken(rs){
@@ -110,6 +117,21 @@ function setupMajority(room){
  const options=Array.isArray(rs.options)?rs.options:['A','B'];
  ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.token,choice);majorityChoices.appendChild(b);});
 }
+function setupDeduction(room){
+ const rs=room.roundState;hideRoundGames();deductionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);deductionChoices.innerHTML='';
+ if(rs.gameId==='word_wolf'){
+   deductionGame.textContent='WORD WOLF';deductionSecret.textContent='あなたのお題: '+String(rs.secretTopic||'---');
+   deductionHint.textContent='全員で会話して、違うお題を持っていると思う人に投票してください。';
+ }else{
+   deductionGame.textContent='LIAR';deductionSecret.textContent='質問: '+String(rs.prompt||'---');
+   deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には嘘で答えてください。':'あなたはTRUTHです。質問には正直に答えてください。';
+ }
+ if(rs.complete){renderResults(room);return;}
+ if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
+ room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
+   const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);
+ });
+}
 function renderRoom(room){
  currentRoom=room;ready=room.selfReady===true;
  if(Number.isFinite(Number(room.serverTick)))serverOffsetMs=Number(room.serverTick)-performance.now();
@@ -124,6 +146,7 @@ function renderRoom(room){
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);
    else if(rs&&rs.gameId==='majority')setupMajority(room);
+   else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
  }
 }
 async function refresh(){
@@ -166,6 +189,12 @@ async function submitMajority(token,choice){
  majorityChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
  const res=await FlecityBridge.call('partySubmitMajority',{token,choice});
  if(!res.ok){status('Majority failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
+}
+async function submitDeduction(gameId,token,targetMemberId){
+ deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
+ const action=gameId==='word_wolf'?'partySubmitWordWolfVote':'partySubmitLiarVote';
+ const res=await FlecityBridge.call(action,{token,targetMemberId});
+ if(!res.ok){status('Vote failed: '+res.error,'error');await refresh();return;}renderRoom(res.room);
 }
 lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('Could not return: '+res.error,'error');return;}renderRoom(res.room);};
 leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('Left the room.');};

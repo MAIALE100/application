@@ -116,7 +116,12 @@ async function startSessionWithRetry(payload){
      }
      return res;
    }
-   if(!retryable.has(res.error))return res;
+   if(!retryable.has(res.error)){
+     if(['DAILY_GAME_MISMATCH','DAILY_EXPIRED'].includes(res.error)){
+       try{await refreshPlatform();}catch(_){}
+     }
+     return res;
+   }
    if(attempt<2)await sleep(res.error==='RATE_LIMIT'?450:180*(attempt+1));
  }
  return res;
@@ -127,7 +132,13 @@ async function submitScoreWithRetry(payload){
  let res={ok:false,error:'EMPTY_RESPONSE'};
  for(let attempt=0;attempt<3;attempt++){
    res=await FlecityBridge.call('playSubmitScore',snapshot);
-   if(res.ok||!retryable.has(res.error))return res;
+   if(res.ok)return res;
+   if(!retryable.has(res.error)){
+     if(['DAILY_GAME_MISMATCH','DAILY_EXPIRED'].includes(res.error)){
+       try{await refreshPlatform();}catch(_){}
+     }
+     return res;
+   }
    if(attempt<2)await sleep(res.error==='RATE_LIMIT'?800:(res.error==='SCORE_SAVE_FAILED'?600:240)*(attempt+1));
  }
  return res;

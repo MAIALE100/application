@@ -162,6 +162,21 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     return ((period-cycle)/half)*100
 end
 
+local function ticTacWinner(board)
+    local lines={{1,2,3},{4,5,6},{7,8,9},{1,4,7},{2,5,8},{3,6,9},{1,5,9},{3,5,7}}
+    for _,line in ipairs(lines) do
+        local a,b,c=line[1],line[2],line[3]
+        local mark=board and board[a] or nil
+        if mark and mark~='' and board[b]==mark and board[c]==mark then return mark end
+    end
+    return nil
+end
+
+local function ticTacFull(board)
+    for i=1,9 do if not board[i] or board[i]=='' then return false end end
+    return true
+end
+
 local function pickRoomPrompt(room,key,pool)
     if type(pool)~='table' or #pool<1 then return nil end
     room.promptIndexes=room.promptIndexes or {}
@@ -270,6 +285,12 @@ local function publicRoundState(room,viewerId)
         out.targetPct=rs.targetPct out.periodMs=rs.periodMs out.phaseMs=rs.phaseMs out.motionStartTick=rs.motionStartTick
     end
     if rs.gameId=='majority' or rs.gameId=='minority' then out.prompt=rs.prompt out.options=rs.options end
+    if rs.gameId=='tic_tac' then
+        out.board=rs.board or {}
+        out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
+        out.isCurrent=viewerId==rs.currentIdentifier
+        out.symbol=rs.symbols and rs.symbols[viewerId] or nil
+    end
     if rs.gameId=='word_wolf' then out.secretTopic=rs.topics and rs.topics[viewerId] or nil end
     if rs.gameId=='liar' then out.prompt=rs.prompt out.role=rs.roles and rs.roles[viewerId] or nil end
     if rs.gameId=='draw' then
@@ -532,6 +553,13 @@ function FlecityGamesParty.StartRound(source)
         local prompt=pickRoomPrompt(room,game.id,majorityPrompts)
         rs.prompt=prompt.question rs.options={prompt.options[1],prompt.options[2]}
     end
+    if game.id=='tic_tac' then
+        local ids=connectedIdentifiers(room)
+        rs.board={'','','','','','','','',''}
+        rs.turnOrder={ids[1],ids[2]}
+        rs.currentIdentifier=ids[1]
+        rs.symbols={[ids[1]]='X',[ids[2]]='O'}
+    end
     if game.id=='word_wolf' then
         local pair=pickRoomPrompt(room,'word_wolf',wordWolfPairs)
         local majorityTopic,wolfTopic=pair[1],pair[2]
@@ -717,6 +745,50 @@ function FlecityGamesParty.SubmitMinority(source,data)
     if choice~='A' and choice~='B' then return {ok=false,error='INVALID_CHOICE'} end
     rs.submissions[id]=choice
     maybeFinishMinority(room)
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.SubmitTicTac(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'tic_tac_move',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='tic_tac' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+
+    local cell=math.floor(tonumber(data.cell) or 0)
+    if cell<1 or cell>9 then return {ok=false,error='INVALID_CHOICE'} end
+    rs.board=rs.board or {'','','','','','','','',''}
+    if rs.board[cell] and rs.board[cell]~='' then return {ok=false,error='CELL_OCCUPIED'} end
+
+    local symbol=rs.symbols and rs.symbols[id] or nil
+    if symbol~='X' and symbol~='O' then return {ok=false,error='INVALID_ROUND'} end
+    rs.board[cell]=symbol
+    rs.submissions[id]=(rs.submissions[id] or 0)+1
+
+    local winner=ticTacWinner(rs.board)
+    if winner then
+        rs.complete=true
+        local winnerIdentifier=nil
+        for playerId,mark in pairs(rs.symbols or {}) do if mark==winner then winnerIdentifier=playerId break end end
+        rs.results={
+            board=rs.board,
+            winnerMemberId=memberPublicId(room,winnerIdentifier),
+            winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or 'Player',
+            winnerSymbol=winner,
+            draw=false
+        }
+    elseif ticTacFull(rs.board) then
+        rs.complete=true
+        rs.results={board=rs.board,draw=true}
+    else
+        local first,second=rs.turnOrder[1],rs.turnOrder[2]
+        rs.currentIdentifier=id==first and second or first
+    end
+
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1034,6 +1106,9 @@ reconcileRound=function(room)
     elseif rs.gameId=='vote' then maybeFinishVote(room)
     elseif rs.gameId=='majority' then maybeFinishMajority(room)
     elseif rs.gameId=='minority' then maybeFinishMinority(room)
+    elseif rs.gameId=='tic_tac' then
+        local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+        if not current or current.disconnected then abortRound(room,'PLAYER_LEFT') end
     elseif rs.gameId=='word_wolf' then maybeFinishWordWolf(room)
     elseif rs.gameId=='liar' then maybeFinishLiar(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
@@ -1150,6 +1225,17 @@ function FlecityGamesParty.DebugSelftest()
     }}
     maybeFinishMinority(minorityRoom)
 
+    local ticTacRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,joinOrder=2}
+    },roundState={
+        token='tic',gameId='tic_tac',startedAt=0,startedTick=0,complete=false,submissions={},
+        board={'X','X','','O','O','','','',''},turnOrder={'a','b'},currentIdentifier='a',
+        symbols={a='X',b='O'}
+    }}
+    ticTacRoom.roundState.board[3]='X'
+    local ticWinner=ticTacWinner(ticTacRoom.roundState.board)
+
     local reactionRoom={members=members,roundState={
         token='reaction',gameId='reaction',startedAt=0,startedTick=0,complete=false,
         submissions={
@@ -1250,6 +1336,7 @@ function FlecityGamesParty.DebugSelftest()
             and minorityRoom.roundState.results.winningChoice=='B'
             and minorityRoom.roundState.results.counts.A==2
             and minorityRoom.roundState.results.counts.B==1,
+        ticTacWinner=ticWinner=='X' and ticTacFull({'X','O','X','X','O','O','O','X','X'})==true,
         reactionRanking=reactionRoom.roundState.complete==true
             and reactionRoom.roundState.results.entries[1].memberId=='C'
             and reactionRoom.roundState.results.entries[2].memberId=='A'

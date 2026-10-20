@@ -20,6 +20,9 @@ local callbacks={
     ['flecity_games:party:submitMajority']=function(source,data) return FlecityGamesParty.SubmitMajority(source,data) end,
     ['flecity_games:party:submitWordWolfVote']=function(source,data) return FlecityGamesParty.SubmitWordWolfVote(source,data) end,
     ['flecity_games:party:submitLiarVote']=function(source,data) return FlecityGamesParty.SubmitLiarVote(source,data) end,
+    ['flecity_games:party:addDrawStroke']=function(source,data) return FlecityGamesParty.AddDrawStroke(source,data) end,
+    ['flecity_games:party:clearDrawing']=function(source,data) return FlecityGamesParty.ClearDrawing(source,data) end,
+    ['flecity_games:party:submitDrawGuess']=function(source,data) return FlecityGamesParty.SubmitDrawGuess(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

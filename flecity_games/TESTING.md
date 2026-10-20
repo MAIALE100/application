@@ -163,6 +163,19 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - ノーミス12秒以内で `NUMBER ACE` 実績が解除される
 
 
+## HIGH & LOW
+
+- START後にA〜Kの現在値が表示される
+- HIGH / LOWの2択で次の数字を予想できる
+- 同じSeedなら同じ数列になる
+- 同値が連続して判定不能にならない
+- 正解で連勝数が増える
+- 1回でも不正解ならそのRunが終了し、正解数だけ記録される
+- 30連勝でRun完走になる
+- 回答履歴を改変した送信は `INVALID_HIGH_LOW_REPLAY` で拒否される
+- 10連勝で `HIGH ROLLER` 実績が解除される
+
+
 ---
 
 # 2. 複数人確認へ進む条件
@@ -170,7 +183,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 10ゲームが1クライアントで起動
+- PLAY 11ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる

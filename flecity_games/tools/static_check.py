@@ -203,10 +203,14 @@ if "replayHighLow" not in play_lua or "highLowReplay" not in play_lua:
     fail("HIGH & LOW server replay/selftest is missing")
 if "HighLowGuess" not in play_lua or "highLowServerState" not in play_lua or "serverAuthoritative=true" not in play_lua:
     fail("HIGH & LOW server-authoritative state validation is missing")
+if "lastStep" not in play_lua or "step=highLow.completed+1" not in play_js:
+    fail("HIGH & LOW idempotent action numbering is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")
 if "SubmitSimonRound" not in play_lua or "simonServerState" not in play_lua:
     fail("SIMON server-authoritative round validation is missing")
+if "lastRound" not in play_lua or "sendSimonRound(inputs,round)" not in play_js:
+    fail("SIMON idempotent round numbering is missing")
 
 party_lua = read("flecity_games/server/core/party.lua")
 framework_lua = read("flecity_games/server/bridge/framework.lua")

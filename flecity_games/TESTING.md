@@ -247,6 +247,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 - VOTE
 - MAJORITY
+- MINORITY
 - WORD WOLF
 - LIAR
 - TELEPHONE
@@ -262,6 +263,13 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 全員同じ2択を表示
 - 回答済み状態が同期
 - 集計数一致
+
+### MINORITY
+
+- 全員がA/Bどちらかを選べる
+- 人数が少ない選択肢が勝ちになる
+- 同数なら勝者なしになる
+- 切断者を集計へ含めない
 
 ### WORD WOLF
 - 各自には自分のお題だけ見える

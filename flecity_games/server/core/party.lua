@@ -808,6 +808,50 @@ function FlecityGamesParty.DebugSelftest()
     }}
     maybeFinishMajority(majorityRoom)
 
+    local reactionRoom={members=members,roundState={
+        token='reaction',gameId='reaction',startedAt=0,startedTick=0,complete=false,
+        submissions={
+            a={flying=false,reactionMs=220},
+            b={flying=true,reactionMs=nil},
+            c={flying=false,reactionMs=180}
+        }
+    }}
+    maybeFinishReaction(reactionRoom)
+
+    local stopRoom={members=members,roundState={
+        token='stop',gameId='stop_battle',startedAt=0,startedTick=0,complete=false,
+        submissions={
+            a={score=800,distancePct=20,markerPct=30},
+            b={score=900,distancePct=10,markerPct=40},
+            c={score=700,distancePct=30,markerPct=20}
+        },
+        targetPct=50
+    }}
+    maybeFinishStopBattle(stopRoom)
+
+    local voteRoom={members=members,roundState={
+        token='vote',gameId='vote',startedAt=0,startedTick=0,complete=false,
+        submissions={a='b',b='c',c='b'}
+    }}
+    maybeFinishVote(voteRoom)
+
+    drawRoom.roundState.guessed={b=true,c=true}
+    drawRoom.roundState.guessedAt={b=100,c=200}
+    drawRoom.roundState.submissions={b=true,c=true}
+    maybeFinishDraw(drawRoom)
+
+    local telephoneSkipMembers={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+    }
+    local telephoneSkipRoom={members=telephoneSkipMembers,roundState={
+        token='tel-skip',gameId='telephone',startedAt=0,startedTick=0,complete=false,submissions={},
+        turnOrder={'a','b','c'},step=1,mode='draw',currentIdentifier='a',
+        chain={{kind='text',text='秘密のお題'}}
+    }}
+    advanceTelephone(telephoneSkipRoom,true)
+
     return {
         hostMigration=hostRoom.hostIdentifier=='second',
         connectedCount=connectedCount(hostRoom)==2,
@@ -815,14 +859,28 @@ function FlecityGamesParty.DebugSelftest()
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
         majorityPrompts=#majorityPrompts>=4,
         majorityAggregation=majorityRoom.roundState.complete==true and majorityRoom.roundState.results.counts.A==2 and majorityRoom.roundState.results.counts.B==1,
+        reactionRanking=reactionRoom.roundState.complete==true
+            and reactionRoom.roundState.results.entries[1].memberId=='C'
+            and reactionRoom.roundState.results.entries[2].memberId=='A'
+            and reactionRoom.roundState.results.entries[3].memberId=='B',
+        stopBattleRanking=stopRoom.roundState.complete==true and stopRoom.roundState.results.entries[1].memberId=='B',
+        voteAggregation=voteRoom.roundState.complete==true
+            and voteRoom.roundState.results.entries[1].memberId=='B'
+            and voteRoom.roundState.results.entries[1].votes==2,
         wordWolfPrompts=#wordWolfPairs>=6,
         wordWolfPrivacy=wolfA.secretTopic=='猫' and wolfC.secretTopic=='犬' and wolfA.topics==nil and wolfC.topics==nil,
         liarPrompts=#liarPrompts>=4,
         liarPrivacy=liarA.role=='TRUTH' and liarB.role=='LIAR' and liarA.roles==nil and liarB.roles==nil,
         drawPrompts=#drawPrompts>=8,
         drawPrivacy=drawA.prompt=='猫' and drawB.prompt==nil and drawA.isDrawer==true and drawB.isDrawer==false,
+        drawCompletion=drawRoom.roundState.complete==true
+            and #drawRoom.roundState.results.entries==2
+            and drawRoom.roundState.results.entries[1].memberId=='B',
         telephonePrompts=#telephonePrompts>=6,
-        telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false
+        telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false,
+        telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3
+            and telephoneSkipRoom.roundState.currentIdentifier=='c'
+            and telephoneSkipRoom.roundState.mode=='text'
     }
 end
 

@@ -2,27 +2,39 @@
 
 この手順は、1人で確認できる範囲を先に完了し、その後に2〜3人でPARTY同期を確認するためのテスト手順です。
 
-## 0. 起動前
+## 0. 起動前・更新
 
-- `oxmysql` が起動済み
-- 実サーバーのFramework Adapterが一致している
-- `lb-phone` が起動済み
-- `ensure flecity_games` を追加
-- Flecity GamesのDBテーブルはresource起動時に自動作成される
-- 手動SQLは通常不要。権限不足時の予備として `sql/001_initial.sql` を残す
+通常の更新は、開発PCのリポジトリ直下にある `games-update.cmd` をダブルクリックするだけでよい。
 
-SERVERコンソール:
+自動で以下を行う。
+
+- `games/platform-core` の最新版取得
+- `flecity_games/` だけをテストSERVERへ同期
+- 配置後のLB Phone Bridge / HTML / version整合性確認
+- 差分がある場合だけ `flecity_games` を自動restart
+- 差分が無ければrestartしない
+- SERVER全体は再起動しない
+
+初回だけ `restart flecity_games` をSERVERコンソールで1回実行し、dev auto-reload watcherを有効にする。
+
+resource起動時にDB作成とnon-player preflightが自動実行され、正常ならSERVERログへ
 
 ```text
-ensure flecity_games
-game_preflight
-game_selftest
-game_healthcheck
+[FlecityGames] startup preflight READY_FOR_LIVE_TEST
 ```
 
-`game_preflight` の最終行が `READY_FOR_LIVE_TEST` になること。
+と表示される。
 
-プレイヤーとしてSERVERへ入った状態でも `game_preflight` を実行し、character identifier と profile settings read がPASSすること。
+`game_preflight` / `game_selftest` / `game_healthcheck` は、問題が出た時の追加診断用として残す。通常更新ごとに手動実行する必要はない。
+
+前提:
+
+- `oxmysql` が起動済み
+- 実SERVERのFramework Adapterが一致している
+- `lb-phone` が起動済み
+- `ensure flecity_games` がserver.cfgに存在する
+- Flecity GamesのDBテーブルはresource起動時に自動作成される
+- 手動SQLは通常不要。権限不足時の予備として `sql/001_initial.sql` を残す
 
 ---
 
@@ -69,6 +81,7 @@ game_healthcheck
 - はみ出した分だけ幅が狭くなる
 - 完全に外すと終了する
 - Score/Heightが保存される
+- DROP履歴とSERVER再計算が一致した時だけ記録される
 
 ## BLOCK
 
@@ -117,7 +130,7 @@ game_healthcheck
 
 以下が全て満たされたらPARTY実機確認へ進む。
 
-- `game_preflight` = `READY_FOR_LIVE_TEST`
+- resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
 - PLAY 7ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作

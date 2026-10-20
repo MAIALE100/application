@@ -420,7 +420,7 @@ local function dailyRankingRows(challenge,limit)
     local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
     local safeLimit=math.max(1,math.min(50,tonumber(limit) or 20))
     local dailyPattern=('%%"dailyDate":"%s"%%'):format(challenge.date)
-    local sql=([[SELECT s.player_identifier,COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
+    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? AND s.created_at>=? AND s.created_at<DATE_ADD(?,INTERVAL 1 DAY)
         AND s.metadata_json LIKE ?

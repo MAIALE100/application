@@ -388,10 +388,18 @@ function FlecityGamesPlay.StartSession(source,data)
     end
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
 
-    local resumeSeed=tonumber(data.resumeSeed)
     if not seed then
-        seed=math.random(1,2147483646)
-        if game.supportsResume==true and resumeSeed and resumeSeed>=1 and resumeSeed<=2147483646 then seed=math.floor(resumeSeed) end
+        if game.supportsResume==true and data.resume==true then
+            local savedSeed=MySQL.scalar.await([[SELECT seed FROM flecity_game_saves
+                WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
+            local resumeSeed=tonumber(savedSeed)
+            if not resumeSeed or resumeSeed<1 or resumeSeed>2147483646 then
+                return {ok=false,error='SAVE_NOT_FOUND'}
+            end
+            seed=math.floor(resumeSeed)
+        else
+            seed=math.random(1,2147483646)
+        end
     end
     local challenge=challengeFor(game,seed)
     local token=newToken(id,game.id)

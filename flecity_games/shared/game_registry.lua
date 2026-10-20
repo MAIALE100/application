@@ -24,7 +24,7 @@ local defs = {
     {id='word_wolf',name='WORD WOLF',app='party',category='voice',description='Discuss similar secret topics and find the minority.',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1},
     {id='liar',name='LIAR',app='party',category='voice',description='Find the player assigned to answer with a lie.',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1},
     {id='draw',name='DRAW',app='party',category='creative',description='Draw the prompt and let the room guess.',minPlayers=2,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1},
-    {id='telephone',name='TELEPHONE',app='party',category='creative',description='Alternate text and drawings, then reveal the full chain.',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=false,version=1}
+    {id='telephone',name='TELEPHONE',app='party',category='creative',description='Alternate text and drawings, then reveal the full chain.',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1}
 }
 
 for _, def in ipairs(defs) do register(def) end

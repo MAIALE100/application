@@ -538,13 +538,13 @@ async function placeBlock(x,y){
 }
 async function finishBlock(){
  const game=block;if(!game||game.finished||game.finalizing)return;
- game.finished=true;game.finalizing=true;
+ game.finished=true;game.finalizing=true;if(block===game)renderBlock();
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
- if(res.ok){if(!game.daily)delete saves.block;if(block===game)showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');await refreshPlatform();}
+ if(res.ok){if(!game.daily)delete saves.block;if(block===game){showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');renderBlock();}await refreshPlatform();}
  else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;
-   if(block===game)setStatus('BLOCKの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');
+   if(block===game){setStatus('BLOCKの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderBlock();}
  }
 }
 blockBack.onclick=async()=>{
@@ -668,13 +668,13 @@ async function moveMerge(direction){
 }
 async function finishMerge(){
  const game=merge;if(!game||game.finished||game.finalizing)return;
- game.finished=true;game.finalizing=true;
+ game.finished=true;game.finalizing=true;if(merge===game)renderMerge();
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
- if(res.ok){delete saves.merge;if(merge===game)showScoreResult('merge',res,'MERGE '+res.score+'点');await refreshPlatform();}
+ if(res.ok){delete saves.merge;if(merge===game){showScoreResult('merge',res,'MERGE '+res.score+'点');renderMerge();}await refreshPlatform();}
  else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;
-   if(merge===game)setStatus('MERGEの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');
+   if(merge===game){setStatus('MERGEの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderMerge();}
  }
 }
 mergeBack.onclick=async()=>{

@@ -24,6 +24,18 @@ local function elapsedForSession(session)
     return activeElapsed,total
 end
 
+local function verifiedClientElapsed(clientValue,serverValue,maxBehind,maxAhead)
+    local client=tonumber(clientValue)
+    local server=tonumber(serverValue)
+    if not client or not server or client~=client or server~=server then return nil end
+    client=math.max(0,math.min(28800000,math.floor(client)))
+    server=math.max(0,math.min(28800000,math.floor(server)))
+    local behind=math.max(0,tonumber(maxBehind) or 2500)
+    local ahead=math.max(0,tonumber(maxAhead) or 350)
+    if client>server+ahead or server-client>behind then return nil end
+    return client
+end
+
 local function newToken(_,gameId)
     sessionCounter=(sessionCounter+1)%1000000000
     return ('play:%s:%d:%09d:%06d:%06d'):format(
@@ -1149,7 +1161,9 @@ function FlecityGamesPlay.Save(source,data)
     local seedNumber=math.floor(tonumber(session.seed) or 0)
     if seedNumber<1 or seedNumber>2147483646 then return {ok=false,error='INVALID_SESSION_SEED'} end
 
-    local _,elapsed=elapsedForSession(session)
+    local _,serverElapsed=elapsedForSession(session)
+    local elapsed=verifiedClientElapsed(data.elapsedMs,serverElapsed,3000,500)
+    if elapsed==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
     local saveState=data.state
     local score=tonumber(data.score) or 0
 
@@ -1322,7 +1336,10 @@ function FlecityGamesPlay.SubmitScore(source,data)
             if not seen[index] then seen[index]=true revealedCount=revealedCount+1 end
         end
         if revealedCount~=(size*size-mineCount) then return {ok=false,error='INCOMPLETE_CLEAR'} end
-        rawScore=durationMs metadata.revealedCount=revealedCount metadata.boardSize=size metadata.mineCount=mineCount
+        local verified=verifiedClientElapsed(clientDurationMs,totalServerElapsed,2500,500)
+        if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=verified rawScore=verified
+        metadata.revealedCount=revealedCount metadata.boardSize=size metadata.mineCount=mineCount metadata.clientTimingVerified=true
     elseif game.id=='nonogram' then
         if session.timingActivated~=true then return {ok=false,error='TIMER_NOT_STARTED'} end
         if type(data.filled)~='table' then return {ok=false,error='INVALID_CLEAR_STATE'} end
@@ -1337,22 +1354,28 @@ function FlecityGamesPlay.SubmitScore(source,data)
         if count~=solutionCount then return {ok=false,error='INCORRECT_SOLUTION'} end
         for index in pairs(solution) do if not submitted[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
         for index in pairs(submitted) do if not solution[index] then return {ok=false,error='INCORRECT_SOLUTION'} end end
-        rawScore=durationMs metadata.boardSize=size metadata.filledCount=count
+        local verified=verifiedClientElapsed(clientDurationMs,totalServerElapsed,2500,500)
+        if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=verified rawScore=verified
+        metadata.boardSize=size metadata.filledCount=count metadata.clientTimingVerified=true
     elseif game.id=='memory' then
         local replayed=replayMemory(session.seed,data.history)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_MEMORY_REPLAY'} end
         local previewMs=math.max(0,math.min(5000,math.floor(tonumber(session.challenge.previewMs) or 1200)))
         if serverElapsed<previewMs+1300 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        durationMs=math.max(0,totalServerElapsed-previewMs)
-        rawScore=durationMs
-        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.replayValidated=true
+        local serverPlayElapsed=math.max(0,totalServerElapsed-previewMs)
+        local verified=verifiedClientElapsed(clientDurationMs,serverPlayElapsed,2500,500)
+        if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=verified rawScore=verified
+        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.replayValidated=true metadata.clientTimingVerified=true
     elseif game.id=='color_match' then
         local replayed=replayColorMatch(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_COLOR_MATCH_REPLAY'} end
         if serverElapsed<1200 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        durationMs=totalServerElapsed
-        rawScore=durationMs
-        metadata.rounds=replayed.rounds metadata.replayValidated=true
+        local verified=verifiedClientElapsed(clientDurationMs,totalServerElapsed,2500,500)
+        if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        durationMs=verified rawScore=verified
+        metadata.rounds=replayed.rounds metadata.replayValidated=true metadata.clientTimingVerified=true
     elseif game.id=='number_rush' then
         local replayed=replayNumberRush(session.seed,data.history,session.challenge.count)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_NUMBER_RUSH_REPLAY'} end

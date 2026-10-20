@@ -275,6 +275,61 @@ local function replaySimon(seed,history,rounds)
     return {ended=ended,cleared=cleared,round=round,history=normalized,sequence=sequence}
 end
 
+local function simonRoundSequence(state)
+    if type(state)~='table' or type(state.sequence)~='table' then return nil end
+    local round=math.floor(tonumber(state.round) or 1)
+    if round<1 or round>math.floor(tonumber(state.maxRounds) or 30) then return nil end
+    local out={}
+    for i=1,round do out[i]=state.sequence[i] end
+    return out
+end
+
+local function newSimonState(seed,rounds)
+    local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
+    local state={
+        sequence=generateSimonSequence(seed,maxRounds),
+        maxRounds=maxRounds,
+        round=1,
+        cleared=0,
+        ended=false
+    }
+    return state
+end
+
+local function applySimonRound(state,inputs)
+    if type(state)~='table' or state.ended or type(inputs)~='table' then return nil end
+    local round=math.floor(tonumber(state.round) or 1)
+    if #inputs<1 or #inputs>round then return nil end
+    local normalized={}
+    local mismatch=false
+    for i,raw in ipairs(inputs) do
+        local value=tonumber(raw)
+        if not value or value~=math.floor(value) or value<0 or value>3 then return nil end
+        normalized[i]=value
+        if value~=state.sequence[i] then mismatch=true end
+    end
+
+    if mismatch or #normalized<round then
+        state.ended=true
+        return {correct=false,ended=true,cleared=state.cleared,round=round}
+    end
+
+    state.cleared=round
+    if round>=state.maxRounds then
+        state.ended=true
+        return {correct=true,ended=true,cleared=state.cleared,round=round,clearedAll=true}
+    end
+
+    state.round=round+1
+    return {
+        correct=true,
+        ended=false,
+        cleared=state.cleared,
+        round=state.round,
+        sequence=simonRoundSequence(state)
+    }
+end
+
 local function trianglePosition(elapsedMs,periodMs,phaseMs)
     local period=math.max(400,tonumber(periodMs) or 1800)
     local phase=tonumber(phaseMs) or 0
@@ -841,6 +896,11 @@ function FlecityGamesPlay.StartSession(source,data)
         sessions[token].highLow=highLow
         challenge.currentValue=highLow.sequence[1]
         publicSeed=nil
+    elseif game.id=='simon' then
+        local simonState=newSimonState(seed,challenge.rounds)
+        sessions[token].simon=simonState
+        challenge.sequence=simonRoundSequence(simonState)
+        publicSeed=nil
     end
     return {
         ok=true,game=game,sessionToken=token,seed=publicSeed,challenge=challenge,
@@ -863,6 +923,25 @@ function FlecityGamesPlay.HighLowGuess(source,data)
     end
     if not session.highLow or session.highLow.ended then return {ok=false,error='ROUND_COMPLETE'} end
     local result=applyHighLowGuess(session.highLow,data.guess)
+    if not result then return {ok=false,error='INVALID_CHOICE'} end
+    result.ok=true
+    return result
+end
+
+function FlecityGamesPlay.SubmitSimonRound(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'simon_round',160) then return {ok=false,error='RATE_LIMIT'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local id=identifier(source)
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    if not session or session.playerIdentifier~=id or session.gameId~='simon' then return {ok=false,error='INVALID_SESSION'} end
+    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
+        sessions[token]=nil
+        return {ok=false,error='EXPIRED_SESSION'}
+    end
+    if not session.simon or session.simon.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    local result=applySimonRound(session.simon,data.inputs)
     if not result then return {ok=false,error='INVALID_CHOICE'} end
     result.ok=true
     return result
@@ -1116,15 +1195,15 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.streak=streak
         metadata.serverAuthoritative=true
     elseif game.id=='simon' then
-        local replayed=replaySimon(session.seed,data.history,session.challenge.rounds)
-        if not replayed or not replayed.ended then return {ok=false,error='INVALID_SIMON_REPLAY'} end
+        local state=session.simon
+        if not state or state.ended~=true then return {ok=false,error='INVALID_SIMON_REPLAY'} end
         local submitted=math.floor(tonumber(data.score) or -1)
-        if submitted~=replayed.cleared then return {ok=false,error='INVALID_SIMON_REPLAY'} end
-        rawScore=replayed.cleared
+        local cleared=math.floor(tonumber(state.cleared) or -1)
+        if submitted~=cleared then return {ok=false,error='INVALID_SIMON_REPLAY'} end
+        rawScore=cleared
         durationMs=math.min(serverElapsed,28800000)
-        metadata.rounds=replayed.cleared
-        metadata.inputs=#replayed.history
-        metadata.replayValidated=true
+        metadata.rounds=cleared
+        metadata.serverAuthoritative=true
     end
 
     local score=validateScore(game,rawScore)
@@ -1249,6 +1328,14 @@ function FlecityGamesPlay.DebugSelftest()
         for i=1,round do simonHistory[#simonHistory+1]=simonSequence[i] end
     end
     local simonReplay=replaySimon(12345,simonHistory,5)
+    local simonState=newSimonState(12345,5)
+    local simonServerOk=true
+    for round=1,5 do
+        local inputs={}
+        for i=1,round do inputs[i]=simonSequence[i] end
+        local result=applySimonRound(simonState,inputs)
+        if not result or result.correct~=true then simonServerOk=false break end
+    end
 
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
@@ -1287,6 +1374,7 @@ function FlecityGamesPlay.DebugSelftest()
         highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and #highLowState.history==30 or false,
         highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
         simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,
+        simonServerState=simon and simonServerOk and simonState.ended==true and simonState.cleared==5 or false,
         simonValidateRounds=simon and validateScore(simon,12)==12 or false,
         dailyCandidates=#dailyCandidates()>=3,
         saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,

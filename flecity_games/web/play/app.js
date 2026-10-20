@@ -207,8 +207,14 @@ function renderPlatform(data){
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;dailyDate.textContent=String(daily.date||'');
- const game=daily.game||gameById(daily.gameId);dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score):'今日はまだ挑戦していません。';
- dailyRanking.innerHTML='';(daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
+ const game=daily.game||gameById(daily.gameId);
+ dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(daily.selfRank?' · #'+String(daily.selfRank):''):'今日はまだ挑戦していません。';
+ dailyRanking.innerHTML='';
+ (daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
+ if(daily.selfBest&&Number(daily.selfRank)>5){
+   const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+   d.className='player self-rank-row';left.textContent='#'+String(daily.selfRank)+' あなた';right.textContent=formatGameScore(game,daily.selfBest.score);d.append(left,right);dailyRanking.appendChild(d);
+ }
 }
 async function refreshPlatform(){
  const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;

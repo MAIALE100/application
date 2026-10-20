@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS flecity_game_profiles (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (player_identifier)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]],
 [[
 CREATE TABLE IF NOT EXISTS flecity_game_scores (
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS flecity_game_scores (
     UNIQUE KEY uq_flecity_game_session_token (session_token),
     INDEX idx_flecity_game_rank (game_id, created_at, score),
     INDEX idx_flecity_game_player (player_identifier, game_id, created_at)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]],
 [[
 CREATE TABLE IF NOT EXISTS flecity_game_saves (
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS flecity_game_saves (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (player_identifier, game_id),
     INDEX idx_flecity_game_save_updated (updated_at)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]],
 [[
 CREATE TABLE IF NOT EXISTS flecity_game_achievements (
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS flecity_game_achievements (
     metadata_json LONGTEXT NULL,
     PRIMARY KEY (player_identifier, achievement_id),
     INDEX idx_flecity_game_achievement_game (game_id, unlocked_at)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]],
 [[
 CREATE TABLE IF NOT EXISTS flecity_game_daily (
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS flecity_game_daily (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (challenge_date),
     INDEX idx_flecity_game_daily_game (game_id, challenge_date)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]]
 }
 

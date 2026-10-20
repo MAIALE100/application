@@ -205,7 +205,7 @@ local function snapshot(room,viewerId)
     table.sort(players,function(a,b) return a.joinOrder<b.joinOrder end)
     local selfMember=room.members[viewerId]
     return {
-        code=room.code,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
+        code=room.code,revision=tonumber(room.revision) or 0,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -213,8 +213,15 @@ local function snapshot(room,viewerId)
     }
 end
 
+local function bumpRoom(room)
+    if not room then return 0 end
+    room.revision=(tonumber(room.revision) or 0)+1
+    return room.revision
+end
+
 local function notifyRoom(room,excludeSource)
     if not room or not rooms[room.id] then return end
+    bumpRoom(room)
     local excluded=excludeSource and tonumber(excludeSource) or nil
     for viewerId,member in pairs(room.members) do
         local src=member.source and tonumber(member.source) or nil
@@ -226,6 +233,8 @@ end
 
 local function notifyRoomEvent(room,excludeSource,eventName,payload)
     if not room or not rooms[room.id] then return end
+    local revision=bumpRoom(room)
+    if type(payload)=='table' then payload.revision=revision end
     local excluded=excludeSource and tonumber(excludeSource) or nil
     for _,member in pairs(room.members) do
         local src=member.source and tonumber(member.source) or nil
@@ -272,7 +281,7 @@ function FlecityGamesParty.CreateRoom(source)
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
-    local room={id=roomId,code=code,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,createdAt=os.time()}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=FlecityGamesFramework.GetCharacterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)

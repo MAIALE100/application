@@ -1,4 +1,5 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
+const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
 const quickEl=document.getElementById('quickTap'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
 const stopEl=document.getElementById('stopGame'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore');
@@ -38,10 +39,27 @@ function renderGames(games){
    gamesEl.appendChild(btn);
  });
 }
+function populateRankingGames(games){
+ const current=rankingGame.value;rankingGame.innerHTML='';
+ (games||[]).filter(g=>g.app==='play'&&g.enabled&&g.supportsRanking).forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rankingGame.appendChild(o);});
+ if([...rankingGame.options].some(o=>o.value===current))rankingGame.value=current;
+}
+async function loadRanking(){
+ const gameId=rankingGame.value;if(!gameId)return;
+ rankingLoad.disabled=true;rankingRows.innerHTML='<div class="muted">Loading…</div>';
+ const res=await FlecityBridge.call('playRanking',{gameId,period:rankingPeriod.value});
+ rankingLoad.disabled=false;rankingRows.innerHTML='';
+ if(!res.ok){rankingRows.innerHTML='<div class="status error">Ranking failed: '+res.error+'</div>';return;}
+ if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">No scores yet.</div>';return;}
+ res.rows.forEach((r,i)=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+(i+1)+' '+String(r.display_name||'Player')+'</span><strong>'+Number(r.score)+'</strong>';rankingRows.appendChild(d);});
+}
+rankingLoad.onclick=loadRanking;
+rankingGame.onchange=()=>{rankingRows.innerHTML='';};
+rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
  const res=await FlecityBridge.call('playBootstrap',{});
  if(!res.ok){setStatus('Could not load PLAY: '+res.error,'error');return;}
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);setStatus('PLAY ready.','good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);setStatus('PLAY ready.','good');
 }
 
 /* QUICK TAP */

@@ -61,7 +61,7 @@ if "globalThis.fetchNui" not in bridge:
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",
     "INVALID_MERGE_REPLAY",
-    "INVALID_SAVE_SEED",
+    "INVALID_SESSION_SEED",
 )
 play_lua = read("flecity_games/server/core/play.lua")
 for marker in required_security_markers:

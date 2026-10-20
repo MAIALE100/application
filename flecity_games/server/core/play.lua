@@ -737,6 +737,30 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'high_low_streak',game.id,{score=score}) then
         unlocked[#unlocked+1]='high_low_streak'
     end
+    if game.id=='stop' and score>=tonumber(cfg.StopBullseyeScore or 990)
+        and unlockAchievement(playerIdentifier,'bullseye',game.id,{score=score,distancePct=metadata and metadata.distancePct}) then
+        unlocked[#unlocked+1]='bullseye'
+    end
+    if game.id=='merge' and tonumber(metadata and metadata.maxTile)>=tonumber(cfg.MergeMasterTile or 2048)
+        and unlockAchievement(playerIdentifier,'merge_master',game.id,{score=score,maxTile=metadata.maxTile}) then
+        unlocked[#unlocked+1]='merge_master'
+    end
+    if game.id=='mines' and score<=tonumber(cfg.MinesSprinterMs or 60000)
+        and unlockAchievement(playerIdentifier,'mines_sprinter',game.id,{score=score}) then
+        unlocked[#unlocked+1]='mines_sprinter'
+    end
+    if game.id=='nonogram' and score<=tonumber(cfg.NonogramQuickMs or 60000)
+        and unlockAchievement(playerIdentifier,'nonogram_solver',game.id,{score=score}) then
+        unlocked[#unlocked+1]='nonogram_solver'
+    end
+    if game.id=='color_match' and score<=tonumber(cfg.ColorMatchFocusMs or 6000)
+        and unlockAchievement(playerIdentifier,'color_focus',game.id,{score=score}) then
+        unlocked[#unlocked+1]='color_focus'
+    end
+    if game.id=='simon' and score>=tonumber(cfg.SimonMasterRounds or 15)
+        and unlockAchievement(playerIdentifier,'simon_master',game.id,{score=score}) then
+        unlocked[#unlocked+1]='simon_master'
+    end
     return unlocked
 end
 
@@ -1160,9 +1184,11 @@ function FlecityGamesPlay.SubmitScore(source,data)
         rawScore=replayed metadata.moves=#data.history metadata.replayValidated=true
     elseif game.id=='merge' then
         if type(data.history)~='table' then return {ok=false,error='INVALID_MERGE_REPLAY'} end
-        local replayed=replayMerge(session.seed,data.history)
-        if replayed==nil or replayed~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
-        rawScore=replayed metadata.moves=#data.history metadata.replayValidated=true
+        local replayed=replayMergeState(session.seed,data.history)
+        if not replayed or replayed.score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_MERGE_REPLAY'} end
+        local maxTile=0
+        for y=1,4 do for x=1,4 do maxTile=math.max(maxTile,tonumber(replayed.board[y][x]) or 0) end end
+        rawScore=replayed.score metadata.moves=#data.history metadata.maxTile=maxTile metadata.replayValidated=true
     elseif game.id=='stack' then
         local replayed=replayStack(session.challenge,data.history)
         if not replayed or not replayed.ended then return {ok=false,error='INVALID_STACK_REPLAY'} end

@@ -21,6 +21,7 @@ server_scripts {
     'server/core/rate_limit.lua',
     'server/core/database.lua',
     'server/core/profile.lua',
+    'server/core/dev_reload.lua',
     'server/core/play.lua',
     'server/core/party.lua',
     'server/main.lua'

@@ -255,7 +255,7 @@ async function refresh(){
    if(refreshQueued){refreshQueued=false;setTimeout(refresh,0);}
  }
 }
-function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,2500);}
+function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,10000);}
 async function loadPartyConfig(){
  const res=await FlecityBridge.call('partyGetConfig',{});
  if(!res.ok||!res.config)return;
@@ -265,7 +265,10 @@ async function loadPartyConfig(){
  codeEl.placeholder=length+' DIGIT CODE';
 }
 window.addEventListener('message',event=>{
- if(event.data&&event.data.type==='partyInvalidate')refresh();
+ const message=event.data;
+ if(!message)return;
+ if(message.type==='partyUpdate'&&message.room){renderRoom(message.room);return;}
+ if(message.type==='partyInvalidate')refresh();
 });
 
 createBtn.onclick=async()=>{const res=await FlecityBridge.call('partyCreateRoom',{});if(!res.ok){status('Create failed: '+res.error,'error');return;}renderRoom(res.room);beginPolling();};

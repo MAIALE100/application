@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+GAME = ROOT / "flecity_games"
+
+errors = []
+
+def fail(message):
+    errors.append(message)
+
+def read(path):
+    return (ROOT / path).read_text(encoding="utf-8")
+
+play_js = read("flecity_games/web/play/app.js")
+party_js = read("flecity_games/web/party/app.js")
+play_html = read("flecity_games/web/play/index.html")
+party_html = read("flecity_games/web/party/index.html")
+client = read("flecity_games/client/main.lua")
+server = read("flecity_games/server/main.lua")
+registry = read("flecity_games/shared/game_registry.lua")
+fx = read("flecity_games/fxmanifest.lua")
+bridge = read("flecity_games/web/shared/bridge.js")
+
+def dom_ids(js):
+    return set(re.findall(r"getElementById\('([^']+)'\)", js))
+
+for name, js, html in (
+    ("PLAY", play_js, play_html),
+    ("PARTY", party_js, party_html),
+):
+    missing = sorted(i for i in dom_ids(js) if f'id="{i}"' not in html)
+    if missing:
+        fail(f"{name}: missing DOM ids: {', '.join(missing)}")
+
+actions = sorted(set(re.findall(r"FlecityBridge\.call\('([^']+)'", play_js + "\n" + party_js)))
+mapped = dict(re.findall(r"([A-Za-z0-9_]+)='(flecity_games:[^']+)'", client))
+for action in actions:
+    if action not in mapped:
+        fail(f"client callback map missing action: {action}")
+
+for action, callback in mapped.items():
+    if f"['{callback}']" not in server:
+        fail(f"server callback missing for {action}: {callback}")
+
+enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
+disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
+if len(enabled) != 15:
+    fail(f"expected 15 enabled games, found {len(enabled)}: {enabled}")
+if disabled:
+    fail(f"initial registry still contains disabled games: {disabled}")
+
+if "ui_page" in fx:
+    fail("fxmanifest must not declare ui_page; LB Phone owns the custom app iframe")
+
+if "globalThis.fetchNui" not in bridge:
+    fail("LB Phone fetchNui bridge is missing")
+
+required_security_markers = (
+    "INVALID_BLOCK_REPLAY",
+    "INVALID_MERGE_REPLAY",
+    "INVALID_SAVE_SEED",
+)
+play_lua = read("flecity_games/server/core/play.lua")
+for marker in required_security_markers:
+    if marker not in play_lua:
+        fail(f"PLAY security marker missing: {marker}")
+
+party_lua = read("flecity_games/server/core/party.lua")
+for marker in ("wordWolfPrivacy", "liarPrivacy", "drawPrivacy", "telephonePrivacy"):
+    if marker not in party_lua:
+        fail(f"PARTY privacy selftest missing: {marker}")
+
+all_text = "\n".join(
+    p.read_text(encoding="utf-8", errors="ignore")
+    for p in GAME.rglob("*")
+    if p.is_file()
+)
+if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
+    fail("merge conflict markers found")
+if re.search(r"\bTODO\b|\bFIXME\b", all_text):
+    fail("TODO/FIXME marker found in flecity_games")
+
+if errors:
+    print("Flecity Games static check FAILED")
+    for error in errors:
+        print(" -", error)
+    sys.exit(1)
+
+print("Flecity Games static check PASS")
+print(f" - enabled games: {len(enabled)}")
+print(f" - UI actions mapped: {len(actions)}")
+print(" - DOM references: PASS")
+print(" - LB Phone bridge: PASS")
+print(" - replay/privacy markers: PASS")

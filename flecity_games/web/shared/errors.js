@@ -21,6 +21,7 @@ window.FlecityErrors = {
         INVALID_SESSION: 'ゲームSessionが無効です',
         EXPIRED_SESSION: 'ゲームSessionの有効期限が切れました',
         DAILY_SAVE_DISABLED: 'デイリーチャレンジは途中保存できません',
+        TIMER_NOT_STARTED: 'ゲームのタイマーがまだ開始されていません',
         INVALID_SESSION_SEED: 'ゲームSeedの検証に失敗しました',
         INVALID_STATE: '保存状態が不正です',
         STATE_TOO_LARGE: '保存データが大きすぎます',

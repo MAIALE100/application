@@ -197,6 +197,10 @@ for marker in required_security_markers:
         fail(f"PLAY security marker missing: {marker}")
 if "clearForeignSourceSessions" not in play_lua:
     fail("PLAY character-switch session cleanup is missing")
+if play_lua.find("local function clearForeignSourceSessions") > play_lua.find("function FlecityGamesPlay.Bootstrap"):
+    fail("PLAY session helper must be defined before Bootstrap")
+if play_lua.count("clearPlayerSessions(id)") < 2:
+    fail("PLAY must clear orphan sessions on Bootstrap and before a new run")
 if "existingScoreResponse" not in play_lua or "duplicate=true" not in play_lua:
     fail("PLAY idempotent score retry handling is missing")
 if "unlockedAchievements" not in play_lua:

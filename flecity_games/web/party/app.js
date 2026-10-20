@@ -1,5 +1,5 @@
-const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players');
-const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game');
+const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
+const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
 const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
@@ -60,6 +60,20 @@ function selectedGameConfig(room){
  const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
  return games.find(g=>g.id===room.selectedGame)||null;
 }
+function renderGameInfo(gameId){
+ const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
+ const game=games.find(g=>g.id===gameId);
+ gameInfo.innerHTML='';
+ if(!game){
+   const text=document.createElement('span');text.className='muted';text.textContent='ゲーム情報を取得できません。';gameInfo.appendChild(text);return;
+ }
+ const title=document.createElement('strong'),meta=document.createElement('span'),description=document.createElement('span');
+ title.textContent=String(game.name||game.id);meta.className='game-info-meta';description.className='muted';
+ const min=Math.max(1,Number(game.minPlayers)||2),max=Math.max(min,Number(game.maxPlayers)||10);
+ meta.textContent=(min===max?min+'人':min+'〜'+max+'人');
+ description.textContent=String(game.description||'');
+ gameInfo.append(title,meta,description);
+}
 function startReadiness(room){
  const game=selectedGameConfig(room);
  const min=Math.max(1,Number(game&&game.minPlayers)||partyConfig.minPlayers||2);
@@ -74,6 +88,9 @@ function startReadiness(room){
 }
 function renderPlayers(room){
  playersEl.innerHTML='';
+ const connected=(room.players||[]).filter(p=>!p.disconnected);
+ const readyCount=connected.filter(p=>p.ready).length;
+ readySummary.textContent='接続中 '+connected.length+'人 · 準備OK '+readyCount+'/'+connected.length;
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
    const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+p.name;
@@ -275,7 +292,7 @@ function renderRoom(room,timing){
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
-   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;
+   gameEl.value=room.selectedGame||'reaction';gameEl.disabled=!room.isHost;renderGameInfo(gameEl.value);
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
    readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';status('ロビー準備完了。','good');
@@ -333,6 +350,7 @@ async function loadPartyConfig(){
      gameEl.appendChild(option);
    });
    if([...gameEl.options].some(o=>o.value===current))gameEl.value=current;
+   renderGameInfo(gameEl.value);
  }
 }
 function handlePartyMessage(message){
@@ -386,7 +404,7 @@ registerPhonePushChannel();
 createBtn.onclick=async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();};
 joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();};
 readyBtn.onclick=async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);};
-gameEl.onchange=async()=>{const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);};
+gameEl.onchange=async()=>{renderGameInfo(gameEl.value);const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);};
 startBtn.onclick=async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});};
 
 reactionTap.onclick=async()=>{

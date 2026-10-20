@@ -404,6 +404,12 @@ function FlecityGamesPlay.Bootstrap(source)
     }
 end
 
+local function clearPlayerGameSessions(playerIdentifier,gameId)
+    for token,session in pairs(sessions) do
+        if session.playerIdentifier==playerIdentifier and session.gameId==gameId then sessions[token]=nil end
+    end
+end
+
 function FlecityGamesPlay.StartSession(source,data)
     if not FlecityGamesRateLimit.Allow(source,'play_start',FlecityGamesConfig.RateLimits.PlayStartMs) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then data={} end
@@ -436,6 +442,7 @@ function FlecityGamesPlay.StartSession(source,data)
             seed=math.random(1,2147483646)
         end
     end
+    clearPlayerGameSessions(id,game.id)
     local challenge=challengeFor(game,seed)
     local token=newToken(id,game.id)
     local startedTick=GetGameTimer()
@@ -752,7 +759,9 @@ end
 
 function FlecityGamesPlay.DropSource(source)
     local src=tonumber(source)
-    for _,session in pairs(sessions) do if session.source==src then session.source=nil end end
+    for token,session in pairs(sessions) do
+        if session.source==src then sessions[token]=nil end
+    end
 end
 
 function FlecityGamesPlay.Cleanup()

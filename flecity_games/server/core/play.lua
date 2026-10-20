@@ -67,6 +67,16 @@ function FlecityGamesPlay.CancelSession(source,data)
     return {ok=true}
 end
 
+function FlecityGamesPlay.ResetSave(source,data)
+    local id=identifier(source)
+    if not id or type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local game=gameFor(data.gameId)
+    if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
+    if game.supportsResume~=true then return {ok=false,error='RESUME_NOT_SUPPORTED'} end
+    MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id})
+    return {ok=true}
+end
+
 function FlecityGamesPlay.Save(source,data)
     if not FlecityGamesRateLimit.Allow(source,'play_save',FlecityGamesConfig.RateLimits.PlaySaveMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source)
@@ -160,11 +170,30 @@ function FlecityGamesPlay.Ranking(source,data)
     elseif period~='all' then return {ok=false,error='INVALID_PERIOD'} end
 
     local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
+    local aggregate=game.rankingOrder=='asc' and 'MIN' or 'MAX'
     local limit=math.max(1,math.min(50,FlecityGamesConfig.Play.RankingLimit or 20))
-    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,s.score,s.duration_ms,s.created_at
+    local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
-        WHERE s.game_id=? %s ORDER BY s.score %s,s.created_at ASC LIMIT %d]]):format(wherePeriod,order,limit)
+        WHERE s.game_id=? %s
+        GROUP BY s.player_identifier,p.display_name
+        ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,wherePeriod,order,limit)
     return {ok=true,gameId=game.id,period=period,rows=MySQL.query.await(sql,{game.id}) or {}}
+end
+
+function FlecityGamesPlay.DebugSelftest()
+    local quick=gameFor('quick_tap')
+    local block=gameFor('block')
+    local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
+    local encoded=json.encode(sample)
+    local decoded=encoded and json.decode(encoded) or nil
+    return {
+        quickRejectLow=quick and validateScore(quick,69)==nil or false,
+        quickAcceptNormal=quick and validateScore(quick,180)~=nil or false,
+        blockRejectNegative=block and validateScore(block,-1)==nil or false,
+        blockAcceptInteger=block and validateScore(block,120)==120 or false,
+        saveRoundTrip=decoded and decoded.score==120 and decoded.combo==2 or false,
+        saveWithinLimit=encoded and #encoded<=FlecityGamesConfig.Play.SaveStateMaxBytes or false
+    }
 end
 
 function FlecityGamesPlay.DropSource(source)

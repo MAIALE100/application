@@ -1,6 +1,6 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
 const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
-const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
+const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingSelf=document.getElementById('rankingSelf'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementCount=document.getElementById('achievementCount'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -191,7 +191,7 @@ function renderPlatform(data){
 }
 async function refreshPlatform(){
  const res=await FlecityBridge.call('playStatistics',{});if(!res.ok)return;
- bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;bootstrapData.best=res.best||bootstrapData.best||{};renderPlatform(res);renderGames(bootstrapData.games);
+ bootstrapData.statistics=res.statistics;bootstrapData.achievements=res.achievements;bootstrapData.daily=res.daily;bootstrapData.best=res.best||bootstrapData.best||{};renderPlatform(res);renderGames(bootstrapData.games);renderRankingSelf();
 }
 let launchLocked=false;
 async function withLaunchLock(fn){
@@ -278,10 +278,16 @@ function renderGames(games){
    section.append(head,grid);gamesEl.appendChild(section);
  });
 }
+function renderRankingSelf(){
+ const gameId=rankingGame.value,game=gameById(gameId),best=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
+ if(!game){rankingSelf.textContent='ゲームを選択してください。';return;}
+ rankingSelf.textContent=best?'あなたのBEST · '+formatGameScore(game,best.score):'あなたのBEST · まだ記録がありません';
+}
 function populateRankingGames(games){
  const current=rankingGame.value;rankingGame.innerHTML='';
  (games||[]).filter(g=>g.app==='play'&&g.enabled&&g.supportsRanking).forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rankingGame.appendChild(o);});
  if([...rankingGame.options].some(o=>o.value===current))rankingGame.value=current;
+ renderRankingSelf();
 }
 async function loadRanking(){
  const gameId=rankingGame.value;if(!gameId)return;
@@ -300,6 +306,8 @@ async function loadRanking(){
  });
 }
 rankingLoad.onclick=loadRanking;
+rankingGame.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
+rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 rankingGame.onchange=()=>{rankingRows.innerHTML='';};
 rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){

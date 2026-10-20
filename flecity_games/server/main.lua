@@ -167,6 +167,14 @@ AddEventHandler('playerDropped',function()
     FlecityGamesParty.DropSource(src)
 end)
 
+AddEventHandler('flecity_games:framework:playerUnloaded',function(src)
+    src=tonumber(src)
+    if not src then return end
+    FlecityGamesRateLimit.Clear(src)
+    FlecityGamesPlay.DropSource(src)
+    FlecityGamesParty.DropSource(src)
+end)
+
 CreateThread(function()
     while true do Wait(5000) FlecityGamesPlay.Cleanup() FlecityGamesParty.Cleanup() end
 end)

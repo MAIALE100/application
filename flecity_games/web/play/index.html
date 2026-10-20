@@ -16,8 +16,8 @@
   <div class="card stack compact-card"><div class="kicker">RANKING</div><div class="row"><select id="rankingGame" aria-label="ランキングゲーム"></select><select id="rankingPeriod" aria-label="ランキング期間"><option value="today">今日</option><option value="week">7日間</option><option value="all">全期間</option></select></div><div id="rankingSelf" class="status compact-status">ゲームを選択してください。</div><button id="rankingLoad" class="secondary">ランキングを見る</button><div id="rankingRows" class="players"></div></div>
   <details class="card settings-card"><summary><span><span class="kicker">SETTINGS</span><strong>設定</strong></span><span class="summary-chevron">⌄</span></summary><div class="settings-body"><label class="setting-row"><span>サウンド</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>動きを抑える</span><input id="settingMotion" type="checkbox"></label></div></details>
 </section>
-<section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">スタート</button><button id="tapBack" class="secondary">戻る</button></div></section>
-<section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
+<section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP</div><div id="tapBest" class="game-meta">BEST ---</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">スタート</button><button id="tapBack" class="secondary">戻る</button></div></section>
+<section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP!</div><div id="stopBest" class="game-meta">BEST ---</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
 <section id="blockGame" class="hidden">
   <div class="card row"><div><div class="kicker">BLOCK</div><div id="blockScore" class="big-number small-number">0</div><div id="blockMeta" class="game-meta">COMBO 0</div></div><button id="blockBack" class="secondary">戻る</button></div>
   <div class="card"><div id="blockBoard" class="block-board"></div></div>
@@ -48,7 +48,7 @@
 </section>
 <section id="colorMatchGame" class="hidden">
   <div class="card row"><div><div class="kicker">COLOR MATCH</div><div id="colorMatchProgress" class="big-number small-number">0 / 10</div><div id="colorMatchTime" class="game-meta">0.0s</div></div><button id="colorMatchBack" class="secondary">戻る</button></div>
-  <div class="card big-center color-match-stage"><div class="muted">文字の意味ではなく、文字の色を選ぶ</div><div id="colorMatchWord" class="color-match-word">READY</div><div id="colorMatchChoices" class="color-match-choices"></div></div>
+  <div class="card big-center color-match-stage"><div class="muted">文字の意味ではなく、文字の色を選ぶ</div><div id="colorMatchBest" class="game-meta">BEST ---</div><div id="colorMatchWord" class="color-match-word">READY</div><div id="colorMatchChoices" class="color-match-choices"></div></div>
   <div class="card stack"><button id="colorMatchStart">スタート</button><button id="colorMatchNew" class="secondary">新しく始める</button></div>
 </section>
 <section id="numberRushGame" class="hidden">

@@ -316,6 +316,7 @@ end
 local function bumpRoom(room)
     if not room then return 0 end
     room.revision=(tonumber(room.revision) or 0)+1
+    room.lastActivityAt=os.time()
     return room.revision
 end
 
@@ -405,7 +406,8 @@ function FlecityGamesParty.CreateRoom(source)
     if not code then return {ok=false,error='ROOM_CODE_EXHAUSTED'} end
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=os.time()}
+    local now=os.time()
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -1031,7 +1033,8 @@ function FlecityGamesParty.Cleanup()
     for _,roomId in ipairs(roomIds) do
         local room=rooms[roomId]
         if room then
-            local expired=now-room.createdAt>FlecityGamesConfig.Party.RoomMaxAgeSeconds
+            local lastActivity=tonumber(room.lastActivityAt) or tonumber(room.createdAt) or now
+            local expired=now-lastActivity>FlecityGamesConfig.Party.RoomMaxAgeSeconds
             local removals={}
             for id,m in pairs(room.members) do
                 if expired or (m.disconnected and m.disconnectedAt and now-m.disconnectedAt>FlecityGamesConfig.Party.DisconnectGraceSeconds) then removals[#removals+1]=id end

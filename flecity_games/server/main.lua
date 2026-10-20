@@ -4,6 +4,7 @@ local callbacks={
     ['flecity_games:play:bootstrap']=function(source) return FlecityGamesPlay.Bootstrap(source) end,
     ['flecity_games:play:startSession']=function(source,data) return FlecityGamesPlay.StartSession(source,data) end,
     ['flecity_games:play:cancelSession']=function(source,data) return FlecityGamesPlay.CancelSession(source,data) end,
+    ['flecity_games:play:resetSave']=function(source,data) return FlecityGamesPlay.ResetSave(source,data) end,
     ['flecity_games:play:save']=function(source,data) return FlecityGamesPlay.Save(source,data) end,
     ['flecity_games:play:submitScore']=function(source,data) return FlecityGamesPlay.SubmitScore(source,data) end,
     ['flecity_games:play:ranking']=function(source,data) return FlecityGamesPlay.Ranking(source,data) end,
@@ -53,15 +54,35 @@ local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_gam
 
 RegisterCommand('game_selftest',function(source)
     local prefix=source==0 and '[FlecityGames selftest]' or ('[FlecityGames selftest source=%s]'):format(source)
+    local failures=0
+    local function check(name,ok)
+        if not ok then failures=failures+1 end
+        print(('%s %-38s %s'):format(prefix,name,ok and 'PASS' or 'FAIL'))
+    end
+
     print(prefix..' begin')
-    print(('%s registry PLAY=%d PARTY=%d'):format(prefix,#FlecityGamesRegistry.List('play',false),#FlecityGamesRegistry.List('party',false)))
+    check('registry PLAY populated',#FlecityGamesRegistry.List('play',false)>0)
+    check('registry PARTY populated',#FlecityGamesRegistry.List('party',false)>0)
+
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
-        print(('%s table %-32s %s'):format(prefix,tableName,exists and 'OK' or 'MISSING'))
+        check(('table %s'):format(tableName),exists)
     end
+
+    local uniqueSession=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_scores'
+        AND COLUMN_NAME='session_token' AND NON_UNIQUE=0]]) or 0)>0
+    check('unique score session token index',uniqueSession)
+
+    local play=FlecityGamesPlay.DebugSelftest()
+    for name,ok in pairs(play) do check('PLAY '..name,ok==true) end
+
+    local party=FlecityGamesParty.DebugSelftest()
+    for name,ok in pairs(party) do check('PARTY '..name,ok==true) end
+
     local roomCount,memberTotal=FlecityGamesParty.DebugCounts()
     print(('%s rooms=%d members=%d'):format(prefix,roomCount,memberTotal))
-    print(prefix..' end')
+    print(('%s end failures=%d'):format(prefix,failures))
 end,false)
 
 RegisterCommand('game_healthcheck',function(source)

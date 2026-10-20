@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.10.1-test**
+- Resource version: **0.11.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **16/16 enabled**.
+- Initial game registry: **17/17 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,7 +29,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 8/8 enabled
+### PLAY — 9/9 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
@@ -39,6 +39,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
+- COLOR MATCH — 10-round Stroop-style color recognition, server-replayed answer history, time ranking
 
 ### PARTY — 8/8 enabled
 

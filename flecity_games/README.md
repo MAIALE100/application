@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.9.3-test**
+- Resource version: **0.9.5-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **15/15 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -50,7 +50,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - DRAW — drawer-private prompt, server-owned strokes and guesses
 - TELEPHONE — sequential private text/drawing chain with final reveal
 
-PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use viewer-safe LB Phone push messages for near-immediate refresh, DRAW uses incremental stroke pushes, and a 10-second poll remains only as recovery fallback.
+PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use viewer-safe LB Phone push messages for near-immediate refresh, DRAW uses incremental stroke pushes, and a 10-second poll remains only as recovery fallback. Monotonic room revisions prevent older poll/push snapshots from overwriting newer state. A character cannot silently join a second room while its previous disconnected room is still retained, and disconnected voters are excluded from final tallies.
 
 ## Platform features
 

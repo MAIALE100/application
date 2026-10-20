@@ -76,7 +76,7 @@ function renderPlayers(room){
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
    const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+p.name;
-   const right=document.createElement('span');right.textContent=p.disconnected?'OFFLINE':(p.ready?'READY':'待機ING');right.className=p.ready?'good':(p.disconnected?'error':'muted');
+   const right=document.createElement('span');right.textContent=p.disconnected?'オフライン':(p.ready?'準備OK':'待機中');right.className=p.ready?'good':(p.disconnected?'error':'muted');
    row.append(left,right);playersEl.appendChild(row);
  });
 }
@@ -90,7 +90,7 @@ function renderResults(room){
  if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
  if(rs.gameId==='reaction'){
-   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.flying?'FLYING':Number(e.reactionMs).toFixed(3)+' ms'));
+   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.flying?'フライング':Number(e.reactionMs).toFixed(3)+' ms'));
  }else if(rs.gameId==='stop_battle'){
    rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.score+' / '+Number(e.distancePct).toFixed(2)+'%'));
  }else if(rs.gameId==='vote'){
@@ -103,7 +103,7 @@ function renderResults(room){
    rs.results.entries.forEach(e=>{const label=e.choice==='A'?options[0]:options[1];appendResultRow(e.name,label);});
  }else if(rs.gameId==='word_wolf'){
    const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
-   rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← WOLF':'';appendResultRow(e.name+wolf,e.votes+'票');});
+   rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← 少数派':'';appendResultRow(e.name+wolf,e.votes+'票');});
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});

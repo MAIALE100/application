@@ -87,10 +87,34 @@ end,false)
 
 RegisterCommand('game_healthcheck',function(source)
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)
-    local rows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_scores GROUP BY game_id') or {}
-    local invalid=0
-    for _,row in ipairs(rows) do
-        if not FlecityGamesRegistry.Get(row.game_id) then invalid=invalid+tonumber(row.n or 0) print(('%s invalid game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n))) end
+    local invalidScores,invalidSaves,invalidDaily=0,0,0
+
+    local scoreRows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_scores GROUP BY game_id') or {}
+    for _,row in ipairs(scoreRows) do
+        if not FlecityGamesRegistry.Get(row.game_id) then
+            invalidScores=invalidScores+tonumber(row.n or 0)
+            print(('%s invalid score game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n)))
+        end
     end
-    print(('%s invalid_score_rows=%d (diagnostic only; no data changed)'):format(prefix,invalid))
+
+    local saveRows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_saves GROUP BY game_id') or {}
+    for _,row in ipairs(saveRows) do
+        local game=FlecityGamesRegistry.Get(row.game_id)
+        if not game or game.supportsResume~=true then
+            invalidSaves=invalidSaves+tonumber(row.n or 0)
+            print(('%s invalid save game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n)))
+        end
+    end
+
+    local dailyRows=MySQL.query.await('SELECT game_id,COUNT(*) AS n FROM flecity_game_daily GROUP BY game_id') or {}
+    for _,row in ipairs(dailyRows) do
+        local game=FlecityGamesRegistry.Get(row.game_id)
+        if not game or game.supportsDaily~=true then
+            invalidDaily=invalidDaily+tonumber(row.n or 0)
+            print(('%s invalid daily game_id=%s count=%s'):format(prefix,tostring(row.game_id),tostring(row.n)))
+        end
+    end
+
+    print(('%s invalid_score_rows=%d invalid_save_rows=%d invalid_daily_rows=%d (diagnostic only; no data changed)')
+        :format(prefix,invalidScores,invalidSaves,invalidDaily))
 end,false)

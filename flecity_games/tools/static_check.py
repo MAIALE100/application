@@ -73,15 +73,20 @@ for marker in ("wordWolfPrivacy", "liarPrivacy", "drawPrivacy", "telephonePrivac
     if marker not in party_lua:
         fail(f"PARTY privacy selftest missing: {marker}")
 
+scan_files = [
+    p for p in GAME.rglob("*")
+    if p.is_file()
+    and p.name != "static_check.py"
+    and p.suffix.lower() in {".lua", ".js", ".html", ".css", ".sql", ".md"}
+]
 all_text = "\n".join(
     p.read_text(encoding="utf-8", errors="ignore")
-    for p in GAME.rglob("*")
-    if p.is_file()
+    for p in scan_files
 )
 if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
     fail("merge conflict markers found")
 if re.search(r"\bTODO\b|\bFIXME\b", all_text):
-    fail("TODO/FIXME marker found in flecity_games")
+    fail("TODO/FIXME marker found in flecity_games source/docs")
 
 if errors:
     print("Flecity Games static check FAILED")

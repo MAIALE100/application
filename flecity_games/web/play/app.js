@@ -7,11 +7,13 @@ const blockBack=document.getElementById('blockBack'),blockNew=document.getElemen
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
+const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
+const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 
 let bootstrapData=null,saves={};
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null;
-let block=null,merge=null,mines=null,minesClock=null;
+let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -19,9 +21,9 @@ const SHAPES=[
 ];
 
 function setStatus(text,type){statusEl.textContent=text;statusEl.className='status '+(type||'');}
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');}
 function showHome(){
- clearTimeout(tapTimer);cancelAnimationFrame(stopRaf);clearInterval(minesClock);minesClock=null;
+ clearTimeout(tapTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);minesClock=null;nonogramClock=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -37,6 +39,8 @@ function renderGames(games){
      else if(game.id==='block')openBlock(false);
      else if(game.id==='merge')openMerge(false);
      else if(game.id==='mines')openMines(false);
+     else if(game.id==='stack')openStack();
+     else if(game.id==='nonogram')openNonogram(false);
    };
    gamesEl.appendChild(btn);
  });
@@ -405,5 +409,116 @@ minesNew.onclick=async()=>{
  const reset=await FlecityBridge.call('playResetSave',{gameId:'mines'});if(!reset.ok){setStatus('Could not reset MINES: '+reset.error,'error');return;}
  delete saves.mines;mines=null;await openMines(true);
 };
+
+/* STACK */
+function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
+function renderStack(){
+ if(!stackGame)return;stackScore.textContent=String(stackGame.score);
+ stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
+ const visible=stackGame.layers.slice(-10);
+ visible.forEach((layer,i)=>{
+   const d=document.createElement('div');d.className='stack-layer';d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=(18+i*20)+'px';stackArena.insertBefore(d,stackMover);
+ });
+ const top=stackGame.layers[stackGame.layers.length-1];
+ stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+(visible.length-1)*20)+'px';
+ stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(18+visible.length*20)+'px';
+}
+function stackLoop(now){
+ if(!stackGame||stackGame.finished)return;
+ if(!stackGame.lastFrame)stackGame.lastFrame=now;
+ const dt=Math.min(50,now-stackGame.lastFrame);stackGame.lastFrame=now;
+ stackGame.x+=stackGame.direction*stackGame.speed*(dt/1000);
+ const max=100-stackGame.width;
+ if(stackGame.x<=0){stackGame.x=0;stackGame.direction=1;}
+ if(stackGame.x>=max){stackGame.x=max;stackGame.direction=-1;}
+ renderStack();stackRaf=requestAnimationFrame(stackLoop);
+}
+async function openStack(){
+ hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
+ const session=await FlecityBridge.call('playStartSession',{gameId:'stack'});
+ if(!session.ok){setStatus('Could not start STACK: '+session.error,'error');showHome();return;}
+ const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
+ stackGame={sessionToken:session.sessionToken,startedAt:performance.now(),layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,direction:1,lastFrame:0,finished:false};
+ stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK started.','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
+}
+async function finishStack(){
+ if(!stackGame||stackGame.finished)return;stackGame.finished=true;cancelAnimationFrame(stackRaf);stackDrop.disabled=true;stackDrop.textContent='RUN COMPLETE';
+ const durationMs=Math.round(elapsedStack());
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:stackGame.sessionToken,score:stackGame.score,durationMs});
+ if(res.ok){setStatus('STACK score saved: '+res.score,'good');stackGame.sessionToken=null;}
+ else{setStatus('STACK score rejected: '+res.error,'error');}
+}
+stackDrop.onclick=async()=>{
+ if(!stackGame||stackGame.finished)return;
+ const base=stackGame.layers[stackGame.layers.length-1],left=Math.max(base.x,stackGame.x),right=Math.min(base.x+base.width,stackGame.x+stackGame.width),overlap=right-left;
+ if(overlap<=0){await finishStack();return;}
+ stackGame.layers.push({x:left,width:overlap});stackGame.score+=1;stackGame.width=overlap;stackGame.x=stackGame.direction>0?0:100-overlap;stackGame.direction*=-1;stackGame.speed=Math.min(180,stackGame.speed+4);renderStack();
+};
+stackBack.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;showHome();};
+stackNew.onclick=async()=>{cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:stackGame.sessionToken});stackGame=null;await openStack();};
+
+/* NONOGRAM */
+function seededNonogram(seed,size){
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ const filled=new Set();
+ for(let i=0;i<size*size;i++){state=(state*16807)%2147483647;if(((state-1)%100)<45)filled.add(i);}
+ if(!filled.size)filled.add(0);return filled;
+}
+function nonogramClue(values){
+ const groups=[],n=values.length;let run=0;
+ for(let i=0;i<n;i++){if(values[i])run++;else if(run){groups.push(run);run=0;}}
+ if(run)groups.push(run);return groups.length?groups.join(' '):'0';
+}
+function elapsedNonogram(){return (nonogram?nonogram.elapsedBase:0)+(nonogram?performance.now()-nonogram.startedAt:0);}
+function updateNonogramTime(){if(nonogram)nonogramTime.textContent=(elapsedNonogram()/1000).toFixed(1)+'s';}
+function renderNonogram(){
+ if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
+ const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
+ for(let x=0;x<nonogram.size;x++){
+   const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
+   const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
+ }
+ for(let y=0;y<nonogram.size;y++){
+   const vals=[];for(let x=0;x<nonogram.size;x++)vals.push(nonogram.solution.has(y*nonogram.size+x));
+   const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
+   for(let x=0;x<nonogram.size;x++){
+     const index=y*nonogram.size+x,b=document.createElement('button');b.className='nonogram-cell'+(nonogram.filled.has(index)?' filled':'')+(nonogram.crossed.has(index)?' crossed':'');
+     b.textContent=nonogram.crossed.has(index)?'×':'';b.disabled=nonogram.finished;b.onclick=()=>touchNonogram(index);nonogramBoard.appendChild(b);
+   }
+ }
+}
+async function persistNonogram(){
+ if(!nonogram||nonogram.finished)return;const elapsedMs=Math.round(elapsedNonogram());
+ const state={filled:[...nonogram.filled],crossed:[...nonogram.crossed]};
+ const res=await FlecityBridge.call('playSave',{gameId:'nonogram',state,score:elapsedMs,elapsedMs,seed:String(nonogram.seed)});
+ if(res.ok)saves.nonogram={game_id:'nonogram',state,score:elapsedMs,elapsed_ms:elapsedMs,seed:String(nonogram.seed)};
+}
+async function openNonogram(forceNew){
+ hideAll();nonogramEl.classList.remove('hidden');clearInterval(nonogramClock);
+ const saved=!forceNew&&saves.nonogram,payload={gameId:'nonogram'};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const session=await FlecityBridge.call('playStartSession',payload);
+ if(!session.ok){setStatus('Could not start NONOGRAM: '+session.error,'error');showHome();return;}
+ const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(saved&&saved.seed)||Number(session.seed);
+ nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
+   elapsedBase:Number(saved&&saved.elapsed_ms||0),startedAt:performance.now(),sessionToken:session.sessionToken,finished:false};
+ setStatus(saved?'NONOGRAM continued from auto-save.':'New NONOGRAM puzzle.','good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+}
+async function touchNonogram(index){
+ if(!nonogram||nonogram.finished)return;
+ if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);}
+ else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);}
+ else nonogram.filled.add(index);
+ renderNonogram();await persistNonogram();
+}
+nonogramCheck.onclick=async()=>{
+ if(!nonogram||nonogram.finished)return;nonogramCheck.disabled=true;const durationMs=Math.round(elapsedNonogram());
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:nonogram.sessionToken,score:durationMs,durationMs,filled:[...nonogram.filled]});
+ nonogramCheck.disabled=false;
+ if(res.ok){nonogram.finished=true;clearInterval(nonogramClock);delete saves.nonogram;setStatus('NONOGRAM solved in '+(Number(res.score)/1000).toFixed(2)+'s','good');renderNonogram();}
+ else if(res.error==='INCORRECT_SOLUTION')setStatus('Not solved yet. Keep going.','warn');
+ else setStatus('NONOGRAM check failed: '+res.error,'error');
+};
+nonogramBack.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished){await persistNonogram();if(nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});}nonogram=null;showHome();};
+nonogramNew.onclick=async()=>{clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await FlecityBridge.call('playCancelSession',{sessionToken:nonogram.sessionToken});const reset=await FlecityBridge.call('playResetSave',{gameId:'nonogram'});if(!reset.ok){setStatus('Could not reset NONOGRAM: '+reset.error,'error');return;}delete saves.nonogram;nonogram=null;await openNonogram(true);};
 
 bootstrap();

@@ -49,6 +49,30 @@ try {
         throw "robocopy failed with exit code $robocopyCode."
     }
 
+    Step 'Verifying copied test build'
+    $manifestPath = Join-Path $Destination 'fxmanifest.lua'
+    $bridgePath = Join-Path $Destination 'web\shared\bridge.js'
+    $playIndexPath = Join-Path $Destination 'web\play\index.html'
+    $partyIndexPath = Join-Path $Destination 'web\party\index.html'
+
+    foreach ($required in @($manifestPath,$bridgePath,$playIndexPath,$partyIndexPath)) {
+        if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
+    }
+
+    $manifestText = Get-Content $manifestPath -Raw
+    $bridgeText = Get-Content $bridgePath -Raw
+    $playIndexText = Get-Content $playIndexPath -Raw
+    $partyIndexText = Get-Content $partyIndexPath -Raw
+
+    if ($bridgeText -notmatch 'globalThis\.fetchNui') { throw 'LB Phone fetchNui bridge check failed.' }
+    if ($playIndexText -notmatch 'componentsLoaded') { throw 'PLAY componentsLoaded loader check failed.' }
+    if ($partyIndexText -notmatch 'componentsLoaded') { throw 'PARTY componentsLoaded loader check failed.' }
+
+    $version = 'unknown'
+    if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
+    $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()
+    Write-Host ("Verified build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
     $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
     Set-Content -Path (Join-Path $Destination 'dev-reload.token') -Value $token -NoNewline -Encoding ascii

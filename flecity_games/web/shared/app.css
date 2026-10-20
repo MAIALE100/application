@@ -142,3 +142,11 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:1px solid #
 .confirm-card h2{margin:.25rem 0 .35rem;font-size:1.1rem}.confirm-card p{margin:.15rem 0 1rem;line-height:1.5}
 .confirm-card .row button{min-height:46px}
 .game-best{display:block;margin-top:6px;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:#d7dce5}
+
+
+.record-details{border:1px solid #272d37;border-radius:13px;background:#11141a;overflow:hidden}
+.record-details summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:.8rem;font-weight:800}
+.record-details summary::-webkit-details-marker{display:none}
+.record-details[open] .summary-chevron{transform:rotate(180deg)}
+.record-details .players{padding:0 8px 8px}
+.game-stat-row{gap:8px}.game-stat-row span{font-size:.73rem;line-height:1.35}.game-stat-row strong{white-space:nowrap;font-size:.76rem}

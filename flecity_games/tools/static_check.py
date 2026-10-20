@@ -127,6 +127,12 @@ if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
 if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
+if "submitScoreWithRetry" not in play_js:
+    fail("PLAY score submission retry helper is missing")
+if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:
+    fail("PLAY phone-hide lifecycle protection is missing")
+if "confirmAction" not in play_js or 'id="confirmOverlay"' not in play_html:
+    fail("PLAY destructive reset confirmation is missing")
 for name, html in (("PLAY", play_html), ("PARTY", party_html)):
     if "componentsLoaded" not in html or "devMode=!window.invokeNative" not in html:
         fail(f"{name} must wait for LB Phone componentsLoaded before bootstrapping")
@@ -166,8 +172,14 @@ for marker in required_security_markers:
         fail(f"PLAY security marker missing: {marker}")
 if "clearForeignSourceSessions" not in play_lua:
     fail("PLAY character-switch session cleanup is missing")
+if "existingScoreResponse" not in play_lua or "duplicate=true" not in play_lua:
+    fail("PLAY idempotent score retry handling is missing")
+if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
+    fail("PLAY stale autosave reset protection is missing")
 if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:
     fail("MEMORY server replay/selftest is missing")
+if "previewMs=1200" not in play_lua or "memoryPreviewConfigured" not in play_lua:
+    fail("MEMORY preview-time scoring guard is missing")
 if "replayColorMatch" not in play_lua or "colorMatchReplay" not in play_lua:
     fail("COLOR MATCH server replay/selftest is missing")
 if "replayNumberRush" not in play_lua or "numberRushReplay" not in play_lua:

@@ -42,7 +42,9 @@ local callbackMap={
     partySelectGame='flecity_games:party:selectGame',
     partyStartRound='flecity_games:party:startRound',
     partySubmitReaction='flecity_games:party:submitReaction',
+    partySubmitStopBattle='flecity_games:party:submitStopBattle',
     partySubmitVote='flecity_games:party:submitVote',
+    partySubmitMajority='flecity_games:party:submitMajority',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

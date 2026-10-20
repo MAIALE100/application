@@ -591,7 +591,13 @@ function FlecityGamesPlay.SubmitScore(source,data)
         local quickScore=tonumber(data.score)
         if not quickScore then return {ok=false,error='INVALID_SCORE'} end
         local delayMs=tonumber(session.challenge.delayMs) or 0
-        if clientDurationMs<quickScore or serverElapsed<math.max(0,delayMs+quickScore-350) then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        local serverSinceReveal=serverElapsed-delayMs
+        if clientDurationMs<quickScore or serverSinceReveal<0 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        if quickScore>serverSinceReveal+350 or serverSinceReveal-quickScore>1200 then
+            return {ok=false,error='IMPOSSIBLE_TIMING'}
+        end
+        durationMs=math.min(serverElapsed,28800000)
+        metadata.serverSinceRevealMs=serverSinceReveal
     elseif game.id=='stop' then
         local actionMs=math.floor(tonumber(data.actionMs) or -1)
         if actionMs<100 or actionMs>60000 then return {ok=false,error='INVALID_TIMING'} end

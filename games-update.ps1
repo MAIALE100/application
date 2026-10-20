@@ -71,8 +71,11 @@ try {
     $errorsPath = Join-Path $Destination 'web\shared\errors.js'
     $playIndexPath = Join-Path $Destination 'web\play\index.html'
     $partyIndexPath = Join-Path $Destination 'web\party\index.html'
+    $partyAppPath = Join-Path $Destination 'web\party\app.js'
+    $partyCorePath = Join-Path $Destination 'server\core\party.lua'
+    $clientMainPath = Join-Path $Destination 'client\main.lua'
 
-    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
@@ -81,12 +84,18 @@ try {
     $errorsText = Get-Content $errorsPath -Raw
     $playIndexText = Get-Content $playIndexPath -Raw
     $partyIndexText = Get-Content $partyIndexPath -Raw
+    $partyAppText = Get-Content $partyAppPath -Raw
+    $partyCoreText = Get-Content $partyCorePath -Raw
+    $clientMainText = Get-Content $clientMainPath -Raw
 
     if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
     if ($bridgeText -notmatch 'globalThis\.fetchNui') { throw 'LB Phone fetchNui bridge check failed.' }
     if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
-    if ($playIndexText -notmatch 'componentsLoaded') { throw 'PLAY componentsLoaded loader check failed.' }
-    if ($partyIndexText -notmatch 'componentsLoaded') { throw 'PARTY componentsLoaded loader check failed.' }
+    if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PLAY custom-app loader fallback check failed.' }
+    if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'setTimeout\(loadApp,1500\)') { throw 'PARTY custom-app loader fallback check failed.' }
+    if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
+    if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored') { throw 'PARTY server synchronization check failed.' }
+    if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
 
     $version = 'unknown'
     if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }

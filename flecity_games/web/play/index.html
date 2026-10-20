@@ -44,5 +44,21 @@
   <div class="card stack"><button id="nonogramCheck">CHECK</button><button id="nonogramNew" class="secondary">NEW PUZZLE</button></div>
 </section>
 </main>
-<script src="../shared/bridge.js"></script><script src="./app.js"></script>
+<script src="../shared/bridge.js"></script>
+<script>
+(()=>{
+  let loaded=false;
+  const loadApp=()=>{
+    if(loaded)return;
+    loaded=true;
+    const script=document.createElement('script');
+    script.src='./app.js';
+    document.body.appendChild(script);
+  };
+  window.addEventListener('message',event=>{
+    if(event.data==='componentsLoaded')loadApp();
+  });
+  if(typeof globalThis.fetchNui==='function'||!window.invokeNative)loadApp();
+})();
+</script>
 </body></html>

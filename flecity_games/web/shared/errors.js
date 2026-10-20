@@ -65,6 +65,7 @@ window.FlecityErrors = {
         INVALID_TARGET: '選択した相手が無効です',
         SELF_VOTE_NOT_ALLOWED: '自分自身には投票できません',
         INVALID_CHOICE: '選択肢が不正です',
+        CELL_OCCUPIED: 'そのマスはすでに使われています',
         DRAWER_ONLY: '描き手だけが操作できます',
         DRAW_LIMIT: '描画データの上限に達しました',
         INVALID_STROKE: '描画データが不正です',

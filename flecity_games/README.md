@@ -67,15 +67,17 @@ Implemented:
   - STACK MASTER
   - BLOCK MASTER
 - configurable achievement thresholds
-- non-destructive `game_selftest`
-- non-destructive `game_healthcheck`
+- character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
+- deterministic server replay validation for BLOCK and MERGE final scores
+- autosave bound to the active server session and server-issued seed
+- non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`
 - rate limits and duplicate score-token protection
 
 Achievements are collection/title features only; no FiveM currency reward is attached.
 
 ## Database
 
-`sql/001_initial.sql` creates only Flecity Games tables and uses `CREATE TABLE IF NOT EXISTS`:
+The resource bootstraps its own schema on startup using idempotent `CREATE TABLE IF NOT EXISTS` statements. `sql/001_initial.sql` is retained as a manual fallback:
 
 - `flecity_game_profiles`
 - `flecity_game_scores`
@@ -87,15 +89,15 @@ No destructive migration or data deletion is performed by the resource.
 
 ## Test-server install
 
-1. Import `sql/001_initial.sql` into the test database.
-2. Add the `flecity_games` folder to test-server resources.
-3. Ensure `oxmysql` and `lb-phone` start first.
-4. Ensure the framework adapter matches the actual server framework.
-5. Add `ensure flecity_games` to the test server config.
-6. Run `game_selftest` in the server console.
-7. Run `game_healthcheck`.
-8. Open PLAY and PARTY from LB Phone.
-9. Test PARTY with at least two clients; social games need their configured minimum player counts.
+1. Add the `flecity_games` folder to test-server resources.
+2. Ensure `oxmysql` and `lb-phone` start first.
+3. Ensure the framework adapter matches the actual server framework.
+4. Add `ensure flecity_games` to the test server config.
+5. Start the resource; the Flecity Games tables are created automatically.
+6. Run `game_preflight` and require `READY_FOR_LIVE_TEST`.
+7. Run `game_selftest` and `game_healthcheck`.
+8. Follow `TESTING.md` for the one-client smoke test.
+9. Continue to the two-client and three-client PARTY matrix.
 
 ## LIVE VERIFICATION PENDING
 
@@ -115,4 +117,4 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 - Daily Challenge rollover at the server/database date boundary
 - ranking and achievement writes under real database load
 
-BLOCK and MERGE still use client-run gameplay state with server-side score/session bounds rather than full server replay validation. MINES, NONOGRAM, STOP!, and several PARTY flows have stronger server-side reconstruction/validation and can be used as the model for later hardening.
+BLOCK and MERGE now submit deterministic operation histories and the server replays them from the server-issued seed before accepting a score. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! and PARTY timing games use server-owned timing state. Real-client latency and synchronization still require the live tests in `TESTING.md`.

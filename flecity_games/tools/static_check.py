@@ -212,6 +212,8 @@ if "ActivateSession" not in play_lua or "timingDeferred" not in play_lua or "TIM
 for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master"):
     if marker not in play_lua or marker not in play_js:
         fail(f"PLAY achievement missing: {marker}")
+if "MySQL.update.await([[INSERT IGNORE INTO flecity_game_achievements" not in play_lua:
+    fail("PLAY achievement unlock must use affected-row semantics")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
 if "requestEpoch" not in play_lua or "SAVE_RESET_FAILED" not in play_lua:

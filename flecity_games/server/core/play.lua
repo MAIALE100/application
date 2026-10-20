@@ -441,9 +441,17 @@ function FlecityGamesPlay.Bootstrap(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     touchProfile(source,id)
 
-    local saves=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
+    local saveRows=MySQL.query.await([[SELECT game_id,state_json,score,elapsed_ms,game_version,updated_at
         FROM flecity_game_saves WHERE player_identifier=? ORDER BY updated_at DESC]],{id}) or {}
-    for _,save in ipairs(saves) do save.state=json.decode(save.state_json or '{}') or {} save.state_json=nil end
+    local saves={}
+    for _,save in ipairs(saveRows) do
+        local game=gameFor(save.game_id)
+        if game and tonumber(save.game_version or 1)==tonumber(game.version or 1) then
+            save.state=json.decode(save.state_json or '{}') or {}
+            save.state_json=nil
+            saves[#saves+1]=save
+        end
+    end
 
     local best={}
     for _,game in ipairs(FlecityGamesRegistry.List('play',true)) do
@@ -489,9 +497,13 @@ function FlecityGamesPlay.StartSession(source,data)
     local baseElapsedMs=0
     if not seed then
         if game.supportsResume==true and data.resume==true then
-            local saved=MySQL.single.await([[SELECT seed,elapsed_ms FROM flecity_game_saves
+            local saved=MySQL.single.await([[SELECT seed,elapsed_ms,game_version FROM flecity_game_saves
                 WHERE player_identifier=? AND game_id=? LIMIT 1]],{id,game.id})
-            local resumeSeed=saved and tonumber(saved.seed) or nil
+            if not saved then return {ok=false,error='SAVE_NOT_FOUND'} end
+            if tonumber(saved.game_version or 1)~=tonumber(game.version or 1) then
+                return {ok=false,error='SAVE_VERSION_MISMATCH'}
+            end
+            local resumeSeed=tonumber(saved.seed)
             if not resumeSeed or resumeSeed<1 or resumeSeed>2147483646 then
                 return {ok=false,error='SAVE_NOT_FOUND'}
             end

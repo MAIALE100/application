@@ -1,6 +1,7 @@
 local resourceName=GetCurrentResourceName()
-local enabled=GetConvarInt('flecity_games:devAutoReload',0)==1
-if not enabled then return end
+local enabledByConvar=GetConvarInt('flecity_games:devAutoReload',0)==1
+local enabledByMarker=(LoadResourceFile(resourceName,'dev-auto-reload.enabled') or ''):match('^%s*1%s*$')~=nil
+if not enabledByConvar and not enabledByMarker then return end
 
 local marker='dev-reload.token'
 local lastToken=LoadResourceFile(resourceName,marker) or ''

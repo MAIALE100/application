@@ -456,7 +456,9 @@ function FlecityGamesPlay.Bootstrap(source)
         if game.supportsRanking then
             local order=game.rankingOrder=='asc' and 'ASC' or 'DESC'
             local row=MySQL.single.await(([[SELECT score,duration_ms,created_at FROM flecity_game_scores
-                WHERE player_identifier=? AND game_id=? ORDER BY score %s,created_at ASC LIMIT 1]]):format(order),{id,game.id})
+                WHERE player_identifier=? AND game_id=?
+                AND (metadata_json IS NULL OR metadata_json NOT LIKE '%%"dailyDate":%%')
+                ORDER BY score %s,created_at ASC LIMIT 1]]):format(order),{id,game.id})
             if row then best[game.id]=row end
         end
     end
@@ -785,6 +787,7 @@ function FlecityGamesPlay.Ranking(source,data)
     local sql=([[SELECT COALESCE(p.display_name,'Player') AS display_name,%s(s.score) AS score
         FROM flecity_game_scores s LEFT JOIN flecity_game_profiles p ON p.player_identifier=s.player_identifier
         WHERE s.game_id=? %s
+        AND (s.metadata_json IS NULL OR s.metadata_json NOT LIKE '%%"dailyDate":%%')
         GROUP BY s.player_identifier,p.display_name
         ORDER BY score %s,display_name ASC LIMIT %d]]):format(aggregate,wherePeriod,order,limit)
     return {ok=true,gameId=game.id,period=period,rows=MySQL.query.await(sql,{game.id}) or {}}

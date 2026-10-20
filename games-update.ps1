@@ -78,27 +78,29 @@ try {
         throw "Test server resources folder was not found: $Resources"
     }
 
-    Step 'Mirroring flecity_games to the test server'
+    Step 'Staging flecity_games update'
     $AutoReloadWasInstalled = Test-Path (Join-Path $Destination 'dev-auto-reload.enabled')
-    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    $Stage = Join-Path $Resources '.flecity_games_stage'
+    if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 
-    & robocopy $Source $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
-    $robocopyCode = $LASTEXITCODE
-    if ($robocopyCode -gt 7) {
-        throw "robocopy failed with exit code $robocopyCode."
+    & robocopy $Source $Stage /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $stageCode = $LASTEXITCODE
+    if ($stageCode -gt 7) {
+        throw "staging robocopy failed with exit code $stageCode."
     }
-    $ResourceChanged = $robocopyCode -ne 0
 
-    Step 'Verifying copied test build'
-    $manifestPath = Join-Path $Destination 'fxmanifest.lua'
-    $bridgePath = Join-Path $Destination 'web\shared\bridge.js'
-    $errorsPath = Join-Path $Destination 'web\shared\errors.js'
-    $playIndexPath = Join-Path $Destination 'web\play\index.html'
-    $partyIndexPath = Join-Path $Destination 'web\party\index.html'
-    $partyAppPath = Join-Path $Destination 'web\party\app.js'
-    $partyCorePath = Join-Path $Destination 'server\core\party.lua'
-    $clientMainPath = Join-Path $Destination 'client\main.lua'
-    $registryPath = Join-Path $Destination 'shared\game_registry.lua'
+    Step 'Verifying staged test build'
+    $DestinationForValidation = $Stage
+    $manifestPath = Join-Path $DestinationForValidation 'fxmanifest.lua'
+    $bridgePath = Join-Path $DestinationForValidation 'web\shared\bridge.js'
+    $errorsPath = Join-Path $DestinationForValidation 'web\shared\errors.js'
+    $playIndexPath = Join-Path $DestinationForValidation 'web\play\index.html'
+    $partyIndexPath = Join-Path $DestinationForValidation 'web\party\index.html'
+    $partyAppPath = Join-Path $DestinationForValidation 'web\party\app.js'
+    $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
+    $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
+    $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
 
     foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
@@ -128,7 +130,17 @@ try {
     $version = 'unknown'
     if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
     $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()
-    Write-Host ("Verified build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+    Write-Host ("Verified staged build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+
+    Step 'Deploying verified build'
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    & robocopy $Stage $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $robocopyCode = $LASTEXITCODE
+    if ($robocopyCode -gt 7) {
+        throw "deployment robocopy failed with exit code $robocopyCode."
+    }
+    $ResourceChanged = $robocopyCode -ne 0
+    Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
 
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
     if (-not $AutoReloadWasInstalled -or $ResourceChanged) {

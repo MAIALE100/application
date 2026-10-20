@@ -209,7 +209,7 @@ function clearLines(){
 }
 async function persistBlock(){
  if(!block||block.finished||block.daily)return;
- const state={board:block.board,pieces:block.pieces,score:block.score,combo:block.combo,rngState:block.rngState};
+ const state={board:block.board,pieces:block.pieces,score:block.score,combo:block.combo,rngState:block.rngState,history:block.history};
  const elapsedMs=Math.round(elapsedBlock());
  const res=await FlecityBridge.call('playSave',{gameId:'block',state,score:block.score,elapsedMs,seed:String(block.seed||'')});
  if(res.ok)saves.block={game_id:'block',state,score:block.score,elapsed_ms:elapsedMs,seed:String(block.seed||'')};
@@ -230,25 +230,27 @@ function renderBlock(){
 }
 async function openBlock(forceNew,daily=false){
  hideAll();blockEl.classList.remove('hidden');
- const session=await FlecityBridge.call('playStartSession',{gameId:'block',daily:daily===true});
- if(!session.ok){setStatus('Could not start BLOCK: '+session.error,'error');showHome();return;}
  const saved=!forceNew&&!daily&&saves.block;
+ const payload={gameId:'block',daily:daily===true};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const session=await FlecityBridge.call('playStartSession',payload);
+ if(!session.ok){setStatus('Could not start BLOCK: '+session.error,'error');showHome();return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
-     rngState:Number(saved.state.rngState||saved.seed||session.seed),elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false,daily:false};
+     rngState:Number(saved.state.rngState||saved.seed||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false,daily:false};
    if(!block.pieces.length)refillPieces();setStatus('BLOCK continued from auto-save.','good');
  }else{
-   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
+   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
    refillPieces();setStatus(block.daily?'Daily BLOCK started.':'New BLOCK run.','good');
  }
  renderBlock();
 }
 async function placeBlock(x,y){
  if(!block||block.finished)return;
- const piece=block.pieces[block.selected];
+ const slot=block.selected,piece=block.pieces[slot];
  if(!canPlace(piece,x,y)){setStatus('That piece does not fit there.','warn');return;}
+ block.history.push([slot,x,y]);
  for(const [dx,dy] of SHAPES[piece.shape])block.board[y+dy][x+dx]=1;
- block.score+=SHAPES[piece.shape].length*10;block.pieces[block.selected]=null;clearLines();
+ block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;clearLines();
  if(block.pieces.every(p=>!p))refillPieces();else{const next=block.pieces.findIndex(Boolean);if(next>=0)block.selected=next;}
  renderBlock();await persistBlock();
  if(blockGameOver()){setStatus('No pieces fit. Run complete.','warn');await finishBlock();}
@@ -256,7 +258,7 @@ async function placeBlock(x,y){
 async function finishBlock(){
  if(!block||block.finished)return;
  block.finished=true;
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock())});
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:block.sessionToken,score:block.score,durationMs:Math.round(elapsedBlock()),history:block.history});
  if(res.ok){if(!block.daily)delete saves.block;setStatus((res.daily?'Daily ':'')+'BLOCK score saved: '+res.score,'good');await refreshPlatform();}
  else{block.finished=false;setStatus('Could not finish BLOCK: '+res.error,'error');}
 }
@@ -313,22 +315,22 @@ function renderMerge(){
 }
 async function persistMerge(){
  if(!merge||merge.finished)return;
- const state={board:merge.board,score:merge.score,moves:merge.moves,rngState:merge.rngState};
+ const state={board:merge.board,score:merge.score,moves:merge.moves,rngState:merge.rngState,history:merge.history};
  const elapsedMs=Math.round(elapsedMerge());
  const res=await FlecityBridge.call('playSave',{gameId:'merge',state,score:merge.score,elapsedMs,seed:String(merge.seed||'')});
  if(res.ok)saves.merge={game_id:'merge',state,score:merge.score,elapsed_ms:elapsedMs,seed:String(merge.seed||'')};
 }
 async function openMerge(forceNew){
  hideAll();mergeEl.classList.remove('hidden');
- const session=await FlecityBridge.call('playStartSession',{gameId:'merge'});
+ const saved=!forceNew&&saves.merge,payload={gameId:'merge'};if(saved&&saved.seed)payload.resumeSeed=Number(saved.seed);
+ const session=await FlecityBridge.call('playStartSession',payload);
  if(!session.ok){setStatus('Could not start MERGE: '+session.error,'error');showHome();return;}
- const saved=!forceNew&&saves.merge;
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||saved.seed||session.seed),
-     elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false};
+     history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(saved.elapsed_ms||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:saved.seed||session.seed,finished:false};
    setStatus('MERGE continued from auto-save.','good');
  }else{
-   merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
+   merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
    spawnMergeTile();spawnMergeTile();setStatus('New MERGE run.','good');
  }
  renderMerge();
@@ -346,13 +348,13 @@ async function moveMerge(direction){
    }
  }
  if(before===JSON.stringify(merge.board)){setStatus('No tiles moved.','warn');return;}
- merge.moves+=1;spawnMergeTile();renderMerge();await persistMerge();
+ merge.moves+=1;merge.history.push(direction);spawnMergeTile();renderMerge();await persistMerge();
  if(mergeGameOver()){setStatus('No more moves. Run complete.','warn');await finishMerge();}
 }
 async function finishMerge(){
  if(!merge||merge.finished)return;
  merge.finished=true;
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge())});
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:merge.sessionToken,score:merge.score,durationMs:Math.round(elapsedMerge()),history:merge.history});
  if(res.ok){delete saves.merge;setStatus('MERGE score saved: '+res.score,'good');await refreshPlatform();}
  else{merge.finished=false;setStatus('Could not finish MERGE: '+res.error,'error');}
 }

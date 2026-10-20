@@ -154,6 +154,13 @@ function personalBestText(gameId){
  const game=gameById(gameId),row=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
  return row&&game?formatGameScore(game,row.score):'---';
 }
+function competitionRank(rows,index){
+ if(index<=0)return 1;
+ const score=Number(rows[index]&&rows[index].score);
+ let first=index;
+ while(first>0&&Number(rows[first-1]&&rows[first-1].score)===score)first-=1;
+ return first+1;
+}
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const achievementLabels={
@@ -214,7 +221,8 @@ function renderPlatform(data){
  const game=daily.game||gameById(daily.gameId);
  dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(daily.selfRank?' · #'+String(daily.selfRank):''):'今日はまだ挑戦していません。';
  dailyRanking.innerHTML='';
- (daily.ranking||[]).slice(0,5).forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
+ const dailyTop=(daily.ranking||[]).slice(0,5);
+ dailyTop.forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+competitionRank(dailyTop,i)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
  if(daily.selfBest&&Number(daily.selfRank)>5){
    const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
    d.className='player self-rank-row';left.textContent='#'+String(daily.selfRank)+' あなた';right.textContent=formatGameScore(game,daily.selfBest.score);d.append(left,right);dailyRanking.appendChild(d);
@@ -344,7 +352,7 @@ async function loadRanking(){
  res.rows.forEach((r,i)=>{
    const d=document.createElement('div');d.className='player';
    const left=document.createElement('span'),right=document.createElement('strong');
-   left.textContent='#'+(i+1)+' '+String(r.display_name||'Player');
+   left.textContent='#'+competitionRank(res.rows,i)+' '+String(r.display_name||'Player');
    right.textContent=formatGameScore(game,r.score);
    d.append(left,right);rankingRows.appendChild(d);
  });

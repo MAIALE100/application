@@ -53,6 +53,11 @@
   <div class="card"><div id="numberRushBoard" class="number-rush-board"></div></div>
   <div class="card stack"><button id="numberRushStart">スタート</button><button id="numberRushNew" class="secondary hidden">もう一度</button></div>
 </section>
+<section id="highLowGame" class="hidden">
+  <div class="card row"><div><div class="kicker">HIGH & LOW</div><div id="highLowStreak" class="big-number small-number">0</div><div id="highLowMeta" class="game-meta">ROUND 0 / 30</div></div><button id="highLowBack" class="secondary">戻る</button></div>
+  <div class="card big-center high-low-stage"><div class="muted">現在の数字</div><div id="highLowCard" class="high-low-card">?</div><div class="high-low-actions"><button id="highLowLower" class="secondary" disabled>LOW ↓</button><button id="highLowHigher" disabled>HIGH ↑</button></div></div>
+  <div class="card stack"><button id="highLowStart">スタート</button><button id="highLowNew" class="secondary hidden">もう一度</button></div>
+</section>
 <section id="memoryGame" class="hidden">
   <div class="card row"><div><div class="kicker">MEMORY</div><div id="memoryTime" class="big-number small-number">0.0s</div><div id="memoryMeta" class="game-meta">0 / 8 PAIRS · 0 MOVES</div></div><button id="memoryBack" class="secondary">戻る</button></div>
   <div class="card"><div id="memoryBoard" class="memory-board"></div></div>

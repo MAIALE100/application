@@ -41,6 +41,7 @@ try {
     }
 
     Step 'Mirroring flecity_games to the test server'
+    $AutoReloadWasInstalled = Test-Path (Join-Path $Destination 'dev-auto-reload.enabled')
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 
     & robocopy $Source $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP
@@ -93,10 +94,14 @@ try {
     Write-Host "Source : $Source"
     Write-Host "Target : $Destination"
     Write-Host ''
-    Write-Host 'If auto-reload is already initialized, flecity_games will restart by itself in about 1 second.' -ForegroundColor Green
-    Write-Host 'For the FIRST setup only, run this once in the server console:' -ForegroundColor Yellow
-    Write-Host '    restart flecity_games' -ForegroundColor White
-    Write-Host 'After that, future updates only need games-update.cmd.' -ForegroundColor Green
+    if ($AutoReloadWasInstalled) {
+        Write-Host 'Auto-reload is installed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } else {
+        Write-Host 'ONE-TIME SETUP: run this once in the server console:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_games' -ForegroundColor White
+        Write-Host 'After this first restart, future updates only need games-update.cmd.' -ForegroundColor Green
+    }
     Write-Host ''
 }
 catch {

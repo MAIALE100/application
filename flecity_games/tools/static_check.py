@@ -94,6 +94,7 @@ required_schema_markers = (
     "game_version INT UNSIGNED",
     "flecity_game_achievements",
     "flecity_game_daily",
+    "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 )
 for marker in required_schema_markers:
     if marker not in sql:

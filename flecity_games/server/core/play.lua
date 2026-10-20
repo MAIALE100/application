@@ -680,7 +680,9 @@ end
 
 local function statisticsFor(playerIdentifier)
     local rows=MySQL.query.await([[SELECT game_id,COUNT(*) AS play_count,SUM(duration_ms) AS total_play_time_ms,
-        MIN(score) AS min_score,MAX(score) AS max_score,MIN(duration_ms) AS best_time_ms
+        MIN(CASE WHEN metadata_json IS NULL OR metadata_json NOT LIKE '%"dailyDate":%' THEN score END) AS normal_min_score,
+        MAX(CASE WHEN metadata_json IS NULL OR metadata_json NOT LIKE '%"dailyDate":%' THEN score END) AS normal_max_score,
+        MIN(CASE WHEN metadata_json IS NULL OR metadata_json NOT LIKE '%"dailyDate":%' THEN duration_ms END) AS normal_best_time_ms
         FROM flecity_game_scores WHERE player_identifier=? GROUP BY game_id]],{playerIdentifier}) or {}
     local out={}
     local totalPlays,totalTime=0,0
@@ -694,8 +696,8 @@ local function statisticsFor(playerIdentifier)
                 gameId=game.id,
                 playCount=plays,
                 totalPlayTimeMs=total,
-                bestScore=tonumber(game.rankingOrder=='asc' and row.min_score or row.max_score),
-                bestTimeMs=tonumber(row.best_time_ms),
+                bestScore=tonumber(game.rankingOrder=='asc' and row.normal_min_score or row.normal_max_score),
+                bestTimeMs=tonumber(row.normal_best_time_ms),
                 clearCount=(game.id=='mines' or game.id=='nonogram') and plays or nil
             }
         end

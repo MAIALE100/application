@@ -47,6 +47,8 @@ local function safeCall(name,fn,source,data)
     return {ok=false,error='SERVER_ERROR'}
 end
 
+local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
+
 local function startupDiagnostics()
     local failures={}
     local function check(name,ok)
@@ -54,8 +56,20 @@ local function startupDiagnostics()
     end
 
     check('framework bridge',FlecityGamesFramework.IsReady()==true)
+    check('lb-phone resource',GetResourceState('lb-phone')=='started')
+    check('oxmysql resource',GetResourceState('oxmysql')=='started')
     check('PLAY registry',#FlecityGamesRegistry.List('play',true)==7)
     check('PARTY registry',#FlecityGamesRegistry.List('party',true)==8)
+
+    for _,tableName in ipairs(requiredTables) do
+        local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
+        check('DB '..tableName,exists)
+    end
+    local uniqueSession=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='flecity_game_scores'
+        AND INDEX_NAME='uq_flecity_game_session_token' AND NON_UNIQUE=0]]) or 0)>0
+    check('DB unique session token',uniqueSession)
 
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do
         check('PLAY '..name,ok==true)
@@ -65,11 +79,11 @@ local function startupDiagnostics()
     end
 
     if #failures==0 then
-        print('[FlecityGames] startup selftest PASS')
+        print('[FlecityGames] startup preflight READY_FOR_LIVE_TEST')
         return true
     end
 
-    print(('[FlecityGames] startup selftest FAIL (%d)'):format(#failures))
+    print(('[FlecityGames] startup preflight NOT_READY (%d failures)'):format(#failures))
     for _,name in ipairs(failures) do print('[FlecityGames]   FAIL '..name) end
     return false
 end
@@ -106,8 +120,6 @@ end)
 CreateThread(function()
     while true do Wait(5000) FlecityGamesPlay.Cleanup() FlecityGamesParty.Cleanup() end
 end)
-
-local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
 
 RegisterCommand('game_selftest',function(source)
     local prefix=source==0 and '[FlecityGames selftest]' or ('[FlecityGames selftest source=%s]'):format(source)

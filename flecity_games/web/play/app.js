@@ -137,8 +137,9 @@ rankingPeriod.onchange=()=>{rankingRows.innerHTML='';};
 async function bootstrap(){
  const res=await FlecityBridge.call('playBootstrap',{});
  if(!res.ok){
-   if(res.error==='PLAYER_NOT_READY'){
-     setStatus('Waiting for character…','warn');
+   const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
+   if(transient.includes(res.error)){
+     setStatus(res.error==='PLAYER_NOT_READY'?'Waiting for character…':'Reconnecting PLAY…','warn');
      setTimeout(bootstrap,1000);
      return;
    }

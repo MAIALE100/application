@@ -455,6 +455,10 @@ tapButton.onclick=async()=>{
 };
 tapBack.onclick=async()=>{
  if(tapState==='submitting'){setStatus('QUICK TAPの記録を保存中です…','warn');return;}
+ if(tapSession&&['waiting','shown'].includes(tapState)){
+   const ok=await confirmAction('QUICK TAPを終了しますか？','現在のRunは記録されず終了します。','終了する');
+   if(!ok)return;
+ }
  if(tapSession)await cancelPlaySession(tapSession.sessionToken);
  clearTimeout(tapTimer);tapSession=null;tapState='idle';showHome();
 };
@@ -499,6 +503,10 @@ stopButton.onclick=async()=>{
 };
 stopBack.onclick=async()=>{
  if(stopState==='submitting'){setStatus('STOP!の記録を保存中です…','warn');return;}
+ if(stopSession&&stopState==='running'){
+   const ok=await confirmAction('STOP!を終了しますか？','現在のRunは記録されず終了します。','終了する');
+   if(!ok)return;
+ }
  cancelAnimationFrame(stopRaf);
  if(stopSession)await cancelPlaySession(stopSession.sessionToken);
  stopSession=null;stopState='idle';showHome();

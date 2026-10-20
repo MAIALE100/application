@@ -433,7 +433,7 @@ local function unlockAchievement(playerIdentifier,achievementId,gameId,metadata)
     end)
     return ok==true
 end
-local function evaluateAchievements(playerIdentifier,game,score)
+local function evaluateAchievements(playerIdentifier,game,score,metadata)
     local unlocked={}
     local total=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_scores WHERE player_identifier=?',{playerIdentifier}) or 0)
     if unlockAchievement(playerIdentifier,'first_play',game.id,{total=total}) then unlocked[#unlocked+1]='first_play' end
@@ -442,6 +442,7 @@ local function evaluateAchievements(playerIdentifier,game,score)
     if game.id=='quick_tap' and score<=tonumber(cfg.LightningReactionMs or 200) and unlockAchievement(playerIdentifier,'lightning',game.id,{score=score}) then unlocked[#unlocked+1]='lightning' end
     if game.id=='stack' and score>=tonumber(cfg.StackMasterLayers or 25) and unlockAchievement(playerIdentifier,'stack_master',game.id,{score=score}) then unlocked[#unlocked+1]='stack_master' end
     if game.id=='block' and score>=tonumber(cfg.BlockMasterScore or 5000) and unlockAchievement(playerIdentifier,'block_master',game.id,{score=score}) then unlocked[#unlocked+1]='block_master' end
+    if game.id=='memory' and tonumber(metadata and metadata.moves)==8 and unlockAchievement(playerIdentifier,'perfect_memory',game.id,{score=score,moves=8}) then unlocked[#unlocked+1]='perfect_memory' end
     return unlocked
 end
 
@@ -802,7 +803,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
 
     sessions[token]=nil
     if game.supportsResume and not session.dailyDate then MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id}) end
-    local unlocked=evaluateAchievements(id,game,score)
+    local unlocked=evaluateAchievements(id,game,score,metadata)
     return {ok=true,score=score,details=metadata,unlocked=unlocked,daily=session.dailyDate~=nil}
 end
 

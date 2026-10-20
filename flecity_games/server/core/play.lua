@@ -399,7 +399,9 @@ function FlecityGamesPlay.Bootstrap(source)
     end
 
     return {
-        ok=true,games=FlecityGamesRegistry.List('play',false),saves=saves,best=best,
+        ok=true,
+        version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
+        games=FlecityGamesRegistry.List('play',false),saves=saves,best=best,
         daily=publicDaily(dailyChallenge()),statistics=statisticsFor(id),achievements=achievementsFor(id)
     }
 end

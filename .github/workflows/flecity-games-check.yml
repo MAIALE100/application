@@ -6,10 +6,14 @@ on:
       - games/platform-core
     paths:
       - 'flecity_games/**'
+      - 'games-update.ps1'
+      - 'games-update.cmd'
       - '.github/workflows/flecity-games-check.yml'
   pull_request:
     paths:
       - 'flecity_games/**'
+      - 'games-update.ps1'
+      - 'games-update.cmd'
       - '.github/workflows/flecity-games-check.yml'
 
 jobs:
@@ -17,10 +21,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check change isolation
+        shell: bash
+        run: |
+          git fetch origin frame-integration-test
+          bad=0
+          while IFS= read -r path; do
+            case "$path" in
+              flecity_games/*|games-update.ps1|games-update.cmd|.github/workflows/flecity-games-check.yml)
+                ;;
+              *)
+                echo "Unexpected path changed outside Flecity Games: $path"
+                bad=1
+                ;;
+            esac
+          done < <(git diff --name-only origin/frame-integration-test...HEAD)
+          exit "$bad"
+
       - name: Check JavaScript syntax
         run: |
           node --check flecity_games/web/shared/bridge.js
           node --check flecity_games/web/play/app.js
           node --check flecity_games/web/party/app.js
+
+      - name: Install Lua
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+
+      - name: Check Lua syntax
+        run: |
+          find flecity_games -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+
       - name: Check Flecity Games wiring
         run: python3 flecity_games/tools/static_check.py

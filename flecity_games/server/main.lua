@@ -259,17 +259,23 @@ end,false)
 
 RegisterCommand('game_status',function(source)
     local prefix=source==0 and '[FlecityGames status]' or ('[FlecityGames status source=%s]'):format(source)
+    local function scalar(sql,fallback)
+        local ok,value=pcall(function() return MySQL.scalar.await(sql) end)
+        if ok then return value end
+        return fallback
+    end
     local version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown'
     local qbox=tostring(FlecityGamesFramework.GetVersion() or 'unknown')
     local phone=tostring(GetResourceMetadata('lb-phone','version',0) or 'unknown')
-    local database=tostring(MySQL.scalar.await('SELECT VERSION()') or 'unknown')
+    local database=tostring(scalar('SELECT VERSION()','unavailable') or 'unavailable')
     local playSessions=FlecityGamesPlay.DebugCounts()
     local rooms,members=FlecityGamesParty.DebugCounts()
-    local scores=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_scores') or 0) or 0
-    local saves=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_saves') or 0) or 0
-    local achievements=tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_game_achievements') or 0) or 0
-    print(('%s version=%s qbox=%s lb-phone=%s db=%s callbacks=%d/%d'):format(
-        prefix,version,qbox,phone,database,registeredPhoneCallbacks,expectedPhoneCallbacks))
+    local scores=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_scores',0) or 0) or 0
+    local saves=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_saves',0) or 0) or 0
+    local achievements=tonumber(scalar('SELECT COUNT(*) FROM flecity_game_achievements',0) or 0) or 0
+    print(('%s version=%s qbox=%s lb-phone=%s(%s) oxmysql=%s db=%s callbacks=%d/%d'):format(
+        prefix,version,qbox,phone,GetResourceState('lb-phone'),GetResourceState('oxmysql'),database,
+        registeredPhoneCallbacks,expectedPhoneCallbacks))
     print(('%s play_sessions=%d rooms=%d members=%d scores=%d saves=%d achievements=%d'):format(
         prefix,playSessions,rooms,members,scores,saves,achievements))
 end,false)

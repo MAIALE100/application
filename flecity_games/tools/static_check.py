@@ -127,6 +127,11 @@ if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
 if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
+for name, html in (("PLAY", play_html), ("PARTY", party_html)):
+    if "componentsLoaded" not in html or "devMode=!window.invokeNative" not in html:
+        fail(f"{name} must wait for LB Phone componentsLoaded before bootstrapping")
+    if "setTimeout(loadApp" in html:
+        fail(f"{name} contains an unsafe timed bootstrap before LB Phone injects fetchNui")
 if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
     fail("MEMORY client implementation is missing")
 if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:

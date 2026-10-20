@@ -25,19 +25,20 @@ Exact installed resource versions are not stored in this repository and remain *
 - PARTY authoritative in-memory Room state
 - display Room Code separated from internal Room ID
 - ready state, host-only game selection, round-state base
-- disconnect grace and host migration
+- disconnect grace, automatic reconnect, and immediate host migration
 - rate limits
 - idempotent initial database schema
-- `game_selftest` and `game_healthcheck`
+- non-destructive `game_selftest` and `game_healthcheck`
 - readable phone-first UI shells
-- QUICK TAP first vertical slice
+- per-player leaderboard aggregation so one player cannot occupy multiple ranking slots
+- explicit resume-save reset for new runs
 
 ## Reference-game status
 
 - QUICK TAP — playable vertical slice; live timing/latency verification required.
-- BLOCK — registry + resumable server path ready; gameplay engine is Phase 2.
-- REACTION — room/round metadata path ready; action/result flow is Phase 2.
-- VOTE — registry and room selection ready; voting flow is Phase 2.
+- BLOCK — playable reference implementation with auto-save/resume, new-run reset, line clears, combo score, and score submission.
+- REACTION — playable PARTY reference flow with server-owned round state, one submission per player, flying detection, and results.
+- VOTE — playable PARTY reference flow with server-owned targets, self-vote rejection, aggregation, and Japanese prompts.
 
 ## Test-server install
 
@@ -49,4 +50,6 @@ Exact installed resource versions are not stored in this repository and remain *
 6. Run `game_selftest` in the server console.
 7. Open PLAY and PARTY from LB Phone.
 
-Phone close/open behavior, NUI focus, callback behavior, database compatibility, two-client room synchronization, and network timing are **LIVE VERIFICATION PENDING** until tested in FiveM.
+Current public LB Phone documentation was rechecked against the integration shape used here: custom UI apps use `AddCustomApp`, UI paths include the resource name, clients can use `AwaitCallback`, and servers can use `RegisterCallback`. The exact Flecity-installed LB Phone version is still **LIVE VERIFICATION PENDING**.
+
+Phone close/open behavior, NUI focus, actual database compatibility, two-client room synchronization, and network timing are **LIVE VERIFICATION PENDING** until tested in FiveM.

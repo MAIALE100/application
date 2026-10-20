@@ -1152,17 +1152,6 @@ highLowNew.onclick=async()=>{
 };
 
 /* SIMON */
-function simonNext(state){
- let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
- x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
-}
-function simonSequenceFromSeed(seed,rounds=30){
- const count=Math.max(1,Math.min(100,Math.floor(Number(rounds)||30)));
- let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
- const out=[];
- for(let i=0;i<count;i++){let value;[state,value]=simonNext(state);out.push(Math.min(3,Math.floor(value*4)));}
- return out;
-}
 function renderSimon(){
  const game=simon;
  if(!game){
@@ -1172,7 +1161,7 @@ function renderSimon(){
  }
  simonRound.textContent=String(game.cleared);
  simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
- simonPads.forEach(p=>p.disabled=!game.accepting);
+ simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
  return new Promise(resolve=>{
@@ -1184,11 +1173,11 @@ function flashSimonPad(index,duration){
 }
 async function playSimonSequence(){
  const game=simon;if(!game||game.finished)return;
- game.accepting=false;game.inputIndex=0;renderSimon();
+ game.accepting=false;game.submitting=false;game.inputIndex=0;game.roundInputs=[];renderSimon();
  simonMessage.textContent='覚えてください · '+game.round+'手';
  await sleep(260);
  const flashMs=Math.max(180,430-(game.round*7));
- for(let i=0;i<game.round;i++){
+ for(let i=0;i<game.sequence.length;i++){
    if(simon!==game||game.finished)return;
    await flashSimonPad(game.sequence[i],flashMs);
  }
@@ -1206,44 +1195,78 @@ async function startSimon(){
  const session=await FlecityBridge.call('playStartSession',{gameId:'simon'});
  if(!session.ok){simonStart.disabled=false;setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
- simon={sessionToken:session.sessionToken,seed:Number(session.seed)||1,maxRounds,sequence:simonSequenceFromSeed(session.seed,maxRounds),round:1,cleared:0,inputIndex:0,history:[],accepting:false,finished:false,startedAt:performance.now()};
- simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus('SIMON開始。','good');
+ const sequence=Array.isArray(session.challenge&&session.challenge.sequence)?session.challenge.sequence.map(Number):[];
+ if(sequence.length!==1||sequence.some(v=>!Number.isInteger(v)||v<0||v>3)){
+   await cancelPlaySession(session.sessionToken);
+   simonStart.disabled=false;setStatus('SIMONの初期状態を取得できませんでした。','error');return;
+ }
+ simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,startedAt:performance.now()};
+ simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus('SIMON開始。未来のラウンドはSERVERから順番に配信します。','good');
  await playSimonSequence();
+}
+async function sendSimonRound(inputs){
+ let res=await FlecityBridge.call('playSubmitSimonRound',{sessionToken:simon&&simon.sessionToken,inputs});
+ if(!res.ok&&['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED'].includes(res.error)){
+   await sleep(res.error==='RATE_LIMIT'?220:160);
+   res=await FlecityBridge.call('playSubmitSimonRound',{sessionToken:simon&&simon.sessionToken,inputs});
+ }
+ return res;
 }
 async function finishSimon(clearedAll=false){
  const game=simon;if(!game||game.finished)return;
- game.finished=true;game.accepting=false;clearTimeout(simonTimer);simonTimer=null;renderSimon();
+ game.finished=true;game.accepting=false;game.submitting=false;clearTimeout(simonTimer);simonTimer=null;renderSimon();
  const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
- const res=await FlecityBridge.call('playSubmitScore',{sessionToken:game.sessionToken,score:game.cleared,durationMs,history:game.history});
+ const res=await FlecityBridge.call('playSubmitScore',{sessionToken:game.sessionToken,score:game.cleared,durationMs});
  if(res.ok){
    game.sessionToken=null;simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
    showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{
-   game.finished=false;game.accepting=true;renderSimon();
+   game.finished=false;game.accepting=false;renderSimon();
+   simonMessage.textContent='記録保存に失敗しました';
    setStatus('SIMON記録失敗: '+FlecityErrors.text(res.error),'error');
  }
 }
 async function pressSimon(index){
- const game=simon;if(!game||game.finished||!game.accepting)return;
+ const game=simon;if(!game||game.finished||!game.accepting||game.submitting)return;
  game.accepting=false;simonPads.forEach(p=>p.disabled=true);
- game.history.push(index);
+ game.roundInputs.push(index);
  const expected=game.sequence[game.inputIndex];
  if(index!==expected){
    const pad=simonPads[index];if(pad)pad.classList.add('wrong');
    tone(150,100);simonMessage.textContent='MISS';
+   game.submitting=true;
+   const res=await sendSimonRound(game.roundInputs.slice());
+   game.submitting=false;
+   if(!res.ok){
+     game.accepting=true;renderSimon();setStatus('SIMON判定失敗: '+FlecityErrors.text(res.error),'error');return;
+   }
+   game.cleared=Math.max(0,Number(res.cleared)||0);
    simonTimer=setTimeout(()=>{if(pad)pad.classList.remove('wrong');},260);
    await finishSimon(false);return;
  }
  tone([420,560,700,840][index]||660,45);
  game.inputIndex+=1;
- if(game.inputIndex<game.round){
+ if(game.inputIndex<game.sequence.length){
    game.accepting=true;renderSimon();simonMessage.textContent='あなたの番 · '+String(game.inputIndex+1)+' / '+game.round;return;
  }
- game.cleared=game.round;renderSimon();
- if(game.round>=game.maxRounds){await finishSimon(true);return;}
+
+ game.submitting=true;renderSimon();
+ const res=await sendSimonRound(game.roundInputs.slice());
+ game.submitting=false;
+ if(!res.ok){
+   game.accepting=true;renderSimon();setStatus('SIMON判定失敗: '+FlecityErrors.text(res.error),'error');return;
+ }
+ game.cleared=Math.max(0,Number(res.cleared)||0);renderSimon();
+ if(res.ended===true){await finishSimon(res.clearedAll===true);return;}
+
+ const nextSequence=Array.isArray(res.sequence)?res.sequence.map(Number):[];
+ const nextRound=Math.max(1,Number(res.round)||game.round+1);
+ if(nextSequence.length!==nextRound||nextSequence.some(v=>!Number.isInteger(v)||v<0||v>3)){
+   setStatus('SIMONの次ラウンドを取得できませんでした。','error');return;
+ }
  simonMessage.textContent='CLEAR · ROUND '+game.round;
- game.round+=1;game.inputIndex=0;
+ game.round=nextRound;game.sequence=nextSequence;game.inputIndex=0;game.roundInputs=[];
  await sleep(520);
  if(simon===game&&!game.finished)await playSimonSequence();
 }

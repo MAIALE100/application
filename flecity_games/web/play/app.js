@@ -229,8 +229,15 @@ function renderPlatform(data){
  dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(daily.selfRank?' · #'+String(daily.selfRank):''):'今日はまだ挑戦していません。';
  dailyRanking.innerHTML='';
  const dailyTop=(daily.ranking||[]).slice(0,5);
- dailyTop.forEach((r,i)=>{const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');d.className='player';left.textContent='#'+competitionRank(dailyTop,i)+' '+String(r.display_name||'Player');right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);});
- if(daily.selfBest&&Number(daily.selfRank)>5){
+ let selfVisible=false;
+ dailyTop.forEach((r,i)=>{
+   const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+   const isSelf=Number(r.is_self)===1;selfVisible=selfVisible||isSelf;
+   d.className='player'+(isSelf?' self-rank-row':'');
+   left.textContent='#'+competitionRank(dailyTop,i)+' '+(isSelf?'あなた':String(r.display_name||'Player'));
+   right.textContent=formatGameScore(game,r.score);d.append(left,right);dailyRanking.appendChild(d);
+ });
+ if(daily.selfBest&&daily.selfRank&&!selfVisible){
    const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
    d.className='player self-rank-row';left.textContent='#'+String(daily.selfRank)+' あなた';right.textContent=formatGameScore(game,daily.selfBest.score);d.append(left,right);dailyRanking.appendChild(d);
  }
@@ -356,13 +363,20 @@ async function loadRanking(){
    rankingSelf.textContent='あなたの'+rankingPeriodLabel(res.period)+'BEST · まだ記録がありません';
  }
  if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">まだ記録がありません。</div>';return;}
+ let selfVisible=false;
  res.rows.forEach((r,i)=>{
-   const d=document.createElement('div');d.className='player';
+   const d=document.createElement('div');
+   const isSelf=Number(r.is_self)===1;selfVisible=selfVisible||isSelf;
+   d.className='player'+(isSelf?' self-rank-row':'');
    const left=document.createElement('span'),right=document.createElement('strong');
-   left.textContent='#'+competitionRank(res.rows,i)+' '+String(r.display_name||'Player');
+   left.textContent='#'+competitionRank(res.rows,i)+' '+(isSelf?'あなた':String(r.display_name||'Player'));
    right.textContent=formatGameScore(game,r.score);
    d.append(left,right);rankingRows.appendChild(d);
  });
+ if(Number.isFinite(Number(self.score))&&Number(self.rank)>0&&!selfVisible){
+   const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+   d.className='player self-rank-row';left.textContent='#'+String(self.rank)+' あなた';right.textContent=formatGameScore(game,self.score);d.append(left,right);rankingRows.appendChild(d);
+ }
 }
 rankingLoad.onclick=loadRanking;
 rankingGame.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};

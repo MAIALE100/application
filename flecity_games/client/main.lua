@@ -73,11 +73,12 @@ local callbackMap={
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }
 
-RegisterNetEvent('flecity_games:client:partyInvalidate',function()
-    if GetResourceState('lb-phone')~='started' then return end
+RegisterNetEvent('flecity_games:client:partyUpdate',function(room)
+    if GetResourceState('lb-phone')~='started' or type(room)~='table' then return end
     local ok,success,err=pcall(function()
         return exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
-            type='partyInvalidate'
+            type='partyUpdate',
+            room=room
         })
     end)
     if FlecityGamesConfig.Debug and (not ok or success==false) then

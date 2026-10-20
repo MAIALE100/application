@@ -64,31 +64,36 @@ function renderPlayers(room){
    row.append(left,right);playersEl.appendChild(row);
  });
 }
+function appendResultRow(leftText,rightText){
+ const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
+ d.className='player';left.textContent=String(leftText??'');right.textContent=String(rightText??'');
+ d.append(left,right);resultsEl.appendChild(d);
+}
 function renderResults(room){
  const rs=room.roundState;if(!rs||!rs.complete||!rs.results){resultsPanel.classList.add('hidden');return;}
  if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
  if(rs.gameId==='reaction'){
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>'+(e.flying?'FLYING':Number(e.reactionMs).toFixed(3)+' ms')+'</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.flying?'FLYING':Number(e.reactionMs).toFixed(3)+' ms'));
  }else if(rs.gameId==='stop_battle'){
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>'+e.score+' / '+Number(e.distancePct).toFixed(2)+'%</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.score+' / '+Number(e.distancePct).toFixed(2)+'%'));
  }else if(rs.gameId==='vote'){
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>'+e.name+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>appendResultRow(e.name,e.votes+'票'));
  }else if(rs.gameId==='majority'){
    const options=rs.results.options||rs.options||['A','B'],counts=rs.results.counts||{A:0,B:0};
    const summary=document.createElement('div');summary.className='status good';
    summary.textContent='A: '+options[0]+' ('+Number(counts.A||0)+') / B: '+options[1]+' ('+Number(counts.B||0)+')';
    resultsEl.appendChild(summary);
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const label=e.choice==='A'?options[0]:options[1];d.innerHTML='<span>'+e.name+'</span><strong>'+label+'</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>{const label=e.choice==='A'?options[0]:options[1];appendResultRow(e.name,label);});
  }else if(rs.gameId==='word_wolf'){
    const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const wolf=e.memberId===rs.results.wolfMemberId?' ← WOLF':'';d.innerHTML='<span>'+e.name+wolf+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← WOLF':'';appendResultRow(e.name+wolf,e.votes+'票');});
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className='status good';reveal.textContent='質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
-   rs.results.entries.forEach(e=>{const d=document.createElement('div');d.className='player';const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';d.innerHTML='<span>'+e.name+liar+'</span><strong>'+e.votes+'票</strong>';resultsEl.appendChild(d);});
+   rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':'正解: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
-   (rs.results.entries||[]).forEach(e=>{const d=document.createElement('div');d.className='player';d.innerHTML='<span>#'+e.place+' '+e.name+'</span><strong>正解</strong>';resultsEl.appendChild(d);});
+   (rs.results.entries||[]).forEach(e=>appendResultRow('#'+e.place+' '+e.name,'正解'));
  }else if(rs.gameId==='telephone'){
    (rs.results.chain||[]).forEach((entry,i)=>{
      const wrap=document.createElement('div');wrap.className='card stack';

@@ -140,8 +140,8 @@ if "numberRushBoardFromSeed" not in play_js or "finishNumberRush" not in play_js
     fail("NUMBER RUSH client implementation is missing")
 if "playHighLowGuess" not in play_js or "finishHighLow" not in play_js:
     fail("HIGH & LOW server-authoritative client flow is missing")
-if "simonSequenceFromSeed" not in play_js or "finishSimon" not in play_js:
-    fail("SIMON client implementation is missing")
+if "playSubmitSimonRound" not in play_js or "finishSimon" not in play_js:
+    fail("SIMON server-validated client flow is missing")
 
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",
@@ -178,6 +178,8 @@ if "HighLowGuess" not in play_lua or "highLowServerState" not in play_lua or "se
     fail("HIGH & LOW server-authoritative state validation is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")
+if "SubmitSimonRound" not in play_lua or "simonServerState" not in play_lua:
+    fail("SIMON server-authoritative round validation is missing")
 
 party_lua = read("flecity_games/server/core/party.lua")
 framework_lua = read("flecity_games/server/bridge/framework.lua")

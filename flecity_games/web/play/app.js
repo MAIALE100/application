@@ -370,7 +370,7 @@ tapButton.onclick=async()=>{
  }
  if(tapState!=='idle')return;
  tapButton.disabled=true;const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
- if(!res.ok){tapButton.disabled=false;setStatus('開始できません: '+FlecityErrors.text(res.error),'error');return;}
+ if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('開始できません: '+FlecityErrors.text(res.error),'error');return;}
  tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
  tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
 };
@@ -408,7 +408,7 @@ stopButton.onclick=async()=>{
  if(stopState!=='idle')return;
  stopButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'stop',daily:stopDaily});
- if(!res.ok){stopButton.disabled=false;setStatus('STOP!を開始できません: '+FlecityErrors.text(res.error),'error');return;}
+ if(!res.ok){stopButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('STOP!を開始できません: '+FlecityErrors.text(res.error),'error');return;}
  stopSession=res;stopState='running';stopStartedAt=performance.now();
  stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';
  stopMessage.textContent='STOP!';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
@@ -483,7 +483,7 @@ async function openBlock(forceNew,daily=false){
  const saved=!forceNew&&!daily&&saves.block;
  const payload={gameId:'block',daily:daily===true};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
- if(!session.ok){setStatus('BLOCKを開始できません: '+session.error,'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('BLOCKを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
      rngState:Number(saved.state.rngState||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:false};
@@ -605,7 +605,7 @@ async function openMerge(forceNew){
  hideAll();mergeEl.classList.remove('hidden');
  const saved=!forceNew&&saves.merge,payload={gameId:'merge'};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
- if(!session.ok){setStatus('MERGEを開始できません: '+session.error,'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MERGEを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
      history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
@@ -763,7 +763,7 @@ async function openMines(forceNew,daily=false){
  const saved=!forceNew&&!daily&&saves.mines;
  const payload={gameId:'mines',daily:daily===true};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
- if(!session.ok){setStatus('MINESを開始できません: '+session.error,'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MINESを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',avoidIndex:Number.isInteger(Number(saved.state.avoidIndex))?Number(saved.state.avoidIndex):null,
@@ -882,7 +882,7 @@ function stackLoop(now){
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
  const session=await startSessionWithRetry({gameId:'stack'});
- if(!session.ok){setStatus('STACKを開始できません: '+session.error,'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('STACKを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
  stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
@@ -1002,7 +1002,7 @@ async function openNonogram(forceNew,daily=false){
  hideAll();nonogramEl.classList.remove('hidden');clearInterval(nonogramClock);
  const saved=!forceNew&&!daily&&saves.nonogram,payload={gameId:'nonogram',daily:daily===true};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
- if(!session.ok){setStatus('NONOGRAMを開始できません: '+session.error,'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('NONOGRAMを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
@@ -1096,7 +1096,7 @@ async function startColorMatch(){
  if(colorMatch&&colorMatch.running)return;
  colorMatchStart.disabled=true;
  const session=await startSessionWithRetry({gameId:'color_match'});
- if(!session.ok){colorMatchStart.disabled=false;setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ if(!session.ok){colorMatchStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||10);
  colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],startedAt:performance.now(),running:true,finished:false};
  colorMatchStart.classList.add('hidden');setStatus('COLOR MATCH開始。10問連続正解を目指してください。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
@@ -1182,7 +1182,7 @@ async function startNumberRush(){
  numberRushStart.disabled=true;
  const daily=numberRushEl.dataset.daily==='1';
  const session=await startSessionWithRetry({gameId:'number_rush',daily});
- if(!session.ok){numberRushStart.disabled=false;setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ if(!session.ok){numberRushStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const count=Number(session.challenge&&session.challenge.count)||25;
  numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
  numberRushStart.classList.add('hidden');numberRushNew.classList.remove('hidden');
@@ -1268,7 +1268,7 @@ async function startHighLow(){
  if(highLow&&highLow.running)return;
  highLowStart.disabled=true;
  const session=await startSessionWithRetry({gameId:'high_low'});
- if(!session.ok){highLowStart.disabled=false;setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ if(!session.ok){highLowStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const currentValue=Number(session.challenge&&session.challenge.currentValue)||0;
  if(currentValue<1||currentValue>13){
@@ -1381,7 +1381,7 @@ async function startSimon(){
  if(simon&&!simon.finished)return;
  simonStart.disabled=true;
  const session=await startSessionWithRetry({gameId:'simon'});
- if(!session.ok){simonStart.disabled=false;setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ if(!session.ok){simonStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const sequence=Array.isArray(session.challenge&&session.challenge.sequence)?session.challenge.sequence.map(Number):[];
  if(sequence.length!==1||sequence.some(v=>!Number.isInteger(v)||v<0||v>3)){
@@ -1508,7 +1508,7 @@ function renderMemory(){
 async function openMemory(daily=false){
  hideAll();memoryEl.classList.remove('hidden');clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
  const session=await startSessionWithRetry({gameId:'memory',daily:daily===true});
- if(!session.ok){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
  memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
  setStatus((previewMs/1000).toFixed(1)+'秒だけカードを覚えてください。','good');

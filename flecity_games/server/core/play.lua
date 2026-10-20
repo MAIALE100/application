@@ -622,12 +622,14 @@ function FlecityGamesPlay.DebugSelftest()
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
     local testNonogramActual=0 for _ in pairs(testNonogram) do testNonogramActual=testNonogramActual+1 end
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
+    local opaqueToken=newToken('SECRET_CITIZEN_ID','quick_tap')
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
     return {
         quickRejectLow=quick and validateScore(quick,69)==nil or false,
         quickAcceptNormal=quick and validateScore(quick,180)~=nil or false,
         deterministicChallenge=quickChallenge.delayMs==quickChallenge2.delayMs,
+        opaqueSessionToken=not string.find(opaqueToken,'SECRET_CITIZEN_ID',1,true),
         stopRejectHigh=stop and validateScore(stop,1001)==nil or false,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
         blockRejectNegative=block and validateScore(block,-1)==nil or false,

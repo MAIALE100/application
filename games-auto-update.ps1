@@ -34,17 +34,33 @@ function Write-AutoLog([string]$Message) {
 }
 
 function Invoke-Git([string[]]$Arguments) {
-    $output = & git -C $RepoRoot @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw ('git {0} failed: {1}' -f ($Arguments -join ' '),(($output | Out-String).Trim()))
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & git -C $RepoRoot @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($exitCode -ne 0) {
+        throw ('git {0} failed with exit code {1}: {2}' -f ($Arguments -join ' '),$exitCode,(($output | Out-String).Trim()))
     }
     return (($output | Out-String).Trim())
 }
 
 function Get-RemoteSha {
-    $output = & git -C $RepoRoot ls-remote origin "refs/heads/$Branch" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw ('git ls-remote failed: ' + (($output | Out-String).Trim()))
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & git -C $RepoRoot ls-remote origin "refs/heads/$Branch" 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($exitCode -ne 0) {
+        throw ('git ls-remote failed with exit code {0}: {1}' -f $exitCode,(($output | Out-String).Trim()))
     }
     $line = @($output)[0]
     if (-not $line -or $line -notmatch '^([0-9a-fA-F]{40})\s+') {

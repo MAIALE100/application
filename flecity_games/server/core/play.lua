@@ -1862,7 +1862,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local sortGame=gameFor('sort') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testSafeMines=generateMines(12345,8,10,0) local testSafeMineCount=0 for _ in pairs(testSafeMines) do testSafeMineCount=testSafeMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
@@ -1945,6 +1945,23 @@ function FlecityGamesPlay.DebugSelftest()
         if not result or result.correct~=true then simonServerOk=false break end
     end
 
+    local sortBoard=generateSortBoard(12345)
+    local sortCounts={0,0,0,0}
+    local sortTiles=0
+    for i=1,6 do
+        for _,color in ipairs(sortBoard[i] or {}) do
+            sortTiles=sortTiles+1
+            if color>=0 and color<=3 then sortCounts[color+1]=sortCounts[color+1]+1 end
+        end
+    end
+    local sortMoveTest=nil
+    for from=1,4 do
+        if #(sortBoard[from] or {})>0 then
+            sortMoveTest=replaySortState(12345,{{from-1,4}})
+            if sortMoveTest then break end
+        end
+    end
+
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
     return {
@@ -1980,6 +1997,9 @@ function FlecityGamesPlay.DebugSelftest()
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         memoryDeckPairs=memory and memoryReplay and memoryReplay.complete==true and memoryReplay.pairs==8,
         memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,
+        sortSeedCounts=sortGame and sortTiles==16 and sortCounts[1]==4 and sortCounts[2]==4 and sortCounts[3]==4 and sortCounts[4]==4,
+        sortReplayMove=sortGame and sortMoveTest and sortMoveTest.moves==1 and #sortMoveTest.history==1 or false,
+        sortValidateTime=sortGame and validateScore(sortGame,45000)==45000 or false,
         memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
         colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==10 or false,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,

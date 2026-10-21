@@ -209,10 +209,22 @@ function competitionRank(rows,index){
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const gameVisuals={
- quick_tap:{icon:'⚡',eyebrow:'REFLEX'},stop:{icon:'◎',eyebrow:'TIMING'},color_match:{icon:'A',eyebrow:'FOCUS'},number_rush:{icon:'25',eyebrow:'SPEED'},
- stack:{icon:'▤',eyebrow:'PRECISION'},high_low:{icon:'↕',eyebrow:'SPEED'},simon:{icon:'◆',eyebrow:'MEMORY'},
- block:{icon:'▦',eyebrow:'BUILD'},merge:{icon:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'✦',eyebrow:'LOGIC'},nonogram:{icon:'▩',eyebrow:'PUZZLE'},memory:{icon:'●',eyebrow:'PAIR'},sort:{icon:'◫',eyebrow:'SORT'}
+ quick_tap:{icon:'icons/quick-tap.svg',symbol:'⚡',eyebrow:'REFLEX'},stop:{icon:'icons/stop.svg',symbol:'◎',eyebrow:'TIMING'},
+ color_match:{icon:'icons/color-match.svg',symbol:'A',eyebrow:'FOCUS'},number_rush:{icon:'icons/number-rush.svg',symbol:'25',eyebrow:'SPEED'},
+ stack:{icon:'icons/tower.svg',symbol:'▤',eyebrow:'PRECISION'},high_low:{icon:'icons/range-rush.svg',symbol:'↕',eyebrow:'SPEED'},simon:{icon:'icons/simon.svg',symbol:'◆',eyebrow:'MEMORY'},
+ block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'BUILD'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'LOGIC'},
+ nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'PUZZLE'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'PAIR'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'SORT'}
 };
+function setGameIcon(el,visual){
+ el.replaceChildren();
+ if(visual&&visual.icon){
+   const img=document.createElement('img');img.src=visual.icon;img.alt='';img.draggable=false;
+   img.onerror=()=>{el.textContent=visual.symbol||'•';};
+   el.appendChild(img);
+ }else{
+   el.textContent=visual&&visual.symbol||'•';
+ }
+}
 
 const rankTargets={
  quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
@@ -300,6 +312,8 @@ function renderPlatform(data){
  const daily=data&&data.daily;
  if(!daily){dailyCard.classList.add('hidden');return;}
  dailyCard.classList.remove('hidden');dailyGame.textContent=daily.game&&daily.game.name||daily.gameId;
+ const dailyIconEl=document.getElementById('dailyIcon'),dailyVisual=gameVisuals[daily.gameId]||{symbol:'◆'};
+ if(dailyIconEl)setGameIcon(dailyIconEl,dailyVisual);
  const streak=daily.streak||{},streakCount=Math.max(0,Number(streak.count)||0),nextCount=Math.max(1,Number(streak.nextCount)||1);
  dailyDate.textContent=String(daily.date||'')+' · '+(streak.completedToday?(streakCount+'日連続'):(streakCount>0?(streakCount+'日継続中 · 今日で'+nextCount+'日'):'今日から連続記録スタート'));
  const game=daily.game||gameById(daily.gameId);
@@ -367,9 +381,9 @@ function renderContinue(games){
  continueCard.classList.toggle('hidden',resumable.length===0);
  resumable.forEach(game=>{
    const button=document.createElement('button');button.className='continue-game';button.dataset.game=game.id;
-   const visual=gameVisuals[game.id]||{icon:'▶',eyebrow:'CONTINUE'};
+   const visual=gameVisuals[game.id]||{symbol:'▶',eyebrow:'CONTINUE'};
    const top=document.createElement('span'),icon=document.createElement('span'),text=document.createElement('span'),meta=document.createElement('span');
-   top.className='continue-top';icon.className='continue-icon';icon.textContent=visual.icon;text.textContent=String(game.name||game.id);meta.className='muted';top.append(icon,text);
+   top.className='continue-top';icon.className='continue-icon';setGameIcon(icon,visual);text.textContent=String(game.name||game.id);meta.className='muted';top.append(icon,text);
    const save=saves[game.id]||{};
    meta.textContent=(Number(save.elapsed_ms)>0?formatDuration(save.elapsed_ms)+' · ':'')+'続きから';
    button.append(top,meta);button.onclick=()=>launchGame(game.id);continueGames.appendChild(button);
@@ -397,10 +411,10 @@ function renderGames(games){
    const grid=document.createElement('div');grid.className='grid';
    groups.get(category).forEach(game=>{
      const btn=document.createElement('button');btn.className='game';btn.dataset.game=game.id;
-     const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{icon:'•',eyebrow:'PLAY'};
+     const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{symbol:'•',eyebrow:'PLAY'};
      const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
      top.className='game-card-top';icon.className='game-icon';tag.className='tag';description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
-     icon.textContent=visual.icon;tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);top.append(icon,tag);
+     setGameIcon(icon,visual);tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);top.append(icon,tag);
      name.textContent=String(game.name||game.id||'GAME');
      description.textContent=String(game.description||'');
      const personalBest=bootstrapData&&bootstrapData.best&&bootstrapData.best[game.id],rank=personalBest?rankForScore(game.id,personalBest.score):null;

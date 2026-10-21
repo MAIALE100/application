@@ -45,6 +45,12 @@ window.FlecityErrors = {
         INVALID_TIMING: '入力タイミングが不正です',
         IMPOSSIBLE_TIMING: '成立しない入力タイミングです',
         INVALID_REACTION: 'REACTIONの記録が不正です',
+        QUICK_RUN_NOT_FINISHED: 'QUICK TAP FOCUSのRUNがまだ完了していません',
+        INVALID_QUICK_SCORE: 'QUICK TAP FOCUSの記録がSERVER判定と一致しません',
+        STOP_RUN_NOT_FINISHED: 'STOP! RUSHのRUNがまだ完了していません',
+        INVALID_STOP_SCORE: 'STOP! RUSHの記録がSERVER判定と一致しません',
+        COLOR_MATCH_RUN_FAILED: 'COLOR MATCH RUSHはライフがなくなったため記録できません',
+
         FLYING_WINDOW_PASSED: 'フライング判定の受付時間を過ぎています',
         DUPLICATE_SUBMIT: '同じ記録がすでに送信されています',
         SCORE_SAVE_FAILED: 'スコアをDBへ保存できません',

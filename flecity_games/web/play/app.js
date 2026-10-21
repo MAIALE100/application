@@ -1143,11 +1143,12 @@ function fallResetCursor(){
 }
 function renderFallPreview(){
  fallNext.innerHTML='';
- const shape=fallShape(fallGame&&fallGame.nextPiece,0);
+ const previewPiece=fallGame&&!fallGame.ended?fallPieceFor(fallGame.seed,fallGame.history.length+1):0;
+ const shape=previewPiece?fallShape(previewPiece,0):[];
  const occupied=new Set(shape.map(([x,y])=>x+','+y));
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
    const cell=document.createElement('span');
-   cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(fallGame.nextPiece):'');
+   cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(previewPiece):'');
    fallNext.appendChild(cell);
  }
 }

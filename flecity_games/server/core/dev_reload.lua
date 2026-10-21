@@ -7,6 +7,7 @@ local marker='dev-reload.token'
 local lastToken=LoadResourceFile(resourceName,marker) or ''
 
 local function writeRuntimeStamp()
+SaveResourceFile(resourceName,'dev-reload-v2.active','1',-1)
     local version=GetResourceMetadata(resourceName,'version',0) or 'unknown'
     local build=(LoadResourceFile(resourceName,'dev-build.txt') or 'unknown'):gsub('%s+','')
     local stamp=('version=%s\nbuild=%s\nstarted=%s\nreload_v2=1\n'):format(version,build,os.date('!%Y-%m-%dT%H:%M:%SZ'))

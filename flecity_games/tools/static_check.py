@@ -129,8 +129,8 @@ if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
 if "startSessionWithRetry" not in play_js:
     fail("PLAY session-start retry helper is missing")
-if play_js.count("startSessionWithRetry(") != 13:
-    fail("all 12 PLAY games must start through the shared retry/lifecycle wrapper")
+if play_js.count("startSessionWithRetry(") != 14:
+    fail("all 13 PLAY games must start through the shared retry/lifecycle wrapper")
 if play_js.count("FlecityBridge.call('playStartSession'") != 1:
     fail("PLAY games must not bypass the shared session-start wrapper")
 if "submitScoreWithRetry" not in play_js:

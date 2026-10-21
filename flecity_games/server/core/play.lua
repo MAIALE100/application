@@ -309,25 +309,69 @@ local function generateNumberRush(seed,count)
     return board,state
 end
 
+local function reshuffleNumberRushRemaining(board,completed,state)
+    local indexes={} local values={}
+    for i=1,#board do
+        if not completed[i-1] then
+            indexes[#indexes+1]=i
+            values[#values+1]=board[i]
+        end
+    end
+    for i=#values,2,-1 do
+        local value
+        state,value=seededNext(state)
+        local j=1+math.floor(value*i)
+        values[i],values[j]=values[j],values[i]
+    end
+    for i,index in ipairs(indexes) do board[index]=values[i] end
+    return state
+end
+
+local function perfectNumberRushHistory(seed,count)
+    local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
+    local board,state=generateNumberRush(seed,total)
+    local completed={} local history={}
+    for expected=1,total do
+        local found=nil
+        for index=1,total do
+            if not completed[index-1] and board[index]==expected then found=index-1 break end
+        end
+        if found==nil then return nil end
+        history[#history+1]=found
+        completed[found]=true
+        if expected<total and expected%5==0 then
+            state=reshuffleNumberRushRemaining(board,completed,state)
+        end
+    end
+    return history
+end
+
 local function replayNumberRush(seed,history,count)
     local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
     if type(history)~='table' or #history<total or #history>250 then return nil end
-    local board=generateNumberRush(seed,total)
+    local board,state=generateNumberRush(seed,total)
     local expected=1
     local misses=0
+    local shifts=0
+    local completed={}
     local normalized={}
-    for i,value in ipairs(history) do
+    for _,value in ipairs(history) do
         local index=tonumber(value)
         if not index or index~=math.floor(index) or index<0 or index>=total then return nil end
         if expected>total then return nil end
         normalized[#normalized+1]=index
-        if board[index+1]==expected then
+        if not completed[index] and board[index+1]==expected then
+            completed[index]=true
             expected=expected+1
+            if expected<=total and (expected-1)%5==0 then
+                state=reshuffleNumberRushRemaining(board,completed,state)
+                shifts=shifts+1
+            end
         else
             misses=misses+1
         end
     end
-    return {complete=expected==total+1,misses=misses,taps=#normalized,count=total,board=board,history=normalized}
+    return {complete=expected==total+1,misses=misses,taps=#normalized,count=total,shifts=shifts,board=board,history=normalized}
 end
 
 local function generateRangeRushRounds(seed,rounds)
@@ -2148,6 +2192,7 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.misses=replayed.misses
         metadata.taps=replayed.taps
         metadata.count=replayed.count
+        metadata.shifts=replayed.shifts
         metadata.penaltyMs=replayed.misses*500
         metadata.replayValidated=true
     elseif game.id=='high_low' then
@@ -2314,13 +2359,7 @@ function FlecityGamesPlay.DebugSelftest()
     local colorRounds=generateColorMatch(12345,20)
     local colorHistory={} for _,round in ipairs(colorRounds) do colorHistory[#colorHistory+1]=round.ink end
     local colorReplay=replayColorMatch(12345,colorHistory,20)
-    local numberRushBoard=generateNumberRush(12345,25)
-    local numberRushHistory={}
-    for expected=1,25 do
-        for index,value in ipairs(numberRushBoard) do
-            if value==expected then numberRushHistory[#numberRushHistory+1]=index-1 break end
-        end
-    end
+    local numberRushHistory=perfectNumberRushHistory(12345,25) or {}
     local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
     local rangeRushRounds=generateRangeRushRounds(12345,30)
     local highLowHistory={}

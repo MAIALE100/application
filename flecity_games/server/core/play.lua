@@ -945,7 +945,7 @@ local function replayFallState(seed,history,width,height)
         score=score+applied.gained
         lines=lines+applied.cleared
         pieces=pieces+1
-        normalized[#normalized+1]={x=applied.x,rotation=applied.rotation}
+        normalized[#normalized+1]={applied.x,applied.rotation}
     end
     local _,nextPiece=fallNextPiece(state)
     local canContinue=fallFindAnyPlacement(board,width,height,nextPiece)~=nil

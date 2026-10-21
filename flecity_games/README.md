@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.27.0-test**
+- Resource version: **0.28.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **23/23 enabled**.
+- Initial game registry: **24/24 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,7 +29,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 13/13 enabled
+### PLAY — 14/14 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
@@ -40,6 +40,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
 - SORT — deterministic 6-tube color sorting puzzle, auto-save/resume, time + move-penalty ranking
+- SLIDE — deterministic 4x4 sliding-number puzzle, auto-save/resume, server-replayed moves, time + move-penalty ranking
 - COLOR MATCH — 10-round Stroop-style color recognition, server-replayed answer history, time ranking
 - NUMBER RUSH — deterministic 5x5 number hunt, server-replayed tap history, miss penalties, time ranking
 - RANGE RUSH — 3-life HIGH/LOW reflex run with adaptive timer, streak multiplier, and server-owned score
@@ -65,7 +66,7 @@ PARTY rooms keep the same members while changing games. Room Code and internal R
 
 - LB Phone `fixBlur=true` enabled.
 - Shared PLAY/PARTY CSS uses rem-based sizing instead of px for blur-safe custom-app rendering.
-- PLAY game library uses dedicated SVG icons for all 13 solo games.
+- PLAY game library uses dedicated SVG icons for all 14 solo games.
 - Game cards use larger icons, stronger text contrast, clearer metadata, and a Daily Challenge game icon.
 - PLAY home shows up to three recently played games using server-side score history timestamps.
 - GAME LIBRARY can be filtered by Quick / Arcade / Endless / Puzzle without reloading the app.
@@ -117,7 +118,7 @@ Implemented:
   - SIMON MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
-- deterministic server replay validation for BLOCK, MERGE, TOWER, SORT, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores
+- deterministic server replay validation for BLOCK, MERGE, TOWER, SORT, SLIDE, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores
 - autosave bound to the active server session and server-issued seed
 - resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`

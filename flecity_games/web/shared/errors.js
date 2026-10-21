@@ -84,6 +84,8 @@ window.FlecityErrors = {
         INVALID_SORT_REPLAY: 'SORTのプレイ内容を確認できませんでした。',
         INVALID_SLIDE_SAVE: 'SLIDEの途中保存を確認できませんでした。',
         INVALID_SLIDE_REPLAY: 'SLIDEの操作履歴とクリア状態が一致しません。',
+        INVALID_FALL_SAVE: 'FALLの途中保存を確認できませんでした。',
+        INVALID_FALL_REPLAY: 'FALLの操作履歴とスコアが一致しません。',
         INVALID_TEXT: '入力した文章が不正です'
     },
 

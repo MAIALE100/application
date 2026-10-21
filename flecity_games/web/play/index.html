@@ -59,6 +59,18 @@
   </div>
 </section>
 
+<section id="slideGame" class="hidden">
+  <div class="card row"><div><div class="kicker">SLIDE</div><div id="slideMoves" class="big-number small-number">0</div><div id="slideMeta" class="game-meta">0 MOVES · 4×4</div><div id="slideBest" class="game-meta">BEST ---</div></div><button id="slideBack" class="secondary">戻る</button></div>
+  <div class="game-tip card-tip">空きマスの隣にある数字をタップして滑らせ、1〜15を順番に並べる。</div>
+  <div class="card">
+    <div id="slideBoard" class="slide-board" aria-label="SLIDE puzzle"></div>
+  </div>
+  <div class="card stack">
+    <div id="slideTime" class="slide-time">0.0s</div>
+    <button id="slideNew" class="secondary">新しく始める</button>
+  </div>
+</section>
+
 <section id="colorMatchGame" class="hidden">
   <div class="card row"><div><div class="kicker">COLOR MATCH</div><div id="colorMatchProgress" class="big-number small-number">0 / 10</div><div id="colorMatchTime" class="game-meta">0.0s</div></div><button id="colorMatchBack" class="secondary">戻る</button></div>
   <div class="card big-center color-match-stage"><div class="muted">文字の意味ではなく、文字の色を選ぶ</div><div id="colorMatchBest" class="game-meta">BEST ---</div><div id="colorMatchWord" class="color-match-word">READY</div><div id="colorMatchChoices" class="color-match-choices"></div></div>

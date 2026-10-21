@@ -213,7 +213,7 @@ const gameVisuals={
 
 const rankTargets={
  quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
- stack:{order:'desc',S:25,A:15,B:8},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:5000,A:2000,B:750},
+ stack:{order:'desc',S:25,A:15,B:8},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},color_match:{order:'asc',S:7000,A:10000,B:15000},
  number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:5200,A:4000,B:2500},simon:{order:'desc',S:15,A:10,B:5}
@@ -806,10 +806,17 @@ function spawnMergeTile(){
 function compressMergeLine(line){
  const values=line.filter(Boolean),out=[];
  for(let i=0;i<values.length;i++){
-   if(i+1<values.length&&values[i]===values[i+1]){const v=values[i]*2;out.push(v);merge.score+=v;i++;}
+   if(i+1<values.length&&values[i]===values[i+1]){const v=values[i]*2;out.push(v);merge.moveGain=(merge.moveGain||0)+v;i++;}
    else out.push(values[i]);
  }
  while(out.length<4)out.push(0);return out;
+}
+function maxMergeTile(board){
+ let max=0;(board||[]).forEach(row=>(row||[]).forEach(value=>{max=Math.max(max,Number(value)||0);}));return max;
+}
+function nextMergeTarget(maxTile){
+ for(const target of [64,128,256,512,1024,2048,4096,8192])if(maxTile<target)return target;
+ return maxTile*2;
 }
 function mergeGameOver(){
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
@@ -821,14 +828,14 @@ function mergeGameOver(){
 }
 function renderMerge(){
  refreshScreenBests();mergeScore.textContent=String(merge.score);
- let maxTile=0;
+ const maxTile=maxMergeTile(merge.board),target=nextMergeTarget(maxTile);
+ mergeBoard.classList.toggle('merge-fever',(merge.chain||0)>=3);
  mergeBoard.innerHTML='';
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
    const d=document.createElement('div'),v=Number(merge.board[y][x]||0);
-   if(v>maxTile)maxTile=v;
    d.className='merge-cell'+(v?' filled tile-'+Math.min(2048,v):'');if(v)d.dataset.value=String(v);d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
- mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+(merge.finished?' · FINISHED':'');
+ mergeMeta.textContent='CHAIN ×'+String(merge.chain||0)+' · '+String(merge.moves)+' MOVES · NEXT '+String(target)+(merge.finished?' · FINISHED':'');
  const locked=merge.finished||merge.finalizing;
  mergeUp.disabled=locked;mergeDown.disabled=locked;mergeLeft.disabled=locked;mergeRight.disabled=locked;
  mergeFinish.disabled=locked;mergeNew.disabled=merge.finalizing===true;
@@ -836,7 +843,7 @@ function renderMerge(){
 async function persistMerge(showError=false){
  const game=merge;if(!game||game.finished)return true;
  if(game.progressed!==true)return true;
- const state={board:game.board,score:game.score,moves:game.moves,rngState:game.rngState,history:game.history};
+ const state={board:game.board,score:game.score,moves:game.moves,chain:game.chain||0,rngState:game.rngState,history:game.history};
  const elapsedMs=Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted));
  const res=await saveWithRetry({gameId:'merge',sessionToken:game.sessionToken,state,score:game.score,elapsedMs});
  if(res.ok){
@@ -853,18 +860,19 @@ async function openMerge(forceNew){
  const session=await startSessionWithRetry(payload);
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MERGEを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
-   merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
+   merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),chain:Number(saved.state.chain||0),moveGain:0,rngState:Number(saved.state.rngState||session.seed),
      history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,progressed:true};
    setStatus('MERGEを途中保存から再開しました。','good');
  }else{
-   merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,progressed:false};
+   merge={board:emptyMergeBoard(),score:0,moves:0,chain:0,moveGain:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,progressed:false};
    spawnMergeTile();spawnMergeTile();setStatus('新しいMERGEを開始しました。','good');
  }
  renderMerge();
 }
 async function moveMerge(direction){
  const game=merge;if(!game||game.finished)return;
- const before=JSON.stringify(game.board),scoreBefore=game.score;
+ const before=JSON.stringify(game.board),maxBefore=maxMergeTile(game.board);
+ merge.moveGain=0;
  if(direction==='left'||direction==='right'){
    for(let y=0;y<4;y++){
      let row=merge.board[y].slice();if(direction==='right')row.reverse();row=compressMergeLine(row);if(direction==='right')row.reverse();merge.board[y]=row;
@@ -874,11 +882,23 @@ async function moveMerge(direction){
      let col=[];for(let y=0;y<4;y++)col.push(merge.board[y][x]);if(direction==='down')col.reverse();col=compressMergeLine(col);if(direction==='down')col.reverse();for(let y=0;y<4;y++)merge.board[y][x]=col[y];
    }
  }
- if(before===JSON.stringify(merge.board)){setStatus('タイルを動かせませんでした。','warn');tone(150,28);return;}
- const gained=Math.max(0,merge.score-scoreBefore);
+ if(before===JSON.stringify(merge.board)){merge.moveGain=0;setStatus('タイルを動かせませんでした。','warn');tone(150,28);return;}
+ const baseGain=Math.max(0,Number(merge.moveGain)||0);
+ if(baseGain>0){
+   merge.chain=Math.min(5,(Number(merge.chain)||0)+1);
+   merge.score+=baseGain*merge.chain;
+ }else merge.chain=0;
+ const gained=baseGain>0?baseGain*merge.chain:0;
  merge.progressed=true;merge.moves+=1;merge.history.push(direction);spawnMergeTile();
- mergeBoard.classList.remove('merge-move','merge-combine');void mergeBoard.offsetWidth;mergeBoard.classList.add(gained>0?'merge-combine':'merge-move');
- if(gained>0)tone(500+Math.min(320,gained),38);else tone(300,16);
+ const maxAfter=maxMergeTile(merge.board);
+ mergeBoard.classList.remove('merge-move','merge-combine','merge-milestone');void mergeBoard.offsetWidth;
+ mergeBoard.classList.add(gained>0?'merge-combine':'merge-move');
+ if(maxAfter>maxBefore&&maxAfter>=64){
+   mergeBoard.classList.add('merge-milestone');tone(900,65);setStatus('NEW TILE '+maxAfter+' · CHAIN ×'+merge.chain,'good');
+ }else if(gained>0){
+   tone(500+Math.min(320,baseGain),38);
+   setStatus((merge.chain>=3?'FEVER · ':'')+'CHAIN ×'+merge.chain+' · +'+gained,'good');
+ }else tone(300,16);
  renderMerge();await persistMerge();
  if(merge!==game)return;
  if(mergeGameOver()){setStatus('動かせる場所がありません。ゲーム終了。','warn');await finishMerge();}

@@ -17,6 +17,7 @@ const stackEl=document.getElementById('stackGame'),stackArena=document.getElemen
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 const sortEl=document.getElementById('sortGame'),sortBoard=document.getElementById('sortBoard'),sortMoves=document.getElementById('sortMoves'),sortMeta=document.getElementById('sortMeta'),sortBest=document.getElementById('sortBest'),sortTime=document.getElementById('sortTime'),sortBack=document.getElementById('sortBack'),sortNew=document.getElementById('sortNew');
+const slideEl=document.getElementById('slideGame'),slideBoard=document.getElementById('slideBoard'),slideMoves=document.getElementById('slideMoves'),slideMeta=document.getElementById('slideMeta'),slideBest=document.getElementById('slideBest'),slideTime=document.getElementById('slideTime'),slideBack=document.getElementById('slideBack'),slideNew=document.getElementById('slideNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchBest=document.getElementById('colorMatchBest'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
 const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowLives=document.getElementById('highLowLives'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
@@ -25,7 +26,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -152,9 +153,9 @@ async function submitScoreWithRetry(payload){
  return res;
 }
 function scrollAppTop(){window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});}
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -192,7 +193,7 @@ function dailyBestText(gameId){
 }
 const screenBestIds={
  quick_tap:'tapBest',stop:'stopBest',stack:'stackBest',block:'blockBest',merge:'mergeBest',mines:'minesBest',
- nonogram:'nonogramBest',memory:'memoryBest',sort:'sortBest',color_match:'colorMatchBest',number_rush:'numberRushBest',
+ nonogram:'nonogramBest',memory:'memoryBest',sort:'sortBest',slide:'slideBest',color_match:'colorMatchBest',number_rush:'numberRushBest',
  high_low:'highLowBest',simon:'simonBest'
 };
 function refreshScreenBests(){
@@ -215,7 +216,7 @@ const gameVisuals={
  color_match:{icon:'icons/color-match.svg',symbol:'A',eyebrow:'FOCUS'},number_rush:{icon:'icons/number-rush.svg',symbol:'25',eyebrow:'SPEED'},
  stack:{icon:'icons/tower.svg',symbol:'▤',eyebrow:'PRECISION'},high_low:{icon:'icons/range-rush.svg',symbol:'↕',eyebrow:'SPEED'},simon:{icon:'icons/simon.svg',symbol:'◆',eyebrow:'MEMORY'},
  block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'BUILD'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'LOGIC'},
- nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'PUZZLE'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'PAIR'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'SORT'}
+ nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'PUZZLE'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'PAIR'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'SORT'},slide:{icon:'icons/slide.svg',symbol:'15',eyebrow:'SLIDE'}
 };
 function setGameIcon(el,visual){
  el.replaceChildren();
@@ -232,7 +233,7 @@ const rankTargets={
  quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
  stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
- memory:{order:'asc',S:20000,A:30000,B:45000},sort:{order:'asc',S:45000,A:75000,B:120000},color_match:{order:'asc',S:7000,A:10000,B:15000},
+ memory:{order:'asc',S:20000,A:30000,B:45000},sort:{order:'asc',S:45000,A:75000,B:120000},slide:{order:'asc',S:60000,A:120000,B:240000},color_match:{order:'asc',S:7000,A:10000,B:15000},
  number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:18000,A:12000,B:6000},simon:{order:'desc',S:15,A:10,B:5}
 };
 function rankForScore(gameId,score){
@@ -371,6 +372,7 @@ async function launchGame(gameId){
    else if(gameId==='nonogram')await openNonogram(false);
    else if(gameId==='memory')await openMemory();
    else if(gameId==='sort')await openSort(false);
+   else if(gameId==='slide')await openSlide(false);
    else if(gameId==='color_match')openColorMatch();
    else if(gameId==='number_rush')openNumberRush(false);
    else if(gameId==='high_low')openHighLow();
@@ -1597,6 +1599,130 @@ sortNew.onclick=async()=>{
 };
 
 
+/* SLIDE */
+function elapsedSlide(){
+ return (slideGame?slideGame.elapsedBase:0)+(slideGame&&slideGame.startedAt?performance.now()-slideGame.startedAt:0);
+}
+function updateSlideTime(){
+ if(slideGame)slideTime.textContent=(elapsedSlide()/1000).toFixed(1)+'s';
+}
+function slideSolvedBoard(board){
+ if(!Array.isArray(board)||board.length!==16)return false;
+ for(let i=0;i<15;i++)if(Number(board[i])!==i+1)return false;
+ return Number(board[15])===0;
+}
+function slideMovable(index){
+ if(!slideGame)return false;
+ const blank=slideGame.blank,row=Math.floor(index/4),col=index%4,blankRow=Math.floor(blank/4),blankCol=blank%4;
+ return Math.abs(row-blankRow)+Math.abs(col-blankCol)===1;
+}
+function renderSlide(){
+ if(!slideGame)return;
+ refreshScreenBests();slideBoard.innerHTML='';slideMoves.textContent=String(slideGame.moves);
+ slideMeta.textContent=String(slideGame.moves)+' MOVES · 4×4'+(slideGame.finished?' · CLEAR':'');
+ slideGame.board.forEach((value,index)=>{
+   const button=document.createElement('button');
+   const blank=Number(value)===0,movable=!blank&&slideMovable(index);
+   button.className='slide-tile'+(blank?' blank':'')+(movable?' movable':'')+(slideGame.finished&&!blank?' solved':'');
+   button.disabled=blank||slideGame.finished||slideGame.finalizing||!movable;
+   button.textContent=blank?'':String(value);
+   button.setAttribute('aria-label',blank?'空きマス':('数字 '+String(value)));
+   if(!blank)button.onclick=()=>moveSlide(index);
+   slideBoard.appendChild(button);
+ });
+ updateSlideTime();slideNew.disabled=slideGame.finalizing===true;
+}
+async function persistSlide(showError=false){
+ const game=slideGame;if(!game||game.finished||game.progressed!==true)return true;
+ const elapsedMs=Math.round(elapsedSlide());
+ const state={history:game.history};
+ const res=await saveWithRetry({gameId:'slide',sessionToken:game.sessionToken,state,score:game.moves,elapsedMs});
+ if(res.ok){
+   const canonical=res.state||state;
+   saves.slide={game_id:'slide',state:canonical,score:Number(res.score??game.moves),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
+   return true;
+ }
+ if(showError&&slideGame===game)setStatus('SLIDEの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
+ return false;
+}
+async function openSlide(forceNew){
+ hideAll();slideEl.classList.remove('hidden');clearInterval(slideClock);slideClock=null;
+ const saved=!forceNew&&saves.slide,payload={gameId:'slide'};if(saved)payload.resume=true;
+ const session=await startSessionWithRetry(payload);
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('SLIDEを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ let board,history=[],moves=0,blank=-1;
+ if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===16){
+   board=saved.state.board.map(Number);
+   history=Array.isArray(saved.state.history)?saved.state.history.map(Number):[];
+   moves=Number(saved.state.moves)||history.length;
+   blank=Number.isInteger(Number(saved.state.blank))?Number(saved.state.blank):board.indexOf(0);
+ }else{
+   const initial=session.challenge&&session.challenge.initialBoard;
+   if(!Array.isArray(initial)||initial.length!==16){
+     await cancelPlaySession(session.sessionToken);setStatus('SLIDE盤面を取得できませんでした。','error');showHome();return;
+   }
+   board=initial.map(Number);blank=board.indexOf(0);
+ }
+ if(blank<0||blank>=16){
+   await cancelPlaySession(session.sessionToken);setStatus('SLIDE盤面が不正です。','error');showHome();return;
+ }
+ slideGame={board,blank,history,moves,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved};
+ setStatus(saved?'SLIDEを途中保存から再開しました。':'新しいSLIDEを開始しました。','good');
+ renderSlide();slideClock=setInterval(updateSlideTime,200);
+}
+async function moveSlide(index){
+ const game=slideGame;if(!game||game.finished||game.finalizing||!slideMovable(index))return;
+ const blank=game.blank;
+ game.board[blank]=game.board[index];game.board[index]=0;game.blank=index;game.history.push(index);game.moves+=1;game.progressed=true;
+ slideBoard.classList.remove('slide-move');void slideBoard.offsetWidth;slideBoard.classList.add('slide-move');
+ tone(520,18);renderSlide();
+ if(slideSolvedBoard(game.board)){await finishSlide();return;}
+ await persistSlide();
+}
+async function finishSlide(){
+ const game=slideGame;if(!game||game.finished||game.finalizing)return;
+ game.finalizing=true;if(slideGame===game)renderSlide();clearInterval(slideClock);slideClock=null;
+ await saveQueue.catch(()=>{});
+ const durationMs=Math.round(elapsedSlide());
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:0,durationMs,history:game.history});
+ game.finalizing=false;
+ if(res.ok){
+   game.finished=true;game.sessionToken=null;delete saves.slide;
+   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0;
+   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,'SLIDE '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
+     renderSlide();}
+   await refreshPlatform();
+ }else{
+   if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
+   if(slideGame===game){setStatus('SLIDEの記録を保存できませんでした。途中保存は残っています。','error');renderSlide();}
+ }
+}
+slideBack.onclick=async()=>{
+ if(slideGame&&slideGame.finalizing){setStatus('SLIDEの記録を保存中です…','warn');return;}
+ clearInterval(slideClock);slideClock=null;
+ if(slideGame&&!slideGame.finished){const saved=await persistSlide(true);if(!saved){slideClock=setInterval(updateSlideTime,200);return;}}
+ if(slideGame&&!slideGame.finished&&slideGame.sessionToken)await cancelPlaySession(slideGame.sessionToken);
+ slideGame=null;showHome();
+};
+slideNew.onclick=async()=>{
+ if(slideNew.disabled)return;
+ if(slideGame&&slideGame.finalizing){setStatus('SLIDEの記録を保存中です…','warn');return;}
+ const destructive=!!saves.slide||!!(slideGame&&!slideGame.finished);
+ if(destructive){
+   const ok=await confirmAction('SLIDEを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
+ }
+ slideNew.disabled=true;
+ try{
+   clearInterval(slideClock);slideClock=null;await saveQueue.catch(()=>{});
+   if(slideGame&&slideGame.sessionToken)await cancelPlaySession(slideGame.sessionToken);
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'slide'});
+   if(!reset.ok){setStatus('SLIDEの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+   delete saves.slide;slideGame=null;await openSlide(true);
+ }finally{slideNew.disabled=false;}
+};
+
+
 /* COLOR MATCH */
 const COLOR_MATCH_COLORS=[
  {name:'赤',css:'#ff6b6b'},{name:'青',css:'#6ba8ff'},{name:'緑',css:'#62d98b'},{name:'黄',css:'#ffd65a'}
@@ -2197,9 +2323,9 @@ async function suspendActivePlay(){
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
-   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
+   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
-   minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+   minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
 
    if(block&&!block.finished&&!block.finalizing){
      if(!block.daily)await suspendStep('block save',()=>persistBlock(false));
@@ -2221,6 +2347,10 @@ async function suspendActivePlay(){
      await suspendStep('sort save',()=>persistSort(false));
      await suspendStep('sort cancel',()=>cancelPlaySession(sortGame&&sortGame.sessionToken));
    }
+   if(slideGame&&!slideGame.finished&&!slideGame.finalizing){
+     await suspendStep('slide save',()=>persistSlide(false));
+     await suspendStep('slide cancel',()=>cancelPlaySession(slideGame&&slideGame.sessionToken));
+   }
 
    if(tapState!=='submitting')await suspendStep('quick tap cancel',()=>cancelPlaySession(tapSession&&tapSession.sessionToken));
    if(stopState!=='submitting')await suspendStep('stop cancel',()=>cancelPlaySession(stopSession&&stopSession.sessionToken));
@@ -2231,7 +2361,7 @@ async function suspendActivePlay(){
    if(!(highLow&&highLow.finalizing))await suspendStep('high low cancel',()=>cancelPlaySession(highLow&&highLow.sessionToken));
    if(!(simon&&simon.finalizing))await suspendStep('simon cancel',()=>cancelPlaySession(simon&&simon.sessionToken));
   }finally{
-   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;simonDaily=false;
+   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;slideGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;simonDaily=false;
    tapSession=null;tapState='idle';stopSession=null;stopState='idle';
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
    suspendRunning=false;

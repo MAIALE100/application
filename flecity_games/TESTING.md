@@ -350,6 +350,17 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
 
+## Daily COLOR MATCH 0.34
+
+- TODAY'S CHALLENGEがCOLOR MATCHの日は全員同じ10問になる
+- Daily開始前からゲーム画面のBEST表示がTODAY BESTになる
+- 不正解RunはDailyランキングへ保存されない
+- 10問連続正解時のみDailyスコアとして保存される
+- 同じ日付で再挑戦しても問題順・文字色が変わらない
+- 「もう一度」から再挑戦しても通常COLOR MATCHへ切り替わらない
+- 結果表示にデイリー表記が付き、TODAY BEST / Dailyランキングへ反映される
+- 通常COLOR MATCHの全期間BESTとDaily BESTが混在しない
+
 ## FALL Long Run 0.33
 
 - 通常DROPはサーバー保存完了待ちで操作不能にならない

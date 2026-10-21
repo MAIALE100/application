@@ -120,7 +120,7 @@ local function applyQuickTap(state,actionMs)
         end
     else
         reaction=action-delay
-        if reaction<55 or reaction>3000 then return nil end
+        if reaction<70 or reaction>3000 then return nil end
         state.reactions[#state.reactions+1]=reaction
         state.hits=state.hits+1
         if state.hits>=state.targetHits then state.ended=true end

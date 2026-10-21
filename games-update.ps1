@@ -215,6 +215,12 @@ try {
         if ($playJsText -notmatch 'openSlide' -or $playJsText -notmatch 'persistSlide' -or $playJsText -notmatch 'finishSlide' -or $playHtmlText -notmatch 'id="slideGame"') {
             throw 'Local safety check could not verify SLIDE client flow.'
         }
+        if ($playJsText -notmatch 'openFall' -or $playJsText -notmatch 'persistFall' -or $playJsText -notmatch 'finishFall' -or $playHtmlText -notmatch 'id="fallGame"') {
+            throw 'Local safety check could not verify FALL client flow.'
+        }
+        if ($playLuaText -notmatch 'replayFallState' -or $playLuaText -notmatch 'FALL_BASE_SHAPES' -or $playLuaText -notmatch 'INVALID_FALL_REPLAY') {
+            throw 'Local safety check could not verify FALL server replay validation.'
+        }
         if ($playLuaText -notmatch 'generateSlideBoard' -or $playLuaText -notmatch 'replaySlideState' -or $playLuaText -notmatch 'INVALID_SLIDE_REPLAY') {
             throw 'Local safety check could not verify SLIDE server replay validation.'
         }
@@ -241,7 +247,7 @@ try {
         $enabledPlayIds = @($enabledPlayMatches | ForEach-Object { $_.Groups[1].Value })
         $requiredPlayIds = @(
             'quick_tap','stop','stack','block','merge','mines','nonogram',
-            'memory','sort','slide','color_match','number_rush','high_low','simon'
+            'memory','sort','slide','fall','color_match','number_rush','high_low','simon'
         )
         $missingPlayIds = @($requiredPlayIds | Where-Object { $_ -notin $enabledPlayIds })
         if ($missingPlayIds.Count -gt 0) {
@@ -315,6 +321,8 @@ try {
     if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
+    if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
+    if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
     if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
     if ($playCoreText -notmatch 'slide_master' -or $playAppText -notmatch 'slide_master') { throw 'SLIDE MASTER achievement check failed.' }
@@ -323,7 +331,7 @@ try {
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
     if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
     if ($clientMainText -notmatch 'fixBlur=true' -or $clientMainText -match 'fixBlur=false') { throw 'LB Phone fixBlur compatibility check failed.' }
-    if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
+    if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=55,id='fall'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
 
     $version = 'unknown'
     if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }

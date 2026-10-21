@@ -818,6 +818,143 @@ local function replayMerge(seed,history)
     return state and state.score or nil
 end
 
+
+local FALL_BASE_SHAPES={
+    {{0,0},{1,0},{2,0},{3,0}},
+    {{0,0},{1,0},{0,1},{1,1}},
+    {{1,0},{0,1},{1,1},{2,1}},
+    {{1,0},{2,0},{0,1},{1,1}},
+    {{0,0},{1,0},{1,1},{2,1}},
+    {{0,0},{0,1},{1,1},{2,1}},
+    {{2,0},{0,1},{1,1},{2,1}}
+}
+local FALL_LINE_POINTS={[0]=0,[1]=100,[2]=300,[3]=500,[4]=800}
+
+local function fallShape(pieceType,rotation)
+    local base=FALL_BASE_SHAPES[math.floor(tonumber(pieceType) or 0)]
+    if not base then return nil end
+    local shape={}
+    for i,cell in ipairs(base) do shape[i]={cell[1],cell[2]} end
+    local turns=((math.floor(tonumber(rotation) or 0)%4)+4)%4
+    for _=1,turns do
+        for _,cell in ipairs(shape) do
+            local x,y=cell[1],cell[2]
+            cell[1],cell[2]=-y,x
+        end
+    end
+    local minX,minY=math.huge,math.huge
+    for _,cell in ipairs(shape) do minX=math.min(minX,cell[1]) minY=math.min(minY,cell[2]) end
+    for _,cell in ipairs(shape) do cell[1]=cell[1]-minX cell[2]=cell[2]-minY end
+    return shape
+end
+
+local function fallEmptyBoard(width,height)
+    local board={}
+    for y=1,height do
+        board[y]={}
+        for x=1,width do board[y][x]=0 end
+    end
+    return board
+end
+
+local function fallCanPlace(board,width,height,shape,x,y)
+    for _,cell in ipairs(shape or {}) do
+        local gx=x+cell[1]
+        local gy=y+cell[2]
+        if gx<0 or gx>=width or gy<0 or gy>=height then return false end
+        if tonumber(board[gy+1] and board[gy+1][gx+1])~=0 then return false end
+    end
+    return true
+end
+
+local function fallDropY(board,width,height,shape,x)
+    if not fallCanPlace(board,width,height,shape,x,0) then return nil end
+    local y=0
+    while fallCanPlace(board,width,height,shape,x,y+1) do y=y+1 end
+    return y
+end
+
+local function fallClearLines(board,width,height)
+    local cleared=0
+    local y=height
+    while y>=1 do
+        local full=true
+        for x=1,width do if tonumber(board[y][x])==0 then full=false break end end
+        if full then
+            table.remove(board,y)
+            local row={} for x=1,width do row[x]=0 end
+            table.insert(board,1,row)
+            cleared=cleared+1
+        else
+            y=y-1
+        end
+    end
+    return cleared
+end
+
+local function fallNextPiece(state)
+    local nextState,value=seededNext(state)
+    return nextState,1+math.floor(value*#FALL_BASE_SHAPES)
+end
+
+local function fallFindAnyPlacement(board,width,height,pieceType)
+    for rotation=0,3 do
+        local shape=fallShape(pieceType,rotation)
+        for x=0,width-1 do
+            if fallDropY(board,width,height,shape,x)~=nil then return x,rotation end
+        end
+    end
+    return nil,nil
+end
+
+local function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo)
+    x=tonumber(x) rotation=tonumber(rotation)
+    if not x or not rotation or x~=math.floor(x) or rotation~=math.floor(rotation) then return nil end
+    rotation=((rotation%4)+4)%4
+    local shape=fallShape(pieceType,rotation)
+    if not shape then return nil end
+    local dropY=fallDropY(board,width,height,shape,x)
+    if dropY==nil then return nil end
+    for _,cell in ipairs(shape) do board[dropY+cell[2]+1][x+cell[1]+1]=pieceType end
+    local cleared=fallClearLines(board,width,height)
+    combo=cleared>0 and (math.max(0,tonumber(combo) or 0)+1) or 0
+    local lineScore=(FALL_LINE_POINTS[cleared] or (cleared*250))
+    local gained=10+(dropY*2)+(lineScore*(cleared>0 and math.max(1,combo) or 1))
+    return {cleared=cleared,combo=combo,gained=gained,dropY=dropY,rotation=rotation,x=x}
+end
+
+local function replayFallState(seed,history,width,height)
+    width=math.max(6,math.min(14,math.floor(tonumber(width) or 10)))
+    height=math.max(12,math.min(24,math.floor(tonumber(height) or 18)))
+    if type(history)~='table' or #history>10000 then return nil end
+    local board=fallEmptyBoard(width,height)
+    local state=math.floor(tonumber(seed) or 1)
+    local score,lines,combo,pieces=0,0,0,0
+    local normalized={}
+    for _,entry in ipairs(history) do
+        if type(entry)~='table' then return nil end
+        local x=tonumber(entry.x~=nil and entry.x or entry[1])
+        local rotation=tonumber(entry.rotation~=nil and entry.rotation or entry[2])
+        if not x or not rotation then return nil end
+        local pieceType
+        state,pieceType=fallNextPiece(state)
+        if not fallFindAnyPlacement(board,width,height,pieceType) then return nil end
+        local applied=fallApplyPlacement(board,width,height,pieceType,x,rotation,combo)
+        if not applied then return nil end
+        combo=applied.combo
+        score=score+applied.gained
+        lines=lines+applied.cleared
+        pieces=pieces+1
+        normalized[#normalized+1]={x=applied.x,rotation=applied.rotation}
+    end
+    local _,nextPiece=fallNextPiece(state)
+    local canContinue=fallFindAnyPlacement(board,width,height,nextPiece)~=nil
+    return {
+        board=board,score=score,lines=lines,combo=combo,pieces=pieces,history=normalized,
+        rngState=state,nextPiece=nextPiece,ended=not canContinue,width=width,height=height
+    }
+end
+
 local function stackPosition(elapsedMs,width,speed,reverse)
     local blockWidth=math.max(0.1,math.min(100,tonumber(width) or 72))
     local maxX=math.max(0,100-blockWidth)
@@ -908,6 +1045,9 @@ local function challengeFor(game,seed)
         state,challenge.targetPct=seededInt(state,15,85)
         state,challenge.periodMs=seededInt(state,1500,2400)
         state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
+    elseif game.id=='fall' then
+        challenge.width=10 challenge.height=18
+        challenge.firstPiece=select(2,fallNextPiece(seed))
     elseif game.id=='mines' then
         challenge.size=8 challenge.mines=10
     elseif game.id=='stack' then
@@ -1268,6 +1408,8 @@ local function saveStateHasProgress(gameId,state,score)
         return (type(state.history)=='table' and #state.history>0) or (tonumber(score) or 0)>0
     elseif gameId=='merge' then
         return (type(state.history)=='table' and #state.history>0) or (tonumber(state.moves) or 0)>0
+    elseif gameId=='fall' then
+        return type(state.history)=='table' and #state.history>0
     elseif gameId=='mines' then
         return (type(state.revealed)=='table' and #state.revealed>0) or (type(state.flags)=='table' and #state.flags>0)
     elseif gameId=='nonogram' then
@@ -1599,6 +1741,11 @@ function FlecityGamesPlay.Save(source,data)
         if not canonical or canonical.score~=math.floor(score) then return {ok=false,error='INVALID_MERGE_SAVE'} end
         saveState=canonical
         score=canonical.score
+    elseif game.id=='fall' then
+        local canonical=replayFallState(session.seed,data.state.history,session.challenge.width,session.challenge.height)
+        if not canonical or canonical.score~=math.floor(score) then return {ok=false,error='INVALID_FALL_SAVE'} end
+        saveState=canonical
+        score=canonical.score
     elseif game.id=='mines' then
         local size=tonumber(session.challenge.size) or 8
         local mineCount=tonumber(session.challenge.mines) or 10
@@ -1654,7 +1801,7 @@ local function validateScore(game,score)
     elseif game.id=='stop' then
         if score<0 or score>1000 then return nil end
         return math.floor(score+0.5)
-    elseif game.id=='block' or game.id=='merge' then
+    elseif game.id=='block' or game.id=='merge' or game.id=='fall' then
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
     elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' or game.id=='sort' or game.id=='slide' then
@@ -1749,6 +1896,17 @@ function FlecityGamesPlay.SubmitScore(source,data)
         local maxTile=0
         for y=1,4 do for x=1,4 do maxTile=math.max(maxTile,tonumber(replayed.board[y][x]) or 0) end end
         rawScore=replayed.score metadata.moves=#data.history metadata.maxTile=maxTile metadata.replayValidated=true
+    elseif game.id=='fall' then
+        if type(data.history)~='table' or #data.history<1 then return {ok=false,error='INVALID_FALL_REPLAY'} end
+        local replayed=replayFallState(session.seed,data.history,session.challenge.width,session.challenge.height)
+        if not replayed or replayed.score~=math.floor(tonumber(data.score) or -1) then return {ok=false,error='INVALID_FALL_REPLAY'} end
+        rawScore=replayed.score
+        durationMs=totalServerElapsed
+        metadata.lines=replayed.lines
+        metadata.pieces=replayed.pieces
+        metadata.combo=replayed.combo
+        metadata.gameOver=replayed.ended
+        metadata.replayValidated=true
     elseif game.id=='stack' then
         local replayed=replayStack(session.challenge,data.history)
         if not replayed or not replayed.ended then return {ok=false,error='INVALID_STACK_REPLAY'} end
@@ -1972,7 +2130,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local sortGame=gameFor('sort') local slide=gameFor('slide') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
+    local merge=gameFor('merge') local fall=gameFor('fall') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local sortGame=gameFor('sort') local slide=gameFor('slide') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testSafeMines=generateMines(12345,8,10,0) local testSafeMineCount=0 for _ in pairs(testSafeMines) do testSafeMineCount=testSafeMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
@@ -1999,6 +2157,9 @@ function FlecityGamesPlay.DebugSelftest()
         if moved then mergeDirection=direction mergeExpectedGain=gained break end
     end
     local mergeSingle=mergeDirection and replayMergeState(12345,{mergeDirection}) or nil
+    local fallEmpty=replayFallState(12345,{},10,18)
+    local fallX,fallRotation=fallEmpty and fallFindAnyPlacement(fallEmpty.board,10,18,fallEmpty.nextPiece)
+    local fallSingle=(fallX~=nil and fallRotation~=nil) and replayFallState(12345,{{x=fallX,rotation=fallRotation}},10,18) or nil
     local normalizedIndexes=normalizeIndexList({2,1,2},5)
     local memoryDeck=generateMemoryDeck(12345)
     local memoryPairs={} local memorySeen={}
@@ -2096,6 +2257,9 @@ function FlecityGamesPlay.DebugSelftest()
         blockReplayMove=blockSingle and blockSingle.score==blockSingleExpected and #blockSingle.history==1 or false,
         mergeReplayEmpty=replayMerge(12345,{})==0,
         mergeReplayMove=mergeSingle and mergeSingle.score==mergeExpectedGain and #mergeSingle.history==1 or false,
+        fallReplayEmpty=fall and fallEmpty and fallEmpty.score==0 and fallEmpty.pieces==0 and fallEmpty.ended==false,
+        fallReplayMove=fall and fallSingle and fallSingle.score>0 and fallSingle.pieces==1 and #fallSingle.history==1,
+        fallValidateScore=fall and validateScore(fall,1000)==1000 or false,
         normalizedIndexes=normalizedIndexes and #normalizedIndexes==2 and normalizedIndexes[1]==1 and normalizedIndexes[2]==2 or false,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,
         deferredTimerGames=minesGame and nonogram and challengeFor(minesGame,12345).size==8 and challengeFor(nonogram,12345).size==5 or false,

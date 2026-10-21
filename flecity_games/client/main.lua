@@ -1,12 +1,66 @@
 local RESOURCE = GetCurrentResourceName()
 
+local playAppOpen=false
+local phoneOpen=false
+local playLifecycleGeneration=0
+
+local function bumpPlayLifecycle()
+    playLifecycleGeneration=playLifecycleGeneration+1
+    return playLifecycleGeneration
+end
+
+local function pushPlaySuspend(reason)
+    if GetResourceState('lb-phone')~='started' then return end
+    pcall(function()
+        exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Play.identifier,{
+            type='playSuspend',
+            reason=tostring(reason or 'close')
+        })
+    end)
+end
+
+local function requestPlayCleanup(reason)
+    local generation=bumpPlayLifecycle()
+    pushPlaySuspend(reason)
+    CreateThread(function()
+        Wait(3500)
+        if generation~=playLifecycleGeneration then return end
+        if playAppOpen and phoneOpen then return end
+        TriggerServerEvent('flecity_games:server:playClosed')
+    end)
+end
+
+local function playOnOpen()
+    playAppOpen=true
+    bumpPlayLifecycle()
+end
+
+local function playOnClose()
+    playAppOpen=false
+    requestPlayCleanup('app_close')
+end
+
+RegisterNetEvent('lb-phone:phoneToggled',function(open)
+    phoneOpen=open==true
+    if phoneOpen then
+        bumpPlayLifecycle()
+    else
+        requestPlayCleanup('phone_close')
+    end
+end)
+
 local function addApp(app)
     local callOk, ok, err = pcall(function()
-        return exports['lb-phone']:AddCustomApp({
+        local data={
             identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
             defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
             icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=false
-        })
+        }
+        if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
+            data.onOpen=playOnOpen
+            data.onClose=playOnClose
+        end
+        return exports['lb-phone']:AddCustomApp(data)
     end)
     if not callOk then
         print(('[FlecityGames] AddCustomApp(%s) API error: %s'):format(app.identifier,tostring(ok)))

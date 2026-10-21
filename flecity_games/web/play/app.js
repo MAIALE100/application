@@ -24,7 +24,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -180,6 +180,7 @@ function activeDailyGame(gameId){
  if(gameId==='nonogram')return !!(nonogram&&nonogram.daily);
  if(gameId==='memory')return !!(memory&&memory.daily);
  if(gameId==='number_rush')return !!(numberRush&&numberRush.daily);
+ if(gameId==='simon')return !!(simon&&simon.daily)||simonDaily===true;
  return false;
 }
 function dailyBestText(gameId){
@@ -338,6 +339,7 @@ async function launchDaily(){
    else if(daily.gameId==='nonogram')await openNonogram(true,true);
    else if(daily.gameId==='memory')await openMemory(true);
    else if(daily.gameId==='number_rush')openNumberRush(true);
+   else if(daily.gameId==='simon')openSimon(true);
  });
 }
 dailyPlay.onclick=launchDaily;
@@ -1863,12 +1865,12 @@ highLowNew.onclick=async()=>{
 function renderSimon(){
  refreshScreenBests();const game=simon;
  if(!game){
-   simonRound.textContent='0';simonMeta.textContent='ROUND 0 / 30';simonMessage.textContent='スタートを押してください。';
+   simonRound.textContent='0';simonMeta.textContent=(simonDaily?'DAILY · ':'')+'ROUND 0 / 30';simonMessage.textContent='スタートを押してください。';
    simonPads.forEach(p=>{p.disabled=true;p.classList.remove('active','wrong');});
    return;
  }
  simonRound.textContent=String(game.cleared);
- simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
+ simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
@@ -1892,15 +1894,15 @@ async function playSimonSequence(){
  if(simon!==game||game.finished)return;
  game.accepting=true;game.inputIndex=0;simonBoard.dataset.phase='input';renderSimon();simonMessage.textContent='あなたの番 · 1 / '+game.round;
 }
-function openSimon(){
- hideAll();simonEl.classList.remove('hidden');clearTimeout(simonTimer);simonTimer=null;simon=null;
+function openSimon(daily=false){
+ hideAll();simonEl.classList.remove('hidden');clearTimeout(simonTimer);simonTimer=null;simon=null;simonDaily=daily===true;
  simonStart.classList.remove('hidden');simonNew.classList.add('hidden');simonStart.disabled=false;renderSimon();
- setStatus('光った順番を覚えて、同じ順番で押してください。','good');
+ setStatus(simonDaily?'デイリーSIMON。同じ配列条件で到達ラウンドを競います。':'光った順番を覚えて、同じ順番で押してください。','good');
 }
 async function startSimon(){
  if(simon&&!simon.finished)return;
  simonStart.disabled=true;
- const session=await startSessionWithRetry({gameId:'simon'});
+ const session=await startSessionWithRetry({gameId:'simon',daily:simonDaily===true});
  if(!session.ok){simonStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('SIMONを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const sequence=Array.isArray(session.challenge&&session.challenge.sequence)?session.challenge.sequence.map(Number):[];
@@ -1908,8 +1910,9 @@ async function startSimon(){
    await cancelPlaySession(session.sessionToken);
    simonStart.disabled=false;setStatus('SIMONの初期状態を取得できませんでした。','error');return;
  }
- simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,startedAt:performance.now()};
- simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus('SIMON開始。未来のラウンドはSERVERから順番に配信します。','good');
+ simonDaily=session.daily===true;
+ simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,startedAt:performance.now(),daily:session.daily===true};
+ simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus((simon.daily?'デイリーSIMON開始。':'SIMON開始。')+'未来のラウンドはSERVERから順番に配信します。','good');
  await playSimonSequence();
 }
 async function sendSimonRound(inputs,round){
@@ -1931,7 +1934,7 @@ async function finishSimon(clearedAll=false){
  game.finalizing=false;
  if(res.ok){
    game.sessionToken=null;simonBoard.dataset.phase=clearedAll?'clear':'over';simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
-   showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
+   showScoreResult('simon',res,(res.daily?'デイリー · ':'')+(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.accepting=false;game.submitting=false;renderSimon();
@@ -1992,8 +1995,8 @@ async function pressSimon(index){
 }
 simonPads.forEach((pad,index)=>{pad.onclick=()=>pressSimon(index);});
 simonStart.onclick=startSimon;
-simonBack.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONを終了しますか？','現在の到達ラウンドは記録されず終了します。','終了する');if(!ok)return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await cancelPlaySession(simon.sessionToken);simon=null;showHome();};
-simonNew.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONをやり直しますか？','現在の到達ラウンドは記録されず、新しく始めます。','やり直す');if(!ok)return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await cancelPlaySession(simon.sessionToken);simon=null;openSimon();};
+simonBack.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONを終了しますか？','現在の到達ラウンドは記録されず終了します。','終了する');if(!ok)return;}clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await cancelPlaySession(simon.sessionToken);simon=null;simonDaily=false;showHome();};
+simonNew.onclick=async()=>{if(simon&&simon.finalizing){setStatus('SIMONの記録を保存中です…','warn');return;}if(simon&&!simon.finished){const ok=await confirmAction('SIMONをやり直しますか？','現在の到達ラウンドは記録されず、新しく始めます。','やり直す');if(!ok)return;}const wasDaily=!!((simon&&simon.daily)||simonDaily);clearTimeout(simonTimer);simonTimer=null;if(simon&&simon.sessionToken)await cancelPlaySession(simon.sessionToken);simon=null;openSimon(wasDaily);};
 
 /* MEMORY */
 const MEMORY_SYMBOLS=['◆','●','▲','★','♣','♥','☀','☂'];
@@ -2146,7 +2149,7 @@ async function suspendActivePlay(){
    if(!(highLow&&highLow.finalizing))await suspendStep('high low cancel',()=>cancelPlaySession(highLow&&highLow.sessionToken));
    if(!(simon&&simon.finalizing))await suspendStep('simon cancel',()=>cancelPlaySession(simon&&simon.sessionToken));
   }finally{
-   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;
+   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;simonDaily=false;
    tapSession=null;tapState='idle';stopSession=null;stopState='idle';
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
    suspendRunning=false;

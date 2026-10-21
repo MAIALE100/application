@@ -179,9 +179,18 @@ try {
             throw 'Local safety check could not verify PLAY confirmation UI.'
         }
 
-        $enabledPlayCount = ([regex]::Matches($registryText,"app='play'[^\r\n]*enabled=true")).Count
-        if ($enabledPlayCount -ne 12) {
-            throw "Local safety check expected 12 enabled PLAY games, found $enabledPlayCount."
+        $enabledPlayMatches = [regex]::Matches($registryText,"id='([^']+)'[^\r\n]*app='play'[^\r\n]*enabled=true")
+        $enabledPlayIds = @($enabledPlayMatches | ForEach-Object { $_.Groups[1].Value })
+        $requiredPlayIds = @(
+            'quick_tap','stop','stack','block','merge','mines','nonogram',
+            'memory','sort','color_match','number_rush','high_low','simon'
+        )
+        $missingPlayIds = @($requiredPlayIds | Where-Object { $_ -notin $enabledPlayIds })
+        if ($missingPlayIds.Count -gt 0) {
+            throw ("Local safety check is missing required PLAY games: {0}" -f ($missingPlayIds -join ', '))
+        }
+        if ($enabledPlayIds.Count -lt $requiredPlayIds.Count) {
+            throw ("Local safety check expected at least {0} enabled PLAY games, found {1}." -f $requiredPlayIds.Count,$enabledPlayIds.Count)
         }
 
         Write-Host ("PowerShell safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green

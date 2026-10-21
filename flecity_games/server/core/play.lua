@@ -967,6 +967,20 @@ local function clearPlayerStartRequests(playerIdentifier)
     return removed
 end
 
+local function saveStateHasProgress(gameId,state,score)
+    if type(state)~='table' then return false end
+    if gameId=='block' then
+        return (type(state.history)=='table' and #state.history>0) or (tonumber(score) or 0)>0
+    elseif gameId=='merge' then
+        return (type(state.history)=='table' and #state.history>0) or (tonumber(state.moves) or 0)>0
+    elseif gameId=='mines' then
+        return (type(state.revealed)=='table' and #state.revealed>0) or (type(state.flags)=='table' and #state.flags>0)
+    elseif gameId=='nonogram' then
+        return (type(state.filled)=='table' and #state.filled>0) or (type(state.crossed)=='table' and #state.crossed>0)
+    end
+    return true
+end
+
 function FlecityGamesPlay.Bootstrap(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
@@ -983,7 +997,11 @@ function FlecityGamesPlay.Bootstrap(source)
         if game and tonumber(save.game_version or 1)==tonumber(game.version or 1) then
             save.state=json.decode(save.state_json or '{}') or {}
             save.state_json=nil
-            saves[#saves+1]=save
+            if saveStateHasProgress(game.id,save.state,save.score) then
+                saves[#saves+1]=save
+            else
+                MySQL.query.await('DELETE FROM flecity_game_saves WHERE player_identifier=? AND game_id=?',{id,game.id})
+            end
         end
     end
 

@@ -205,6 +205,11 @@ function competitionRank(rows,index){
 }
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
+const gameVisuals={
+ quick_tap:{icon:'⚡',eyebrow:'REFLEX'},stop:{icon:'◎',eyebrow:'TIMING'},color_match:{icon:'A',eyebrow:'FOCUS'},number_rush:{icon:'25',eyebrow:'SPEED'},
+ stack:{icon:'▤',eyebrow:'ARCADE'},high_low:{icon:'7',eyebrow:'LUCK'},simon:{icon:'◆',eyebrow:'MEMORY'},
+ block:{icon:'▦',eyebrow:'BUILD'},merge:{icon:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'✦',eyebrow:'LOGIC'},nonogram:{icon:'▩',eyebrow:'PUZZLE'},memory:{icon:'●',eyebrow:'PAIR'}
+};
 const achievementLabels={
  first_play:'FIRST PLAY · 初めて記録を残す',
  '100_games':'100 GAMES · 100回プレイ',
@@ -329,12 +334,13 @@ function renderContinue(games){
  continueGames.innerHTML='';continueCount.textContent=String(resumable.length);
  continueCard.classList.toggle('hidden',resumable.length===0);
  resumable.forEach(game=>{
-   const button=document.createElement('button');button.className='continue-game';
-   const text=document.createElement('span'),meta=document.createElement('span');
-   text.textContent=String(game.name||game.id);meta.className='muted';
+   const button=document.createElement('button');button.className='continue-game';button.dataset.game=game.id;
+   const visual=gameVisuals[game.id]||{icon:'▶',eyebrow:'CONTINUE'};
+   const top=document.createElement('span'),icon=document.createElement('span'),text=document.createElement('span'),meta=document.createElement('span');
+   top.className='continue-top';icon.className='continue-icon';icon.textContent=visual.icon;text.textContent=String(game.name||game.id);meta.className='muted';top.append(icon,text);
    const save=saves[game.id]||{};
    meta.textContent=(Number(save.elapsed_ms)>0?formatDuration(save.elapsed_ms)+' · ':'')+'続きから';
-   button.append(text,meta);button.onclick=()=>launchGame(game.id);continueGames.appendChild(button);
+   button.append(top,meta);button.onclick=()=>launchGame(game.id);continueGames.appendChild(button);
  });
 }
 function renderGames(games){
@@ -358,18 +364,18 @@ function renderGames(games){
    head.append(title,count);
    const grid=document.createElement('div');grid.className='grid';
    groups.get(category).forEach(game=>{
-     const btn=document.createElement('button');btn.className='game';
-     const hasSave=!!saves[game.id];
-     const tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
-     tag.className='tag';description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
-     tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':'PLAY');
+     const btn=document.createElement('button');btn.className='game';btn.dataset.game=game.id;
+     const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{icon:'•',eyebrow:'PLAY'};
+     const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
+     top.className='game-card-top';icon.className='game-icon';tag.className='tag';description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
+     icon.textContent=visual.icon;tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);top.append(icon,tag);
      name.textContent=String(game.name||game.id||'GAME');
      description.textContent=String(game.description||'');
      const personalBest=bootstrapData&&bootstrapData.best&&bootstrapData.best[game.id];
      bestLine.textContent=game.supportsRanking?(personalBest?'BEST · '+formatGameScore(game,personalBest.score):'BEST · ---'):'';
      const traits=[];if(game.supportsRanking)traits.push('RANK');if(game.supportsResume)traits.push('SAVE');
      meta.textContent=traits.join(' · ');
-     btn.append(tag,name,description,bestLine,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
+     btn.append(top,name,description,bestLine,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
    });
    section.append(head,grid);gamesEl.appendChild(section);
  });
@@ -447,10 +453,11 @@ async function bootstrap(){
 }
 
 /* QUICK TAP */
-function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
+function setQuickVisual(state){quickEl.dataset.state=state||'idle';}
+function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';setQuickVisual('idle');}
 tapButton.onclick=async()=>{
  if(tapState==='waiting'){
-   clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
+   clearTimeout(tapTimer);tapState='idle';setQuickVisual('false-start');tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
    if(tapSession)await cancelPlaySession(tapSession.sessionToken);tapSession=null;return;
  }
  if(tapState==='shown'){
@@ -459,7 +466,7 @@ tapButton.onclick=async()=>{
    const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:reaction,durationMs:duration});
    const stillHere=tapSession===session;
    if(res.ok){
-     if(stillHere){tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');}
+     if(stillHere){setQuickVisual('result');tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');}
      await refreshPlatform();
    }else{
      await cancelPlaySession(session&&session.sessionToken);
@@ -470,8 +477,8 @@ tapButton.onclick=async()=>{
  if(tapState!=='idle')return;
  tapButton.disabled=true;const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
  if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('開始できません: '+FlecityErrors.text(res.error),'error');return;}
- tapSession=res;tapState='waiting';tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
- tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
+ tapSession=res;tapState='waiting';setQuickVisual('waiting');tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
+ tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';setQuickVisual('go');tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';tone(980,45);},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
 };
 tapBack.onclick=async()=>{
  if(tapState==='submitting'){setStatus('QUICK TAPの記録を保存中です…','warn');return;}
@@ -494,8 +501,9 @@ function animateStop(){
  stopMarker.style.left=trianglePosition(elapsed,stopSession.challenge.periodMs,stopSession.challenge.phaseMs)+'%';
  stopRaf=requestAnimationFrame(animateStop);
 }
+function setStopVisual(state){stopEl.dataset.state=state||'idle';}
 function openStop(daily=false){
- stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;setStopVisual('idle');refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
@@ -505,7 +513,7 @@ stopButton.onclick=async()=>{
    const stillHere=stopSession===session;
    if(res.ok){
      const distance=res.details&&Number(res.details.distancePct);
-     if(stillHere){stopMessage.textContent=String(res.score);showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
+     if(stillHere){setStopVisual(Number(res.score)>=990?'bullseye':'result');stopMessage.textContent=String(res.score);showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
      await refreshPlatform();
    }else{
      await cancelPlaySession(session&&session.sessionToken);
@@ -517,7 +525,7 @@ stopButton.onclick=async()=>{
  stopButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'stop',daily:stopDaily});
  if(!res.ok){stopButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('STOP!を開始できません: '+FlecityErrors.text(res.error),'error');return;}
- stopSession=res;stopState='running';stopStartedAt=performance.now();
+ stopSession=res;stopState='running';setStopVisual('running');stopStartedAt=performance.now();
  stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';
  stopMessage.textContent='STOP!';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
 };
@@ -703,7 +711,7 @@ function renderMerge(){
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
    const d=document.createElement('div'),v=Number(merge.board[y][x]||0);
    if(v>maxTile)maxTile=v;
-   d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
+   d.className='merge-cell'+(v?' filled tile-'+Math.min(2048,v):'');if(v)d.dataset.value=String(v);d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
  mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+(merge.finished?' · FINISHED':'');
  const locked=merge.finished||merge.finalizing;
@@ -1045,8 +1053,9 @@ stackDrop.onclick=async()=>{
  const previousWidth=stackGame.width;
  stackGame.width=overlap;
  const precision=previousWidth>0?overlap/previousWidth:0;
- if(precision>=.985){setStatus('PERFECT! '+stackGame.score+'段','good');tone(880,55);}
- else if(precision>=.9){setStatus('NICE! '+stackGame.score+'段','good');}
+ stackArena.classList.remove('perfect-hit','nice-hit');void stackArena.offsetWidth;
+ if(precision>=.985){stackArena.classList.add('perfect-hit');setStatus('PERFECT! '+stackGame.score+'段','good');tone(880,55);}
+ else if(precision>=.9){stackArena.classList.add('nice-hit');setStatus('NICE! '+stackGame.score+'段','good');tone(720,40);}
  stackGame.speed=Math.min(180,stackGame.speed+4);
  stackGame.reverse=(stackGame.score%2)===1;
  stackGame.layerStartedAt=now;
@@ -1452,6 +1461,7 @@ async function guessHighLow(guess){
  game.streak=Math.max(0,Number(res.streak)||0);
  game.completed=Math.max(0,Number(res.completed)||0);
  game.busy=false;
+ highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
  if(res.correct){
    tone(720+Math.min(220,game.streak*12),35);
    setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+game.streak+'連勝','good');
@@ -1515,7 +1525,7 @@ function flashSimonPad(index,duration){
 async function playSimonSequence(){
  const game=simon;if(!game||game.finished)return;
  game.accepting=false;game.submitting=false;game.inputIndex=0;game.roundInputs=[];renderSimon();
- simonMessage.textContent='覚えてください · '+game.round+'手';
+ simonBoard.dataset.phase='watch';simonMessage.textContent='覚えてください · '+game.round+'手';
  await sleep(260);
  const flashMs=Math.max(180,430-(game.round*7));
  for(let i=0;i<game.sequence.length;i++){
@@ -1523,7 +1533,7 @@ async function playSimonSequence(){
    await flashSimonPad(game.sequence[i],flashMs);
  }
  if(simon!==game||game.finished)return;
- game.accepting=true;game.inputIndex=0;renderSimon();simonMessage.textContent='あなたの番 · 1 / '+game.round;
+ game.accepting=true;game.inputIndex=0;simonBoard.dataset.phase='input';renderSimon();simonMessage.textContent='あなたの番 · 1 / '+game.round;
 }
 function openSimon(){
  hideAll();simonEl.classList.remove('hidden');clearTimeout(simonTimer);simonTimer=null;simon=null;
@@ -1563,7 +1573,7 @@ async function finishSimon(clearedAll=false){
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.cleared,durationMs});
  game.finalizing=false;
  if(res.ok){
-   game.sessionToken=null;simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
+   game.sessionToken=null;simonBoard.dataset.phase=clearedAll?'clear':'over';simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
    showScoreResult('simon',res,(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{
@@ -1652,7 +1662,7 @@ function renderMemory(){
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);
-   b.className='memory-card'+(shown?' revealed':'')+(matched?' matched':'')+(memory.previewing?' preview':'');
+   b.className='memory-card'+(shown?' revealed':'')+(matched?' matched':'')+(memory.previewing?' preview':'')+(memory.revealed.includes(i)?' flipping':'');
    b.textContent=(shown||matched)?MEMORY_SYMBOLS[memory.deck[i]-1]:'?';
    b.disabled=memory.previewing||memory.finished||memory.busy||matched;
    b.setAttribute('aria-label',matched?'一致済み':(shown?'カード '+String(memory.deck[i]):'伏せたカード'));

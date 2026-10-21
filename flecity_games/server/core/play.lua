@@ -1821,6 +1821,13 @@ function FlecityGamesPlay.DebugSelftest()
         local result=applyHighLowGuess(highLowState,highLowHistory[i].guess,highLowHistory[i].elapsedMs)
         if not result or result.correct~=true then highLowServerOk=false break end
     end
+    local highLowLivesState=newHighLowState(54321,30,2400)
+    local firstRound=highLowLivesState.generated[1]
+    local wrongGuess=firstRound.value>firstRound.pivot and 'low' or 'high'
+    local missResult=applyHighLowGuess(highLowLivesState,wrongGuess,500)
+    local secondRound=highLowLivesState.generated[2]
+    local correctGuess=secondRound.value>secondRound.pivot and 'high' or 'low'
+    local recoverResult=applyHighLowGuess(highLowLivesState,correctGuess,500)
     local simonSequence=generateSimonSequence(12345,5)
     local simonHistory={}
     for round=1,5 do
@@ -1876,8 +1883,10 @@ function FlecityGamesPlay.DebugSelftest()
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
-        highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 and highLowReplay.score>0 or false,
-        highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and highLowState.score>0 and #highLowState.history==30 or false,
+        highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 and highLowReplay.maxStreak==30 and highLowReplay.lives==3 and highLowReplay.score>0 or false,
+        highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and highLowState.maxStreak==30 and highLowState.lives==3 and highLowState.score>0 and #highLowState.history==30 or false,
+        highLowLivesRecovery=highLow and missResult and recoverResult and missResult.correct==false and missResult.ended==false and missResult.lives==2 and recoverResult.correct==true and recoverResult.lives==2,
+        highLowAdaptiveTimer=rangeRushRoundLimit(2400,1)==2400 and rangeRushRoundLimit(2400,6)==2260 and rangeRushRoundLimit(2400,30)==1700,
         highLowActionIdempotent=highLow and highLowState.lastStep==nil,
         highLowValidateStreak=highLow and validateScore(highLow,5000)==5000 or false,
         simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,

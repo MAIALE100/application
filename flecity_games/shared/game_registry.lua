@@ -11,7 +11,7 @@ end
 
 local defs = {
     {order=10,id='quick_tap',name='QUICK TAP',app='play',category='quick',description='合図が出たら、できるだけ速くタップ。',minPlayers=1,maxPlayers=1,supportsResume=false,supportsRanking=true,supportsDaily=true,rankingOrder='asc',enabled=true,version=1},
-    {order=20,id='stop',name='STOP!',app='play',category='quick',description='動くマーカーをターゲットの近くで止める。',minPlayers=1,maxPlayers=1,supportsResume=false,supportsRanking=true,supportsDaily=true,rankingOrder='desc',enabled=true,version=1},
+    {order=20,id='stop',name='STOP! RUSH',app='play',category='quick',description='止めるたびに加速。1ミスまで連続クリアを伸ばすタイミングRUN。',minPlayers=1,maxPlayers=1,supportsResume=false,supportsRanking=true,supportsDaily=true,rankingOrder='desc',enabled=true,version=2},
     {order=30,id='stack',name='TOWER',app='play',category='arcade',description='精密にブロックを積み、PERFECT連続で倍率を伸ばすスキルアーケード。',minPlayers=1,maxPlayers=1,supportsResume=false,supportsRanking=true,supportsDaily=false,rankingOrder='desc',enabled=true,version=2},
     {order=40,id='block',name='BLOCK',app='play',category='endless',description='ピースを置いて行や列を消し、盤面を広く保つ。',minPlayers=1,maxPlayers=1,supportsResume=true,supportsRanking=true,supportsDaily=true,rankingOrder='desc',enabled=true,version=1},
     {order=50,id='merge',name='MERGE',app='play',category='endless',description='連続合成でCHAIN倍率をつなぎ、大きな数字とハイスコアを狙う。',minPlayers=1,maxPlayers=1,supportsResume=true,supportsRanking=true,supportsDaily=false,rankingOrder='desc',enabled=true,version=2},

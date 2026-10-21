@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.19.1-test**
+- Resource version: **0.23.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **22/22 enabled**.
+- Initial game registry: **23/23 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,19 +29,20 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 12/12 enabled
+### PLAY — 13/13 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
-- STACK — overlap/height arcade run
+- TOWER — precision stacking with PERFECT streak scoring
 - BLOCK — endless placement, line clear, combo score, auto-save/resume
 - MERGE — deterministic 4x4 merge game, auto-save/resume
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
+- SORT — deterministic 6-tube color sorting puzzle, auto-save/resume, time + move-penalty ranking
 - COLOR MATCH — 10-round Stroop-style color recognition, server-replayed answer history, time ranking
 - NUMBER RUSH — deterministic 5x5 number hunt, server-replayed tap history, miss penalties, time ranking
-- HIGH & LOW — deterministic number sequence, server-replayed guesses, streak ranking
+- RANGE RUSH — 3-life HIGH/LOW reflex run with adaptive timer, streak multiplier, and server-owned score
 
 - SIMON — repeat an increasingly long seeded four-pad sequence; server replay validates every input
 
@@ -85,7 +86,7 @@ Implemented:
 - deterministic Daily NUMBER RUSH number layout
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
-- 14 collection/title achievements across all 12 PLAY games:
+- 14 collection/title achievements across PLAY:
   - FIRST PLAY
   - 100 GAMES
   - LIGHTNING
@@ -102,7 +103,7 @@ Implemented:
   - SIMON MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
-- deterministic server replay validation for BLOCK, MERGE, STACK, MEMORY, COLOR MATCH, NUMBER RUSH, and HIGH & LOW final scores
+- deterministic server replay validation for BLOCK, MERGE, TOWER, SORT, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores
 - autosave bound to the active server session and server-issued seed
 - resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`
@@ -205,3 +206,10 @@ The first time the watcher is installed, run `restart flecity_games` once in the
 - Consecutive correct answers raise the score multiplier up to x4.
 - Close comparisons and faster answers add difficulty/speed bonuses.
 - Server state owns lives, timing, streak, score, and the next round; the client only submits HIGH/LOW/timeout actions.
+
+### 0.23.0 SORT
+- Added SORT, a six-tube color organization puzzle designed for short-to-medium phone sessions.
+- Four colors appear four times each; two empty tubes create planning space.
+- Every move is replay-validated from the server seed, and completion requires four full monochrome tubes.
+- Ranking score is authoritative elapsed time plus a 350ms penalty per move, rewarding both speed and efficient solutions.
+- SORT supports autosave/resume and phone-close safety through the existing PLAY lifecycle.

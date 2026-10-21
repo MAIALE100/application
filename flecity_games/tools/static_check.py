@@ -376,7 +376,7 @@ if "CLUTCH · " not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" n
     fail("PLAY mastery/clutch feedback is missing")
 if "PLAY depth feedback v12" not in play_css or ".block-danger" not in play_css or ".merge-danger" not in play_css or ".fall-danger" not in play_css or ".tower-danger" not in play_css:
     fail("PLAY depth feedback CSS is missing")
-if "STOP RUSH progression v13" not in play_css or 'data-tier' not in play_js:
+if "STOP RUSH progression v13" not in play_css or "dataset.tier" not in play_js:
     fail("STOP RUSH escalating visual feedback is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
     fail("PLAY persistent runtime version badge is missing")

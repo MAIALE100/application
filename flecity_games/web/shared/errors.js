@@ -92,4 +92,6 @@ window.FlecityErrors = {
         const key = String(code || 'UNKNOWN_ERROR');
         return (this.messages[key] || '処理に失敗しました') + ' (' + key + ')';
     }
+ INVALID_SORT_SAVE:'SORTの保存データを確認できませんでした。',
+ INVALID_SORT_REPLAY:'SORTのプレイ内容を確認できませんでした。',
 };

@@ -637,6 +637,9 @@ local function replayStack(challenge,history)
     local speed=tonumber(challenge and challenge.speedPctPerSec) or 65
     local baseX=(100-width)/2
     local score=0
+    local layers=0
+    local perfectStreak=0
+    local maxPerfectStreak=0
     local previousAction=0
     local ended=false
     local normalized={}
@@ -647,7 +650,7 @@ local function replayStack(challenge,history)
         actionMs=math.floor(actionMs*1000+0.5)/1000
         if actionMs<=previousAction then return nil end
         local elapsed=actionMs-previousAction
-        local reverse=(score%2)==1
+        local reverse=(layers%2)==1
         local moverX=stackPosition(elapsed,width,speed,reverse)
         local left=math.max(baseX,moverX)
         local right=math.min(baseX+width,moverX+width)
@@ -660,18 +663,40 @@ local function replayStack(challenge,history)
             break
         end
 
+        local precision=width>0 and overlap/width or 0
+        local perfect=precision>=0.985
+        if perfect then
+            perfectStreak=math.min(8,perfectStreak+1)
+            maxPerfectStreak=math.max(maxPerfectStreak,perfectStreak)
+            left=baseX
+            overlap=width
+        else
+            perfectStreak=0
+        end
+
+        local placementScore=100+math.floor(precision*100+0.5)
+        if perfect then
+            placementScore=placementScore+(100*perfectStreak)
+        elseif precision>=0.90 then
+            placementScore=placementScore+40
+        end
+
         baseX=left
         width=overlap
-        score=score+1
-        speed=math.min(180,speed+4)
+        layers=layers+1
+        score=score+placementScore
+        speed=math.min(190,speed+5)
         previousAction=actionMs
     end
 
     return {
         score=score,
+        layers=layers,
         ended=ended,
         width=width,
         baseX=baseX,
+        perfectStreak=perfectStreak,
+        maxPerfectStreak=maxPerfectStreak,
         history=normalized
     }
 end
@@ -799,7 +824,10 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
     local cfg=FlecityGamesConfig.Play.Achievements or {}
     if total>=tonumber(cfg.GamesVeteranCount or 100) and unlockAchievement(playerIdentifier,'100_games',nil,{total=total}) then unlocked[#unlocked+1]='100_games' end
     if game.id=='quick_tap' and score<=tonumber(cfg.LightningReactionMs or 200) and unlockAchievement(playerIdentifier,'lightning',game.id,{score=score}) then unlocked[#unlocked+1]='lightning' end
-    if game.id=='stack' and score>=tonumber(cfg.StackMasterLayers or 25) and unlockAchievement(playerIdentifier,'stack_master',game.id,{score=score}) then unlocked[#unlocked+1]='stack_master' end
+    if game.id=='stack' and tonumber(metadata and metadata.layers)>=tonumber(cfg.StackMasterLayers or 25)
+        and unlockAchievement(playerIdentifier,'stack_master',game.id,{score=score,layers=metadata.layers,maxPerfectStreak=metadata.maxPerfectStreak}) then
+        unlocked[#unlocked+1]='stack_master'
+    end
     if game.id=='block' and score>=tonumber(cfg.BlockMasterScore or 5000) and unlockAchievement(playerIdentifier,'block_master',game.id,{score=score}) then unlocked[#unlocked+1]='block_master' end
     if game.id=='memory' and tonumber(metadata and metadata.moves)==8 and unlockAchievement(playerIdentifier,'perfect_memory',game.id,{score=score,moves=8}) then unlocked[#unlocked+1]='perfect_memory' end
     if game.id=='number_rush' and tonumber(metadata and metadata.misses)==0
@@ -1408,7 +1436,7 @@ local function validateScore(game,score)
         if score<1000 or score>28800000 then return nil end
         return math.floor(score)
     elseif game.id=='stack' then
-        if score<0 or score>500 then return nil end
+        if score<0 or score>5000000 then return nil end
         return math.floor(score)
     elseif game.id=='high_low' then
         if score<0 or score>10000 then return nil end
@@ -1499,15 +1527,17 @@ function FlecityGamesPlay.SubmitScore(source,data)
     elseif game.id=='stack' then
         local replayed=replayStack(session.challenge,data.history)
         if not replayed or not replayed.ended then return {ok=false,error='INVALID_STACK_REPLAY'} end
-        local layers=math.floor(tonumber(data.score) or -1)
-        if layers~=replayed.score then return {ok=false,error='INVALID_STACK_REPLAY'} end
+        local submittedScore=math.floor(tonumber(data.score) or -1)
+        if submittedScore~=replayed.score then return {ok=false,error='INVALID_STACK_REPLAY'} end
         local lastAction=replayed.history[#replayed.history] or 0
         if lastAction>serverElapsed+350 or serverElapsed-lastAction>1800 then
             return {ok=false,error='IMPOSSIBLE_TIMING'}
         end
         rawScore=replayed.score
         durationMs=math.min(serverElapsed,28800000)
-        metadata.layers=replayed.score
+        metadata.layers=replayed.layers
+        metadata.maxPerfectStreak=replayed.maxPerfectStreak
+        metadata.finalWidth=math.floor(replayed.width*100+0.5)/100
         metadata.replayValidated=true
     elseif game.id=='mines' then
         if session.timingActivated~=true then return {ok=false,error='TIMER_NOT_STARTED'} end
@@ -1794,8 +1824,12 @@ function FlecityGamesPlay.DebugSelftest()
         deferredTimerGames=minesGame and nonogram and challengeFor(minesGame,12345).size==8 and challengeFor(nonogram,12345).size==5 or false,
         minesSeedCount=testMineCount==10,
         minesFirstRevealSafe=testSafeMineCount==10 and testSafeMines[0]~=true,
-        stackValidateLayers=stack and validateScore(stack,25)==25 or false,
+        stackValidateScore=stack and validateScore(stack,3500)==3500 or false,
         stackPositionBounds=stackPosition(0,72,65,false)==0 and math.abs(stackPosition(0,72,65,true)-28)<0.001,
+        stackReplayScoring=(function()
+            local replayed=replayStack({initialWidthPct=72,speedPctPerSec=65},{215.385,430.770,646.155,861.540,1076.925,1292.310})
+            return replayed==nil or (replayed.score>=0 and replayed.layers>=0 and replayed.maxPerfectStreak>=0)
+        end)(),
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
         nonogramCuratedSet=#NONOGRAM_PATTERNS_5==14 and testNonogramCount>0,
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,

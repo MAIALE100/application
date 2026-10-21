@@ -828,12 +828,25 @@ local function challengeFor(game,seed)
         state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
     elseif game.id=='mines' then
         challenge.size=8 challenge.mines=10
+    elseif game.id=='sort' then
+        local replayed=replaySortState(session.seed,data.history)
+        if not replayed or replayed.complete~=true then return {ok=false,error='INVALID_SORT_REPLAY'} end
+        durationMs=totalServerElapsed
+        local movePenalty=replayed.moves*350
+        rawScore=durationMs+movePenalty
+        metadata.moves=replayed.moves
+        metadata.timeMs=durationMs
+        metadata.movePenaltyMs=movePenalty
+        metadata.replayValidated=true
     elseif game.id=='stack' then
         challenge.initialWidthPct=72 challenge.speedPctPerSec=65
     elseif game.id=='nonogram' then
         challenge.size=5
     elseif game.id=='memory' then
         challenge.previewMs=1200
+    elseif game.id=='sort' then
+        challenge.capacity=4 challenge.colors=4 challenge.tubeCount=6
+        challenge.initialTubes=generateSortBoard(seed)
     elseif game.id=='color_match' then
         challenge.rounds=10
     elseif game.id=='number_rush' then
@@ -909,7 +922,7 @@ local function statisticsFor(playerIdentifier)
                 totalPlayTimeMs=total,
                 bestScore=tonumber(game.rankingOrder=='asc' and row.normal_min_score or row.normal_max_score),
                 bestTimeMs=tonumber(row.normal_best_time_ms),
-                clearCount=(game.id=='mines' or game.id=='nonogram') and plays or nil
+                clearCount=(game.id=='mines' or game.id=='nonogram' or game.id=='sort') and plays or nil
             }
         end
     end
@@ -1523,6 +1536,11 @@ function FlecityGamesPlay.Save(source,data)
         end
         saveState={filled=filled,crossed=crossed}
         score=elapsed
+    elseif game.id=='sort' then
+        local canonical=replaySortState(session.seed,data.state.history)
+        if not canonical then return {ok=false,error='INVALID_SORT_SAVE'} end
+        saveState=canonical
+        score=canonical.moves
     end
 
     local encoded=json.encode(saveState)
@@ -1549,7 +1567,7 @@ local function validateScore(game,score)
     elseif game.id=='block' or game.id=='merge' then
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
-    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' then
+    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' or game.id=='sort' then
         if score<1000 or score>28800000 then return nil end
         return math.floor(score)
     elseif game.id=='stack' then

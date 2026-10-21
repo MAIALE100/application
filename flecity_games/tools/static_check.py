@@ -228,7 +228,7 @@ if "unlockedAchievements" not in play_lua:
     fail("PLAY score retry must preserve achievement feedback")
 if "ActivateSession" not in play_lua or "timingDeferred" not in play_lua or "TIMER_NOT_STARTED" not in play_lua:
     fail("PLAY deferred timer activation is missing")
-for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master","slide_master"):
+for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master","slide_master","fall_master"):
     if marker not in play_lua or marker not in play_js:
         fail(f"PLAY achievement missing: {marker}")
 if "MySQL.update.await([[INSERT IGNORE INTO flecity_game_achievements" not in play_lua:
@@ -297,6 +297,10 @@ if not re.search(r"id='fall'[^\n]*supportsResume=true[^\n]*rankingOrder='desc'[^
     fail("FALL registry/resume marker is missing")
 if 'id="fallGame"' not in play_html or 'id="fallBoard"' not in play_html or 'id="fallFinish"' not in play_html:
     fail("FALL game DOM is missing")
+if "FallMasterLines = 20" not in config or "fall_master" not in play_lua or "fall_master" not in play_js:
+    fail("FALL MASTER achievement flow is missing")
+if "fallPieceFor(fallGame.seed,fallGame.history.length+1)" not in play_js or "Next piece preview" not in play_html:
+    fail("FALL deterministic next-piece preview is missing")
 if "icons/fall.svg" not in play_js:
     fail("FALL dedicated icon wiring is missing")
 

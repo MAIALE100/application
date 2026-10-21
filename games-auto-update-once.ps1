@@ -20,7 +20,7 @@ function Log([string]$Message){
         Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
     } catch {}
 }
-function Git([string[]]$Args){
+function Invoke-GitCli([string[]]$Args){
     $old=$ErrorActionPreference
     try {
         $ErrorActionPreference='Continue'
@@ -31,7 +31,7 @@ function Git([string[]]$Args){
     return (($out|Out-String).Trim())
 }
 function RemoteSha {
-    $out=Git @('ls-remote','origin',"refs/heads/$Branch")
+    $out=Invoke-GitCli @('ls-remote','origin',"refs/heads/$Branch")
     $line=@($out -split '[\r\n]+')[0]
     if($line -notmatch '^([0-9a-fA-F]{40})\s+'){throw 'Could not resolve remote branch SHA.'}
     return $Matches[1].ToLowerInvariant()
@@ -64,11 +64,11 @@ try{
     }
 
     Log ("Deploying stable update {0}." -f $remote2.Substring(0,7))
-    Git @('fetch','--prune','origin',$Branch) | Out-Null
-    $fetched=(Git @('rev-parse',"origin/$Branch")).Trim().ToLowerInvariant()
+    Invoke-GitCli @('fetch','--prune','origin',$Branch) | Out-Null
+    $fetched=(Invoke-GitCli @('rev-parse',"origin/$Branch")).Trim().ToLowerInvariant()
     if($fetched -ne $remote2){Log 'Fetched SHA moved; deferring.';exit 0}
-    Git @('reset','--hard',"origin/$Branch") | Out-Null
-    Git @('clean','-fd') | Out-Null
+    Invoke-GitCli @('reset','--hard',"origin/$Branch") | Out-Null
+    Invoke-GitCli @('clean','-fd') | Out-Null
 
     $output=& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $UpdateScript -ServerBase $ServerBase -NoGitSync 2>&1
     $code=$LASTEXITCODE

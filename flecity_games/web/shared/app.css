@@ -731,3 +731,10 @@ body.reduced-motion .mines-board.flag-pop,body.reduced-motion .nonogram-grid.cro
 .high-low-card[data-difficulty="tricky"]{box-shadow:0 0 0 .0625rem rgba(145,202,255,.14),0 .75rem 1.75rem rgba(0,0,0,.28),0 0 1.1rem rgba(145,202,255,.08)}
 .high-low-card[data-difficulty="open"]{box-shadow:0 .75rem 1.75rem rgba(0,0,0,.28)}
 body.reduced-motion .high-low-card{transition:none!important}
+
+
+/* LB Phone status-bar clearance & runtime badge v11 */
+body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
+.brand-line{flex-wrap:wrap}
+.runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.62rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}}

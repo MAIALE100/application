@@ -275,6 +275,12 @@ if "dailyStreak" not in play_lua or "nextCount" not in play_lua:
     fail("PLAY Daily streak derivation is missing")
 if "generateSortBoard" not in play_lua or "replaySortState" not in play_lua or "INVALID_SORT_REPLAY" not in play_lua:
     fail("SORT deterministic replay engine is missing")
+challenge_section = re.search(r"local function challengeFor\(game,seed\)(.*?)local function currentDatabaseDate", play_lua, re.S)
+if not challenge_section or "INVALID_SORT_REPLAY" in challenge_section.group(1) or "session.seed" in challenge_section.group(1):
+    fail("SORT replay validation is incorrectly placed inside challenge generation")
+submit_section = re.search(r"function FlecityGamesPlay\.SubmitScore\(source,data\)(.*?)function FlecityGamesPlay\.Ranking", play_lua, re.S)
+if not submit_section or "elseif game.id=='sort'" not in submit_section.group(1) or "metadata.movePenaltyMs=movePenalty" not in submit_section.group(1):
+    fail("SORT final replay validation is missing from score submission")
 if "openSort" not in play_js or "persistSort" not in play_js or "sortBoard" not in play_js:
     fail("SORT resumable client flow is missing")
 if not re.search(r"id='sort'[^\n]*supportsResume=true[^\n]*version=1", registry):

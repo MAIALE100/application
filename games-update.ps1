@@ -218,6 +218,12 @@ try {
         if ($playLuaText -notmatch 'generateSlideBoard' -or $playLuaText -notmatch 'replaySlideState' -or $playLuaText -notmatch 'INVALID_SLIDE_REPLAY') {
             throw 'Local safety check could not verify SLIDE server replay validation.'
         }
+        if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $configText -notmatch "DailyCandidates\s*=\s*\{[^\r\n]*'slide'[^\r\n]*\}") {
+            throw 'Local safety check could not verify Daily SLIDE registration.'
+        }
+        if ($playJsText -notmatch 'openSlide\(true,true\)' -or $playJsText -notmatch 'slideGame&&slideGame\.daily') {
+            throw 'Local safety check could not verify Daily SLIDE client lifecycle.'
+        }
         if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
             throw 'Local safety check could not verify Daily SIMON client flow.'
         }
@@ -307,6 +313,7 @@ try {
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
+    if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }

@@ -13,6 +13,8 @@ on:
       - 'games-auto-update-install.cmd'
       - 'games-auto-update-disable.ps1'
       - 'games-auto-update-disable.cmd'
+      - 'games-auto-update-status.ps1'
+      - 'games-auto-update-status.cmd'
       - '.github/workflows/flecity-games-check.yml'
   pull_request:
     paths:
@@ -24,6 +26,8 @@ on:
       - 'games-auto-update-install.cmd'
       - 'games-auto-update-disable.ps1'
       - 'games-auto-update-disable.cmd'
+      - 'games-auto-update-status.ps1'
+      - 'games-auto-update-status.cmd'
       - '.github/workflows/flecity-games-check.yml'
 
 jobs:
@@ -41,7 +45,7 @@ jobs:
           bad=0
           while IFS= read -r path; do
             case "$path" in
-              flecity_games/*|games-update.ps1|games-update.cmd|games-auto-update.ps1|games-auto-update-install.ps1|games-auto-update-install.cmd|games-auto-update-disable.ps1|games-auto-update-disable.cmd|.github/workflows/flecity-games-check.yml)
+              flecity_games/*|games-update.ps1|games-update.cmd|games-auto-update.ps1|games-auto-update-install.ps1|games-auto-update-install.cmd|games-auto-update-disable.ps1|games-auto-update-disable.cmd|games-auto-update-status.ps1|games-auto-update-status.cmd|.github/workflows/flecity-games-check.yml)
                 ;;
               *)
                 echo "Unexpected path changed outside Flecity Games: $path"
@@ -58,7 +62,8 @@ jobs:
             'games-update.ps1',
             'games-auto-update.ps1',
             'games-auto-update-install.ps1',
-            'games-auto-update-disable.ps1'
+            'games-auto-update-disable.ps1',
+            'games-auto-update-status.ps1'
           )
           foreach ($script in $scripts) {
             $null = [ScriptBlock]::Create((Get-Content -Raw $script))
@@ -66,6 +71,7 @@ jobs:
           if ((Get-Content -Raw games-update.cmd) -notmatch 'games-update\.ps1') { throw 'games-update.cmd does not launch games-update.ps1' }
           if ((Get-Content -Raw games-auto-update-install.cmd) -notmatch 'games-auto-update-install\.ps1') { throw 'install cmd does not launch installer' }
           if ((Get-Content -Raw games-auto-update-disable.cmd) -notmatch 'games-auto-update-disable\.ps1') { throw 'disable cmd does not launch disable script' }
+          if ((Get-Content -Raw games-auto-update-status.cmd) -notmatch 'games-auto-update-status\.ps1') { throw 'status cmd does not launch status script' }
 
       - name: Check JavaScript syntax
         run: |

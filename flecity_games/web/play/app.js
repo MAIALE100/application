@@ -2819,7 +2819,7 @@ async function finishMemory(){
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,history:game.history});
  game.finalizing=false;
  if(res.ok){
-   game.displayElapsedMs=Number(res.score);game.sessionToken=null;game.busy=false;if(memory===game){showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES · MAX STREAK ×'+game.maxStreak);renderMemory();}await refreshPlatform();
+   game.displayElapsedMs=Number(res.score);game.sessionToken=null;game.busy=false;if(memory===game){const penalty=Number(res.details&&res.details.movePenaltyMs)||0;showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES'+(penalty?' · MOVE PENALTY +'+(penalty/1000).toFixed(1)+'s':'')+' · MAX STREAK ×'+game.maxStreak);renderMemory();}await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.busy=false;if(memory===game){setStatus('MEMORYの記録を保存できませんでした。もう一度お試しください。','error');renderMemory();}
  }

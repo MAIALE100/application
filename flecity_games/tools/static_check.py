@@ -51,6 +51,12 @@ enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
 if len(enabled) != 25:
     fail(f"expected 25 enabled games, found {len(enabled)}: {enabled}")
+play_enabled = re.findall(r"id='([^']+)'[^\n]*app='play'[^\n]*enabled=true", registry)
+party_enabled = re.findall(r"id='([^']+)'[^\n]*app='party'[^\n]*enabled=true", registry)
+if len(play_enabled) != 15:
+    fail(f"PLAY game count is frozen at 15; found {len(play_enabled)}: {play_enabled}")
+if len(party_enabled) != 10:
+    fail(f"PARTY game count must remain 10; found {len(party_enabled)}: {party_enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -172,6 +178,10 @@ if "setGameIcon" not in play_js or "icons/quick-tap.svg" not in play_js or "icon
     fail("PLAY dedicated SVG icon wiring is missing")
 if 'id="dailyIcon"' not in play_html:
     fail("PLAY Daily icon slot is missing")
+if "quickTapGrade" not in play_js or "stopGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
+    fail("PLAY skill-feedback gameplay pass is missing")
+if "MAX FLOW" not in play_js or "PAIR STREAK" not in play_js:
+    fail("PLAY flow/streak feedback is missing")
 if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
     fail("MEMORY client implementation is missing")
 if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:
@@ -337,6 +347,8 @@ if 'name="viewport"' in play_html or 'name="viewport"' in party_html:
     fail("PLAY/PARTY must not override the LB Phone custom-app viewport when fixBlur is enabled")
 if "LB Phone native fixBlur scaling pass v7" not in play_css:
     fail("LB Phone native fixBlur scaling guard is missing")
+if "PLAY fun & feedback pass v8" not in play_css or ".rush-flow" not in play_css or ".memory-streak" not in play_css:
+    fail("PLAY gameplay feedback v8 CSS is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

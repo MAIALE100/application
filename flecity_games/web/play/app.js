@@ -183,6 +183,7 @@ function activeDailyGame(gameId){
  if(gameId==='nonogram')return !!(nonogram&&nonogram.daily);
  if(gameId==='memory')return !!(memory&&memory.daily);
  if(gameId==='number_rush')return !!(numberRush&&numberRush.daily);
+ if(gameId==='slide')return !!(slideGame&&slideGame.daily);
  if(gameId==='simon')return !!(simon&&simon.daily)||simonDaily===true;
  return false;
 }
@@ -356,6 +357,7 @@ async function launchDaily(){
    else if(daily.gameId==='nonogram')await openNonogram(true,true);
    else if(daily.gameId==='memory')await openMemory(true);
    else if(daily.gameId==='number_rush')openNumberRush(true);
+   else if(daily.gameId==='slide')await openSlide(true,true);
    else if(daily.gameId==='simon')openSimon(true);
  });
 }
@@ -1619,7 +1621,7 @@ function slideMovable(index){
 function renderSlide(){
  if(!slideGame)return;
  refreshScreenBests();slideBoard.innerHTML='';slideMoves.textContent=String(slideGame.moves);
- slideMeta.textContent=String(slideGame.moves)+' MOVES · 4×4'+(slideGame.finished?' · CLEAR':'');
+ slideMeta.textContent=(slideGame.daily?'DAILY · ':'')+String(slideGame.moves)+' MOVES · 4×4'+(slideGame.finished?' · CLEAR':'');
  slideGame.board.forEach((value,index)=>{
    const button=document.createElement('button');
    const blank=Number(value)===0,movable=!blank&&slideMovable(index);
@@ -1633,7 +1635,7 @@ function renderSlide(){
  updateSlideTime();slideNew.disabled=slideGame.finalizing===true;
 }
 async function persistSlide(showError=false){
- const game=slideGame;if(!game||game.finished||game.progressed!==true)return true;
+ const game=slideGame;if(!game||game.finished||game.daily||game.progressed!==true)return true;
  const elapsedMs=Math.round(elapsedSlide());
  const state={history:game.history};
  const res=await saveWithRetry({gameId:'slide',sessionToken:game.sessionToken,state,score:game.moves,elapsedMs});
@@ -1645,9 +1647,9 @@ async function persistSlide(showError=false){
  if(showError&&slideGame===game)setStatus('SLIDEの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
  return false;
 }
-async function openSlide(forceNew){
+async function openSlide(forceNew=false,daily=false){
  hideAll();slideEl.classList.remove('hidden');clearInterval(slideClock);slideClock=null;
- const saved=!forceNew&&saves.slide,payload={gameId:'slide'};if(saved)payload.resume=true;
+ const saved=!daily&&!forceNew&&saves.slide,payload={gameId:'slide',daily:daily===true};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('SLIDEを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  let board,history=[],moves=0,blank=-1;
@@ -1666,8 +1668,8 @@ async function openSlide(forceNew){
  if(blank<0||blank>=16){
    await cancelPlaySession(session.sessionToken);setStatus('SLIDE盤面が不正です。','error');showHome();return;
  }
- slideGame={board,blank,history,moves,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved};
- setStatus(saved?'SLIDEを途中保存から再開しました。':'新しいSLIDEを開始しました。','good');
+ slideGame={board,blank,history,moves,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved,daily:session.daily===true};
+ setStatus(saved?'SLIDEを途中保存から再開しました。':(slideGame.daily?'デイリーSLIDEを開始しました。':'新しいSLIDEを開始しました。'),'good');
  renderSlide();slideClock=setInterval(updateSlideTime,200);
 }
 async function moveSlide(index){
@@ -1689,7 +1691,7 @@ async function finishSlide(){
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.slide;
    const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0;
-   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,'SLIDE '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
+   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,(res.daily?'デイリー · ':'')+'SLIDE '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
      renderSlide();}
    await refreshPlatform();
  }else{
@@ -1700,14 +1702,15 @@ async function finishSlide(){
 slideBack.onclick=async()=>{
  if(slideGame&&slideGame.finalizing){setStatus('SLIDEの記録を保存中です…','warn');return;}
  clearInterval(slideClock);slideClock=null;
- if(slideGame&&!slideGame.finished){const saved=await persistSlide(true);if(!saved){slideClock=setInterval(updateSlideTime,200);return;}}
+ if(slideGame&&!slideGame.finished&&!slideGame.daily){const saved=await persistSlide(true);if(!saved){slideClock=setInterval(updateSlideTime,200);return;}}
  if(slideGame&&!slideGame.finished&&slideGame.sessionToken)await cancelPlaySession(slideGame.sessionToken);
  slideGame=null;showHome();
 };
 slideNew.onclick=async()=>{
  if(slideNew.disabled)return;
  if(slideGame&&slideGame.finalizing){setStatus('SLIDEの記録を保存中です…','warn');return;}
- const destructive=!!saves.slide||!!(slideGame&&!slideGame.finished);
+ const wasDaily=!!(slideGame&&slideGame.daily);
+ const destructive=!wasDaily&&(!!saves.slide||!!(slideGame&&!slideGame.finished));
  if(destructive){
    const ok=await confirmAction('SLIDEを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
    if(!ok)return;
@@ -1716,9 +1719,12 @@ slideNew.onclick=async()=>{
  try{
    clearInterval(slideClock);slideClock=null;await saveQueue.catch(()=>{});
    if(slideGame&&slideGame.sessionToken)await cancelPlaySession(slideGame.sessionToken);
+   if(wasDaily){
+     slideGame=null;await openSlide(true,true);return;
+   }
    const reset=await FlecityBridge.call('playResetSave',{gameId:'slide'});
    if(!reset.ok){setStatus('SLIDEの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
-   delete saves.slide;slideGame=null;await openSlide(true);
+   delete saves.slide;slideGame=null;await openSlide(true,false);
  }finally{slideNew.disabled=false;}
 };
 
@@ -2348,7 +2354,7 @@ async function suspendActivePlay(){
      await suspendStep('sort cancel',()=>cancelPlaySession(sortGame&&sortGame.sessionToken));
    }
    if(slideGame&&!slideGame.finished&&!slideGame.finalizing){
-     await suspendStep('slide save',()=>persistSlide(false));
+     if(!slideGame.daily)await suspendStep('slide save',()=>persistSlide(false));
      await suspendStep('slide cancel',()=>cancelPlaySession(slideGame&&slideGame.sessionToken));
    }
 

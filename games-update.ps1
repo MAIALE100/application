@@ -146,6 +146,7 @@ try {
 
         $localManifest = Join-Path $Source 'fxmanifest.lua'
         $localPlayLua = Join-Path $Source 'server\core\play.lua'
+        $localProfileLua = Join-Path $Source 'server\core\profile.lua'
         $localPlayJs = Join-Path $Source 'web\play\app.js'
         $localPlayHtml = Join-Path $Source 'web\play\index.html'
         $localErrors = Join-Path $Source 'web\shared\errors.js'
@@ -153,7 +154,7 @@ try {
         $localConfig = Join-Path $Source 'config\shared.lua'
         $localCss = Join-Path $Source 'web\shared\app.css'
 
-        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry,$localConfig,$localCss)) {
+        foreach ($required in @($localManifest,$localPlayLua,$localProfileLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry,$localConfig,$localCss)) {
             if (-not (Test-Path $required)) {
                 throw "Local safety check missing required file: $required"
             }
@@ -161,6 +162,7 @@ try {
 
         $manifestText = Get-Content $localManifest -Raw
         $playLuaText = Get-Content $localPlayLua -Raw
+        $profileLuaText = Get-Content $localProfileLua -Raw
         $playJsText = Get-Content $localPlayJs -Raw
         $playHtmlText = Get-Content $localPlayHtml -Raw
         $errorsText = Get-Content $localErrors -Raw
@@ -203,6 +205,12 @@ try {
         }
         if ($playLuaText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playLuaText -notmatch 'lastPlayedAt=row\.last_played_at') {
             throw 'Local safety check could not verify PLAY recent-game timestamps.'
+        }
+        if ($playJsText -notmatch 'toggleFavorite' -or $playJsText -notmatch 'favorite-toggle' -or $playHtmlText -notmatch 'data-filter="favorites"') {
+            throw 'Local safety check could not verify PLAY favorites UI.'
+        }
+        if ($profileLuaText -notmatch 'normalizeFavorites' -or $profileLuaText -notmatch 'if data\.favorites~=nil' -or $profileLuaText -notmatch 'if data\.sound~=nil') {
+            throw 'Local safety check could not verify merge-safe profile favorites.'
         }
         if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
             throw 'Local safety check could not verify Daily SIMON client flow.'
@@ -258,13 +266,14 @@ try {
     $playIndexPath = Join-Path $DestinationForValidation 'web\play\index.html'
     $playAppPath = Join-Path $DestinationForValidation 'web\play\app.js'
     $playCorePath = Join-Path $DestinationForValidation 'server\core\play.lua'
+    $profileCorePath = Join-Path $DestinationForValidation 'server\core\profile.lua'
     $partyIndexPath = Join-Path $DestinationForValidation 'web\party\index.html'
     $partyAppPath = Join-Path $DestinationForValidation 'web\party\app.js'
     $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
     $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
     $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
 
-    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$profileCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
@@ -274,6 +283,7 @@ try {
     $playIndexText = Get-Content $playIndexPath -Raw
     $playAppText = Get-Content $playAppPath -Raw
     $playCoreText = Get-Content $playCorePath -Raw
+    $profileCoreText = Get-Content $profileCorePath -Raw
     $partyIndexText = Get-Content $partyIndexPath -Raw
     $partyAppText = Get-Content $partyAppPath -Raw
     $partyCoreText = Get-Content $partyCorePath -Raw
@@ -287,6 +297,8 @@ try {
     if ($playIndexText -notmatch 'id="recentCard"' -or $playIndexText -notmatch 'id="libraryFilters"' -or $playIndexText -notmatch 'id="randomPlay"') { throw 'PLAY library navigation DOM check failed.' }
     if ($playAppText -notmatch 'renderRecent' -or $playAppText -notmatch 'filteredLibraryGames' -or $playAppText -notmatch 'randomPlay\.onclick') { throw 'PLAY library navigation client check failed.' }
     if ($playCoreText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playCoreText -notmatch 'lastPlayedAt=row\.last_played_at') { throw 'PLAY recent-game timestamp check failed.' }
+    if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
+    if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }

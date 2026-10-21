@@ -162,44 +162,43 @@ local function replayNumberRush(seed,history,count)
     return {complete=expected==total+1,misses=misses,taps=#normalized,count=total,board=board,history=normalized}
 end
 
-local function generateHighLowSequence(seed,rounds)
+local function generateRangeRushRounds(seed,rounds)
     local count=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
     local state=math.floor(tonumber(seed) or 1)%2147483647
     if state<=0 then state=1 end
-    local sequence={}
-    local value
-    state,value=seededNext(state)
-    sequence[1]=1+math.floor(value*13)
-    for i=2,count+1 do
-        local nextValue=sequence[i-1]
-        local guard=0
-        repeat
-            state,value=seededNext(state)
-            nextValue=1+math.floor(value*13)
-            guard=guard+1
-        until nextValue~=sequence[i-1] or guard>=20
-        if nextValue==sequence[i-1] then nextValue=(nextValue%13)+1 end
-        sequence[i]=nextValue
+    local generated={}
+    for i=1,count do
+        local pivotRoll,valueRoll
+        state,pivotRoll=seededNext(state)
+        state,valueRoll=seededNext(state)
+        local pivot=25+math.floor(pivotRoll*51)
+        local value=1+math.floor(valueRoll*99)
+        if value==pivot then value=value==99 and 98 or value+1 end
+        generated[i]={pivot=pivot,value=value}
     end
-    return sequence,state
+    return generated,state
 end
 
-local function replayHighLow(seed,history,rounds)
+local function replayHighLow(seed,history,rounds,timeLimitMs)
     local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
     if type(history)~='table' or #history<1 or #history>maxRounds then return nil end
-    local sequence=generateHighLowSequence(seed,maxRounds)
-    local streak=0
-    local ended=false
+    local generated=generateRangeRushRounds(seed,maxRounds)
+    local streak,score,ended=0,0,false
     local normalized={}
-    for i,rawGuess in ipairs(history) do
-        local guess=tostring(rawGuess or ''):lower()
-        if guess~='high' and guess~='low' then return nil end
-        normalized[#normalized+1]=guess
-        local current=sequence[i]
-        local nextValue=sequence[i+1]
-        local correct=(guess=='high' and nextValue>current) or (guess=='low' and nextValue<current)
+    local limit=math.max(800,math.min(5000,math.floor(tonumber(timeLimitMs) or 2200)))
+    for i,entry in ipairs(history) do
+        if type(entry)~='table' then return nil end
+        local guess=tostring(entry.guess or ''):lower()
+        local elapsed=math.max(0,math.floor(tonumber(entry.elapsedMs) or limit+1))
+        if guess~='high' and guess~='low' and guess~='timeout' then return nil end
+        local round=generated[i]
+        local expected=round.value>round.pivot and 'high' or 'low'
+        local correct=guess==expected and elapsed<=limit
+        normalized[#normalized+1]={guess=guess,elapsedMs=elapsed}
         if correct then
             streak=streak+1
+            local speedBonus=math.floor(math.max(0,limit-elapsed)/20)
+            score=score+100+speedBonus
             if i==maxRounds then ended=true end
         else
             if i~=#history then return nil end
@@ -207,46 +206,62 @@ local function replayHighLow(seed,history,rounds)
             break
         end
     end
-    return {ended=ended,streak=streak,rounds=#normalized,sequence=sequence,history=normalized}
+    return {ended=ended,streak=streak,score=score,rounds=#normalized,generated=generated,history=normalized}
 end
 
-local function newHighLowState(seed,rounds)
+local function newHighLowState(seed,rounds,timeLimitMs)
     local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
     return {
-        sequence=generateHighLowSequence(seed,maxRounds),
+        generated=generateRangeRushRounds(seed,maxRounds),
         maxRounds=maxRounds,
+        timeLimitMs=math.max(800,math.min(5000,math.floor(tonumber(timeLimitMs) or 2200))),
         index=1,
         streak=0,
+        score=0,
         history={},
-        ended=false
+        ended=false,
+        roundStartedTick=GetGameTimer()
     }
 end
 
-local function applyHighLowGuess(state,rawGuess)
+local function applyHighLowGuess(state,rawGuess,elapsedMs)
     if type(state)~='table' or state.ended then return nil end
     local guess=tostring(rawGuess or ''):lower()
-    if guess~='high' and guess~='low' then return nil end
+    if guess~='high' and guess~='low' and guess~='timeout' then return nil end
     local index=math.floor(tonumber(state.index) or 1)
     local maxRounds=math.floor(tonumber(state.maxRounds) or 30)
+    local limit=math.max(800,math.min(5000,math.floor(tonumber(state.timeLimitMs) or 2200)))
     if index<1 or index>maxRounds then return nil end
-    local current=state.sequence and state.sequence[index]
-    local nextValue=state.sequence and state.sequence[index+1]
-    if not current or not nextValue then return nil end
+    local round=state.generated and state.generated[index]
+    if not round then return nil end
+    local elapsed=math.max(0,math.floor(tonumber(elapsedMs) or limit+1))
+    local expected=round.value>round.pivot and 'high' or 'low'
+    local correct=guess==expected and elapsed<=limit
 
-    state.history[#state.history+1]=guess
-    local correct=(guess=='high' and nextValue>current) or (guess=='low' and nextValue<current)
+    state.history[#state.history+1]={guess=guess,elapsedMs=elapsed}
+    if correct then
+        state.streak=(tonumber(state.streak) or 0)+1
+        local speedBonus=math.floor(math.max(0,limit-elapsed)/20)
+        state.score=(tonumber(state.score) or 0)+100+speedBonus
+    end
     state.index=index+1
-    if correct then state.streak=(tonumber(state.streak) or 0)+1 end
     if not correct or state.index>maxRounds then state.ended=true end
 
+    local nextRound=not state.ended and state.generated[state.index] or nil
     return {
-        currentValue=current,
-        nextValue=nextValue,
+        currentValue=round.value,
+        pivot=round.pivot,
+        expected=expected,
         correct=correct,
+        timedOut=elapsed>limit or guess=='timeout',
         streak=state.streak,
+        score=state.score,
         completed=#state.history,
         ended=state.ended,
-        cleared=correct and state.index>maxRounds
+        cleared=correct and state.index>maxRounds,
+        nextValue=nextRound and nextRound.value or nil,
+        nextPivot=nextRound and nextRound.pivot or nil,
+        timeLimitMs=limit
     }
 end
 
@@ -677,7 +692,7 @@ local function challengeFor(game,seed)
     elseif game.id=='number_rush' then
         challenge.count=25
     elseif game.id=='high_low' then
-        challenge.rounds=30
+        challenge.rounds=30 challenge.timeLimitMs=2200
     elseif game.id=='simon' then
         challenge.rounds=30
     end
@@ -787,8 +802,8 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'number_rush_ace',game.id,{score=score,misses=0}) then
         unlocked[#unlocked+1]='number_rush_ace'
     end
-    if game.id=='high_low' and score>=tonumber(cfg.HighLowStreak or 10)
-        and unlockAchievement(playerIdentifier,'high_low_streak',game.id,{score=score}) then
+    if game.id=='high_low' and tonumber(metadata and metadata.streak)>=tonumber(cfg.HighLowStreak or 10)
+        and unlockAchievement(playerIdentifier,'high_low_streak',game.id,{score=score,streak=metadata.streak}) then
         unlocked[#unlocked+1]='high_low_streak'
     end
     if game.id=='stop' and score>=tonumber(cfg.StopBullseyeScore or 990)
@@ -1145,9 +1160,11 @@ function FlecityGamesPlay.StartSession(source,data)
         end
         local publicSeed=seed
         if game.id=='high_low' then
-            local highLow=newHighLowState(seed,challenge.rounds)
+            local highLow=newHighLowState(seed,challenge.rounds,challenge.timeLimitMs)
             sessions[token].highLow=highLow
-            challenge.currentValue=highLow.sequence[1]
+            local first=highLow.generated[1]
+            challenge.currentValue=first and first.value or nil
+            challenge.pivot=first and first.pivot or nil
             publicSeed=nil
         elseif game.id=='simon' then
             local simonState=newSimonState(seed,challenge.rounds)
@@ -1192,12 +1209,14 @@ function FlecityGamesPlay.HighLowGuess(source,data)
     if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     if step~=#state.history+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
 
-    local result=applyHighLowGuess(state,guess)
+    local elapsed=math.max(0,GetGameTimer()-(tonumber(state.roundStartedTick) or GetGameTimer()))
+    local result=applyHighLowGuess(state,guess,elapsed)
     if not result then return {ok=false,error='INVALID_CHOICE'} end
     result.ok=true
     state.lastStep=step
     state.lastGuess=guess
     state.lastResult=result
+    if result.correct and not result.ended then state.roundStartedTick=GetGameTimer() end
     return result
 end
 
@@ -1386,7 +1405,10 @@ local function validateScore(game,score)
     elseif game.id=='stack' then
         if score<0 or score>500 then return nil end
         return math.floor(score)
-    elseif game.id=='high_low' or game.id=='simon' then
+    elseif game.id=='high_low' then
+        if score<0 or score>10000 then return nil end
+        return math.floor(score)
+    elseif game.id=='simon' then
         if score<0 or score>100 then return nil end
         return math.floor(score)
     end
@@ -1554,12 +1576,14 @@ function FlecityGamesPlay.SubmitScore(source,data)
             return {ok=false,error='INVALID_HIGH_LOW_REPLAY'}
         end
         local submitted=math.floor(tonumber(data.score) or -1)
-        local streak=math.floor(tonumber(state.streak) or -1)
-        if submitted~=streak then return {ok=false,error='INVALID_HIGH_LOW_REPLAY'} end
-        rawScore=streak
+        local rangeScore=math.floor(tonumber(state.score) or -1)
+        if submitted~=rangeScore then return {ok=false,error='INVALID_HIGH_LOW_REPLAY'} end
+        rawScore=rangeScore
         durationMs=math.min(serverElapsed,28800000)
         metadata.rounds=#state.history
-        metadata.streak=streak
+        metadata.streak=math.floor(tonumber(state.streak) or 0)
+        metadata.rangeRush=true
+        metadata.timeLimitMs=math.floor(tonumber(state.timeLimitMs) or 2200)
         metadata.serverAuthoritative=true
     elseif game.id=='simon' then
         local state=session.simon

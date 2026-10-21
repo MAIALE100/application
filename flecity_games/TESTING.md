@@ -350,6 +350,18 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
 
+## PLAY Sharp UI / Icon pass 0.25
+
+- PLAYを開いた直後、文字が以前よりシャープに表示される
+- PLAY / PARTYのカスタムアプリが `fixBlur=true` で正常表示される
+- 画面サイズを変えてもレイアウトが極端に拡大・縮小しない
+- QUICK TAP / STOP! / TOWER / BLOCK / MERGE / MINES / NONOGRAM / MEMORY / SORT / COLOR MATCH / NUMBER RUSH / RANGE RUSH / SIMON の専用SVGアイコンが表示される
+- CONTINUEカードにも各ゲームの専用アイコンが表示される
+- TODAY'S CHALLENGE に対象ゲームのアイコンが表示される
+- 小さい説明文・BEST・NEXT RANKが背景へ埋もれず読める
+- アイコン読み込み失敗時も文字シンボルへフォールバックし、カード操作が壊れない
+- NUIコンソールにSVG/CSSの404やJavaScriptエラーがない
+
 ## PLAY Visual Quality
 - Home library: all 13 game cards have distinct visual identities and remain legible at phone width.
 - QUICK TAP: WAIT / GO / false-start / result states are visually distinct.

@@ -1289,15 +1289,15 @@ function fallFindAnyPlacement(board,width,height,pieceType){
  }
  return null;
 }
-function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo){
+function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo,lines){
  const shape=fallShape(pieceType,rotation),dropY=fallDropY(board,width,height,shape,x);
  if(dropY===null)return null;
  shape.forEach(([dx,dy])=>{board[dropY+dy][x+dx]=pieceType;});
  const cleared=fallClearLines(board,width,height);
  const nextCombo=cleared>0?Math.max(0,Number(combo)||0)+1:0;
- const lineScore=FALL_LINE_POINTS[cleared]??(cleared*250);
- const gained=10+(dropY*2)+(lineScore*(cleared>0?Math.max(1,nextCombo):1));
- return {cleared,combo:nextCombo,gained,dropY};
+ const lineScore=FALL_LINE_POINTS[cleared]??(cleared*250),level=Math.min(8,1+Math.floor((Number(lines)||0)/5));
+ const gained=10+(dropY*2)+(lineScore*(cleared>0?Math.max(1,nextCombo):1)*level);
+ return {cleared,combo:nextCombo,gained,dropY,level};
 }
 function elapsedFall(){
  return (fallGame?fallGame.elapsedBase:0)+(fallGame&&fallGame.startedAt?performance.now()-fallGame.startedAt:0);
@@ -1433,7 +1433,7 @@ function rotateFall(){
 }
 async function dropFall(){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
- const applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo);
+ const levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
  if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
  game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
  const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
@@ -1443,7 +1443,8 @@ async function dropFall(){
    if(applied.cleared>=4)fallBoard.classList.add('fall-quad');
    tone(720+Math.min(220,applied.cleared*45),55);
    const clearLabel=applied.cleared>=4?'QUAD CLEAR':(applied.cleared===3?'TRIPLE CLEAR':(applied.cleared===2?'DOUBLE CLEAR':'LINE CLEAR'));
-   setStatus((game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · +'+applied.gained,'good');
+   const levelAfter=1+Math.floor((Number(game.lines)||0)/5),levelUp=levelAfter>levelBefore?'LEVEL UP '+levelAfter+' · ':'';
+   setStatus(levelUp+(game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · LEVEL ×'+applied.level+' · +'+applied.gained,'good');
  }else tone(430,18);
  if(!game.ended)fallResetCursor();renderFall();
  if(game.ended){

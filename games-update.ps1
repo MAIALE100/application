@@ -195,6 +195,15 @@ try {
         if ($playJsText -notmatch 'setGameIcon' -or $playJsText -notmatch 'icons/quick-tap\.svg' -or $playHtmlText -notmatch 'id="dailyIcon"') {
             throw 'Local safety check could not verify PLAY dedicated icon UI.'
         }
+        if ($playJsText -notmatch 'renderRecent' -or $playJsText -notmatch 'filteredLibraryGames' -or $playJsText -notmatch 'randomPlay\.onclick') {
+            throw 'Local safety check could not verify PLAY recent/filter/random navigation.'
+        }
+        if ($playHtmlText -notmatch 'id="recentCard"' -or $playHtmlText -notmatch 'id="libraryFilters"' -or $playHtmlText -notmatch 'id="randomPlay"') {
+            throw 'Local safety check could not verify PLAY library navigation DOM.'
+        }
+        if ($playLuaText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playLuaText -notmatch 'lastPlayedAt=row\.last_played_at') {
+            throw 'Local safety check could not verify PLAY recent-game timestamps.'
+        }
         if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
             throw 'Local safety check could not verify Daily SIMON client flow.'
         }
@@ -247,13 +256,15 @@ try {
     $bridgePath = Join-Path $DestinationForValidation 'web\shared\bridge.js'
     $errorsPath = Join-Path $DestinationForValidation 'web\shared\errors.js'
     $playIndexPath = Join-Path $DestinationForValidation 'web\play\index.html'
+    $playAppPath = Join-Path $DestinationForValidation 'web\play\app.js'
+    $playCorePath = Join-Path $DestinationForValidation 'server\core\play.lua'
     $partyIndexPath = Join-Path $DestinationForValidation 'web\party\index.html'
     $partyAppPath = Join-Path $DestinationForValidation 'web\party\app.js'
     $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
     $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
     $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
 
-    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
@@ -261,6 +272,8 @@ try {
     $bridgeText = Get-Content $bridgePath -Raw
     $errorsText = Get-Content $errorsPath -Raw
     $playIndexText = Get-Content $playIndexPath -Raw
+    $playAppText = Get-Content $playAppPath -Raw
+    $playCoreText = Get-Content $playCorePath -Raw
     $partyIndexText = Get-Content $partyIndexPath -Raw
     $partyAppText = Get-Content $partyAppPath -Raw
     $partyCoreText = Get-Content $partyCorePath -Raw
@@ -271,6 +284,9 @@ try {
     if ($bridgeText -notmatch 'globalThis\.fetchNui' -or $bridgeText -notmatch "typeof fetchNui === 'function'") { throw 'LB Phone fetchNui compatibility check failed.' }
     if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
     if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'devMode=!window.invokeNative' -or $playIndexText -match 'setTimeout\(loadApp') { throw 'PLAY component-gated loader check failed.' }
+    if ($playIndexText -notmatch 'id="recentCard"' -or $playIndexText -notmatch 'id="libraryFilters"' -or $playIndexText -notmatch 'id="randomPlay"') { throw 'PLAY library navigation DOM check failed.' }
+    if ($playAppText -notmatch 'renderRecent' -or $playAppText -notmatch 'filteredLibraryGames' -or $playAppText -notmatch 'randomPlay\.onclick') { throw 'PLAY library navigation client check failed.' }
+    if ($playCoreText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playCoreText -notmatch 'lastPlayedAt=row\.last_played_at') { throw 'PLAY recent-game timestamp check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }

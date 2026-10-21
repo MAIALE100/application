@@ -254,6 +254,12 @@ try {
         if ($configText -notmatch "DailyCandidates\s*=\s*\{[^\r\n]*'simon'[^\r\n]*\}") {
             throw 'Local safety check could not verify SIMON in Daily rotation.'
         }
+        if ($registryText -notmatch "id='color_match'[^\r\n]*supportsDaily=true" -or $configText -notmatch "DailyCandidates\s*=\s*\{[^\r\n]*'color_match'[^\r\n]*\}") {
+            throw 'Local safety check could not verify Daily COLOR MATCH registration.'
+        }
+        if ($playJsText -notmatch 'openColorMatch\(true\)' -or $playJsText -notmatch "daily=colorMatchEl\.dataset\.daily==='1'") {
+            throw 'Local safety check could not verify Daily COLOR MATCH client lifecycle.'
+        }
 
         $enabledPlayMatches = [regex]::Matches($registryText,"id='([^']+)'[^\r\n]*app='play'[^\r\n]*enabled=true")
         $enabledPlayIds = @($enabledPlayMatches | ForEach-Object { $_.Groups[1].Value })
@@ -341,6 +347,7 @@ try {
     if ($playCoreText -notmatch 'normalized\[#normalized\+1\]=\{applied\.x,applied\.rotation\}' -or $playAppText -notmatch 'game\.history\.push\(\[game\.x,game\.rotation\]\)') { throw 'FALL compact history check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
     if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
+    if ($registryText -notmatch "id='color_match'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openColorMatch\(true\)' -or $playAppText -notmatch "daily=colorMatchEl\.dataset\.daily==='1'") { throw 'Daily COLOR MATCH wiring check failed.' }
     if ($playCoreText -notmatch 'slide_master' -or $playAppText -notmatch 'slide_master') { throw 'SLIDE MASTER achievement check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }

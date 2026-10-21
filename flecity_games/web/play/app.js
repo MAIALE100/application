@@ -1276,7 +1276,7 @@ async function dropFall(){
    if(saved){setStatus('置ける場所がありません。FALL終了。','warn');await finishFall(true);}
    else setStatus('FALL終了。保存に失敗したため「終了して記録」で再試行してください。','error');
  }else if(applied.cleared>0||game.pieces%3===0){
-   void persistFall(false,false);
+   void persistFall(false,false).catch(()=>{});
  }
 }
 async function finishFall(gameOver=false){

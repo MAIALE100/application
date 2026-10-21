@@ -126,6 +126,90 @@ local function replayColorMatch(seed,history,roundCount)
     end
     return {complete=true,rounds=count}
 end
+local function generateSortBoard(seed)
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+    local values={}
+    for color=0,3 do
+        for _=1,4 do values[#values+1]=color end
+    end
+    for i=#values,2,-1 do
+        local value
+        state,value=seededNext(state)
+        local j=1+math.floor(value*i)
+        values[i],values[j]=values[j],values[i]
+    end
+    local tubes={{},{},{},{},{},{}}
+    local cursor=1
+    for tube=1,4 do
+        for slot=1,4 do
+            tubes[tube][slot]=values[cursor]
+            cursor=cursor+1
+        end
+    end
+    local solved=true
+    for tube=1,4 do
+        for slot=2,4 do
+            if tubes[tube][slot]~=tubes[tube][1] then solved=false break end
+        end
+        if not solved then break end
+    end
+    if solved then
+        tubes[1][4],tubes[2][4]=tubes[2][4],tubes[1][4]
+    end
+    return tubes,state
+end
+
+local function copySortTubes(source)
+    local out={{},{},{},{},{},{}}
+    for i=1,6 do
+        for j,value in ipairs(source[i] or {}) do out[i][j]=value end
+    end
+    return out
+end
+
+local function sortComplete(tubes)
+    local full=0
+    for i=1,6 do
+        local tube=tubes[i] or {}
+        if #tube>0 then
+            if #tube~=4 then return false end
+            local color=tube[1]
+            for j=2,4 do if tube[j]~=color then return false end end
+            full=full+1
+        end
+    end
+    return full==4
+end
+
+local function applySortMove(tubes,fromIndex,toIndex)
+    local from=math.floor(tonumber(fromIndex) or -1)
+    local to=math.floor(tonumber(toIndex) or -1)
+    if from<0 or from>=6 or to<0 or to>=6 or from==to then return false end
+    local source=tubes[from+1]
+    local target=tubes[to+1]
+    if type(source)~='table' or type(target)~='table' or #source<1 or #target>=4 then return false end
+    target[#target+1]=source[#source]
+    source[#source]=nil
+    return true
+end
+
+local function replaySortState(seed,history)
+    if type(history)~='table' or #history>2000 then return nil end
+    local initial=generateSortBoard(seed)
+    local tubes=copySortTubes(initial)
+    local normalized={}
+    for _,entry in ipairs(history) do
+        if type(entry)~='table' then return nil end
+        local from=tonumber(entry[1]~=nil and entry[1] or entry.from)
+        local to=tonumber(entry[2]~=nil and entry[2] or entry.to)
+        if not from or not to or from~=math.floor(from) or to~=math.floor(to) then return nil end
+        if not applySortMove(tubes,from,to) then return nil end
+        normalized[#normalized+1]={from,to}
+    end
+    return {tubes=tubes,moves=#normalized,complete=sortComplete(tubes),history=normalized}
+end
+
 local function generateNumberRush(seed,count)
     local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
     local state=math.floor(tonumber(seed) or 1)%2147483647

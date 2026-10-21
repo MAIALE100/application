@@ -49,10 +49,12 @@ RegisterNetEvent('lb-phone:phoneToggled',function(open)
     end
 end)
 
+local uiCacheBust=tostring(GetGameTimer())
+
 local function makeAppData(app)
     local data={
         identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
-        defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
+        defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui..'?cb='..uiCacheBust,
         icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
     }
     if app.identifier==FlecityGamesConfig.Apps.Play.identifier then

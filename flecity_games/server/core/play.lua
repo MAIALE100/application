@@ -179,34 +179,52 @@ local function generateRangeRushRounds(seed,rounds)
     return generated,state
 end
 
+local function rangeRushRoundLimit(baseLimit,index)
+    local base=math.max(1000,math.min(5000,math.floor(tonumber(baseLimit) or 2400)))
+    local stage=math.max(0,math.floor((math.max(1,index)-1)/5))
+    return math.max(1200,base-(stage*140))
+end
+
+local function rangeRushPoints(round,elapsed,limit,streak)
+    local gap=math.abs((tonumber(round.value) or 0)-(tonumber(round.pivot) or 0))
+    local difficultyBonus=math.max(0,45-math.min(45,gap))*3
+    local speedBonus=math.floor(math.max(0,limit-elapsed)/18)
+    local multiplier=math.min(4,1+math.floor(math.max(0,streak-1)/5))
+    return math.floor((100+difficultyBonus+speedBonus)*multiplier),multiplier,difficultyBonus,speedBonus
+end
+
 local function replayHighLow(seed,history,rounds,timeLimitMs)
     local maxRounds=math.max(1,math.min(100,math.floor(tonumber(rounds) or 30)))
     if type(history)~='table' or #history<1 or #history>maxRounds then return nil end
     local generated=generateRangeRushRounds(seed,maxRounds)
-    local streak,score,ended=0,0,false
+    local streak,maxStreak,score,lives,ended=0,0,0,3,false
     local normalized={}
-    local limit=math.max(800,math.min(5000,math.floor(tonumber(timeLimitMs) or 2200)))
     for i,entry in ipairs(history) do
         if type(entry)~='table' then return nil end
         local guess=tostring(entry.guess or ''):lower()
-        local elapsed=math.max(0,math.floor(tonumber(entry.elapsedMs) or limit+1))
         if guess~='high' and guess~='low' and guess~='timeout' then return nil end
+        local limit=rangeRushRoundLimit(timeLimitMs,i)
+        local elapsed=math.max(0,math.floor(tonumber(entry.elapsedMs) or limit+1))
         local round=generated[i]
         local expected=round.value>round.pivot and 'high' or 'low'
         local correct=guess==expected and elapsed<=limit
         normalized[#normalized+1]={guess=guess,elapsedMs=elapsed}
         if correct then
             streak=streak+1
-            local speedBonus=math.floor(math.max(0,limit-elapsed)/20)
-            score=score+100+speedBonus
-            if i==maxRounds then ended=true end
+            maxStreak=math.max(maxStreak,streak)
+            local gained=rangeRushPoints(round,elapsed,limit,streak)
+            score=score+gained
         else
-            if i~=#history then return nil end
+            lives=lives-1
+            streak=0
+        end
+        if lives<=0 or i>=maxRounds then
             ended=true
+            if i~=#history then return nil end
             break
         end
     end
-    return {ended=ended,streak=streak,score=score,rounds=#normalized,generated=generated,history=normalized}
+    return {ended=ended,streak=streak,maxStreak=maxStreak,score=score,lives=lives,rounds=#normalized,generated=generated,history=normalized}
 end
 
 local function newHighLowState(seed,rounds,timeLimitMs)
@@ -214,9 +232,11 @@ local function newHighLowState(seed,rounds,timeLimitMs)
     return {
         generated=generateRangeRushRounds(seed,maxRounds),
         maxRounds=maxRounds,
-        timeLimitMs=math.max(800,math.min(5000,math.floor(tonumber(timeLimitMs) or 2200))),
+        timeLimitMs=math.max(1000,math.min(5000,math.floor(tonumber(timeLimitMs) or 2400))),
         index=1,
+        lives=3,
         streak=0,
+        maxStreak=0,
         score=0,
         history={},
         ended=false,
@@ -230,38 +250,51 @@ local function applyHighLowGuess(state,rawGuess,elapsedMs)
     if guess~='high' and guess~='low' and guess~='timeout' then return nil end
     local index=math.floor(tonumber(state.index) or 1)
     local maxRounds=math.floor(tonumber(state.maxRounds) or 30)
-    local limit=math.max(800,math.min(5000,math.floor(tonumber(state.timeLimitMs) or 2200)))
     if index<1 or index>maxRounds then return nil end
     local round=state.generated and state.generated[index]
     if not round then return nil end
+    local limit=rangeRushRoundLimit(state.timeLimitMs,index)
     local elapsed=math.max(0,math.floor(tonumber(elapsedMs) or limit+1))
     local expected=round.value>round.pivot and 'high' or 'low'
     local correct=guess==expected and elapsed<=limit
+    local gained,multiplier,difficultyBonus,speedBonus=0,1,0,0
 
     state.history[#state.history+1]={guess=guess,elapsedMs=elapsed}
     if correct then
         state.streak=(tonumber(state.streak) or 0)+1
-        local speedBonus=math.floor(math.max(0,limit-elapsed)/20)
-        state.score=(tonumber(state.score) or 0)+100+speedBonus
+        state.maxStreak=math.max(tonumber(state.maxStreak) or 0,state.streak)
+        gained,multiplier,difficultyBonus,speedBonus=rangeRushPoints(round,elapsed,limit,state.streak)
+        state.score=(tonumber(state.score) or 0)+gained
+    else
+        state.lives=math.max(0,(tonumber(state.lives) or 3)-1)
+        state.streak=0
     end
+
     state.index=index+1
-    if not correct or state.index>maxRounds then state.ended=true end
+    if state.lives<=0 or state.index>maxRounds then state.ended=true end
 
     local nextRound=not state.ended and state.generated[state.index] or nil
+    local nextLimit=not state.ended and rangeRushRoundLimit(state.timeLimitMs,state.index) or limit
     return {
         currentValue=round.value,
         pivot=round.pivot,
         expected=expected,
         correct=correct,
         timedOut=elapsed>limit or guess=='timeout',
+        lives=state.lives,
         streak=state.streak,
+        maxStreak=state.maxStreak,
+        multiplier=multiplier,
+        gained=gained,
+        difficultyBonus=difficultyBonus,
+        speedBonus=speedBonus,
         score=state.score,
         completed=#state.history,
         ended=state.ended,
-        cleared=correct and state.index>maxRounds,
+        cleared=state.index>maxRounds and state.lives>0,
         nextValue=nextRound and nextRound.value or nil,
         nextPivot=nextRound and nextRound.pivot or nil,
-        timeLimitMs=limit
+        timeLimitMs=nextLimit
     }
 end
 
@@ -722,7 +755,7 @@ local function challengeFor(game,seed)
     elseif game.id=='number_rush' then
         challenge.count=25
     elseif game.id=='high_low' then
-        challenge.rounds=30 challenge.timeLimitMs=2200
+        challenge.rounds=30 challenge.timeLimitMs=2400 challenge.lives=3
     elseif game.id=='simon' then
         challenge.rounds=30
     end
@@ -1249,7 +1282,7 @@ function FlecityGamesPlay.HighLowGuess(source,data)
     state.lastStep=step
     state.lastGuess=guess
     state.lastResult=result
-    if result.correct and not result.ended then state.roundStartedTick=GetGameTimer() end
+    if not result.ended then state.roundStartedTick=GetGameTimer() end
     return result
 end
 
@@ -1616,9 +1649,12 @@ function FlecityGamesPlay.SubmitScore(source,data)
         rawScore=rangeScore
         durationMs=math.min(serverElapsed,28800000)
         metadata.rounds=#state.history
-        metadata.streak=math.floor(tonumber(state.streak) or 0)
+        metadata.streak=math.floor(tonumber(state.maxStreak) or 0)
+        metadata.maxStreak=math.floor(tonumber(state.maxStreak) or 0)
+        metadata.lives=math.floor(tonumber(state.lives) or 0)
         metadata.rangeRush=true
-        metadata.timeLimitMs=math.floor(tonumber(state.timeLimitMs) or 2200)
+        metadata.rangeRushVersion=3
+        metadata.timeLimitMs=math.floor(tonumber(state.timeLimitMs) or 2400)
         metadata.serverAuthoritative=true
     elseif game.id=='simon' then
         local state=session.simon

@@ -132,6 +132,7 @@ local callbackMap={
     playResetSave='flecity_games:play:resetSave',
     playSave='flecity_games:play:save',
     playSubmitScore='flecity_games:play:submitScore',
+    playStopRound='flecity_games:play:stopRound',
     playHighLowGuess='flecity_games:play:highLowGuess',
     playSubmitSimonRound='flecity_games:play:submitSimonRound',
     playRanking='flecity_games:play:ranking',

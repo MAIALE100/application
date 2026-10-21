@@ -232,10 +232,23 @@ if "rankTargets" not in play_js or "rankForScore" not in play_js or "nextRankGoa
     fail("PLAY rank-goal progression is missing")
 if "blockDragTarget" not in play_js or "blockDragGhost" not in play_js or "MEGA BLAST" not in play_js:
     fail("BLOCK drag-first / blast feedback upgrade is missing")
+if "generateRangeRushRounds" not in play_lua or "rangeRush=true" not in play_lua or "RANGE RUSH" not in play_js:
+    fail("RANGE RUSH server-timed skill-game replacement is missing")
+if "timeLimitMs=2200" not in play_lua or "highLowTimerFill" not in play_js:
+    fail("RANGE RUSH time-pressure loop is missing")
+if not re.search(r"id='high_low'[^
+]*name='RANGE RUSH'[^
+]*version=2", registry):
+    fail("RANGE RUSH registry/version marker is missing")
+if "score=score+(gained*chain)" not in play_lua or "merge.chain" not in play_js or "CHAIN ×" not in play_js:
+    fail("MERGE chain multiplier scoring is missing")
+if not re.search(r"id='merge'[^
+]*version=2", registry):
+    fail("MERGE save version must be 2 for chain scoring")
 if "dailyStreak" not in play_lua or "nextCount" not in play_lua:
     fail("PLAY Daily streak derivation is missing")
 play_css = read("flecity_games/web/shared/app.css")
-for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase"):
+for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
     if marker not in play_css:
         fail(f"PLAY visual quality marker missing: {marker}")
 if " · BEST '+personalBestText(" in play_js:

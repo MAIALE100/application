@@ -2317,7 +2317,10 @@ function renderHighLow(){
  highLowStreak.textContent=String(highLow.score);
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
  const multiplier=Math.min(4,1+Math.floor(Math.max(0,(highLow.streak||0)-1)/5));
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+(highLow.finished?' · GAME OVER':'');
+ const gap=Math.abs(Number(highLow.currentValue)-Number(highLow.pivot));
+ const difficulty=gap<=8?'TIGHT':(gap<=18?'TRICKY':'OPEN');
+ highLowCard.dataset.difficulty=difficulty.toLowerCase();
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+(highLow.finished?' · GAME OVER':'');
  highLowLower.textContent='LOW < '+String(highLow.pivot);
  highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
@@ -2378,8 +2381,9 @@ async function guessHighLow(guess){
  if(res.correct){
    highLowEl.classList.add('guess-correct');
    tone(700+Math.min(250,game.streak*15),32);
-   const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0);
-   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak,'good');
+   const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0),difficultyBonus=Math.max(0,Number(res.difficultyBonus)||0),speedBonus=Math.max(0,Number(res.speedBonus)||0);
+   const bonus=difficultyBonus>0?' · TIGHT +'+difficultyBonus:'';
+   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':''),'good');
  }else{
    highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong','life-lost');
    tone(150,90);

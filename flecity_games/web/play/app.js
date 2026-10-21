@@ -587,6 +587,14 @@ async function bootstrap(){
 }
 
 /* QUICK TAP */
+function quickTapGrade(ms){
+ const n=Number(ms);
+ if(n<=180)return {label:'神速',state:'legend',tone:980};
+ if(n<=230)return {label:'LIGHTNING',state:'elite',tone:900};
+ if(n<=320)return {label:'FAST',state:'fast',tone:820};
+ if(n<=500)return {label:'GOOD',state:'good',tone:700};
+ return {label:'KEEP TRYING',state:'steady',tone:520};
+}
 function setQuickVisual(state){quickEl.dataset.state=state||'idle';}
 function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';setQuickVisual('idle');}
 tapButton.onclick=async()=>{
@@ -600,7 +608,12 @@ tapButton.onclick=async()=>{
    const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:reaction,durationMs:duration});
    const stillHere=tapSession===session;
    if(res.ok){
-     if(stillHere){setQuickVisual('result');tapMessage.textContent=Number(res.score).toFixed(3)+' ms';showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+Number(res.score).toFixed(3)+' ms');}
+     if(stillHere){
+       const grade=quickTapGrade(res.score);
+       setQuickVisual('result-'+grade.state);tapMessage.textContent=Number(res.score).toFixed(3)+' ms';
+       tone(grade.tone,70);
+       showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+grade.label+' · '+Number(res.score).toFixed(3)+' ms');
+     }
      await refreshPlatform();
    }else{
      await cancelPlaySession(session&&session.sessionToken);
@@ -635,6 +648,14 @@ function animateStop(){
  stopMarker.style.left=trianglePosition(elapsed,stopSession.challenge.periodMs,stopSession.challenge.phaseMs)+'%';
  stopRaf=requestAnimationFrame(animateStop);
 }
+function stopGrade(score,distance){
+ const s=Number(score)||0,d=Number(distance);
+ if(s>=998||Number.isFinite(d)&&d<=.2)return {label:'BULLSEYE',state:'bullseye',tone:980};
+ if(s>=990)return {label:'PERFECT',state:'perfect',tone:900};
+ if(s>=950)return {label:'GREAT',state:'great',tone:790};
+ if(s>=850)return {label:'CLOSE',state:'close',tone:650};
+ return {label:'TRY AGAIN',state:'result',tone:480};
+}
 function setStopVisual(state){stopEl.dataset.state=state||'idle';}
 function openStop(daily=false){
  stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;setStopVisual('idle');refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
@@ -646,8 +667,10 @@ stopButton.onclick=async()=>{
    const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:0,durationMs:actionMs,actionMs});
    const stillHere=stopSession===session;
    if(res.ok){
-     const distance=res.details&&Number(res.details.distancePct);
-     if(stillHere){setStopVisual(Number(res.score)>=990?'bullseye':'result');stopMessage.textContent=String(res.score);showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP! '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
+     const distance=res.details&&Number(res.details.distancePct),grade=stopGrade(res.score,distance);
+     if(stillHere){
+       setStopVisual(grade.state);stopMessage.textContent=grade.label+' · '+String(res.score);tone(grade.tone,65);
+       showScoreResult('stop',res,(res.daily?'デイリー · ':'')+grade.label+' · '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
      await refreshPlatform();
    }else{
      await cancelPlaySession(session&&session.sessionToken);
@@ -2037,18 +2060,23 @@ function colorMatchRounds(seed,count=10){
 }
 function elapsedColorMatch(){return colorMatch?performance.now()-colorMatch.startedAt:0;}
 function updateColorMatchTime(){if(colorMatch&&colorMatch.running)colorMatchTime.textContent=(elapsedColorMatch()/1000).toFixed(1)+'s';}
+function colorMatchChoiceOrder(seed,roundIndex){
+ const order=[0,1,2,3];let state=Math.floor(Number(seed)||1)+((Number(roundIndex)||0)+1)*7919;
+ for(let i=order.length-1;i>0;i--){let value;[state,value]=colorMatchNext(state);const j=Math.floor(value*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+ return order;
+}
 function renderColorMatch(){
  colorMatchChoices.innerHTML='';refreshScreenBests();
  if(!colorMatch||!colorMatch.running){
    colorMatchProgress.textContent='0 / 10';colorMatchTime.textContent='0.0s';colorMatchWord.textContent='READY';colorMatchWord.style.color='';
    return;
  }
- const round=colorMatch.rounds[colorMatch.index];
- colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length);
+ const round=colorMatch.rounds[colorMatch.index],streak=colorMatch.index;
+ colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+(streak>=2?' · STREAK '+streak:'');
  colorMatchWord.textContent=COLOR_MATCH_COLORS[round.word].name;
  colorMatchWord.style.color=COLOR_MATCH_COLORS[round.ink].css;
- COLOR_MATCH_COLORS.forEach((entry,index)=>{
-   const b=document.createElement('button');b.className='color-match-choice';b.textContent=entry.name;
+ colorMatchChoiceOrder(colorMatch.seed,colorMatch.index).forEach(index=>{
+   const entry=COLOR_MATCH_COLORS[index],b=document.createElement('button');b.className='color-match-choice';b.textContent=entry.name;
    b.onclick=()=>answerColorMatch(index);colorMatchChoices.appendChild(b);
  });
  updateColorMatchTime();
@@ -2087,8 +2115,11 @@ async function answerColorMatch(choice){
    }
    return;
  }
- colorMatchEl.classList.remove('match-ok','match-miss');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-ok');
- tone(720,35);game.index+=1;
+ colorMatchEl.classList.remove('match-ok','match-miss','match-fever');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-ok');
+ game.index+=1;
+ if(game.index>=5)colorMatchEl.classList.add('match-fever');
+ tone(700+Math.min(220,game.index*18),35);
+ if(game.index===5||game.index===8)setStatus('COLOR STREAK ×'+game.index+' · そのまま！','good');
  if(game.index>=game.rounds.length){
    game.running=false;game.finished=true;game.finalizing=true;clearInterval(colorMatchClock);colorMatchClock=null;
    const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
@@ -2133,7 +2164,7 @@ function renderNumberRush(){
    numberRushProgress.textContent='1 / 25';numberRushTime.textContent='0.00s';numberRushMeta.textContent='MISS 0 · ペナルティ 0.0s';return;
  }
  numberRushProgress.textContent=(numberRush.finished?numberRush.count:Math.min(numberRush.next,numberRush.count))+' / '+numberRush.count;
- refreshScreenBests();numberRushMeta.textContent=(numberRush.daily?'DAILY · ':'')+'MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
+ refreshScreenBests();numberRushMeta.textContent=(numberRush.daily?'DAILY · ':'')+'MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s'+(numberRush.streak>=3?' · FLOW '+numberRush.streak:'');
  numberRush.board.forEach((value,index)=>{
    const b=document.createElement('button');
    const done=numberRush.completed.has(index);
@@ -2160,7 +2191,7 @@ async function startNumberRush(){
  const session=await startSessionWithRetry({gameId:'number_rush',daily});
  if(!session.ok){numberRushStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const count=Number(session.challenge&&session.challenge.count)||25;
- numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
+ numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,streak:0,maxStreak:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
  numberRushStart.classList.add('hidden');numberRushNew.classList.remove('hidden');
  setStatus(numberRush.daily?'デイリーNUMBER RUSH開始。':'NUMBER RUSH開始。','good');
  renderNumberRush();numberRushClock=setInterval(updateNumberRushTime,50);
@@ -2170,14 +2201,16 @@ async function tapNumberRush(index){
  numberRush.history.push(index);
  const value=numberRush.board[index];
  if(value!==numberRush.next){
-   numberRush.misses+=1;tone(180,45);
+   numberRush.misses+=1;numberRush.streak=0;tone(180,45);
    const cell=numberRushBoard.children[index];
    if(cell){cell.classList.add('wrong');setTimeout(()=>cell.classList.remove('wrong'),180);}
    numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
    return;
  }
- numberRush.completed.add(index);numberRush.next+=1;tone(600+Math.min(300,numberRush.next*8),28);
- numberRushBoard.classList.remove('rush-hit');void numberRushBoard.offsetWidth;numberRushBoard.classList.add('rush-hit');
+ numberRush.completed.add(index);numberRush.next+=1;numberRush.streak+=1;numberRush.maxStreak=Math.max(numberRush.maxStreak,numberRush.streak);
+ tone(590+Math.min(340,numberRush.streak*14),28);
+ numberRushBoard.classList.remove('rush-hit','rush-flow');void numberRushBoard.offsetWidth;numberRushBoard.classList.add(numberRush.streak>=5?'rush-flow':'rush-hit');
+ if(numberRush.streak>0&&numberRush.streak%5===0&&numberRush.next<=numberRush.count)setStatus('FLOW ×'+numberRush.streak+' · KEEP GOING','good');
  if(numberRush.next>numberRush.count){await finishNumberRush();return;}
  renderNumberRush();
 }
@@ -2192,7 +2225,7 @@ async function finishNumberRush(){
    if(numberRush===game){
      numberRushTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';
      const penalty=Number(res.details&&res.details.penaltyMs)||0;
-     showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':''));
+     showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':'')+' · MAX FLOW '+game.maxStreak);
      renderNumberRush();
    }
    await refreshPlatform();
@@ -2523,7 +2556,7 @@ function updateMemoryTime(){if(memory){const ms=Number.isFinite(Number(memory.di
 function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
- refreshScreenBests();memoryMeta.textContent=memory.previewing?((memory.daily?'DAILY · ':'')+'記憶中…'):((memory.daily?'DAILY · ':'')+String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES');
+ refreshScreenBests();memoryMeta.textContent=memory.previewing?((memory.daily?'DAILY · ':'')+'記憶中…'):((memory.daily?'DAILY · ':'')+String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES'+(memory.streak>=2?' · STREAK ×'+memory.streak:''));
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);
@@ -2540,7 +2573,7 @@ async function openMemory(daily=false){
  const session=await startSessionWithRetry({gameId:'memory',daily:daily===true});
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,streak:0,maxStreak:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
  setStatus((previewMs/1000).toFixed(1)+'秒だけカードを覚えてください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
  memoryFlipTimer=setTimeout(()=>{
@@ -2556,11 +2589,15 @@ async function flipMemory(index){
  const pair=memory.revealed.slice(0,2);memory.history.push(pair);memory.moves+=1;
  const matched=memory.deck[pair[0]]===memory.deck[pair[1]];
  if(matched){
-   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];tone(760,55);renderMemory();
+   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];memory.streak+=1;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
+   memoryBoard.classList.remove('memory-streak');void memoryBoard.offsetWidth;if(memory.streak>=2)memoryBoard.classList.add('memory-streak');
+   tone(740+Math.min(200,memory.streak*26),55);
+   if(memory.streak===3||memory.streak===5)setStatus('PAIR STREAK ×'+memory.streak+' · NICE MEMORY','good');
+   renderMemory();
    if(memory.matched.size===16){await finishMemory();}
    return;
  }
- memory.busy=true;renderMemory();
+ memory.streak=0;memory.busy=true;renderMemory();
  const game=memory;
  memoryFlipTimer=setTimeout(()=>{
    if(memory!==game||game.finished)return;
@@ -2574,7 +2611,7 @@ async function finishMemory(){
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,history:game.history});
  game.finalizing=false;
  if(res.ok){
-   game.displayElapsedMs=Number(res.score);game.sessionToken=null;game.busy=false;if(memory===game){showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES');renderMemory();}await refreshPlatform();
+   game.displayElapsedMs=Number(res.score);game.sessionToken=null;game.busy=false;if(memory===game){showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES · MAX STREAK ×'+game.maxStreak);renderMemory();}await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.busy=false;if(memory===game){setStatus('MEMORYの記録を保存できませんでした。もう一度お試しください。','error');renderMemory();}
  }

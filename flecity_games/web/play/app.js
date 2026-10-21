@@ -1073,13 +1073,19 @@ function fallSeededNext(state){
  let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
  x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
 }
-function fallPieceFor(seed,index){
+function fallPieceStateFor(seed,index){
  let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
  let type=1;
  for(let i=0;i<=Math.max(0,Math.floor(Number(index)||0));i++){
    let value;[state,value]=fallSeededNext(state);type=1+Math.floor(value*FALL_BASE_SHAPES.length);
  }
- return type;
+ return {state,type};
+}
+function fallPieceFor(seed,index){return fallPieceStateFor(seed,index).type;}
+function fallPeekNextPiece(game){
+ if(!game)return 0;
+ const [,value]=fallSeededNext(game.pieceRngState);
+ return 1+Math.floor(value*FALL_BASE_SHAPES.length);
 }
 function fallShape(pieceType,rotation){
  const base=FALL_BASE_SHAPES[Math.floor(Number(pieceType)||0)-1];if(!base)return [];
@@ -1143,7 +1149,7 @@ function fallResetCursor(){
 }
 function renderFallPreview(){
  fallNext.innerHTML='';
- const previewPiece=fallGame&&!fallGame.ended?fallPieceFor(fallGame.seed,fallGame.history.length+1):0;
+ const previewPiece=fallGame&&!fallGame.ended?fallPeekNextPiece(fallGame):0;
  const shape=previewPiece?fallShape(previewPiece,0):[];
  const occupied=new Set(shape.map(([x,y])=>x+','+y));
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
@@ -1186,19 +1192,26 @@ function syncFallCanonical(game,canonical){
  if(board.some(row=>row.length!==game.width))return false;
  game.board=board;game.score=Number(canonical.score)||0;game.lines=Number(canonical.lines)||0;game.combo=Number(canonical.combo)||0;
  game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>Array.isArray(entry)?[Number(entry[0]),Number(entry[1])]:[Number(entry.x),Number(entry.rotation)]):game.history;
- game.nextPiece=Number(canonical.nextPiece)||fallPieceFor(game.seed,game.history.length);
+ const serverRngState=Number(canonical.rngState);
+ if(Number.isFinite(serverRngState)&&serverRngState>0){
+   const [pieceState,pieceValue]=fallSeededNext(serverRngState);
+   game.pieceRngState=pieceState;
+   game.nextPiece=Number(canonical.nextPiece)||(1+Math.floor(pieceValue*FALL_BASE_SHAPES.length));
+ }else{
+   const current=fallPieceStateFor(game.seed,game.history.length);game.pieceRngState=current.state;game.nextPiece=Number(canonical.nextPiece)||current.type;
+ }
  game.ended=canonical.ended===true;
  if(!game.ended)fallResetCursor();
  return true;
 }
-async function persistFall(showError=false){
- const game=fallGame;if(!game||game.finished||game.progressed!==true)return true;
- const elapsedMs=Math.round(elapsedFall()),state={history:game.history};
+async function persistFall(showError=false,syncLive=true){
+ const game=fallGame;if(!game||game.finished||game.progressed!==true||!game.sessionToken)return true;
+ const snapshotLength=game.history.length,elapsedMs=Math.round(elapsedFall()),state={history:game.history};
  const res=await saveWithRetry({gameId:'fall',sessionToken:game.sessionToken,state,score:game.score,elapsedMs});
  if(res.ok){
    const canonical=res.state||state;
-   syncFallCanonical(game,canonical);
    saves.fall={game_id:'fall',state:canonical,score:Number(res.score??game.score),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
+   if(syncLive&&fallGame===game&&game.history.length===snapshotLength)syncFallCanonical(game,canonical);
    return true;
  }
  if(showError&&fallGame===game)setStatus('FALLの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
@@ -1211,15 +1224,15 @@ async function openFall(forceNew=false){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('FALLを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Math.max(6,Number(session.challenge&&session.challenge.width)||10),height=Math.max(12,Number(session.challenge&&session.challenge.height)||18);
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===height){
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,x:0,rotation:0,
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,pieceRngState:Number(session.seed)||1,x:0,rotation:0,
      elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:true,ended:false};
    if(!syncFallCanonical(fallGame,saved.state)){
      await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('FALLの途中保存を読み込めませんでした。','error');showHome();return;
    }
    setStatus(fallGame.ended?'FALLのゲームオーバー状態を再開しました。記録を確定します。':'FALLを途中保存から再開しました。','good');
  }else{
-   const firstPiece=Number(session.challenge&&session.challenge.firstPiece)||fallPieceFor(session.seed,0);
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,x:0,rotation:0,
+   const firstState=fallPieceStateFor(session.seed,0),firstPiece=Number(session.challenge&&session.challenge.firstPiece)||firstState.type;
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,pieceRngState:firstState.state,x:0,rotation:0,
      elapsedBase:0,startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:false,ended:false};
    fallResetCursor();setStatus('新しいFALLを開始しました。','good');
  }
@@ -1248,28 +1261,30 @@ async function dropFall(){
  const applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo);
  if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
  game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
- game.nextPiece=fallPieceFor(game.seed,game.history.length);
+ const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
  game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
- game.busy=true;
  if(applied.cleared>0){
    fallBoard.classList.remove('fall-clear');void fallBoard.offsetWidth;fallBoard.classList.add('fall-clear');
    tone(720+Math.min(180,applied.cleared*40),55);setStatus((game.combo>1?'COMBO ×'+game.combo+' · ':'')+applied.cleared+' LINE CLEAR · +'+applied.gained,'good');
  }else tone(430,18);
  if(!game.ended)fallResetCursor();renderFall();
- const saved=await persistFall(game.ended);
- game.busy=false;
- if(fallGame!==game)return;
- renderFall();
  if(game.ended){
+   game.busy=true;renderFall();
+   const saved=await persistFall(true,true);game.busy=false;
+   if(fallGame!==game)return;
+   renderFall();
    if(saved){setStatus('置ける場所がありません。FALL終了。','warn');await finishFall(true);}
    else setStatus('FALL終了。保存に失敗したため「終了して記録」で再試行してください。','error');
+ }else if(applied.cleared>0||game.pieces%3===0){
+   void persistFall(false,false);
  }
 }
 async function finishFall(gameOver=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||!game.sessionToken)return;
  if(game.history.length<1){setStatus('1個以上ブロックを置いてから記録できます。','warn');return;}
  game.finalizing=true;game.busy=true;renderFall();
- const saved=await persistFall(true);
+ await saveQueue.catch(()=>{});
+ const saved=await persistFall(true,true);
  if(!saved&&fallGame===game){game.finalizing=false;game.busy=false;renderFall();return;}
  await saveQueue.catch(()=>{});
  const durationMs=Math.round(elapsedFall());
@@ -1291,7 +1306,8 @@ fallDrop.onclick=dropFall;
 fallBack.onclick=async()=>{
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
  if(fallGame&&!fallGame.finished&&fallGame.sessionToken){
-   const saved=await persistFall(true);if(!saved)return;
+   await saveQueue.catch(()=>{});
+   const saved=await persistFall(true,true);if(!saved)return;
    await cancelPlaySession(fallGame.sessionToken);
  }
  fallGame=null;showHome();

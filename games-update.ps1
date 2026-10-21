@@ -144,8 +144,9 @@ try {
         $localErrors = Join-Path $Source 'web\shared\errors.js'
         $localRegistry = Join-Path $Source 'shared\game_registry.lua'
         $localConfig = Join-Path $Source 'config\shared.lua'
+        $localCss = Join-Path $Source 'web\shared\app.css'
 
-        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry,$localConfig)) {
+        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry,$localConfig,$localCss)) {
             if (-not (Test-Path $required)) {
                 throw "Local safety check missing required file: $required"
             }
@@ -158,6 +159,7 @@ try {
         $errorsText = Get-Content $localErrors -Raw
         $registryText = Get-Content $localRegistry -Raw
         $configText = Get-Content $localConfig -Raw
+        $cssText = Get-Content $localCss -Raw
 
         if ($manifestText -match '(?m)^\s*ui_page\s+') {
             throw 'Local safety check rejected a global ui_page.'
@@ -179,6 +181,12 @@ try {
         }
         if ($playHtmlText -notmatch 'id="confirmOverlay"') {
             throw 'Local safety check could not verify PLAY confirmation UI.'
+        }
+        if ($cssText -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') {
+            throw 'Local safety check found px units while LB Phone fixBlur is enabled.'
+        }
+        if ($playJsText -notmatch 'setGameIcon' -or $playJsText -notmatch 'icons/quick-tap\.svg' -or $playHtmlText -notmatch 'id="dailyIcon"') {
+            throw 'Local safety check could not verify PLAY dedicated icon UI.'
         }
         if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
             throw 'Local safety check could not verify Daily SIMON client flow.'
@@ -260,7 +268,7 @@ try {
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
     if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
-    if ($clientMainText -notmatch 'fixBlur=false' -or $clientMainText -match 'fixBlur=true') { throw 'LB Phone fixBlur compatibility check failed.' }
+    if ($clientMainText -notmatch 'fixBlur=true' -or $clientMainText -match 'fixBlur=false') { throw 'LB Phone fixBlur compatibility check failed.' }
     if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
 
     $version = 'unknown'

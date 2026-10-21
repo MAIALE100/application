@@ -137,6 +137,12 @@ if "submitScoreWithRetry" not in play_js:
     fail("PLAY score submission retry helper is missing")
 if "suspendActivePlay" not in play_js or "visibilitychange" not in play_js:
     fail("PLAY phone-hide lifecycle protection is missing")
+if "onClose=playOnClose" not in client or "lb-phone:phoneToggled" not in client:
+    fail("PLAY must bind cleanup to official LB Phone close lifecycle")
+if "playSuspend" not in client or "playSuspend" not in play_js or "registerPlayPhoneLifecycle" not in play_js:
+    fail("PLAY explicit phone-close suspend push wiring is missing")
+if "flecity_games:server:playClosed" not in client or "flecity_games:server:playClosed" not in server:
+    fail("PLAY delayed server fallback cleanup is missing")
 if play_js.count("FlecityBridge.call('playCancelSession'") != 1 or "async function cancelPlaySession" not in play_js:
     fail("PLAY session cancellation must go through the shared retry helper")
 if "appEpoch" not in play_js or "APP_SUSPENDED" not in play_js or "APP_SUSPENDED" not in errors_js:

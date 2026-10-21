@@ -12,6 +12,7 @@ const blockEl=document.getElementById('blockGame'),blockBoard=document.getElemen
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
+const fallEl=document.getElementById('fallGame'),fallBoard=document.getElementById('fallBoard'),fallScore=document.getElementById('fallScore'),fallMeta=document.getElementById('fallMeta'),fallBest=document.getElementById('fallBest'),fallNext=document.getElementById('fallNext'),fallBack=document.getElementById('fallBack'),fallLeft=document.getElementById('fallLeft'),fallRight=document.getElementById('fallRight'),fallRotate=document.getElementById('fallRotate'),fallDrop=document.getElementById('fallDrop'),fallNew=document.getElementById('fallNew'),fallFinish=document.getElementById('fallFinish');
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesMeta=document.getElementById('minesMeta'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
@@ -26,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -153,7 +154,7 @@ async function submitScoreWithRetry(payload){
  return res;
 }
 function scrollAppTop(){window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});}
-function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
+function hideAll(){homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
  clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
@@ -193,7 +194,7 @@ function dailyBestText(gameId){
  return row&&game?formatGameScore(game,row.score):'---';
 }
 const screenBestIds={
- quick_tap:'tapBest',stop:'stopBest',stack:'stackBest',block:'blockBest',merge:'mergeBest',mines:'minesBest',
+ quick_tap:'tapBest',stop:'stopBest',stack:'stackBest',block:'blockBest',merge:'mergeBest',fall:'fallBest',mines:'minesBest',
  nonogram:'nonogramBest',memory:'memoryBest',sort:'sortBest',slide:'slideBest',color_match:'colorMatchBest',number_rush:'numberRushBest',
  high_low:'highLowBest',simon:'simonBest'
 };
@@ -216,7 +217,7 @@ const gameVisuals={
  quick_tap:{icon:'icons/quick-tap.svg',symbol:'⚡',eyebrow:'REFLEX'},stop:{icon:'icons/stop.svg',symbol:'◎',eyebrow:'TIMING'},
  color_match:{icon:'icons/color-match.svg',symbol:'A',eyebrow:'FOCUS'},number_rush:{icon:'icons/number-rush.svg',symbol:'25',eyebrow:'SPEED'},
  stack:{icon:'icons/tower.svg',symbol:'▤',eyebrow:'PRECISION'},high_low:{icon:'icons/range-rush.svg',symbol:'↕',eyebrow:'SPEED'},simon:{icon:'icons/simon.svg',symbol:'◆',eyebrow:'MEMORY'},
- block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'BUILD'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'LOGIC'},
+ block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'BUILD'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'MERGE'},fall:{icon:'icons/fall.svg',symbol:'▣',eyebrow:'ENDLESS'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'LOGIC'},
  nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'PUZZLE'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'PAIR'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'SORT'},slide:{icon:'icons/slide.svg',symbol:'15',eyebrow:'SLIDE'}
 };
 function setGameIcon(el,visual){
@@ -232,7 +233,7 @@ function setGameIcon(el,visual){
 
 const rankTargets={
  quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
- stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
+ stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},fall:{order:'desc',S:12000,A:6000,B:2500},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},sort:{order:'asc',S:45000,A:75000,B:120000},slide:{order:'asc',S:60000,A:120000,B:240000},color_match:{order:'asc',S:7000,A:10000,B:15000},
  number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:18000,A:12000,B:6000},simon:{order:'desc',S:15,A:10,B:5}
@@ -370,6 +371,7 @@ async function launchGame(gameId){
    else if(gameId==='stop')openStop();
    else if(gameId==='block')await openBlock(false);
    else if(gameId==='merge')await openMerge(false);
+   else if(gameId==='fall')await openFall(false);
    else if(gameId==='mines')await openMines(false);
    else if(gameId==='stack')await openStack();
    else if(gameId==='nonogram')await openNonogram(false);
@@ -1053,6 +1055,271 @@ mergeBoard.onpointercancel=event=>{
  if(mergePointer&&mergePointer.id===event.pointerId)mergePointer=null;
  try{mergeBoard.releasePointerCapture(event.pointerId);}catch(_){}
 };
+
+/* FALL */
+const FALL_BASE_SHAPES=[
+ [[0,0],[1,0],[2,0],[3,0]],
+ [[0,0],[1,0],[0,1],[1,1]],
+ [[1,0],[0,1],[1,1],[2,1]],
+ [[1,0],[2,0],[0,1],[1,1]],
+ [[0,0],[1,0],[1,1],[2,1]],
+ [[0,0],[0,1],[1,1],[2,1]],
+ [[2,0],[0,1],[1,1],[2,1]]
+];
+const FALL_LINE_POINTS=[0,100,300,500,800];
+
+function fallSeededNext(state){
+ let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
+ x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
+}
+function fallPieceFor(seed,index){
+ let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
+ let type=1;
+ for(let i=0;i<=Math.max(0,Math.floor(Number(index)||0));i++){
+   let value;[state,value]=fallSeededNext(state);type=1+Math.floor(value*FALL_BASE_SHAPES.length);
+ }
+ return type;
+}
+function fallShape(pieceType,rotation){
+ const base=FALL_BASE_SHAPES[Math.floor(Number(pieceType)||0)-1];if(!base)return [];
+ let shape=base.map(([x,y])=>[x,y]);
+ const turns=((Math.floor(Number(rotation)||0)%4)+4)%4;
+ for(let turn=0;turn<turns;turn++)shape=shape.map(([x,y])=>[-y,x]);
+ let minX=Infinity,minY=Infinity;
+ shape.forEach(([x,y])=>{minX=Math.min(minX,x);minY=Math.min(minY,y);});
+ return shape.map(([x,y])=>[x-minX,y-minY]);
+}
+function emptyFallBoard(width=10,height=18){return Array.from({length:height},()=>Array(width).fill(0));}
+function cloneFallBoard(board){return (board||[]).map(row=>Array.isArray(row)?row.slice():[]);}
+function fallCanPlace(board,width,height,shape,x,y){
+ return (shape||[]).every(([dx,dy])=>{
+   const gx=x+dx,gy=y+dy;
+   return gx>=0&&gx<width&&gy>=0&&gy<height&&Number(board[gy]&&board[gy][gx]||0)===0;
+ });
+}
+function fallDropY(board,width,height,shape,x){
+ if(!fallCanPlace(board,width,height,shape,x,0))return null;
+ let y=0;while(fallCanPlace(board,width,height,shape,x,y+1))y+=1;return y;
+}
+function fallClearLines(board,width,height){
+ let cleared=0,y=height-1;
+ while(y>=0){
+   const full=board[y].every(value=>Number(value)!==0);
+   if(full){board.splice(y,1);board.unshift(Array(width).fill(0));cleared+=1;}
+   else y-=1;
+ }
+ return cleared;
+}
+function fallFindAnyPlacement(board,width,height,pieceType){
+ for(let rotation=0;rotation<4;rotation++){
+   const shape=fallShape(pieceType,rotation);
+   for(let x=0;x<width;x++)if(fallDropY(board,width,height,shape,x)!==null)return {x,rotation};
+ }
+ return null;
+}
+function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo){
+ const shape=fallShape(pieceType,rotation),dropY=fallDropY(board,width,height,shape,x);
+ if(dropY===null)return null;
+ shape.forEach(([dx,dy])=>{board[dropY+dy][x+dx]=pieceType;});
+ const cleared=fallClearLines(board,width,height);
+ const nextCombo=cleared>0?Math.max(0,Number(combo)||0)+1:0;
+ const lineScore=FALL_LINE_POINTS[cleared]??(cleared*250);
+ const gained=10+(dropY*2)+(lineScore*(cleared>0?Math.max(1,nextCombo):1));
+ return {cleared,combo:nextCombo,gained,dropY};
+}
+function elapsedFall(){
+ return (fallGame?fallGame.elapsedBase:0)+(fallGame&&fallGame.startedAt?performance.now()-fallGame.startedAt:0);
+}
+function fallResetCursor(){
+ const game=fallGame;if(!game||game.ended)return false;
+ const shape=fallShape(game.nextPiece,0);
+ const width=Math.max(...shape.map(([x])=>x),0)+1;
+ game.rotation=0;game.x=Math.max(0,Math.floor((game.width-width)/2));
+ if(fallDropY(game.board,game.width,game.height,shape,game.x)!==null)return true;
+ const found=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece);
+ if(!found){game.ended=true;return false;}
+ game.x=found.x;game.rotation=found.rotation;return true;
+}
+function renderFallPreview(){
+ fallNext.innerHTML='';
+ const shape=fallShape(fallGame&&fallGame.nextPiece,0);
+ const occupied=new Set(shape.map(([x,y])=>x+','+y));
+ for(let y=0;y<4;y++)for(let x=0;x<4;x++){
+   const cell=document.createElement('span');
+   cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(fallGame.nextPiece):'');
+   fallNext.appendChild(cell);
+ }
+}
+function renderFall(){
+ const game=fallGame;if(!game)return;
+ refreshScreenBests();fallScore.textContent=String(game.score);
+ fallMeta.textContent='LINES '+String(game.lines)+' · PIECES '+String(game.pieces)+' · COMBO '+String(game.combo)+(game.ended?' · GAME OVER':'');
+ fallBoard.innerHTML='';
+ const shape=!game.ended?fallShape(game.nextPiece,game.rotation):[];
+ const ghostY=!game.ended?fallDropY(game.board,game.width,game.height,shape,game.x):null;
+ const active=new Set(),ghost=new Set();
+ if(!game.ended){
+   shape.forEach(([dx,dy])=>{
+     const ax=game.x+dx,ay=dy;if(ay>=0&&ay<game.height)active.add(ax+','+ay);
+     if(ghostY!==null){const gy=ghostY+dy;if(gy>=0&&gy<game.height)ghost.add(ax+','+gy);}
+   });
+ }
+ for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
+   const cell=document.createElement('span'),value=Number(game.board[y][x]||0),key=x+','+y;
+   let cls='fall-cell';
+   if(value)cls+=' filled fall-piece-'+String(value);
+   else if(active.has(key))cls+=' active fall-piece-'+String(game.nextPiece);
+   else if(ghost.has(key))cls+=' ghost fall-piece-'+String(game.nextPiece);
+   cell.className=cls;fallBoard.appendChild(cell);
+ }
+ renderFallPreview();
+ const locked=game.finished||game.finalizing||game.busy||game.ended||!game.sessionToken;
+ fallLeft.disabled=locked;fallRight.disabled=locked;fallRotate.disabled=locked;fallDrop.disabled=locked;
+ fallNew.disabled=game.finalizing===true;fallFinish.disabled=game.finalizing===true||game.history.length<1||!game.sessionToken;
+}
+function syncFallCanonical(game,canonical){
+ if(!game||!canonical)return false;
+ if(!Array.isArray(canonical.board)||canonical.board.length!==game.height)return false;
+ const board=canonical.board.map(row=>Array.isArray(row)?row.map(Number):[]);
+ if(board.some(row=>row.length!==game.width))return false;
+ game.board=board;game.score=Number(canonical.score)||0;game.lines=Number(canonical.lines)||0;game.combo=Number(canonical.combo)||0;
+ game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>({x:Number(entry.x??entry[0]),rotation:Number(entry.rotation??entry[1])})):game.history;
+ game.nextPiece=Number(canonical.nextPiece)||fallPieceFor(game.seed,game.history.length);
+ game.ended=canonical.ended===true;
+ if(!game.ended)fallResetCursor();
+ return true;
+}
+async function persistFall(showError=false){
+ const game=fallGame;if(!game||game.finished||game.progressed!==true)return true;
+ const elapsedMs=Math.round(elapsedFall()),state={history:game.history};
+ const res=await saveWithRetry({gameId:'fall',sessionToken:game.sessionToken,state,score:game.score,elapsedMs});
+ if(res.ok){
+   const canonical=res.state||state;
+   syncFallCanonical(game,canonical);
+   saves.fall={game_id:'fall',state:canonical,score:Number(res.score??game.score),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
+   return true;
+ }
+ if(showError&&fallGame===game)setStatus('FALLの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
+ return false;
+}
+async function openFall(forceNew=false){
+ hideAll();fallEl.classList.remove('hidden');
+ const saved=!forceNew&&saves.fall,payload={gameId:'fall'};if(saved)payload.resume=true;
+ const session=await startSessionWithRetry(payload);
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('FALLを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ const width=Math.max(6,Number(session.challenge&&session.challenge.width)||10),height=Math.max(12,Number(session.challenge&&session.challenge.height)||18);
+ if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===height){
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,x:0,rotation:0,
+     elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:true,ended:false};
+   if(!syncFallCanonical(fallGame,saved.state)){
+     await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('FALLの途中保存を読み込めませんでした。','error');showHome();return;
+   }
+   setStatus(fallGame.ended?'FALLのゲームオーバー状態を再開しました。記録を確定します。':'FALLを途中保存から再開しました。','good');
+ }else{
+   const firstPiece=Number(session.challenge&&session.challenge.firstPiece)||fallPieceFor(session.seed,0);
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,x:0,rotation:0,
+     elapsedBase:0,startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:false,ended:false};
+   fallResetCursor();setStatus('新しいFALLを開始しました。','good');
+ }
+ renderFall();
+ if(fallGame&&fallGame.ended&&fallGame.history.length>0)setTimeout(()=>{if(fallGame&&!fallGame.finalizing&&fallGame.sessionToken)void finishFall(true);},120);
+}
+function moveFallHorizontal(delta){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ const nextX=game.x+delta,shape=fallShape(game.nextPiece,game.rotation);
+ if(fallDropY(game.board,game.width,game.height,shape,nextX)===null){tone(150,20);return;}
+ game.x=nextX;tone(350,12);renderFall();
+}
+function rotateFall(){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ const nextRotation=(game.rotation+1)%4,shape=fallShape(game.nextPiece,nextRotation);
+ for(const offset of [0,-1,1,-2,2]){
+   const nextX=game.x+offset;
+   if(fallDropY(game.board,game.width,game.height,shape,nextX)!==null){
+     game.rotation=nextRotation;game.x=nextX;tone(460,16);renderFall();return;
+   }
+ }
+ tone(150,24);
+}
+async function dropFall(){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ const applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo);
+ if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
+ game.history.push({x:game.x,rotation:game.rotation});game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
+ game.nextPiece=fallPieceFor(game.seed,game.history.length);
+ game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
+ game.busy=true;
+ if(applied.cleared>0){
+   fallBoard.classList.remove('fall-clear');void fallBoard.offsetWidth;fallBoard.classList.add('fall-clear');
+   tone(720+Math.min(180,applied.cleared*40),55);setStatus((game.combo>1?'COMBO ×'+game.combo+' · ':'')+applied.cleared+' LINE CLEAR · +'+applied.gained,'good');
+ }else tone(430,18);
+ if(!game.ended)fallResetCursor();renderFall();
+ const saved=await persistFall(game.ended);
+ game.busy=false;
+ if(fallGame!==game)return;
+ renderFall();
+ if(game.ended){
+   if(saved){setStatus('置ける場所がありません。FALL終了。','warn');await finishFall(true);}
+   else setStatus('FALL終了。保存に失敗したため「終了して記録」で再試行してください。','error');
+ }
+}
+async function finishFall(gameOver=false){
+ const game=fallGame;if(!game||game.finished||game.finalizing||!game.sessionToken)return;
+ if(game.history.length<1){setStatus('1個以上ブロックを置いてから記録できます。','warn');return;}
+ game.finalizing=true;game.busy=true;renderFall();
+ const saved=await persistFall(true);
+ if(!saved&&fallGame===game){game.finalizing=false;game.busy=false;renderFall();return;}
+ await saveQueue.catch(()=>{});
+ const durationMs=Math.round(elapsedFall());
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs,history:game.history});
+ game.finalizing=false;game.busy=false;
+ if(res.ok){
+   game.finished=true;game.sessionToken=null;delete saves.fall;
+   if(fallGame===game){showScoreResult('fall',res,(gameOver?'GAME OVER · ':'')+'FALL '+res.score+'点 · '+game.lines+' LINES');renderFall();}
+   await refreshPlatform();
+ }else{
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;
+   if(fallGame===game){setStatus('FALLの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderFall();}
+ }
+}
+fallLeft.onclick=()=>moveFallHorizontal(-1);
+fallRight.onclick=()=>moveFallHorizontal(1);
+fallRotate.onclick=rotateFall;
+fallDrop.onclick=dropFall;
+fallBack.onclick=async()=>{
+ if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ if(fallGame&&!fallGame.finished&&fallGame.sessionToken){
+   const saved=await persistFall(true);if(!saved)return;
+   await cancelPlaySession(fallGame.sessionToken);
+ }
+ fallGame=null;showHome();
+};
+fallNew.onclick=async()=>{
+ if(fallNew.disabled)return;
+ if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ const destructive=!!saves.fall||!!(fallGame&&!fallGame.finished);
+ if(destructive){
+   const ok=await confirmAction('FALLを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
+ }
+ fallNew.disabled=true;
+ try{
+   await saveQueue.catch(()=>{});
+   if(fallGame&&fallGame.sessionToken)await cancelPlaySession(fallGame.sessionToken);
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'fall'});
+   if(!reset.ok){setStatus('FALLの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+   delete saves.fall;fallGame=null;await openFall(true);
+ }finally{fallNew.disabled=false;}
+};
+fallFinish.onclick=async()=>{
+ if(!fallGame||fallGame.finalizing)return;
+ if(!fallGame.ended){
+   const ok=await confirmAction('FALLを終了して記録しますか？','現在のスコアを確定して、このRunを終了します。','記録する');
+   if(!ok)return;
+ }
+ await finishFall(fallGame.ended===true);
+};
+
 
 /* MINES */
 function seededMines(seed,size,mineCount,avoidIndex=null){
@@ -2342,6 +2609,10 @@ async function suspendActivePlay(){
      await suspendStep('merge save',()=>persistMerge(false));
      await suspendStep('merge cancel',()=>cancelPlaySession(merge&&merge.sessionToken));
    }
+   if(fallGame&&!fallGame.finished&&!fallGame.finalizing){
+     await suspendStep('fall save',()=>persistFall(false));
+     await suspendStep('fall cancel',()=>cancelPlaySession(fallGame&&fallGame.sessionToken));
+   }
    if(mines&&!mines.finished&&!mines.finalizing){
      if(!mines.daily)await suspendStep('mines save',()=>persistMines(false));
      await suspendStep('mines cancel',()=>cancelPlaySession(mines&&mines.sessionToken));
@@ -2368,7 +2639,7 @@ async function suspendActivePlay(){
    if(!(highLow&&highLow.finalizing))await suspendStep('high low cancel',()=>cancelPlaySession(highLow&&highLow.sessionToken));
    if(!(simon&&simon.finalizing))await suspendStep('simon cancel',()=>cancelPlaySession(simon&&simon.sessionToken));
   }finally{
-   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;slideGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;simonDaily=false;
+   block=null;merge=null;fallGame=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;slideGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;simonDaily=false;
    tapSession=null;tapState='idle';stopSession=null;stopState='idle';
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
    suspendRunning=false;

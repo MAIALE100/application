@@ -3,14 +3,14 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 if errorlevel 1 goto :failed
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0games-update.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0games-manual-update.ps1"
 set "UPDATE_RC=%ERRORLEVEL%"
 
 echo.
 if "%UPDATE_RC%"=="0" (
-  echo Flecity Games update finished.
+  echo Flecity Games manual update finished.
 ) else (
-  echo Flecity Games update failed. Review the messages above.
+  echo Flecity Games manual update failed. Review the messages above.
 )
 echo.
 pause

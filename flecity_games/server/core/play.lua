@@ -1736,16 +1736,18 @@ function FlecityGamesPlay.DebugSelftest()
         end
     end
     local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
-    local highLowSequence=generateHighLowSequence(12345,30)
+    local rangeRushRounds=generateRangeRushRounds(12345,30)
     local highLowHistory={}
     for i=1,30 do
-        highLowHistory[#highLowHistory+1]=highLowSequence[i+1]>highLowSequence[i] and 'high' or 'low'
+        local round=rangeRushRounds[i]
+        local guess=round.value>round.pivot and 'high' or 'low'
+        highLowHistory[#highLowHistory+1]={guess=guess,elapsedMs=500}
     end
-    local highLowReplay=replayHighLow(12345,highLowHistory,30)
-    local highLowState=newHighLowState(12345,30)
+    local highLowReplay=replayHighLow(12345,highLowHistory,30,2200)
+    local highLowState=newHighLowState(12345,30,2200)
     local highLowServerOk=true
     for i=1,30 do
-        local result=applyHighLowGuess(highLowState,highLowHistory[i])
+        local result=applyHighLowGuess(highLowState,highLowHistory[i].guess,highLowHistory[i].elapsedMs)
         if not result or result.correct~=true then highLowServerOk=false break end
     end
     local simonSequence=generateSimonSequence(12345,5)
@@ -1799,10 +1801,10 @@ function FlecityGamesPlay.DebugSelftest()
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,
-        highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 or false,
-        highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and #highLowState.history==30 or false,
+        highLowReplay=highLow and highLowReplay and highLowReplay.ended==true and highLowReplay.streak==30 and highLowReplay.score>0 or false,
+        highLowServerState=highLow and highLowServerOk and highLowState.ended==true and highLowState.streak==30 and highLowState.score>0 and #highLowState.history==30 or false,
         highLowActionIdempotent=highLow and highLowState.lastStep==nil,
-        highLowValidateStreak=highLow and validateScore(highLow,10)==10 or false,
+        highLowValidateStreak=highLow and validateScore(highLow,5000)==5000 or false,
         simonReplay=simon and simonReplay and simonReplay.ended==true and simonReplay.cleared==5 or false,
         simonServerState=simon and simonServerOk and simonState.ended==true and simonState.cleared==5 or false,
         simonValidateRounds=simon and validateScore(simon,12)==12 or false,

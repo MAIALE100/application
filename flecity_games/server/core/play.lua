@@ -580,6 +580,103 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     if cycle<=half then return (cycle/half)*100 end
     return ((period-cycle)/half)*100
 end
+
+local function stopRoundPeriod(challenge,round)
+    local start=math.max(900,math.floor(tonumber(challenge and challenge.startPeriodMs) or 2200))
+    local minimum=math.max(420,math.floor(tonumber(challenge and challenge.minPeriodMs) or 520))
+    local value=start*(0.92^math.max(0,(tonumber(round) or 1)-1))
+    return math.max(minimum,math.floor(value+0.5))
+end
+
+local function stopRoundTolerance(challenge,round)
+    local start=math.max(3,tonumber(challenge and challenge.startTolerancePct) or 8)
+    local minimum=math.max(1,tonumber(challenge and challenge.minTolerancePct) or 2.2)
+    return math.max(minimum,start-(math.max(0,(tonumber(round) or 1)-1)*0.18))
+end
+
+local function stopNextChallenge(state)
+    local target,phase
+    state.rng,target=seededInt(state.rng,12,88)
+    local period=stopRoundPeriod(state.config,state.round)
+    state.rng,phase=seededInt(state.rng,0,math.max(0,period-1))
+    local tolerance=stopRoundTolerance(state.config,state.round)
+    return {
+        round=state.round,
+        targetPct=target,
+        periodMs=period,
+        phaseMs=phase,
+        tolerancePct=math.floor(tolerance*100+0.5)/100,
+        maxRounds=state.maxRounds
+    }
+end
+
+local function newStopState(seed,challenge)
+    local state={
+        rng=math.floor(tonumber(seed) or 1),
+        config=challenge or {},
+        round=1,
+        maxRounds=math.max(5,math.min(100,math.floor(tonumber(challenge and challenge.maxRounds) or 50))),
+        cleared=0,
+        score=0,
+        bullseyes=0,
+        ended=false,
+        roundStartedTick=GetGameTimer()
+    }
+    state.current=stopNextChallenge(state)
+    return state
+end
+
+local function stopRoundPoints(distance,tolerance,round)
+    local tol=math.max(0.01,tonumber(tolerance) or 1)
+    local accuracy=math.max(0,1-(math.max(0,tonumber(distance) or tol)/tol))
+    local base=500+(math.max(1,tonumber(round) or 1)*30)
+    return math.floor(base+(accuracy*700)+0.5)
+end
+
+local function applyStopRound(state,actionMs)
+    if type(state)~='table' or state.ended or type(state.current)~='table' then return nil end
+    local action=math.floor(tonumber(actionMs) or -1)
+    if action<50 or action>60000 then return nil end
+    local current=state.current
+    local marker=trianglePosition(action,current.periodMs,current.phaseMs)
+    local distance=math.abs(marker-(tonumber(current.targetPct) or 50))
+    local tolerance=tonumber(current.tolerancePct) or 8
+    local success=distance<=tolerance
+    local bullseye=distance<=0.35
+    local gained=0
+
+    if success then
+        gained=stopRoundPoints(distance,tolerance,state.round)
+        if bullseye then gained=gained+500 state.bullseyes=state.bullseyes+1 end
+        state.score=state.score+gained
+        state.cleared=state.cleared+1
+        if state.round>=state.maxRounds then
+            state.ended=true
+        else
+            state.round=state.round+1
+            state.current=stopNextChallenge(state)
+            state.roundStartedTick=GetGameTimer()
+        end
+    else
+        state.ended=true
+    end
+
+    return {
+        success=success,
+        ended=state.ended,
+        cleared=state.cleared,
+        round=state.round,
+        score=state.score,
+        gained=gained,
+        bullseye=bullseye,
+        bullseyes=state.bullseyes,
+        markerPct=math.floor(marker*100+0.5)/100,
+        targetPct=current.targetPct,
+        distancePct=math.floor(distance*100+0.5)/100,
+        tolerancePct=tolerance,
+        nextChallenge=not state.ended and state.current or nil
+    }
+end
 local function generateMines(seed,size,mineCount,avoidIndex)
     local total=size*size
     local avoid=tonumber(avoidIndex)
@@ -1042,9 +1139,11 @@ local function challengeFor(game,seed)
     if game.id=='quick_tap' then
         state,challenge.delayMs=seededInt(state,1200,3500)
     elseif game.id=='stop' then
-        state,challenge.targetPct=seededInt(state,15,85)
-        state,challenge.periodMs=seededInt(state,1500,2400)
-        state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
+        challenge.maxRounds=50
+        challenge.startPeriodMs=2200
+        challenge.minPeriodMs=520
+        challenge.startTolerancePct=8
+        challenge.minTolerancePct=2.2
     elseif game.id=='fall' then
         challenge.width=10 challenge.height=18
         challenge.firstPiece=select(2,fallNextPiece(seed))
@@ -1186,8 +1285,8 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'high_low_streak',game.id,{score=score,streak=metadata.streak}) then
         unlocked[#unlocked+1]='high_low_streak'
     end
-    if game.id=='stop' and score>=tonumber(cfg.StopBullseyeScore or 990)
-        and unlockAchievement(playerIdentifier,'bullseye',game.id,{score=score,distancePct=metadata and metadata.distancePct}) then
+    if game.id=='stop' and tonumber(metadata and metadata.bullseyes or 0)>=1
+        and unlockAchievement(playerIdentifier,'bullseye',game.id,{score=score,bullseyes=metadata.bullseyes,rounds=metadata.rounds}) then
         unlocked[#unlocked+1]='bullseye'
     end
     if game.id=='merge' and tonumber(metadata and metadata.maxTile)>=tonumber(cfg.MergeMasterTile or 2048)
@@ -1554,7 +1653,13 @@ function FlecityGamesPlay.StartSession(source,data)
             end
         end
         local publicSeed=seed
-        if game.id=='high_low' then
+        if game.id=='stop' then
+            local stopState=newStopState(seed,challenge)
+            sessions[token].stop=stopState
+            challenge=stopState.current
+            sessions[token].challenge=challenge
+            publicSeed=nil
+        elseif game.id=='high_low' then
             local highLow=newHighLowState(seed,challenge.rounds,challenge.timeLimitMs)
             sessions[token].highLow=highLow
             local first=highLow.generated[1]
@@ -1579,6 +1684,32 @@ function FlecityGamesPlay.StartSession(source,data)
         error(result)
     end
     return finish(result)
+end
+
+function FlecityGamesPlay.StopRound(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'stop_round',90) then return {ok=false,error='RATE_LIMIT'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local id=identifier(source)
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    if not session or session.playerIdentifier~=id or session.gameId~='stop' then return {ok=false,error='INVALID_SESSION'} end
+    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
+        removeSession(token)
+        return {ok=false,error='EXPIRED_SESSION'}
+    end
+    local state=session.stop
+    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    local step=math.floor(tonumber(data.step) or -1)
+    if step~=state.cleared+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    local actionMs=math.floor(tonumber(data.actionMs) or -1)
+    local serverRoundElapsed=math.max(0,GetGameTimer()-(tonumber(state.roundStartedTick) or GetGameTimer()))
+    if actionMs<50 or actionMs>60000 then return {ok=false,error='INVALID_TIMING'} end
+    if actionMs>serverRoundElapsed+350 or serverRoundElapsed-actionMs>3000 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+    local result=applyStopRound(state,actionMs)
+    if not result then return {ok=false,error='INVALID_TIMING'} end
+    result.ok=true
+    return result
 end
 
 function FlecityGamesPlay.HighLowGuess(source,data)
@@ -1804,7 +1935,7 @@ local function validateScore(game,score)
         if score<70 or score>3000 then return nil end
         return math.floor(score*1000+0.5)/1000
     elseif game.id=='stop' then
-        if score<0 or score>1000 then return nil end
+        if score<0 or score>500000 then return nil end
         return math.floor(score+0.5)
     elseif game.id=='block' or game.id=='merge' or game.id=='fall' then
         if score<0 or score>50000000 then return nil end
@@ -1880,15 +2011,16 @@ function FlecityGamesPlay.SubmitScore(source,data)
         durationMs=math.min(serverElapsed,28800000)
         metadata.serverSinceRevealMs=serverSinceReveal
     elseif game.id=='stop' then
-        local actionMs=math.floor(tonumber(data.actionMs) or -1)
-        if actionMs<100 or actionMs>60000 then return {ok=false,error='INVALID_TIMING'} end
-        if actionMs>serverElapsed+250 or serverElapsed-actionMs>2500 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        local marker=trianglePosition(actionMs,session.challenge.periodMs,session.challenge.phaseMs)
-        local target=tonumber(session.challenge.targetPct) or 50
-        local distance=math.abs(marker-target)
-        rawScore=math.max(0,1000-(distance*10)) durationMs=math.min(serverElapsed,28800000)
-        metadata.markerPct=math.floor(marker*100+0.5)/100
-        metadata.targetPct=target metadata.distancePct=math.floor(distance*100+0.5)/100 metadata.actionMs=actionMs
+        local state=session.stop
+        if not state or state.ended~=true then return {ok=false,error='STOP_RUN_NOT_FINISHED'} end
+        local submittedScore=math.floor(tonumber(data.score) or -1)
+        if submittedScore~=math.floor(tonumber(state.score) or -2) then return {ok=false,error='INVALID_STOP_SCORE'} end
+        rawScore=submittedScore
+        durationMs=math.min(totalServerElapsed,28800000)
+        metadata.rounds=state.cleared
+        metadata.bullseyes=state.bullseyes
+        metadata.maxRounds=state.maxRounds
+        metadata.finalRound=state.round
     elseif game.id=='block' then
         if type(data.history)~='table' then return {ok=false,error='INVALID_BLOCK_REPLAY'} end
         local replayed=replayBlock(session.seed,data.history)
@@ -2251,8 +2383,12 @@ function FlecityGamesPlay.DebugSelftest()
         deterministicChallenge=quickChallenge.delayMs==quickChallenge2.delayMs,
         dailyDateParsing=dailyNumberA==20261020 and dailyNumberB==20261021 and dailyNumberA~=dailyNumberB,
         opaqueSessionToken=not string.find(opaqueToken,'SECRET_CITIZEN_ID',1,true),
-        stopRejectHigh=stop and validateScore(stop,1001)==nil or false,
+        stopAcceptRunScore=stop and validateScore(stop,12500)==12500 or false,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
+        stopRunProgression=(function()
+            local state=newStopState(12345,{maxRounds=5,startPeriodMs=2200,minPeriodMs=520,startTolerancePct=8,minTolerancePct=2.2})
+            return state and state.current and state.current.periodMs==2200 and state.current.tolerancePct==8
+        end)(),
         blockRejectNegative=block and validateScore(block,-1)==nil or false,
         blockAcceptInteger=block and validateScore(block,120)==120 or false,
         mergeAcceptInteger=merge and validateScore(merge,2048)==2048 or false,

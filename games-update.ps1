@@ -1,5 +1,6 @@
 param(
-    [string]$ServerBase = 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base'
+    [string]$ServerBase = 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base',
+    [switch]$NoGitSync
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,29 +56,35 @@ try {
         }
     }
 
-    Step 'Pulling latest Flecity Games'
-    & git -C $RepoRoot fetch origin
-    if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
+    if (-not $NoGitSync) {
+        Step 'Pulling latest Flecity Games'
+        & git -C $RepoRoot fetch origin
+        if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
 
-    $currentBranch = (& git -C $RepoRoot branch --show-current).Trim()
-    if ($currentBranch -ne $Branch) {
-        Write-Host ("Switching branch: {0} -> {1}" -f $currentBranch,$Branch) -ForegroundColor Yellow
-        & git -C $RepoRoot switch $Branch
-        if ($LASTEXITCODE -ne 0) {
-            throw "Could not switch to '$Branch'. Local edits may conflict; no files were discarded."
+        $currentBranch = (& git -C $RepoRoot branch --show-current).Trim()
+        if ($currentBranch -ne $Branch) {
+            Write-Host ("Switching branch: {0} -> {1}" -f $currentBranch,$Branch) -ForegroundColor Yellow
+            & git -C $RepoRoot switch $Branch
+            if ($LASTEXITCODE -ne 0) {
+                throw "Could not switch to '$Branch'. Local edits may conflict; no files were discarded."
+            }
+        }
+
+        & git -C $RepoRoot pull --ff-only origin $Branch
+        if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Resolve local Git conflicts before updating.' }
+
+        $UpdaterHashAfter = if (Test-Path $UpdaterPath) { (Get-FileHash $UpdaterPath -Algorithm SHA256).Hash } else { '' }
+        if ($UpdaterHashBefore -and $UpdaterHashAfter -and $UpdaterHashBefore -ne $UpdaterHashAfter) {
+            Step 'Updater refreshed'
+            Write-Host 'The updater itself changed. Restarting with the new version...' -ForegroundColor Green
+            $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$UpdaterPath,'-ServerBase',$ServerBase)
+            Start-Process powershell.exe -ArgumentList $args
+            exit 0
         }
     }
-
-    & git -C $RepoRoot pull --ff-only origin $Branch
-    if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Resolve local Git conflicts before updating.' }
-
-    $UpdaterHashAfter = if (Test-Path $UpdaterPath) { (Get-FileHash $UpdaterPath -Algorithm SHA256).Hash } else { '' }
-    if ($UpdaterHashBefore -and $UpdaterHashAfter -and $UpdaterHashBefore -ne $UpdaterHashAfter) {
-        Step 'Updater refreshed'
-        Write-Host 'The updater itself changed. Restarting with the new version...' -ForegroundColor Green
-        $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$UpdaterPath,'-ServerBase',$ServerBase)
-        Start-Process powershell.exe -ArgumentList $args
-        exit 0
+    else {
+        Step 'Using prepared auto-update source tree'
+        Write-Host 'Git sync is managed by the dedicated auto-update watcher.' -ForegroundColor DarkGray
     }
 
     Step 'Checking build safety'
@@ -112,7 +119,7 @@ try {
 
         $workflowApi = "https://api.github.com/repos/$repoSlug/actions/runs?branch=$([uri]::EscapeDataString($Branch))&per_page=20"
         $runs = Invoke-RestMethod -Uri $workflowApi -Headers $headers -Method Get -ErrorAction Stop
-        $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -eq 'Flecity Games Check' } | Select-Object -First 1
+        $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -in @('Flecity Games Static Check','Flecity Games Check') } | Select-Object -First 1
 
         if ($run -and $run.status -eq 'completed') {
             if ($run.conclusion -ne 'success') {

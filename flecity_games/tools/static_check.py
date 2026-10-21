@@ -189,7 +189,7 @@ if 'id="dailyIcon"' not in play_html:
     fail("PLAY Daily icon slot is missing")
 if "quickTapGrade" not in play_js or "stopRushGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
     fail("PLAY skill-feedback gameplay pass is missing")
-if "playStopRound" not in play_js or "STOP RUSH" not in play_html:
+if "playStopRound" not in play_js or "STOP! RUSH" not in play_html:
     fail("STOP RUSH client flow is missing")
 if "FlecityGamesPlay.StopRound" not in play_lua or "newStopState" not in play_lua or "applyStopRound" not in play_lua:
     fail("STOP RUSH server-authoritative round flow is missing")

@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.29.0-test**
+- Resource version: **0.30.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **24/24 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -102,7 +102,7 @@ Implemented:
 - deterministic Daily SLIDE board with server-replayed move validation
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
-- 14 collection/title achievements across PLAY:
+- 15 collection/title achievements across PLAY:
   - FIRST PLAY
   - 100 GAMES
   - LIGHTNING
@@ -117,6 +117,7 @@ Implemented:
   - NUMBER ACE
   - HIGH ROLLER
   - SIMON MASTER
+  - SLIDE MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
 - deterministic server replay validation for BLOCK, MERGE, TOWER, SORT, SLIDE, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores

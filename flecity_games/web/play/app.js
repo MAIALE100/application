@@ -269,7 +269,8 @@ const achievementLabels={
  nonogram_solver:'LOGIC SOLVER · NONOGRAM 60秒以内',
  color_focus:'COLOR FOCUS · COLOR MATCH 6秒以内',
  simon_master:'SIMON MASTER · 15ラウンド到達',
- slide_master:'SLIDE MASTER · 90秒・120手以内でクリア'
+ slide_master:'SLIDE MASTER · 90秒・120手以内でクリア',
+ fall_master:'FALL MASTER · 20ライン以上消して記録'
 };
 function scoreBeatsPrevious(gameId,score,daily){
  const game=gameById(gameId);if(!game)return false;

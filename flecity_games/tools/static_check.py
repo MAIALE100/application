@@ -216,6 +216,8 @@ if "MySQL.update.await([[INSERT IGNORE INTO flecity_game_achievements" not in pl
     fail("PLAY achievement unlock must use affected-row semantics")
 if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
+if "saveStateHasProgress" not in play_lua or "progressed!==true" not in play_js:
+    fail("PLAY must not persist untouched resumable runs")
 if "requestEpoch" not in play_lua or "SAVE_RESET_FAILED" not in play_lua:
     fail("PLAY reset failure recovery / in-flight save epoch snapshot is missing")
 if "minesFirstRevealSafe" not in play_lua or "avoidIndex" not in play_lua or "avoidIndex" not in play_js:

@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.31.0-test**
+- Resource version: **0.32.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **25/25 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -36,7 +36,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - TOWER — precision stacking with PERFECT streak scoring
 - BLOCK — endless placement, line clear, combo score, auto-save/resume
 - MERGE — deterministic 4x4 merge game, auto-save/resume
-- FALL — deterministic 10x18 hard-drop block game with 7 pieces, line clears, combo scoring, auto-save/resume, and server-replayed placements
+- FALL — deterministic 10x18 hard-drop block game with 7 pieces, line clears, combo scoring, auto-save/resume, and server-replayed placements; deterministic next-piece preview
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
@@ -103,7 +103,7 @@ Implemented:
 - deterministic Daily SLIDE board with server-replayed move validation
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
-- 15 collection/title achievements across PLAY:
+- 16 collection/title achievements across PLAY:
   - FIRST PLAY
   - 100 GAMES
   - LIGHTNING
@@ -119,6 +119,7 @@ Implemented:
   - HIGH ROLLER
   - SIMON MASTER
   - SLIDE MASTER
+  - FALL MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
 - deterministic server replay validation for BLOCK, MERGE, FALL, TOWER, SORT, SLIDE, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores

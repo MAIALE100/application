@@ -380,9 +380,12 @@ try {
     Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
 
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
-    if (-not $AutoReloadWasInstalled -or $ResourceChanged) {
+    if ($AutoReloadWasInstalled -and $ResourceChanged) {
         $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
         Set-Content -Path (Join-Path $Destination 'dev-reload.token') -Value $token -NoNewline -Encoding ascii
+    }
+    elseif (-not $AutoReloadWasInstalled) {
+        Set-Content -Path (Join-Path $Destination 'dev-first-restart-required.flag') -Value '1' -NoNewline -Encoding ascii
     }
 
     Step 'Checking server.cfg'

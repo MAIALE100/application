@@ -2267,8 +2267,10 @@ function FlecityGamesPlay.SubmitScore(source,data)
         local serverPlayElapsed=math.max(0,totalServerElapsed-previewMs)
         local verified=verifiedClientElapsed(clientDurationMs,serverPlayElapsed,2500,500)
         if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        durationMs=verified rawScore=verified
-        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.replayValidated=true metadata.clientTimingVerified=true
+        local extraMoves=math.max(0,replayed.moves-8)
+        local movePenalty=extraMoves*400
+        durationMs=verified rawScore=verified+movePenalty
+        metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.movePenaltyMs=movePenalty metadata.replayValidated=true metadata.clientTimingVerified=true
     elseif game.id=='sort' then
         local replayed=replaySortState(session.seed,data.history)
         if not replayed or replayed.complete~=true then return {ok=false,error='INVALID_SORT_REPLAY'} end

@@ -226,6 +226,12 @@ if "saveStateHasProgress" not in play_lua or "progressed!==true" not in play_js:
     fail("PLAY must not persist untouched resumable runs")
 if "TODAY BEST" not in play_js or "displayElapsedMs" not in play_js:
     fail("PLAY Daily/result display polish is missing")
+if "gameVisuals" not in play_js or "setQuickVisual" not in play_js or "setStopVisual" not in play_js:
+    fail("PLAY game identity / live-state visual feedback is missing")
+play_css = read("flecity_games/web/shared/app.css")
+for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase"):
+    if marker not in play_css:
+        fail(f"PLAY visual quality marker missing: {marker}")
 if " · BEST '+personalBestText(" in play_js:
     fail("PLAY meta rows must not duplicate dedicated BEST labels")
 if "requestEpoch" not in play_lua or "SAVE_RESET_FAILED" not in play_lua:

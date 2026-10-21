@@ -187,8 +187,14 @@ if "setGameIcon" not in play_js or "icons/quick-tap.svg" not in play_js or "icon
     fail("PLAY dedicated SVG icon wiring is missing")
 if 'id="dailyIcon"' not in play_html:
     fail("PLAY Daily icon slot is missing")
-if "quickTapGrade" not in play_js or "stopGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
+if "quickTapGrade" not in play_js or "stopRushGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
     fail("PLAY skill-feedback gameplay pass is missing")
+if "playStopRound" not in play_js or "STOP RUSH" not in play_html:
+    fail("STOP RUSH client flow is missing")
+if "FlecityGamesPlay.StopRound" not in play_lua or "newStopState" not in play_lua or "applyStopRound" not in play_lua:
+    fail("STOP RUSH server-authoritative round flow is missing")
+if "playStopRound='flecity_games:play:stopRound'" not in client:
+    fail("STOP RUSH client bridge callback is missing")
 if "MAX FLOW" not in play_js or "PAIR STREAK" not in play_js:
     fail("PLAY flow/streak feedback is missing")
 if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
@@ -370,6 +376,8 @@ if "CLUTCH · " not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" n
     fail("PLAY mastery/clutch feedback is missing")
 if "PLAY depth feedback v12" not in play_css or ".block-danger" not in play_css or ".merge-danger" not in play_css or ".fall-danger" not in play_css or ".tower-danger" not in play_css:
     fail("PLAY depth feedback CSS is missing")
+if "STOP RUSH progression v13" not in play_css or 'data-tier' not in play_js:
+    fail("STOP RUSH escalating visual feedback is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:

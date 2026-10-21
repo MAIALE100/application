@@ -564,6 +564,7 @@ function clearLines(){
  unique.forEach(k=>{const [y,x]=k.split(':').map(Number);block.board[y][x]=0;});
  const lines=rows.length+cols.length;
  if(lines>0){block.combo+=1;block.score+=Math.round(lines*100*(1+Math.min(block.combo,8)*0.2));}else block.combo=0;
+ return lines;
 }
 async function persistBlock(showError=false){
  const game=block;if(!game||game.finished||game.daily)return true;
@@ -625,7 +626,13 @@ async function placeBlock(x,y){
  block.progressed=true;
  block.history.push([slot,x,y]);
  for(const [dx,dy] of SHAPES[piece.shape])block.board[y+dy][x+dx]=1;
- block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;clearLines();
+ block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;
+ const clearedLines=clearLines();
+ if(clearedLines>0){
+   blockBoard.classList.remove('line-clear');void blockBoard.offsetWidth;blockBoard.classList.add('line-clear');
+   tone(620+Math.min(260,block.combo*45),55);
+   setStatus((block.combo>1?'COMBO ×'+block.combo+' · ':'')+clearedLines+' LINE CLEAR','good');
+ }else tone(420,22);
  if(block.pieces.every(p=>!p))refillPieces();else{const next=block.pieces.findIndex(Boolean);if(next>=0)block.selected=next;}
  renderBlock();await persistBlock();
  if(block!==game)return;
@@ -749,7 +756,7 @@ async function openMerge(forceNew){
 }
 async function moveMerge(direction){
  const game=merge;if(!game||game.finished)return;
- const before=JSON.stringify(game.board);
+ const before=JSON.stringify(game.board),scoreBefore=game.score;
  if(direction==='left'||direction==='right'){
    for(let y=0;y<4;y++){
      let row=merge.board[y].slice();if(direction==='right')row.reverse();row=compressMergeLine(row);if(direction==='right')row.reverse();merge.board[y]=row;
@@ -759,8 +766,12 @@ async function moveMerge(direction){
      let col=[];for(let y=0;y<4;y++)col.push(merge.board[y][x]);if(direction==='down')col.reverse();col=compressMergeLine(col);if(direction==='down')col.reverse();for(let y=0;y<4;y++)merge.board[y][x]=col[y];
    }
  }
- if(before===JSON.stringify(merge.board)){setStatus('タイルを動かせませんでした。','warn');return;}
- merge.progressed=true;merge.moves+=1;merge.history.push(direction);spawnMergeTile();renderMerge();await persistMerge();
+ if(before===JSON.stringify(merge.board)){setStatus('タイルを動かせませんでした。','warn');tone(150,28);return;}
+ const gained=Math.max(0,merge.score-scoreBefore);
+ merge.progressed=true;merge.moves+=1;merge.history.push(direction);spawnMergeTile();
+ mergeBoard.classList.remove('merge-move','merge-combine');void mergeBoard.offsetWidth;mergeBoard.classList.add(gained>0?'merge-combine':'merge-move');
+ if(gained>0)tone(500+Math.min(320,gained),38);else tone(300,16);
+ renderMerge();await persistMerge();
  if(merge!==game)return;
  if(mergeGameOver()){setStatus('動かせる場所がありません。ゲーム終了。','warn');await finishMerge();}
 }
@@ -871,10 +882,11 @@ function renderMines(){
  refreshScreenBests();minesMeta.textContent=(mines.daily?'DAILY · ':'')+'地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
  for(let i=0;i<mines.size*mines.size;i++){
    const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
-   b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'');
+   const n=revealed?mineCountAround(i):0;
+   b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'')+(n?' n'+n:'')+(mines.lost&&mines.mineSet.has(i)?' mine':'');
    if(mines.lost&&mines.mineSet.has(i))b.textContent='✹';
    else if(flagged)b.textContent='⚑';
-   else if(revealed){const n=mineCountAround(i);b.textContent=n?String(n):'';}
+   else if(revealed)b.textContent=n?String(n):'';
    b.disabled=mines.finished||revealed;b.onclick=()=>touchMine(i);minesBoard.appendChild(b);
  }
  minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');
@@ -933,17 +945,20 @@ async function touchMine(index){
  if(mines.mode==='flag'){
    if(mines.revealed.has(index))return;
    mines.progressed=true;
-   if(mines.flags.has(index))mines.flags.delete(index);else mines.flags.add(index);renderMines();await persistMines();return;
+   if(mines.flags.has(index)){mines.flags.delete(index);tone(270,18);}else{mines.flags.add(index);tone(520,22);}renderMines();await persistMines();return;
  }
  if(mines.flags.has(index))return;
- if(mines.mineSet.has(index)){await loseMines(index);return;}
+ if(mines.mineSet.has(index)){tone(120,130);minesBoard.classList.remove('mine-hit');void minesBoard.offsetWidth;minesBoard.classList.add('mine-hit');await loseMines(index);return;}
  mines.progressed=true;
- const queue=[index];
+ const beforeReveal=mines.revealed.size,queue=[index];
  while(queue.length){
    const current=queue.shift();if(mines.revealed.has(current)||mines.flags.has(current)||mines.mineSet.has(current))continue;
    mines.revealed.add(current);
    if(mineCountAround(current)===0)mineNeighbors(current).forEach(n=>{if(!mines.revealed.has(n))queue.push(n);});
  }
+ const opened=mines.revealed.size-beforeReveal;
+ tone(opened>4?620:430,opened>4?36:18);
+ minesBoard.classList.remove('safe-open');void minesBoard.offsetWidth;minesBoard.classList.add('safe-open');
  renderMines();
  if(mines.revealed.size===mines.size*mines.size-mines.mineCount){await finishMines();return;}
  await persistMines();
@@ -1160,9 +1175,10 @@ async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
  nonogram.progressed=true;
- if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);}
- else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);}
- else nonogram.filled.add(index);
+ if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);tone(260,16);}
+ else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);tone(190,12);}
+ else{nonogram.filled.add(index);tone(520,18);}
+ nonogramBoard.classList.remove('cell-touch');void nonogramBoard.offsetWidth;nonogramBoard.classList.add('cell-touch');
  renderNonogram();await persistNonogram();
 }
 nonogramCheck.onclick=async()=>{
@@ -1256,6 +1272,7 @@ async function answerColorMatch(choice){
  const game=colorMatch;if(!game||!game.running||game.finished)return;
  const round=game.rounds[game.index];game.history.push(choice);
  if(choice!==round.ink){
+   colorMatchEl.classList.remove('match-ok','match-miss');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-miss');
    game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
    if(colorMatch===game){
      colorMatchChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
@@ -1269,6 +1286,7 @@ async function answerColorMatch(choice){
    }
    return;
  }
+ colorMatchEl.classList.remove('match-ok','match-miss');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-ok');
  tone(720,35);game.index+=1;
  if(game.index>=game.rounds.length){
    game.running=false;game.finished=true;game.finalizing=true;clearInterval(colorMatchClock);colorMatchClock=null;
@@ -1358,6 +1376,7 @@ async function tapNumberRush(index){
    return;
  }
  numberRush.completed.add(index);numberRush.next+=1;tone(600+Math.min(300,numberRush.next*8),28);
+ numberRushBoard.classList.remove('rush-hit');void numberRushBoard.offsetWidth;numberRushBoard.classList.add('rush-hit');
  if(numberRush.next>numberRush.count){await finishNumberRush();return;}
  renderNumberRush();
 }
@@ -1462,6 +1481,7 @@ async function guessHighLow(guess){
  game.completed=Math.max(0,Number(res.completed)||0);
  game.busy=false;
  highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
+ highLowEl.classList.remove('guess-correct','guess-wrong');void highLowEl.offsetWidth;highLowEl.classList.add(res.correct?'guess-correct':'guess-wrong');
  if(res.correct){
    tone(720+Math.min(220,game.streak*12),35);
    setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+game.streak+'連勝','good');

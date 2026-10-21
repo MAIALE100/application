@@ -569,3 +569,21 @@ body{color:#f8fafc}
 .game-card-top .tag{white-space:nowrap}
 .library-filter[data-filter="favorites"]{color:#d8c78f}
 .library-filter[data-filter="favorites"].active{background:#fff0b8;color:#241d0d;border-color:#fff0b8}
+
+
+/* SLIDE puzzle */
+.game[data-game="slide"]{--game-accent:#8fd7ff;--game-soft:rgba(143,215,255,.11)}
+.continue-game[data-game="slide"],.recent-game[data-game="slide"]{--game-accent:#8fd7ff}
+#slideGame>.card.row{background:linear-gradient(145deg,#1b1f27,#16191f);border-color:#303641;position:relative;overflow:hidden}
+#slideGame>.card.row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:0.1875rem;background:#8fd7ff}
+.slide-board{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;aspect-ratio:1;padding:0.25rem;touch-action:manipulation}
+.slide-tile{min-height:0;padding:0;border-radius:0.875rem;background:linear-gradient(145deg,#273443,#1d2732);color:#f7fbff;border:0.0625rem solid #3d5266;font-size:1.2rem;font-weight:950;font-variant-numeric:tabular-nums;box-shadow:inset 0 -0.1875rem 0 rgba(0,0,0,.16),0 0.25rem 0.625rem rgba(0,0,0,.14);transition:transform .1s ease,filter .12s ease,border-color .12s ease,background .12s ease}
+.slide-tile.movable{border-color:#5682a2;background:linear-gradient(145deg,#2d4458,#213444)}
+.slide-tile.movable:not(:disabled):active{transform:scale(.92);filter:brightness(1.12)}
+.slide-tile.blank{background:#10151b;border:0.0625rem dashed #293541;box-shadow:inset 0 0 1rem rgba(0,0,0,.24);opacity:.52}
+.slide-tile.solved{border-color:#567963;background:linear-gradient(145deg,#274334,#1d3227)}
+.slide-time{text-align:center;font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;color:#d9efff}
+.slide-board.slide-move{animation:slide-board-move .16s ease}
+@keyframes slide-board-move{50%{filter:brightness(1.08)}}
+@media(max-width:22.5rem){.slide-board{gap:0.375rem}.slide-tile{border-radius:0.6875rem;font-size:1.05rem}}
+body.reduced-motion .slide-board,body.reduced-motion .slide-tile{animation:none!important;transition:none!important}

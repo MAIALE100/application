@@ -175,6 +175,12 @@ if "playHighLowGuess" not in play_js or "finishHighLow" not in play_js:
     fail("HIGH & LOW server-authoritative client flow is missing")
 if "playSubmitSimonRound" not in play_js or "finishSimon" not in play_js:
     fail("SIMON server-validated client flow is missing")
+if "simonDaily" not in play_js or "openSimon(true)" not in play_js or "daily:simonDaily===true" not in play_js:
+    fail("SIMON Daily client flow is missing")
+if not re.search(r"id='simon'[^\n]*supportsDaily=true", registry):
+    fail("SIMON registry Daily marker is missing")
+if not re.search(r"DailyCandidates\s*=\s*\{[^\n]*'simon'[^\n]*\}", config):
+    fail("SIMON must be included in the Daily candidate rotation")
 
 required_security_markers = (
     "INVALID_BLOCK_REPLAY",

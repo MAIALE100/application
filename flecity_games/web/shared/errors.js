@@ -82,6 +82,8 @@ window.FlecityErrors = {
         INVALID_DRAWING: '送信する絵が不正です',
         INVALID_SORT_SAVE: 'SORTの保存データを確認できませんでした。',
         INVALID_SORT_REPLAY: 'SORTのプレイ内容を確認できませんでした。',
+        INVALID_SLIDE_SAVE: 'SLIDEの途中保存を確認できませんでした。',
+        INVALID_SLIDE_REPLAY: 'SLIDEの操作履歴とクリア状態が一致しません。',
         INVALID_TEXT: '入力した文章が不正です'
     },
 

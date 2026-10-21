@@ -1070,6 +1070,12 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'simon_master',game.id,{score=score}) then
         unlocked[#unlocked+1]='simon_master'
     end
+    if game.id=='slide'
+        and tonumber(metadata and metadata.timeMs)<=tonumber(cfg.SlideMasterMs or 90000)
+        and tonumber(metadata and metadata.moves)<=tonumber(cfg.SlideMasterMoves or 120)
+        and unlockAchievement(playerIdentifier,'slide_master',game.id,{score=score,timeMs=metadata.timeMs,moves=metadata.moves}) then
+        unlocked[#unlocked+1]='slide_master'
+    end
     return unlocked
 end
 

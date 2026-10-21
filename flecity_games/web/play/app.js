@@ -2112,9 +2112,9 @@ async function suspendActivePlay(){
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
-   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
+   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
-   minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+   minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
 
    if(block&&!block.finished&&!block.finalizing){
      if(!block.daily)await suspendStep('block save',()=>persistBlock(false));
@@ -2132,6 +2132,10 @@ async function suspendActivePlay(){
      if(!nonogram.daily)await suspendStep('nonogram save',()=>persistNonogram(false));
      await suspendStep('nonogram cancel',()=>cancelPlaySession(nonogram&&nonogram.sessionToken));
    }
+   if(sortGame&&!sortGame.finished&&!sortGame.finalizing){
+     await suspendStep('sort save',()=>persistSort(false));
+     await suspendStep('sort cancel',()=>cancelPlaySession(sortGame&&sortGame.sessionToken));
+   }
 
    if(tapState!=='submitting')await suspendStep('quick tap cancel',()=>cancelPlaySession(tapSession&&tapSession.sessionToken));
    if(stopState!=='submitting')await suspendStep('stop cancel',()=>cancelPlaySession(stopSession&&stopSession.sessionToken));
@@ -2142,7 +2146,7 @@ async function suspendActivePlay(){
    if(!(highLow&&highLow.finalizing))await suspendStep('high low cancel',()=>cancelPlaySession(highLow&&highLow.sessionToken));
    if(!(simon&&simon.finalizing))await suspendStep('simon cancel',()=>cancelPlaySession(simon&&simon.sessionToken));
   }finally{
-   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;colorMatch=null;numberRush=null;highLow=null;simon=null;
+   block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;sortGame=null;colorMatch=null;numberRush=null;highLow=null;simon=null;
    tapSession=null;tapState='idle';stopSession=null;stopState='idle';
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
    suspendRunning=false;

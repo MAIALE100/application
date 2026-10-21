@@ -140,21 +140,207 @@ try {
         $pythonValidated = $false
         $pythonSucceeded = $false
 
-        if (Get-Command py -ErrorAction SilentlyContinue) {
-            $versionText = (& py -3 --version 2>&1 | Out-String).Trim()
-            if ($LASTEXITCODE -eq 0 -and $versionText -match '^Python\s+\d+\.\d+') {
+        $pyCommand = Get-Command py -ErrorAction SilentlyContinue
+        if ($pyCommand) {
+            try {
+                $versionText = (& $pyCommand.Source -3 --version 2>&1 | Out-String).Trim()
+                $versionExit = $LASTEXITCODE
+            }
+            catch {
+                $versionText = ''
+                $versionExit = -1
+            }
+            if ($versionExit -eq 0 -and $versionText -match '^Python\s+\d+\.\d+') {
                 $pythonValidated = $true
-                & py -3 $staticCheck
-                $pythonSucceeded = ($LASTEXITCODE -eq 0)
+                try {
+                    & $pyCommand.Source -3 $staticCheck
+                    $pythonSucceeded = ($LASTEXITCODE -eq 0)
+                }
+                catch {
+                    $pythonSucceeded = $false
+                }
             }
         }
 
-        if (-not $pythonValidated -and (Get-Command python -ErrorAction SilentlyContinue)) {
-            $versionText = (& python --version 2>&1 | Out-String).Trim()
-            if ($LASTEXITCODE -eq 0 -and $versionText -match '^Python\s+\d+\.\d+') {
-                $pythonValidated = $true
-                & python $staticCheck
-                $pythonSucceeded = ($LASTEXITCODE -eq 0)
+        if (-not $pythonValidated) {
+            $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+            $pythonPath = if ($pythonCommand) { [string]$pythonCommand.Source } else { '' }
+            $isWindowsStoreAlias = $pythonPath -match '(?i)\\WindowsApps\\python(?:3)?\.exe
+        if ($pythonValidated) {
+            if (-not $pythonSucceeded) {
+                throw 'Local Flecity Games static check failed. Test server was not changed.'
+            }
+            Write-Host ("Python safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+        }
+        else {
+            Write-Host 'Usable Python was not found. Running built-in PowerShell safety checks instead.' -ForegroundColor Yellow
+
+            $localManifest = Join-Path $Source 'fxmanifest.lua'
+            $localPlayLua = Join-Path $Source 'server\core\play.lua'
+            $localPlayJs = Join-Path $Source 'web\play\app.js'
+            $localPlayHtml = Join-Path $Source 'web\play\index.html'
+            $localErrors = Join-Path $Source 'web\shared\errors.js'
+            $localRegistry = Join-Path $Source 'shared\game_registry.lua'
+
+            foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry)) {
+                if (-not (Test-Path $required)) { throw "Local safety check missing required file: $required" }
+            }
+
+            $manifestText = Get-Content $localManifest -Raw
+            $playLuaText = Get-Content $localPlayLua -Raw
+            $playJsText = Get-Content $localPlayJs -Raw
+            $playHtmlText = Get-Content $localPlayHtml -Raw
+            $errorsText = Get-Content $localErrors -Raw
+            $registryText = Get-Content $localRegistry -Raw
+
+            if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Local safety check rejected a global ui_page.' }
+            if ($manifestText -notmatch "(?m)^version\s+'\d+\.\d+\.\d+-test'") { throw 'Local safety check could not verify the PLAY test version.' }
+            if ($playJsText -notmatch 'startSessionWithRetry' -or $playJsText -notmatch 'submitScoreWithRetry') { throw 'Local safety check could not verify PLAY retry helpers.' }
+            if ($playJsText -notmatch 'progressed!==true') { throw 'Local safety check could not verify untouched-save protection.' }
+            if ($playLuaText -notmatch 'saveStateHasProgress' -or $playLuaText -notmatch 'startRequests') { throw 'Local safety check could not verify PLAY save/session hardening.' }
+            if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Local safety check could not verify shared PLAY errors.' }
+            if ($playHtmlText -notmatch 'id="confirmOverlay"') { throw 'Local safety check could not verify PLAY confirmation UI.' }
+
+            $enabledPlayCount = ([regex]::Matches($registryText,"app='play'[^\r\n]*enabled=true")).Count
+            if ($enabledPlayCount -ne 12) { throw "Local safety check expected 12 enabled PLAY games, found $enabledPlayCount." }
+
+            Write-Host ("PowerShell safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+        }
+    }
+
+    if (-not (Test-Path $Source)) {
+        throw "Source resource was not found: $Source"
+    }
+    if (-not (Test-Path $Resources)) {
+        throw "Test server resources folder was not found: $Resources"
+    }
+
+    Step 'Staging flecity_games update'
+    $AutoReloadWasInstalled = Test-Path (Join-Path $Destination 'dev-auto-reload.enabled')
+    $Stage = Join-Path $Resources '.flecity_games_stage'
+    if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+
+    & robocopy $Source $Stage /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $stageCode = $LASTEXITCODE
+    if ($stageCode -gt 7) {
+        throw "staging robocopy failed with exit code $stageCode."
+    }
+
+    Step 'Verifying staged test build'
+    $DestinationForValidation = $Stage
+    $manifestPath = Join-Path $DestinationForValidation 'fxmanifest.lua'
+    $bridgePath = Join-Path $DestinationForValidation 'web\shared\bridge.js'
+    $errorsPath = Join-Path $DestinationForValidation 'web\shared\errors.js'
+    $playIndexPath = Join-Path $DestinationForValidation 'web\play\index.html'
+    $partyIndexPath = Join-Path $DestinationForValidation 'web\party\index.html'
+    $partyAppPath = Join-Path $DestinationForValidation 'web\party\app.js'
+    $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
+    $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
+    $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
+
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
+        if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
+    }
+
+    $manifestText = Get-Content $manifestPath -Raw
+    $bridgeText = Get-Content $bridgePath -Raw
+    $errorsText = Get-Content $errorsPath -Raw
+    $playIndexText = Get-Content $playIndexPath -Raw
+    $partyIndexText = Get-Content $partyIndexPath -Raw
+    $partyAppText = Get-Content $partyAppPath -Raw
+    $partyCoreText = Get-Content $partyCorePath -Raw
+    $clientMainText = Get-Content $clientMainPath -Raw
+    $registryText = Get-Content $registryPath -Raw
+
+    if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
+    if ($bridgeText -notmatch 'globalThis\.fetchNui' -or $bridgeText -notmatch "typeof fetchNui === 'function'") { throw 'LB Phone fetchNui compatibility check failed.' }
+    if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
+    if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'devMode=!window.invokeNative' -or $playIndexText -match 'setTimeout\(loadApp') { throw 'PLAY component-gated loader check failed.' }
+    if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
+    if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
+    if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
+    if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
+    if ($clientMainText -notmatch 'fixBlur=false' -or $clientMainText -match 'fixBlur=true') { throw 'LB Phone fixBlur compatibility check failed.' }
+    if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
+
+    $version = 'unknown'
+    if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
+    $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()
+    Write-Host ("Verified staged build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+
+    Step 'Deploying verified build'
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    & robocopy $Stage $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $robocopyCode = $LASTEXITCODE
+    if ($robocopyCode -gt 7) {
+        throw "deployment robocopy failed with exit code $robocopyCode."
+    }
+    $ResourceChanged = $robocopyCode -ne 0
+    Set-Content -Path (Join-Path $Destination 'dev-build.txt') -Value $commit -NoNewline -Encoding ascii
+    Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
+
+    Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
+    if (-not $AutoReloadWasInstalled -or $ResourceChanged) {
+        $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
+        Set-Content -Path (Join-Path $Destination 'dev-reload.token') -Value $token -NoNewline -Encoding ascii
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($AutoReloadWasInstalled -and $ResourceChanged) {
+        Write-Host 'Resource files changed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($AutoReloadWasInstalled) {
+        Write-Host 'flecity_games is already current. No resource restart was requested.' -ForegroundColor Green
+    } else {
+        Write-Host 'ONE-TIME SETUP: run this once in the server console:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_games' -ForegroundColor White
+        Write-Host 'After this first restart, future updates only need games-update.cmd.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+            if ($pythonCommand -and -not $isWindowsStoreAlias) {
+                try {
+                    $versionText = (& $pythonPath --version 2>&1 | Out-String).Trim()
+                    $versionExit = $LASTEXITCODE
+                }
+                catch {
+                    $versionText = ''
+                    $versionExit = -1
+                }
+                if ($versionExit -eq 0 -and $versionText -match '^Python\s+\d+\.\d+') {
+                    $pythonValidated = $true
+                    try {
+                        & $pythonPath $staticCheck
+                        $pythonSucceeded = ($LASTEXITCODE -eq 0)
+                    }
+                    catch {
+                        $pythonSucceeded = $false
+                    }
+                }
             }
         }
 

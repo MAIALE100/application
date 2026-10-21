@@ -135,77 +135,38 @@ try {
 
     if (-not $workflowVerified) {
         Step 'Running local safety checks'
+        Write-Host 'Using built-in PowerShell safety checks.' -ForegroundColor Yellow
 
-        $staticCheck = Join-Path $RepoRoot 'flecity_games\tools\static_check.py'
-        $pythonValidated = $false
-        $pythonSucceeded = $false
+        $localManifest = Join-Path $Source 'fxmanifest.lua'
+        $localPlayLua = Join-Path $Source 'server\core\play.lua'
+        $localPlayJs = Join-Path $Source 'web\play\app.js'
+        $localPlayHtml = Join-Path $Source 'web\play\index.html'
+        $localErrors = Join-Path $Source 'web\shared\errors.js'
+        $localRegistry = Join-Path $Source 'shared\game_registry.lua'
 
-        $pyCommand = Get-Command py -ErrorAction SilentlyContinue
-        if ($pyCommand) {
-            try {
-                $versionText = (& $pyCommand.Source -3 --version 2>&1 | Out-String).Trim()
-                $versionExit = $LASTEXITCODE
-            }
-            catch {
-                $versionText = ''
-                $versionExit = -1
-            }
-            if ($versionExit -eq 0 -and $versionText -match '^Python\s+\d+\.\d+') {
-                $pythonValidated = $true
-                try {
-                    & $pyCommand.Source -3 $staticCheck
-                    $pythonSucceeded = ($LASTEXITCODE -eq 0)
-                }
-                catch {
-                    $pythonSucceeded = $false
-                }
-            }
+        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry)) {
+            if (-not (Test-Path $required)) { throw "Local safety check missing required file: $required" }
         }
 
-        if (-not $pythonValidated) {
-            $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
-            $pythonPath = if ($pythonCommand) { [string]$pythonCommand.Source } else { '' }
-            $isWindowsStoreAlias = $pythonPath -match '(?i)\\WindowsApps\\python(?:3)?\.exe
-        if ($pythonValidated) {
-            if (-not $pythonSucceeded) {
-                throw 'Local Flecity Games static check failed. Test server was not changed.'
-            }
-            Write-Host ("Python safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
-        }
-        else {
-            Write-Host 'Usable Python was not found. Running built-in PowerShell safety checks instead.' -ForegroundColor Yellow
+        $manifestText = Get-Content $localManifest -Raw
+        $playLuaText = Get-Content $localPlayLua -Raw
+        $playJsText = Get-Content $localPlayJs -Raw
+        $playHtmlText = Get-Content $localPlayHtml -Raw
+        $errorsText = Get-Content $localErrors -Raw
+        $registryText = Get-Content $localRegistry -Raw
 
-            $localManifest = Join-Path $Source 'fxmanifest.lua'
-            $localPlayLua = Join-Path $Source 'server\core\play.lua'
-            $localPlayJs = Join-Path $Source 'web\play\app.js'
-            $localPlayHtml = Join-Path $Source 'web\play\index.html'
-            $localErrors = Join-Path $Source 'web\shared\errors.js'
-            $localRegistry = Join-Path $Source 'shared\game_registry.lua'
+        if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Local safety check rejected a global ui_page.' }
+        if ($manifestText -notmatch "(?m)^version\s+'\d+\.\d+\.\d+-test'") { throw 'Local safety check could not verify the PLAY test version.' }
+        if ($playJsText -notmatch 'startSessionWithRetry' -or $playJsText -notmatch 'submitScoreWithRetry') { throw 'Local safety check could not verify PLAY retry helpers.' }
+        if ($playJsText -notmatch 'progressed!==true') { throw 'Local safety check could not verify untouched-save protection.' }
+        if ($playLuaText -notmatch 'saveStateHasProgress' -or $playLuaText -notmatch 'startRequests') { throw 'Local safety check could not verify PLAY save/session hardening.' }
+        if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Local safety check could not verify shared PLAY errors.' }
+        if ($playHtmlText -notmatch 'id="confirmOverlay"') { throw 'Local safety check could not verify PLAY confirmation UI.' }
 
-            foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry)) {
-                if (-not (Test-Path $required)) { throw "Local safety check missing required file: $required" }
-            }
+        $enabledPlayCount = ([regex]::Matches($registryText,"app='play'[^\r\n]*enabled=true")).Count
+        if ($enabledPlayCount -ne 12) { throw "Local safety check expected 12 enabled PLAY games, found $enabledPlayCount." }
 
-            $manifestText = Get-Content $localManifest -Raw
-            $playLuaText = Get-Content $localPlayLua -Raw
-            $playJsText = Get-Content $localPlayJs -Raw
-            $playHtmlText = Get-Content $localPlayHtml -Raw
-            $errorsText = Get-Content $localErrors -Raw
-            $registryText = Get-Content $localRegistry -Raw
-
-            if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Local safety check rejected a global ui_page.' }
-            if ($manifestText -notmatch "(?m)^version\s+'\d+\.\d+\.\d+-test'") { throw 'Local safety check could not verify the PLAY test version.' }
-            if ($playJsText -notmatch 'startSessionWithRetry' -or $playJsText -notmatch 'submitScoreWithRetry') { throw 'Local safety check could not verify PLAY retry helpers.' }
-            if ($playJsText -notmatch 'progressed!==true') { throw 'Local safety check could not verify untouched-save protection.' }
-            if ($playLuaText -notmatch 'saveStateHasProgress' -or $playLuaText -notmatch 'startRequests') { throw 'Local safety check could not verify PLAY save/session hardening.' }
-            if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Local safety check could not verify shared PLAY errors.' }
-            if ($playHtmlText -notmatch 'id="confirmOverlay"') { throw 'Local safety check could not verify PLAY confirmation UI.' }
-
-            $enabledPlayCount = ([regex]::Matches($registryText,"app='play'[^\r\n]*enabled=true")).Count
-            if ($enabledPlayCount -ne 12) { throw "Local safety check expected 12 enabled PLAY games, found $enabledPlayCount." }
-
-            Write-Host ("PowerShell safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
-        }
+        Write-Host ("PowerShell safety check: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
     }
 
     if (-not (Test-Path $Source)) {

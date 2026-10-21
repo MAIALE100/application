@@ -1185,7 +1185,7 @@ function syncFallCanonical(game,canonical){
  const board=canonical.board.map(row=>Array.isArray(row)?row.map(Number):[]);
  if(board.some(row=>row.length!==game.width))return false;
  game.board=board;game.score=Number(canonical.score)||0;game.lines=Number(canonical.lines)||0;game.combo=Number(canonical.combo)||0;
- game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>({x:Number(entry.x??entry[0]),rotation:Number(entry.rotation??entry[1])})):game.history;
+ game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>Array.isArray(entry)?[Number(entry[0]),Number(entry[1])]:[Number(entry.x),Number(entry.rotation)]):game.history;
  game.nextPiece=Number(canonical.nextPiece)||fallPieceFor(game.seed,game.history.length);
  game.ended=canonical.ended===true;
  if(!game.ended)fallResetCursor();
@@ -1247,7 +1247,7 @@ async function dropFall(){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
  const applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo);
  if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
- game.history.push({x:game.x,rotation:game.rotation});game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
+ game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
  game.nextPiece=fallPieceFor(game.seed,game.history.length);
  game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
  game.busy=true;

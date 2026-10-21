@@ -360,6 +360,12 @@ if "previewMs=1200" not in play_lua or "memoryPreviewConfigured" not in play_lua
     fail("MEMORY preview-time scoring guard is missing")
 if "replayColorMatch" not in play_lua or "colorMatchReplay" not in play_lua:
     fail("COLOR MATCH server replay/selftest is missing")
+if not re.search(r"id='color_match'[^\n]*supportsDaily=true", registry):
+    fail("COLOR MATCH registry Daily marker is missing")
+if not re.search(r"DailyCandidates\s*=\s*\{[^\n]*'color_match'[^\n]*\}", config):
+    fail("COLOR MATCH must be included in the Daily candidate rotation")
+if "openColorMatch(true)" not in play_js or "daily=colorMatchEl.dataset.daily==='1'" not in play_js or "daily:session.daily===true" not in play_js:
+    fail("COLOR MATCH Daily client lifecycle is missing")
 if "replayNumberRush" not in play_lua or "numberRushReplay" not in play_lua:
     fail("NUMBER RUSH server replay/selftest is missing")
 if "replayHighLow" not in play_lua or "highLowReplay" not in play_lua:

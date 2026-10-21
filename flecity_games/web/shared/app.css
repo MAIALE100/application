@@ -786,3 +786,12 @@ body.reduced-motion .number-rush-board.rush-shift{animation:none!important}
 #quickTap[data-state="go"]{border-color:#9fe6b5;box-shadow:0 0 1.3rem rgba(114,231,151,.08)}
 #quickTap[data-state="false-start"]{border-color:#824c54;box-shadow:inset 0 0 1.4rem rgba(239,100,116,.06)}
 #tapRunMeta{font-variant-numeric:tabular-nums;letter-spacing:.015em}
+
+
+/* Puzzle mastery feedback v16 */
+.mines-board.chord-open{animation:chord-open .22s ease}
+@keyframes chord-open{50%{filter:brightness(1.12);transform:scale(1.006);box-shadow:0 0 1.1rem rgba(111,224,166,.09)}}
+.nonogram-clue.solved{color:#9be7b5;opacity:1;text-decoration:line-through;text-decoration-thickness:.0625rem}
+.nonogram-grid.line-solved{animation:line-solved .2s ease}
+@keyframes line-solved{50%{filter:brightness(1.12);box-shadow:0 0 1rem rgba(116,224,162,.07)}}
+body.reduced-motion .mines-board.chord-open,body.reduced-motion .nonogram-grid.line-solved{animation:none!important}

@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.18.5-test**
+- Resource version: **0.19.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **22/22 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -173,3 +173,10 @@ The test copy enables the optional `dev_reload.lua` watcher by creating `dev-aut
 
 The first time the watcher is installed, run `restart flecity_games` once in the server console. After that, future `games-update.cmd` runs update only `flecity_games`; it restarts that resource automatically only when resource files actually changed. If nothing changed, no restart is requested. The whole FiveM server does not need to restart.
 
+
+### 0.19.0 visual quality pass
+- Distinct visual identity for all 12 PLAY games on the home library.
+- QUICK TAP and STOP! now communicate live state visually, not only through text.
+- BLOCK, MERGE, MINES, NONOGRAM, NUMBER RUSH and HIGH & LOW add tactile interaction feedback without changing server scoring rules.
+- STACK, MEMORY and SIMON receive stronger game-specific presentation and animation.
+- Reduced-motion remains respected for the new visual effects.

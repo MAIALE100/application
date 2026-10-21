@@ -1216,6 +1216,11 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'slide_master',game.id,{score=score,timeMs=metadata.timeMs,moves=metadata.moves}) then
         unlocked[#unlocked+1]='slide_master'
     end
+    if game.id=='fall'
+        and (tonumber(metadata and metadata.lines) or 0)>=tonumber(cfg.FallMasterLines or 20)
+        and unlockAchievement(playerIdentifier,'fall_master',game.id,{score=score,lines=metadata.lines,pieces=metadata.pieces}) then
+        unlocked[#unlocked+1]='fall_master'
+    end
     return unlocked
 end
 

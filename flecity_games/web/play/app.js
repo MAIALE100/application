@@ -17,13 +17,13 @@ const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchBest=document.getElementById('colorMatchBest'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
-const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
+const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,simon=null,simonTimer=null,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -207,7 +207,7 @@ const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エ
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const gameVisuals={
  quick_tap:{icon:'⚡',eyebrow:'REFLEX'},stop:{icon:'◎',eyebrow:'TIMING'},color_match:{icon:'A',eyebrow:'FOCUS'},number_rush:{icon:'25',eyebrow:'SPEED'},
- stack:{icon:'▤',eyebrow:'ARCADE'},high_low:{icon:'7',eyebrow:'LUCK'},simon:{icon:'◆',eyebrow:'MEMORY'},
+ stack:{icon:'▤',eyebrow:'ARCADE'},high_low:{icon:'↕',eyebrow:'SPEED'},simon:{icon:'◆',eyebrow:'MEMORY'},
  block:{icon:'▦',eyebrow:'BUILD'},merge:{icon:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'✦',eyebrow:'LOGIC'},nonogram:{icon:'▩',eyebrow:'PUZZLE'},memory:{icon:'●',eyebrow:'PAIR'}
 };
 
@@ -216,7 +216,7 @@ const rankTargets={
  stack:{order:'desc',S:25,A:15,B:8},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:5000,A:2000,B:750},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},color_match:{order:'asc',S:7000,A:10000,B:15000},
- number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:10,A:6,B:3},simon:{order:'desc',S:15,A:10,B:5}
+ number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:5200,A:4000,B:2500},simon:{order:'desc',S:15,A:10,B:5}
 };
 function rankForScore(gameId,score){
  const cfg=rankTargets[gameId],n=Number(score);if(!cfg||!Number.isFinite(n))return null;
@@ -242,7 +242,7 @@ const achievementLabels={
  block_master:'BLOCK MASTER · BLOCK 5,000点以上',
  perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
  number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
- high_low_streak:'HIGH ROLLER · HIGH & LOW 10連勝',
+ high_low_streak:'RANGE MASTER · RANGE RUSH 10問連続正解',
  bullseye:'BULLSEYE · STOP! 990点以上',
  merge_master:'MERGE MASTER · 2048タイル到達',
  mines_sprinter:'MINES SPRINTER · 60秒以内クリア',
@@ -1525,45 +1525,66 @@ numberRushNew.onclick=async()=>{
  numberRush=null;openNumberRush(daily);
 };
 
-/* HIGH & LOW */
-function highLowLabel(value){
- const n=Number(value)||0;
- if(n===1)return 'A';
- if(n===11)return 'J';
- if(n===12)return 'Q';
- if(n===13)return 'K';
- return String(n);
+/* RANGE RUSH */
+function updateRangeRushTimer(){
+ if(!highLow){
+   highLowTimerFill.style.width='100%';highLowTimerFill.classList.remove('danger');highLowTimerText.textContent='2.2s';return;
+ }
+ const limit=Math.max(800,Number(highLow.timeLimitMs)||2200);
+ if(!highLow.running||highLow.finished){
+   highLowTimerFill.style.width=highLow.finished?'0%':'100%';
+   highLowTimerFill.classList.remove('danger');
+   highLowTimerText.textContent=highLow.finished?'終了':(limit/1000).toFixed(1)+'s';
+   return;
+ }
+ const elapsed=Math.max(0,performance.now()-highLow.roundStartedAt);
+ const remaining=Math.max(0,limit-elapsed),ratio=Math.max(0,Math.min(1,remaining/limit));
+ highLowTimerFill.style.width=(ratio*100).toFixed(1)+'%';
+ highLowTimerFill.classList.toggle('danger',ratio<=.28);
+ highLowTimerText.textContent=(remaining/1000).toFixed(1)+'s';
+ if(remaining<=0&&!highLow.busy)void guessHighLow('timeout');
+}
+function startRangeRushClock(){
+ clearInterval(highLowClock);highLowClock=setInterval(updateRangeRushTimer,50);updateRangeRushTimer();
 }
 function renderHighLow(){
  refreshScreenBests();
  if(!highLow){
-   highLowCard.textContent='?';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30';
-   highLowHigher.disabled=true;highLowLower.disabled=true;return;
+   highLowCard.textContent='?';highLowPivot.textContent='50';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30 · STREAK 0';
+   highLowHigher.textContent='HIGH ↑';highLowLower.textContent='LOW ↓';
+   highLowHigher.disabled=true;highLowLower.disabled=true;updateRangeRushTimer();return;
  }
- highLowCard.textContent=highLowLabel(highLow.currentValue);
- highLowStreak.textContent=String(highLow.streak);
+ highLowCard.textContent=String(highLow.currentValue);
+ highLowPivot.textContent=String(highLow.pivot);
+ highLowStreak.textContent=String(highLow.score);
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+(highLow.finished?' · GAME OVER':'');
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+(highLow.finished?' · GAME OVER':'');
+ highLowLower.textContent='LOW < '+String(highLow.pivot);
+ highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
+ updateRangeRushTimer();
 }
 function openHighLow(){
- hideAll();highLowEl.classList.remove('hidden');highLow=null;
+ hideAll();highLowEl.classList.remove('hidden');clearInterval(highLowClock);highLowClock=null;highLow=null;
+ highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout');
  highLowStart.classList.remove('hidden');highLowStart.disabled=false;highLowStart.textContent='スタート';
- highLowNew.classList.add('hidden');renderHighLow();setStatus('次の数字が今よりHIGHかLOWか予想してください。','good');
+ highLowNew.classList.add('hidden');renderHighLow();setStatus('数字が基準よりHIGHかLOWかを、時間内に判断してください。','good');
 }
 async function startHighLow(){
  if(highLow&&highLow.running)return;
  highLowStart.disabled=true;
  const session=await startSessionWithRetry({gameId:'high_low'});
- if(!session.ok){highLowStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('HIGH & LOWを開始できません: '+FlecityErrors.text(session.error),'error');return;}
+ if(!session.ok){highLowStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('RANGE RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const currentValue=Number(session.challenge&&session.challenge.currentValue)||0;
- if(currentValue<1||currentValue>13){
+ const pivot=Number(session.challenge&&session.challenge.pivot)||0;
+ const timeLimitMs=Number(session.challenge&&session.challenge.timeLimitMs)||2200;
+ if(currentValue<1||currentValue>99||pivot<1||pivot>99||currentValue===pivot){
    await cancelPlaySession(session.sessionToken);
-   highLowStart.disabled=false;setStatus('HIGH & LOWの初期状態を取得できませんでした。','error');return;
+   highLowStart.disabled=false;setStatus('RANGE RUSHの初期状態を取得できませんでした。','error');return;
  }
- highLow={sessionToken:session.sessionToken,maxRounds,currentValue,completed:0,streak:0,startedAt:performance.now(),running:true,finished:false,busy:false};
- highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();setStatus('HIGH & LOW開始。未来の数字はSERVERで判定します。','good');
+ highLow={sessionToken:session.sessionToken,maxRounds,currentValue,pivot,timeLimitMs,completed:0,streak:0,score:0,roundStartedAt:performance.now(),startedAt:performance.now(),running:true,finished:false,busy:false};
+ highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();startRangeRushClock();setStatus('RANGE RUSH START · 速く正解するほど高得点。','good');
 }
 async function guessHighLow(guess){
  const game=highLow;if(!game||!game.running||game.finished||game.busy)return;
@@ -1581,51 +1602,65 @@ async function guessHighLow(guess){
    return;
  }
  if(!res.ok){
+   clearInterval(highLowClock);highLowClock=null;
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.busy=false;game.running=false;game.finished=true;renderHighLow();
-   setStatus('HIGH & LOWの判定通信に失敗しました。もう一度お試しください。','error');return;
+   setStatus('RANGE RUSHの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
- game.currentValue=Number(res.nextValue)||game.currentValue;
  game.streak=Math.max(0,Number(res.streak)||0);
+ game.score=Math.max(0,Number(res.score)||0);
  game.completed=Math.max(0,Number(res.completed)||0);
  game.busy=false;
  highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
- highLowEl.classList.remove('guess-correct','guess-wrong');void highLowEl.offsetWidth;highLowEl.classList.add(res.correct?'guess-correct':'guess-wrong');
+ highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout');void highLowEl.offsetWidth;
  if(res.correct){
-   tone(720+Math.min(220,game.streak*12),35);
-   setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 正解 · '+game.streak+'連勝','good');
+   highLowEl.classList.add('guess-correct');
+   tone(700+Math.min(250,game.streak*15),32);
+   setStatus('CORRECT · SPEED BONUS · STREAK '+game.streak,'good');
  }else{
-   tone(160,80);setStatus(highLowLabel(res.currentValue)+' → '+highLowLabel(res.nextValue)+' · 不正解','warn');
+   highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong');
+   tone(150,90);
+   setStatus(res.timedOut?'TIME UP · RANGE RUSH終了':'MISS · RANGE RUSH終了','warn');
+ }
+ if(res.correct&&!res.ended){
+   game.currentValue=Number(res.nextValue)||game.currentValue;
+   game.pivot=Number(res.nextPivot)||game.pivot;
+   game.roundStartedAt=performance.now();
+ }else{
+   game.running=false;clearInterval(highLowClock);highLowClock=null;
  }
  renderHighLow();
+ if(res.correct&&!res.ended)startRangeRushClock();
  if(res.ended===true){await finishHighLow(res.cleared===true);}
 }
 async function finishHighLow(cleared){
  const game=highLow;if(!game||game.finished||game.finalizing)return;
- game.finished=true;game.finalizing=true;game.running=false;game.busy=true;if(highLow===game)renderHighLow();
+ game.finished=true;game.finalizing=true;game.running=false;game.busy=true;clearInterval(highLowClock);highLowClock=null;if(highLow===game)renderHighLow();
  const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
- const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.streak,durationMs});
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs});
  game.finalizing=false;
  if(res.ok){
    game.sessionToken=null;game.busy=false;
-   if(highLow===game)showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'HIGH & LOW '+res.score+'連勝');
+   if(highLow===game){showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'RANGE RUSH '+res.score+' pts · STREAK '+game.streak);renderHighLow();}
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.running=false;game.busy=false;
-   if(highLow===game){renderHighLow();setStatus('HIGH & LOWの記録を保存できませんでした。もう一度お試しください。','error');}
+   if(highLow===game){renderHighLow();setStatus('RANGE RUSHの記録を保存できませんでした。もう一度お試しください。','error');}
  }
 }
 highLowStart.onclick=startHighLow;
 highLowHigher.onclick=()=>guessHighLow('high');
 highLowLower.onclick=()=>guessHighLow('low');
 highLowBack.onclick=async()=>{
- if(highLow&&highLow.finalizing){setStatus('HIGH & LOWの記録を保存中です…','warn');return;}
- if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('HIGH & LOWを終了しますか？','現在の連勝記録は保存されず終了します。','終了する');if(!ok)return;}
+ if(highLow&&highLow.finalizing){setStatus('RANGE RUSHの記録を保存中です…','warn');return;}
+ if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('RANGE RUSHを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}
+ clearInterval(highLowClock);highLowClock=null;
  if(highLow&&highLow.sessionToken)await cancelPlaySession(highLow.sessionToken);
  highLow=null;showHome();
 };
 highLowNew.onclick=async()=>{
- if(highLow&&highLow.finalizing){setStatus('HIGH & LOWの記録を保存中です…','warn');return;}
- if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('HIGH & LOWをやり直しますか？','現在の連勝記録は保存されず、新しく始めます。','やり直す');if(!ok)return;}
+ if(highLow&&highLow.finalizing){setStatus('RANGE RUSHの記録を保存中です…','warn');return;}
+ if(highLow&&highLow.running&&!highLow.finished){const ok=await confirmAction('RANGE RUSHをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}
+ clearInterval(highLowClock);highLowClock=null;
  if(highLow&&highLow.sessionToken)await cancelPlaySession(highLow.sessionToken);
  highLow=null;openHighLow();
 };
@@ -1883,9 +1918,9 @@ async function suspendActivePlay(){
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
-   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);
+   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
-   minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
+   minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
 
    if(block&&!block.finished&&!block.finalizing){
      if(!block.daily)await suspendStep('block save',()=>persistBlock(false));

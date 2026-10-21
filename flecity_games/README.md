@@ -1,8 +1,8 @@
 ## Current test candidate
 
-- Resource version: **0.30.0-test**
+- Resource version: **0.31.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
-- Initial game registry: **24/24 enabled**.
+- Initial game registry: **25/25 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
 
 # Flecity Games
@@ -29,13 +29,14 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 
 ## Initial game set
 
-### PLAY — 14/14 enabled
+### PLAY — 15/15 enabled
 
 - QUICK TAP — reaction timing with server plausibility validation
 - STOP! — server-recalculated marker score
 - TOWER — precision stacking with PERFECT streak scoring
 - BLOCK — endless placement, line clear, combo score, auto-save/resume
 - MERGE — deterministic 4x4 merge game, auto-save/resume
+- FALL — deterministic 10x18 hard-drop block game with 7 pieces, line clears, combo scoring, auto-save/resume, and server-replayed placements
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
@@ -66,7 +67,7 @@ PARTY rooms keep the same members while changing games. Room Code and internal R
 
 - LB Phone `fixBlur=true` enabled.
 - Shared PLAY/PARTY CSS uses rem-based sizing instead of px for blur-safe custom-app rendering.
-- PLAY game library uses dedicated SVG icons for all 14 solo games.
+- PLAY game library uses dedicated SVG icons for all 15 solo games.
 - Game cards use larger icons, stronger text contrast, clearer metadata, and a Daily Challenge game icon.
 - PLAY home shows up to three recently played games using server-side score history timestamps.
 - GAME LIBRARY can be filtered by Quick / Arcade / Endless / Puzzle without reloading the app.
@@ -120,7 +121,7 @@ Implemented:
   - SLIDE MASTER
 - configurable achievement thresholds
 - character-persisted SOUND / REDUCED MOTION settings shared by PLAY and PARTY
-- deterministic server replay validation for BLOCK, MERGE, TOWER, SORT, SLIDE, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores
+- deterministic server replay validation for BLOCK, MERGE, FALL, TOWER, SORT, SLIDE, MEMORY, COLOR MATCH, NUMBER RUSH, and RANGE RUSH final scores
 - autosave bound to the active server session and server-issued seed
 - resumable-game seed is loaded from the database by the server; the UI cannot choose a resume seed
 - non-destructive `game_preflight`, `game_selftest`, and `game_healthcheck`

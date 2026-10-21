@@ -350,6 +350,14 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
 
+## SLIDE MASTER 0.30
+
+- SLIDEを90秒以内・120手以内でクリアすると `SLIDE MASTER` が解除される
+- 条件を片方でも超えた場合は解除されない
+- 通常SLIDE / Daily SLIDEのどちらでも条件を満たせば解除できる
+- 同じ実績を再度条件達成しても重複登録されない
+- 実績一覧が15個表示になる
+
 ## Daily SLIDE 0.29
 
 - TODAY'S CHALLENGEがSLIDEの日は同じ日付で全員同じ盤面になる

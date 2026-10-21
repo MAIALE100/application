@@ -9,7 +9,7 @@ local lastToken=LoadResourceFile(resourceName,marker) or ''
 local function writeRuntimeStamp()
     local version=GetResourceMetadata(resourceName,'version',0) or 'unknown'
     local build=(LoadResourceFile(resourceName,'dev-build.txt') or 'unknown'):gsub('%s+','')
-    local stamp=('version=%s\nbuild=%s\nstarted=%s\n'):format(version,build,os.date('!%Y-%m-%dT%H:%M:%SZ'))
+    local stamp=('version=%s\nbuild=%s\nstarted=%s\nreload_v2=1\n'):format(version,build,os.date('!%Y-%m-%dT%H:%M:%SZ'))
     SaveResourceFile(resourceName,'dev-runtime.txt',stamp,-1)
 end
 

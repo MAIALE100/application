@@ -74,8 +74,10 @@ try {
     Run-Git $AutoRoot @('clean','-fd') | Out-Null
 
     $Watcher = Join-Path $AutoRoot 'games-auto-update.ps1'
+    $OneShot = Join-Path $AutoRoot 'games-auto-update-once.ps1'
     $Updater = Join-Path $AutoRoot 'games-update.ps1'
     if (-not (Test-Path $Watcher)) { throw "Watcher is missing: $Watcher" }
+    if (-not (Test-Path $OneShot)) { throw "One-shot updater is missing: $OneShot" }
     if (-not (Test-Path $Updater)) { throw "Updater is missing: $Updater" }
 
     if (-not $SkipInitialDeploy) {
@@ -86,22 +88,29 @@ try {
         }
     }
 
-    Step 'Registering Windows automatic update startup'
+    Step 'Registering resilient Windows automatic update task'
     $q = [char]34
-    $argument = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File $q$Watcher$q -ServerBase $q$ServerBase$q -PollSeconds $PollSeconds -StableSeconds $StableSeconds"
+    $argument = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File $q$OneShot$q -ServerBase $q$ServerBase$q -StableSeconds $StableSeconds"
     $registered = $false
+
+    try {
+        Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -and $_.CommandLine -match 'games-auto-update\.ps1' } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    } catch {}
 
     try {
         Import-Module ScheduledTasks -ErrorAction Stop
         $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
         $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $argument
-        $trigger = New-ScheduledTaskTrigger -AtLogOn -User $user
+        $loginTrigger = New-ScheduledTaskTrigger -AtLogOn -User $user
+        $repeatTrigger = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
         $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
-        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero)
-        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Automatically deploy verified games/platform-core updates to the Flecity FiveM test server.' -Force | Out-Null
+        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
+        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($loginTrigger,$repeatTrigger) -Principal $principal -Settings $settings -Description 'Checks games/platform-core every minute and deploys verified Flecity Games updates.' -Force | Out-Null
         Start-ScheduledTask -TaskName $TaskName
         $registered = $true
-        Write-Host 'Windows Scheduled Task registered and started.' -ForegroundColor Green
+        Write-Host 'Windows Scheduled Task registered: one-shot check every minute.' -ForegroundColor Green
     }
     catch {
         Write-Host ("Scheduled Task registration failed: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
@@ -116,7 +125,7 @@ try {
         $line2 = 'start "" powershell.exe ' + $argument
         Set-Content -Path $startupCmd -Value @($line1,$line2) -Encoding ASCII
         Start-Process powershell.exe -WindowStyle Hidden -ArgumentList $argument | Out-Null
-        Write-Host "Startup fallback installed: $startupCmd" -ForegroundColor Green
+        Write-Host "Startup fallback installed. Task Scheduler repeating checks are preferred." -ForegroundColor Yellow
     }
 
     Remove-Item $DisabledMarker -Force -ErrorAction SilentlyContinue
@@ -130,7 +139,7 @@ try {
     Write-Host "Watch branch : $Branch"
     Write-Host "Auto worktree: $AutoRoot"
     Write-Host "Test server  : $ServerBase"
-    Write-Host "Poll         : every $PollSeconds seconds"
+    Write-Host "Check        : every 1 minute (one-shot task)"
     Write-Host "Stabilize    : $StableSeconds seconds before deploy"
     Write-Host "Log          : $(Join-Path $StateDir 'auto-update.log')"
     Write-Host ''

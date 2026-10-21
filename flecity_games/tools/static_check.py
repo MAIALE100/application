@@ -49,8 +49,8 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 24:
-    fail(f"expected 24 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 25:
+    fail(f"expected 25 enabled games, found {len(enabled)}: {enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -130,8 +130,8 @@ if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
 if "startSessionWithRetry" not in play_js:
     fail("PLAY session-start retry helper is missing")
-if play_js.count("startSessionWithRetry(") != 15:
-    fail("all 14 PLAY games must start through the shared retry/lifecycle wrapper")
+if play_js.count("startSessionWithRetry(") != 16:
+    fail("all 15 PLAY games must start through the shared retry/lifecycle wrapper")
 if play_js.count("FlecityBridge.call('playStartSession'") != 1:
     fail("PLAY games must not bypass the shared session-start wrapper")
 if "submitScoreWithRetry" not in play_js:
@@ -158,7 +158,7 @@ if "playActivateSession" not in play_js or "activateMinesTiming" not in play_js 
     fail("MINES/NONOGRAM first-action timer flow is missing")
 if "confirmAction" not in play_js or 'id="confirmOverlay"' not in play_html:
     fail("PLAY destructive reset confirmation is missing")
-for best_id in ("tapBest","stopBest","stackBest","blockBest","mergeBest","minesBest","nonogramBest","memoryBest","sortBest","slideBest","colorMatchBest","numberRushBest","highLowBest","simonBest"):
+for best_id in ("tapBest","stopBest","stackBest","blockBest","mergeBest","fallBest","minesBest","nonogramBest","memoryBest","sortBest","slideBest","colorMatchBest","numberRushBest","highLowBest","simonBest"):
     if f'id="{best_id}"' not in play_html:
         fail(f"PLAY game-screen BEST label missing: {best_id}")
 for name, html in (("PLAY", play_html), ("PARTY", party_html)):
@@ -197,6 +197,7 @@ required_security_markers = (
     "INVALID_HIGH_LOW_REPLAY",
     "INVALID_SIMON_REPLAY",
     "INVALID_SLIDE_REPLAY",
+    "INVALID_FALL_REPLAY",
     "INVALID_SESSION_SEED",
 )
 play_lua = read("flecity_games/server/core/play.lua")
@@ -286,6 +287,19 @@ if "openSort" not in play_js or "persistSort" not in play_js or "sortBoard" not 
     fail("SORT resumable client flow is missing")
 if not re.search(r"id='sort'[^\n]*supportsResume=true[^\n]*version=1", registry):
     fail("SORT registry/resume marker is missing")
+if "replayFallState" not in play_lua or "FALL_BASE_SHAPES" not in play_lua or "INVALID_FALL_REPLAY" not in play_lua:
+    fail("FALL deterministic replay engine is missing")
+if "fallReplayEmpty" not in play_lua or "fallReplayMove" not in play_lua or "fallValidateScore" not in play_lua:
+    fail("FALL server selftest coverage is missing")
+if "openFall" not in play_js or "persistFall" not in play_js or "finishFall" not in play_js or "dropFall" not in play_js:
+    fail("FALL resumable client flow is missing")
+if not re.search(r"id='fall'[^\n]*supportsResume=true[^\n]*rankingOrder='desc'[^\n]*version=1", registry):
+    fail("FALL registry/resume marker is missing")
+if 'id="fallGame"' not in play_html or 'id="fallBoard"' not in play_html or 'id="fallFinish"' not in play_html:
+    fail("FALL game DOM is missing")
+if "icons/fall.svg" not in play_js:
+    fail("FALL dedicated icon wiring is missing")
+
 if "generateSlideBoard" not in play_lua or "replaySlideState" not in play_lua or "INVALID_SLIDE_REPLAY" not in play_lua:
     fail("SLIDE deterministic replay engine is missing")
 if "slideSeedBoard" not in play_lua or "slideReplaySolve" not in play_lua or "slideValidateTime" not in play_lua:
@@ -313,6 +327,8 @@ if "PLAY library navigation pass v4" not in play_css or ".library-filter.active"
     fail("PLAY library navigation v4 CSS is missing")
 if "PLAY favorites pass v5" not in play_css or ".favorite-toggle.active" not in play_css:
     fail("PLAY favorites v5 CSS is missing")
+if "/* FALL endless */" not in play_css or ".fall-board" not in play_css or '.game[data-game="fall"]' not in play_css:
+    fail("FALL visual CSS is missing")
 if "/* SLIDE puzzle */" not in play_css or ".slide-board" not in play_css or '.game[data-game="slide"]' not in play_css:
     fail("SLIDE visual CSS is missing")
 for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
@@ -376,7 +392,7 @@ for marker in (
     if marker not in party_lua:
         fail(f"PARTY selftest missing: {marker}")
 
-expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
+expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
 expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)

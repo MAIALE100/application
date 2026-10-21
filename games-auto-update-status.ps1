@@ -35,8 +35,19 @@ else {
 if ($task) {
     $taskInfo = Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction SilentlyContinue
     Write-Host ('Task state  : ' + $task.State)
+    $actionText = (($task.Actions | ForEach-Object { $_.Arguments }) -join ' ')
+    if ($actionText -match 'games-auto-update-once\.ps1') {
+        Write-Host 'Task mode   : recurring one-shot (preferred)' -ForegroundColor Green
+    }
+    elseif ($actionText -match 'games-auto-update\.ps1') {
+        Write-Host 'Task mode   : legacy persistent watcher' -ForegroundColor Yellow
+    }
+    else {
+        Write-Host ('Task mode   : unknown action: ' + $actionText) -ForegroundColor Yellow
+    }
     if ($taskInfo) {
         Write-Host ('Last run    : ' + $taskInfo.LastRunTime)
+        Write-Host ('Next run    : ' + $taskInfo.NextRunTime)
         Write-Host ('Last result : ' + $taskInfo.LastTaskResult)
     }
 } else {

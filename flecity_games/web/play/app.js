@@ -2616,7 +2616,8 @@ function renderSimon(){
    return;
  }
  simonRound.textContent=String(game.cleared);
- simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
+ const speedStage=game.round>=21?'TURBO':(game.round>=16?'FAST':(game.round>=11?'UP':(game.round>=6?'WARM':'NORMAL')));
+ simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · SPEED '+speedStage;
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
@@ -2632,7 +2633,7 @@ async function playSimonSequence(){
  game.accepting=false;game.submitting=false;game.inputIndex=0;game.roundInputs=[];renderSimon();
  simonBoard.dataset.phase='watch';simonMessage.textContent='覚えてください · '+game.round+'手';
  await sleep(260);
- const flashMs=Math.max(180,430-(game.round*7));
+ const flashMs=game.round>=21?155:(game.round>=16?190:(game.round>=11?235:(game.round>=6?300:390)));
  for(let i=0;i<game.sequence.length;i++){
    if(simon!==game||game.finished)return;
    await flashSimonPad(game.sequence[i],flashMs);
@@ -2735,8 +2736,10 @@ async function pressSimon(index){
    return;
  }
  simonMessage.textContent='CLEAR · ROUND '+game.round;
+ const oldStage=Math.floor((game.round-1)/5),newStage=Math.floor((nextRound-1)/5);
  game.round=nextRound;game.sequence=nextSequence;game.inputIndex=0;game.roundInputs=[];
- await sleep(520);
+ if(newStage>oldStage){setStatus('SIMON SPEED UP · ROUND '+nextRound,'good');tone(980,70);}
+ await sleep(newStage>oldStage?700:420);
  if(simon===game&&!game.finished)await playSimonSequence();
 }
 simonPads.forEach((pad,index)=>{pad.onclick=()=>pressSimon(index);});

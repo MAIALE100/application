@@ -2193,11 +2193,11 @@ function colorMatchChoiceOrder(seed,roundIndex){
 function renderColorMatch(){
  colorMatchChoices.innerHTML='';refreshScreenBests();
  if(!colorMatch||!colorMatch.running){
-   colorMatchProgress.textContent='0 / 10';colorMatchTime.textContent='0.0s';colorMatchWord.textContent='READY';colorMatchWord.style.color='';
+   colorMatchProgress.textContent='0 / 20 · ♥♥♥';colorMatchTime.textContent='0.0s';colorMatchWord.textContent='READY';colorMatchWord.style.color='';
    return;
  }
- const round=colorMatch.rounds[colorMatch.index],streak=colorMatch.index;
- colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+(streak>=2?' · STREAK '+streak:'');
+ const round=colorMatch.rounds[colorMatch.index];
+ colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+' · '+'♥'.repeat(Math.max(0,colorMatch.lives))+(colorMatch.streak>=2?' · STREAK '+colorMatch.streak:'');
  colorMatchWord.textContent=COLOR_MATCH_COLORS[round.word].name;
  colorMatchWord.style.color=COLOR_MATCH_COLORS[round.ink].css;
  colorMatchChoiceOrder(colorMatch.seed,colorMatch.index).forEach(index=>{
@@ -2210,7 +2210,7 @@ function openColorMatch(daily=false){
  hideAll();colorMatchEl.classList.remove('hidden');clearInterval(colorMatchClock);colorMatchClock=null;colorMatch=null;
  colorMatchEl.dataset.daily=daily===true?'1':'0';
  colorMatchStart.disabled=false;colorMatchStart.classList.remove('hidden');colorMatchStart.textContent='スタート';colorMatchNew.classList.add('hidden');renderColorMatch();
- setStatus(daily?'デイリーCOLOR MATCH。同じ10問でタイムを競います。':'文字の意味ではなく、文字そのものの色を選んでください。','good');
+ setStatus(daily?'デイリーCOLOR MATCH RUSH。同じ20問で記録を競います。':'20問・3ライフ。ミスしても続けられますがタイムペナルティ。','good');
 }
 async function startColorMatch(){
  if(colorMatch&&colorMatch.running)return;
@@ -2218,42 +2218,44 @@ async function startColorMatch(){
  const daily=colorMatchEl.dataset.daily==='1';
  const session=await startSessionWithRetry({gameId:'color_match',daily});
  if(!session.ok){colorMatchStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
- const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||10);
- colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
- colorMatchStart.classList.add('hidden');colorMatchNew.classList.remove('hidden');setStatus(colorMatch.daily?'デイリーCOLOR MATCH開始。':'COLOR MATCH開始。10問連続正解を目指してください。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
+ const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||20);
+ colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],lives:Number(session.challenge&&session.challenge.lives)||3,misses:0,streak:0,maxStreak:0,startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
+ colorMatchStart.classList.add('hidden');colorMatchNew.classList.remove('hidden');setStatus(colorMatch.daily?'デイリーCOLOR MATCH RUSH開始。':'COLOR MATCH RUSH開始。3ライフで20問突破を狙え。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
 }
 async function answerColorMatch(choice){
  const game=colorMatch;if(!game||!game.running||game.finished)return;
  const round=game.rounds[game.index];game.history.push(choice);
- if(choice!==round.ink){
-   colorMatchEl.classList.remove('match-ok','match-miss');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-miss');
+ const correct=choice===round.ink;
+ colorMatchEl.classList.remove('match-ok','match-miss','match-fever');void colorMatchEl.offsetWidth;colorMatchEl.classList.add(correct?'match-ok':'match-miss');
+ if(correct){
+   game.streak+=1;game.maxStreak=Math.max(game.maxStreak,game.streak);
+   if(game.streak>=5)colorMatchEl.classList.add('match-fever');
+   tone(700+Math.min(220,game.streak*18),35);
+   if(game.streak>0&&game.streak%5===0)setStatus('COLOR STREAK ×'+game.streak+' · FLOW','good');
+ }else{
+   game.misses+=1;game.lives-=1;game.streak=0;tone(210,55);
+   setStatus('MISS · ライフ残り '+Math.max(0,game.lives)+' · +1.5s','warn');
+ }
+ game.index+=1;
+ if(game.lives<=0){
    game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
+   if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
    if(colorMatch===game){
-     colorMatchChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
-     colorMatchNew.classList.add('hidden');colorMatchWord.textContent='MISS';colorMatchWord.style.color='';
-   }
-   if(game.sessionToken)await cancelPlaySession(game.sessionToken);
-   game.sessionToken=null;
-   if(colorMatch===game){
-     colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
-     setStatus('不正解。10問連続正解でクリアです。','warn');
+     colorMatchChoices.innerHTML='';colorMatchWord.textContent='GAME OVER';colorMatchWord.style.color='';
+     colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';colorMatchNew.classList.add('hidden');
    }
    return;
  }
- colorMatchEl.classList.remove('match-ok','match-miss','match-fever');void colorMatchEl.offsetWidth;colorMatchEl.classList.add('match-ok');
- game.index+=1;
- if(game.index>=5)colorMatchEl.classList.add('match-fever');
- tone(700+Math.min(220,game.index*18),35);
- if(game.index===5||game.index===8)setStatus('COLOR STREAK ×'+game.index+' · そのまま！','good');
  if(game.index>=game.rounds.length){
    game.running=false;game.finished=true;game.finalizing=true;clearInterval(colorMatchClock);colorMatchClock=null;
    const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
    const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,history:game.history});
    game.finalizing=false;
    if(res.ok){
-     game.sessionToken=null;if(colorMatch===game){colorMatchProgress.textContent='10 / 10';colorMatchWord.textContent='CLEAR';colorMatchWord.style.color='';
+     game.sessionToken=null;if(colorMatch===game){colorMatchProgress.textContent=String(game.rounds.length)+' / '+String(game.rounds.length)+' · CLEAR';colorMatchWord.textContent='CLEAR';colorMatchWord.style.color='';
      colorMatchTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';colorMatchChoices.innerHTML='';colorMatchNew.classList.add('hidden');colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
-     showScoreResult('color_match',res,(res.daily?'デイリー · ':'')+'COLOR MATCH '+(Number(res.score)/1000).toFixed(3)+'s');}await refreshPlatform();
+     const misses=Number(res.details&&res.details.misses)||0,penalty=Number(res.details&&res.details.penaltyMs)||0;
+     showScoreResult('color_match',res,(res.daily?'デイリー · ':'')+'COLOR MATCH RUSH '+(Number(res.score)/1000).toFixed(3)+'s · MISS '+misses+(penalty?' · PENALTY '+(penalty/1000).toFixed(1)+'s':'')+' · MAX STREAK '+game.maxStreak);}await refreshPlatform();
    }else{
      await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.running=false;
      if(colorMatch===game){colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';setStatus('COLOR MATCHの記録を保存できませんでした。もう一度お試しください。','error');}

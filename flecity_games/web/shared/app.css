@@ -752,3 +752,18 @@ body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
 .stack-arena.tower-tight{border-color:#665d40;box-shadow:inset 0 0 1.5rem rgba(255,213,105,.045)}
 .stack-arena.tower-danger{border-color:#75454b;box-shadow:inset 0 0 1.75rem rgba(240,100,112,.065),0 0 1rem rgba(240,100,112,.035)}
 body.reduced-motion .fall-board.fall-quad{animation:none!important}
+
+
+/* STOP RUSH progression v13 */
+.stop-run-meta{font-variant-numeric:tabular-nums;letter-spacing:.015em}
+#stopGame[data-tier="fast"] .stop-track{border-color:#526a78;box-shadow:inset 0 0.0625rem .5rem rgba(0,0,0,.38),0 0 1rem rgba(111,210,255,.06)}
+#stopGame[data-tier="extreme"] .stop-track{border-color:#75663d;box-shadow:inset 0 0.0625rem .5rem rgba(0,0,0,.4),0 0 1.15rem rgba(255,214,105,.08)}
+#stopGame[data-tier="insane"] .stop-track{border-color:#7e414b;box-shadow:inset 0 0.0625rem .5rem rgba(0,0,0,.42),0 0 1.35rem rgba(255,102,122,.1)}
+#stopGame[data-tier="extreme"] .stop-marker{box-shadow:0 0 .8rem rgba(255,230,170,.46)}
+#stopGame[data-tier="insane"] .stop-marker{box-shadow:0 0 1rem rgba(255,150,165,.5)}
+#stopGame[data-state="clear"]{border-color:#6a87a0}
+#stopGame[data-state="perfect"]{border-color:#9ad9ef}
+#stopGame[data-state="miss"]{border-color:#8b4952}
+#stopGame[data-state="miss"] #stopMessage{color:#ffc2c8}
+#stopGame[data-state="finished"]{border-color:#d8cb76}
+#stopGame[data-state="finished"] #stopMessage{color:#fff1a8}

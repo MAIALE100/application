@@ -222,7 +222,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 13ゲームが1クライアントで起動
+- PLAY 14ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる
@@ -349,6 +349,21 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 ## 合格ライン
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
+
+## SLIDE 0.28
+
+- 新規開始で4×4 / 1〜15＋空きマスの盤面が表示される
+- 空きマスに隣接する数字だけ押せる
+- 数字を押すと空きマスへ1マス移動する
+- BACK / Phone Closeで途中保存される
+- 再開後に盤面・手数・経過時間が継続する
+- NEW GAMEで古い途中保存が削除される
+- 1〜15が正しい順番へ揃った時だけクリアになる
+- 操作履歴を改変した送信は `INVALID_SLIDE_REPLAY` で拒否される
+- 不正な途中保存は `INVALID_SLIDE_SAVE` で拒否される
+- ランキング値は実時間＋1手あたり0.2秒ペナルティ
+- クリア後は途中保存が消え、BEST / RECENT / 統計が更新される
+- SLIDEをお気に入り登録・カテゴリ絞り込み・おまかせ対象にできる
 
 ## PLAY Favorites 0.27
 

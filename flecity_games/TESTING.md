@@ -350,6 +350,15 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
 
+## Daily SLIDE 0.29
+
+- TODAY'S CHALLENGEがSLIDEの日は同じ日付で全員同じ盤面になる
+- Daily SLIDEでは途中保存を作らない
+- Daily SLIDEのBACK / Phone CloseでSessionだけ安全に終了する
+- Daily SLIDEの「新しく始める」は通常SLIDEへ切り替わらず、同じDaily盤面を再開始する
+- クリア後はTODAY BESTとDailyランキングへ反映される
+- 通常SLIDEの途中保存が存在していてもDaily SLIDE開始・終了で壊れない
+
 ## SLIDE 0.28
 
 - 新規開始で4×4 / 1〜15＋空きマスの盤面が表示される

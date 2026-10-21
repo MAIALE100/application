@@ -22,7 +22,7 @@ const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=doc
 const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowLives=document.getElementById('highLowLives'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
-let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null,libraryFilter='all';
+let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
 let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
@@ -43,13 +43,14 @@ function tone(freq=660,duration=70){
  }catch(_){}
 }
 function applySettings(settings){
- appSettings={sound:settings&&settings.sound!==false,reducedMotion:settings&&settings.reducedMotion===true};
+ const favorites=Array.isArray(settings&&settings.favorites)?settings.favorites.map(String).filter(Boolean).slice(0,8):[];
+ appSettings={sound:settings&&settings.sound!==false,reducedMotion:settings&&settings.reducedMotion===true,favorites:[...new Set(favorites)]};
  settingSound.checked=appSettings.sound;settingMotion.checked=appSettings.reducedMotion;
  document.body.classList.toggle('reduced-motion',appSettings.reducedMotion);
 }
 async function loadSettings(){
  const res=await FlecityBridge.call('profileGetSettings',{});
- if(res.ok)applySettings(res.settings);
+ if(res.ok){applySettings(res.settings);if(bootstrapData)renderGames(bootstrapData.games);}
 }
 async function saveSettings(){
  const res=await FlecityBridge.call('profileUpdateSettings',{sound:settingSound.checked,reducedMotion:settingMotion.checked});
@@ -395,9 +396,23 @@ function renderRecent(games){
    top.append(icon,text);button.append(top,meta);button.onclick=()=>launchGame(game.id);recentGames.appendChild(button);
  });
 }
+function favoriteGameIds(){return new Set((appSettings.favorites||[]).map(String));}
+function isFavoriteGame(gameId){return favoriteGameIds().has(String(gameId||''));}
+async function toggleFavorite(gameId){
+ const id=String(gameId||'');if(!id)return;
+ const previous=[...(appSettings.favorites||[])],next=new Set(previous);
+ if(next.has(id))next.delete(id);else if(next.size<8)next.add(id);else{setStatus('お気に入りは8本までです。','warn');return;}
+ appSettings.favorites=[...next];renderGames(bootstrapData&&bootstrapData.games);
+ const res=await FlecityBridge.call('profileUpdateSettings',{favorites:appSettings.favorites});
+ if(res.ok){applySettings(res.settings);renderGames(bootstrapData&&bootstrapData.games);tone(next.has(id)?760:420,55);}
+ else{appSettings.favorites=previous;renderGames(bootstrapData&&bootstrapData.games);setStatus('お気に入りを保存できません: '+FlecityErrors.text(res.error),'error');}
+}
 function filteredLibraryGames(games){
  const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
  if(libraryFilter==='all')return enabled;
+ if(libraryFilter==='favorites'){
+   const favorites=favoriteGameIds();return enabled.filter(g=>favorites.has(g.id));
+ }
  return enabled.filter(g=>String(g.category||'other')===libraryFilter);
 }
 function updateLibraryControls(allGames,visibleGames){
@@ -462,9 +477,12 @@ function renderGames(games){
    groups.get(category).forEach(game=>{
      const btn=document.createElement('button');btn.className='game';btn.dataset.game=game.id;
      const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{symbol:'•',eyebrow:'PLAY'};
-     const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
-     top.className='game-card-top';icon.className='game-icon';tag.className='tag';description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
-     setGameIcon(icon,visual);tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);top.append(icon,tag);
+     const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),favorite=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
+     top.className='game-card-top';icon.className='game-icon';tag.className='tag';favorite.className='favorite-toggle'+(isFavoriteGame(game.id)?' active':'');description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
+     setGameIcon(icon,visual);tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);
+     favorite.textContent=isFavoriteGame(game.id)?'★':'☆';favorite.title=isFavoriteGame(game.id)?'お気に入りから外す':'お気に入りに追加';favorite.setAttribute('aria-label',favorite.title);
+     favorite.onclick=event=>{event.preventDefault();event.stopPropagation();void toggleFavorite(game.id);};
+     top.append(icon,tag,favorite);
      name.textContent=String(game.name||game.id||'GAME');
      description.textContent=String(game.description||'');
      const personalBest=bootstrapData&&bootstrapData.best&&bootstrapData.best[game.id],rank=personalBest?rankForScore(game.id,personalBest.score):null;

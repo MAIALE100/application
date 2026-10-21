@@ -49,24 +49,46 @@ RegisterNetEvent('lb-phone:phoneToggled',function(open)
     end
 end)
 
+local function makeAppData(app)
+    local data={
+        identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
+        defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
+        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
+    }
+    if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
+        data.onOpen=playOnOpen
+        data.onClose=playOnClose
+    end
+    return data
+end
+
 local function addApp(app)
+    local data=makeAppData(app)
     local callOk, ok, err = pcall(function()
-        local data={
-            identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
-            defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
-            icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
-        }
-        if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
-            data.onOpen=playOnOpen
-            data.onClose=playOnClose
-        end
         return exports['lb-phone']:AddCustomApp(data)
     end)
     if not callOk then
         print(('[FlecityGames] AddCustomApp(%s) API error: %s'):format(app.identifier,tostring(ok)))
         return false
     end
-    if ok or err=='APP_ALREADY_EXISTS' then return true end
+    if ok then return true end
+
+    if err=='APP_ALREADY_EXISTS' then
+        -- Re-register instead of accepting stale metadata. This is important
+        -- when flags such as fixBlur change while lb-phone remains running.
+        pcall(function() exports['lb-phone']:RemoveCustomApp(app.identifier) end)
+        Wait(75)
+        local retryCallOk,retryOk,retryErr=pcall(function()
+            return exports['lb-phone']:AddCustomApp(makeAppData(app))
+        end)
+        if retryCallOk and retryOk then
+            print(('[FlecityGames] refreshed custom app registration: %s'):format(app.identifier))
+            return true
+        end
+        print(('[FlecityGames] refresh AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(retryErr or retryOk)))
+        return false
+    end
+
     print(('[FlecityGames] AddCustomApp(%s) failed: %s'):format(app.identifier,tostring(err)))
     return false
 end

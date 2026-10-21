@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.34.0-test**
+- Resource version: **0.38.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **25/25 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -75,6 +75,9 @@ PARTY rooms keep the same members while changing games. Room Code and internal R
 - PLAY game cards can be starred as favorites; favorites persist per character in the existing profile settings JSON.
 - The Favorites filter shows only starred games, with a maximum of eight favorites.
 - Profile setting updates are partial/merge-safe so PARTY sound or reduced-motion changes do not erase PLAY favorites.
+- PLAY game count is intentionally frozen at 15; development now prioritizes depth, feel, mastery, and replayability instead of adding more games.
+- QUICK TAP / STOP! now give skill-tier feedback, COLOR MATCH shuffles choice positions each round, NUMBER RUSH tracks FLOW streaks, and MEMORY tracks pair streaks.
+- MINES supports long-press flagging and NONOGRAM supports long-press X marking while preserving the original tap controls.
 
 ## Platform features
 

@@ -7,7 +7,7 @@ const statPlays=document.getElementById('statPlays'),statTime=document.getElemen
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 const confirmOverlay=document.getElementById('confirmOverlay'),confirmTitle=document.getElementById('confirmTitle'),confirmMessage=document.getElementById('confirmMessage'),confirmCancel=document.getElementById('confirmCancel'),confirmAccept=document.getElementById('confirmAccept');
 const quickEl=document.getElementById('quickTap'),tapBest=document.getElementById('tapBest'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
-const stopEl=document.getElementById('stopGame'),stopBest=document.getElementById('stopBest'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
+const stopEl=document.getElementById('stopGame'),stopBest=document.getElementById('stopBest'),stopRunMeta=document.getElementById('stopRunMeta'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore'),blockMeta=document.getElementById('blockMeta');
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
@@ -26,7 +26,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
-let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
+let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
 let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
 const SHAPES=[
@@ -642,54 +642,112 @@ function trianglePosition(elapsedMs,periodMs,phaseMs){
  const period=Math.max(400,Number(periodMs)||1800),cycle=(Math.max(0,Number(elapsedMs)||0)+(Number(phaseMs)||0))%period,half=period/2;
  return cycle<=half?(cycle/half)*100:((period-cycle)/half)*100;
 }
-function animateStop(){
- if(stopState!=='running'||!stopSession)return;
- const elapsed=performance.now()-stopStartedAt;
- stopMarker.style.left=trianglePosition(elapsed,stopSession.challenge.periodMs,stopSession.challenge.phaseMs)+'%';
- stopRaf=requestAnimationFrame(animateStop);
+function stopSpeedMultiplier(challenge){
+ const period=Math.max(1,Number(challenge&&challenge.periodMs)||2200);
+ return 2200/period;
 }
-function stopGrade(score,distance){
- const s=Number(score)||0,d=Number(distance);
- if(s>=998||Number.isFinite(d)&&d<=.2)return {label:'BULLSEYE',state:'bullseye',tone:980};
- if(s>=990)return {label:'PERFECT',state:'perfect',tone:900};
- if(s>=950)return {label:'GREAT',state:'great',tone:790};
- if(s>=850)return {label:'CLOSE',state:'close',tone:650};
- return {label:'TRY AGAIN',state:'result',tone:480};
+function stopRushGrade(result){
+ if(result&&result.bullseye)return {label:'BULLSEYE',state:'bullseye',tone:1040};
+ const distance=Math.max(0,Number(result&&result.distancePct)||99),tol=Math.max(.01,Number(result&&result.tolerancePct)||1);
+ const accuracy=Math.max(0,1-distance/tol);
+ if(accuracy>=.82)return {label:'PERFECT',state:'perfect',tone:920};
+ if(accuracy>=.5)return {label:'GREAT',state:'great',tone:810};
+ return {label:'CLEAR',state:'clear',tone:700};
+}
+function updateStopRoundUi(){
+ const game=stopSession,ch=game&&game.currentChallenge;
+ if(!game||!ch){
+   stopRunMeta.textContent='ROUND 1 · SPEED ×1.00 · ZONE 8.0%';
+   stopTarget.style.width='16%';
+   return;
+ }
+ const speed=stopSpeedMultiplier(ch),zone=Math.max(1,Number(ch.tolerancePct)||8);
+ stopRunMeta.textContent='ROUND '+String(ch.round||game.cleared+1)+' · SPEED ×'+speed.toFixed(2)+' · ZONE '+zone.toFixed(1)+'% · SCORE '+String(game.score||0);
+ stopTarget.style.left=String(Number(ch.targetPct)||50)+'%';
+ stopTarget.style.width=String(Math.min(24,zone*2))+'%';
+ const round=Number(ch.round)||1;
+ stopEl.dataset.tier=round>=30?'insane':(round>=20?'extreme':(round>=10?'fast':'normal'));
+}
+function animateStop(){
+ if(stopState!=='running'||!stopSession||!stopSession.currentChallenge)return;
+ const elapsed=performance.now()-stopStartedAt,ch=stopSession.currentChallenge;
+ stopMarker.style.left=trianglePosition(elapsed,ch.periodMs,ch.phaseMs)+'%';
+ stopRaf=requestAnimationFrame(animateStop);
 }
 function setStopVisual(state){stopEl.dataset.state=state||'idle';}
 function openStop(daily=false){
- stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;setStopVisual('idle');refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;setStopVisual('idle');delete stopEl.dataset.tier;
+ refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'どこまで加速できる？';stopButton.textContent='RUN開始';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';stopTarget.style.width='16%';updateStopRoundUi();
+}
+async function sendStopRound(actionMs,step){
+ const payload={sessionToken:stopSession&&stopSession.sessionToken,actionMs,step};
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
+   res=await FlecityBridge.call('playStopRound',payload);
+   if(res.ok||!retryable.has(res.error))return res;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?180:140*(attempt+1));
+ }
+ return res;
+}
+async function finishStopRun(roundResult){
+ const game=stopSession;if(!game)return;
+ stopState='submitting';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
+ const durationMs=Math.max(0,Math.round(performance.now()-stopRunStartedAt));
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs,stopRun:true});
+ const stillHere=stopSession===game;
+ if(res.ok){
+   if(stillHere){
+     setStopVisual(roundResult&&roundResult.success?'finished':'miss');
+     const rounds=Number(res.details&&res.details.rounds)||game.cleared,bulls=Number(res.details&&res.details.bullseyes)||game.bullseyes||0;
+     stopMessage.textContent=(roundResult&&roundResult.success?'MAX CLEAR':'MISS')+' · ROUND '+String(rounds);
+     stopRunMeta.textContent='SCORE '+String(res.score)+' · CLEAR '+String(rounds)+' · BULLSEYE '+String(bulls);
+     tone(roundResult&&roundResult.success?1040:260,roundResult&&roundResult.success?110:90);
+     showScoreResult('stop',res,(res.daily?'デイリー · ':'')+'STOP RUSH · '+rounds+' CLEAR · '+res.score+' pts');
+   }
+   await refreshPlatform();
+ }else{
+   await cancelPlaySession(game.sessionToken);
+   if(stillHere){stopMessage.textContent='保存できませんでした';setStatus('STOP RUSHの記録を保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+ }
+ if(stillHere){stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';}
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
-   const session=stopSession;stopState='submitting';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
+   const game=stopSession,ch=game&&game.currentChallenge;if(!game||!ch)return;
+   stopState='checking';cancelAnimationFrame(stopRaf);stopButton.disabled=true;
    const actionMs=Math.max(0,Math.round(performance.now()-stopStartedAt));
-   const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:0,durationMs:actionMs,actionMs});
-   const stillHere=stopSession===session;
-   if(res.ok){
-     const distance=res.details&&Number(res.details.distancePct),grade=stopGrade(res.score,distance);
-     if(stillHere){
-       setStopVisual(grade.state);stopMessage.textContent=grade.label+' · '+String(res.score);tone(grade.tone,65);
-       showScoreResult('stop',res,(res.daily?'デイリー · ':'')+grade.label+' · '+res.score+(Number.isFinite(distance)?' / '+distance.toFixed(2)+'%':''));}
-     await refreshPlatform();
-   }else{
-     await cancelPlaySession(session&&session.sessionToken);
-     if(stillHere){stopMessage.textContent='保存できませんでした';setStatus('STOP! スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+   const res=await sendStopRound(actionMs,game.cleared+1);
+   if(stopSession!==game)return;
+   if(!res.ok){
+     await cancelPlaySession(game.sessionToken);stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';
+     stopMessage.textContent='判定できませんでした';setStatus('STOP RUSHの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
    }
-   if(stillHere){stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';}return;
+   game.score=Number(res.score)||game.score||0;game.cleared=Number(res.cleared)||0;game.bullseyes=Number(res.bullseyes)||0;
+   if(!res.success){
+     setStopVisual('miss');stopMessage.textContent='MISS · '+Number(res.distancePct||0).toFixed(2)+'%';tone(220,90);
+     await sleep(320);if(stopSession===game)await finishStopRun(res);return;
+   }
+   const grade=stopRushGrade(res);setStopVisual(grade.state);
+   stopMessage.textContent=grade.label+' · +'+String(res.gained||0);tone(grade.tone,65);
+   stopRunMeta.textContent='CLEAR '+String(game.cleared)+' · SCORE '+String(game.score)+' · BULLSEYE '+String(game.bullseyes);
+   if(res.ended){await sleep(420);if(stopSession===game)await finishStopRun(res);return;}
+   stopState='transition';await sleep(430);if(stopSession!==game)return;
+   game.currentChallenge=res.nextChallenge;updateStopRoundUi();setStopVisual('running');stopMessage.textContent='ROUND '+String(game.currentChallenge.round);
+   stopButton.textContent='STOP';stopButton.disabled=false;stopStartedAt=performance.now();stopState='running';animateStop();return;
  }
  if(stopState!=='idle')return;
  stopButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'stop',daily:stopDaily});
- if(!res.ok){stopButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('STOP!を開始できません: '+FlecityErrors.text(res.error),'error');return;}
- stopSession=res;stopState='running';setStopVisual('running');stopStartedAt=performance.now();
- stopTarget.style.left=String(Number(res.challenge&&res.challenge.targetPct)||50)+'%';
- stopMessage.textContent='STOP!';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
+ if(!res.ok){stopButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('STOP RUSHを開始できません: '+FlecityErrors.text(res.error),'error');return;}
+ stopSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,score:0,cleared:0,bullseyes:0};
+ stopRunStartedAt=performance.now();stopStartedAt=performance.now();stopState='running';setStopVisual('running');updateStopRoundUi();
+ stopMessage.textContent='ROUND 1';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
 };
 stopBack.onclick=async()=>{
- if(stopState==='submitting'){setStatus('STOP!の記録を保存中です…','warn');return;}
- if(stopSession&&stopState==='running'){
-   const ok=await confirmAction('STOP!を終了しますか？','現在のRunは記録されず終了します。','終了する');
+ if(stopState==='submitting'){setStatus('STOP RUSHの記録を保存中です…','warn');return;}
+ if(stopSession&&['running','checking','transition'].includes(stopState)){
+   const ok=await confirmAction('STOP RUSHを終了しますか？','現在のRUNは記録されず終了します。','終了する');
    if(!ok)return;
  }
  cancelAnimationFrame(stopRaf);

@@ -381,7 +381,7 @@ try {
     Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
 
     Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
-    if ($AutoReloadWasInstalled -and $ResourceChanged) {
+    if ($AutoReloadWasInstalled -and ($ResourceChanged -or -not $ReloadV2Active)) {
         $tokenPath = Join-Path $Destination 'dev-reload.token'
         $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
         Set-Content -Path $tokenPath -Value $token -NoNewline -Encoding ascii
@@ -431,8 +431,8 @@ try {
     Write-Host "Source : $Source"
     Write-Host "Target : $Destination"
     Write-Host ''
-    if ($AutoReloadWasInstalled -and $ResourceChanged) {
-        Write-Host 'Resource files changed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
+    if ($AutoReloadWasInstalled -and ($ResourceChanged -or -not $ReloadV2Active)) {
+        Write-Host 'flecity_games reload was requested to activate the verified build.' -ForegroundColor Green
         Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
     } elseif ($AutoReloadWasInstalled) {
         Write-Host 'flecity_games is already current. No resource restart was requested.' -ForegroundColor Green

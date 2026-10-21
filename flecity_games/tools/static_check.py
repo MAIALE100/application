@@ -201,8 +201,24 @@ if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
     fail("MEMORY client implementation is missing")
 if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:
     fail("COLOR MATCH client implementation is missing")
+if "lives:Number(session.challenge&&session.challenge.lives)||3" not in play_js or "COLOR MATCH RUSH" not in play_html:
+    fail("COLOR MATCH RUSH three-life client flow is missing")
+if "challenge.rounds=20 challenge.lives=3 challenge.missPenaltyMs=1500" not in play_lua:
+    fail("COLOR MATCH RUSH server challenge is missing")
+if not re.search(r"id='color_match'[^\n]*version=2", registry):
+    fail("COLOR MATCH RUSH registry version must be 2")
+if "ColorMatchFocusMs = 14000" not in config:
+    fail("COLOR MATCH RUSH achievement threshold is missing")
 if "numberRushBoardFromSeed" not in play_js or "finishNumberRush" not in play_js:
     fail("NUMBER RUSH client implementation is missing")
+if "reshuffleNumberRushRemaining" not in play_js or "rush-shift" not in play_js:
+    fail("NUMBER RUSH SHIFT client flow is missing")
+if "reshuffleNumberRushRemaining" not in play_lua or "perfectNumberRushHistory" not in play_lua:
+    fail("NUMBER RUSH SHIFT deterministic server flow is missing")
+if not re.search(r"id='number_rush'[^\n]*version=2", registry):
+    fail("NUMBER RUSH SHIFT registry version must be 2")
+if "NumberRushAceMs = 16000" not in config:
+    fail("NUMBER RUSH SHIFT achievement threshold is missing")
 if "playHighLowGuess" not in play_js or "finishHighLow" not in play_js:
     fail("HIGH & LOW server-authoritative client flow is missing")
 if "playSubmitSimonRound" not in play_js or "finishSimon" not in play_js:
@@ -364,6 +380,8 @@ if "LB Phone native fixBlur scaling pass v7" not in play_css:
     fail("LB Phone native fixBlur scaling guard is missing")
 if "PLAY fun & feedback pass v8" not in play_css or ".rush-flow" not in play_css or ".memory-streak" not in play_css:
     fail("PLAY gameplay feedback v8 CSS is missing")
+if "Rush-mode gameplay v14" not in play_css or ".rush-shift" not in play_css:
+    fail("rush-mode gameplay v14 CSS is missing")
 if "flagMineDirect" not in play_js or "crossNonogramDirect" not in play_js or "mineSuppressClickUntil" not in play_js or "nonogramSuppressClickUntil" not in play_js:
     fail("PLAY long-press puzzle controls are missing")
 if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_css or ".cross-pop" not in play_css:

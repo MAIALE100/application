@@ -227,7 +227,7 @@ if "unlockedAchievements" not in play_lua:
     fail("PLAY score retry must preserve achievement feedback")
 if "ActivateSession" not in play_lua or "timingDeferred" not in play_lua or "TIMER_NOT_STARTED" not in play_lua:
     fail("PLAY deferred timer activation is missing")
-for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master"):
+for marker in ("bullseye","merge_master","mines_sprinter","nonogram_solver","color_focus","simon_master","slide_master"):
     if marker not in play_lua or marker not in play_js:
         fail(f"PLAY achievement missing: {marker}")
 if "MySQL.update.await([[INSERT IGNORE INTO flecity_game_achievements" not in play_lua:
@@ -300,6 +300,10 @@ if not re.search(r"DailyCandidates\s*=\s*\{[^\n]*'slide'[^\n]*\}", config):
     fail("SLIDE must be included in the Daily candidate rotation")
 if "openSlide(true,true)" not in play_js or "slideGame&&slideGame.daily" not in play_js or "daily:daily===true" not in play_js:
     fail("SLIDE Daily client lifecycle is missing")
+if "SlideMasterMs = 90000" not in config or "SlideMasterMoves = 120" not in config:
+    fail("SLIDE MASTER thresholds are missing")
+if "metadata.timeMs" not in play_lua or "metadata.moves" not in play_lua or "slide_master" not in play_lua or "slide_master" not in play_js:
+    fail("SLIDE MASTER achievement flow is missing")
 play_css = read("flecity_games/web/shared/app.css")
 if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
     fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")

@@ -381,3 +381,12 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 - Missing the base ends the run and the server-replayed point total matches the client result.
 - Ranking uses points while the result metadata still reports HEIGHT and max PERFECT streak.
 - TOWER MASTER remains based on reaching 25 layers, not on arbitrary client score.
+
+## RANGE RUSH v3
+- Start with 3 lives and confirm a wrong answer removes exactly one life without ending the run while lives remain.
+- Confirm a correct answer after a miss continues to the next round and rebuilds STREAK from 1.
+- Confirm rounds 1-5 use the longest timer and later five-round stages shorten the response window.
+- Reach STREAK 5+ and confirm the multiplier increases; continue to verify x3/x4 tiers at higher streaks.
+- Confirm timeout behaves like a miss, consumes one life, and continues while lives remain.
+- Confirm the run ends only when lives reach 0 or round 30 completes.
+- Complete/lose a run and verify the server-confirmed score, MAX STREAK, remaining LIFE and ranking are saved.

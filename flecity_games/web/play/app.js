@@ -6,7 +6,7 @@ const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getEleme
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementCount=document.getElementById('achievementCount'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 const confirmOverlay=document.getElementById('confirmOverlay'),confirmTitle=document.getElementById('confirmTitle'),confirmMessage=document.getElementById('confirmMessage'),confirmCancel=document.getElementById('confirmCancel'),confirmAccept=document.getElementById('confirmAccept');
-const quickEl=document.getElementById('quickTap'),tapBest=document.getElementById('tapBest'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
+const quickEl=document.getElementById('quickTap'),tapBest=document.getElementById('tapBest'),tapRunMeta=document.getElementById('tapRunMeta'),tapMessage=document.getElementById('tapMessage'),tapButton=document.getElementById('tapButton'),tapBack=document.getElementById('tapBack');
 const stopEl=document.getElementById('stopGame'),stopBest=document.getElementById('stopBest'),stopRunMeta=document.getElementById('stopRunMeta'),stopMessage=document.getElementById('stopMessage'),stopButton=document.getElementById('stopButton'),stopBack=document.getElementById('stopBack'),stopTarget=document.getElementById('stopTarget'),stopMarker=document.getElementById('stopMarker');
 const blockEl=document.getElementById('blockGame'),blockBoard=document.getElementById('blockBoard'),blockPieces=document.getElementById('blockPieces'),blockScore=document.getElementById('blockScore'),blockMeta=document.getElementById('blockMeta');
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
@@ -25,7 +25,7 @@ const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getE
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
-let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
+let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
 let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
@@ -596,45 +596,105 @@ function quickTapGrade(ms){
  return {label:'KEEP TRYING',state:'steady',tone:520};
 }
 function setQuickVisual(state){quickEl.dataset.state=state||'idle';}
-function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';setQuickVisual('idle');}
-tapButton.onclick=async()=>{
- if(tapState==='waiting'){
-   clearTimeout(tapTimer);tapState='idle';setQuickVisual('false-start');tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
-   if(tapSession)await cancelPlaySession(tapSession.sessionToken);tapSession=null;return;
+function renderQuickMeta(){
+ if(!tapSession){tapRunMeta.textContent='HIT 0 / 7 · ♥♥♥ · FALSE 0';return;}
+ tapRunMeta.textContent='HIT '+String(tapSession.hits||0)+' / '+String(tapSession.targetHits||7)+' · '+'♥'.repeat(Math.max(0,tapSession.lives||0))+' · FALSE '+String(tapSession.falseStarts||0);
+}
+function beginQuickRound(challenge){
+ clearTimeout(tapTimer);
+ if(!tapSession||!challenge)return;
+ tapSession.currentChallenge=challenge;tapState='waiting';setQuickVisual('waiting');tapRoundStartedAt=performance.now();
+ tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;renderQuickMeta();
+ const delay=Math.max(250,Number(challenge.delayMs)||1500);
+ tapTimer=setTimeout(()=>{
+   if(tapState!=='waiting'||!tapSession)return;
+   tapState='shown';setQuickVisual('go');tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';tone(980,45);
+ },delay);
+}
+async function sendQuickRound(actionMs,step){
+ const payload={sessionToken:tapSession&&tapSession.sessionToken,actionMs,step};
+ const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
+ let res={ok:false,error:'EMPTY_RESPONSE'};
+ for(let attempt=0;attempt<3;attempt++){
+   res=await FlecityBridge.call('playQuickRound',payload);
+   if(res.ok||!retryable.has(res.error))return res;
+   if(attempt<2)await sleep(res.error==='RATE_LIMIT'?180:140*(attempt+1));
  }
- if(tapState==='shown'){
-   const session=tapSession,reaction=performance.now()-tapShownAt;tapState='submitting';tapButton.disabled=true;
-   const duration=Math.max(0,Math.round(performance.now()-tapStartedAt));
-   const res=await submitScoreWithRetry({sessionToken:session.sessionToken,score:reaction,durationMs:duration});
-   const stillHere=tapSession===session;
-   if(res.ok){
-     if(stillHere){
-       const grade=quickTapGrade(res.score);
-       setQuickVisual('result-'+grade.state);tapMessage.textContent=Number(res.score).toFixed(3)+' ms';
-       tone(grade.tone,70);
-       showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+grade.label+' · '+Number(res.score).toFixed(3)+' ms');
-     }
-     await refreshPlatform();
-   }else{
-     await cancelPlaySession(session&&session.sessionToken);
-     if(stillHere){tapMessage.textContent='保存できませんでした';setStatus('スコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+ return res;
+}
+async function finishQuickRun(result){
+ const game=tapSession;if(!game)return;
+ if(result&&result.failed){
+   await cancelPlaySession(game.sessionToken);
+   if(tapSession===game){
+     tapState='idle';tapSession=null;setQuickVisual('false-start');tapMessage.textContent='GAME OVER';
+     tapRunMeta.textContent='3回フライング · 記録なし';tapButton.textContent='もう一度';tapButton.disabled=false;tone(180,100);
    }
-   if(stillHere){tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;}return;
+   return;
  }
+ tapState='submitting';tapButton.disabled=true;
+ const durationMs=Math.max(0,Math.round(performance.now()-tapRunStartedAt));
+ const score=Number(result&&result.score);
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score,durationMs,quickRun:true});
+ const stillHere=tapSession===game;
+ if(res.ok){
+   if(stillHere){
+     const average=Number(res.details&&res.details.averageMs)||score,grade=quickTapGrade(average);
+     setQuickVisual('result-'+grade.state);tapMessage.textContent=average.toFixed(1)+' ms AVG';
+     tapRunMeta.textContent='7 / 7 · FALSE '+String(Number(res.details&&res.details.falseStarts)||0)+' · BEST '+Number(res.details&&res.details.bestReactionMs||average).toFixed(1)+' ms';
+     tone(grade.tone,90);
+     showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+'QUICK TAP FOCUS · AVG '+average.toFixed(1)+' ms · SCORE '+Number(res.score).toFixed(1)+' ms');
+   }
+   await refreshPlatform();
+ }else{
+   await cancelPlaySession(game.sessionToken);
+   if(stillHere){tapMessage.textContent='保存できませんでした';setStatus('QUICK TAP FOCUSの記録を保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+ }
+ if(stillHere){tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;}
+}
+async function resolveQuickTap(){
+ const game=tapSession;if(!game||!['waiting','shown'].includes(tapState))return;
+ const step=(game.hits||0)+(game.falseStarts||0)+1;
+ const actionMs=Math.max(0,Math.round(performance.now()-tapRoundStartedAt));
+ clearTimeout(tapTimer);tapState='checking';tapButton.disabled=true;
+ const res=await sendQuickRound(actionMs,step);
+ if(tapSession!==game)return;
+ if(!res.ok){
+   await cancelPlaySession(game.sessionToken);tapSession=null;tapState='idle';tapButton.disabled=false;tapButton.textContent='もう一度';
+   tapMessage.textContent='判定できませんでした';setStatus('QUICK TAP FOCUSの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
+ }
+ game.hits=Number(res.hits)||0;game.falseStarts=Number(res.falseStarts)||0;game.lives=Number(res.lives)||0;renderQuickMeta();
+ if(res.falseStart){
+   setQuickVisual('false-start');tapMessage.textContent='フライング!';tone(180,70);
+   if(res.ended){await sleep(350);if(tapSession===game)await finishQuickRun(res);return;}
+   tapState='transition';await sleep(420);if(tapSession!==game)return;beginQuickRound(res.nextChallenge);return;
+ }
+ const reaction=Number(res.reactionMs)||0,grade=quickTapGrade(reaction);
+ setQuickVisual('result-'+grade.state);tapMessage.textContent=grade.label+' · '+reaction.toFixed(1)+' ms';tone(grade.tone,60);
+ if(res.ended){await sleep(450);if(tapSession===game)await finishQuickRun(res);return;}
+ tapState='transition';await sleep(420);if(tapSession!==game)return;beginQuickRound(res.nextChallenge);
+}
+function showQuick(daily=false){
+ tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のFOCUS RUN':'7回、集中できる？';tapButton.textContent='RUN開始';tapButton.disabled=false;tapState='idle';tapSession=null;setQuickVisual('idle');renderQuickMeta();
+}
+tapButton.onclick=async()=>{
+ if(['waiting','shown'].includes(tapState)){await resolveQuickTap();return;}
  if(tapState!=='idle')return;
- tapButton.disabled=true;const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
- if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('開始できません: '+FlecityErrors.text(res.error),'error');return;}
- tapSession=res;tapState='waiting';setQuickVisual('waiting');tapStartedAt=performance.now();tapMessage.textContent='待って';tapButton.textContent='待って…';tapButton.disabled=false;
- tapTimer=setTimeout(()=>{if(tapState!=='waiting')return;tapState='shown';setQuickVisual('go');tapShownAt=performance.now();tapMessage.textContent='タップ!';tapButton.textContent='タップ!';tone(980,45);},Math.max(250,Number(res.challenge&&res.challenge.delayMs)||1500));
+ tapButton.disabled=true;
+ const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
+ if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('QUICK TAP FOCUSを開始できません: '+FlecityErrors.text(res.error),'error');return;}
+ tapSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,hits:0,targetHits:Number(res.challenge&&res.challenge.targetHits)||7,lives:Number(res.challenge&&res.challenge.lives)||3,falseStarts:0};
+ tapRunStartedAt=performance.now();tapStartedAt=tapRunStartedAt;beginQuickRound(res.challenge);
 };
 tapBack.onclick=async()=>{
- if(tapState==='submitting'){setStatus('QUICK TAPの記録を保存中です…','warn');return;}
- if(tapSession&&['waiting','shown'].includes(tapState)){
-   const ok=await confirmAction('QUICK TAPを終了しますか？','現在のRunは記録されず終了します。','終了する');
+ if(tapState==='submitting'){setStatus('QUICK TAP FOCUSの記録を保存中です…','warn');return;}
+ if(tapSession&&['waiting','shown','checking','transition'].includes(tapState)){
+   const ok=await confirmAction('QUICK TAP FOCUSを終了しますか？','現在のRUNは記録されず終了します。','終了する');
    if(!ok)return;
  }
+ clearTimeout(tapTimer);
  if(tapSession)await cancelPlaySession(tapSession.sessionToken);
- clearTimeout(tapTimer);tapSession=null;tapState='idle';showHome();
+ tapSession=null;tapState='idle';showHome();
 };
 
 /* STOP */

@@ -23,7 +23,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,simon=null,simonTimer=null,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,simon=null,simonTimer=null,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -617,15 +617,50 @@ async function persistBlock(showError=false){
  if(showError&&block===game)setStatus('BLOCKの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
  return false;
 }
+function clearBlockDragVisual(){
+ blockBoard.querySelectorAll('.drag-preview,.drag-invalid').forEach(cell=>cell.classList.remove('drag-preview','drag-invalid'));
+ const ghost=document.querySelector('.block-drag-ghost');if(ghost)ghost.remove();
+}
+function blockPreviewPlacement(piece,x,y){
+ blockBoard.querySelectorAll('.drag-preview,.drag-invalid').forEach(cell=>cell.classList.remove('drag-preview','drag-invalid'));
+ if(!piece)return false;
+ const valid=canPlace(piece,x,y);
+ for(const [dx,dy] of SHAPES[piece.shape]){
+   const xx=x+dx,yy=y+dy;if(xx<0||xx>=8||yy<0||yy>=8)continue;
+   const cell=blockBoard.querySelector('[data-x="'+xx+'"][data-y="'+yy+'"]');
+   if(cell)cell.classList.add(valid?'drag-preview':'drag-invalid');
+ }
+ return valid;
+}
+function blockDragGhost(piece,event){
+ const old=document.querySelector('.block-drag-ghost');if(old)old.remove();
+ const ghost=document.createElement('div');ghost.className='block-drag-ghost';
+ const mini=document.createElement('div');mini.className='drag-piece-grid';
+ for(const [x,y] of SHAPES[piece.shape]){const d=document.createElement('span');d.style.gridColumn=String(x+1);d.style.gridRow=String(y+1);mini.appendChild(d);}
+ ghost.appendChild(mini);document.body.appendChild(ghost);
+ const move=e=>{ghost.style.left=e.clientX+'px';ghost.style.top=(e.clientY-(e.pointerType==='touch'?60:26))+'px';};
+ move(event);return {element:ghost,move};
+}
+function blockDragTarget(event){
+ const lift=event.pointerType==='touch'?64:0;
+ const element=document.elementFromPoint(event.clientX,event.clientY-lift);
+ const cell=element&&element.closest?element.closest('.block-cell'):null;
+ if(!cell)return null;
+ return {x:Number(cell.dataset.x),y:Number(cell.dataset.y)};
+}
 function renderBlock(){
  const selectedPiece=block.pieces[block.selected]||null;
  blockScore.textContent=String(block.score);
- refreshScreenBests();blockMeta.textContent=(block.daily?'DAILY · ':'')+'COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES';
+ refreshScreenBests();
+ const streak=block.combo>0?'STREAK ×'+String(block.combo):'STREAK READY';
+ blockMeta.textContent=(block.daily?'DAILY · ':'')+streak+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES';
+ blockBoard.classList.toggle('fever',block.combo>=3);
  blockBoard.innerHTML='';
  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
    const cell=document.createElement('button');
    const valid=!block.board[y][x]&&selectedPiece&&canPlace(selectedPiece,x,y);
    cell.className='block-cell'+(block.board[y][x]?' filled':'')+(valid?' valid-origin':'');
+   cell.dataset.x=String(x);cell.dataset.y=String(y);
    cell.disabled=block.finished||block.finalizing||!valid;
    cell.setAttribute('aria-label',valid?'ここに置けます':'マス');
    cell.onclick=()=>placeBlock(x,y);blockBoard.appendChild(cell);
@@ -635,7 +670,41 @@ function renderBlock(){
    const b=document.createElement('button');b.className='piece'+(block.selected===i?' selected':'');b.disabled=block.finished||block.finalizing||!p;
    if(p){const mini=document.createElement('div');mini.className='mini-piece';for(const [x,y] of SHAPES[p.shape]){const d=document.createElement('span');d.style.gridColumn=String(x+1);d.style.gridRow=String(y+1);mini.appendChild(d);}b.appendChild(mini);}
    else b.textContent='USED';
-   b.onclick=()=>{block.selected=i;renderBlock();};blockPieces.appendChild(b);
+   b.onclick=()=>{if(blockSuppressClick){blockSuppressClick=false;return;}block.selected=i;renderBlock();};
+   if(p){
+     b.onpointerdown=event=>{
+       if(!block||block.finished||block.finalizing||event.button>0)return;
+       block.selected=i;
+       [...blockPieces.children].forEach((node,index)=>node.classList.toggle('selected',index===i));
+       const ghost=blockDragGhost(p,event);
+       blockDrag={pointerId:event.pointerId,pieceIndex:i,piece:p,startX:event.clientX,startY:event.clientY,moved:false,target:null,ghost};
+       b.classList.add('dragging');
+       try{b.setPointerCapture(event.pointerId);}catch(_){}
+     };
+     b.onpointermove=event=>{
+       if(!blockDrag||blockDrag.pointerId!==event.pointerId)return;
+       blockDrag.ghost.move(event);
+       if(Math.hypot(event.clientX-blockDrag.startX,event.clientY-blockDrag.startY)>7)blockDrag.moved=true;
+       if(!blockDrag.moved)return;
+       const target=blockDragTarget(event);blockDrag.target=target;
+       if(target)blockPreviewPlacement(blockDrag.piece,target.x,target.y);
+       else blockBoard.querySelectorAll('.drag-preview,.drag-invalid').forEach(cell=>cell.classList.remove('drag-preview','drag-invalid'));
+     };
+     b.onpointerup=event=>{
+       if(!blockDrag||blockDrag.pointerId!==event.pointerId)return;
+       const drag=blockDrag;blockDrag=null;blockSuppressClick=drag.moved===true;
+       try{b.releasePointerCapture(event.pointerId);}catch(_){}
+       clearBlockDragVisual();
+       if(drag.moved&&drag.target&&block&&block.pieces[drag.pieceIndex]){
+         block.selected=drag.pieceIndex;
+         if(canPlace(block.pieces[drag.pieceIndex],drag.target.x,drag.target.y)){void placeBlock(drag.target.x,drag.target.y);return;}
+         tone(150,28);setStatus('そこには置けません。','warn');
+       }
+       if(block)renderBlock();
+     };
+     b.onpointercancel=()=>{blockDrag=null;clearBlockDragVisual();if(block)renderBlock();};
+   }
+   blockPieces.appendChild(b);
  });
  blockFinish.disabled=block.finished||block.finalizing;
  blockNew.disabled=block.finalizing===true;
@@ -668,7 +737,9 @@ async function placeBlock(x,y){
  if(clearedLines>0){
    blockBoard.classList.remove('line-clear');void blockBoard.offsetWidth;blockBoard.classList.add('line-clear');
    tone(620+Math.min(260,block.combo*45),55);
-   setStatus((block.combo>1?'COMBO ×'+block.combo+' · ':'')+clearedLines+' LINE CLEAR','good');
+   const blast=clearedLines>=3?'MEGA BLAST':(clearedLines===2?'DOUBLE BLAST':'LINE CLEAR');
+   const fever=block.combo>=3?'FEVER ×'+block.combo+' · ':(block.combo>1?'STREAK ×'+block.combo+' · ':'');
+   setStatus(fever+blast,'good');
  }else tone(420,22);
  if(block.pieces.every(p=>!p))refillPieces();else{const next=block.pieces.findIndex(Boolean);if(next>=0)block.selected=next;}
  renderBlock();await persistBlock();
@@ -694,7 +765,7 @@ blockBack.onclick=async()=>{
    if(!saved)return;
  }
  if(block&&!block.finished&&block.sessionToken)await cancelPlaySession(block.sessionToken);
- block=null;showHome();
+ clearBlockDragVisual();blockDrag=null;block=null;showHome();
 };
 blockNew.onclick=async()=>{
  if(blockNew.disabled)return;

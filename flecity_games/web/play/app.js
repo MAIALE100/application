@@ -17,7 +17,7 @@ const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchBest=document.getElementById('colorMatchBest'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
-const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
+const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowLives=document.getElementById('highLowLives'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
@@ -1574,9 +1574,9 @@ numberRushNew.onclick=async()=>{
 /* RANGE RUSH */
 function updateRangeRushTimer(){
  if(!highLow){
-   highLowTimerFill.style.width='100%';highLowTimerFill.classList.remove('danger');highLowTimerText.textContent='2.2s';return;
+   highLowTimerFill.style.width='100%';highLowTimerFill.classList.remove('danger');highLowTimerText.textContent='2.4s';return;
  }
- const limit=Math.max(800,Number(highLow.timeLimitMs)||2200);
+ const limit=Math.max(800,Number(highLow.timeLimitMs)||2400);
  if(!highLow.running||highLow.finished){
    highLowTimerFill.style.width=highLow.finished?'0%':'100%';
    highLowTimerFill.classList.remove('danger');
@@ -1596,15 +1596,18 @@ function startRangeRushClock(){
 function renderHighLow(){
  refreshScreenBests();
  if(!highLow){
-   highLowCard.textContent='?';highLowPivot.textContent='50';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30 · STREAK 0';
+   highLowCard.textContent='?';highLowPivot.textContent='50';highLowLives.textContent='♥ ♥ ♥';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30 · STREAK 0';
    highLowHigher.textContent='HIGH ↑';highLowLower.textContent='LOW ↓';
    highLowHigher.disabled=true;highLowLower.disabled=true;updateRangeRushTimer();return;
  }
  highLowCard.textContent=String(highLow.currentValue);
  highLowPivot.textContent=String(highLow.pivot);
+ highLowLives.textContent='♥ '.repeat(Math.max(0,highLow.lives||0)).trim()||'—';
+ highLowLives.dataset.lives=String(Math.max(0,highLow.lives||0));
  highLowStreak.textContent=String(highLow.score);
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+(highLow.finished?' · GAME OVER':'');
+ const multiplier=Math.min(4,1+Math.floor(Math.max(0,(highLow.streak||0)-1)/5));
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+(highLow.finished?' · GAME OVER':'');
  highLowLower.textContent='LOW < '+String(highLow.pivot);
  highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
@@ -1612,7 +1615,7 @@ function renderHighLow(){
 }
 function openHighLow(){
  hideAll();highLowEl.classList.remove('hidden');clearInterval(highLowClock);highLowClock=null;highLow=null;
- highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout');
+ highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout','life-lost');
  highLowStart.classList.remove('hidden');highLowStart.disabled=false;highLowStart.textContent='スタート';
  highLowNew.classList.add('hidden');renderHighLow();setStatus('数字が基準よりHIGHかLOWかを、時間内に判断してください。','good');
 }
@@ -1624,13 +1627,14 @@ async function startHighLow(){
  const maxRounds=Number(session.challenge&&session.challenge.rounds)||30;
  const currentValue=Number(session.challenge&&session.challenge.currentValue)||0;
  const pivot=Number(session.challenge&&session.challenge.pivot)||0;
- const timeLimitMs=Number(session.challenge&&session.challenge.timeLimitMs)||2200;
+ const timeLimitMs=Number(session.challenge&&session.challenge.timeLimitMs)||2400;
+ const lives=Number(session.challenge&&session.challenge.lives)||3;
  if(currentValue<1||currentValue>99||pivot<1||pivot>99||currentValue===pivot){
    await cancelPlaySession(session.sessionToken);
    highLowStart.disabled=false;setStatus('RANGE RUSHの初期状態を取得できませんでした。','error');return;
  }
- highLow={sessionToken:session.sessionToken,maxRounds,currentValue,pivot,timeLimitMs,completed:0,streak:0,score:0,roundStartedAt:performance.now(),startedAt:performance.now(),running:true,finished:false,busy:false};
- highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();startRangeRushClock();setStatus('RANGE RUSH START · 速く正解するほど高得点。','good');
+ highLow={sessionToken:session.sessionToken,maxRounds,currentValue,pivot,timeLimitMs,lives,maxStreak:0,completed:0,streak:0,score:0,roundStartedAt:performance.now(),startedAt:performance.now(),running:true,finished:false,busy:false};
+ highLowStart.classList.add('hidden');highLowNew.classList.remove('hidden');renderHighLow();startRangeRushClock();setStatus('RANGE RUSH START · 3ライフ。連続正解で倍率UP。','good');
 }
 async function guessHighLow(guess){
  const game=highLow;if(!game||!game.running||game.finished||game.busy)return;
@@ -1653,21 +1657,25 @@ async function guessHighLow(guess){
    setStatus('RANGE RUSHの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
  game.streak=Math.max(0,Number(res.streak)||0);
+ game.maxStreak=Math.max(game.maxStreak||0,Number(res.maxStreak)||0);
  game.score=Math.max(0,Number(res.score)||0);
+ game.lives=Math.max(0,Number(res.lives)??game.lives??0);
  game.completed=Math.max(0,Number(res.completed)||0);
+ game.timeLimitMs=Math.max(800,Number(res.timeLimitMs)||game.timeLimitMs||2400);
  game.busy=false;
  highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
- highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout');void highLowEl.offsetWidth;
+ highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout','life-lost');void highLowEl.offsetWidth;
  if(res.correct){
    highLowEl.classList.add('guess-correct');
    tone(700+Math.min(250,game.streak*15),32);
-   setStatus('CORRECT · SPEED BONUS · STREAK '+game.streak,'good');
+   const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0);
+   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak,'good');
  }else{
-   highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong');
+   highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong','life-lost');
    tone(150,90);
-   setStatus(res.timedOut?'TIME UP · RANGE RUSH終了':'MISS · RANGE RUSH終了','warn');
+   setStatus((res.timedOut?'TIME UP':'MISS')+' · LIFE -1 · 残り'+game.lives,'warn');
  }
- if(res.correct&&!res.ended){
+ if(!res.ended){
    game.currentValue=Number(res.nextValue)||game.currentValue;
    game.pivot=Number(res.nextPivot)||game.pivot;
    game.roundStartedAt=performance.now();
@@ -1675,7 +1683,7 @@ async function guessHighLow(guess){
    game.running=false;clearInterval(highLowClock);highLowClock=null;
  }
  renderHighLow();
- if(res.correct&&!res.ended)startRangeRushClock();
+ if(!res.ended)startRangeRushClock();
  if(res.ended===true){await finishHighLow(res.cleared===true);}
 }
 async function finishHighLow(cleared){
@@ -1686,7 +1694,7 @@ async function finishHighLow(cleared){
  game.finalizing=false;
  if(res.ok){
    game.sessionToken=null;game.busy=false;
-   if(highLow===game){showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'RANGE RUSH '+res.score+' pts · STREAK '+game.streak);renderHighLow();}
+   if(highLow===game){showScoreResult('high_low',res,(cleared?'30 ROUND CLEAR · ':'')+'RANGE RUSH '+res.score+' pts · MAX STREAK '+game.maxStreak+' · LIFE '+game.lives);renderHighLow();}
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.running=false;game.busy=false;

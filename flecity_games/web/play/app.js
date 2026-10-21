@@ -1,5 +1,6 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
 const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
+const recentCard=document.getElementById('recentCard'),recentGames=document.getElementById('recentGames'),recentCount=document.getElementById('recentCount'),libraryFilters=document.getElementById('libraryFilters'),randomPlay=document.getElementById('randomPlay');
 const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingSelf=document.getElementById('rankingSelf'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementCount=document.getElementById('achievementCount'),achievementRows=document.getElementById('achievementRows');
@@ -21,7 +22,7 @@ const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=doc
 const highLowEl=document.getElementById('highLowGame'),highLowCard=document.getElementById('highLowCard'),highLowPivot=document.getElementById('highLowPivot'),highLowLives=document.getElementById('highLowLives'),highLowTimerFill=document.getElementById('highLowTimerFill'),highLowTimerText=document.getElementById('highLowTimerText'),highLowStreak=document.getElementById('highLowStreak'),highLowMeta=document.getElementById('highLowMeta'),highLowBack=document.getElementById('highLowBack'),highLowStart=document.getElementById('highLowStart'),highLowNew=document.getElementById('highLowNew'),highLowHigher=document.getElementById('highLowHigher'),highLowLower=document.getElementById('highLowLower');
 const simonEl=document.getElementById('simonGame'),simonBoard=document.getElementById('simonBoard'),simonRound=document.getElementById('simonRound'),simonMeta=document.getElementById('simonMeta'),simonMessage=document.getElementById('simonMessage'),simonBack=document.getElementById('simonBack'),simonStart=document.getElementById('simonStart'),simonNew=document.getElementById('simonNew'),simonPads=[...simonBoard.querySelectorAll('.simon-pad')];
 
-let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null;
+let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
 let block=null,blockDrag=null,blockSuppressClick=false,merge=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
@@ -375,6 +376,52 @@ async function launchGame(gameId){
    else if(gameId==='simon')openSimon();
  });
 }
+function renderRecent(games){
+ const stats=bootstrapData&&bootstrapData.statistics&&Array.isArray(bootstrapData.statistics.games)?bootstrapData.statistics.games:[];
+ const byGame=new Map(stats.map(stat=>[String(stat.gameId||''),stat]));
+ const recent=(games||[])
+   .map(game=>({game,stat:byGame.get(game.id)}))
+   .filter(item=>item.stat&&Number(item.stat.playCount)>0&&item.stat.lastPlayedAt)
+   .sort((a,b)=>String(b.stat.lastPlayedAt).localeCompare(String(a.stat.lastPlayedAt)))
+   .slice(0,3);
+ recentGames.innerHTML='';recentCount.textContent=String(recent.length);recentCard.classList.toggle('hidden',recent.length===0);
+ recent.forEach(({game,stat})=>{
+   const button=document.createElement('button');button.className='continue-game recent-game';button.dataset.game=game.id;
+   const visual=gameVisuals[game.id]||{symbol:'▶',eyebrow:'RECENT'};
+   const top=document.createElement('span'),icon=document.createElement('span'),text=document.createElement('span'),meta=document.createElement('span');
+   top.className='continue-top';icon.className='continue-icon';setGameIcon(icon,visual);text.textContent=String(game.name||game.id);meta.className='muted';
+   const best=Number.isFinite(Number(stat.bestScore))?formatGameScore(game,stat.bestScore):'---';
+   meta.textContent=String(stat.playCount||0)+'回プレイ · BEST '+best;
+   top.append(icon,text);button.append(top,meta);button.onclick=()=>launchGame(game.id);recentGames.appendChild(button);
+ });
+}
+function filteredLibraryGames(games){
+ const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
+ if(libraryFilter==='all')return enabled;
+ return enabled.filter(g=>String(g.category||'other')===libraryFilter);
+}
+function updateLibraryControls(allGames,visibleGames){
+ const total=allGames.length,visible=visibleGames.length;
+ gameCount.textContent=libraryFilter==='all'?String(total):(String(visible)+'/'+String(total));
+ randomPlay.disabled=visible===0;
+ [...libraryFilters.querySelectorAll('.library-filter')].forEach(button=>{
+   const active=button.dataset.filter===libraryFilter;
+   button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false');
+ });
+}
+libraryFilters.onclick=event=>{
+ const button=event.target.closest('.library-filter');if(!button||!libraryFilters.contains(button))return;
+ const next=String(button.dataset.filter||'all');
+ if(next===libraryFilter)return;
+ libraryFilter=next;renderGames(bootstrapData&&bootstrapData.games);
+};
+randomPlay.onclick=()=>{
+ const visible=filteredLibraryGames(bootstrapData&&bootstrapData.games);
+ if(!visible.length)return;
+ const game=visible[Math.floor(Math.random()*visible.length)];
+ if(game)void launchGame(game.id);
+};
+
 function renderContinue(games){
  const resumable=(games||[]).filter(game=>game.app==='play'&&game.enabled&&saves[game.id]);
  continueGames.innerHTML='';continueCount.textContent=String(resumable.length);
@@ -393,15 +440,18 @@ function renderGames(games){
  refreshScreenBests();
  gamesEl.innerHTML='';
  const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
- gameCount.textContent=String(enabled.length);
- renderContinue(enabled);
+ const visible=filteredLibraryGames(enabled);
+ renderContinue(enabled);renderRecent(enabled);updateLibraryControls(enabled,visible);
  const groups=new Map();
- enabled.forEach(game=>{
+ visible.forEach(game=>{
    const category=String(game.category||'other');
    if(!groups.has(category))groups.set(category,[]);
    groups.get(category).push(game);
  });
  const ordered=[...categoryOrder.filter(key=>groups.has(key)),...([...groups.keys()].filter(key=>!categoryOrder.includes(key)))];
+ if(!ordered.length){
+   const empty=document.createElement('div');empty.className='library-empty muted';empty.textContent='このカテゴリのゲームはありません。';gamesEl.appendChild(empty);return;
+ }
  ordered.forEach(category=>{
    const section=document.createElement('section');section.className='game-category';
    const head=document.createElement('div');head.className='category-head';

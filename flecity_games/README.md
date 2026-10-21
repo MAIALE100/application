@@ -198,3 +198,10 @@ The first time the watcher is installed, run `restart flecity_games` once in the
 - Ranking score is now server-replayed points instead of raw layer count.
 - Placement precision contributes to points; PERFECT placements preserve width and build a capped streak multiplier.
 - Server metadata records height, max PERFECT streak and final width for achievements and diagnostics.
+
+### 0.22.0 RANGE RUSH v3
+- RANGE RUSH is now a 3-life cognitive reflex game instead of one-miss sudden death.
+- Each five-round stage tightens the response window while keeping a 1.2s lower bound.
+- Consecutive correct answers raise the score multiplier up to x4.
+- Close comparisons and faster answers add difficulty/speed bonuses.
+- Server state owns lives, timing, streak, score, and the next round; the client only submits HIGH/LOW/timeout actions.

@@ -42,7 +42,8 @@ FlecityGamesConfig = {
             ColorMatchFocusMs = 6000,
             SimonMasterRounds = 15,
             SlideMasterMs = 90000,
-            SlideMasterMoves = 120
+            SlideMasterMoves = 120,
+            FallMasterLines = 20
         }
     },
 

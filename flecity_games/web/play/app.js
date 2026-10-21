@@ -1793,4 +1793,27 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pagehide',()=>{void suspendActivePlay();});
 
+let playPhoneLifecycleRegistered=false;
+function handlePlayLifecycleMessage(message){
+ if(!message||typeof message!=='object'||message.type!=='playSuspend')return;
+ refreshAfterSuspend=false;
+ void suspendActivePlay();
+}
+window.addEventListener('message',event=>{
+ if(!playPhoneLifecycleRegistered)handlePlayLifecycleMessage(event.data);
+});
+function registerPlayPhoneLifecycle(){
+ if(playPhoneLifecycleRegistered||typeof globalThis.onNuiEvent!=='function')return;
+ try{
+   globalThis.onNuiEvent('playSuspend',data=>{
+     if(data&&typeof data==='object'&&data.type)handlePlayLifecycleMessage(data);
+     else handlePlayLifecycleMessage({type:'playSuspend',...(data&&typeof data==='object'?data:{})});
+   });
+   playPhoneLifecycleRegistered=true;
+ }catch(_){
+   playPhoneLifecycleRegistered=false;
+ }
+}
+registerPlayPhoneLifecycle();
+
 bootstrap();

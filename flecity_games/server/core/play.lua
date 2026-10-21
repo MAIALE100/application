@@ -1574,7 +1574,7 @@ local function validateScore(game,score)
         if score<0 or score>5000000 then return nil end
         return math.floor(score)
     elseif game.id=='high_low' then
-        if score<0 or score>10000 then return nil end
+        if score<0 or score>100000 then return nil end
         return math.floor(score)
     elseif game.id=='simon' then
         if score<0 or score>100 then return nil end

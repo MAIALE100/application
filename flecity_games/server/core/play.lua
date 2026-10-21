@@ -1130,7 +1130,7 @@ local function fallFindAnyPlacement(board,width,height,pieceType)
     return nil,nil
 end
 
-local function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo)
+local function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo,lines)
     x=tonumber(x) rotation=tonumber(rotation)
     if not x or not rotation or x~=math.floor(x) or rotation~=math.floor(rotation) then return nil end
     rotation=((rotation%4)+4)%4
@@ -1142,8 +1142,9 @@ local function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo)
     local cleared=fallClearLines(board,width,height)
     combo=cleared>0 and (math.max(0,tonumber(combo) or 0)+1) or 0
     local lineScore=(FALL_LINE_POINTS[cleared] or (cleared*250))
-    local gained=10+(dropY*2)+(lineScore*(cleared>0 and math.max(1,combo) or 1))
-    return {cleared=cleared,combo=combo,gained=gained,dropY=dropY,rotation=rotation,x=x}
+    local level=math.min(8,1+math.floor(math.max(0,tonumber(lines) or 0)/5))
+    local gained=10+(dropY*2)+(lineScore*(cleared>0 and math.max(1,combo) or 1)*level)
+    return {cleared=cleared,combo=combo,gained=gained,dropY=dropY,rotation=rotation,x=x,level=level}
 end
 
 local function replayFallState(seed,history,width,height)
@@ -1162,7 +1163,7 @@ local function replayFallState(seed,history,width,height)
         local pieceType
         state,pieceType=fallNextPiece(state)
         if not fallFindAnyPlacement(board,width,height,pieceType) then return nil end
-        local applied=fallApplyPlacement(board,width,height,pieceType,x,rotation,combo)
+        local applied=fallApplyPlacement(board,width,height,pieceType,x,rotation,combo,lines)
         if not applied then return nil end
         combo=applied.combo
         score=score+applied.gained

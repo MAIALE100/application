@@ -54,7 +54,7 @@ local function addApp(app)
         local data={
             identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
             defaultApp=app.defaultApp,ui=RESOURCE..'/'..app.ui,
-            icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=false
+            icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
         }
         if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
             data.onOpen=playOnOpen

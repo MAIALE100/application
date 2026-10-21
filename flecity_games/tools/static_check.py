@@ -353,6 +353,8 @@ if "flagMineDirect" not in play_js or "crossNonogramDirect" not in play_js or "m
     fail("PLAY long-press puzzle controls are missing")
 if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_css or ".cross-pop" not in play_css:
     fail("PLAY touch puzzle control CSS is missing")
+if "difficulty=gap<=8?'TIGHT'" not in play_js or "difficultyBonus" not in play_js or "RANGE RUSH risk readability v10" not in play_css:
+    fail("RANGE RUSH visible risk/bonus feedback is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

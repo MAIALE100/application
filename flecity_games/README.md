@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.23.0-test**
+- Resource version: **0.24.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **23/23 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -44,7 +44,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - NUMBER RUSH — deterministic 5x5 number hunt, server-replayed tap history, miss penalties, time ranking
 - RANGE RUSH — 3-life HIGH/LOW reflex run with adaptive timer, streak multiplier, and server-owned score
 
-- SIMON — repeat an increasingly long seeded four-pad sequence; server replay validates every input
+- SIMON — repeat an increasingly long seeded four-pad sequence; server replay validates every input; Daily Challenge supported
 
 ### PARTY — 10/10 enabled
 
@@ -84,6 +84,7 @@ Implemented:
 - deterministic Daily NONOGRAM puzzle
 - deterministic Daily MEMORY card layout
 - deterministic Daily NUMBER RUSH number layout
+- deterministic Daily SIMON sequence with server-authoritative round validation
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
 - 14 collection/title achievements across PLAY:

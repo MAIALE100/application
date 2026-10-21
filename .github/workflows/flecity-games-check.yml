@@ -84,7 +84,7 @@ jobs:
       - name: Check updater command launchers
         shell: pwsh
         run: |
-          if ((Get-Content -Raw games-update.cmd) -notmatch 'games-update\.ps1') { throw 'games-update.cmd does not launch games-update.ps1' }
+          if ((Get-Content -Raw games-update.cmd) -notmatch 'games-manual-update\.ps1') { throw 'games-update.cmd does not launch games-manual-update.ps1' }
           if ((Get-Content -Raw games-auto-update-install.cmd) -notmatch 'games-auto-update-install\.ps1') { throw 'install cmd does not launch installer' }
           if ((Get-Content -Raw games-auto-update-disable.cmd) -notmatch 'games-auto-update-disable\.ps1') { throw 'disable cmd does not launch disable script' }
           if ((Get-Content -Raw games-auto-update-status.cmd) -notmatch 'games-auto-update-status\.ps1') { throw 'status cmd does not launch status script' }

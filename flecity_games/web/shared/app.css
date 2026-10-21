@@ -383,3 +383,17 @@ body.reduced-motion .number-rush-board,body.reduced-motion #colorMatchGame .colo
 .rank-c{color:#d1d4da;background:rgba(175,181,191,.08);border-color:rgba(175,181,191,.18)}
 .game-card-meta{min-height:1.1em}
 .daily-feature #dailyDate{line-height:1.45;color:#c8d3e3;opacity:.78}
+
+
+/* BLOCK drag-first upgrade */
+.piece{touch-action:none;user-select:none;position:relative}
+.piece.dragging{transform:scale(.97);opacity:.7}
+.block-cell.drag-preview{background:linear-gradient(145deg,#d9f1ff,#a8ccec)!important;border-color:#dff4ff!important;box-shadow:0 0 0 2px rgba(182,225,255,.2),0 0 14px rgba(159,211,255,.12)!important}
+.block-cell.drag-invalid{background:#4a252a!important;border-color:#6d343b!important;box-shadow:0 0 0 1px rgba(255,133,143,.12)!important}
+.block-drag-ghost{position:fixed;z-index:1200;pointer-events:none;transform:translate(-50%,-50%);padding:8px;border-radius:14px;background:rgba(18,22,28,.88);border:1px solid rgba(220,235,255,.24);box-shadow:0 12px 30px rgba(0,0,0,.34);backdrop-filter:blur(4px)}
+.drag-piece-grid{display:grid;grid-template-columns:repeat(3,18px);grid-template-rows:repeat(3,18px);gap:3px}
+.drag-piece-grid span{border-radius:4px;background:linear-gradient(145deg,#f2f6fb,#b8c8d8);box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+.block-board.fever{border-color:#6f6846;box-shadow:inset 0 0 22px rgba(255,218,105,.05),0 0 18px rgba(255,214,93,.05)}
+.block-board.fever .block-cell.filled{box-shadow:inset 0 -3px 0 rgba(0,0,0,.14),0 0 8px rgba(255,231,149,.04)}
+@media(max-width:360px){.drag-piece-grid{grid-template-columns:repeat(3,16px);grid-template-rows:repeat(3,16px)}}
+body.reduced-motion .block-cell.drag-preview,body.reduced-motion .block-drag-ghost{transition:none!important}

@@ -189,6 +189,14 @@ if 'id="dailyIcon"' not in play_html:
     fail("PLAY Daily icon slot is missing")
 if "quickTapGrade" not in play_js or "stopRushGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
     fail("PLAY skill-feedback gameplay pass is missing")
+if "playQuickRound" not in play_js or "QUICK TAP FOCUS" not in play_html or "tapRunMeta" not in play_js:
+    fail("QUICK TAP FOCUS client run flow is missing")
+if "FlecityGamesPlay.QuickRound" not in play_lua or "newQuickState" not in play_lua or "applyQuickTap" not in play_lua:
+    fail("QUICK TAP FOCUS server-authoritative round flow is missing")
+if "playQuickRound='flecity_games:play:quickRound'" not in client:
+    fail("QUICK TAP FOCUS bridge callback is missing")
+if not re.search(r"id='quick_tap'[^\n]*version=2", registry):
+    fail("QUICK TAP FOCUS registry version must be 2")
 if "playStopRound" not in play_js or "STOP! RUSH" not in play_html:
     fail("STOP RUSH client flow is missing")
 if "FlecityGamesPlay.StopRound" not in play_lua or "newStopState" not in play_lua or "applyStopRound" not in play_lua:
@@ -396,6 +404,8 @@ if "PLAY depth feedback v12" not in play_css or ".block-danger" not in play_css 
     fail("PLAY depth feedback CSS is missing")
 if "STOP RUSH progression v13" not in play_css or "dataset.tier" not in play_js:
     fail("STOP RUSH escalating visual feedback is missing")
+if "QUICK TAP FOCUS v15" not in play_css or "#tapRunMeta" not in play_css:
+    fail("QUICK TAP FOCUS visual feedback is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:

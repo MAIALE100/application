@@ -349,6 +349,10 @@ if "LB Phone native fixBlur scaling pass v7" not in play_css:
     fail("LB Phone native fixBlur scaling guard is missing")
 if "PLAY fun & feedback pass v8" not in play_css or ".rush-flow" not in play_css or ".memory-streak" not in play_css:
     fail("PLAY gameplay feedback v8 CSS is missing")
+if "flagMineDirect" not in play_js or "crossNonogramDirect" not in play_js or "mineSuppressClickUntil" not in play_js or "nonogramSuppressClickUntil" not in play_js:
+    fail("PLAY long-press puzzle controls are missing")
+if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_css or ".cross-pop" not in play_css:
+    fail("PLAY touch puzzle control CSS is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

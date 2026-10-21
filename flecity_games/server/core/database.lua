@@ -75,6 +75,28 @@ local function indexExists(tableName,indexName)
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=?]],{tableName,indexName}) or 0)>0
 end
 
+local managedTables={
+    'flecity_game_profiles',
+    'flecity_game_scores',
+    'flecity_game_saves',
+    'flecity_game_achievements',
+    'flecity_game_daily'
+}
+
+local function tableCollation(tableName)
+    return tostring(MySQL.scalar.await([[SELECT TABLE_COLLATION FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? LIMIT 1]],{tableName}) or '')
+end
+
+local function ensureUtf8mb4()
+    for _,tableName in ipairs(managedTables) do
+        local collation=tableCollation(tableName)
+        if collation~='' and collation:find('utf8mb4',1,true)~=1 then
+            MySQL.query.await(('ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'):format(tableName))
+        end
+    end
+end
+
 function FlecityGamesDatabase.Ensure()
     local ok,err=pcall(function()
         for _,sql in ipairs(statements) do MySQL.query.await(sql) end
@@ -88,6 +110,7 @@ function FlecityGamesDatabase.Ensure()
         if not indexExists('flecity_game_scores','uq_flecity_game_session_token') then
             MySQL.query.await('ALTER TABLE flecity_game_scores ADD UNIQUE KEY uq_flecity_game_session_token (session_token)')
         end
+        ensureUtf8mb4()
     end)
     if not ok then return false,tostring(err) end
     return true

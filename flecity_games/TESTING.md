@@ -63,6 +63,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 最終スコア送信は同じSession Tokenで安全に再送でき、二重Scoreにならない
 - 最終送信中にBACK / Phone CloseしてもSessionを先に破棄しない
 - Phoneを閉じると非再開ゲームはSession / Timerが安全停止する
+- Phoneを完全に閉じて3.5秒以上待った後、`game_healthcheck` の `play_sessions=0` / `pending_starts=0` を確認
 - Session開始通信の途中でPhoneを閉じても、遅れて返ったSessionが残らない
 - 判定通信 / 最終Score保存中にPhoneを閉じても古い画面状態へ書き戻さない
 - Phoneを閉じるとBLOCK / MERGE / MINES / NONOGRAMは通常プレイを保存してSessionを閉じる

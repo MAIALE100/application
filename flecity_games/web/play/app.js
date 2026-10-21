@@ -987,7 +987,7 @@ async function placeBlock(x,y){
    blockBoard.classList.remove('line-clear');void blockBoard.offsetWidth;blockBoard.classList.add('line-clear');
    tone(620+Math.min(260,block.combo*45),55);
    const blast=clearedLines>=3?'MEGA BLAST':(clearedLines===2?'DOUBLE BLAST':'LINE CLEAR');
-   const fever=block.combo>=3?'FEVER ×'+block.combo+' · ':(block.combo>1?'STREAK ×'+block.combo+' · ':'');
+   const fever=block.combo===3?'FEVER START · ':(block.combo>3?'FEVER ×'+block.combo+' · ':(block.combo>1?'STREAK ×'+block.combo+' · ':''));
    const clutch=pressureBefore.label==='DANGER'?'CLUTCH · ':'';
    setStatus(clutch+fever+blast,'good');
  }else tone(420,22);
@@ -1826,6 +1826,7 @@ stackDrop.onclick=async()=>{
    setStatus('KEEP GOING · '+(precision*100).toFixed(1)+'% · +'+placementScore+' pts','good');tone(470,24);
  }
  stackGame.speed=Math.min(190,stackGame.speed+5);
+ if(stackGame.layerCount>0&&stackGame.layerCount%5===0){setStatus('HEIGHT '+stackGame.layerCount+' · SPEED UP · '+Math.round(stackGame.speed)+'%/s','good');tone(980,70);}
  stackGame.reverse=(stackGame.layerCount%2)===1;
  stackGame.layerStartedAt=now;
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);

@@ -9,6 +9,7 @@ on:
       - 'games-update.ps1'
       - 'games-update.cmd'
       - 'games-auto-update.ps1'
+      - 'games-auto-update-once.ps1'
       - 'games-auto-update-install.ps1'
       - 'games-auto-update-install.cmd'
       - 'games-auto-update-disable.ps1'
@@ -22,6 +23,7 @@ on:
       - 'games-update.ps1'
       - 'games-update.cmd'
       - 'games-auto-update.ps1'
+      - 'games-auto-update-once.ps1'
       - 'games-auto-update-install.ps1'
       - 'games-auto-update-install.cmd'
       - 'games-auto-update-disable.ps1'
@@ -45,7 +47,7 @@ jobs:
           bad=0
           while IFS= read -r path; do
             case "$path" in
-              flecity_games/*|games-update.ps1|games-update.cmd|games-auto-update.ps1|games-auto-update-install.ps1|games-auto-update-install.cmd|games-auto-update-disable.ps1|games-auto-update-disable.cmd|games-auto-update-status.ps1|games-auto-update-status.cmd|.github/workflows/flecity-games-check.yml)
+              flecity_games/*|games-update.ps1|games-update.cmd|games-auto-update.ps1|games-auto-update-once.ps1|games-auto-update-install.ps1|games-auto-update-install.cmd|games-auto-update-disable.ps1|games-auto-update-disable.cmd|games-auto-update-status.ps1|games-auto-update-status.cmd|.github/workflows/flecity-games-check.yml)
                 ;;
               *)
                 echo "Unexpected path changed outside Flecity Games: $path"
@@ -61,6 +63,7 @@ jobs:
           $scripts = @(
             'games-update.ps1',
             'games-auto-update.ps1',
+            'games-auto-update-once.ps1',
             'games-auto-update-install.ps1',
             'games-auto-update-disable.ps1',
             'games-auto-update-status.ps1'

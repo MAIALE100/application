@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.24.0-test**
+- Resource version: **0.25.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **23/23 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -60,6 +60,13 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - TELEPHONE — sequential private text/drawing chain with final reveal
 
 PARTY rooms keep the same members while changing games. Room Code and internal Room ID are separate. Reconnect recovery, disconnect grace, immediate host migration, ready state, and host-only round control are implemented. Room changes use viewer-safe LB Phone push messages for near-immediate refresh, with both raw message and official `onNuiEvent` listeners supported. DRAW uses incremental stroke pushes, and a 10-second poll remains only as recovery fallback. Monotonic room revisions prevent older poll/push snapshots from overwriting newer state. A character cannot silently join a second room while its previous disconnected room is still retained, disconnected voters are excluded from final tallies, and rounds abort safely when disconnects make the configured minimum player count or secret-role state invalid.
+
+## UI clarity pass
+
+- LB Phone `fixBlur=true` enabled.
+- Shared PLAY/PARTY CSS uses rem-based sizing instead of px for blur-safe custom-app rendering.
+- PLAY game library uses dedicated SVG icons for all 13 solo games.
+- Game cards use larger icons, stronger text contrast, clearer metadata, and a Daily Challenge game icon.
 
 ## Platform features
 

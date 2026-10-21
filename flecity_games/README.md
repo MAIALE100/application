@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.25.0-test**
+- Resource version: **0.26.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **23/23 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -67,6 +67,9 @@ PARTY rooms keep the same members while changing games. Room Code and internal R
 - Shared PLAY/PARTY CSS uses rem-based sizing instead of px for blur-safe custom-app rendering.
 - PLAY game library uses dedicated SVG icons for all 13 solo games.
 - Game cards use larger icons, stronger text contrast, clearer metadata, and a Daily Challenge game icon.
+- PLAY home shows up to three recently played games using server-side score history timestamps.
+- GAME LIBRARY can be filtered by Quick / Arcade / Endless / Puzzle without reloading the app.
+- おまかせ launches a random game from the currently visible category.
 
 ## Platform features
 

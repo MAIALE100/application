@@ -898,7 +898,8 @@ function renderBlock(){
  blockScore.textContent=String(block.score);
  refreshScreenBests();
  const streak=block.combo>0?'STREAK ×'+String(block.combo):'STREAK READY',pressure=blockPressure();
- blockMeta.textContent=(block.daily?'DAILY · ':'')+streak+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES · '+pressure.label;
+ const fever=block.combo>=3?'FEVER ACTIVE':'FEVER '+Math.min(3,Math.max(0,block.combo))+'/3';
+ blockMeta.textContent=(block.daily?'DAILY · ':'')+streak+' · '+fever+' · '+String(block.pieces.filter(Boolean).length+'/3')+' PIECES · '+pressure.label;
  blockBoard.classList.toggle('fever',block.combo>=3);
  blockBoard.classList.toggle('block-tight',pressure.label==='TIGHT');
  blockBoard.classList.toggle('block-danger',pressure.label==='DANGER');
@@ -1090,7 +1091,8 @@ function renderMerge(){
    const d=document.createElement('div'),v=Number(merge.board[y][x]||0);
    d.className='merge-cell'+(v?' filled tile-'+Math.min(2048,v):'');if(v)d.dataset.value=String(v);d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
- mergeMeta.textContent='CHAIN ×'+String(merge.chain||0)+' · '+String(merge.moves)+' MOVES · NEXT '+String(target)+' · '+pressure.empty+' SPACE'+(merge.finished?' · FINISHED':'');
+ const chainPower=Math.max(1,Number(merge.chain)||1);
+ mergeMeta.textContent='CHAIN ×'+String(merge.chain||0)+' · POWER ×'+String(chainPower)+' · '+String(merge.moves)+' MOVES · NEXT '+String(target)+' · '+pressure.empty+' SPACE'+(merge.finished?' · FINISHED':'');
  const locked=merge.finished||merge.finalizing;
  mergeUp.disabled=locked;mergeDown.disabled=locked;mergeLeft.disabled=locked;mergeRight.disabled=locked;
  mergeFinish.disabled=locked;mergeNew.disabled=merge.finalizing===true;
@@ -1331,7 +1333,8 @@ function renderFall(){
  const game=fallGame;if(!game)return;
  refreshScreenBests();fallScore.textContent=String(game.score);
  const pressure=fallPressure(game);
- fallMeta.textContent='LINES '+String(game.lines)+' · PIECES '+String(game.pieces)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
+ const level=1+Math.floor((Number(game.lines)||0)/5);
+ fallMeta.textContent='LEVEL '+level+' · LINES '+String(game.lines)+' · PIECES '+String(game.pieces)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
  fallBoard.classList.toggle('fall-tight',pressure.label==='TIGHT');
  fallBoard.classList.toggle('fall-danger',pressure.label==='DANGER');
  fallBoard.innerHTML='';
@@ -1734,7 +1737,8 @@ function renderStack(){
  if(!stackGame)return;
  stackScore.textContent=Math.round(stackGame.score).toLocaleString();
  const tension=stackGame.width<=22?'DANGER':(stackGame.width<=38?'TIGHT':'STABLE');
- stackMeta.textContent='HEIGHT '+String(stackGame.layerCount)+' · PERFECT ×'+String(stackGame.perfectStreak)+' · 幅 '+stackGame.width.toFixed(1)+'% · '+tension;
+ const speedTier=stackGame.speed>=165?'TURBO':(stackGame.speed>=130?'FAST':(stackGame.speed>=95?'UP':'NORMAL'));
+ stackMeta.textContent='HEIGHT '+String(stackGame.layerCount)+' · PERFECT ×'+String(stackGame.perfectStreak)+' · SPEED '+speedTier+' · 幅 '+stackGame.width.toFixed(1)+'% · '+tension;
  stackArena.classList.toggle('tower-fever',stackGame.perfectStreak>=3);
  stackArena.classList.toggle('tower-tight',tension==='TIGHT');
  stackArena.classList.toggle('tower-danger',tension==='DANGER');
@@ -2553,9 +2557,9 @@ function renderHighLow(){
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
  const multiplier=Math.min(4,1+Math.floor(Math.max(0,(highLow.streak||0)-1)/5));
  const gap=Math.abs(Number(highLow.currentValue)-Number(highLow.pivot));
- const difficulty=gap<=8?'TIGHT':(gap<=18?'TRICKY':'OPEN');
+ const difficulty=gap<=8?'TIGHT':(gap<=18?'TRICKY':'OPEN'),bounty=Math.max(0,45-Math.min(45,gap))*3;
  highLowCard.dataset.difficulty=difficulty.toLowerCase();
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+(highLow.finished?' · GAME OVER':'');
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+' · BOUNTY +'+String(bounty)+(highLow.finished?' · GAME OVER':'');
  highLowLower.textContent='LOW < '+String(highLow.pivot);
  highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;

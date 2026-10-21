@@ -299,8 +299,12 @@ if 'id="fallGame"' not in play_html or 'id="fallBoard"' not in play_html or 'id=
     fail("FALL game DOM is missing")
 if "FallMasterLines = 20" not in config or "fall_master" not in play_lua or "fall_master" not in play_js:
     fail("FALL MASTER achievement flow is missing")
-if "fallPieceFor(fallGame.seed,fallGame.history.length+1)" not in play_js or "Next piece preview" not in play_html:
+if "fallPeekNextPiece" not in play_js or "pieceRngState" not in play_js or "Next piece preview" not in play_html:
     fail("FALL deterministic next-piece preview is missing")
+if "game.pieces%3===0" not in play_js or "persistFall(false,false)" not in play_js or "snapshotLength" not in play_js:
+    fail("FALL non-blocking autosave flow is missing")
+if "normalized[#normalized+1]={applied.x,applied.rotation}" not in play_lua or "game.history.push([game.x,game.rotation])" not in play_js:
+    fail("FALL compact long-run history format is missing")
 if "icons/fall.svg" not in play_js:
     fail("FALL dedicated icon wiring is missing")
 

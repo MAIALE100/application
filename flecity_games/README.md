@@ -185,3 +185,10 @@ The first time the watcher is installed, run `restart flecity_games` once in the
 - All 12 PLAY games now expose S/A/B/C rank goals from server-validated scores.
 - Home cards show the current rank and the next target instead of only a raw BEST value.
 - Daily Challenge derives a consecutive-day streak from existing validated Daily score history without adding a new table.
+
+### 0.20.0 gameplay redesign
+- HIGH & LOW is replaced by RANGE RUSH: a 30-round server-timed classification game based on judgment speed rather than luck.
+- RANGE RUSH scores speed, streak and correctness server-side; timeout/mistake ends the run.
+- MERGE now uses server-validated CHAIN multipliers: consecutive merge-producing moves increase scoring up to x5, while a non-merge move resets the chain.
+- MERGE adds next-tile goals, fever/milestone feedback and versioned saves for the new scoring rules.
+- BLOCK remains drag-first with STREAK / BLAST / FEVER feedback from the 0.19.2 flagship pass.

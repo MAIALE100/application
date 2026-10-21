@@ -164,6 +164,30 @@ Static implementation does not replace an actual FiveM test. Verify on the Fleci
 BLOCK, MERGE, STACK, MEMORY, COLOR MATCH, and NUMBER RUSH submit deterministic operation/selection histories and the server replays them before accepting a score. HIGH & LOW and SIMON advance through server-authoritative per-action state. MINES and NONOGRAM reconstruct the board/solution from the seed, while STOP! is recalculated from server-issued timing parameters. Real-client NUI behavior still requires the live tests in `TESTING.md`.
 
 
+## Fully automatic test-server updates
+
+After one final manual refresh, background updating can be enabled automatically.
+
+The automatic updater:
+
+- watches `games/platform-core` every 30 seconds
+- waits for the detected commit to remain stable before deployment
+- uses a dedicated detached Git worktree so normal FRAME / Photo Diary / other branch work is never switched or reset
+- runs the existing safety validation before deployment
+- keeps the previous test-server build in place when validation or deployment fails
+- mirrors only `flecity_games` into the test server
+- updates the reload token so only `flecity_games` restarts; the full FiveM server is not restarted
+- restarts its own watcher when the watcher script itself is updated
+- resumes automatically at Windows logon through Task Scheduler, with the Startup folder as a fallback
+- writes its diagnostic log under `%LOCALAPPDATA%\FlecityGamesAutoUpdate\auto-update.log`
+
+One-click controls are also included:
+
+- `games-auto-update-install.cmd`
+- `games-auto-update-disable.cmd`
+
+The normal `games-update.cmd` automatically enables the background updater once when it is not already installed and has not been explicitly disabled.
+
 ## Low-effort test-server update workflow
 
 The repository root includes:

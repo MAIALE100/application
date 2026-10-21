@@ -74,6 +74,7 @@ if "utf8.len" not in text_lua or "utf8.offset" not in text_lua or "utf8Truncate"
     fail("UTF-8 text helper/selftest is incomplete")
 
 config = read("flecity_games/config/shared.lua")
+profile_lua = read("flecity_games/server/core/profile.lua")
 identifiers = re.findall(r"identifier\s*=\s*'([^']+)'", config)
 if len(identifiers) < 2 or len(set(identifiers[:2])) != 2:
     fail("PLAY and PARTY app identifiers must both exist and be unique")
@@ -240,6 +241,12 @@ if "gameVisuals" not in play_js or "setQuickVisual" not in play_js or "setStopVi
     fail("PLAY game identity / live-state visual feedback is missing")
 if "renderRecent" not in play_js or "filteredLibraryGames" not in play_js or "randomPlay.onclick" not in play_js:
     fail("PLAY recent/filter/random library navigation is missing")
+if "toggleFavorite" not in play_js or "favorite-toggle" not in play_js or "data-filter=\"favorites\"" not in play_html:
+    fail("PLAY favorites client/filter flow is missing")
+if "normalizeFavorites" not in profile_lua or "favorites=normalizeFavorites" not in profile_lua or "if data.favorites~=nil" not in profile_lua:
+    fail("PLAY character-persisted favorites profile flow is missing")
+if "if data.sound~=nil" not in profile_lua or "if data.reducedMotion~=nil" not in profile_lua:
+    fail("profile settings updates must preserve fields omitted by another app")
 if 'id="recentCard"' not in play_html or 'id="libraryFilters"' not in play_html or 'id="randomPlay"' not in play_html:
     fail("PLAY library navigation DOM is missing")
 if "lastPlayedAt=row.last_played_at" not in play_lua or "MAX(created_at) AS last_played_at" not in play_lua:
@@ -279,6 +286,8 @@ if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" n
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:
     fail("PLAY library navigation v4 CSS is missing")
+if "PLAY favorites pass v5" not in play_css or ".favorite-toggle.active" not in play_css:
+    fail("PLAY favorites v5 CSS is missing")
 for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
     if marker not in play_css:
         fail(f"PLAY visual quality marker missing: {marker}")

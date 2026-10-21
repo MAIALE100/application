@@ -298,7 +298,13 @@ try {
     if (Test-Path -LiteralPath $RuntimeStampPath) {
         try {
             $runtimeStampText = [System.IO.File]::ReadAllText($RuntimeStampPath)
-            $ReloadV2Active = $runtimeStampText -match '(?m)^reload_v2=1
+            $ReloadV2Active = $runtimeStampText -match '(?m)^reload_v2=1$'
+        }
+        catch {
+            $ReloadV2Active = $false
+        }
+    }
+    $Stage = Join-Path $Resources '.flecity_games_stage'
     if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 

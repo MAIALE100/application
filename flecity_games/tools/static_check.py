@@ -232,6 +232,10 @@ if "rankTargets" not in play_js or "rankForScore" not in play_js or "nextRankGoa
     fail("PLAY rank-goal progression is missing")
 if "blockDragTarget" not in play_js or "blockDragGhost" not in play_js or "MEGA BLAST" not in play_js:
     fail("BLOCK drag-first / blast feedback upgrade is missing")
+if "PERFECT ×" not in play_js or "maxPerfectStreak" not in play_js or "TOWER" not in play_js:
+    fail("TOWER skill-scoring client upgrade is missing")
+if "metadata.maxPerfectStreak" not in play_lua or "placementScore" not in play_lua or "replayed.layers" not in play_lua:
+    fail("TOWER authoritative scoring upgrade is missing")
 if "generateRangeRushRounds" not in play_lua or "rangeRush=true" not in play_lua or "RANGE RUSH" not in play_js:
     fail("RANGE RUSH server-timed skill-game replacement is missing")
 if "timeLimitMs=2200" not in play_lua or "highLowTimerFill" not in play_js:

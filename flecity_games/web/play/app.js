@@ -1567,7 +1567,7 @@ function renderMines(){
    if(mines.lost&&mines.mineSet.has(i))b.textContent='✹';
    else if(flagged)b.textContent='⚑';
    else if(revealed)b.textContent=n?String(n):'';
-   b.disabled=mines.finished||revealed;
+   b.disabled=mines.finished;
    let holdTimer=null;
    const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
    b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;mineSuppressClickUntil=performance.now()+650;void flagMineDirect(i);},420);};
@@ -1633,8 +1633,32 @@ async function flagMineDirect(index){
  minesBoard.classList.remove('flag-pop');void minesBoard.offsetWidth;minesBoard.classList.add('flag-pop');
  renderMines();await persistMines();
 }
+async function chordMine(index){
+ const game=mines;if(!game||game.finished||!game.revealed.has(index))return;
+ const required=mineCountAround(index);if(required<=0)return;
+ const neighbors=mineNeighbors(index),flagged=neighbors.filter(i=>game.flags.has(i)).length;
+ if(flagged!==required){tone(190,18);setStatus('周囲の旗が '+required+' 個そろうと一括オープンできます。','warn');return;}
+ const targets=neighbors.filter(i=>!game.flags.has(i)&&!game.revealed.has(i));
+ if(!targets.length)return;
+ const mineHit=targets.find(i=>game.mineSet.has(i));
+ if(mineHit!==undefined){
+   tone(120,130);minesBoard.classList.remove('mine-hit');void minesBoard.offsetWidth;minesBoard.classList.add('mine-hit');await loseMines(mineHit);return;
+ }
+ game.progressed=true;const before=game.revealed.size,queue=targets.slice();
+ while(queue.length){
+   const current=queue.shift();if(game.revealed.has(current)||game.flags.has(current)||game.mineSet.has(current))continue;
+   game.revealed.add(current);
+   if(mineCountAround(current)===0)mineNeighbors(current).forEach(n=>{if(!game.revealed.has(n)&&!game.flags.has(n))queue.push(n);});
+ }
+ const opened=game.revealed.size-before;
+ minesBoard.classList.remove('safe-open','chord-open');void minesBoard.offsetWidth;minesBoard.classList.add('chord-open');
+ tone(760,48);setStatus('CHORD OPEN · +'+opened+' SAFE','good');renderMines();
+ if(game.revealed.size===game.size*game.size-game.mineCount){await finishMines();return;}
+ await persistMines();
+}
 async function touchMine(index){
  const game=mines;if(!game||game.finished)return;
+ if(game.revealed.has(index)){await chordMine(index);return;}
  const firstReveal=game.mode==='reveal'?index:null;
  if(!(await activateMinesTiming(firstReveal))||mines!==game)return;
  if(mines.mode==='flag'){

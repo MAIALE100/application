@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.32.0-test**
+- Resource version: **0.33.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **25/25 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -36,7 +36,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - TOWER — precision stacking with PERFECT streak scoring
 - BLOCK — endless placement, line clear, combo score, auto-save/resume
 - MERGE — deterministic 4x4 merge game, auto-save/resume
-- FALL — deterministic 10x18 hard-drop block game with 7 pieces, line clears, combo scoring, auto-save/resume, and server-replayed placements; deterministic next-piece preview
+- FALL — deterministic 10x18 hard-drop block game with 7 pieces, line clears, combo scoring, auto-save/resume, and server-replayed placements; deterministic next-piece preview; compact placement history and non-blocking periodic autosave for long runs
 - MINES — deterministic board, flags, flood reveal, server-verified clear, auto-save/resume
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking

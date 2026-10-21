@@ -158,6 +158,7 @@ function showHome(){
 function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
 function formatGameScore(game,value){
  const n=Number(value);if(!Number.isFinite(n))return '---';
+ if(game&&game.id==='stack')return Math.round(n).toLocaleString()+' pts';
  return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+' s':n.toFixed(3)+' ms'):String(n);
 }
 function formatDuration(ms){
@@ -207,13 +208,13 @@ const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エ
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const gameVisuals={
  quick_tap:{icon:'⚡',eyebrow:'REFLEX'},stop:{icon:'◎',eyebrow:'TIMING'},color_match:{icon:'A',eyebrow:'FOCUS'},number_rush:{icon:'25',eyebrow:'SPEED'},
- stack:{icon:'▤',eyebrow:'ARCADE'},high_low:{icon:'↕',eyebrow:'SPEED'},simon:{icon:'◆',eyebrow:'MEMORY'},
+ stack:{icon:'▤',eyebrow:'PRECISION'},high_low:{icon:'↕',eyebrow:'SPEED'},simon:{icon:'◆',eyebrow:'MEMORY'},
  block:{icon:'▦',eyebrow:'BUILD'},merge:{icon:'2ⁿ',eyebrow:'MERGE'},mines:{icon:'✦',eyebrow:'LOGIC'},nonogram:{icon:'▩',eyebrow:'PUZZLE'},memory:{icon:'●',eyebrow:'PAIR'}
 };
 
 const rankTargets={
  quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
- stack:{order:'desc',S:25,A:15,B:8},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
+ stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},color_match:{order:'asc',S:7000,A:10000,B:15000},
  number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:5200,A:4000,B:2500},simon:{order:'desc',S:15,A:10,B:5}
@@ -238,7 +239,7 @@ const achievementLabels={
  first_play:'FIRST PLAY · 初めて記録を残す',
  '100_games':'100 GAMES · 100回プレイ',
  lightning:'LIGHTNING · QUICK TAP 200ms以下',
- stack_master:'STACK MASTER · STACK 25段以上',
+ stack_master:'TOWER MASTER · TOWER 25段以上',
  block_master:'BLOCK MASTER · BLOCK 5,000点以上',
  perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
  number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
@@ -1137,16 +1138,17 @@ minesNew.onclick=async()=>{
  }finally{minesNew.disabled=false;}
 };
 
-/* STACK */
+/* TOWER */
 function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
 function renderStack(){
  if(!stackGame)return;
- stackScore.textContent=String(stackGame.score);
- stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed);
+ stackScore.textContent=Math.round(stackGame.score).toLocaleString();
+ stackMeta.textContent='HEIGHT '+String(stackGame.layerCount)+' · PERFECT ×'+String(stackGame.perfectStreak)+' · 幅 '+stackGame.width.toFixed(1)+'%';
+ stackArena.classList.toggle('tower-fever',stackGame.perfectStreak>=3);
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
  const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
  history.forEach((layer,i)=>{
-   const d=document.createElement('div');d.className='stack-layer';d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=(18+i*20)+'px';stackArena.insertBefore(d,stackMover);
+   const d=document.createElement('div');d.className='stack-layer'+(layer.perfect?' perfect-layer':'');d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=(18+i*20)+'px';stackArena.insertBefore(d,stackMover);
  });
  const top=stackGame.layers[stackGame.layers.length-1];
  stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+history.length*20)+'px';
@@ -1168,11 +1170,11 @@ function stackLoop(now){
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
  const session=await startSessionWithRetry({gameId:'stack'});
- if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('STACKを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('TOWERを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
- stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width}],x:0,width,score:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
- stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('STACK開始。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
+ stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
+ stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('TOWER START · PERFECTをつないで倍率を上げよう。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){
  const game=stackGame;if(!game||game.finished||game.finalizing)return;
@@ -1180,8 +1182,18 @@ async function finishStack(){
  const durationMs=Math.max(0,Math.round(performance.now()-game.startedAt));
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs,history:game.history});
  game.finalizing=false;
- if(res.ok){game.sessionToken=null;if(stackGame===game)showScoreResult('stack',res,'STACK '+res.score+'段');await refreshPlatform();}
- else{await cancelPlaySession(game.sessionToken);game.sessionToken=null;if(stackGame===game)setStatus('STACKスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+ if(res.ok){
+   game.sessionToken=null;
+   if(stackGame===game){
+     const layers=Number(res.details&&res.details.layers)||game.layerCount,maxStreak=Number(res.details&&res.details.maxPerfectStreak)||game.maxPerfectStreak;
+     showScoreResult('stack',res,'TOWER '+Number(res.score).toLocaleString()+' pts · HEIGHT '+layers+' · PERFECT ×'+maxStreak);
+     renderStack();
+   }
+   await refreshPlatform();
+ }else{
+   await cancelPlaySession(game.sessionToken);game.sessionToken=null;
+   if(stackGame===game)setStatus('TOWERスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');
+ }
 }
 stackDrop.onclick=async()=>{
  if(!stackGame||stackGame.finished)return;
@@ -1189,24 +1201,38 @@ stackDrop.onclick=async()=>{
  const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
  stackGame.history.push(actionMs);
- const base=stackGame.layers[stackGame.layers.length-1],left=Math.max(base.x,stackGame.x),right=Math.min(base.x+base.width,stackGame.x+stackGame.width),overlap=right-left;
- if(overlap<=.0001){await finishStack();return;}
- stackGame.layers.push({x:left,width:overlap});
- stackGame.score+=1;
- const previousWidth=stackGame.width;
- stackGame.width=overlap;
- const precision=previousWidth>0?overlap/previousWidth:0;
- stackArena.classList.remove('perfect-hit','nice-hit');void stackArena.offsetWidth;
- if(precision>=.985){stackArena.classList.add('perfect-hit');setStatus('PERFECT! '+stackGame.score+'段','good');tone(880,55);}
- else if(precision>=.9){stackArena.classList.add('nice-hit');setStatus('NICE! '+stackGame.score+'段','good');tone(720,40);}
- stackGame.speed=Math.min(180,stackGame.speed+4);
- stackGame.reverse=(stackGame.score%2)===1;
+ const base=stackGame.layers[stackGame.layers.length-1];
+ let left=Math.max(base.x,stackGame.x),right=Math.min(base.x+base.width,stackGame.x+stackGame.width),overlap=right-left;
+ if(overlap<=.0001){stackArena.classList.add('tower-fall');tone(110,120);await finishStack();return;}
+ const previousWidth=stackGame.width,precision=previousWidth>0?overlap/previousWidth:0,perfect=precision>=.985;
+ if(perfect){
+   stackGame.perfectStreak=Math.min(8,stackGame.perfectStreak+1);
+   stackGame.maxPerfectStreak=Math.max(stackGame.maxPerfectStreak,stackGame.perfectStreak);
+   left=base.x;overlap=previousWidth;
+ }else stackGame.perfectStreak=0;
+ let placementScore=100+Math.round(precision*100);
+ if(perfect)placementScore+=100*stackGame.perfectStreak;
+ else if(precision>=.9)placementScore+=40;
+ stackGame.layers.push({x:left,width:overlap,perfect});
+ stackGame.layerCount+=1;stackGame.score+=placementScore;stackGame.width=overlap;
+ stackArena.classList.remove('perfect-hit','nice-hit','tower-score-pop');void stackArena.offsetWidth;stackArena.classList.add('tower-score-pop');
+ if(perfect){
+   stackArena.classList.add('perfect-hit');
+   setStatus('PERFECT ×'+stackGame.perfectStreak+' · +'+placementScore+' pts','good');
+   tone(820+Math.min(160,stackGame.perfectStreak*18),55);
+ }else if(precision>=.9){
+   stackArena.classList.add('nice-hit');setStatus('NICE · +'+placementScore+' pts','good');tone(720,40);
+ }else{
+   setStatus('KEEP GOING · +'+placementScore+' pts','good');tone(470,24);
+ }
+ stackGame.speed=Math.min(190,stackGame.speed+5);
+ stackGame.reverse=(stackGame.layerCount%2)===1;
  stackGame.layerStartedAt=now;
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);
  renderStack();
 };
-stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('STACKを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
-stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('STACKの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('STACKをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
+stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
+stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
 
 /* NONOGRAM */
 const NONOGRAM_PATTERNS_5=[

@@ -49,8 +49,8 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 22:
-    fail(f"expected 22 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 23:
+    fail(f"expected 23 enabled games, found {len(enabled)}: {enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -250,6 +250,12 @@ if not re.search(r"id='merge'[^\n]*version=2", registry):
     fail("MERGE save version must be 2 for chain scoring")
 if "dailyStreak" not in play_lua or "nextCount" not in play_lua:
     fail("PLAY Daily streak derivation is missing")
+if "generateSortBoard" not in play_lua or "replaySortState" not in play_lua or "INVALID_SORT_REPLAY" not in play_lua:
+    fail("SORT deterministic replay engine is missing")
+if "openSort" not in play_js or "persistSort" not in play_js or "sortBoard" not in play_js:
+    fail("SORT resumable client flow is missing")
+if not re.search(r"id='sort'[^\n]*supportsResume=true[^\n]*version=1", registry):
+    fail("SORT registry/resume marker is missing")
 play_css = read("flecity_games/web/shared/app.css")
 for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
     if marker not in play_css:
@@ -312,7 +318,7 @@ for marker in (
     if marker not in party_lua:
         fail(f"PARTY selftest missing: {marker}")
 
-expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "color_match", "number_rush", "high_low", "simon"]
+expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "mines", "nonogram", "memory", "sort", "color_match", "number_rush", "high_low", "simon"]
 expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)

@@ -22,8 +22,10 @@ CreateThread(function()
         local token=LoadResourceFile(resourceName,marker) or ''
         if token~='' and token~=lastToken then
             lastToken=token
-            print('[FlecityGames DEV] update marker changed; restarting flecity_games')
-            SetTimeout(150,function()
+            print('[FlecityGames DEV] update marker changed; refreshing resource metadata')
+            ExecuteCommand('refresh')
+            SetTimeout(350,function()
+                print('[FlecityGames DEV] metadata refreshed; restarting flecity_games')
                 ExecuteCommand(('restart %s'):format(resourceName))
             end)
             return

@@ -388,9 +388,21 @@ try {
 
         if (-not $ReloadV2Active) {
             Write-Host 'Bootstrapping refresh-aware auto reload from the older runtime...' -ForegroundColor Yellow
-            Start-Sleep -Seconds 4
-            $token2 = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
-            Set-Content -Path $tokenPath -Value $token2 -NoNewline -Encoding ascii
+            $reloadV2Path = Join-Path $Destination 'dev-reload-v2.active'
+            $deadline = (Get-Date).AddSeconds(35)
+
+            while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $reloadV2Path)) {
+                Start-Sleep -Milliseconds 500
+            }
+
+            if (Test-Path -LiteralPath $reloadV2Path) {
+                Write-Host 'New reload runtime detected; requesting metadata refresh + second restart.' -ForegroundColor Green
+                $token2 = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
+                Set-Content -Path $tokenPath -Value $token2 -NoNewline -Encoding ascii
+            }
+            else {
+                Write-Host 'New reload runtime did not start within 35 seconds; the next automatic check will retry.' -ForegroundColor Yellow
+            }
         }
     }
     elseif (-not $AutoReloadWasInstalled) {

@@ -829,3 +829,11 @@ body.reduced-motion .sort-board.sort-undo,body.reduced-motion .slide-board.slide
  .stop-run-meta{font-size:.69rem}
  #stopGame #stopMessage{font-size:clamp(1.65rem,10vw,2.65rem);line-height:1.05}
 }
+
+
+/* PLAY gameplay layout stability v15 */
+body.game-active .app-status{position:fixed;z-index:80;top:3.75rem;left:50%;width:90%;max-width:32rem;transform:translateX(-50%);margin:0;box-shadow:0 .55rem 1.5rem rgba(0,0,0,.34)}
+body.game-active .app-status.hidden{display:none}
+body.game-active .card.stack>.row{flex-wrap:wrap}
+body.game-active .card.stack>.row>button{min-width:8rem;flex:1 1 8rem}
+@media(max-width:22.5rem){body.game-active .app-status{width:94%;font-size:.8rem;line-height:1.3}}

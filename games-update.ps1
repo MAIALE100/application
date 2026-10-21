@@ -312,6 +312,24 @@ try {
         Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
     }
 
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
     Step 'Update complete'
     Write-Host "Source : $Source"
     Write-Host "Target : $Destination"

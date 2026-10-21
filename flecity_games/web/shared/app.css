@@ -738,3 +738,17 @@ body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
 .brand-line{flex-wrap:wrap}
 .runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.62rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums}
 @media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}}
+
+
+/* PLAY depth feedback v12 */
+.block-board.block-tight{box-shadow:inset 0 0 1.5rem rgba(255,204,102,.055),0 0 0 .0625rem rgba(255,204,102,.08)}
+.block-board.block-danger{border-color:#70484a;box-shadow:inset 0 0 1.75rem rgba(232,98,108,.075),0 0 1rem rgba(232,98,108,.045)}
+.merge-board.merge-tight{border-color:#645b3d;box-shadow:inset 0 0 1.5rem rgba(255,213,105,.05)}
+.merge-board.merge-danger{border-color:#75454a;box-shadow:inset 0 0 1.75rem rgba(239,104,115,.065),0 0 1rem rgba(239,104,115,.04)}
+.fall-board.fall-tight{box-shadow:inset 0 .8rem 1.6rem rgba(255,209,96,.045)}
+.fall-board.fall-danger{box-shadow:inset 0 1rem 2rem rgba(237,92,106,.085),0 0 1rem rgba(237,92,106,.035)}
+.fall-board.fall-quad{animation:fall-quad .34s ease}
+@keyframes fall-quad{0%{filter:brightness(1)}40%{filter:brightness(1.24);transform:scale(1.012)}100%{filter:brightness(1);transform:none}}
+.stack-arena.tower-tight{border-color:#665d40;box-shadow:inset 0 0 1.5rem rgba(255,213,105,.045)}
+.stack-arena.tower-danger{border-color:#75454b;box-shadow:inset 0 0 1.75rem rgba(240,100,112,.065),0 0 1rem rgba(240,100,112,.035)}
+body.reduced-motion .fall-board.fall-quad{animation:none!important}

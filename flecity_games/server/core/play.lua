@@ -210,6 +210,88 @@ local function replaySortState(seed,history)
     return {tubes=tubes,moves=#normalized,complete=sortComplete(tubes),history=normalized}
 end
 
+
+local function slideComplete(board,size)
+    local total=size*size
+    if type(board)~='table' or #board~=total then return false end
+    for i=1,total-1 do if tonumber(board[i])~=i then return false end end
+    return tonumber(board[total])==0
+end
+
+local function slideNeighbors(blankIndex,size)
+    local blank=math.floor(tonumber(blankIndex) or -1)
+    local out={}
+    if blank<0 or blank>=size*size then return out end
+    local row=math.floor(blank/size)
+    local col=blank%size
+    if row>0 then out[#out+1]=blank-size end
+    if row<size-1 then out[#out+1]=blank+size end
+    if col>0 then out[#out+1]=blank-1 end
+    if col<size-1 then out[#out+1]=blank+1 end
+    return out
+end
+
+local function generateSlideBoard(seed,size,scrambleSteps)
+    size=math.max(3,math.min(6,math.floor(tonumber(size) or 4)))
+    local steps=math.max(20,math.min(500,math.floor(tonumber(scrambleSteps) or 96)))
+    local total=size*size
+    local board={}
+    for i=1,total-1 do board[i]=i end
+    board[total]=0
+    local blank=total-1
+    local previousBlank=nil
+    local undo={}
+    local state=math.floor(tonumber(seed) or 1)%2147483647
+    if state<=0 then state=1 end
+
+    for _=1,steps do
+        local neighbors=slideNeighbors(blank,size)
+        local candidates={}
+        for _,index in ipairs(neighbors) do
+            if index~=previousBlank or #neighbors==1 then candidates[#candidates+1]=index end
+        end
+        if #candidates==0 then candidates=neighbors end
+        local value
+        state,value=seededNext(state)
+        local chosen=candidates[1+math.floor(value*#candidates)]
+        undo[#undo+1]=blank
+        board[blank+1],board[chosen+1]=board[chosen+1],board[blank+1]
+        previousBlank=blank
+        blank=chosen
+    end
+
+    if slideComplete(board,size) then
+        local neighbors=slideNeighbors(blank,size)
+        local chosen=neighbors[1]
+        if chosen then
+            undo[#undo+1]=blank
+            board[blank+1],board[chosen+1]=board[chosen+1],board[blank+1]
+            blank=chosen
+        end
+    end
+
+    return board,blank,undo,state
+end
+
+local function replaySlideState(seed,history,size,scrambleSteps)
+    size=math.max(3,math.min(6,math.floor(tonumber(size) or 4)))
+    if type(history)~='table' or #history>5000 then return nil end
+    local board,blank=generateSlideBoard(seed,size,scrambleSteps)
+    local normalized={}
+    for _,entry in ipairs(history) do
+        local raw=type(entry)=='table' and (entry.index~=nil and entry.index or entry[1]) or entry
+        local index=tonumber(raw)
+        if not index or index~=math.floor(index) or index<0 or index>=size*size then return nil end
+        local row,col=math.floor(index/size),index%size
+        local blankRow,blankCol=math.floor(blank/size),blank%size
+        if math.abs(row-blankRow)+math.abs(col-blankCol)~=1 then return nil end
+        board[blank+1],board[index+1]=board[index+1],board[blank+1]
+        blank=index
+        normalized[#normalized+1]=index
+    end
+    return {board=board,blank=blank,moves=#normalized,complete=slideComplete(board,size),history=normalized}
+end
+
 local function generateNumberRush(seed,count)
     local total=math.max(2,math.min(64,math.floor(tonumber(count) or 25)))
     local state=math.floor(tonumber(seed) or 1)%2147483647
@@ -837,6 +919,9 @@ local function challengeFor(game,seed)
     elseif game.id=='sort' then
         challenge.capacity=4 challenge.colors=4 challenge.tubeCount=6
         challenge.initialTubes=generateSortBoard(seed)
+    elseif game.id=='slide' then
+        challenge.size=4 challenge.scrambleSteps=96
+        challenge.initialBoard=generateSlideBoard(seed,challenge.size,challenge.scrambleSteps)
     elseif game.id=='color_match' then
         challenge.rounds=10
     elseif game.id=='number_rush' then
@@ -914,7 +999,7 @@ local function statisticsFor(playerIdentifier)
                 bestScore=tonumber(game.rankingOrder=='asc' and row.normal_min_score or row.normal_max_score),
                 bestTimeMs=tonumber(row.normal_best_time_ms),
                 lastPlayedAt=row.last_played_at and tostring(row.last_played_at) or nil,
-                clearCount=(game.id=='mines' or game.id=='nonogram' or game.id=='sort') and plays or nil
+                clearCount=(game.id=='mines' or game.id=='nonogram' or game.id=='sort' or game.id=='slide') and plays or nil
             }
         end
     end
@@ -1181,6 +1266,8 @@ local function saveStateHasProgress(gameId,state,score)
         return (type(state.revealed)=='table' and #state.revealed>0) or (type(state.flags)=='table' and #state.flags>0)
     elseif gameId=='nonogram' then
         return (type(state.filled)=='table' and #state.filled>0) or (type(state.crossed)=='table' and #state.crossed>0)
+    elseif gameId=='slide' then
+        return type(state.history)=='table' and #state.history>0
     end
     return true
 end
@@ -1533,6 +1620,11 @@ function FlecityGamesPlay.Save(source,data)
         if not canonical then return {ok=false,error='INVALID_SORT_SAVE'} end
         saveState=canonical
         score=canonical.moves
+    elseif game.id=='slide' then
+        local canonical=replaySlideState(session.seed,data.state.history,session.challenge.size,session.challenge.scrambleSteps)
+        if not canonical then return {ok=false,error='INVALID_SLIDE_SAVE'} end
+        saveState=canonical
+        score=canonical.moves
     end
 
     local encoded=json.encode(saveState)
@@ -1559,7 +1651,7 @@ local function validateScore(game,score)
     elseif game.id=='block' or game.id=='merge' then
         if score<0 or score>50000000 then return nil end
         return math.floor(score)
-    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' or game.id=='sort' then
+    elseif game.id=='mines' or game.id=='nonogram' or game.id=='memory' or game.id=='color_match' or game.id=='number_rush' or game.id=='sort' or game.id=='slide' then
         if score<1000 or score>28800000 then return nil end
         return math.floor(score)
     elseif game.id=='stack' then
@@ -1721,6 +1813,16 @@ function FlecityGamesPlay.SubmitScore(source,data)
         metadata.timeMs=durationMs
         metadata.movePenaltyMs=movePenalty
         metadata.replayValidated=true
+    elseif game.id=='slide' then
+        local replayed=replaySlideState(session.seed,data.history,session.challenge.size,session.challenge.scrambleSteps)
+        if not replayed or replayed.complete~=true then return {ok=false,error='INVALID_SLIDE_REPLAY'} end
+        durationMs=totalServerElapsed
+        local movePenalty=replayed.moves*200
+        rawScore=durationMs+movePenalty
+        metadata.moves=replayed.moves
+        metadata.timeMs=durationMs
+        metadata.movePenaltyMs=movePenalty
+        metadata.replayValidated=true
     elseif game.id=='color_match' then
         local replayed=replayColorMatch(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_COLOR_MATCH_REPLAY'} end
@@ -1864,7 +1966,7 @@ end
 
 function FlecityGamesPlay.DebugSelftest()
     local quick=gameFor('quick_tap') local stop=gameFor('stop') local block=gameFor('block')
-    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local sortGame=gameFor('sort') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
+    local merge=gameFor('merge') local minesGame=gameFor('mines') local stack=gameFor('stack') local nonogram=gameFor('nonogram') local memory=gameFor('memory') local sortGame=gameFor('sort') local slide=gameFor('slide') local colorMatch=gameFor('color_match') local numberRush=gameFor('number_rush') local highLow=gameFor('high_low') local simon=gameFor('simon')
     local testMines=generateMines(12345,8,10) local testMineCount=0 for _ in pairs(testMines) do testMineCount=testMineCount+1 end
     local testSafeMines=generateMines(12345,8,10,0) local testSafeMineCount=0 for _ in pairs(testSafeMines) do testSafeMineCount=testSafeMineCount+1 end
     local testNonogram,testNonogramCount=generateNonogram(12345,5)
@@ -1964,6 +2066,11 @@ function FlecityGamesPlay.DebugSelftest()
         end
     end
 
+    local slideBoard,slideBlank,slideUndo=generateSlideBoard(12345,4,40)
+    local slideSolution={}
+    for i=#slideUndo,1,-1 do slideSolution[#slideSolution+1]=slideUndo[i] end
+    local slideReplay=replaySlideState(12345,slideSolution,4,40)
+
     local sample={board={{0,1},{1,0}},pieces={{shape=1}},score=120,combo=2}
     local encoded=json.encode(sample) local decoded=encoded and json.decode(encoded) or nil
     return {
@@ -2002,6 +2109,9 @@ function FlecityGamesPlay.DebugSelftest()
         sortSeedCounts=sortGame and sortTiles==16 and sortCounts[1]==4 and sortCounts[2]==4 and sortCounts[3]==4 and sortCounts[4]==4,
         sortReplayMove=sortGame and sortMoveTest and sortMoveTest.moves==1 and #sortMoveTest.history==1 or false,
         sortValidateTime=sortGame and validateScore(sortGame,45000)==45000 or false,
+        slideSeedBoard=slide and type(slideBoard)=='table' and #slideBoard==16 and tonumber(slideBoard[slideBlank+1])==0,
+        slideReplaySolve=slide and slideReplay and slideReplay.complete==true and slideReplay.moves==#slideSolution,
+        slideValidateTime=slide and validateScore(slide,60000)==60000 or false,
         memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
         colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==10 or false,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,

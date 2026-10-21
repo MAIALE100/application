@@ -117,8 +117,8 @@ if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
     fail("PARTY direct-push UI wiring is missing")
 if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
-if "fixBlur=true" in client or "fixBlur=false" not in client:
-    fail("LB Phone fixBlur must remain disabled while the UI uses px-based CSS")
+if "fixBlur=true" not in client or "fixBlur=false" in client:
+    fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
 if "globalThis.onNuiEvent" not in party_js or "registerPhonePushChannel" not in party_js:
     fail("PARTY official LB Phone push listener is missing")
 if "if(!phonePushRegistered)handlePartyMessage(event.data)" not in party_js:
@@ -165,6 +165,10 @@ for name, html in (("PLAY", play_html), ("PARTY", party_html)):
         fail(f"{name} must wait for LB Phone componentsLoaded before bootstrapping")
     if "setTimeout(loadApp" in html:
         fail(f"{name} contains an unsafe timed bootstrap before LB Phone injects fetchNui")
+if "setGameIcon" not in play_js or "icons/quick-tap.svg" not in play_js or "icons/simon.svg" not in play_js:
+    fail("PLAY dedicated SVG icon wiring is missing")
+if 'id="dailyIcon"' not in play_html:
+    fail("PLAY Daily icon slot is missing")
 if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
     fail("MEMORY client implementation is missing")
 if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:
@@ -263,6 +267,10 @@ if "openSort" not in play_js or "persistSort" not in play_js or "sortBoard" not 
 if not re.search(r"id='sort'[^\n]*supportsResume=true[^\n]*version=1", registry):
     fail("SORT registry/resume marker is missing")
 play_css = read("flecity_games/web/shared/app.css")
+if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
+    fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")
+if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
+    fail("PLAY clarity/icon v3 CSS is missing")
 for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
     if marker not in play_css:
         fail(f"PLAY visual quality marker missing: {marker}")

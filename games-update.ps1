@@ -259,6 +259,7 @@ try {
         Write-Host 'After this first restart, future updates only need games-update.cmd.' -ForegroundColor Green
     }
     Write-Host ''
+    exit 0
 }
 catch {
     Write-Host ''

@@ -1375,6 +1375,144 @@ nonogramNew.onclick=async()=>{
 };
 
 
+/* SORT */
+function elapsedSort(){
+ return (sortGame?sortGame.elapsedBase:0)+(sortGame&&sortGame.startedAt?performance.now()-sortGame.startedAt:0);
+}
+function updateSortTime(){
+ if(sortGame)sortTime.textContent=(elapsedSort()/1000).toFixed(1)+'s';
+}
+function sortTubeComplete(tube){
+ return Array.isArray(tube)&&tube.length===4&&tube.every(value=>value===tube[0]);
+}
+function sortSolved(){
+ if(!sortGame)return false;
+ let complete=0;
+ for(const tube of sortGame.tubes){
+   if(tube.length===0)continue;
+   if(!sortTubeComplete(tube))return false;
+   complete+=1;
+ }
+ return complete===4;
+}
+function renderSort(){
+ if(!sortGame)return;
+ refreshScreenBests();sortBoard.innerHTML='';sortMoves.textContent=String(sortGame.moves);
+ const completeCount=sortGame.tubes.filter(sortTubeComplete).length;
+ sortMeta.textContent=String(sortGame.moves)+' MOVES · '+String(completeCount)+'/4 SORTED'+(sortGame.finished?' · CLEAR':'');
+ sortGame.tubes.forEach((tube,index)=>{
+   const button=document.createElement('button');
+   button.className='sort-tube'+(sortGame.selected===index?' selected':'')+(sortTubeComplete(tube)?' complete':'');
+   button.disabled=sortGame.finished||sortGame.finalizing;
+   button.setAttribute('aria-label','チューブ '+String(index+1));
+   for(let slot=0;slot<4;slot++){
+     const value=tube[slot],cell=document.createElement('span');
+     cell.className='sort-slot'+(value===undefined?' empty':' sort-color-'+String(value));
+     if(value!==undefined)cell.dataset.color=String(value);
+     button.appendChild(cell);
+   }
+   button.onclick=()=>touchSortTube(index);
+   sortBoard.appendChild(button);
+ });
+ updateSortTime();
+ sortNew.disabled=sortGame.finalizing===true;
+}
+async function persistSort(showError=false){
+ const game=sortGame;if(!game||game.finished||game.progressed!==true)return true;
+ const elapsedMs=Math.round(elapsedSort());
+ const state={history:game.history};
+ const res=await saveWithRetry({gameId:'sort',sessionToken:game.sessionToken,state,score:game.moves,elapsedMs});
+ if(res.ok){
+   const canonical=res.state||state;
+   saves.sort={game_id:'sort',state:canonical,score:Number(res.score??game.moves),elapsed_ms:Number(res.elapsedMs??elapsedMs)};
+   return true;
+ }
+ if(showError&&sortGame===game)setStatus('SORTの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
+ return false;
+}
+async function openSort(forceNew){
+ hideAll();sortEl.classList.remove('hidden');clearInterval(sortClock);sortClock=null;
+ const saved=!forceNew&&saves.sort,payload={gameId:'sort'};if(saved)payload.resume=true;
+ const session=await startSessionWithRetry(payload);
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('SORTを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ let tubes,history=[],moves=0;
+ if(saved&&saved.state&&Array.isArray(saved.state.tubes)&&saved.state.tubes.length===6){
+   tubes=saved.state.tubes.map(tube=>Array.isArray(tube)?tube.slice():[]);
+   history=Array.isArray(saved.state.history)?saved.state.history.map(move=>Array.isArray(move)?move.slice(0,2):move):[];
+   moves=Number(saved.state.moves)||history.length;
+ }else{
+   const initial=session.challenge&&session.challenge.initialTubes;
+   if(!Array.isArray(initial)||initial.length!==6){
+     await cancelPlaySession(session.sessionToken);setStatus('SORT盤面を取得できませんでした。','error');showHome();return;
+   }
+   tubes=initial.map(tube=>Array.isArray(tube)?tube.slice():[]);
+ }
+ sortGame={tubes,history,moves,selected:null,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved};
+ setStatus(saved?'SORTを途中保存から再開しました。':'新しいSORTを開始しました。','good');
+ renderSort();sortClock=setInterval(updateSortTime,200);
+}
+async function touchSortTube(index){
+ const game=sortGame;if(!game||game.finished||game.finalizing)return;
+ const tube=game.tubes[index];
+ if(game.selected==null){
+   if(!tube||tube.length===0){tone(170,20);setStatus('空のチューブです。','warn');return;}
+   game.selected=index;tone(420,18);renderSort();return;
+ }
+ const from=game.selected;
+ if(from===index){game.selected=null;renderSort();return;}
+ const source=game.tubes[from],target=game.tubes[index];
+ if(!source||source.length===0){game.selected=null;renderSort();return;}
+ if(!target||target.length>=4){tone(150,28);setStatus('そのチューブには入りません。','warn');return;}
+ const value=source.pop();target.push(value);game.history.push([from,index]);game.moves+=1;game.progressed=true;game.selected=null;
+ sortBoard.classList.remove('sort-move');void sortBoard.offsetWidth;sortBoard.classList.add('sort-move');
+ tone(sortTubeComplete(target)?760:520,sortTubeComplete(target)?45:20);
+ renderSort();
+ if(sortSolved()){await finishSort();return;}
+ await persistSort();
+}
+async function finishSort(){
+ const game=sortGame;if(!game||game.finished||game.finalizing)return;
+ game.finalizing=true;if(sortGame===game)renderSort();clearInterval(sortClock);sortClock=null;
+ await saveQueue.catch(()=>{});
+ const durationMs=Math.round(elapsedSort());
+ const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:0,durationMs,history:game.history});
+ game.finalizing=false;
+ if(res.ok){
+   game.finished=true;game.sessionToken=null;delete saves.sort;
+   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves;
+   if(sortGame===game){sortTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('sort',res,'SORT '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES');renderSort();}
+   await refreshPlatform();
+ }else{
+   if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
+   if(sortGame===game){setStatus('SORTの記録を保存できませんでした。途中保存は残っています。','error');renderSort();}
+ }
+}
+sortBack.onclick=async()=>{
+ if(sortGame&&sortGame.finalizing){setStatus('SORTの記録を保存中です…','warn');return;}
+ clearInterval(sortClock);sortClock=null;
+ if(sortGame&&!sortGame.finished){const saved=await persistSort(true);if(!saved){sortClock=setInterval(updateSortTime,200);return;}}
+ if(sortGame&&!sortGame.finished&&sortGame.sessionToken)await cancelPlaySession(sortGame.sessionToken);
+ sortGame=null;showHome();
+};
+sortNew.onclick=async()=>{
+ if(sortNew.disabled)return;
+ if(sortGame&&sortGame.finalizing){setStatus('SORTの記録を保存中です…','warn');return;}
+ const destructive=!!saves.sort||!!(sortGame&&!sortGame.finished);
+ if(destructive){
+   const ok=await confirmAction('SORTを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
+   if(!ok)return;
+ }
+ sortNew.disabled=true;
+ try{
+   clearInterval(sortClock);sortClock=null;await saveQueue.catch(()=>{});
+   if(sortGame&&sortGame.sessionToken)await cancelPlaySession(sortGame.sessionToken);
+   const reset=await FlecityBridge.call('playResetSave',{gameId:'sort'});
+   if(!reset.ok){setStatus('SORTの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+   delete saves.sort;sortGame=null;await openSort(true);
+ }finally{sortNew.disabled=false;}
+};
+
+
 /* COLOR MATCH */
 const COLOR_MATCH_COLORS=[
  {name:'赤',css:'#ff6b6b'},{name:'青',css:'#6ba8ff'},{name:'緑',css:'#62d98b'},{name:'黄',css:'#ffd65a'}

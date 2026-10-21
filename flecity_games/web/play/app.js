@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -1417,7 +1417,13 @@ function renderMines(){
    if(mines.lost&&mines.mineSet.has(i))b.textContent='✹';
    else if(flagged)b.textContent='⚑';
    else if(revealed)b.textContent=n?String(n):'';
-   b.disabled=mines.finished||revealed;b.onclick=()=>touchMine(i);minesBoard.appendChild(b);
+   b.disabled=mines.finished||revealed;
+   let holdTimer=null;
+   const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
+   b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;mineSuppressClickUntil=performance.now()+650;void flagMineDirect(i);},420);};
+   b.onpointerup=clearHold;b.onpointercancel=clearHold;b.onpointerleave=clearHold;
+   b.onclick=()=>{clearHold();if(performance.now()<mineSuppressClickUntil)return;void touchMine(i);};
+   minesBoard.appendChild(b);
  }
  minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');
  minesMode.disabled=mines.finished||mines.finalizing;
@@ -1467,6 +1473,15 @@ async function loseMines(index){
    await cancelPlaySession(game.sessionToken);
  }
  game.sessionToken=null;
+}
+async function flagMineDirect(index){
+ const game=mines;if(!game||game.finished||game.revealed.has(index))return;
+ if(!(await activateMinesTiming(null))||mines!==game)return;
+ game.progressed=true;
+ if(game.flags.has(index)){game.flags.delete(index);tone(270,18);}
+ else{game.flags.add(index);tone(560,28);}
+ minesBoard.classList.remove('flag-pop');void minesBoard.offsetWidth;minesBoard.classList.add('flag-pop');
+ renderMines();await persistMines();
 }
 async function touchMine(index){
  const game=mines;if(!game||game.finished)return;
@@ -1698,7 +1713,13 @@ function renderNonogram(){
    const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
    for(let x=0;x<nonogram.size;x++){
      const index=y*nonogram.size+x,b=document.createElement('button');b.className='nonogram-cell'+(nonogram.filled.has(index)?' filled':'')+(nonogram.crossed.has(index)?' crossed':'');
-     b.textContent=nonogram.crossed.has(index)?'×':'';b.disabled=nonogram.finished;b.onclick=()=>touchNonogram(index);nonogramBoard.appendChild(b);
+     b.textContent=nonogram.crossed.has(index)?'×':'';b.disabled=nonogram.finished;
+     let holdTimer=null;
+     const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
+     b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;nonogramSuppressClickUntil=performance.now()+650;void crossNonogramDirect(index);},420);};
+     b.onpointerup=clearHold;b.onpointercancel=clearHold;b.onpointerleave=clearHold;
+     b.onclick=()=>{clearHold();if(performance.now()<nonogramSuppressClickUntil)return;void touchNonogram(index);};
+     nonogramBoard.appendChild(b);
    }
  }
 }
@@ -1725,6 +1746,15 @@ async function openNonogram(forceNew,daily=false){
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true,progressed:!!saved};
  nonogramNew.textContent=nonogram.daily?'最初から':'新しい問題';setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+}
+async function crossNonogramDirect(index){
+ const game=nonogram;if(!game||game.finished)return;
+ if(!(await activateNonogramTiming())||nonogram!==game)return;
+ nonogram.progressed=true;
+ if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);tone(190,12);}
+ else{nonogram.filled.delete(index);nonogram.crossed.add(index);tone(300,20);}
+ nonogramBoard.classList.remove('cross-pop');void nonogramBoard.offsetWidth;nonogramBoard.classList.add('cross-pop');
+ renderNonogram();await persistNonogram();
 }
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;

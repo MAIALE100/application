@@ -217,7 +217,7 @@ const rankTargets={
  stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},color_match:{order:'asc',S:7000,A:10000,B:15000},
- number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:5200,A:4000,B:2500},simon:{order:'desc',S:15,A:10,B:5}
+ number_rush:{order:'asc',S:15000,A:22000,B:35000},high_low:{order:'desc',S:18000,A:12000,B:6000},simon:{order:'desc',S:15,A:10,B:5}
 };
 function rankForScore(gameId,score){
  const cfg=rankTargets[gameId],n=Number(score);if(!cfg||!Number.isFinite(n))return null;

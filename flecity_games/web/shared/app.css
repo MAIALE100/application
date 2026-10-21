@@ -397,3 +397,26 @@ body.reduced-motion .number-rush-board,body.reduced-motion #colorMatchGame .colo
 .block-board.fever .block-cell.filled{box-shadow:inset 0 -3px 0 rgba(0,0,0,.14),0 0 8px rgba(255,231,149,.04)}
 @media(max-width:360px){.drag-piece-grid{grid-template-columns:repeat(3,16px);grid-template-rows:repeat(3,16px)}}
 body.reduced-motion .block-cell.drag-preview,body.reduced-motion .block-drag-ghost{transition:none!important}
+
+
+/* RANGE RUSH */
+#highLowGame .high-low-stage{background:
+ radial-gradient(circle at 50% 38%,rgba(126,167,255,.11),transparent 46%),
+ linear-gradient(180deg,#181d25,#15181e)}
+.range-pivot-label{display:flex;align-items:center;gap:8px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;opacity:.72}
+.range-pivot-label strong{font-size:1.15rem;color:#e8f1ff;opacity:1}
+#highLowGame .high-low-card{width:138px;height:158px;font-size:3.65rem;background:
+ radial-gradient(circle at 35% 22%,rgba(255,255,255,.88),transparent 20%),
+ linear-gradient(155deg,#f7f9fc,#cbd5e2);border-color:#eef5ff}
+#highLowGame .high-low-card::before{content:"RANGE";left:10px;top:9px}
+#highLowGame .high-low-card::after{content:"RUSH";right:10px;bottom:9px}
+.range-timer{width:100%;height:8px;border-radius:999px;background:#10141a;border:1px solid #2c3540;overflow:hidden;box-shadow:inset 0 1px 4px rgba(0,0,0,.35)}
+.range-timer-fill{height:100%;width:100%;border-radius:inherit;background:linear-gradient(90deg,#7bd8ff,#c4f0ff);transition:width .05s linear,background .12s ease}
+.range-timer-fill.danger{background:linear-gradient(90deg,#ff7d7d,#ffc09c)}
+#highLowTimerText{margin-top:-8px;font-variant-numeric:tabular-nums}
+#highLowGame .high-low-actions button{min-height:62px;font-size:.92rem;letter-spacing:.02em}
+#highLowGame.guess-correct .high-low-card{box-shadow:0 18px 38px rgba(0,0,0,.3),0 0 28px rgba(113,225,158,.12),inset 0 0 0 5px rgba(0,0,0,.025)}
+#highLowGame.range-timeout .high-low-stage{animation:range-timeout .26s ease}
+#highLowGame.range-timeout .high-low-card{border-color:#8b444a;color:#7e222a}
+@keyframes range-timeout{25%{transform:translateX(-3px)}55%{transform:translateX(3px)}100%{transform:none}}
+body.reduced-motion #highLowGame.range-timeout .high-low-stage{animation:none!important}

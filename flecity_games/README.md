@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.19.0-test**
+- Resource version: **0.19.1-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **22/22 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -180,3 +180,8 @@ The first time the watcher is installed, run `restart flecity_games` once in the
 - BLOCK, MERGE, MINES, NONOGRAM, NUMBER RUSH and HIGH & LOW add tactile interaction feedback without changing server scoring rules.
 - STACK, MEMORY and SIMON receive stronger game-specific presentation and animation.
 - Reduced-motion remains respected for the new visual effects.
+
+### 0.19.1 retention pass
+- All 12 PLAY games now expose S/A/B/C rank goals from server-validated scores.
+- Home cards show the current rank and the next target instead of only a raw BEST value.
+- Daily Challenge derives a consecutive-day streak from existing validated Daily score history without adding a new table.

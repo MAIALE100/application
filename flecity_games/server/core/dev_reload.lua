@@ -6,6 +6,15 @@ if not enabledByConvar and not enabledByMarker then return end
 local marker='dev-reload.token'
 local lastToken=LoadResourceFile(resourceName,marker) or ''
 
+local function writeRuntimeStamp()
+    local version=GetResourceMetadata(resourceName,'version',0) or 'unknown'
+    local build=(LoadResourceFile(resourceName,'dev-build.txt') or 'unknown'):gsub('%s+','')
+    local stamp=('version=%s\nbuild=%s\nstarted=%s\n'):format(version,build,os.date('!%Y-%m-%dT%H:%M:%SZ'))
+    SaveResourceFile(resourceName,'dev-runtime.txt',stamp,-1)
+end
+
+writeRuntimeStamp()
+
 CreateThread(function()
     print('[FlecityGames DEV] auto-reload watcher enabled')
     while true do

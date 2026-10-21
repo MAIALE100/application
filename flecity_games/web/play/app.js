@@ -544,6 +544,7 @@ function clearLines(){
 }
 async function persistBlock(showError=false){
  const game=block;if(!game||game.finished||game.daily)return true;
+ if(game.progressed!==true)return true;
  const state={board:game.board,pieces:game.pieces,score:game.score,combo:game.combo,rngState:game.rngState,history:game.history};
  const elapsedMs=Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted));
  const res=await saveWithRetry({gameId:'block',sessionToken:game.sessionToken,state,score:game.score,elapsedMs});
@@ -586,10 +587,10 @@ async function openBlock(forceNew,daily=false){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('BLOCKを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)){
    block={board:saved.state.board,pieces:saved.state.pieces||[],score:Number(saved.state.score||saved.score||0),combo:Number(saved.state.combo||0),selected:0,
-     rngState:Number(saved.state.rngState||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:false};
+     rngState:Number(saved.state.rngState||session.seed),history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:false,progressed:true};
    if(!block.pieces.length)refillPieces();setStatus('BLOCKを途中保存から再開しました。','good');
  }else{
-   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true};
+   block={board:emptyBoard(),pieces:[],score:0,combo:0,selected:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,daily:session.daily===true,progressed:false};
    refillPieces();setStatus(block.daily?'デイリーBLOCK開始。':'新しいBLOCKを開始しました。','good');
  }
  renderBlock();
@@ -598,6 +599,7 @@ async function placeBlock(x,y){
  const game=block;if(!game||game.finished)return;
  const slot=game.selected,piece=game.pieces[slot];
  if(!canPlace(piece,x,y)){setStatus('そこには置けません。','warn');return;}
+ block.progressed=true;
  block.history.push([slot,x,y]);
  for(const [dx,dy] of SHAPES[piece.shape])block.board[y+dy][x+dx]=1;
  block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;clearLines();
@@ -695,6 +697,7 @@ function renderMerge(){
 }
 async function persistMerge(showError=false){
  const game=merge;if(!game||game.finished)return true;
+ if(game.progressed!==true)return true;
  const state={board:game.board,score:game.score,moves:game.moves,rngState:game.rngState,history:game.history};
  const elapsedMs=Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted));
  const res=await saveWithRetry({gameId:'merge',sessionToken:game.sessionToken,state,score:game.score,elapsedMs});
@@ -713,10 +716,10 @@ async function openMerge(forceNew){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MERGEを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===4){
    merge={board:saved.state.board,score:Number(saved.state.score||saved.score||0),moves:Number(saved.state.moves||0),rngState:Number(saved.state.rngState||session.seed),
-     history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
+     history:Array.isArray(saved.state.history)?saved.state.history:[],elapsedBase:Number(session.baseElapsedMs||0),sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,progressed:true};
    setStatus('MERGEを途中保存から再開しました。','good');
  }else{
-   merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false};
+   merge={board:emptyMergeBoard(),score:0,moves:0,rngState:Number(session.seed)||1,history:[],elapsedBase:0,sessionStarted:performance.now(),sessionToken:session.sessionToken,seed:session.seed,finished:false,progressed:false};
    spawnMergeTile();spawnMergeTile();setStatus('新しいMERGEを開始しました。','good');
  }
  renderMerge();
@@ -734,7 +737,7 @@ async function moveMerge(direction){
    }
  }
  if(before===JSON.stringify(merge.board)){setStatus('タイルを動かせませんでした。','warn');return;}
- merge.moves+=1;merge.history.push(direction);spawnMergeTile();renderMerge();await persistMerge();
+ merge.progressed=true;merge.moves+=1;merge.history.push(direction);spawnMergeTile();renderMerge();await persistMerge();
  if(merge!==game)return;
  if(mergeGameOver()){setStatus('動かせる場所がありません。ゲーム終了。','warn');await finishMerge();}
 }
@@ -857,6 +860,7 @@ function renderMines(){
 }
 async function persistMines(showError=false){
  if(!mines||mines.finished||mines.daily)return true;
+ if(mines.progressed!==true)return true;
  const state={revealed:[...mines.revealed],flags:[...mines.flags],mode:mines.mode,avoidIndex:mines.avoidIndex};
  const elapsedMs=Math.round(elapsedMines());
  const res=await saveWithRetry({gameId:'mines',sessionToken:mines.sessionToken,state,score:elapsedMs,elapsedMs});
@@ -877,10 +881,10 @@ async function openMines(forceNew,daily=false){
  const size=Number(session.challenge&&session.challenge.size)||8,mineCount=Number(session.challenge&&session.challenge.mines)||10;
  if(saved&&saved.state){
    mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(saved.state.revealed||[]),flags:new Set(saved.state.flags||[]),mode:saved.state.mode==='flag'?'flag':'reveal',avoidIndex:Number.isInteger(Number(saved.state.avoidIndex))?Number(saved.state.avoidIndex):null,
-     elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:false};
+     elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:false,progressed:true};
    setStatus('MINESを途中保存から再開しました。','good');
  }else{
-   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',avoidIndex:null,elapsedBase:0,timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true};
+   mines={size,mineCount,seed:Number(session.seed),mineSet:null,revealed:new Set(),flags:new Set(),mode:'reveal',avoidIndex:null,elapsedBase:0,timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,lost:false,daily:session.daily===true,progressed:false};
    setStatus(mines.daily?'デイリーMINES開始。':'新しいMINESを開始しました。','good');
  }
  mines.mineSet=seededMines(mines.seed,mines.size,mines.mineCount,mines.avoidIndex);renderMines();minesClock=setInterval(updateMinesTime,250);
@@ -904,10 +908,13 @@ async function touchMine(index){
  const firstReveal=game.mode==='reveal'?index:null;
  if(!(await activateMinesTiming(firstReveal))||mines!==game)return;
  if(mines.mode==='flag'){
+   if(mines.revealed.has(index))return;
+   mines.progressed=true;
    if(mines.flags.has(index))mines.flags.delete(index);else mines.flags.add(index);renderMines();await persistMines();return;
  }
  if(mines.flags.has(index))return;
  if(mines.mineSet.has(index)){await loseMines(index);return;}
+ mines.progressed=true;
  const queue=[index];
  while(queue.length){
    const current=queue.shift();if(mines.revealed.has(current)||mines.flags.has(current)||mines.mineSet.has(current))continue;
@@ -1103,6 +1110,7 @@ function renderNonogram(){
 }
 async function persistNonogram(showError=false){
  if(!nonogram||nonogram.finished||nonogram.daily)return true;
+ if(nonogram.progressed!==true)return true;
  const elapsedMs=Math.round(elapsedNonogram());
  const state={filled:[...nonogram.filled],crossed:[...nonogram.crossed]};
  const res=await saveWithRetry({gameId:'nonogram',sessionToken:nonogram.sessionToken,state,score:elapsedMs,elapsedMs});
@@ -1121,12 +1129,13 @@ async function openNonogram(forceNew,daily=false){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('NONOGRAMを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
-   elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true};
+   elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true,progressed:!!saved};
  setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
+ nonogram.progressed=true;
  if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);}
  else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);}
  else nonogram.filled.add(index);

@@ -715,3 +715,12 @@ body.reduced-motion #stopGame[data-state="great"] #stopMessage,
 body.reduced-motion #stopGame[data-state="close"] #stopMessage,
 body.reduced-motion .number-rush-board.rush-flow,
 body.reduced-motion .memory-board.memory-streak{animation:none!important}
+
+
+/* PLAY touch puzzle controls v9 */
+.mines-cell,.nonogram-cell{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.mines-board.flag-pop{animation:flag-pop .16s ease}
+.nonogram-grid.cross-pop{animation:cross-pop .16s ease}
+@keyframes flag-pop{50%{box-shadow:0 0 0 .125rem rgba(255,214,106,.08),inset 0 0 1rem rgba(255,214,106,.04)}}
+@keyframes cross-pop{50%{box-shadow:0 0 0 .125rem rgba(178,194,219,.07),inset 0 0 1rem rgba(178,194,219,.035)}}
+body.reduced-motion .mines-board.flag-pop,body.reduced-motion .nonogram-grid.cross-pop{animation:none!important}

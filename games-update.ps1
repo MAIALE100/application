@@ -143,8 +143,9 @@ try {
         $localPlayHtml = Join-Path $Source 'web\play\index.html'
         $localErrors = Join-Path $Source 'web\shared\errors.js'
         $localRegistry = Join-Path $Source 'shared\game_registry.lua'
+        $localConfig = Join-Path $Source 'config\shared.lua'
 
-        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry)) {
+        foreach ($required in @($localManifest,$localPlayLua,$localPlayJs,$localPlayHtml,$localErrors,$localRegistry,$localConfig)) {
             if (-not (Test-Path $required)) {
                 throw "Local safety check missing required file: $required"
             }
@@ -156,6 +157,7 @@ try {
         $playHtmlText = Get-Content $localPlayHtml -Raw
         $errorsText = Get-Content $localErrors -Raw
         $registryText = Get-Content $localRegistry -Raw
+        $configText = Get-Content $localConfig -Raw
 
         if ($manifestText -match '(?m)^\s*ui_page\s+') {
             throw 'Local safety check rejected a global ui_page.'
@@ -177,6 +179,15 @@ try {
         }
         if ($playHtmlText -notmatch 'id="confirmOverlay"') {
             throw 'Local safety check could not verify PLAY confirmation UI.'
+        }
+        if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
+            throw 'Local safety check could not verify Daily SIMON client flow.'
+        }
+        if ($registryText -notmatch "id='simon'[^\r\n]*supportsDaily=true") {
+            throw 'Local safety check could not verify SIMON Daily registry support.'
+        }
+        if ($configText -notmatch "DailyCandidates\s*=\s*\{[^\r\n]*'simon'[^\r\n]*\}") {
+            throw 'Local safety check could not verify SIMON in Daily rotation.'
         }
 
         $enabledPlayMatches = [regex]::Matches($registryText,"id='([^']+)'[^\r\n]*app='play'[^\r\n]*enabled=true")

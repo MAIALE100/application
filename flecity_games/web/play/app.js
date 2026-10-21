@@ -2273,7 +2273,7 @@ function numberRushNext(state){
  let x=Math.floor(Number(state)||1)%2147483647;if(x<=0)x=1;
  x=(x*16807)%2147483647;return [x,(x-1)/2147483646];
 }
-function numberRushBoardFromSeed(seed,count=25){
+function numberRushSetup(seed,count=25){
  const total=Math.max(2,Math.min(64,Math.floor(Number(count)||25)));
  const board=Array.from({length:total},(_,i)=>i+1);
  let state=Math.floor(Number(seed)||1)%2147483647;if(state<=0)state=1;
@@ -2281,7 +2281,18 @@ function numberRushBoardFromSeed(seed,count=25){
    let value;[state,value]=numberRushNext(state);
    const j=Math.floor(value*(i+1));[board[i],board[j]]=[board[j],board[i]];
  }
- return board;
+ return {board,rngState:state};
+}
+function numberRushBoardFromSeed(seed,count=25){return numberRushSetup(seed,count).board;}
+function reshuffleNumberRushRemaining(game){
+ const indexes=[],values=[];
+ game.board.forEach((value,index)=>{if(!game.completed.has(index)){indexes.push(index);values.push(value);}});
+ for(let i=values.length-1;i>=1;i--){
+   let value;[game.rngState,value]=numberRushNext(game.rngState);
+   const j=Math.floor(value*(i+1));[values[i],values[j]]=[values[j],values[i]];
+ }
+ indexes.forEach((index,i)=>{game.board[index]=values[i];});
+ game.shifts=(game.shifts||0)+1;
 }
 function elapsedNumberRush(){return numberRush&&numberRush.running?performance.now()-numberRush.startedAt:0;}
 function updateNumberRushTime(){if(numberRush&&numberRush.running)numberRushTime.textContent=(elapsedNumberRush()/1000).toFixed(2)+'s';}
@@ -2291,7 +2302,7 @@ function renderNumberRush(){
    numberRushProgress.textContent='1 / 25';numberRushTime.textContent='0.00s';numberRushMeta.textContent='MISS 0 · ペナルティ 0.0s';return;
  }
  numberRushProgress.textContent=(numberRush.finished?numberRush.count:Math.min(numberRush.next,numberRush.count))+' / '+numberRush.count;
- refreshScreenBests();numberRushMeta.textContent=(numberRush.daily?'DAILY · ':'')+'MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s'+(numberRush.streak>=3?' · FLOW '+numberRush.streak:'');
+ refreshScreenBests();numberRushMeta.textContent=(numberRush.daily?'DAILY · ':'')+'MISS '+numberRush.misses+' · SHIFT '+(numberRush.shifts||0)+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s'+(numberRush.streak>=3?' · FLOW '+numberRush.streak:'');
  numberRush.board.forEach((value,index)=>{
    const b=document.createElement('button');
    const done=numberRush.completed.has(index);
@@ -2317,8 +2328,8 @@ async function startNumberRush(){
  const daily=numberRushEl.dataset.daily==='1';
  const session=await startSessionWithRetry({gameId:'number_rush',daily});
  if(!session.ok){numberRushStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('NUMBER RUSHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
- const count=Number(session.challenge&&session.challenge.count)||25;
- numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:numberRushBoardFromSeed(session.seed,count),next:1,misses:0,streak:0,maxStreak:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
+ const count=Number(session.challenge&&session.challenge.count)||25,setup=numberRushSetup(session.seed,count);
+ numberRush={sessionToken:session.sessionToken,seed:Number(session.seed)||1,count,board:setup.board,rngState:setup.rngState,next:1,misses:0,streak:0,maxStreak:0,shifts:0,history:[],completed:new Set(),startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
  numberRushStart.classList.add('hidden');numberRushNew.classList.remove('hidden');
  setStatus(numberRush.daily?'デイリーNUMBER RUSH開始。':'NUMBER RUSH開始。','good');
  renderNumberRush();numberRushClock=setInterval(updateNumberRushTime,50);
@@ -2336,9 +2347,15 @@ async function tapNumberRush(index){
  }
  numberRush.completed.add(index);numberRush.next+=1;numberRush.streak+=1;numberRush.maxStreak=Math.max(numberRush.maxStreak,numberRush.streak);
  tone(590+Math.min(340,numberRush.streak*14),28);
- numberRushBoard.classList.remove('rush-hit','rush-flow');void numberRushBoard.offsetWidth;numberRushBoard.classList.add(numberRush.streak>=5?'rush-flow':'rush-hit');
- if(numberRush.streak>0&&numberRush.streak%5===0&&numberRush.next<=numberRush.count)setStatus('FLOW ×'+numberRush.streak+' · KEEP GOING','good');
+ numberRushBoard.classList.remove('rush-hit','rush-flow','rush-shift');void numberRushBoard.offsetWidth;numberRushBoard.classList.add(numberRush.streak>=5?'rush-flow':'rush-hit');
  if(numberRush.next>numberRush.count){await finishNumberRush();return;}
+ if((numberRush.next-1)%5===0){
+   reshuffleNumberRushRemaining(numberRush);
+   numberRushBoard.classList.remove('rush-hit','rush-flow');void numberRushBoard.offsetWidth;numberRushBoard.classList.add('rush-shift');
+   setStatus('SHIFT '+numberRush.shifts+' · 残り数字を再配置','good');tone(900,55);
+ }else if(numberRush.streak>0&&numberRush.streak%5===0){
+   setStatus('FLOW ×'+numberRush.streak+' · KEEP GOING','good');
+ }
  renderNumberRush();
 }
 async function finishNumberRush(){
@@ -2352,7 +2369,7 @@ async function finishNumberRush(){
    if(numberRush===game){
      numberRushTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';
      const penalty=Number(res.details&&res.details.penaltyMs)||0;
-     showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':'')+' · MAX FLOW '+game.maxStreak);
+     showScoreResult('number_rush',res,(res.daily?'デイリー · ':'')+'NUMBER RUSH SHIFT '+(Number(res.score)/1000).toFixed(3)+'s'+(penalty?'（ペナルティ '+(penalty/1000).toFixed(1)+'s）':'')+' · SHIFT '+(Number(res.details&&res.details.shifts)||game.shifts||0)+' · MAX FLOW '+game.maxStreak);
      renderNumberRush();
    }
    await refreshPlatform();

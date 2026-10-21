@@ -294,6 +294,12 @@ if "openSlide" not in play_js or "persistSlide" not in play_js or "finishSlide" 
     fail("SLIDE resumable client flow is missing")
 if not re.search(r"id='slide'[^\n]*supportsResume=true[^\n]*rankingOrder='asc'[^\n]*version=1", registry):
     fail("SLIDE registry/resume marker is missing")
+if not re.search(r"id='slide'[^\n]*supportsDaily=true", registry):
+    fail("SLIDE registry Daily marker is missing")
+if not re.search(r"DailyCandidates\s*=\s*\{[^\n]*'slide'[^\n]*\}", config):
+    fail("SLIDE must be included in the Daily candidate rotation")
+if "openSlide(true,true)" not in play_js or "slideGame&&slideGame.daily" not in play_js or "daily:daily===true" not in play_js:
+    fail("SLIDE Daily client lifecycle is missing")
 play_css = read("flecity_games/web/shared/app.css")
 if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
     fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")

@@ -170,6 +170,21 @@ function personalBestText(gameId){
  const game=gameById(gameId),row=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
  return row&&game?formatGameScore(game,row.score):'---';
 }
+function activeDailyGame(gameId){
+ if(gameId==='quick_tap')return tapDaily===true;
+ if(gameId==='stop')return stopDaily===true;
+ if(gameId==='block')return !!(block&&block.daily);
+ if(gameId==='mines')return !!(mines&&mines.daily);
+ if(gameId==='nonogram')return !!(nonogram&&nonogram.daily);
+ if(gameId==='memory')return !!(memory&&memory.daily);
+ if(gameId==='number_rush')return !!(numberRush&&numberRush.daily);
+ return false;
+}
+function dailyBestText(gameId){
+ const daily=bootstrapData&&bootstrapData.daily,game=gameById(gameId);
+ const row=daily&&daily.gameId===gameId&&daily.selfBest;
+ return row&&game?formatGameScore(game,row.score):'---';
+}
 const screenBestIds={
  quick_tap:'tapBest',stop:'stopBest',stack:'stackBest',block:'blockBest',merge:'mergeBest',mines:'minesBest',
  nonogram:'nonogramBest',memory:'memoryBest',color_match:'colorMatchBest',number_rush:'numberRushBest',
@@ -178,7 +193,7 @@ const screenBestIds={
 function refreshScreenBests(){
  Object.entries(screenBestIds).forEach(([gameId,elementId])=>{
    const el=document.getElementById(elementId);
-   if(el)el.textContent='BEST '+personalBestText(gameId);
+   if(el)el.textContent=(activeDailyGame(gameId)?'TODAY BEST '+dailyBestText(gameId):'BEST '+personalBestText(gameId));
  });
 }
 function competitionRank(rows,index){
@@ -432,7 +447,7 @@ async function bootstrap(){
 }
 
 /* QUICK TAP */
-function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');tapBest.textContent='BEST '+personalBestText('quick_tap');tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
+function showQuick(daily=false){tapDaily=daily===true;hideAll();quickEl.classList.remove('hidden');refreshScreenBests();tapMessage.textContent=tapDaily?'今日のチャレンジ':'準備OK?';tapButton.textContent='スタート';tapButton.disabled=false;tapState='idle';}
 tapButton.onclick=async()=>{
  if(tapState==='waiting'){
    clearTimeout(tapTimer);tapState='idle';tapMessage.textContent='フライング!';tapButton.textContent='もう一度';
@@ -480,7 +495,7 @@ function animateStop(){
  stopRaf=requestAnimationFrame(animateStop);
 }
 function openStop(daily=false){
- stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;stopBest.textContent='BEST '+personalBestText('stop');stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
+ stopDaily=daily===true;hideAll();stopEl.classList.remove('hidden');stopState='idle';stopSession=null;refreshScreenBests();stopMessage.textContent=stopDaily?'今日のチャレンジ':'準備OK?';stopButton.textContent='スタート';stopButton.disabled=false;stopMarker.style.left='0%';stopTarget.style.left='50%';
 }
 stopButton.onclick=async()=>{
  if(stopState==='running'){
@@ -559,7 +574,7 @@ async function persistBlock(showError=false){
 function renderBlock(){
  const selectedPiece=block.pieces[block.selected]||null;
  blockScore.textContent=String(block.score);
- blockMeta.textContent='COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES · BEST '+personalBestText('block');
+ refreshScreenBests();blockMeta.textContent=(block.daily?'DAILY · ':'')+'COMBO '+String(block.combo)+' · '+String(block.pieces.filter(Boolean).length)+'/3 PIECES';
  blockBoard.innerHTML='';
  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
    const cell=document.createElement('button');
@@ -682,7 +697,7 @@ function mergeGameOver(){
  return true;
 }
 function renderMerge(){
- mergeScore.textContent=String(merge.score);
+ refreshScreenBests();mergeScore.textContent=String(merge.score);
  let maxTile=0;
  mergeBoard.innerHTML='';
  for(let y=0;y<4;y++)for(let x=0;x<4;x++){
@@ -690,7 +705,7 @@ function renderMerge(){
    if(v>maxTile)maxTile=v;
    d.className='merge-cell'+(v?' filled':'');d.textContent=v?String(v):'';mergeBoard.appendChild(d);
  }
- mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+' · BEST '+personalBestText('merge')+(merge.finished?' · FINISHED':'');
+ mergeMeta.textContent=String(merge.moves)+' MOVES · MAX '+String(maxTile)+(merge.finished?' · FINISHED':'');
  const locked=merge.finished||merge.finalizing;
  mergeUp.disabled=locked;mergeDown.disabled=locked;mergeLeft.disabled=locked;mergeRight.disabled=locked;
  mergeFinish.disabled=locked;mergeNew.disabled=merge.finalizing===true;
@@ -841,11 +856,11 @@ function mineNeighbors(index){
  return out;
 }
 function mineCountAround(index){let n=0;mineNeighbors(index).forEach(i=>{if(mines.mineSet.has(i))n++;});return n;}
-function updateMinesTime(){if(mines)minesTime.textContent=(elapsedMines()/1000).toFixed(1)+'s';}
+function updateMinesTime(){if(mines){const ms=Number.isFinite(Number(mines.displayElapsedMs))?Number(mines.displayElapsedMs):elapsedMines();minesTime.textContent=(ms/1000).toFixed(1)+'s';}}
 function renderMines(){
  if(!mines)return;minesBoard.innerHTML='';updateMinesTime();
  const safeTotal=mines.size*mines.size-mines.mineCount;
- minesMeta.textContent='地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal)+' · BEST '+personalBestText('mines');
+ refreshScreenBests();minesMeta.textContent=(mines.daily?'DAILY · ':'')+'地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
  for(let i=0;i<mines.size*mines.size;i++){
    const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
    b.className='mines-cell'+(revealed?' revealed':'')+(flagged?' flagged':'');
@@ -929,10 +944,10 @@ async function finishMines(){
  const game=mines;if(!game||game.finished||game.finalizing)return;
  game.finished=true;game.finalizing=true;clearInterval(minesClock);
  await saveQueue.catch(()=>{});
- const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));
+ const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));game.displayElapsedMs=durationMs;if(mines===game)updateMinesTime();
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,revealed:[...game.revealed]});
  game.finalizing=false;
- if(res.ok){if(!game.daily)delete saves.mines;game.sessionToken=null;if(mines===game)showScoreResult('mines',res,(res.daily?'デイリー · ':'')+'MINES '+(Number(res.score)/1000).toFixed(2)+'s');await refreshPlatform();}
+ if(res.ok){game.displayElapsedMs=Number(res.score);if(!game.daily)delete saves.mines;game.sessionToken=null;if(mines===game){updateMinesTime();showScoreResult('mines',res,(res.daily?'デイリー · ':'')+'MINES '+(Number(res.score)/1000).toFixed(2)+'s');}await refreshPlatform();}
  else{await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;if(mines===game)setStatus('MINESの記録を保存できませんでした。もう一度お試しください。','error');}
  if(mines===game)renderMines();
 }
@@ -976,7 +991,7 @@ function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0
 function renderStack(){
  if(!stackGame)return;
  stackScore.textContent=String(stackGame.score);
- stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed)+' · BEST '+personalBestText('stack');
+ stackMeta.textContent='幅 '+stackGame.width.toFixed(1)+'% · 速度 '+Math.round(stackGame.speed);
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
  const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
  history.forEach((layer,i)=>{
@@ -1088,10 +1103,10 @@ async function activateNonogramTiming(){
    game.elapsedBase=Number(res.elapsedMs??game.elapsedBase)||0;game.timingStarted=true;game.timingStartedAt=performance.now();return true;
  }finally{game.timingActivating=false;}
 }
-function updateNonogramTime(){if(nonogram)nonogramTime.textContent=(elapsedNonogram()/1000).toFixed(1)+'s';}
+function updateNonogramTime(){if(nonogram){const ms=Number.isFinite(Number(nonogram.displayElapsedMs))?Number(nonogram.displayElapsedMs):elapsedNonogram();nonogramTime.textContent=(ms/1000).toFixed(1)+'s';}}
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
- nonogramMeta.textContent=String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED · BEST '+personalBestText('nonogram');
+ refreshScreenBests();nonogramMeta.textContent=(nonogram.daily?'DAILY · ':'')+String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED';
  const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
  for(let x=0;x<nonogram.size;x++){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
@@ -1130,7 +1145,7 @@ async function openNonogram(forceNew,daily=false){
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true,progressed:!!saved};
- setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+ nonogramNew.textContent=nonogram.daily?'最初から':'新しい問題';setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
@@ -1146,11 +1161,11 @@ nonogramCheck.onclick=async()=>{
  game.finalizing=true;nonogramCheck.disabled=true;
  await saveQueue.catch(()=>{});
  if(nonogram!==game){game.finalizing=false;return;}
- const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));
+ const durationMs=Math.round((game.elapsedBase||0)+(game.timingStartedAt?performance.now()-game.timingStartedAt:0));game.displayElapsedMs=durationMs;if(nonogram===game)updateNonogramTime();
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,filled:[...game.filled]});
  game.finalizing=false;if(nonogram===game)nonogramCheck.disabled=false;
- if(res.ok){game.finished=true;clearInterval(nonogramClock);if(!game.daily)delete saves.nonogram;if(nonogram===game){showScoreResult('nonogram',res,(res.daily?'デイリー · ':'')+'NONOGRAM '+(Number(res.score)/1000).toFixed(2)+'s');renderNonogram();}await refreshPlatform();}
- else if(nonogram===game&&res.error==='INCORRECT_SOLUTION')setStatus('まだ正解ではありません。','warn');
+ if(res.ok){game.finished=true;game.displayElapsedMs=Number(res.score);clearInterval(nonogramClock);if(!game.daily)delete saves.nonogram;if(nonogram===game){showScoreResult('nonogram',res,(res.daily?'デイリー · ':'')+'NONOGRAM '+(Number(res.score)/1000).toFixed(2)+'s');renderNonogram();}await refreshPlatform();}
+ else if(nonogram===game&&res.error==='INCORRECT_SOLUTION'){game.displayElapsedMs=null;setStatus('まだ正解ではありません。','warn');}
  else if(nonogram===game)setStatus('NONOGRAM判定失敗: '+FlecityErrors.text(res.error),'error');
 };
 nonogramBack.onclick=async()=>{if(nonogram&&nonogram.finalizing){setStatus('NONOGRAMを判定中です…','warn');return;}clearInterval(nonogramClock);nonogramClock=null;if(nonogram&&!nonogram.finished&&!nonogram.daily){const saved=await persistNonogram(true);if(!saved){nonogramClock=setInterval(updateNonogramTime,250);return;}}if(nonogram&&!nonogram.finished&&nonogram.sessionToken)await cancelPlaySession(nonogram.sessionToken);nonogram=null;showHome();};
@@ -1217,7 +1232,7 @@ function renderColorMatch(){
 }
 function openColorMatch(){
  hideAll();colorMatchEl.classList.remove('hidden');clearInterval(colorMatchClock);colorMatchClock=null;colorMatch=null;
- colorMatchStart.disabled=false;colorMatchStart.classList.remove('hidden');renderColorMatch();setStatus('文字の意味ではなく、文字そのものの色を選んでください。','good');
+ colorMatchStart.disabled=false;colorMatchStart.classList.remove('hidden');colorMatchNew.classList.add('hidden');renderColorMatch();setStatus('文字の意味ではなく、文字そのものの色を選んでください。','good');
 }
 async function startColorMatch(){
  if(colorMatch&&colorMatch.running)return;
@@ -1226,7 +1241,7 @@ async function startColorMatch(){
  if(!session.ok){colorMatchStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||10);
  colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],startedAt:performance.now(),running:true,finished:false};
- colorMatchStart.classList.add('hidden');setStatus('COLOR MATCH開始。10問連続正解を目指してください。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
+ colorMatchStart.classList.add('hidden');colorMatchNew.classList.remove('hidden');setStatus('COLOR MATCH開始。10問連続正解を目指してください。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
 }
 async function answerColorMatch(choice){
  const game=colorMatch;if(!game||!game.running||game.finished)return;
@@ -1235,7 +1250,7 @@ async function answerColorMatch(choice){
    game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
    if(colorMatch===game){
      colorMatchChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
-     colorMatchWord.textContent='MISS';colorMatchWord.style.color='';
+     colorMatchNew.classList.add('hidden');colorMatchWord.textContent='MISS';colorMatchWord.style.color='';
    }
    if(game.sessionToken)await cancelPlaySession(game.sessionToken);
    game.sessionToken=null;
@@ -1253,7 +1268,7 @@ async function answerColorMatch(choice){
    game.finalizing=false;
    if(res.ok){
      game.sessionToken=null;if(colorMatch===game){colorMatchProgress.textContent='10 / 10';colorMatchWord.textContent='CLEAR';colorMatchWord.style.color='';
-     colorMatchChoices.innerHTML='';colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
+     colorMatchTime.textContent=(Number(res.score)/1000).toFixed(3)+'s';colorMatchChoices.innerHTML='';colorMatchNew.classList.add('hidden');colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';
      showScoreResult('color_match',res,'COLOR MATCH '+(Number(res.score)/1000).toFixed(3)+'s');}await refreshPlatform();
    }else{
      await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.running=false;
@@ -1290,7 +1305,7 @@ function renderNumberRush(){
    numberRushProgress.textContent='1 / 25';numberRushTime.textContent='0.00s';numberRushMeta.textContent='MISS 0 · ペナルティ 0.0s';return;
  }
  numberRushProgress.textContent=(numberRush.finished?numberRush.count:Math.min(numberRush.next,numberRush.count))+' / '+numberRush.count;
- numberRushMeta.textContent='MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s · BEST '+personalBestText('number_rush');
+ refreshScreenBests();numberRushMeta.textContent=(numberRush.daily?'DAILY · ':'')+'MISS '+numberRush.misses+' · ペナルティ '+(numberRush.misses*.5).toFixed(1)+'s';
  numberRush.board.forEach((value,index)=>{
    const b=document.createElement('button');
    const done=numberRush.completed.has(index);
@@ -1384,6 +1399,7 @@ function highLowLabel(value){
  return String(n);
 }
 function renderHighLow(){
+ refreshScreenBests();
  if(!highLow){
    highLowCard.textContent='?';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30';
    highLowHigher.disabled=true;highLowLower.disabled=true;return;
@@ -1391,7 +1407,7 @@ function renderHighLow(){
  highLowCard.textContent=highLowLabel(highLow.currentValue);
  highLowStreak.textContent=String(highLow.streak);
  const round=Math.min(highLow.completed+1,highLow.maxRounds);
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · BEST '+personalBestText('high_low');
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+(highLow.finished?' · GAME OVER':'');
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
 }
 function openHighLow(){
@@ -1478,14 +1494,14 @@ highLowNew.onclick=async()=>{
 
 /* SIMON */
 function renderSimon(){
- const game=simon;
+ refreshScreenBests();const game=simon;
  if(!game){
-   simonRound.textContent='0';simonMeta.textContent='ROUND 0 · BEST '+personalBestText('simon');simonMessage.textContent='スタートを押してください。';
+   simonRound.textContent='0';simonMeta.textContent='ROUND 0 / 30';simonMessage.textContent='スタートを押してください。';
    simonPads.forEach(p=>{p.disabled=true;p.classList.remove('active','wrong');});
    return;
  }
  simonRound.textContent=String(game.cleared);
- simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · BEST '+personalBestText('simon');
+ simonMeta.textContent='ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared);
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
@@ -1628,11 +1644,11 @@ function memoryDeckFromSeed(seed){
  return deck;
 }
 function elapsedMemory(){return memory&&memory.playStartedAt?performance.now()-memory.playStartedAt:0;}
-function updateMemoryTime(){if(memory)memoryTime.textContent=(elapsedMemory()/1000).toFixed(1)+'s';}
+function updateMemoryTime(){if(memory){const ms=Number.isFinite(Number(memory.displayElapsedMs))?Number(memory.displayElapsedMs):elapsedMemory();memoryTime.textContent=(ms/1000).toFixed(1)+'s';}}
 function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
- memoryMeta.textContent=memory.previewing?'記憶中… · BEST '+personalBestText('memory'):String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES · BEST '+personalBestText('memory');
+ refreshScreenBests();memoryMeta.textContent=memory.previewing?((memory.daily?'DAILY · ':'')+'記憶中…'):((memory.daily?'DAILY · ':'')+String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES');
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);
@@ -1679,11 +1695,11 @@ async function flipMemory(index){
 async function finishMemory(){
  const game=memory;if(!game||game.finished||game.finalizing)return;
  game.finished=true;game.finalizing=true;game.busy=true;clearInterval(memoryClock);clearTimeout(memoryFlipTimer);
- const durationMs=Math.max(0,Math.round(game.playStartedAt?performance.now()-game.playStartedAt:0));
+ const durationMs=Math.max(0,Math.round(game.playStartedAt?performance.now()-game.playStartedAt:0));game.displayElapsedMs=durationMs;if(memory===game)updateMemoryTime();
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:durationMs,durationMs,history:game.history});
  game.finalizing=false;
  if(res.ok){
-   game.sessionToken=null;game.busy=false;if(memory===game){showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES');renderMemory();}await refreshPlatform();
+   game.displayElapsedMs=Number(res.score);game.sessionToken=null;game.busy=false;if(memory===game){showScoreResult('memory',res,(res.daily?'デイリー · ':'')+'MEMORY '+(Number(res.score)/1000).toFixed(2)+'s · '+game.moves+' MOVES');renderMemory();}await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;game.busy=false;if(memory===game){setStatus('MEMORYの記録を保存できませんでした。もう一度お試しください。','error');renderMemory();}
  }

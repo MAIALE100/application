@@ -57,8 +57,15 @@
   <div class="card stack"><button id="numberRushStart">スタート</button><button id="numberRushNew" class="secondary hidden">もう一度</button></div>
 </section>
 <section id="highLowGame" class="hidden">
-  <div class="card row"><div><div class="kicker">HIGH & LOW</div><div id="highLowStreak" class="big-number small-number">0</div><div id="highLowMeta" class="game-meta">ROUND 0 / 30</div><div id="highLowBest" class="game-meta">BEST ---</div></div><button id="highLowBack" class="secondary">戻る</button></div>
-  <div class="card big-center high-low-stage"><div class="muted">現在の数字</div><div id="highLowCard" class="high-low-card">?</div><div class="high-low-actions"><button id="highLowLower" class="secondary" disabled>LOW ↓</button><button id="highLowHigher" disabled>HIGH ↑</button></div></div>
+  <div class="card row"><div><div class="kicker">RANGE RUSH</div><div id="highLowStreak" class="big-number small-number">0</div><div id="highLowMeta" class="game-meta">ROUND 0 / 30 · STREAK 0</div><div id="highLowBest" class="game-meta">BEST ---</div></div><button id="highLowBack" class="secondary">戻る</button></div>
+  <div class="game-tip card-tip">表示された数字が基準より上か下かを、時間切れになる前に判断する。</div>
+  <div class="card big-center high-low-stage">
+    <div class="range-pivot-label">基準 <strong id="highLowPivot">50</strong></div>
+    <div id="highLowCard" class="high-low-card">?</div>
+    <div class="range-timer" aria-hidden="true"><div id="highLowTimerFill" class="range-timer-fill"></div></div>
+    <div id="highLowTimerText" class="game-meta">2.2s</div>
+    <div class="high-low-actions"><button id="highLowLower" class="secondary" disabled>LOW ↓</button><button id="highLowHigher" disabled>HIGH ↑</button></div>
+  </div>
   <div class="card stack"><button id="highLowStart">スタート</button><button id="highLowNew" class="secondary hidden">もう一度</button></div>
 </section>
 <section id="simonGame" class="hidden">

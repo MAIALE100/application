@@ -560,3 +560,12 @@ body{color:#f8fafc}
  .recent-games{grid-template-columns:1fr}
  .recent-game:nth-child(3):last-child{grid-column:auto}
 }
+
+
+/* PLAY favorites pass v5 */
+.favorite-toggle{position:relative;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;min-width:2rem;border-radius:99rem;background:#151a21;border:0.0625rem solid #394351;color:#8692a3;font-size:1.05rem;font-weight:950;line-height:1;transition:transform .1s ease,background .14s ease,color .14s ease,border-color .14s ease,box-shadow .14s ease}
+.favorite-toggle.active{background:rgba(255,207,92,.12);border-color:rgba(255,207,92,.48);color:#ffd76a;box-shadow:0 0 0.875rem rgba(255,199,76,.08)}
+.favorite-toggle:active{transform:scale(.9)}
+.game-card-top .tag{white-space:nowrap}
+.library-filter[data-filter="favorites"]{color:#d8c78f}
+.library-filter[data-filter="favorites"].active{background:#fff0b8;color:#241d0d;border-color:#fff0b8}

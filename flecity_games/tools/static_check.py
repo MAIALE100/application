@@ -238,10 +238,12 @@ if "metadata.maxPerfectStreak" not in play_lua or "placementScore" not in play_l
     fail("TOWER authoritative scoring upgrade is missing")
 if "generateRangeRushRounds" not in play_lua or "rangeRush=true" not in play_lua or "RANGE RUSH" not in play_js:
     fail("RANGE RUSH server-timed skill-game replacement is missing")
-if "timeLimitMs=2200" not in play_lua or "highLowTimerFill" not in play_js:
-    fail("RANGE RUSH time-pressure loop is missing")
-if not re.search(r"id='high_low'[^\n]*name='RANGE RUSH'[^\n]*version=2", registry):
-    fail("RANGE RUSH registry/version marker is missing")
+if "rangeRushRoundLimit" not in play_lua or "rangeRushPoints" not in play_lua or "highLowLivesRecovery" not in play_lua:
+    fail("RANGE RUSH v3 lives/combo/adaptive scoring is missing")
+if "highLowTimerFill" not in play_js or "highLowLives" not in play_js or "LIFE -1" not in play_js:
+    fail("RANGE RUSH v3 time-pressure/lives UI loop is missing")
+if not re.search(r"id='high_low'[^\n]*name='RANGE RUSH'[^\n]*version=3", registry):
+    fail("RANGE RUSH v3 registry/version marker is missing")
 if "score=score+(gained*chain)" not in play_lua or "merge.chain" not in play_js or "CHAIN ×" not in play_js:
     fail("MERGE chain multiplier scoring is missing")
 if not re.search(r"id='merge'[^\n]*version=2", registry):

@@ -230,6 +230,8 @@ if "gameVisuals" not in play_js or "setQuickVisual" not in play_js or "setStopVi
     fail("PLAY game identity / live-state visual feedback is missing")
 if "rankTargets" not in play_js or "rankForScore" not in play_js or "nextRankGoal" not in play_js:
     fail("PLAY rank-goal progression is missing")
+if "blockDragTarget" not in play_js or "blockDragGhost" not in play_js or "MEGA BLAST" not in play_js:
+    fail("BLOCK drag-first / blast feedback upgrade is missing")
 if "dailyStreak" not in play_lua or "nextCount" not in play_lua:
     fail("PLAY Daily streak derivation is missing")
 play_css = read("flecity_games/web/shared/app.css")

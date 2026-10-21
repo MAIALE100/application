@@ -192,3 +192,9 @@ The first time the watcher is installed, run `restart flecity_games` once in the
 - MERGE now uses server-validated CHAIN multipliers: consecutive merge-producing moves increase scoring up to x5, while a non-merge move resets the chain.
 - MERGE adds next-tile goals, fever/milestone feedback and versioned saves for the new scoring rules.
 - BLOCK remains drag-first with STREAK / BLAST / FEVER feedback from the 0.19.2 flagship pass.
+
+### 0.21.0 TOWER redesign
+- STACK is presented as TOWER while retaining the stable internal game id for existing data compatibility.
+- Ranking score is now server-replayed points instead of raw layer count.
+- Placement precision contributes to points; PERFECT placements preserve width and build a capped streak multiplier.
+- Server metadata records height, max PERFECT streak and final width for achievements and diagnostics.

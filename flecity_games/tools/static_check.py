@@ -19,6 +19,7 @@ party_js = read("flecity_games/web/party/app.js")
 play_html = read("flecity_games/web/play/index.html")
 party_html = read("flecity_games/web/party/index.html")
 client = read("flecity_games/client/main.lua")
+dev_reload = read("flecity_games/server/core/dev_reload.lua")
 server = read("flecity_games/server/main.lua")
 registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
@@ -126,8 +127,14 @@ if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
 if "fixBlur=true" not in client or "fixBlur=false" in client:
     fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
+if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:
+    fail("auto-reload must refresh FiveM metadata before restarting flecity_games")
 if "APP_ALREADY_EXISTS" not in client or "RemoveCustomApp(app.identifier)" not in client or "refreshed custom app registration" not in client:
     fail("LB Phone custom app registration refresh path is missing")
+if "uiCacheBust" not in client or "?cb=" not in client:
+    fail("LB Phone custom app UI cache-busting is missing")
+if 'http-equiv="Cache-Control"' not in play_html or 'http-equiv="Cache-Control"' not in party_html:
+    fail("PLAY/PARTY no-cache document guards are missing")
 if "globalThis.onNuiEvent" not in party_js or "registerPhonePushChannel" not in party_js:
     fail("PARTY official LB Phone push listener is missing")
 if "if(!phonePushRegistered)handlePartyMessage(event.data)" not in party_js:

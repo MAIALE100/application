@@ -95,12 +95,22 @@ try {
 
     try {
         Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
-            Where-Object { $_.CommandLine -and $_.CommandLine -match 'games-auto-update\.ps1' } |
+            Where-Object {
+                $_.CommandLine -and (
+                    $_.CommandLine -match 'games-auto-update\.ps1' -or
+                    $_.CommandLine -match 'games-auto-update-once\.ps1'
+                )
+            } |
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     } catch {}
 
     try {
         Import-Module ScheduledTasks -ErrorAction Stop
+        $existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if ($existingTask) {
+            Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+        }
         $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
         $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $argument
         $loginTrigger = New-ScheduledTaskTrigger -AtLogOn -User $user

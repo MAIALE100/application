@@ -222,7 +222,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 14ゲームが1クライアントで起動
+- PLAY 15ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる
@@ -349,6 +349,25 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 ## 合格ライン
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
+
+## FALL 0.31
+
+- 新規開始で10×18の盤面と7種ブロックのいずれかが表示される
+- ← / → でハードドロップ位置を変更できる
+- 回転でブロック形状が変わり、壁際では安全な横補正が入る
+- ゴースト表示が実際のDROP位置と一致する
+- DROPするとサーバーと同じ得点式でスコアが増える
+- 1〜4ライン消しが正しく反映される
+- 連続ライン消しでCOMBOが増え、ラインを消さないDROPでCOMBOが0へ戻る
+- BACK / Phone Closeで途中保存される
+- 再開後に盤面・スコア・ライン数・手数・次ブロックが一致する
+- NEW GAMEで古い途中保存が削除される
+- 「終了して記録」で途中でも現在スコアをランキングへ確定できる
+- 次ブロックを置ける場所が無い場合はGAME OVERとなり自動で記録する
+- 操作履歴改変は `INVALID_FALL_REPLAY` で拒否される
+- 不正途中保存は `INVALID_FALL_SAVE` で拒否される
+- お気に入り / RECENT / エンドレス絞り込み / おまかせにFALLが含まれる
+- 結果保存後に途中保存が削除され、BESTと統計が更新される
 
 ## SLIDE MASTER 0.30
 

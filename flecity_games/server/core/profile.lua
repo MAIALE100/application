@@ -2,17 +2,44 @@ FlecityGamesProfile = FlecityGamesProfile or {}
 
 local defaults={
     sound=true,
-    reducedMotion=false
+    reducedMotion=false,
+    favorites={}
 }
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
+
+local function normalizeFavorites(value)
+    local out,seen={},{}
+    if type(value)~='table' then return out end
+    for _,raw in ipairs(value) do
+        local gameId=tostring(raw or '')
+        local game=FlecityGamesRegistry.Get(gameId)
+        if game and game.app=='play' and game.enabled==true and not seen[gameId] then
+            seen[gameId]=true
+            out[#out+1]=gameId
+            if #out>=8 then break end
+        end
+    end
+    return out
+end
 
 local function normalize(settings)
     settings=type(settings)=='table' and settings or {}
     return {
         sound=settings.sound~=false,
-        reducedMotion=settings.reducedMotion==true
+        reducedMotion=settings.reducedMotion==true,
+        favorites=normalizeFavorites(settings.favorites)
     }
+end
+
+local function readSettings(playerIdentifier)
+    local raw=MySQL.scalar.await('SELECT settings_json FROM flecity_game_profiles WHERE player_identifier=? LIMIT 1',{playerIdentifier})
+    local decoded=nil
+    if type(raw)=='string' and raw~='' then
+        local ok,value=pcall(json.decode,raw)
+        if ok then decoded=value end
+    end
+    return normalize(decoded)
 end
 
 function FlecityGamesProfile.Touch(source)
@@ -30,23 +57,18 @@ end
 function FlecityGamesProfile.GetSettings(source)
     local id=FlecityGamesProfile.Touch(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    local raw=MySQL.scalar.await('SELECT settings_json FROM flecity_game_profiles WHERE player_identifier=? LIMIT 1',{id})
-    local decoded=nil
-    if type(raw)=='string' and raw~='' then
-        local ok,value=pcall(json.decode,raw)
-        if ok then decoded=value end
-    end
-    return {ok=true,settings=normalize(decoded)}
+    return {ok=true,settings=readSettings(id)}
 end
 
 function FlecityGamesProfile.UpdateSettings(source,data)
     local id=FlecityGamesProfile.Touch(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
-    local settings=normalize({
-        sound=data.sound,
-        reducedMotion=data.reducedMotion
-    })
+    local settings=readSettings(id)
+    if data.sound~=nil then settings.sound=data.sound~=false end
+    if data.reducedMotion~=nil then settings.reducedMotion=data.reducedMotion==true end
+    if data.favorites~=nil then settings.favorites=normalizeFavorites(data.favorites) end
+    settings=normalize(settings)
     MySQL.query.await('UPDATE flecity_game_profiles SET settings_json=?,last_seen_at=CURRENT_TIMESTAMP WHERE player_identifier=?',
         {json.encode(settings),id})
     return {ok=true,settings=settings}

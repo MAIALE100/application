@@ -803,3 +803,29 @@ body.reduced-motion .mines-board.chord-open,body.reduced-motion .nonogram-grid.l
 .slide-board.slide-align{animation:slide-align .2s ease}
 @keyframes slide-align{50%{filter:brightness(1.13);box-shadow:0 0 1rem rgba(117,218,255,.08)}}
 body.reduced-motion .sort-board.sort-undo,body.reduced-motion .slide-board.slide-align{animation:none!important}
+
+
+/* PLAY in-game HUD stability pass v14
+   Keep long live stats from pushing Back buttons or overflowing LB Phone. */
+#blockGame>.card.row,#mergeGame>.card.row,#fallGame>.card.row,#minesGame>.card.row,#stackGame>.card.row,
+#nonogramGame>.card.row,#sortGame>.card.row,#slideGame>.card.row,#colorMatchGame>.card.row,#numberRushGame>.card.row,
+#highLowGame>.card.row,#simonGame>.card.row,#memoryGame>.card.row{
+ align-items:flex-start;gap:.625rem
+}
+#blockGame>.card.row>div,#mergeGame>.card.row>div,#fallGame>.card.row>div,#minesGame>.card.row>div,#stackGame>.card.row>div,
+#nonogramGame>.card.row>div,#sortGame>.card.row>div,#slideGame>.card.row>div,#colorMatchGame>.card.row>div,#numberRushGame>.card.row>div,
+#highLowGame>.card.row>div,#simonGame>.card.row>div,#memoryGame>.card.row>div{min-width:0;flex:1 1 auto}
+#blockGame>.card.row>button,#mergeGame>.card.row>button,#fallGame>.card.row>button,#minesGame>.card.row>button,#stackGame>.card.row>button,
+#nonogramGame>.card.row>button,#sortGame>.card.row>button,#slideGame>.card.row>button,#colorMatchGame>.card.row>button,#numberRushGame>.card.row>button,
+#highLowGame>.card.row>button,#simonGame>.card.row>button,#memoryGame>.card.row>button{flex:0 0 auto}
+.game-meta{max-width:100%;overflow-wrap:anywhere}
+.stop-run-meta{max-width:100%;text-align:center;line-height:1.35;overflow-wrap:anywhere}
+#stopGame #stopMessage{max-width:100%;text-align:center;overflow-wrap:anywhere}
+@media(max-width:22.5rem){
+ #blockGame>.card.row,#mergeGame>.card.row,#fallGame>.card.row,#minesGame>.card.row,#stackGame>.card.row,
+ #nonogramGame>.card.row,#sortGame>.card.row,#slideGame>.card.row,#colorMatchGame>.card.row,#numberRushGame>.card.row,
+ #highLowGame>.card.row,#simonGame>.card.row,#memoryGame>.card.row{gap:.5rem}
+ .game-meta{font-size:.71rem;letter-spacing:.035em;line-height:1.35}
+ .stop-run-meta{font-size:.69rem}
+ #stopGame #stopMessage{font-size:clamp(1.65rem,10vw,2.65rem);line-height:1.05}
+}

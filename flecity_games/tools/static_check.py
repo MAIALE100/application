@@ -238,6 +238,12 @@ if "TODAY BEST" not in play_js or "displayElapsedMs" not in play_js:
     fail("PLAY Daily/result display polish is missing")
 if "gameVisuals" not in play_js or "setQuickVisual" not in play_js or "setStopVisual" not in play_js:
     fail("PLAY game identity / live-state visual feedback is missing")
+if "renderRecent" not in play_js or "filteredLibraryGames" not in play_js or "randomPlay.onclick" not in play_js:
+    fail("PLAY recent/filter/random library navigation is missing")
+if 'id="recentCard"' not in play_html or 'id="libraryFilters"' not in play_html or 'id="randomPlay"' not in play_html:
+    fail("PLAY library navigation DOM is missing")
+if "lastPlayedAt=row.last_played_at" not in play_lua or "MAX(created_at) AS last_played_at" not in play_lua:
+    fail("PLAY recent-game statistics timestamp is missing")
 if "rankTargets" not in play_js or "rankForScore" not in play_js or "nextRankGoal" not in play_js:
     fail("PLAY rank-goal progression is missing")
 if "blockDragTarget" not in play_js or "blockDragGhost" not in play_js or "MEGA BLAST" not in play_js:
@@ -271,6 +277,8 @@ if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
     fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
+if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:
+    fail("PLAY library navigation v4 CSS is missing")
 for marker in ("PLAY visual quality pass v2","game-card-top","tile-2048","memory-flip","simon-board[data-phase","RANGE RUSH","MERGE chain scoring"):
     if marker not in play_css:
         fail(f"PLAY visual quality marker missing: {marker}")

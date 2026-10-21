@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.28.0-test**
+- Resource version: **0.29.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **24/24 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -40,7 +40,7 @@ Exact Flecity-installed LB Phone, framework, database, and artifact versions rem
 - NONOGRAM — deterministic puzzle/clues, server-verified solution, auto-save/resume
 - MEMORY — deterministic 4x4 card matching, server-replayed selection history, time ranking
 - SORT — deterministic 6-tube color sorting puzzle, auto-save/resume, time + move-penalty ranking
-- SLIDE — deterministic 4x4 sliding-number puzzle, auto-save/resume, server-replayed moves, time + move-penalty ranking
+- SLIDE — deterministic 4x4 sliding-number puzzle, auto-save/resume, server-replayed moves, time + move-penalty ranking; Daily Challenge supported
 - COLOR MATCH — 10-round Stroop-style color recognition, server-replayed answer history, time ranking
 - NUMBER RUSH — deterministic 5x5 number hunt, server-replayed tap history, miss penalties, time ranking
 - RANGE RUSH — 3-life HIGH/LOW reflex run with adaptive timer, streak multiplier, and server-owned score
@@ -99,6 +99,7 @@ Implemented:
 - deterministic Daily MEMORY card layout
 - deterministic Daily NUMBER RUSH number layout
 - deterministic Daily SIMON sequence with server-authoritative round validation
+- deterministic Daily SLIDE board with server-replayed move validation
 - deterministic Daily QUICK TAP / STOP! challenge parameters
 - PLAY statistics from completed runs
 - 14 collection/title achievements across PLAY:

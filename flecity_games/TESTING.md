@@ -372,3 +372,12 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 - MERGE: save/resume restores canonical board, score, moves and CHAIN from server replay.
 - MERGE: old version-1 saves are not loaded into version-2 scoring rules.
 - MERGE: new tile milestones and fever presentation do not alter canonical board replay.
+
+## TOWER v2
+- TOWER starts with a centered base and displays points, HEIGHT, PERFECT streak and remaining width.
+- A near-perfect placement preserves width and increases PERFECT streak.
+- A non-perfect placement resets PERFECT streak and trims width to the true overlap.
+- Movement alternates direction and accelerates after each successful layer.
+- Missing the base ends the run and the server-replayed point total matches the client result.
+- Ranking uses points while the result metadata still reports HEIGHT and max PERFECT streak.
+- TOWER MASTER remains based on reaching 25 layers, not on arbitrary client score.

@@ -420,3 +420,15 @@ body.reduced-motion .block-cell.drag-preview,body.reduced-motion .block-drag-gho
 #highLowGame.range-timeout .high-low-card{border-color:#8b444a;color:#7e222a}
 @keyframes range-timeout{25%{transform:translateX(-3px)}55%{transform:translateX(3px)}100%{transform:none}}
 body.reduced-motion #highLowGame.range-timeout .high-low-stage{animation:none!important}
+
+
+/* MERGE chain scoring */
+.merge-board.merge-fever{border-color:#7a6330;box-shadow:0 0 24px rgba(255,201,80,.08),inset 0 0 24px rgba(255,202,79,.04)}
+.merge-board.merge-fever .merge-cell.filled{filter:saturate(1.08)}
+.merge-board.merge-milestone{animation:merge-milestone .38s ease}
+@keyframes merge-milestone{
+  0%{transform:scale(.985)}
+  45%{transform:scale(1.012);border-color:#9a7a31;box-shadow:0 0 30px rgba(255,208,89,.13)}
+  100%{transform:none}
+}
+body.reduced-motion .merge-board.merge-milestone{animation:none!important}

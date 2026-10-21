@@ -24,9 +24,17 @@ function Step([string]$Message) {
 }
 
 function Run-Git([string]$WorkingTree,[string[]]$Arguments) {
-    $output = & git -C $WorkingTree @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw ('git {0} failed: {1}' -f ($Arguments -join ' '),(($output | Out-String).Trim()))
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & git -C $WorkingTree @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($exitCode -ne 0) {
+        throw ('git {0} failed with exit code {1}: {2}' -f ($Arguments -join ' '),$exitCode,(($output | Out-String).Trim()))
     }
     return (($output | Out-String).Trim())
 }
@@ -47,9 +55,17 @@ try {
         }
     }
     else {
-        $output = & git -C $SourceRepo worktree add --detach $AutoRoot "origin/$Branch" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw ('git worktree add failed: ' + (($output | Out-String).Trim()))
+        $previousPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & git -C $SourceRepo worktree add --detach $AutoRoot "origin/$Branch" 2>&1
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousPreference
+        }
+        if ($exitCode -ne 0) {
+            throw ('git worktree add failed with exit code {0}: {1}' -f $exitCode,(($output | Out-String).Trim()))
         }
     }
 

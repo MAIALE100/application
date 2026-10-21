@@ -345,3 +345,31 @@ button:not(:disabled):active{transform:scale(.975);filter:brightness(.94)}
  .game-icon{min-width:23px;height:23px}.stack-arena{height:260px}
 }
 body.reduced-motion .game,body.reduced-motion .memory-card,body.reduced-motion .high-low-card,body.reduced-motion .stack-arena{animation:none!important}
+
+
+/* PLAY tactile feedback v2 */
+.block-board.line-clear{animation:block-line-clear .28s ease}
+@keyframes block-line-clear{45%{box-shadow:inset 0 0 0 2px rgba(208,236,255,.2),0 0 24px rgba(173,215,255,.08);filter:brightness(1.16)}}
+
+.merge-board.merge-move{animation:merge-move .14s ease}.merge-board.merge-combine{animation:merge-combine .2s ease}
+@keyframes merge-move{50%{transform:scale(.992)}}@keyframes merge-combine{45%{transform:scale(1.008);box-shadow:0 0 18px rgba(255,205,100,.08)}}
+.mines-cell.n1{color:#7fc5ff}.mines-cell.n2{color:#8de0a5}.mines-cell.n3{color:#ff9f95}.mines-cell.n4{color:#b7a0ff}.mines-cell.n5{color:#ffbd80}.mines-cell.n6{color:#7ce0db}.mines-cell.n7{color:#e0e5ec}.mines-cell.n8{color:#a8adb7}
+.mines-cell.mine{background:#4b242a;color:#ffd0d3;box-shadow:inset 0 0 0 1px #74353d}
+.mines-board.safe-open{animation:safe-open .16s ease}.mines-board.mine-hit{animation:mine-hit .28s ease}
+@keyframes safe-open{50%{border-color:#465661}}@keyframes mine-hit{25%{transform:translateX(-3px)}55%{transform:translateX(3px);border-color:#78414a}100%{transform:none}}
+
+.nonogram-grid.cell-touch{animation:nonogram-touch .12s ease}
+@keyframes nonogram-touch{50%{border-color:#44515e}}
+.number-rush-board.rush-hit{animation:rush-hit .12s ease}
+@keyframes rush-hit{50%{box-shadow:0 0 0 2px rgba(142,235,181,.06),inset 0 0 18px rgba(105,214,150,.03)}}
+
+#colorMatchGame.match-ok .color-match-stage{animation:match-ok .2s ease}
+#colorMatchGame.match-miss .color-match-stage{animation:match-miss .28s ease}
+@keyframes match-ok{50%{border-color:#55765f;box-shadow:inset 0 0 30px rgba(98,217,139,.05)}}@keyframes match-miss{25%{transform:translateX(-2px)}55%{transform:translateX(2px);border-color:#714047}100%{transform:none}}
+
+#highLowGame.guess-correct .high-low-stage{animation:guess-correct .22s ease}
+#highLowGame.guess-wrong .high-low-stage{animation:guess-wrong .25s ease}
+@keyframes guess-correct{50%{border-color:#5b8268;box-shadow:inset 0 0 28px rgba(105,225,145,.05)}}@keyframes guess-wrong{50%{border-color:#75434a;box-shadow:inset 0 0 28px rgba(225,105,115,.05)}}
+
+body.reduced-motion .block-board,body.reduced-motion .merge-board,body.reduced-motion .mines-board,body.reduced-motion .nonogram-grid,
+body.reduced-motion .number-rush-board,body.reduced-motion #colorMatchGame .color-match-stage,body.reduced-motion #highLowGame .high-low-stage{animation:none!important}

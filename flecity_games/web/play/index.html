@@ -32,6 +32,16 @@
     <div class="row"><button id="mergeNew" class="secondary">新しく始める</button><button id="mergeFinish" class="danger">終了して記録</button></div>
   </div>
 </section>
+<section id="fallGame" class="hidden">
+  <div class="card row"><div><div class="kicker">FALL</div><div id="fallScore" class="big-number small-number">0</div><div id="fallMeta" class="game-meta">LINES 0 · PIECES 0 · COMBO 0</div><div id="fallBest" class="game-meta">BEST ---</div></div><button id="fallBack" class="secondary">戻る</button></div>
+  <div class="game-tip card-tip">左右と回転で位置を決めてDROP。ラインを消しながらハイスコアを狙う。</div>
+  <div class="card fall-board-card"><div id="fallBoard" class="fall-board" aria-label="FALL board"></div></div>
+  <div class="card stack fall-panel">
+    <div class="fall-preview-row"><div><div class="kicker">CURRENT PIECE</div><div id="fallNext" class="fall-next" aria-label="Current piece preview"></div></div><div class="fall-hint"><strong>操作</strong><span>← → 位置</span><span>回転</span><span>DROP</span></div></div>
+    <div class="fall-controls"><button id="fallLeft" class="secondary">←</button><button id="fallRotate" class="secondary">↻ 回転</button><button id="fallRight" class="secondary">→</button><button id="fallDrop">DROP</button></div>
+    <div class="row"><button id="fallNew" class="secondary">新しく始める</button><button id="fallFinish" class="danger">終了して記録</button></div>
+  </div>
+</section>
 <section id="minesGame" class="hidden">
   <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div><div id="minesMeta" class="game-meta">地雷 10 · FLAG 0</div><div id="minesBest" class="game-meta">BEST ---</div></div><button id="minesBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">数字を手掛かりに安全マスを全部開く。最初に開くマスは安全です。</div><div class="card"><div id="minesBoard" class="mines-board"></div></div>

@@ -267,7 +267,8 @@ const achievementLabels={
  mines_sprinter:'MINES SPRINTER · 60秒以内クリア',
  nonogram_solver:'LOGIC SOLVER · NONOGRAM 60秒以内',
  color_focus:'COLOR FOCUS · COLOR MATCH 6秒以内',
- simon_master:'SIMON MASTER · 15ラウンド到達'
+ simon_master:'SIMON MASTER · 15ラウンド到達',
+ slide_master:'SLIDE MASTER · 90秒・120手以内でクリア'
 };
 function scoreBeatsPrevious(gameId,score,daily){
  const game=gameById(gameId);if(!game)return false;

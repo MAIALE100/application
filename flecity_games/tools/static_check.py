@@ -21,6 +21,7 @@ party_html = read("flecity_games/web/party/index.html")
 client = read("flecity_games/client/main.lua")
 dev_reload = read("flecity_games/server/core/dev_reload.lua")
 server = read("flecity_games/server/main.lua")
+play_lua = read("flecity_games/server/core/play.lua")
 registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
 bridge = read("flecity_games/web/shared/bridge.js")
@@ -251,7 +252,6 @@ required_security_markers = (
     "INVALID_FALL_REPLAY",
     "INVALID_SESSION_SEED",
 )
-play_lua = read("flecity_games/server/core/play.lua")
 if "startRequestId" not in play_js or "startRequestId" not in play_lua or "startRequests" not in play_lua or "START_PENDING" not in play_js:
     fail("PLAY session-start retries must be idempotent")
 if "SELECT s.player_identifier" in play_lua:

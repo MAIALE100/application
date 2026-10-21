@@ -595,7 +595,7 @@ local function applyMergeMove(board,direction)
 end
 local function replayMergeState(seed,history)
     if type(history)~='table' or #history>10000 then return nil end
-    local board=emptyMergeBoard() local state=seed local score=0
+    local board=emptyMergeBoard() local state=seed local score=0 local chain=0
     local normalizedHistory={}
     state=select(1,spawnMergeTile(board,state))
     state=select(1,spawnMergeTile(board,state))
@@ -604,10 +604,15 @@ local function replayMergeState(seed,history)
         local moved,gained=applyMergeMove(board,direction)
         if not moved then return nil end
         normalizedHistory[#normalizedHistory+1]=direction
-        score=score+gained
+        if gained>0 then
+            chain=math.min(5,chain+1)
+            score=score+(gained*chain)
+        else
+            chain=0
+        end
         state=select(1,spawnMergeTile(board,state))
     end
-    return {score=score,board=board,rngState=state,moves=#normalizedHistory,history=normalizedHistory}
+    return {score=score,board=board,rngState=state,moves=#normalizedHistory,chain=chain,history=normalizedHistory}
 end
 local function replayMerge(seed,history)
     local state=replayMergeState(seed,history)

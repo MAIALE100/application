@@ -677,3 +677,41 @@ body.reduced-motion .fall-board,body.reduced-motion .fall-cell{animation:none!im
    Important: do not set html/:root font-size or a viewport meta tag.
    LB Phone owns the high-resolution scaling when fixBlur=true. */
 body{font-synthesis:none}
+
+
+/* PLAY fun & feedback pass v8 */
+#quickTap[data-state="result-legend"]{border-color:#ffe179;background:radial-gradient(circle at 50% 32%,rgba(255,225,121,.18),transparent 44%),#19170f}
+#quickTap[data-state="result-elite"]{border-color:#baf6ff;background:radial-gradient(circle at 50% 32%,rgba(140,234,255,.15),transparent 44%),#11181b}
+#quickTap[data-state="result-fast"]{border-color:#b9f2cb;background:radial-gradient(circle at 50% 32%,rgba(139,245,177,.12),transparent 44%),#121a16}
+#quickTap[data-state^="result-"] #tapMessage{animation:quick-result-pop .24s ease both}
+@keyframes quick-result-pop{0%{transform:scale(.88);opacity:.55}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+#stopGame[data-state="perfect"]{border-color:#d8f7b7;background:radial-gradient(circle at 50% 40%,rgba(203,245,146,.11),transparent 46%),#161b14}
+#stopGame[data-state="great"]{border-color:#8edcff}
+#stopGame[data-state="close"]{border-color:#d8c980}
+#stopGame[data-state="perfect"] #stopMessage,#stopGame[data-state="great"] #stopMessage,#stopGame[data-state="close"] #stopMessage{animation:stop-result-pop .22s ease both}
+@keyframes stop-result-pop{0%{transform:scale(.9);opacity:.55}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+#colorMatchGame.match-fever .color-match-stage{box-shadow:inset 0 0 2.4rem rgba(121,226,159,.065),0 0 1.25rem rgba(121,226,159,.04)}
+#colorMatchGame.match-fever .color-match-word{text-shadow:0 0 .9rem currentColor}
+.color-match-choice{transition:transform .09s ease,filter .12s ease,border-color .12s ease}
+.color-match-choice:not(:disabled):active{transform:scale(.96)}
+.color-match-choice:nth-child(1){border-color:#46505e}
+.color-match-choice:nth-child(2){border-color:#3e5264}
+.color-match-choice:nth-child(3){border-color:#405948}
+.color-match-choice:nth-child(4){border-color:#5b5337}
+
+.number-rush-board.rush-flow{animation:rush-flow .2s ease}
+@keyframes rush-flow{0%{transform:scale(.985)}55%{transform:scale(1.008);box-shadow:0 0 0 .125rem rgba(112,231,167,.14),0 0 1.5rem rgba(112,231,167,.08)}100%{transform:none}}
+.number-rush-cell.done{transition:transform .12s ease,opacity .12s ease,background .12s ease}
+
+.memory-board.memory-streak{animation:memory-streak .2s ease}
+@keyframes memory-streak{50%{filter:brightness(1.08);transform:scale(1.008)}}
+.memory-card.matched{box-shadow:inset 0 0 0 .0625rem rgba(117,220,154,.24),0 0 .75rem rgba(117,220,154,.04)}
+
+body.reduced-motion #quickTap[data-state^="result-"] #tapMessage,
+body.reduced-motion #stopGame[data-state="perfect"] #stopMessage,
+body.reduced-motion #stopGame[data-state="great"] #stopMessage,
+body.reduced-motion #stopGame[data-state="close"] #stopMessage,
+body.reduced-motion .number-rush-board.rush-flow,
+body.reduced-motion .memory-board.memory-streak{animation:none!important}

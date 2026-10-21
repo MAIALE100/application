@@ -346,3 +346,17 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 ## 合格ライン
 
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
+
+## PLAY Visual Quality
+- Home library: all 12 game cards have distinct visual identities and remain legible at phone width.
+- QUICK TAP: WAIT / GO / false-start / result states are visually distinct.
+- STOP!: running target and result state are visually distinct.
+- BLOCK: placement and line-clear feedback does not change score/replay validation.
+- MERGE: merged tile levels are visually distinct through 2048 and swipe still works.
+- MINES: revealed numbers/flags/mines remain readable and resume state is unchanged.
+- NONOGRAM: fill / cross / blank remain distinct after resume.
+- MEMORY: reveal/match animation never delays or changes pair validation.
+- NUMBER RUSH: correct/miss feedback keeps all 25 targets tappable.
+- HIGH & LOW: card transition does not re-enable locked controls after game over.
+- SIMON: WATCH / INPUT / GAME OVER remain visually distinct.
+- Reduced-motion setting suppresses decorative animations.

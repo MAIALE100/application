@@ -457,3 +457,27 @@ body.reduced-motion #stackGame .stack-arena{animation:none!important}
 @keyframes range-life-lost{25%{transform:translateX(-5px) scale(1.08)}55%{transform:translateX(4px)}100%{transform:none}}
 @keyframes range-life-danger{to{opacity:.58}}
 body.reduced-motion .range-lives,body.reduced-motion #highLowGame.life-lost .range-lives{animation:none!important}
+
+
+/* SORT puzzle */
+#sortGame>.card.row{background:linear-gradient(145deg,#1b1f27,#16191f);border-color:#303641;position:relative;overflow:hidden}
+#sortGame>.card.row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#b9a7ff}
+.sort-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding:12px 6px 8px}
+.sort-tube{position:relative;display:flex;flex-direction:column-reverse;align-items:stretch;justify-content:flex-start;gap:4px;min-height:154px;padding:9px 8px 12px;border-radius:12px 12px 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border:2px solid #39414d;border-top-color:#596473;box-shadow:inset 0 -10px 20px rgba(0,0,0,.14);touch-action:manipulation}
+.sort-tube::before{content:"";position:absolute;left:12%;right:12%;top:-4px;height:7px;border-radius:99px;background:#171b22;border:2px solid #4a5563}
+.sort-tube.selected{border-color:#d7ceff;box-shadow:0 0 0 4px rgba(185,167,255,.07),inset 0 -10px 20px rgba(0,0,0,.14);transform:translateY(-3px)}
+.sort-tube.complete{border-color:#527863;box-shadow:0 0 16px rgba(117,224,157,.06),inset 0 -10px 20px rgba(0,0,0,.14)}
+.sort-slot{display:block;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.13);box-shadow:inset 0 -3px 0 rgba(0,0,0,.14),0 2px 5px rgba(0,0,0,.13);transition:transform .14s ease,filter .14s ease}
+.sort-slot.empty{opacity:.06;background:#7a8491;border-color:#7a8491;box-shadow:none}
+.sort-color-0{background:linear-gradient(145deg,#ff8a93,#cb5663)}
+.sort-color-1{background:linear-gradient(145deg,#77bdff,#4785c7)}
+.sort-color-2{background:linear-gradient(145deg,#7ae4a4,#49aa70)}
+.sort-color-3{background:linear-gradient(145deg,#ffd76e,#d4a63b)}
+.sort-tube:not(:disabled):active{transform:translateY(1px) scale(.98)}
+.sort-board.sort-move{animation:sort-move .18s ease}
+.sort-time{text-align:center;font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;color:#d5dbe4}
+.game[data-game="sort"]{--game-accent:#b9a7ff;--game-soft:rgba(185,167,255,.11)}
+.continue-game[data-game="sort"]{--game-accent:#b9a7ff}
+@keyframes sort-move{50%{filter:brightness(1.08)}}
+@media(max-width:360px){.sort-board{gap:11px 7px}.sort-tube{min-height:142px;padding:8px 6px 10px}.sort-slot{height:26px}}
+body.reduced-motion .sort-board,body.reduced-motion .sort-tube{animation:none!important;transition:none!important}

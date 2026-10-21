@@ -120,6 +120,8 @@ if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
 if "fixBlur=true" not in client or "fixBlur=false" in client:
     fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
+if "APP_ALREADY_EXISTS" not in client or "RemoveCustomApp(app.identifier)" not in client or "refreshed custom app registration" not in client:
+    fail("LB Phone custom app registration refresh path is missing")
 if "globalThis.onNuiEvent" not in party_js or "registerPhonePushChannel" not in party_js:
     fail("PARTY official LB Phone push listener is missing")
 if "if(!phonePushRegistered)handlePartyMessage(event.data)" not in party_js:
@@ -329,6 +331,12 @@ if "metadata.timeMs" not in play_lua or "metadata.moves" not in play_lua or "sli
 play_css = read("flecity_games/web/shared/app.css")
 if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
     fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")
+if re.search(r"(?:^|[}\s])(?:html|:root)\s*\{[^}]*font-size\s*:", play_css, re.MULTILINE):
+    fail("html/:root font-size must remain unset so LB Phone fixBlur can control scaling")
+if 'name="viewport"' in play_html or 'name="viewport"' in party_html:
+    fail("PLAY/PARTY must not override the LB Phone custom-app viewport when fixBlur is enabled")
+if "LB Phone native fixBlur scaling pass v7" not in play_css:
+    fail("LB Phone native fixBlur scaling guard is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

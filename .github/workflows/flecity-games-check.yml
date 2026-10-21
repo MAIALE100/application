@@ -57,20 +57,30 @@ jobs:
           done < <(git diff --name-only origin/frame-integration-test...HEAD)
           exit "$bad"
 
-      - name: Check updater PowerShell syntax
+      - name: Check games-update PowerShell syntax
         shell: pwsh
         run: |
-          $scripts = @(
-            'games-update.ps1',
-            'games-auto-update.ps1',
-            'games-auto-update-once.ps1',
-            'games-auto-update-install.ps1',
-            'games-auto-update-disable.ps1',
-            'games-auto-update-status.ps1'
-          )
-          foreach ($script in $scripts) {
-            $null = [ScriptBlock]::Create((Get-Content -Raw $script))
-          }
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-update.ps1))
+      - name: Check legacy watcher PowerShell syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-auto-update.ps1))
+      - name: Check one-shot updater PowerShell syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-auto-update-once.ps1))
+      - name: Check installer PowerShell syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-auto-update-install.ps1))
+      - name: Check disable/status PowerShell syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-auto-update-disable.ps1))
+          $null = [ScriptBlock]::Create((Get-Content -Raw games-auto-update-status.ps1))
+      - name: Check updater command launchers
+        shell: pwsh
+        run: |
           if ((Get-Content -Raw games-update.cmd) -notmatch 'games-update\.ps1') { throw 'games-update.cmd does not launch games-update.ps1' }
           if ((Get-Content -Raw games-auto-update-install.cmd) -notmatch 'games-auto-update-install\.ps1') { throw 'install cmd does not launch installer' }
           if ((Get-Content -Raw games-auto-update-disable.cmd) -notmatch 'games-auto-update-disable\.ps1') { throw 'disable cmd does not launch disable script' }

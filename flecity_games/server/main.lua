@@ -185,6 +185,10 @@ AddEventHandler('playerDropped',function()
     FlecityGamesParty.DropSource(src)
 end)
 
+RegisterNetEvent('flecity_games:server:playClosed',function()
+    FlecityGamesPlay.DropSource(source)
+end)
+
 AddEventHandler('flecity_games:framework:playerUnloaded',function(src)
     src=tonumber(src)
     if not src then return end

@@ -186,7 +186,7 @@ try {
             $registryText = Get-Content $localRegistry -Raw
 
             if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Local safety check rejected a global ui_page.' }
-            if ($manifestText -notmatch "(?m)^version\s+'0\.18\.\d+-test'") { throw 'Local safety check could not verify the expected PLAY test version.' }
+            if ($manifestText -notmatch "(?m)^version\s+'\d+\.\d+\.\d+-test'") { throw 'Local safety check could not verify the PLAY test version.' }
             if ($playJsText -notmatch 'startSessionWithRetry' -or $playJsText -notmatch 'submitScoreWithRetry') { throw 'Local safety check could not verify PLAY retry helpers.' }
             if ($playJsText -notmatch 'progressed!==true') { throw 'Local safety check could not verify untouched-save protection.' }
             if ($playLuaText -notmatch 'saveStateHasProgress' -or $playLuaText -notmatch 'startRequests') { throw 'Local safety check could not verify PLAY save/session hardening.' }

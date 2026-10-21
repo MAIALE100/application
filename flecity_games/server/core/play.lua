@@ -117,14 +117,16 @@ local function generateColorMatch(seed,roundCount)
 end
 
 local function replayColorMatch(seed,history,roundCount)
-    local count=tonumber(roundCount) or 10
+    local count=tonumber(roundCount) or 20
     if type(history)~='table' or #history~=count then return nil end
     local rounds=generateColorMatch(seed,count)
+    local misses=0
     for i,round in ipairs(rounds) do
         local choice=tonumber(history[i])
-        if not choice or choice~=math.floor(choice) or choice<0 or choice>3 or choice~=round.ink then return nil end
+        if not choice or choice~=math.floor(choice) or choice<0 or choice>3 then return nil end
+        if choice~=round.ink then misses=misses+1 end
     end
-    return {complete=true,rounds=count}
+    return {complete=true,rounds=count,misses=misses}
 end
 local function generateSortBoard(seed)
     local state=math.floor(tonumber(seed) or 1)%2147483647
@@ -1162,7 +1164,7 @@ local function challengeFor(game,seed)
         challenge.size=4 challenge.scrambleSteps=96
         challenge.initialBoard=generateSlideBoard(seed,challenge.size,challenge.scrambleSteps)
     elseif game.id=='color_match' then
-        challenge.rounds=10
+        challenge.rounds=20 challenge.lives=3 challenge.missPenaltyMs=1500
     elseif game.id=='number_rush' then
         challenge.count=25
     elseif game.id=='high_low' then
@@ -1301,8 +1303,8 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'nonogram_solver',game.id,{score=score}) then
         unlocked[#unlocked+1]='nonogram_solver'
     end
-    if game.id=='color_match' and score<=tonumber(cfg.ColorMatchFocusMs or 6000)
-        and unlockAchievement(playerIdentifier,'color_focus',game.id,{score=score}) then
+    if game.id=='color_match' and tonumber(metadata and metadata.misses or 99)==0 and score<=tonumber(cfg.ColorMatchFocusMs or 12000)
+        and unlockAchievement(playerIdentifier,'color_focus',game.id,{score=score,misses=0}) then
         unlocked[#unlocked+1]='color_focus'
     end
     if game.id=='simon' and score>=tonumber(cfg.SimonMasterRounds or 15)
@@ -2127,11 +2129,14 @@ function FlecityGamesPlay.SubmitScore(source,data)
     elseif game.id=='color_match' then
         local replayed=replayColorMatch(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_COLOR_MATCH_REPLAY'} end
-        if serverElapsed<1200 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+        local lives=math.max(1,math.floor(tonumber(session.challenge.lives) or 3))
+        if replayed.misses>=lives then return {ok=false,error='COLOR_MATCH_RUN_FAILED'} end
+        if serverElapsed<1800 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
         local verified=verifiedClientElapsed(clientDurationMs,totalServerElapsed,2500,500)
         if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        durationMs=verified rawScore=verified
-        metadata.rounds=replayed.rounds metadata.replayValidated=true metadata.clientTimingVerified=true
+        local penalty=math.max(0,math.floor(tonumber(session.challenge.missPenaltyMs) or 1500))*replayed.misses
+        durationMs=verified rawScore=verified+penalty
+        metadata.rounds=replayed.rounds metadata.misses=replayed.misses metadata.penaltyMs=penalty metadata.replayValidated=true metadata.clientTimingVerified=true
     elseif game.id=='number_rush' then
         local replayed=replayNumberRush(session.seed,data.history,session.challenge.count)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_NUMBER_RUSH_REPLAY'} end
@@ -2306,9 +2311,9 @@ function FlecityGamesPlay.DebugSelftest()
         else memorySeen[value]=zero end
     end
     local memoryReplay=replayMemory(12345,memoryPairs)
-    local colorRounds=generateColorMatch(12345,10)
+    local colorRounds=generateColorMatch(12345,20)
     local colorHistory={} for _,round in ipairs(colorRounds) do colorHistory[#colorHistory+1]=round.ink end
-    local colorReplay=replayColorMatch(12345,colorHistory,10)
+    local colorReplay=replayColorMatch(12345,colorHistory,20)
     local numberRushBoard=generateNumberRush(12345,25)
     local numberRushHistory={}
     for expected=1,25 do

@@ -795,3 +795,11 @@ body.reduced-motion .number-rush-board.rush-shift{animation:none!important}
 .nonogram-grid.line-solved{animation:line-solved .2s ease}
 @keyframes line-solved{50%{filter:brightness(1.12);box-shadow:0 0 1rem rgba(116,224,162,.07)}}
 body.reduced-motion .mines-board.chord-open,body.reduced-motion .nonogram-grid.line-solved{animation:none!important}
+
+
+/* Puzzle quality-of-life v17 */
+.sort-board.sort-undo{animation:sort-undo .2s ease}
+@keyframes sort-undo{50%{transform:translateY(.08rem);filter:brightness(.94)}}
+.slide-board.slide-align{animation:slide-align .2s ease}
+@keyframes slide-align{50%{filter:brightness(1.13);box-shadow:0 0 1rem rgba(117,218,255,.08)}}
+body.reduced-motion .sort-board.sort-undo,body.reduced-motion .slide-board.slide-align{animation:none!important}

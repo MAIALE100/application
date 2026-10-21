@@ -446,3 +446,14 @@ body.reduced-motion .merge-board.merge-milestone{animation:none!important}
 @keyframes tower-score-pop{50%{transform:scale(1.006);filter:brightness(1.08)}}
 @keyframes tower-fall{20%{transform:translateX(-3px)}45%{transform:translateX(3px)}70%{transform:translateX(-2px);border-color:#6c353c}100%{transform:none}}
 body.reduced-motion #stackGame .stack-arena{animation:none!important}
+
+
+/* RANGE RUSH lives v3 */
+.range-lives{min-height:24px;margin:-2px 0 2px;font-size:1rem;font-weight:950;letter-spacing:.15em;color:#ff8e9a;text-shadow:0 0 14px rgba(255,101,121,.16);transition:transform .15s ease,color .15s ease}
+.range-lives[data-lives="2"]{color:#ffad82}.range-lives[data-lives="1"]{color:#ff7e7e;animation:range-life-danger .7s ease-in-out infinite alternate}.range-lives[data-lives="0"]{color:#7d5558;animation:none}
+#highLowGame.life-lost .range-lives{animation:range-life-lost .34s ease}
+#highLowGame.life-lost .high-low-stage{border-color:#714047}
+#highLowGame.guess-correct .high-low-card{box-shadow:0 18px 38px rgba(0,0,0,.3),0 0 26px rgba(115,230,155,.08),inset 0 0 0 5px rgba(0,0,0,.025)}
+@keyframes range-life-lost{25%{transform:translateX(-5px) scale(1.08)}55%{transform:translateX(4px)}100%{transform:none}}
+@keyframes range-life-danger{to{opacity:.58}}
+body.reduced-motion .range-lives,body.reduced-motion #highLowGame.life-lost .range-lives{animation:none!important}

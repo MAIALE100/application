@@ -717,16 +717,17 @@ function stopRushGrade(result){
 function updateStopRoundUi(){
  const game=stopSession,ch=game&&game.currentChallenge;
  if(!game||!ch){
-   stopRunMeta.textContent='ROUND 1 · SPEED ×1.00 · ZONE 8.0%';
+   stopRunMeta.textContent='ROUND 1 · RUSH 1 · SPEED ×1.00 · ZONE 8.0%';
    stopTarget.style.width='16%';
    return;
  }
  const speed=stopSpeedMultiplier(ch),zone=Math.max(1,Number(ch.tolerancePct)||8);
- stopRunMeta.textContent='ROUND '+String(ch.round||game.cleared+1)+' · SPEED ×'+speed.toFixed(2)+' · ZONE '+zone.toFixed(1)+'% · SCORE '+String(game.score||0);
+ const round=Number(ch.round)||game.cleared+1,rush=Math.max(1,Math.floor((round-1)/5)+1);
+ stopRunMeta.textContent='ROUND '+String(round)+' · RUSH '+String(rush)+' · SPEED ×'+speed.toFixed(2)+' · ZONE '+zone.toFixed(1)+'% · SCORE '+String(game.score||0)+(round%5===0?' · RUSH ROUND':'');
  stopTarget.style.left=String(Number(ch.targetPct)||50)+'%';
  stopTarget.style.width=String(Math.min(24,zone*2))+'%';
- const round=Number(ch.round)||1;
  stopEl.dataset.tier=round>=30?'insane':(round>=20?'extreme':(round>=10?'fast':'normal'));
+ stopEl.dataset.rush=String(Math.min(9,rush));
 }
 function animateStop(){
  if(stopState!=='running'||!stopSession||!stopSession.currentChallenge)return;
@@ -785,11 +786,15 @@ stopButton.onclick=async()=>{
    }
    game.score=Number(res.score)||game.score||0;game.cleared=Number(res.cleared)||0;game.bullseyes=Number(res.bullseyes)||0;
    if(!res.success){
-     setStopVisual('miss');stopMessage.textContent='MISS · '+Number(res.distancePct||0).toFixed(2)+'%';tone(220,90);
+     game.precisionStreak=0;setStopVisual('miss');const missDistance=Number(res.distancePct||0),missZone=Number(res.tolerancePct||0),near=missDistance<=missZone+1.25;stopMessage.textContent=(near?'SO CLOSE':'MISS')+' · ズレ '+missDistance.toFixed(2)+'%';tone(near?310:220,90);
      await sleep(320);if(stopSession===game)await finishStopRun(res);return;
    }
    const grade=stopRushGrade(res);setStopVisual(grade.state);
-   stopMessage.textContent=grade.label+' · +'+String(res.gained||0);tone(grade.tone,65);
+   const precise=Number(res.distancePct||99)<=Math.max(.75,Number(res.tolerancePct||0)*.28);
+   game.precisionStreak=precise?(game.precisionStreak||0)+1:0;
+   const precisionText=game.precisionStreak>=2?' · PRECISION ×'+game.precisionStreak:'';
+   const rushText=(game.cleared>0&&game.cleared%5===0)?' · SPEED UP!':'';
+   stopMessage.textContent=grade.label+' · +'+String(res.gained||0)+precisionText+rushText;tone(grade.tone,65);
    stopRunMeta.textContent='CLEAR '+String(game.cleared)+' · SCORE '+String(game.score)+' · BULLSEYE '+String(game.bullseyes);
    if(res.ended){await sleep(420);if(stopSession===game)await finishStopRun(res);return;}
    stopState='transition';await sleep(430);if(stopSession!==game)return;
@@ -800,7 +805,7 @@ stopButton.onclick=async()=>{
  stopButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'stop',daily:stopDaily});
  if(!res.ok){stopButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('STOP RUSHを開始できません: '+FlecityErrors.text(res.error),'error');return;}
- stopSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,score:0,cleared:0,bullseyes:0};
+ stopSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,score:0,cleared:0,bullseyes:0,precisionStreak:0};
  stopRunStartedAt=performance.now();stopStartedAt=performance.now();stopState='running';setStopVisual('running');updateStopRoundUi();
  stopMessage.textContent='ROUND 1';stopButton.textContent='STOP';stopButton.disabled=false;animateStop();
 };

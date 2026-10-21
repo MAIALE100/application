@@ -828,16 +828,6 @@ local function challengeFor(game,seed)
         state,challenge.phaseMs=seededInt(state,0,challenge.periodMs-1)
     elseif game.id=='mines' then
         challenge.size=8 challenge.mines=10
-    elseif game.id=='sort' then
-        local replayed=replaySortState(session.seed,data.history)
-        if not replayed or replayed.complete~=true then return {ok=false,error='INVALID_SORT_REPLAY'} end
-        durationMs=totalServerElapsed
-        local movePenalty=replayed.moves*350
-        rawScore=durationMs+movePenalty
-        metadata.moves=replayed.moves
-        metadata.timeMs=durationMs
-        metadata.movePenaltyMs=movePenalty
-        metadata.replayValidated=true
     elseif game.id=='stack' then
         challenge.initialWidthPct=72 challenge.speedPctPerSec=65
     elseif game.id=='nonogram' then
@@ -1721,6 +1711,16 @@ function FlecityGamesPlay.SubmitScore(source,data)
         if verified==nil then return {ok=false,error='IMPOSSIBLE_TIMING'} end
         durationMs=verified rawScore=verified
         metadata.moves=replayed.moves metadata.pairs=replayed.pairs metadata.previewMs=previewMs metadata.replayValidated=true metadata.clientTimingVerified=true
+    elseif game.id=='sort' then
+        local replayed=replaySortState(session.seed,data.history)
+        if not replayed or replayed.complete~=true then return {ok=false,error='INVALID_SORT_REPLAY'} end
+        durationMs=totalServerElapsed
+        local movePenalty=replayed.moves*350
+        rawScore=durationMs+movePenalty
+        metadata.moves=replayed.moves
+        metadata.timeMs=durationMs
+        metadata.movePenaltyMs=movePenalty
+        metadata.replayValidated=true
     elseif game.id=='color_match' then
         local replayed=replayColorMatch(session.seed,data.history,session.challenge.rounds)
         if not replayed or not replayed.complete then return {ok=false,error='INVALID_COLOR_MATCH_REPLAY'} end

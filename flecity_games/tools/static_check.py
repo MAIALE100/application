@@ -344,8 +344,8 @@ if "fallReplayEmpty" not in play_lua or "fallReplayMove" not in play_lua or "fal
     fail("FALL server selftest coverage is missing")
 if "openFall" not in play_js or "persistFall" not in play_js or "finishFall" not in play_js or "dropFall" not in play_js:
     fail("FALL resumable client flow is missing")
-if not re.search(r"id='fall'[^\n]*supportsResume=true[^\n]*rankingOrder='desc'[^\n]*version=1", registry):
-    fail("FALL registry/resume marker is missing")
+if not re.search(r"id='fall'[^\n]*supportsResume=true[^\n]*rankingOrder='desc'[^\n]*version=2", registry):
+    fail("FALL v2 registry/resume marker is missing")
 if 'id="fallGame"' not in play_html or 'id="fallBoard"' not in play_html or 'id="fallFinish"' not in play_html:
     fail("FALL game DOM is missing")
 if "FallMasterLines = 20" not in config or "fall_master" not in play_lua or "fall_master" not in play_js:
@@ -356,6 +356,8 @@ if "game.pieces%3===0" not in play_js or "persistFall(false,false)" not in play_
     fail("FALL non-blocking autosave flow is missing")
 if "normalized[#normalized+1]={applied.x,applied.rotation}" not in play_lua or "game.history.push([game.x,game.rotation])" not in play_js:
     fail("FALL compact long-run history format is missing")
+if "level=math.min(8,1+math.floor" not in play_lua or "LEVEL ×'+applied.level" not in play_js:
+    fail("FALL level multiplier scoring is missing")
 if "icons/fall.svg" not in play_js:
     fail("FALL dedicated icon wiring is missing")
 
@@ -394,6 +396,16 @@ if "flagMineDirect" not in play_js or "crossNonogramDirect" not in play_js or "m
     fail("PLAY long-press puzzle controls are missing")
 if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_css or ".cross-pop" not in play_css:
     fail("PLAY touch puzzle control CSS is missing")
+if "chordMine" not in play_js or "CHORD OPEN" not in play_js:
+    fail("MINES chord-open mastery mechanic is missing")
+if "nonogramLineSolved" not in play_js or "LINE COMPLETE" not in play_js:
+    fail("NONOGRAM line-completion feedback is missing")
+if "undoSortMove" not in play_js or 'id="sortUndo"' not in play_html:
+    fail("SORT undo mechanic is missing")
+if "slideStars" not in play_js or "ALIGN +" not in play_js:
+    fail("SLIDE par/alignment mastery feedback is missing")
+if "Puzzle mastery feedback v16" not in play_css or "Puzzle quality-of-life v17" not in play_css:
+    fail("puzzle mastery visual passes are missing")
 if "difficulty=gap<=8?'TIGHT'" not in play_js or "difficultyBonus" not in play_js or "RANGE RUSH risk readability v10" not in play_css:
     fail("RANGE RUSH visible risk/bonus feedback is missing")
 if "blockPressure" not in play_js or "mergePressure" not in play_js or "fallPressure" not in play_js:
@@ -437,6 +449,10 @@ if not re.search(r"id='nonogram'[^\n]*version=2", registry):
     fail("NONOGRAM save version must be 2 for curated puzzles")
 if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:
     fail("MEMORY server replay/selftest is missing")
+if "movePenaltyMs=movePenalty" not in play_lua or "MOVE PENALTY" not in play_js:
+    fail("MEMORY move-accuracy scoring is missing")
+if not re.search(r"id='memory'[^\n]*version=2", registry):
+    fail("MEMORY FOCUS registry version must be 2")
 if "previewMs=1200" not in play_lua or "memoryPreviewConfigured" not in play_lua:
     fail("MEMORY preview-time scoring guard is missing")
 if "replayColorMatch" not in play_lua or "colorMatchReplay" not in play_lua:
@@ -457,6 +473,10 @@ if "lastStep" not in play_lua or not re.search(r"step\s*=\s*(?:highLow|game)\.co
     fail("HIGH & LOW idempotent action numbering is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")
+if "SPEED '+speedStage" not in play_js or "SIMON SPEED UP" not in play_js:
+    fail("SIMON speed-stage progression is missing")
+if not re.search(r"id='simon'[^\n]*version=2", registry):
+    fail("SIMON speed-stage registry version must be 2")
 if "SubmitSimonRound" not in play_lua or "simonServerState" not in play_lua:
     fail("SIMON server-authoritative round validation is missing")
 if "lastRound" not in play_lua or "sendSimonRound(inputs,round)" not in play_js:

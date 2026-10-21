@@ -218,6 +218,10 @@ if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
 if "saveStateHasProgress" not in play_lua or "progressed!==true" not in play_js:
     fail("PLAY must not persist untouched resumable runs")
+if "TODAY BEST" not in play_js or "displayElapsedMs" not in play_js:
+    fail("PLAY Daily/result display polish is missing")
+if " · BEST '+personalBestText(" in play_js:
+    fail("PLAY meta rows must not duplicate dedicated BEST labels")
 if "requestEpoch" not in play_lua or "SAVE_RESET_FAILED" not in play_lua:
     fail("PLAY reset failure recovery / in-flight save epoch snapshot is missing")
 if "minesFirstRevealSafe" not in play_lua or "avoidIndex" not in play_lua or "avoidIndex" not in play_js:

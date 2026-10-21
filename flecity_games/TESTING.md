@@ -360,3 +360,15 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 - HIGH & LOW: card transition does not re-enable locked controls after game over.
 - SIMON: WATCH / INPUT / GAME OVER remain visually distinct.
 - Reduced-motion setting suppresses decorative animations.
+
+## RANGE RUSH / MERGE 0.20
+- RANGE RUSH: number and pivot are visible; LOW/HIGH labels match the pivot.
+- RANGE RUSH: timer counts down each round and timeout ends the run.
+- RANGE RUSH: a fast correct answer increases both score and streak; mistake ends the run.
+- RANGE RUSH: final saved score matches the server-returned score and ranking BEST.
+- RANGE RUSH: closing the phone during a run leaves no play session after lifecycle cleanup.
+- MERGE: a merge-producing move increments CHAIN; a moved-but-no-merge move resets CHAIN to zero.
+- MERGE: points awarded for a merge are multiplied by the current CHAIN (capped at x5).
+- MERGE: save/resume restores canonical board, score, moves and CHAIN from server replay.
+- MERGE: old version-1 saves are not loaded into version-2 scoring rules.
+- MERGE: new tile milestones and fever presentation do not alter canonical board replay.

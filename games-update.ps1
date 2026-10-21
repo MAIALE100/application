@@ -293,6 +293,171 @@ try {
 
     Step 'Staging flecity_games update'
     $AutoReloadWasInstalled = Test-Path (Join-Path $Destination 'dev-auto-reload.enabled')
+    $RuntimeStampPath = Join-Path $Destination 'dev-runtime.txt'
+    $ReloadV2Active = $false
+    if (Test-Path -LiteralPath $RuntimeStampPath) {
+        try {
+            $runtimeStampText = [System.IO.File]::ReadAllText($RuntimeStampPath)
+            $ReloadV2Active = $runtimeStampText -match '(?m)^reload_v2=1
+    $Stage = Join-Path $Resources '.flecity_games_stage'
+    if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+
+    & robocopy $Source $Stage /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $stageCode = $LASTEXITCODE
+    if ($stageCode -gt 7) {
+        throw "staging robocopy failed with exit code $stageCode."
+    }
+
+    Step 'Verifying staged test build'
+    $DestinationForValidation = $Stage
+    $manifestPath = Join-Path $DestinationForValidation 'fxmanifest.lua'
+    $bridgePath = Join-Path $DestinationForValidation 'web\shared\bridge.js'
+    $errorsPath = Join-Path $DestinationForValidation 'web\shared\errors.js'
+    $playIndexPath = Join-Path $DestinationForValidation 'web\play\index.html'
+    $playAppPath = Join-Path $DestinationForValidation 'web\play\app.js'
+    $playCorePath = Join-Path $DestinationForValidation 'server\core\play.lua'
+    $profileCorePath = Join-Path $DestinationForValidation 'server\core\profile.lua'
+    $partyIndexPath = Join-Path $DestinationForValidation 'web\party\index.html'
+    $partyAppPath = Join-Path $DestinationForValidation 'web\party\app.js'
+    $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
+    $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
+    $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
+
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$profileCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
+        if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
+    }
+
+    $manifestText = Get-Content $manifestPath -Raw
+    $bridgeText = Get-Content $bridgePath -Raw
+    $errorsText = Get-Content $errorsPath -Raw
+    $playIndexText = Get-Content $playIndexPath -Raw
+    $playAppText = Get-Content $playAppPath -Raw
+    $playCoreText = Get-Content $playCorePath -Raw
+    $profileCoreText = Get-Content $profileCorePath -Raw
+    $partyIndexText = Get-Content $partyIndexPath -Raw
+    $partyAppText = Get-Content $partyAppPath -Raw
+    $partyCoreText = Get-Content $partyCorePath -Raw
+    $clientMainText = Get-Content $clientMainPath -Raw
+    $registryText = Get-Content $registryPath -Raw
+
+    if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
+    if ($bridgeText -notmatch 'globalThis\.fetchNui' -or $bridgeText -notmatch "typeof fetchNui === 'function'") { throw 'LB Phone fetchNui compatibility check failed.' }
+    if ($errorsText -notmatch 'NUI_UNAVAILABLE') { throw 'Shared error dictionary check failed.' }
+    if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'devMode=!window.invokeNative' -or $playIndexText -match 'setTimeout\(loadApp') { throw 'PLAY component-gated loader check failed.' }
+    if ($playIndexText -notmatch 'id="recentCard"' -or $playIndexText -notmatch 'id="libraryFilters"' -or $playIndexText -notmatch 'id="randomPlay"') { throw 'PLAY library navigation DOM check failed.' }
+    if ($playAppText -notmatch 'renderRecent' -or $playAppText -notmatch 'filteredLibraryGames' -or $playAppText -notmatch 'randomPlay\.onclick') { throw 'PLAY library navigation client check failed.' }
+    if ($playCoreText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playCoreText -notmatch 'lastPlayedAt=row\.last_played_at') { throw 'PLAY recent-game timestamp check failed.' }
+    if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
+    if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
+    if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
+    if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
+    if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
+    if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }
+    if ($playAppText -notmatch 'fallPeekNextPiece' -or $playAppText -notmatch 'pieceRngState' -or $playIndexText -notmatch 'Next piece preview') { throw 'FALL next-piece preview check failed.' }
+    if ($playAppText -notmatch 'game\.pieces%3===0' -or $playAppText -notmatch 'persistFall\(false,false\)' -or $playAppText -notmatch 'snapshotLength') { throw 'FALL autosave optimization check failed.' }
+    if ($playCoreText -notmatch 'normalized\[#normalized\+1\]=\{applied\.x,applied\.rotation\}' -or $playAppText -notmatch 'game\.history\.push\(\[game\.x,game\.rotation\]\)') { throw 'FALL compact history check failed.' }
+    if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
+    if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
+    if ($registryText -notmatch "id='color_match'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openColorMatch\(true\)' -or $playAppText -notmatch "daily=colorMatchEl\.dataset\.daily==='1'") { throw 'Daily COLOR MATCH wiring check failed.' }
+    if ($playCoreText -notmatch 'slide_master' -or $playAppText -notmatch 'slide_master') { throw 'SLIDE MASTER achievement check failed.' }
+    if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
+    if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
+    if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
+    if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
+    if ($clientMainText -notmatch 'fixBlur=true' -or $clientMainText -match 'fixBlur=false') { throw 'LB Phone fixBlur compatibility check failed.' }
+    if ($clientMainText -notmatch 'RemoveCustomApp\(app\.identifier\)' -or $clientMainText -notmatch 'APP_ALREADY_EXISTS') { throw 'LB Phone custom app re-registration check failed.' }
+    if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=55,id='fall'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
+
+    $version = 'unknown'
+    if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
+    $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()
+    Write-Host ("Verified staged build: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+
+    Step 'Deploying verified build'
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    & robocopy $Stage $Destination /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP /XF dev-auto-reload.enabled dev-reload.token
+    $robocopyCode = $LASTEXITCODE
+    if ($robocopyCode -gt 7) {
+        throw "deployment robocopy failed with exit code $robocopyCode."
+    }
+    $ResourceChanged = $robocopyCode -ne 0
+    Set-Content -Path (Join-Path $Destination 'dev-build.txt') -Value $commit -NoNewline -Encoding ascii
+    Remove-Item $Stage -Recurse -Force -ErrorAction SilentlyContinue
+
+    Set-Content -Path (Join-Path $Destination 'dev-auto-reload.enabled') -Value '1' -NoNewline -Encoding ascii
+    if ($AutoReloadWasInstalled -and $ResourceChanged) {
+        $tokenPath = Join-Path $Destination 'dev-reload.token'
+        $token = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
+        Set-Content -Path $tokenPath -Value $token -NoNewline -Encoding ascii
+
+        if (-not $ReloadV2Active) {
+            Write-Host 'Bootstrapping refresh-aware auto reload from the older runtime...' -ForegroundColor Yellow
+            Start-Sleep -Seconds 4
+            $token2 = ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 1).ToString()
+            Set-Content -Path $tokenPath -Value $token2 -NoNewline -Encoding ascii
+        }
+    }
+    elseif (-not $AutoReloadWasInstalled) {
+        Set-Content -Path (Join-Path $Destination 'dev-first-restart-required.flag') -Value '1' -NoNewline -Encoding ascii
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($AutoReloadWasInstalled -and $ResourceChanged) {
+        Write-Host 'Resource files changed. flecity_games should restart itself in about 1 second.' -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($AutoReloadWasInstalled) {
+        Write-Host 'flecity_games is already current. No resource restart was requested.' -ForegroundColor Green
+    } else {
+        Write-Host 'ONE-TIME SETUP: run this once in the server console:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_games' -ForegroundColor White
+        Write-Host 'After this first restart, future updates only need games-update.cmd.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+        } catch {}
+    }
     $Stage = Join-Path $Resources '.flecity_games_stage'
     if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $Stage | Out-Null

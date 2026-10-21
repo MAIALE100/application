@@ -129,6 +129,8 @@ if "fixBlur=true" not in client or "fixBlur=false" in client:
     fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
 if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:
     fail("auto-reload must refresh FiveM metadata before restarting flecity_games")
+if "reload_v2=1" not in dev_reload:
+    fail("auto-reload runtime capability stamp is missing")
 if "APP_ALREADY_EXISTS" not in client or "RemoveCustomApp(app.identifier)" not in client or "refreshed custom app registration" not in client:
     fail("LB Phone custom app registration refresh path is missing")
 if "uiCacheBust" not in client or "?cb=" not in client:

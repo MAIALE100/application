@@ -1877,19 +1877,32 @@ async function activateNonogramTiming(){
  }finally{game.timingActivating=false;}
 }
 function updateNonogramTime(){if(nonogram){const ms=Number.isFinite(Number(nonogram.displayElapsedMs))?Number(nonogram.displayElapsedMs):elapsedNonogram();nonogramTime.textContent=(ms/1000).toFixed(1)+'s';}}
+function nonogramLineSolved(axis,line){
+ if(!nonogram)return false;
+ for(let i=0;i<nonogram.size;i++){
+   const index=axis==='row'?line*nonogram.size+i:i*nonogram.size+line;
+   if(nonogram.solution.has(index)!==nonogram.filled.has(index))return false;
+ }
+ return true;
+}
+function nonogramSolvedLines(){
+ if(!nonogram)return 0;let n=0;
+ for(let i=0;i<nonogram.size;i++){if(nonogramLineSolved('row',i))n++;if(nonogramLineSolved('col',i))n++;}
+ return n;
+}
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
  refreshScreenBests();nonogramMeta.textContent=(nonogram.daily?'DAILY · ':'')+String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED';
  const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
  for(let x=0;x<nonogram.size;x++){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
-   const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
+   const clue=document.createElement('div');clue.className='nonogram-clue'+(nonogramLineSolved('col',x)?' solved':'');clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
  }
  nonogramCheck.disabled=nonogram.finished||nonogram.finalizing;
  nonogramNew.disabled=nonogram.finalizing===true;
  for(let y=0;y<nonogram.size;y++){
    const vals=[];for(let x=0;x<nonogram.size;x++)vals.push(nonogram.solution.has(y*nonogram.size+x));
-   const clue=document.createElement('div');clue.className='nonogram-clue';clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
+   const clue=document.createElement('div');clue.className='nonogram-clue'+(nonogramLineSolved('row',y)?' solved':'');clue.textContent=nonogramClue(vals);nonogramBoard.appendChild(clue);
    for(let x=0;x<nonogram.size;x++){
      const index=y*nonogram.size+x,b=document.createElement('button');b.className='nonogram-cell'+(nonogram.filled.has(index)?' filled':'')+(nonogram.crossed.has(index)?' crossed':'');
      b.textContent=nonogram.crossed.has(index)?'×':'';b.disabled=nonogram.finished;
@@ -1938,11 +1951,13 @@ async function crossNonogramDirect(index){
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
- nonogram.progressed=true;
+ nonogram.progressed=true;const solvedBefore=nonogramSolvedLines();
  if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);tone(260,16);}
  else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);tone(190,12);}
  else{nonogram.filled.add(index);tone(520,18);}
- nonogramBoard.classList.remove('cell-touch');void nonogramBoard.offsetWidth;nonogramBoard.classList.add('cell-touch');
+ const solvedAfter=nonogramSolvedLines();
+ nonogramBoard.classList.remove('cell-touch','line-solved');void nonogramBoard.offsetWidth;nonogramBoard.classList.add(solvedAfter>solvedBefore?'line-solved':'cell-touch');
+ if(solvedAfter>solvedBefore){tone(760,45);setStatus('LINE COMPLETE · '+solvedAfter+'/'+String(nonogram.size*2),'good');}
  renderNonogram();await persistNonogram();
 }
 nonogramCheck.onclick=async()=>{

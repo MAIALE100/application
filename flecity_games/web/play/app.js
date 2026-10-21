@@ -1709,6 +1709,10 @@ async function cancelPlaySession(token){
  }
  return res;
 }
+async function suspendStep(label,action){
+ try{return await action();}
+ catch(error){console.warn('[PLAY] suspend step failed:',label,error);return null;}
+}
 async function suspendActivePlay(){
  if(suspendRunning)return;
  suspendRunning=true;appEpoch+=1;
@@ -1721,37 +1725,34 @@ async function suspendActivePlay(){
    minesClock=null;nonogramClock=null;memoryClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
 
    if(block&&!block.finished&&!block.finalizing){
-     if(!block.daily)await persistBlock(false);
-     await cancelPlaySession(block.sessionToken);
+     if(!block.daily)await suspendStep('block save',()=>persistBlock(false));
+     await suspendStep('block cancel',()=>cancelPlaySession(block&&block.sessionToken));
    }
    if(merge&&!merge.finished&&!merge.finalizing){
-     await persistMerge(false);
-     await cancelPlaySession(merge.sessionToken);
+     await suspendStep('merge save',()=>persistMerge(false));
+     await suspendStep('merge cancel',()=>cancelPlaySession(merge&&merge.sessionToken));
    }
    if(mines&&!mines.finished&&!mines.finalizing){
-     if(!mines.daily)await persistMines(false);
-     await cancelPlaySession(mines.sessionToken);
+     if(!mines.daily)await suspendStep('mines save',()=>persistMines(false));
+     await suspendStep('mines cancel',()=>cancelPlaySession(mines&&mines.sessionToken));
    }
    if(nonogram&&!nonogram.finished&&!nonogram.finalizing){
-     if(!nonogram.daily)await persistNonogram(false);
-     await cancelPlaySession(nonogram.sessionToken);
+     if(!nonogram.daily)await suspendStep('nonogram save',()=>persistNonogram(false));
+     await suspendStep('nonogram cancel',()=>cancelPlaySession(nonogram&&nonogram.sessionToken));
    }
 
-   if(tapState!=='submitting')await cancelPlaySession(tapSession&&tapSession.sessionToken);
-   if(stopState!=='submitting')await cancelPlaySession(stopSession&&stopSession.sessionToken);
-   if(!(stackGame&&stackGame.finalizing))await cancelPlaySession(stackGame&&stackGame.sessionToken);
-   if(!(memory&&memory.finalizing))await cancelPlaySession(memory&&memory.sessionToken);
-   if(!(colorMatch&&colorMatch.finalizing))await cancelPlaySession(colorMatch&&colorMatch.sessionToken);
-   if(!(numberRush&&numberRush.finalizing))await cancelPlaySession(numberRush&&numberRush.sessionToken);
-   if(!(highLow&&highLow.finalizing))await cancelPlaySession(highLow&&highLow.sessionToken);
-   if(!(simon&&simon.finalizing))await cancelPlaySession(simon&&simon.sessionToken);
-
+   if(tapState!=='submitting')await suspendStep('quick tap cancel',()=>cancelPlaySession(tapSession&&tapSession.sessionToken));
+   if(stopState!=='submitting')await suspendStep('stop cancel',()=>cancelPlaySession(stopSession&&stopSession.sessionToken));
+   if(!(stackGame&&stackGame.finalizing))await suspendStep('stack cancel',()=>cancelPlaySession(stackGame&&stackGame.sessionToken));
+   if(!(memory&&memory.finalizing))await suspendStep('memory cancel',()=>cancelPlaySession(memory&&memory.sessionToken));
+   if(!(colorMatch&&colorMatch.finalizing))await suspendStep('color match cancel',()=>cancelPlaySession(colorMatch&&colorMatch.sessionToken));
+   if(!(numberRush&&numberRush.finalizing))await suspendStep('number rush cancel',()=>cancelPlaySession(numberRush&&numberRush.sessionToken));
+   if(!(highLow&&highLow.finalizing))await suspendStep('high low cancel',()=>cancelPlaySession(highLow&&highLow.sessionToken));
+   if(!(simon&&simon.finalizing))await suspendStep('simon cancel',()=>cancelPlaySession(simon&&simon.sessionToken));
+  }finally{
    block=null;merge=null;mines=null;nonogram=null;stackGame=null;memory=null;colorMatch=null;numberRush=null;highLow=null;simon=null;
    tapSession=null;tapState='idle';stopSession=null;stopState='idle';
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
- }catch(error){
-   console.warn('[PLAY] suspend failed',error);
- }finally{
    suspendRunning=false;
    if(refreshAfterSuspend){
      refreshAfterSuspend=false;

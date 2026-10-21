@@ -224,6 +224,9 @@ try {
         if ($playJsText -notmatch 'openSlide\(true,true\)' -or $playJsText -notmatch 'slideGame&&slideGame\.daily') {
             throw 'Local safety check could not verify Daily SLIDE client lifecycle.'
         }
+        if ($configText -notmatch 'SlideMasterMs\s*=\s*90000' -or $configText -notmatch 'SlideMasterMoves\s*=\s*120' -or $playLuaText -notmatch 'slide_master' -or $playJsText -notmatch 'slide_master') {
+            throw 'Local safety check could not verify SLIDE MASTER achievement.'
+        }
         if ($playJsText -notmatch 'simonDaily' -or $playJsText -notmatch 'openSimon\(true\)' -or $playJsText -notmatch 'daily:simonDaily===true') {
             throw 'Local safety check could not verify Daily SIMON client flow.'
         }
@@ -314,6 +317,7 @@ try {
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
     if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
+    if ($playCoreText -notmatch 'slide_master' -or $playAppText -notmatch 'slide_master') { throw 'SLIDE MASTER achievement check failed.' }
     if ($partyIndexText -notmatch 'componentsLoaded' -or $partyIndexText -notmatch 'devMode=!window.invokeNative' -or $partyIndexText -match 'setTimeout\(loadApp') { throw 'PARTY component-gated loader check failed.' }
     if ($partyAppText -notmatch 'registerPhonePushChannel' -or $partyAppText -notmatch 'lastRoomRevision') { throw 'PARTY push/revision client check failed.' }
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }

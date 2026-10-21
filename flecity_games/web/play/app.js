@@ -163,7 +163,7 @@ function showHome(){
 function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
 function formatGameScore(game,value){
  const n=Number(value);if(!Number.isFinite(n))return '---';
- if(game&&game.id==='stack')return Math.round(n).toLocaleString()+' pts';
+ if(game&&['stack','stop'].includes(game.id))return Math.round(n).toLocaleString()+' pts';
  return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+' s':n.toFixed(3)+' ms'):String(n);
 }
 function formatDuration(ms){

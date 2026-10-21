@@ -43,6 +43,7 @@
   </div>
 </section>
 <section id="minesGame" class="hidden">
+  <div class="game-tip card-tip">数字と同じ数の旗を周囲に置いたら、その数字マスを再タップでCHORD OPEN。</div>
   <div class="card row"><div><div class="kicker">MINES</div><div id="minesTime" class="big-number small-number">0.0s</div><div id="minesMeta" class="game-meta">地雷 10 · FLAG 0</div><div id="minesBest" class="game-meta">BEST ---</div></div><button id="minesBack" class="secondary">戻る</button></div>
   <div class="game-tip card-tip">数字を手掛かりに安全マスを全部開く。長押しで旗、最初に開くマスは安全です。</div><div class="card"><div id="minesBoard" class="mines-board"></div></div>
   <div class="card stack"><button id="minesMode" class="secondary">モード: 開く</button><button id="minesNew" class="secondary">新しく始める</button></div>
@@ -54,7 +55,7 @@
 </section>
 <section id="nonogramGame" class="hidden">
   <div class="card row"><div><div class="kicker">NONOGRAM</div><div id="nonogramTime" class="big-number small-number">0.0s</div><div id="nonogramMeta" class="game-meta">0 / 0 FILLED</div><div id="nonogramBest" class="game-meta">BEST ---</div></div><button id="nonogramBack" class="secondary">戻る</button></div>
-  <div class="game-tip card-tip">行と列の数字どおりに塗る。タップで切替、長押しですぐ×を付けられます。</div><div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
+  <div class="game-tip card-tip">行と列の数字どおりに塗る。正しく完成した行・列はヒントが光る。長押しですぐ×。</div><div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
   <div class="card stack"><button id="nonogramCheck">答え合わせ</button><button id="nonogramNew" class="secondary">新しい問題</button></div>
 </section>
 <section id="sortGame" class="hidden">

@@ -194,6 +194,12 @@ try {
         if ($cssText -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') {
             throw 'Local safety check found px units while LB Phone fixBlur is enabled.'
         }
+        if ($cssText -match '(?s)(?:^|[}\s])(?:html|:root)\s*\{[^}]*font-size\s*:') {
+            throw 'Local safety check found html/:root font-size overriding LB Phone fixBlur scaling.'
+        }
+        if ($playHtmlText -match 'name="viewport"') {
+            throw 'Local safety check found a PLAY viewport override while LB Phone fixBlur is enabled.'
+        }
         if ($playJsText -notmatch 'setGameIcon' -or $playJsText -notmatch 'icons/quick-tap\.svg' -or $playHtmlText -notmatch 'id="dailyIcon"') {
             throw 'Local safety check could not verify PLAY dedicated icon UI.'
         }
@@ -354,6 +360,7 @@ try {
     if ($partyCoreText -notmatch 'revision=tonumber\(room\.revision\)' -or $partyCoreText -notmatch 'disconnectedVoteIgnored' -or $partyCoreText -notmatch 'roundAbortLowPlayers' -or $partyCoreText -notmatch 'secretRoleDisconnectAbort') { throw 'PARTY server synchronization check failed.' }
     if ($clientMainText -notmatch "action=='bridgePing'") { throw 'LB Phone bridge diagnostic check failed.' }
     if ($clientMainText -notmatch 'fixBlur=true' -or $clientMainText -match 'fixBlur=false') { throw 'LB Phone fixBlur compatibility check failed.' }
+    if ($clientMainText -notmatch 'RemoveCustomApp\(app\.identifier\)' -or $clientMainText -notmatch 'APP_ALREADY_EXISTS') { throw 'LB Phone custom app re-registration check failed.' }
     if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=55,id='fall'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
 
     $version = 'unknown'

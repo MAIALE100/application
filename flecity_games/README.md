@@ -1,6 +1,6 @@
 ## Current test candidate
 
-- Resource version: **0.26.0-test**
+- Resource version: **0.27.0-test**
 - PLAY JavaScript, PARTY JavaScript, and shared bridge static syntax checks pass.
 - Initial game registry: **23/23 enabled**.
 - Runtime startup diagnostics execute automatically after DB/bootstrap callback registration.
@@ -70,6 +70,9 @@ PARTY rooms keep the same members while changing games. Room Code and internal R
 - PLAY home shows up to three recently played games using server-side score history timestamps.
 - GAME LIBRARY can be filtered by Quick / Arcade / Endless / Puzzle without reloading the app.
 - おまかせ launches a random game from the currently visible category.
+- PLAY game cards can be starred as favorites; favorites persist per character in the existing profile settings JSON.
+- The Favorites filter shows only starred games, with a maximum of eight favorites.
+- Profile setting updates are partial/merge-safe so PARTY sound or reduced-motion changes do not erase PLAY favorites.
 
 ## Platform features
 

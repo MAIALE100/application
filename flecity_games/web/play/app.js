@@ -17,7 +17,7 @@ const minesEl=document.getElementById('minesGame'),minesBoard=document.getElemen
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
 const memoryEl=document.getElementById('memoryGame'),memoryBoard=document.getElementById('memoryBoard'),memoryTime=document.getElementById('memoryTime'),memoryMeta=document.getElementById('memoryMeta'),memoryBack=document.getElementById('memoryBack'),memoryNew=document.getElementById('memoryNew');
-const sortEl=document.getElementById('sortGame'),sortBoard=document.getElementById('sortBoard'),sortMoves=document.getElementById('sortMoves'),sortMeta=document.getElementById('sortMeta'),sortBest=document.getElementById('sortBest'),sortTime=document.getElementById('sortTime'),sortBack=document.getElementById('sortBack'),sortNew=document.getElementById('sortNew');
+const sortEl=document.getElementById('sortGame'),sortBoard=document.getElementById('sortBoard'),sortMoves=document.getElementById('sortMoves'),sortMeta=document.getElementById('sortMeta'),sortBest=document.getElementById('sortBest'),sortTime=document.getElementById('sortTime'),sortBack=document.getElementById('sortBack'),sortUndo=document.getElementById('sortUndo'),sortNew=document.getElementById('sortNew');
 const slideEl=document.getElementById('slideGame'),slideBoard=document.getElementById('slideBoard'),slideMoves=document.getElementById('slideMoves'),slideMeta=document.getElementById('slideMeta'),slideBest=document.getElementById('slideBest'),slideTime=document.getElementById('slideTime'),slideBack=document.getElementById('slideBack'),slideNew=document.getElementById('slideNew');
 const colorMatchEl=document.getElementById('colorMatchGame'),colorMatchProgress=document.getElementById('colorMatchProgress'),colorMatchTime=document.getElementById('colorMatchTime'),colorMatchBest=document.getElementById('colorMatchBest'),colorMatchWord=document.getElementById('colorMatchWord'),colorMatchChoices=document.getElementById('colorMatchChoices'),colorMatchBack=document.getElementById('colorMatchBack'),colorMatchStart=document.getElementById('colorMatchStart'),colorMatchNew=document.getElementById('colorMatchNew');
 const numberRushEl=document.getElementById('numberRushGame'),numberRushBoard=document.getElementById('numberRushBoard'),numberRushProgress=document.getElementById('numberRushProgress'),numberRushTime=document.getElementById('numberRushTime'),numberRushMeta=document.getElementById('numberRushMeta'),numberRushBack=document.getElementById('numberRushBack'),numberRushStart=document.getElementById('numberRushStart'),numberRushNew=document.getElementById('numberRushNew');
@@ -2038,6 +2038,7 @@ function renderSort(){
    sortBoard.appendChild(button);
  });
  updateSortTime();
+ sortUndo.disabled=sortGame.finalizing===true||sortGame.finished||sortGame.history.length<1||sortGame.selected!=null;
  sortNew.disabled=sortGame.finalizing===true;
 }
 async function persistSort(showError=false){
@@ -2093,6 +2094,19 @@ async function touchSortTube(index){
  if(sortSolved()){await finishSort();return;}
  await persistSort();
 }
+async function undoSortMove(){
+ const game=sortGame;if(!game||game.finished||game.finalizing||game.selected!=null||game.history.length<1)return;
+ const last=game.history[game.history.length-1];
+ if(!Array.isArray(last)||last.length<2)return;
+ const from=Number(last[0]),to=Number(last[1]),source=game.tubes[to],target=game.tubes[from];
+ if(!source||source.length<1||!target||target.length>=4){setStatus('この手は戻せません。','warn');return;}
+ const value=source.pop();target.push(value);
+ game.history.push([to,from]);game.moves+=1;game.progressed=true;
+ sortBoard.classList.remove('sort-move','sort-undo');void sortBoard.offsetWidth;sortBoard.classList.add('sort-undo');
+ tone(340,28);setStatus('UNDO · 手数にはカウントされます','good');renderSort();await persistSort();
+}
+sortUndo.onclick=undoSortMove;
+
 async function finishSort(){
  const game=sortGame;if(!game||game.finished||game.finalizing)return;
  game.finalizing=true;if(sortGame===game)renderSort();clearInterval(sortClock);sortClock=null;
@@ -2148,6 +2162,12 @@ function slideSolvedBoard(board){
  for(let i=0;i<15;i++)if(Number(board[i])!==i+1)return false;
  return Number(board[15])===0;
 }
+function slideCorrectCount(board){
+ if(!Array.isArray(board))return 0;let count=0;
+ for(let i=0;i<15;i++)if(Number(board[i])===i+1)count++;
+ return count;
+}
+function slideStars(moves){const n=Number(moves)||999;return n<=60?'★★★':(n<=90?'★★☆':'★☆☆');}
 function slideMovable(index){
  if(!slideGame)return false;
  const blank=slideGame.blank,row=Math.floor(index/4),col=index%4,blankRow=Math.floor(blank/4),blankCol=blank%4;
@@ -2156,7 +2176,7 @@ function slideMovable(index){
 function renderSlide(){
  if(!slideGame)return;
  refreshScreenBests();slideBoard.innerHTML='';slideMoves.textContent=String(slideGame.moves);
- slideMeta.textContent=(slideGame.daily?'DAILY · ':'')+String(slideGame.moves)+' MOVES · 4×4'+(slideGame.finished?' · CLEAR':'');
+ slideMeta.textContent=(slideGame.daily?'DAILY · ':'')+String(slideGame.moves)+' MOVES · PAR 90 · ALIGN '+slideCorrectCount(slideGame.board)+'/15'+(slideGame.finished?' · '+slideStars(slideGame.moves):'');
  slideGame.board.forEach((value,index)=>{
    const button=document.createElement('button');
    const blank=Number(value)===0,movable=!blank&&slideMovable(index);
@@ -2209,10 +2229,12 @@ async function openSlide(forceNew=false,daily=false){
 }
 async function moveSlide(index){
  const game=slideGame;if(!game||game.finished||game.finalizing||!slideMovable(index))return;
- const blank=game.blank;
+ const blank=game.blank,alignedBefore=slideCorrectCount(game.board);
  game.board[blank]=game.board[index];game.board[index]=0;game.blank=index;game.history.push(index);game.moves+=1;game.progressed=true;
- slideBoard.classList.remove('slide-move');void slideBoard.offsetWidth;slideBoard.classList.add('slide-move');
- tone(520,18);renderSlide();
+ const alignedAfter=slideCorrectCount(game.board);
+ slideBoard.classList.remove('slide-move','slide-align');void slideBoard.offsetWidth;slideBoard.classList.add(alignedAfter>alignedBefore?'slide-align':'slide-move');
+ if(alignedAfter>alignedBefore){tone(720,32);setStatus('ALIGN +'+(alignedAfter-alignedBefore)+' · '+alignedAfter+'/15','good');}else tone(520,18);
+ renderSlide();
  if(slideSolvedBoard(game.board)){await finishSlide();return;}
  await persistSlide();
 }
@@ -2226,7 +2248,7 @@ async function finishSlide(){
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.slide;
    const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0;
-   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,(res.daily?'デイリー · ':'')+'SLIDE '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
+   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,(res.daily?'デイリー · ':'')+'SLIDE '+slideStars(moves)+' · '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
      renderSlide();}
    await refreshPlatform();
  }else{

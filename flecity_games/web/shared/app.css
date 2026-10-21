@@ -724,3 +724,10 @@ body.reduced-motion .memory-board.memory-streak{animation:none!important}
 @keyframes flag-pop{50%{box-shadow:0 0 0 .125rem rgba(255,214,106,.08),inset 0 0 1rem rgba(255,214,106,.04)}}
 @keyframes cross-pop{50%{box-shadow:0 0 0 .125rem rgba(178,194,219,.07),inset 0 0 1rem rgba(178,194,219,.035)}}
 body.reduced-motion .mines-board.flag-pop,body.reduced-motion .nonogram-grid.cross-pop{animation:none!important}
+
+
+/* RANGE RUSH risk readability v10 */
+.high-low-card[data-difficulty="tight"]{box-shadow:0 0 0 .125rem rgba(255,214,106,.15),0 .75rem 1.75rem rgba(0,0,0,.28),0 0 1.6rem rgba(255,214,106,.12)}
+.high-low-card[data-difficulty="tricky"]{box-shadow:0 0 0 .0625rem rgba(145,202,255,.14),0 .75rem 1.75rem rgba(0,0,0,.28),0 0 1.1rem rgba(145,202,255,.08)}
+.high-low-card[data-difficulty="open"]{box-shadow:0 .75rem 1.75rem rgba(0,0,0,.28)}
+body.reduced-motion .high-low-card{transition:none!important}

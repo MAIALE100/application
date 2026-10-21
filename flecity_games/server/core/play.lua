@@ -67,6 +67,86 @@ local function seededInt(state,minValue,maxValue)
     return nextState,minValue+math.floor(value*(maxValue-minValue+1))
 end
 
+local function quickNextChallenge(state)
+    local delay
+    state.rng,delay=seededInt(state.rng,850,2600)
+    return {
+        round=state.hits+state.falseStarts+1,
+        hits=state.hits,
+        targetHits=state.targetHits,
+        lives=state.lives,
+        delayMs=delay
+    }
+end
+
+local function newQuickState(seed,challenge)
+    local state={
+        rng=math.floor(tonumber(seed) or 1),
+        targetHits=math.max(3,math.min(20,math.floor(tonumber(challenge and challenge.targetHits) or 7))),
+        lives=math.max(1,math.min(5,math.floor(tonumber(challenge and challenge.lives) or 3))),
+        hits=0,
+        falseStarts=0,
+        reactions={},
+        ended=false,
+        failed=false,
+        roundStartedTick=GetGameTimer()
+    }
+    state.current=quickNextChallenge(state)
+    return state
+end
+
+local function quickScoreFor(state)
+    if type(state)~='table' or #state.reactions<1 then return nil end
+    local total=0
+    for _,reaction in ipairs(state.reactions) do total=total+(tonumber(reaction) or 0) end
+    local average=total/#state.reactions
+    return math.floor((average+(state.falseStarts*400))*1000+0.5)/1000,average
+end
+
+local function applyQuickTap(state,actionMs)
+    if type(state)~='table' or state.ended or type(state.current)~='table' then return nil end
+    local action=math.floor(tonumber(actionMs) or -1)
+    if action<0 or action>10000 then return nil end
+    local delay=math.max(250,math.floor(tonumber(state.current.delayMs) or 1500))
+    local falseStart=action<delay
+    local reaction=nil
+
+    if falseStart then
+        state.falseStarts=state.falseStarts+1
+        state.lives=state.lives-1
+        if state.lives<=0 then
+            state.ended=true
+            state.failed=true
+        end
+    else
+        reaction=action-delay
+        if reaction<55 or reaction>3000 then return nil end
+        state.reactions[#state.reactions+1]=reaction
+        state.hits=state.hits+1
+        if state.hits>=state.targetHits then state.ended=true end
+    end
+
+    if not state.ended then
+        state.current=quickNextChallenge(state)
+        state.roundStartedTick=GetGameTimer()
+    end
+
+    local score,average=quickScoreFor(state)
+    return {
+        falseStart=falseStart,
+        reactionMs=reaction,
+        ended=state.ended,
+        failed=state.failed,
+        hits=state.hits,
+        targetHits=state.targetHits,
+        lives=state.lives,
+        falseStarts=state.falseStarts,
+        score=score,
+        averageMs=average,
+        nextChallenge=not state.ended and state.current or nil
+    }
+end
+
 local function generateMemoryDeck(seed)
     local deck={}
     for value=1,8 do
@@ -1183,7 +1263,7 @@ end
 local function challengeFor(game,seed)
     local challenge={} local state=seed
     if game.id=='quick_tap' then
-        state,challenge.delayMs=seededInt(state,1200,3500)
+        challenge.targetHits=7 challenge.lives=3
     elseif game.id=='stop' then
         challenge.maxRounds=50
         challenge.startPeriodMs=2200
@@ -1699,7 +1779,13 @@ function FlecityGamesPlay.StartSession(source,data)
             end
         end
         local publicSeed=seed
-        if game.id=='stop' then
+        if game.id=='quick_tap' then
+            local quickState=newQuickState(seed,challenge)
+            sessions[token].quick=quickState
+            challenge=quickState.current
+            sessions[token].challenge=challenge
+            publicSeed=nil
+        elseif game.id=='stop' then
             local stopState=newStopState(seed,challenge)
             sessions[token].stop=stopState
             challenge=stopState.current
@@ -1730,6 +1816,33 @@ function FlecityGamesPlay.StartSession(source,data)
         error(result)
     end
     return finish(result)
+end
+
+function FlecityGamesPlay.QuickRound(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'quick_round',80) then return {ok=false,error='RATE_LIMIT'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local id=identifier(source)
+    local token=tostring(data.sessionToken or '')
+    local session=sessions[token]
+    if not id then return {ok=false,error='PLAYER_NOT_READY'} end
+    if not session or session.playerIdentifier~=id or session.gameId~='quick_tap' then return {ok=false,error='INVALID_SESSION'} end
+    if os.time()-session.startedAt>FlecityGamesConfig.Play.SessionMaxAgeSeconds then
+        removeSession(token)
+        return {ok=false,error='EXPIRED_SESSION'}
+    end
+    local state=session.quick
+    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    local step=math.floor(tonumber(data.step) or -1)
+    local expectedStep=state.hits+state.falseStarts+1
+    if step~=expectedStep then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    local actionMs=math.floor(tonumber(data.actionMs) or -1)
+    local serverRoundElapsed=math.max(0,GetGameTimer()-(tonumber(state.roundStartedTick) or GetGameTimer()))
+    if actionMs<0 or actionMs>10000 then return {ok=false,error='INVALID_TIMING'} end
+    if actionMs>serverRoundElapsed+400 or serverRoundElapsed-actionMs>3000 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
+    local result=applyQuickTap(state,actionMs)
+    if not result then return {ok=false,error='INVALID_TIMING'} end
+    result.ok=true
+    return result
 end
 
 function FlecityGamesPlay.StopRound(source,data)
@@ -2046,16 +2159,22 @@ function FlecityGamesPlay.SubmitScore(source,data)
     if session.dailyDate then metadata.dailyDate=session.dailyDate end
 
     if game.id=='quick_tap' then
-        local quickScore=tonumber(data.score)
-        if not quickScore then return {ok=false,error='INVALID_SCORE'} end
-        local delayMs=tonumber(session.challenge.delayMs) or 0
-        local serverSinceReveal=serverElapsed-delayMs
-        if clientDurationMs<quickScore or serverSinceReveal<0 then return {ok=false,error='IMPOSSIBLE_TIMING'} end
-        if quickScore>serverSinceReveal+350 or serverSinceReveal-quickScore>1200 then
-            return {ok=false,error='IMPOSSIBLE_TIMING'}
+        local state=session.quick
+        if not state or state.ended~=true or state.failed==true or state.hits~=state.targetHits then
+            return {ok=false,error='QUICK_RUN_NOT_FINISHED'}
         end
-        durationMs=math.min(serverElapsed,28800000)
-        metadata.serverSinceRevealMs=serverSinceReveal
+        local verifiedScore,average=quickScoreFor(state)
+        local submitted=tonumber(data.score)
+        if not verifiedScore or not submitted or math.abs(submitted-verifiedScore)>0.001 then
+            return {ok=false,error='INVALID_QUICK_SCORE'}
+        end
+        rawScore=verifiedScore
+        durationMs=math.min(totalServerElapsed,28800000)
+        metadata.hits=state.hits
+        metadata.falseStarts=state.falseStarts
+        metadata.lives=state.lives
+        metadata.averageMs=math.floor((average or 0)*1000+0.5)/1000
+        metadata.bestReactionMs=math.min(table.unpack(state.reactions))
     elseif game.id=='stop' then
         local state=session.stop
         if not state or state.ended~=true then return {ok=false,error='STOP_RUN_NOT_FINISHED'} end
@@ -2424,7 +2543,11 @@ function FlecityGamesPlay.DebugSelftest()
     return {
         quickRejectLow=quick and validateScore(quick,69)==nil or false,
         quickAcceptNormal=quick and validateScore(quick,180)~=nil or false,
-        deterministicChallenge=quickChallenge.delayMs==quickChallenge2.delayMs,
+        quickRunProgression=(function()
+            local state=newQuickState(12345,{targetHits=7,lives=3})
+            return state and state.current and state.current.delayMs>=850 and state.current.delayMs<=2600 and state.lives==3
+        end)(),
+        deterministicChallenge=quickChallenge.targetHits==quickChallenge2.targetHits,
         dailyDateParsing=dailyNumberA==20261020 and dailyNumberB==20261021 and dailyNumberA~=dailyNumberB,
         opaqueSessionToken=not string.find(opaqueToken,'SECRET_CITIZEN_ID',1,true),
         stopAcceptRunScore=stop and validateScore(stop,12500)==12500 or false,

@@ -355,6 +355,16 @@ if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_cs
     fail("PLAY touch puzzle control CSS is missing")
 if "difficulty=gap<=8?'TIGHT'" not in play_js or "difficultyBonus" not in play_js or "RANGE RUSH risk readability v10" not in play_css:
     fail("RANGE RUSH visible risk/bonus feedback is missing")
+if "blockPressure" not in play_js or "mergePressure" not in play_js or "fallPressure" not in play_js:
+    fail("PLAY long-run pressure feedback helpers are missing")
+if "CLUTCH · " not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
+    fail("PLAY mastery/clutch feedback is missing")
+if "PLAY depth feedback v12" not in play_css or ".block-danger" not in play_css or ".merge-danger" not in play_css or ".fall-danger" not in play_css or ".tower-danger" not in play_css:
+    fail("PLAY depth feedback CSS is missing")
+if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
+    fail("PLAY persistent runtime version badge is missing")
+if "LB Phone status-bar clearance & runtime badge v11" not in play_css:
+    fail("PLAY LB Phone status-bar clearance CSS is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

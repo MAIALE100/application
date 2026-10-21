@@ -46,6 +46,18 @@
   <div class="game-tip card-tip">行と列の数字どおりに塗る。マスは「塗る → × → 空白」の順に切り替わります。</div><div class="card"><div id="nonogramBoard" class="nonogram-grid"></div></div>
   <div class="card stack"><button id="nonogramCheck">答え合わせ</button><button id="nonogramNew" class="secondary">新しい問題</button></div>
 </section>
+<section id="sortGame" class="hidden">
+  <div class="card row"><div><div class="kicker">SORT</div><div id="sortMoves" class="big-number small-number">0</div><div id="sortMeta" class="game-meta">0 MOVES · 4 COLORS</div><div id="sortBest" class="game-meta">BEST ---</div></div><button id="sortBack" class="secondary">戻る</button></div>
+  <div class="game-tip card-tip">上のタイルを別のチューブへ移動。4色をそれぞれ1本ずつ揃えればクリア。</div>
+  <div class="card">
+    <div id="sortBoard" class="sort-board" aria-label="SORT puzzle"></div>
+  </div>
+  <div class="card stack">
+    <div id="sortTime" class="sort-time">0.0s</div>
+    <button id="sortNew" class="secondary">新しく始める</button>
+  </div>
+</section>
+
 <section id="colorMatchGame" class="hidden">
   <div class="card row"><div><div class="kicker">COLOR MATCH</div><div id="colorMatchProgress" class="big-number small-number">0 / 10</div><div id="colorMatchTime" class="game-meta">0.0s</div></div><button id="colorMatchBack" class="secondary">戻る</button></div>
   <div class="card big-center color-match-stage"><div class="muted">文字の意味ではなく、文字の色を選ぶ</div><div id="colorMatchBest" class="game-meta">BEST ---</div><div id="colorMatchWord" class="color-match-word">READY</div><div id="colorMatchChoices" class="color-match-choices"></div></div>

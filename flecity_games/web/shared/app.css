@@ -522,3 +522,41 @@ body{color:#f8fafc}
  .game>strong{font-size:1rem}
  .game>.muted{font-size:.8rem}
 }
+
+
+/* PLAY library navigation pass v4 */
+.recent-feature{border-color:#35414f;background:linear-gradient(145deg,#18202a,#141920)}
+.recent-games{grid-template-columns:repeat(2,minmax(0,1fr))}
+.recent-game{--game-accent:#b8c5d8}
+.recent-game:nth-child(3):last-child{grid-column:1/-1}
+.recent-game[data-game="quick_tap"]{--game-accent:#ffd76a}
+.recent-game[data-game="stop"]{--game-accent:#78d9ff}
+.recent-game[data-game="color_match"]{--game-accent:#ff8faa}
+.recent-game[data-game="number_rush"]{--game-accent:#9ef0bf}
+.recent-game[data-game="stack"]{--game-accent:#f4a66b}
+.recent-game[data-game="high_low"]{--game-accent:#d4a7ff}
+.recent-game[data-game="simon"]{--game-accent:#7cc8ff}
+.recent-game[data-game="block"]{--game-accent:#d7e3f4}
+.recent-game[data-game="merge"]{--game-accent:#ffc76b}
+.recent-game[data-game="mines"]{--game-accent:#ff8d86}
+.recent-game[data-game="nonogram"]{--game-accent:#9ad7cc}
+.recent-game[data-game="memory"]{--game-accent:#bcb0ff}
+.recent-game[data-game="sort"]{--game-accent:#b9a7ff}
+
+.library-head-actions{display:flex;align-items:center;gap:0.5rem;flex:0 0 auto}
+.library-random{min-height:2.25rem;padding:0.4375rem 0.6875rem;border-radius:99rem;font-size:.76rem;font-weight:900;background:#202733;border:0.0625rem solid #3a4655;color:#f4f7fb}
+.library-random:not(:disabled):active{transform:scale(.96)}
+.library-filters{display:flex;gap:0.4375rem;overflow-x:auto;padding:0.0625rem 0 0.625rem;scrollbar-width:none;overscroll-behavior-x:contain}
+.library-filters::-webkit-scrollbar{display:none}
+.library-filter{flex:0 0 auto;min-height:2.25rem;padding:0.4375rem 0.75rem;border-radius:99rem;background:#171c24;border:0.0625rem solid #303946;color:#bfc8d6;font-size:.75rem;font-weight:850;box-shadow:none}
+.library-filter.active{background:#edf2f8;color:#10141a;border-color:#edf2f8;box-shadow:0 0.3125rem 0.875rem rgba(0,0,0,.18)}
+.library-filter:not(.active):not(:disabled):active{background:#252d38}
+.library-empty{padding:1.125rem 0.875rem;text-align:center;border:0.0625rem dashed #34404d;border-radius:0.875rem;background:#12171e;font-size:.84rem}
+
+@media(max-width:22.5rem){
+ .library-head-actions{gap:0.375rem}
+ .library-random{padding:0.375rem 0.5625rem;font-size:.7rem}
+ .library-filter{padding:0.375rem 0.625rem;font-size:.7rem}
+ .recent-games{grid-template-columns:1fr}
+ .recent-game:nth-child(3):last-child{grid-column:auto}
+}

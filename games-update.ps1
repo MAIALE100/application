@@ -221,6 +221,12 @@ try {
         if ($playLuaText -notmatch 'replayFallState' -or $playLuaText -notmatch 'FALL_BASE_SHAPES' -or $playLuaText -notmatch 'INVALID_FALL_REPLAY') {
             throw 'Local safety check could not verify FALL server replay validation.'
         }
+        if ($configText -notmatch 'FallMasterLines\s*=\s*20' -or $playLuaText -notmatch 'fall_master' -or $playJsText -notmatch 'fall_master') {
+            throw 'Local safety check could not verify FALL MASTER achievement.'
+        }
+        if ($playJsText -notmatch 'fallPieceFor\(fallGame\.seed,fallGame\.history\.length\+1\)' -or $playHtmlText -notmatch 'Next piece preview') {
+            throw 'Local safety check could not verify FALL next-piece preview.'
+        }
         if ($playLuaText -notmatch 'generateSlideBoard' -or $playLuaText -notmatch 'replaySlideState' -or $playLuaText -notmatch 'INVALID_SLIDE_REPLAY') {
             throw 'Local safety check could not verify SLIDE server replay validation.'
         }
@@ -323,6 +329,8 @@ try {
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
     if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
     if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
+    if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }
+    if ($playAppText -notmatch 'fallPieceFor\(fallGame\.seed,fallGame\.history\.length\+1\)' -or $playIndexText -notmatch 'Next piece preview') { throw 'FALL next-piece preview check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
     if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
     if ($playCoreText -notmatch 'slide_master' -or $playAppText -notmatch 'slide_master') { throw 'SLIDE MASTER achievement check failed.' }

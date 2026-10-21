@@ -207,6 +207,9 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - Round入力をSERVERへ送り正誤判定
 - 正解Roundの後だけ次Round配列をSERVERが返す
 - 未来Roundの配列 / SeedをClientへ渡さない
+- Dailyでは同じ日付の参加者に同じSERVER生成Sequenceが使われる
+- Daily画面では `TODAY BEST` が表示され、結果もDailyランキングへ保存される
+- DailyのNEW GAMEでも通常プレイへ切り替わらずDaily条件を維持する
 - 1回でも間違えるとRun終了
 - round番号付きで、応答だけ失われても同じRoundを安全再送
 - SERVER保持の到達Round数だけランキング保存

@@ -1695,7 +1695,7 @@ memoryNew.onclick=async()=>{
  memory=null;await openMemory(wasDaily);
 };
 
-let suspendRunning=false;
+let suspendRunning=false,refreshAfterSuspend=false;
 async function cancelPlaySession(token){
  if(!token)return {ok:true};
  const retryable=new Set(['RATE_LIMIT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','EMPTY_RESPONSE','SERVER_ERROR']);
@@ -1751,11 +1751,19 @@ async function suspendActivePlay(){
    if(bootstrapData){hideAll();homeEl.classList.remove('hidden');renderGames(bootstrapData.games);}
  }catch(error){
    console.warn('[PLAY] suspend failed',error);
- }finally{suspendRunning=false;}
+ }finally{
+   suspendRunning=false;
+   if(refreshAfterSuspend){
+     refreshAfterSuspend=false;
+     if(!document.hidden&&bootstrapData)void refreshPlatform();
+   }
+ }
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){void suspendActivePlay();return;}
- if(bootstrapData&&!suspendRunning)void refreshPlatform();
+ if(document.hidden){refreshAfterSuspend=false;void suspendActivePlay();return;}
+ if(!bootstrapData)return;
+ if(suspendRunning){refreshAfterSuspend=true;return;}
+ void refreshPlatform();
 });
 window.addEventListener('pagehide',()=>{void suspendActivePlay();});
 

@@ -219,7 +219,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 以下が全て満たされたらPARTY実機確認へ進む。
 
 - resource起動ログ = `startup preflight READY_FOR_LIVE_TEST`
-- PLAY 12ゲームが1クライアントで起動
+- PLAY 13ゲームが1クライアントで起動
 - PLAY save/resumeが動作
 - Dailyが動作
 - DBへscore/save/achievementが書き込まれる
@@ -348,7 +348,7 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 2人・3人テストで重大な同期崩れ、秘密情報漏洩、DB破損、重複Score、Room復帰不能が無ければ提出候補とする。
 
 ## PLAY Visual Quality
-- Home library: all 12 game cards have distinct visual identities and remain legible at phone width.
+- Home library: all 13 game cards have distinct visual identities and remain legible at phone width.
 - QUICK TAP: WAIT / GO / false-start / result states are visually distinct.
 - STOP!: running target and result state are visually distinct.
 - BLOCK: placement and line-clear feedback does not change score/replay validation.
@@ -390,3 +390,13 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 - Confirm timeout behaves like a miss, consumes one life, and continues while lives remain.
 - Confirm the run ends only when lives reach 0 or round 30 completes.
 - Complete/lose a run and verify the server-confirmed score, MAX STREAK, remaining LIFE and ranking are saved.
+
+## SORT live verification
+- Start SORT and confirm 16 tiles appear across four filled tubes with two empty tubes.
+- Select a non-empty source tube, then an available destination; exactly one top tile must move.
+- Fill a destination to capacity and confirm a fifth tile cannot be moved into it.
+- Return to PLAY after several moves and confirm CONTINUE → SORT appears.
+- Resume and verify tube contents, move count, elapsed time and move history are preserved.
+- Close the phone mid-run, reopen PLAY, and verify the same saved SORT state is available.
+- Complete all four monochrome tubes and confirm the server accepts the replay and records ranking score = elapsed time + 350ms × moves.
+- Run game_selftest and confirm sortSeedCounts, sortReplayMove, and sortValidateTime all PASS.

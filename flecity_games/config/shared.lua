@@ -40,7 +40,9 @@ FlecityGamesConfig = {
             MinesSprinterMs = 60000,
             NonogramQuickMs = 60000,
             ColorMatchFocusMs = 6000,
-            SimonMasterRounds = 15
+            SimonMasterRounds = 15,
+            SlideMasterMs = 90000,
+            SlideMasterMoves = 120
         }
     },
 

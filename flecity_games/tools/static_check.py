@@ -633,6 +633,8 @@ if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua o
     fail("PARTY host migration must prefer app-active members")
 if "appOpen=m.appOpen~=false" not in party_lua or "アプリ閉じています" not in party_js or "アプリ待ち " not in party_js:
     fail("PARTY lobby must expose app-presence blocking state")
+if "m.appOpen==false or m.ready~=true" not in party_lua:
+    fail("PARTY server must reject start while a connected member app is closed")
 if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:
     fail("PARTY ReturnLobby idempotency/live-round guard is missing")
 if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:

@@ -361,3 +361,9 @@ LOOP完成版には不要な変更を入れない。
 - PARTY Roomはメモリ上の小規模テーブル（最大10人/Room）走査のみで、1秒周期でもDB pollingは発生しない。
 - timeout / TELEPHONE skip / TIC-TAC不戦勝 / partial result確定がdeadline後おおむね1秒以内にserver判定される。
 - LOOPのcleanup頻度・DB仕様は変更なし。
+
+
+## 2026-10-23 StartRound App presence強制
+- serverの `allReady` も `appOpen=false` を未準備扱いに変更。
+- close/Readyのraceや直接callbackでReady表示を迂回しても、PARTYを閉じた接続中メンバーを含むRoundは開始しない。
+- UIの `アプリ待ち N人` とserver-authoritative開始条件を一致させた。

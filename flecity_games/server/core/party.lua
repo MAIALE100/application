@@ -713,7 +713,10 @@ end
 local function allReady(room,game)
     local count=0
     for _,m in pairs(room.members) do
-        if not m.disconnected then count=count+1 if m.ready~=true then return false end end
+        if not m.disconnected then
+            count=count+1
+            if m.appOpen==false or m.ready~=true then return false end
+        end
     end
     return count>=math.max(FlecityGamesConfig.Party.MinPlayers,game.minPlayers or 2) and count<=(game.maxPlayers or FlecityGamesConfig.Party.MaxPlayers)
 end

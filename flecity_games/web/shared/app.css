@@ -757,10 +757,10 @@ body.reduced-motion .high-low-card{transition:none!important}
 
 
 /* LB Phone status-bar clearance & runtime badge v11 */
-body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(5.375rem,calc(env(safe-area-inset-top,0rem) + 1.625rem))}
+body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
 .brand-line{flex-wrap:wrap}
 .runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#8f9aaa;font-size:.56rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
-@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(5.375rem,calc(env(safe-area-inset-top,0rem) + 1.625rem))}}
+@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}.home-top-safe{height:3.25rem;min-height:3.25rem}}
 
 
 /* PLAY depth feedback v12 */
@@ -937,6 +937,7 @@ body.reduced-motion .fall-board:active{filter:none}
 
 
 /* PLAY submission home visual pass v24 */
+.home-top-safe{height:3rem;min-height:3rem;pointer-events:none}
 .play-home{display:flex;flex-direction:column;gap:0.8125rem}
 .home-brand{min-width:0}
 .brand-title-row{display:flex;align-items:center;min-width:0}

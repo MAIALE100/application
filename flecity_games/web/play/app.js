@@ -62,8 +62,10 @@ settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 let statusTimer=null;
 function setStatus(text,type){
  clearTimeout(statusTimer);statusTimer=null;
- statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
+ const inGame=document.body.classList.contains('game-active');
+ statusEl.textContent=text;statusEl.className='status app-status '+(type||'')+(inGame?' hidden':'');
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
+ if(inGame)return;
  if(type==='good'){
    const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);

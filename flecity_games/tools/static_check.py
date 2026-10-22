@@ -448,6 +448,8 @@ if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs 
     fail("COLOR FOCUS displayed/server threshold mismatch")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
+if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
+    fail("PLAY transition cleanup guard is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:

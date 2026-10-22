@@ -907,3 +907,9 @@ body.reduced-motion .memory-board.memory-perfect{animation:none!important}
 @media(max-width:22.5rem){
  .merge-cell[data-value^="131"],.merge-cell[data-value^="262"],.merge-cell[data-value^="524"]{font-size:.6rem}
 }
+
+
+/* FALL direct-touch controls v19 */
+.fall-board{touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}
+.fall-board:active{filter:brightness(1.04)}
+body.reduced-motion .fall-board:active{filter:none}

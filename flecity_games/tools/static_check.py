@@ -619,7 +619,7 @@ if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,tr
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
     fail("PARTY result-screen accidental-return guard is missing")
-if "playersEl.classList.toggle('dense'" not in party_js or "#players.dense" not in shared_css:
+if "playersEl.classList.toggle('dense'" not in party_js or "#players.dense" not in play_css:
     fail("PARTY large-room player-list density handling is missing")
 
 for marker in (

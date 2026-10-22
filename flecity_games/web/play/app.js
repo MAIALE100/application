@@ -487,6 +487,40 @@ randomPlay.onclick=()=>{
  if(game)void launchGame(game.id);
 };
 
+function enableHorizontalDragScroll(element){
+ if(!element||element.dataset.dragScroll==='1')return;
+ element.dataset.dragScroll='1';
+ let drag=null,suppressClickUntil=0;
+ element.addEventListener('pointerdown',event=>{
+   if(event.pointerType==='mouse'&&event.button!==0)return;
+   drag={id:event.pointerId,startX:event.clientX,startY:event.clientY,startScroll:element.scrollLeft,horizontal:false};
+   try{element.setPointerCapture(event.pointerId);}catch(_){}
+ });
+ element.addEventListener('pointermove',event=>{
+   if(!drag||event.pointerId!==drag.id)return;
+   const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
+   if(!drag.horizontal){
+     if(Math.abs(dx)<8)return;
+     if(Math.abs(dx)<=Math.abs(dy))return;
+     drag.horizontal=true;element.classList.add('is-dragging');
+   }
+   element.scrollLeft=drag.startScroll-dx;
+ });
+ const finishDrag=event=>{
+   if(!drag||event.pointerId!==drag.id)return;
+   if(drag.horizontal)suppressClickUntil=performance.now()+350;
+   drag=null;element.classList.remove('is-dragging');
+   try{element.releasePointerCapture(event.pointerId);}catch(_){}
+ };
+ element.addEventListener('pointerup',finishDrag);
+ element.addEventListener('pointercancel',finishDrag);
+ element.addEventListener('click',event=>{
+   if(performance.now()<suppressClickUntil){event.preventDefault();event.stopPropagation();}
+ },true);
+}
+enableHorizontalDragScroll(continueGames);
+enableHorizontalDragScroll(recentGames);
+
 function renderContinue(games){
  const resumable=(games||[]).filter(game=>game.app==='play'&&game.enabled&&saves[game.id]);
  continueGames.innerHTML='';continueCount.textContent=String(resumable.length);

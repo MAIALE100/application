@@ -63,9 +63,9 @@ let statusTimer=null;
 function setStatus(text,type){
  clearTimeout(statusTimer);statusTimer=null;
  const inGame=document.body.classList.contains('game-active');
- statusEl.textContent=text;statusEl.className='status app-status '+(type||'')+(inGame?' hidden':'');
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
- if(inGame)return;
+ if(inGame){statusEl.textContent='';statusEl.className='status app-status hidden';return;}
+ statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
  if(type==='good'){
    const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);
@@ -160,7 +160,11 @@ function resetTransientInputState(){
  blockDrag=null;blockSuppressClick=false;mergePointer=null;fallPointer=null;
  clearBlockDragVisual();
 }
-function hideAll(){document.body.classList.add('game-active');homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
+function hideAll(){
+ document.body.classList.add('game-active');
+ clearTimeout(statusTimer);statusTimer=null;statusEl.textContent='';statusEl.className='status app-status hidden';
+ homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();
+}
 function showHome(){
  clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(fallGravityClock);clearInterval(fallSoftClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);fallGravityClock=null;fallSoftClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
  resetTransientInputState();
@@ -1916,6 +1920,7 @@ minesNew.onclick=async()=>{
 
 /* TOWER */
 function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
+function stackCameraTarget(game){return Math.max(0,(Number(game&&game.layerCount)||0)-6);}
 function renderStack(){
  if(!stackGame)return;
  stackScore.textContent=Math.round(stackGame.score).toLocaleString();
@@ -1925,14 +1930,19 @@ function renderStack(){
  stackArena.classList.toggle('tower-fever',stackGame.perfectStreak>=3);
  stackArena.classList.toggle('tower-tight',tension==='TIGHT');
  stackArena.classList.toggle('tower-danger',tension==='DANGER');
+ const targetCamera=stackCameraTarget(stackGame),currentCamera=Number(stackGame.cameraOffset)||0;
+ stackGame.cameraOffset=appSettings.reducedMotion?targetCamera:(Math.abs(targetCamera-currentCamera)<.01?targetCamera:currentCamera+(targetCamera-currentCamera)*.14);
+ const camera=stackGame.cameraOffset,baseBottom=1.125,step=1.25,startIndex=Math.max(0,Math.floor(camera)-1);
+ stackArena.dataset.camera=targetCamera>0?'follow':'base';
  stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
- const visible=stackGame.layers.slice(-10),history=visible.slice(0,-1);
- history.forEach((layer,i)=>{
-   const d=document.createElement('div');d.className='stack-layer'+(layer.perfect?' perfect-layer':'');d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=(18+i*20)+'px';stackArena.insertBefore(d,stackMover);
- });
- const top=stackGame.layers[stackGame.layers.length-1];
- stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=(18+history.length*20)+'px';
- stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(38+history.length*20)+'px';
+ for(let layerIndex=startIndex;layerIndex<stackGame.layers.length-1;layerIndex++){
+   const layer=stackGame.layers[layerIndex],bottom=baseBottom+(layerIndex-camera)*step;
+   if(bottom<-1.5||bottom>16.5)continue;
+   const d=document.createElement('div');d.className='stack-layer'+(layer.perfect?' perfect-layer':'');d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=bottom+'rem';stackArena.insertBefore(d,stackMover);
+ }
+ const topIndex=stackGame.layers.length-1,top=stackGame.layers[topIndex],topBottom=baseBottom+(topIndex-camera)*step;
+ stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=topBottom+'rem';
+ stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(topBottom+step)+'rem';
 }
 function stackPosition(elapsedMs,width,speed,reverse){
  const w=Math.max(.1,Math.min(100,Number(width)||72)),max=Math.max(0,100-w);
@@ -1953,7 +1963,7 @@ async function openStack(){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('TOWERを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
- stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
+ stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,cameraOffset:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
  stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('TOWER START · PERFECTをつないで倍率を上げよう。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){

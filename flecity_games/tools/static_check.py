@@ -26,6 +26,8 @@ registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
 bridge = read("flecity_games/web/shared/bridge.js")
 errors_js = read("flecity_games/web/shared/errors.js")
+safety_server = read("flecity_dev_safety/server.lua")
+safety_fx = read("flecity_dev_safety/fxmanifest.lua")
 
 def dom_ids(js):
     return set(re.findall(r"getElementById\('([^']+)'\)", js))
@@ -74,6 +76,10 @@ if "NUI_UNAVAILABLE" not in errors_js or "NOT_IN_ROOM" not in errors_js:
 
 if "'lb-phone'" not in fx or "'oxmysql'" not in fx:
     fail("fxmanifest dependencies must include lb-phone and oxmysql")
+if "games-reload.request" not in safety_server or "ExecuteCommand('refresh')" not in safety_server or "restart flecity_games" not in safety_server:
+    fail("external PLAY reload helper is missing")
+if "version '1.1.0-dev'" not in safety_fx:
+    fail("DEV Safety external reload helper version is stale")
 if "'server/core/text.lua'" not in fx:
     fail("UTF-8 text helper is not loaded by fxmanifest")
 

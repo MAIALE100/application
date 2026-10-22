@@ -141,6 +141,7 @@ try {
     Remove-Item $DisabledMarker -Force -ErrorAction SilentlyContinue
     Set-Content -Path $InstalledMarker -Value @(
         ('installed=' + (Get-Date -Format o)),
+        ('branch=' + $Branch),
         ('worktree=' + $AutoRoot),
         ('server=' + $ServerBase)
     ) -Encoding UTF8

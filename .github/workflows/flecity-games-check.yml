@@ -122,6 +122,11 @@ jobs:
             }
           }
 
+          $mainUpdater = Get-Content -Raw games-update.ps1
+          $installer = Get-Content -Raw games-auto-update-install.ps1
+          if ($mainUpdater -notmatch 'autoNeedsBranchRepair') { throw 'games-update.ps1 cannot repair legacy auto-update branch' }
+          if ($installer -notmatch "'branch=' \+ \$Branch") { throw 'auto-update installer does not record branch' }
+
       - name: Check JavaScript syntax
         run: |
           node --check flecity_games/web/shared/errors.js

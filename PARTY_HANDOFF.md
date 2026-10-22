@@ -308,3 +308,11 @@ LOOP完成版には不要な変更を入れない。
 - TELEPHONE chain entryへ投稿時の `byName` を保存。
 - 参加者が入力後にRoomから退出・grace cleanupされても、最終Chainでは `Player` へ退化せず投稿時の名前を表示。
 - `byName` は結果表示用のみ。途中chainの秘密公開範囲は変更なし。
+
+
+## 2026-10-23 旧自動更新branchの自動移行
+- 過去に `games/platform-core` で自動更新を導入済みのPC向け移行処理を追加。
+- auto-updateの `installed.flag` に `branch=games/party-dev` を記録。
+- 通常 updater 実行時、installed.flagが旧形式/別branchなら自動的にinstallerを再実行し、既存worktreeとScheduled Taskを `games/party-dev` へ修復。
+- ユーザーが明示的にauto-updateをdisableしている場合は再有効化しない。
+- statusスクリプトで現在のauto branchと期待branchを表示。

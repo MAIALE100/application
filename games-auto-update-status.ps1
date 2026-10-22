@@ -9,6 +9,7 @@ $ServerBase = 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base'
 $BuildMarker = Join-Path (Join-Path (Join-Path $ServerBase 'resources') 'flecity_games') 'dev-build.txt'
 $RuntimeMarker = Join-Path (Join-Path (Join-Path $ServerBase 'resources') 'flecity_games') 'dev-runtime.txt'
 $Manifest = Join-Path (Join-Path (Join-Path $ServerBase 'resources') 'flecity_games') 'fxmanifest.lua'
+$ExpectedBranch = 'games/party-dev'
 
 Write-Host ''
 Write-Host '=== Flecity Games Auto Update Status ===' -ForegroundColor Cyan
@@ -78,7 +79,15 @@ if (Test-Path $RuntimeMarker) {
 if (Test-Path $InstalledMarker) {
     Write-Host ''
     Write-Host 'Install info:' -ForegroundColor DarkCyan
-    Get-Content $InstalledMarker | ForEach-Object { Write-Host ('  ' + $_) }
+    $installLines=Get-Content $InstalledMarker
+    $installLines | ForEach-Object { Write-Host ('  ' + $_) }
+    $branchLine=$installLines | Where-Object { $_ -like 'branch=*' } | Select-Object -First 1
+    $installedBranch=if($branchLine){$branchLine.Substring(7)}else{'legacy/unknown'}
+    if($installedBranch -eq $ExpectedBranch){
+        Write-Host ('Auto branch  : ' + $installedBranch) -ForegroundColor Green
+    }else{
+        Write-Host ('Auto branch  : ' + $installedBranch + ' (expected ' + $ExpectedBranch + ')') -ForegroundColor Yellow
+    }
 }
 
 Write-Host ''

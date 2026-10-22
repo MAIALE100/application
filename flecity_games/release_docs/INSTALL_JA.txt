@@ -8,7 +8,7 @@ Flecity Games LOOP v1.0.0
 ・LB Phone用カスタムアプリ「LOOP」
 ・一人用ミニゲーム 15種
 ・ランキング / Daily Challenge / 実績 / 途中保存
-・今回の提出版では PARTY アプリは非表示にしています。
+・LOOPはLB PhoneのApp Storeから各プレイヤーが無料でダウンロードする方式です。\n・今回の提出版では PARTY アプリは非表示にしています。
 
 ■ 前提
 以下のリソースが稼働している環境を前提としています。

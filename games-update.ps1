@@ -230,7 +230,7 @@ try {
         if ($playJsText -notmatch 'sortPourCount' -or $playJsText -notmatch 'QUICK POUR') {
             throw 'Local safety check could not verify SORT quick-pour controls.'
         }
-        if ($playJsText -notmatch 'タップで塗る・長押しで×' -or $playJsText -notmatch 'resetTransientInputState') {
+        if ($playJsText -notmatch 'crossNonogramDirect' -or $playJsText -notmatch 'nonogram\.crossed\.delete\(index\);nonogram\.filled\.add\(index\)' -or $playJsText -notmatch 'resetTransientInputState') {
             throw 'Local safety check could not verify NONOGRAM input separation / transition cleanup.'
         }
         if ($playJsText -notmatch 'openFall' -or $playJsText -notmatch 'persistFall' -or $playJsText -notmatch 'finishFall' -or $playHtmlText -notmatch 'id="fallGame"') {
@@ -361,7 +361,7 @@ try {
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'slideMovePath' -or $playAppText -notmatch 'CHAIN SLIDE') { throw 'SLIDE line-slide control check failed.' }
     if ($playAppText -notmatch 'sortPourCount' -or $playAppText -notmatch 'QUICK POUR') { throw 'SORT quick-pour control check failed.' }
-    if ($playAppText -notmatch 'タップで塗る・長押しで×' -or $playAppText -notmatch 'resetTransientInputState') { throw 'NONOGRAM/transition UX check failed.' }
+    if ($playAppText -notmatch 'crossNonogramDirect' -or $playAppText -notmatch 'nonogram\.crossed\.delete\(index\);nonogram\.filled\.add\(index\)' -or $playAppText -notmatch 'resetTransientInputState') { throw 'NONOGRAM/transition UX check failed.' }
     if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
     if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
     if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }

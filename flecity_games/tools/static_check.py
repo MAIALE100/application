@@ -76,7 +76,7 @@ if "NUI_UNAVAILABLE" not in errors_js or "NOT_IN_ROOM" not in errors_js:
 
 if "'lb-phone'" not in fx or "'oxmysql'" not in fx:
     fail("fxmanifest dependencies must include lb-phone and oxmysql")
-if "games-reload.request" not in safety_server or "ExecuteCommand('refresh')" not in safety_server or "restart flecity_games" not in safety_server:
+if "games-reload.request" not in safety_server or "ExecuteCommand('refresh')" not in safety_server or "restart flecity_games" not in safety_server or "SaveResourceFile" not in safety_server or "version=2" not in safety_server:
     fail("external PLAY reload helper is missing")
 if "version '1.1.0-dev'" not in safety_fx:
     fail("DEV Safety external reload helper version is stale")

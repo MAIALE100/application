@@ -906,7 +906,7 @@ function renderBlock(){
  refreshScreenBests();
  const streak=block.combo>0?'STREAK ×'+String(block.combo):'STREAK READY',pressure=blockPressure();
  const fever=block.combo>=3?'FEVER ACTIVE':'FEVER '+Math.min(3,Math.max(0,block.combo))+'/3';
- blockMeta.textContent=(block.daily?'DAILY · ':'')+streak+' · '+fever+' · '+String(block.pieces.filter(Boolean).length+'/3')+' PIECES · '+pressure.label;
+ blockMeta.textContent=(block.daily?'DAILY · ':'')+streak+' · '+fever+' · FIT '+String(pressure.fitPieces)+'/'+String(block.pieces.filter(Boolean).length)+' · '+pressure.label;
  blockBoard.classList.toggle('fever',block.combo>=3);
  blockBoard.classList.toggle('block-tight',pressure.label==='TIGHT');
  blockBoard.classList.toggle('block-danger',pressure.label==='DANGER');
@@ -1344,8 +1344,8 @@ function renderFall(){
  const game=fallGame;if(!game)return;
  refreshScreenBests();fallScore.textContent=String(game.score);
  const pressure=fallPressure(game);
- const level=1+Math.floor((Number(game.lines)||0)/5);
- fallMeta.textContent='LEVEL '+level+' · LINES '+String(game.lines)+' · PIECES '+String(game.pieces)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
+ const level=1+Math.floor((Number(game.lines)||0)/5),nextLevelIn=5-((Number(game.lines)||0)%5);
+ fallMeta.textContent='LEVEL '+level+' · NEXT +'+String(nextLevelIn)+' · LINES '+String(game.lines)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
  fallBoard.classList.toggle('fall-tight',pressure.label==='TIGHT');
  fallBoard.classList.toggle('fall-danger',pressure.label==='DANGER');
  fallBoard.innerHTML='';

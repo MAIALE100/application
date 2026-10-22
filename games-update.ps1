@@ -342,8 +342,9 @@ try {
     $partyCorePath = Join-Path $DestinationForValidation 'server\core\party.lua'
     $clientMainPath = Join-Path $DestinationForValidation 'client\main.lua'
     $registryPath = Join-Path $DestinationForValidation 'shared\game_registry.lua'
+    $cssPath = Join-Path $DestinationForValidation 'web\shared\app.css'
 
-    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$profileCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath)) {
+    foreach ($required in @($manifestPath,$bridgePath,$errorsPath,$playIndexPath,$playAppPath,$playCorePath,$profileCorePath,$partyIndexPath,$partyAppPath,$partyCorePath,$clientMainPath,$registryPath,$cssPath)) {
         if (-not (Test-Path $required)) { throw "Required copied file missing: $required" }
     }
 
@@ -359,6 +360,7 @@ try {
     $partyCoreText = Get-Content $partyCorePath -Raw
     $clientMainText = Get-Content $clientMainPath -Raw
     $registryText = Get-Content $registryPath -Raw
+    $cssText = Get-Content $cssPath -Raw
 
     if ($manifestText -match '(?m)^\s*ui_page\s+') { throw 'Global ui_page was detected. Refusing to deploy because it can cover the FiveM screen.' }
     if ($bridgeText -notmatch 'globalThis\.fetchNui' -or $bridgeText -notmatch "typeof fetchNui === 'function'") { throw 'LB Phone fetchNui compatibility check failed.' }

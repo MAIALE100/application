@@ -373,6 +373,8 @@ if not re.search(r"id='slide'[^\n]*supportsDaily=true", registry):
     fail("SLIDE registry Daily marker is missing")
 if not re.search(r"DailyCandidates\s*=\s*\{[^\n]*'slide'[^\n]*\}", config):
     fail("SLIDE must be included in the Daily candidate rotation")
+if "DailyCandidates = {'block','mines','quick_tap','nonogram','simon','memory','stop','slide','number_rush','sort','color_match'}" not in config:
+    fail("PLAY Daily candidate category-balanced rotation is missing")
 if "openSlide(true,true)" not in play_js or "slideGame&&slideGame.daily" not in play_js or "daily:daily===true" not in play_js:
     fail("SLIDE Daily client lifecycle is missing")
 if "SlideMasterMs = 90000" not in config or "SlideMasterMoves = 120" not in config:

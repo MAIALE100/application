@@ -363,6 +363,12 @@ function setupDeduction(room){
  cancelAnimationFrame(deductionPhaseRaf);deductionPhaseRaf=null;
  deductionPhaseLoop(rs.token);
 }
+function drawableStroke(points){
+ if(!Array.isArray(points)||points.length<1)return [];
+ if(points.length>1)return points;
+ const p=points[0],dx=p.x<=.998?.002:-.002;
+ return [p,{x:Math.max(0,Math.min(1,p.x+dx)),y:p.y}];
+}
 function paintCanvas(ctx,canvas,strokes,temp){
  ctx.fillStyle='#f7f7f7';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';
  const drawOne=points=>{if(!Array.isArray(points)||points.length<2)return;ctx.beginPath();ctx.moveTo(points[0].x*canvas.width,points[0].y*canvas.height);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x*canvas.width,points[i].y*canvas.height);ctx.stroke();};
@@ -606,9 +612,10 @@ drawCanvas.onpointermove=event=>{
 drawCanvas.onpointerup=async event=>{
  if(!drawStroke)return;const points=drawStroke;drawStroke=null;
  try{drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
- if(points.length<2){renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);return;}
+ const sendPoints=drawableStroke(points);
+ if(sendPoints.length<2){renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);return;}
  const rs=currentRoom&&currentRoom.roundState;if(!rs)return;
- const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points});
+ const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points:sendPoints});
  if(!res.ok){status('描画同期失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
 };
 drawCanvas.onpointercancel=event=>{
@@ -650,7 +657,7 @@ telephoneCanvas.onpointermove=event=>{
 };
 telephoneCanvas.onpointerup=event=>{
  if(!telephoneStroke)return;const stroke=telephoneStroke;telephoneStroke=null;try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
- if(stroke.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stroke);paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
+ const stored=drawableStroke(stroke);if(stored.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stored);paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
 };
 telephoneCanvas.onpointercancel=event=>{
  telephoneStroke=null;

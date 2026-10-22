@@ -367,3 +367,9 @@ LOOP完成版には不要な変更を入れない。
 - serverの `allReady` も `appOpen=false` を未準備扱いに変更。
 - close/Readyのraceや直接callbackでReady表示を迂回しても、PARTYを閉じた接続中メンバーを含むRoundは開始しない。
 - UIの `アプリ待ち N人` とserver-authoritative開始条件を一致させた。
+
+
+## 2026-10-23 DRAW・TELEPHONE単タップdot
+- pointer down→ほぼ移動なしで離した1点strokeを破棄せず、極小の2点strokeへ正規化してdotとして保存。
+- DRAWとTELEPHONEの両方へ適用し、目・ボタン・句点のような点描画が消えない。
+- serverのstroke検証（最低2point / 座標0〜1 / point上限）は変更せず、その形式にclient側で安全に合わせる。

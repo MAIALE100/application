@@ -649,6 +649,8 @@ if "telephoneTurnTimeoutSeconds" not in party_lua or "mode=='text' and 30 or 45"
     fail("PARTY TELEPHONE mode-specific turn pacing is missing")
 if "canvas.width=360;canvas.height=260;canvas.className='draw-canvas'" not in party_js:
     fail("PARTY TELEPHONE result canvas must preserve drawing aspect ratio")
+if "function drawableStroke(points)" not in party_js or "const sendPoints=drawableStroke(points)" not in party_js or "const stored=drawableStroke(stroke)" not in party_js:
+    fail("PARTY drawing must preserve single-tap dots")
 if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:

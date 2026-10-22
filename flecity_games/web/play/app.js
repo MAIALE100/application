@@ -991,11 +991,13 @@ async function placeBlock(x,y){
  block.score+=SHAPES[piece.shape].length*10;block.pieces[slot]=null;
  const clearedLines=clearLines();
  if(clearedLines>0){
-   blockBoard.classList.remove('line-clear');void blockBoard.offsetWidth;blockBoard.classList.add('line-clear');
-   tone(620+Math.min(260,block.combo*45),55);
+   const pressureAfter=blockPressure(),escapedDanger=pressureBefore.label==='DANGER'&&pressureAfter.label!=='DANGER';
+   blockBoard.classList.remove('line-clear','block-clutch');void blockBoard.offsetWidth;blockBoard.classList.add('line-clear');
+   if(escapedDanger)blockBoard.classList.add('block-clutch');
+   tone(escapedDanger?960:620+Math.min(260,block.combo*45),escapedDanger?75:55);
    const blast=clearedLines>=3?'MEGA BLAST':(clearedLines===2?'DOUBLE BLAST':'LINE CLEAR');
    const fever=block.combo===3?'FEVER START · ':(block.combo>3?'FEVER ×'+block.combo+' · ':(block.combo>1?'STREAK ×'+block.combo+' · ':''));
-   const clutch=pressureBefore.label==='DANGER'?'CLUTCH · ':'';
+   const clutch=escapedDanger?'CLUTCH ESCAPE · ':(pressureBefore.label==='DANGER'?'DANGER CLEAR · ':'');
    setStatus(clutch+fever+blast,'good');
  }else tone(420,22);
  if(block.pieces.every(p=>!p))refillPieces();else{const next=block.pieces.findIndex(Boolean);if(next>=0)block.selected=next;}
@@ -1135,7 +1137,7 @@ async function openMerge(forceNew){
 }
 async function moveMerge(direction){
  const game=merge;if(!game||game.finished)return;
- const before=JSON.stringify(game.board),maxBefore=maxMergeTile(game.board),chainBefore=Number(game.chain)||0;
+ const before=JSON.stringify(game.board),maxBefore=maxMergeTile(game.board),chainBefore=Number(game.chain)||0,pressureBefore=mergePressure();
  merge.moveGain=0;
  if(direction==='left'||direction==='right'){
    for(let y=0;y<4;y++){
@@ -1154,10 +1156,12 @@ async function moveMerge(direction){
  }else merge.chain=0;
  const gained=baseGain>0?baseGain*merge.chain:0;
  merge.progressed=true;merge.moves+=1;merge.history.push(direction);spawnMergeTile();
- const maxAfter=maxMergeTile(merge.board);
- mergeBoard.classList.remove('merge-move','merge-combine','merge-milestone');void mergeBoard.offsetWidth;
+ const maxAfter=maxMergeTile(merge.board),pressureAfter=mergePressure(),escapedDanger=pressureBefore.label==='DANGER'&&pressureAfter.label!=='DANGER';
+ mergeBoard.classList.remove('merge-move','merge-combine','merge-milestone','merge-clutch');void mergeBoard.offsetWidth;
  mergeBoard.classList.add(gained>0?'merge-combine':'merge-move');
- if(maxAfter>maxBefore&&maxAfter>=64){
+ if(escapedDanger){
+   mergeBoard.classList.add('merge-clutch');tone(960,75);setStatus('CLUTCH ESCAPE · '+pressureAfter.empty+' SPACE · CHAIN ×'+merge.chain+' · +'+gained,'good');
+ }else if(maxAfter>maxBefore&&maxAfter>=64){
    mergeBoard.classList.add('merge-milestone');tone(900,65);setStatus('NEW TILE '+maxAfter+' · CHAIN ×'+merge.chain,'good');
  }else if(gained>0){
    tone(500+Math.min(320,baseGain),38);
@@ -1440,18 +1444,20 @@ function rotateFall(){
 }
 async function dropFall(){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
- const levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
+ const pressureBefore=fallPressure(game),levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
  if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
  game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
  const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
  game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
  if(applied.cleared>0){
-   fallBoard.classList.remove('fall-clear','fall-quad');void fallBoard.offsetWidth;fallBoard.classList.add('fall-clear');
+   const pressureAfter=fallPressure(game),escapedDanger=pressureBefore.label==='DANGER'&&pressureAfter.label!=='DANGER';
+   fallBoard.classList.remove('fall-clear','fall-quad','fall-clutch');void fallBoard.offsetWidth;fallBoard.classList.add('fall-clear');
    if(applied.cleared>=4)fallBoard.classList.add('fall-quad');
-   tone(720+Math.min(220,applied.cleared*45),55);
+   if(escapedDanger)fallBoard.classList.add('fall-clutch');
+   tone(escapedDanger?980:720+Math.min(220,applied.cleared*45),escapedDanger?80:55);
    const clearLabel=applied.cleared>=4?'QUAD CLEAR':(applied.cleared===3?'TRIPLE CLEAR':(applied.cleared===2?'DOUBLE CLEAR':'LINE CLEAR'));
    const levelAfter=1+Math.floor((Number(game.lines)||0)/5),levelUp=levelAfter>levelBefore?'LEVEL UP '+levelAfter+' · ':'';
-   setStatus(levelUp+(game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · LEVEL ×'+applied.level+' · +'+applied.gained,'good');
+   setStatus((escapedDanger?'CLUTCH ESCAPE · ':'')+levelUp+(game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · LEVEL ×'+applied.level+' · +'+applied.gained,'good');
  }else tone(430,18);
  if(!game.ended)fallResetCursor();renderFall();
  if(game.ended){

@@ -1398,7 +1398,10 @@ function FlecityGamesParty.AppClosed(source)
     local member=id and room and room.members[id] or nil
     if not id or not room or not member or tonumber(member.source)~=tonumber(source) or member.disconnected then return end
     local changed=false
-    room.members[id].appOpen=false
+    if room.members[id].appOpen~=false then
+        room.members[id].appOpen=false
+        changed=true
+    end
     if room.state=='lobby' and room.members[id].ready==true then
         room.members[id].ready=false
         changed=true

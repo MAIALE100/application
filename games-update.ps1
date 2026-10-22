@@ -378,6 +378,7 @@ try {
     if ($playAppText -notmatch 'stackCameraTarget' -or $playAppText -notmatch 'cameraOffset' -or $cssText -notmatch 'data-camera="follow"') { throw 'TOWER follow camera check failed.' }
     if ($playAppText -notmatch 'dropStackBlock' -or $playAppText -notmatch 'stackArena\.onclick' -or $playIndexText -notmatch 'id="stackArena"' -or $playIndexText -notmatch 'tabindex="0"') { throw 'TOWER direct-tap DROP check failed.' }
     if ($playAppText -notmatch 'layerCount\)\|\|0\)-5' -or $cssText -notmatch 'html,body,\.wrap\{scrollbar-width:none' -or $cssText -notmatch 'html::\-webkit\-scrollbar') { throw 'TOWER viewport / scrollbar suppression check failed.' }
+    if ($cssText -notmatch 'PLAY submission home visual pass v24' -or $cssText -notmatch 'home-scroll-row' -or $playIndexText -notmatch 'home-utility-label' -or $playIndexText -notmatch 'home-edition') { throw 'PLAY submission home visual pass check failed.' }
     if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\{display:none!important\}') { throw 'PLAY in-game shared status suppression check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }

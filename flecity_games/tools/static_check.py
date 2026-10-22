@@ -622,6 +622,7 @@ for marker in (
     "wordWolfPrivacy",
     "liarPrivacy",
     "drawPrivacy",
+    "drawAliasMatch",
     "telephonePrivacy",
     "roomRevision",
     "disconnectedVoteIgnored",

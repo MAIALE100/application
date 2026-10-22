@@ -22,7 +22,19 @@ local votePrompts={
     '一番面白いあだ名を付けそうなのは？',
     '一番買い物に時間をかけそうなのは？',
     '一番先に新しい流行を見つけそうなのは？',
-    '一番長距離ドライブを楽しみそうなのは？'
+    '一番長距離ドライブを楽しみそうなのは？',
+    '急にイベントを主催しても成功させそうなのは？',
+    '一番寝坊しそうなのは？',
+    '一番サプライズが上手そうなのは？',
+    '知らない人ともすぐ仲良くなれそうなのは？',
+    '一番財布を忘れて出かけそうなのは？',
+    'ゾンビ映画で最後まで生き残りそうなのは？',
+    '一番部屋がきれいそうなのは？',
+    '一番勢いで高い買い物をしそうなのは？',
+    '困った時に最初に相談したいのは？',
+    '一番ゲームで負けず嫌いそうなのは？',
+    '一番SNSでバズりそうなのは？',
+    '一番早く新しい仕事を覚えそうなのは？'
 }
 local majorityPrompts={
     {question='休日に選ぶなら？',options={'街で遊ぶ','家でのんびり'}},
@@ -42,7 +54,19 @@ local majorityPrompts={
     {question='部屋に置くなら？',options={'大きなテレビ','高性能PC'}},
     {question='天気を選べるなら？',options={'晴れ','雨'}},
     {question='一緒に暮らすなら？',options={'猫','犬'}},
-    {question='買い物するなら？',options={'店舗','オンライン'}}
+    {question='買い物するなら？',options={'店舗','オンライン'}},
+    {question='遊ぶなら？',options={'大人数','少人数'}},
+    {question='予定を決めるなら？',options={'前もって決める','当日に決める'}},
+    {question='プレゼントなら？',options={'実用品','サプライズ品'}},
+    {question='住むなら？',options={'都会','郊外'}},
+    {question='移動するなら？',options={'自分で運転','誰かに乗せてもらう'}},
+    {question='飲むなら？',options={'コーヒー','お茶'}},
+    {question='休日の起床は？',options={'早起き','昼まで寝る'}},
+    {question='挑戦するなら？',options={'安全に確実','リスクを取る'}},
+    {question='記念に残すなら？',options={'写真','動画'}},
+    {question='食事するなら？',options={'新しい店','いつもの店'}},
+    {question='パーティーなら？',options={'主催する','参加する'}},
+    {question='作業するなら？',options={'一気に終わらせる','少しずつ進める'}}
 }
 local wordWolfPairs={
     {'コーヒー','紅茶'},{'海','プール'},{'猫','犬'},{'警察','救急隊'},{'スポーツカー','バイク'},
@@ -50,7 +74,11 @@ local wordWolfPairs={
     {'ハンバーガー','ピザ'},{'電車','バス'},{'山','森'},{'夏','冬'},{'電話','メッセージ'},
     {'カメラ','双眼鏡'},{'ホテル','キャンプ'},{'サッカー','バスケットボール'},{'ケーキ','アイス'},
     {'本屋','図書館'},{'飛行機','ヘリコプター'},{'花火','イルミネーション'},{'川','湖'},
-    {'朝ごはん','夜食'},{'ゲーム','映画'}
+    {'朝ごはん','夜食'},{'ゲーム','映画'},{'コンビニ','スーパー'},{'ラーメン','うどん'},
+    {'財布','スマホ'},{'エレベーター','エスカレーター'},{'温泉','プール'},{'公園','遊園地'},
+    {'タクシー','バス'},{'コーラ','エナジードリンク'},{'パスタ','カレー'},{'春','秋'},
+    {'デスクトップPC','ノートPC'},{'イヤホン','ヘッドホン'},{'野球','テニス'},{'時計','スマートウォッチ'},
+    {'パンケーキ','ワッフル'}
 }
 local liarPrompts={
     '最近一番よく行く場所は？',
@@ -70,13 +98,57 @@ local liarPrompts={
     '得意料理を1つ挙げるなら？',
     '子どもの頃に好きだった遊びは？',
     '新しい趣味を始めるなら何にする？',
-    'Flecityで友達を案内するなら最初にどこへ行く？'
+    'Flecityで友達を案内するなら最初にどこへ行く？',
+    '今までで一番高かった買い物は？',
+    '1週間休みがあったら何をする？',
+    '得意なゲームジャンルは？',
+    '誰にも負けないと思う小さな特技は？',
+    '夜中にお腹が空いたら何を食べる？',
+    '雨の日にしたいことは？',
+    '車の色を自由に選ぶなら何色？',
+    '無人島に1つ持っていくなら何？',
+    '最近ほしいと思った服や小物は？',
+    '1日だけ透明人間になれたら何をする？',
+    '友達と集まった時に一番やりたいことは？',
+    '自分を動物に例えるなら何？'
 }
 local drawPrompts={
     '猫','車','ピザ','飛行機','魚','スマホ','家','木','カメラ','時計','サメ','ハンバーガー',
     '犬','バイク','船','太陽','月','傘','帽子','ケーキ','コーヒー','花','ギター','ヘリコプター',
-    '信号機','橋','山','テレビ','鍵','メガネ','靴','雪だるま','風船','救急車','パトカー','ドーナツ'
+    '信号機','橋','山','テレビ','鍵','メガネ','靴','雪だるま','風船','救急車','パトカー','ドーナツ',
+    'りんご','バナナ','ラーメン','電車','バス','タクシー','ロケット','宇宙人','ロボット','王冠',
+    '指輪','プレゼント','本','パソコン','イヤホン','冷蔵庫','ベッド','ソファ','自転車','スケートボード',
+    '富士山','虹','雲','星'
 }
+local drawPromptAliases={
+    ['猫']={'ねこ','ネコ'},['車']={'くるま','自動車'},['飛行機']={'ひこうき'},['魚']={'さかな'},
+    ['スマホ']={'スマートフォン','携帯','携帯電話'},['家']={'いえ'},['木']={'き'},['時計']={'とけい'},
+    ['ハンバーガー']={'バーガー'},['犬']={'いぬ','イヌ'},['バイク']={'オートバイ','二輪車'},['船']={'ふね'},
+    ['太陽']={'たいよう'},['月']={'つき'},['傘']={'かさ'},['帽子']={'ぼうし'},['花']={'はな'},
+    ['ヘリコプター']={'ヘリ'},['信号機']={'信号'},['橋']={'はし'},['山']={'やま'},['テレビ']={'TV','tv'},
+    ['鍵']={'かぎ','キー'},['メガネ']={'めがね','眼鏡'},['靴']={'くつ'},['雪だるま']={'ゆきだるま','雪ダルマ'},
+    ['風船']={'ふうせん'},['救急車']={'きゅうきゅうしゃ'},['パトカー']={'警察車両'},['ドーナツ']={'ドーナッツ'},
+    ['りんご']={'リンゴ','林檎'},['バナナ']={'banana'},['電車']={'でんしゃ'},['バス']={'bus'},['タクシー']={'taxi'},
+    ['ロケット']={'rocket'},['宇宙人']={'うちゅうじん'},['ロボット']={'robot'},['王冠']={'クラウン'},
+    ['指輪']={'リング'},['本']={'ほん'},['パソコン']={'PC','pc'},['イヤホン']={'earphone'},['自転車']={'チャリ','じてんしゃ'},
+    ['虹']={'にじ'},['雲']={'くも'},['星']={'ほし'}
+}
+
+local function normalizedDrawAnswer(value)
+    return string.lower(FlecityGamesText.Normalize(value)):gsub('%s+','')
+end
+
+local function drawGuessMatches(prompt,guess)
+    local target=normalizedDrawAnswer(prompt)
+    local answer=normalizedDrawAnswer(guess)
+    if target=='' or answer=='' then return false end
+    if answer==target then return true end
+    for _,alias in ipairs(drawPromptAliases[prompt] or {}) do
+        if answer==normalizedDrawAnswer(alias) then return true end
+    end
+    return false
+end
+
 local telephonePrompts={
     '赤い車で海へ行く',
     '猫がピザを食べている',
@@ -97,7 +169,21 @@ local telephonePrompts={
     'パトカーの上に巨大なピザが乗っている',
     '夜の橋をスポーツカーで渡る',
     '犬がカメラで猫を撮影している',
-    '救急車が海辺でアイスを売っている'
+    '救急車が海辺でアイスを売っている',
+    '宇宙人がコンビニで買い物をしている',
+    '猫がバイクの後ろに乗っている',
+    'ロボットがラーメンを作っている',
+    '犬が大きなプレゼントを開けている',
+    '電車の屋根に雪だるまが乗っている',
+    '魚が空を飛ぶ飛行機を見上げている',
+    '王冠をかぶった猫がソファで寝ている',
+    '雨の中でロボットが傘をさしている',
+    '宇宙人がタクシーを運転している',
+    '自転車で巨大なドーナツを運んでいる',
+    '虹の下で犬と猫が写真を撮っている',
+    '冷蔵庫の中から風船が飛び出している',
+    '星空の下でパトカーがキャンプしている',
+    'ロケットにピザを届けるバイク便'
 }
 
 local function identifier(source) return FlecityGamesFramework.GetIdentifier(source) end
@@ -1064,7 +1150,7 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     local guess=FlecityGamesText.Normalize(data.guess)
     local guessLength=FlecityGamesText.Length(guess)
     if guessLength<1 or guessLength>40 then return {ok=false,error='INVALID_GUESS'} end
-    local correct=string.lower(guess)==string.lower(rs.prompt)
+    local correct=drawGuessMatches(rs.prompt,guess)
     if correct then
         rs.guessed[id]=true rs.guessedAt[id]=GetGameTimer() rs.submissions[id]=true maybeFinishDraw(room)
         notifyRoom(room,source)
@@ -1504,7 +1590,8 @@ function FlecityGamesParty.DebugSelftest()
         wordWolfPrivacy=wolfA.secretTopic=='猫' and wolfC.secretTopic=='犬' and wolfA.topics==nil and wolfC.topics==nil,
         liarPrompts=#liarPrompts>=4,
         liarPrivacy=liarA.role=='TRUTH' and liarB.role=='LIAR' and liarA.roles==nil and liarB.roles==nil,
-        drawPrompts=#drawPrompts>=8,
+        drawPrompts=#drawPrompts>=50,
+        drawAliasMatch=drawGuessMatches('車','自動車') and drawGuessMatches('スマホ','携帯電話') and not drawGuessMatches('猫','犬'),
         drawPrivacy=drawA.prompt=='猫' and drawB.prompt==nil and drawA.isDrawer==true and drawB.isDrawer==false,
         drawCompletion=drawRoom.roundState.complete==true
             and #drawRoom.roundState.results.entries==2

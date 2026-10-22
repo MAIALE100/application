@@ -142,6 +142,10 @@ if config.count("enabled = true") < 2:
     fail("PLAY/PARTY app visibility flags are missing from config")
 if "name = 'LOOP'" not in config or "icon = 'web/play/icon.svg'" not in config:
     fail("LOOP app branding/icon config is missing")
+if not re.search(r"Play\s*=\s*\{.*?defaultApp\s*=\s*false.*?game\s*=\s*true.*?size\s*=\s*1800.*?price\s*=\s*0", config, re.S):
+    fail("LOOP must be a free LB Phone App Store download")
+if "defaultApp=app.defaultApp,game=app.game,size=app.size,price=app.price" not in client:
+    fail("LOOP App Store metadata is not forwarded to AddCustomApp")
 if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:
     fail("auto-reload must refresh FiveM metadata before restarting flecity_games")
 if "reload_v2=1" not in dev_reload:
@@ -631,10 +635,10 @@ if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_re
     fail("submission builder LOOP release branding/dev exclusion is missing")
 if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
     fail("submission builder PARTY-disable packaging is missing")
-if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install:
+if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install or "App Store" not in submission_install:
     fail("operator submission install guide is incomplete")
-if "PARTYカスタムアプリは無効化" not in submission_checklist:
-    fail("operator submission checklist does not describe PLAY-only build")
+if "PARTYカスタムアプリは無効化" not in submission_checklist or "defaultApp=false / price=0" not in submission_checklist:
+    fail("operator submission checklist does not describe LOOP App Store build")
 
 if re.search(r"\bTODO\b|\bFIXME\b", all_text):
     fail("TODO/FIXME marker found in flecity_games source/docs")

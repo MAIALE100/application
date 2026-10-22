@@ -899,3 +899,11 @@ body.reduced-motion .memory-board.memory-perfect{animation:none!important}
  .merge-cell[data-value="1024"],.merge-cell[data-value="2048"],.merge-cell[data-value="4096"],.merge-cell[data-value="8192"]{font-size:.88rem}
  .merge-cell[data-value="16384"],.merge-cell[data-value="32768"],.merge-cell[data-value="65536"]{font-size:.7rem}
 }
+
+
+/* MERGE extreme-session label safety v21 */
+.merge-cell{min-width:0;overflow:hidden;text-overflow:clip}
+.merge-cell[data-value^="131"],.merge-cell[data-value^="262"],.merge-cell[data-value^="524"]{font-size:.68rem;letter-spacing:-.065em}
+@media(max-width:22.5rem){
+ .merge-cell[data-value^="131"],.merge-cell[data-value^="262"],.merge-cell[data-value^="524"]{font-size:.6rem}
+}

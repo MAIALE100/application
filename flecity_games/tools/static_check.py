@@ -428,6 +428,8 @@ if "fallGravityDelay" not in play_js or "fallGravityTick" not in play_js or "sta
     fail("FALL automatic gravity loop is missing")
 if "fallPeekPieces" not in play_js or "fallSoft" not in play_js or "startFallSoftDrop" not in play_js or "NEXT 3" not in play_html:
     fail("FALL soft drop / NEXT queue is missing")
+if ".fall-preview-cell.filled{background:currentColor" not in play_css or "width:min(100%,14rem)" not in play_css:
+    fail("FALL preview contrast / enlarged board visual pass is missing")
 if "holdFallPiece" not in play_js or 'id="fallHold"' not in play_html or "fallHoldReplay" not in play_lua or "heldPiece=heldPiece or 0" not in play_lua:
     fail("FALL HOLD replay/UI is missing")
 if "DROP '+gravity+'s" not in play_js or "HARD DROP" not in play_html:
@@ -456,8 +458,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.57.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.57.0-test")
+if "version '0.58.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.58.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:

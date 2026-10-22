@@ -12,7 +12,7 @@ const blockEl=document.getElementById('blockGame'),blockBoard=document.getElemen
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
-const fallEl=document.getElementById('fallGame'),fallBoard=document.getElementById('fallBoard'),fallScore=document.getElementById('fallScore'),fallMeta=document.getElementById('fallMeta'),fallBest=document.getElementById('fallBest'),fallNext=document.getElementById('fallNext'),fallBack=document.getElementById('fallBack'),fallLeft=document.getElementById('fallLeft'),fallRight=document.getElementById('fallRight'),fallRotate=document.getElementById('fallRotate'),fallDrop=document.getElementById('fallDrop'),fallNew=document.getElementById('fallNew'),fallFinish=document.getElementById('fallFinish');
+const fallEl=document.getElementById('fallGame'),fallBoard=document.getElementById('fallBoard'),fallScore=document.getElementById('fallScore'),fallMeta=document.getElementById('fallMeta'),fallBest=document.getElementById('fallBest'),fallNext=document.getElementById('fallNext'),fallBack=document.getElementById('fallBack'),fallLeft=document.getElementById('fallLeft'),fallRight=document.getElementById('fallRight'),fallRotate=document.getElementById('fallRotate'),fallSoft=document.getElementById('fallSoft'),fallDrop=document.getElementById('fallDrop'),fallNew=document.getElementById('fallNew'),fallFinish=document.getElementById('fallFinish');
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesMeta=document.getElementById('minesMeta'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,fallSoftClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -160,7 +160,7 @@ function resetTransientInputState(){
 }
 function hideAll(){document.body.classList.add('game-active');homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(fallGravityClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);fallGravityClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(fallGravityClock);clearInterval(fallSoftClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);fallGravityClock=null;fallSoftClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
  resetTransientInputState();
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');document.body.classList.remove('game-active');renderGames(bootstrapData&&bootstrapData.games);
@@ -1296,11 +1296,15 @@ function fallPieceStateFor(seed,index){
  return {state,type};
 }
 function fallPieceFor(seed,index){return fallPieceStateFor(seed,index).type;}
-function fallPeekNextPiece(game){
- if(!game)return 0;
- const [,value]=fallSeededNext(game.pieceRngState);
- return 1+Math.floor(value*FALL_BASE_SHAPES.length);
+function fallPeekPieces(game,count=3){
+ if(!game)return [];
+ let state=game.pieceRngState,out=[];
+ for(let i=0;i<Math.max(1,Math.min(5,Math.floor(Number(count)||3)));i++){
+   let value;[state,value]=fallSeededNext(state);out.push(1+Math.floor(value*FALL_BASE_SHAPES.length));
+ }
+ return out;
 }
+function fallPeekNextPiece(game){return fallPeekPieces(game,1)[0]||0;}
 function fallShape(pieceType,rotation){
  const base=FALL_BASE_SHAPES[Math.floor(Number(pieceType)||0)-1];if(!base)return [];
  let shape=base.map(([x,y])=>[x,y]);
@@ -1356,6 +1360,19 @@ function fallGravityDelay(game){
  return Math.max(230,900-((level-1)*95));
 }
 function stopFallGravity(){clearInterval(fallGravityClock);fallGravityClock=null;}
+function stopFallSoftDrop(){clearInterval(fallSoftClock);fallSoftClock=null;}
+function softDropFall(){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended||!game.sessionToken)return false;
+ const shape=fallShape(game.nextPiece,game.rotation),landingY=fallDropY(game.board,game.width,game.height,shape,game.x);
+ if(landingY===null||game.y>=landingY)return false;
+ game.y=Math.min(landingY,game.y+1);game.lastGravityAt=performance.now();game.groundedAt=game.y>=landingY?performance.now():null;
+ renderFall();return true;
+}
+function startFallSoftDrop(){
+ stopFallSoftDrop();
+ if(!softDropFall())return;
+ fallSoftClock=setInterval(()=>{if(!softDropFall())stopFallSoftDrop();},70);
+}
 function startFallGravity(){
  stopFallGravity();
  const game=fallGame;if(!game||game.finished||game.finalizing||game.ended||!game.sessionToken)return;
@@ -1389,14 +1406,17 @@ function fallResetCursor(){
 }
 function renderFallPreview(){
  fallNext.innerHTML='';
- const previewPiece=fallGame&&!fallGame.ended?fallPeekNextPiece(fallGame):0;
- const shape=previewPiece?fallShape(previewPiece,0):[];
- const occupied=new Set(shape.map(([x,y])=>x+','+y));
- for(let y=0;y<4;y++)for(let x=0;x<4;x++){
-   const cell=document.createElement('span');
-   cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(previewPiece):'');
-   fallNext.appendChild(cell);
- }
+ const pieces=fallGame&&!fallGame.ended?fallPeekPieces(fallGame,3):[];
+ pieces.forEach((previewPiece,index)=>{
+   const preview=document.createElement('div');preview.className='fall-next-piece';preview.setAttribute('aria-label','NEXT '+String(index+1));
+   const shape=fallShape(previewPiece,0),occupied=new Set(shape.map(([x,y])=>x+','+y));
+   for(let y=0;y<4;y++)for(let x=0;x<4;x++){
+     const cell=document.createElement('span');
+     cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(previewPiece):'');
+     preview.appendChild(cell);
+   }
+   fallNext.appendChild(preview);
+ });
 }
 function fallPressure(game){
  let top=game.height;
@@ -1434,7 +1454,7 @@ function renderFall(){
  }
  renderFallPreview();
  const locked=game.finished||game.finalizing||game.busy||game.ended||!game.sessionToken;
- fallLeft.disabled=locked;fallRight.disabled=locked;fallRotate.disabled=locked;fallDrop.disabled=locked;
+ fallLeft.disabled=locked;fallRight.disabled=locked;fallRotate.disabled=locked;fallSoft.disabled=locked;fallDrop.disabled=locked;
  fallNew.disabled=game.finalizing===true;fallFinish.disabled=game.finalizing===true||game.history.length<1||!game.sessionToken;
 }
 function syncFallCanonical(game,canonical){
@@ -1556,7 +1576,7 @@ async function dropFall(autoLock=false){
 async function finishFall(gameOver=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||!game.sessionToken)return;
  if(game.history.length<1){setStatus('1個以上ブロックを置いてから記録できます。','warn');return;}
- stopFallGravity();game.finalizing=true;game.busy=true;renderFall();
+ stopFallGravity();stopFallSoftDrop();game.finalizing=true;game.busy=true;renderFall();
  await saveQueue.catch(()=>{});
  const saved=await persistFall(true,true);
  if(!saved&&fallGame===game){game.finalizing=false;game.busy=false;if(!game.ended)startFallGravity();renderFall();return;}
@@ -1599,10 +1619,14 @@ fallBoard.onpointercancel=event=>{
 fallLeft.onclick=()=>moveFallHorizontal(-1);
 fallRight.onclick=()=>moveFallHorizontal(1);
 fallRotate.onclick=rotateFall;
-fallDrop.onclick=()=>{void dropFall(false);};
+fallSoft.onpointerdown=event=>{if(event.button>0)return;startFallSoftDrop();try{fallSoft.setPointerCapture(event.pointerId);}catch(_){}};
+fallSoft.onpointerup=event=>{stopFallSoftDrop();try{fallSoft.releasePointerCapture(event.pointerId);}catch(_){}};
+fallSoft.onpointercancel=()=>stopFallSoftDrop();
+fallSoft.onpointerleave=event=>{if(event.buttons===0)stopFallSoftDrop();};
+fallDrop.onclick=()=>{stopFallSoftDrop();void dropFall(false);};
 fallBack.onclick=async()=>{
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
- stopFallGravity();
+ stopFallGravity();stopFallSoftDrop();
  if(fallGame&&!fallGame.finished&&fallGame.sessionToken){
    await saveQueue.catch(()=>{});
    const saved=await persistFall(true,true);if(!saved){if(fallGame&&!fallGame.ended)startFallGravity();return;}
@@ -1618,7 +1642,7 @@ fallNew.onclick=async()=>{
    const ok=await confirmAction('FALLを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
    if(!ok)return;
  }
- stopFallGravity();fallNew.disabled=true;
+ stopFallGravity();stopFallSoftDrop();fallNew.disabled=true;
  try{
    await saveQueue.catch(()=>{});
    if(fallGame&&fallGame.sessionToken)await cancelPlaySession(fallGame.sessionToken);
@@ -3132,9 +3156,9 @@ async function suspendActivePlay(){
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
-   clearInterval(fallGravityClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
+   clearInterval(fallGravityClock);clearInterval(fallSoftClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
-   fallGravityClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+   fallGravityClock=null;fallSoftClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
    resetTransientInputState();
 
    if(block&&!block.finished&&!block.finalizing){

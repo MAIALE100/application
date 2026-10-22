@@ -1630,7 +1630,7 @@ function FlecityGamesParty.DebugSelftest()
         token='tel-skip',gameId='telephone',startedAt=0,startedTick=0,complete=false,submissions={},
         turnOrder={'a','b','c'},step=2,mode='text',currentIdentifier='b',
         chain={{kind='text',text='秘密のお題'},{kind='draw',byIdentifier='a',byName='Alpha',strokes={{{x=0,y=0},{x=1,y=1}}}}},
-        deadlineTick=1,deadlineDurationSec=45
+        deadlineTick=GetGameTimer()+10000,deadlineDurationSec=45
     }}
     reconcileRound(telephoneSkipRoom)
 

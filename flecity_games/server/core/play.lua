@@ -833,7 +833,23 @@ local NONOGRAM_PATTERNS_5={
     {'11111','10001','10001','10001','11111'}, -- frame
     {'10101','11111','01110','01110','11111'}, -- crown
     {'00100','01110','11111','01110','10101'}, -- rocket
-    {'00100','01110','11111','01110','00101'}  -- fish
+    {'00100','01110','11111','01110','00101'}, -- fish
+    {'10001','01010','00100','01010','10001'}, -- X
+    {'11111','01110','00100','01110','11111'}, -- hourglass
+    {'11111','00100','00100','00100','00100'}, -- T
+    {'10001','10001','11111','10001','10001'}, -- H
+    {'01110','10001','11111','10001','10001'}, -- A
+    {'10001','10001','10001','10001','01110'}, -- U
+    {'10000','10000','10000','10000','11111'}, -- L
+    {'11000','01100','00110','00011','00000'}, -- zigzag
+    {'01110','01010','01110','00100','00111'}, -- key
+    {'00100','01110','11111','00100','01010'}, -- umbrella
+    {'10001','11011','01110','11011','10001'}, -- butterfly
+    {'01110','10101','11111','01010','01010'}, -- skull
+    {'10001','11011','11111','10101','01110'}, -- cat
+    {'00100','01100','11100','11111','01110'}, -- boat
+    {'00110','00101','00101','10100','01100'}, -- note
+    {'00110','01100','11110','00110','01100'}  -- bolt
 }
 local function generateNonogram(seed,size)
     if tonumber(size)==5 then
@@ -2590,7 +2606,7 @@ function FlecityGamesPlay.DebugSelftest()
             return replayed==nil or (replayed.score>=0 and replayed.layers>=0 and replayed.maxPerfectStreak>=0)
         end)(),
         nonogramSeedCount=testNonogramCount==testNonogramActual and testNonogramCount>0,
-        nonogramCuratedSet=#NONOGRAM_PATTERNS_5==14 and testNonogramCount>0,
+        nonogramCuratedSet=#NONOGRAM_PATTERNS_5==30 and testNonogramCount>0,
         nonogramValidateTime=nonogram and validateScore(nonogram,45000)==45000 or false,
         memoryDeckPairs=memory and memoryReplay and memoryReplay.complete==true and memoryReplay.pairs==8,
         memoryValidateTime=memory and validateScore(memory,12000)==12000 or false,

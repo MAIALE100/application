@@ -1,0 +1,45 @@
+Flecity Games PLAY v1.0.0
+運営様向け 確認用メモ
+
+■ 変更範囲
+・追加リソース：flecity_games
+・LB Phone：AddCustomApp によるPLAY追加のみ
+・Qbox core：変更なし
+・LB Phone core：変更なし
+・oxmysql：既存APIを利用
+・既存アプリ / 既存テーブル：変更なし
+
+■ DB
+自動作成対象：
+flecity_game_profiles
+flecity_game_scores
+flecity_game_saves
+flecity_game_achievements
+flecity_game_daily
+
+スキーマ初期化は CREATE TABLE IF NOT EXISTS と不足列/indexの補完です。
+DROP TABLE / TRUNCATE TABLE はありません。
+
+■ PLAY
+・15ゲーム
+・一人用
+・Daily Challenge
+・ランキング
+・実績
+・途中保存 / 再開
+・サーバー側スコア検証 / リプレイ検証
+・キャラクター単位の設定 / 記録
+
+■ 今回の提出版
+PARTYカスタムアプリは無効化しています。
+開発用の自動reload、静的テストツール、TESTING.mdは提出ZIPから除外しています。
+
+■ 正常起動の目安
+database schema ready
+LB Phone callbacks registered .../...
+startup preflight READY_FOR_LIVE_TEST
+
+■ 切り戻し
+stop flecity_games
+および server.cfg の ensure flecity_games を外すだけで停止できます。
+DBテーブルの削除は切り戻しに不要です。

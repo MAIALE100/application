@@ -354,7 +354,7 @@ if "fallPeekNextPiece" not in play_js or "pieceRngState" not in play_js or "Next
     fail("FALL deterministic next-piece preview is missing")
 if "game.pieces%3===0" not in play_js or "persistFall(false,false)" not in play_js or "snapshotLength" not in play_js:
     fail("FALL non-blocking autosave flow is missing")
-if "normalized[#normalized+1]={applied.x,applied.rotation}" not in play_lua or "game.history.push([game.x,game.rotation])" not in play_js:
+if "normalized[#normalized+1]={x=applied.x,rotation=applied.rotation,hold=useHold}" not in play_lua or "game.history.push({x:game.x,rotation:game.rotation,hold:game.holdUsed===true})" not in play_js:
     fail("FALL compact long-run history format is missing")
 if "level=math.min(8,1+math.floor" not in play_lua or "LEVEL ×'+applied.level" not in play_js:
     fail("FALL level multiplier scoring is missing")
@@ -428,6 +428,8 @@ if "fallGravityDelay" not in play_js or "fallGravityTick" not in play_js or "sta
     fail("FALL automatic gravity loop is missing")
 if "fallPeekPieces" not in play_js or "fallSoft" not in play_js or "startFallSoftDrop" not in play_js or "NEXT 3" not in play_html:
     fail("FALL soft drop / NEXT queue is missing")
+if "holdFallPiece" not in play_js or 'id="fallHold"' not in play_html or "fallHoldReplay" not in play_lua or "heldPiece=heldPiece or 0" not in play_lua:
+    fail("FALL HOLD replay/UI is missing")
 if "DROP '+gravity+'s" not in play_js or "HARD DROP" not in play_html:
     fail("FALL gravity speed/control feedback is missing")
 if "CLUTCH ESCAPE" not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
@@ -454,8 +456,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.56.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.56.0-test")
+if "version '0.57.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.57.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:

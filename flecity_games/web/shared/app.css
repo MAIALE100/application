@@ -868,3 +868,14 @@ body.game-active .card.stack>.row>button{min-width:8rem;flex:1 1 8rem}
 body.reduced-motion .block-board.block-clutch,
 body.reduced-motion .merge-board.merge-clutch,
 body.reduced-motion .fall-board.fall-clutch{animation:none!important}
+
+
+/* MEMORY perfect-clear feedback v20 */
+.memory-board.memory-perfect{animation:memory-perfect-clear .46s ease}
+.memory-board.memory-perfect .memory-card.matched{opacity:1;box-shadow:0 0 0 .0625rem rgba(255,226,125,.28),0 0 1rem rgba(255,219,108,.08)}
+@keyframes memory-perfect-clear{
+  0%{transform:scale(.985);filter:brightness(.92)}
+  50%{transform:scale(1.012);filter:brightness(1.2);box-shadow:0 0 1.5rem rgba(255,222,112,.1)}
+  100%{transform:none;filter:none}
+}
+body.reduced-motion .memory-board.memory-perfect{animation:none!important}

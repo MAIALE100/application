@@ -598,7 +598,7 @@ function quickTapGrade(ms){
 function setQuickVisual(state){quickEl.dataset.state=state||'idle';}
 function renderQuickMeta(){
  if(!tapSession){tapRunMeta.textContent='HIT 0 / 7 · ♥♥♥ · FALSE 0';return;}
- tapRunMeta.textContent='HIT '+String(tapSession.hits||0)+' / '+String(tapSession.targetHits||7)+' · '+'♥'.repeat(Math.max(0,tapSession.lives||0))+' · FALSE '+String(tapSession.falseStarts||0);
+ tapRunMeta.textContent='HIT '+String(tapSession.hits||0)+' / '+String(tapSession.targetHits||7)+' · '+'♥'.repeat(Math.max(0,tapSession.lives||0))+' · FALSE '+String(tapSession.falseStarts||0)+((tapSession.focusStreak||0)>=2?' · FOCUS ×'+String(tapSession.focusStreak):'');
 }
 function beginQuickRound(challenge){
  clearTimeout(tapTimer);
@@ -643,7 +643,7 @@ async function finishQuickRun(result){
      setQuickVisual('result-'+grade.state);tapMessage.textContent=average.toFixed(1)+' ms AVG';
      tapRunMeta.textContent='7 / 7 · FALSE '+String(Number(res.details&&res.details.falseStarts)||0)+' · BEST '+Number(res.details&&res.details.bestReactionMs||average).toFixed(1)+' ms';
      tone(grade.tone,90);
-     showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+'QUICK TAP FOCUS · AVG '+average.toFixed(1)+' ms · SCORE '+Number(res.score).toFixed(1)+' ms');
+     showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+'QUICK TAP FOCUS · AVG '+average.toFixed(1)+' ms · SCORE '+Number(res.score).toFixed(1)+' ms · MAX FOCUS ×'+String(game.maxFocusStreak||0));
    }
    await refreshPlatform();
  }else{
@@ -665,12 +665,14 @@ async function resolveQuickTap(){
  }
  game.hits=Number(res.hits)||0;game.falseStarts=Number(res.falseStarts)||0;game.lives=Number(res.lives)||0;renderQuickMeta();
  if(res.falseStart){
-   setQuickVisual('false-start');tapMessage.textContent='フライング!';tone(180,70);
+   game.focusStreak=0;setQuickVisual('false-start');tapMessage.textContent='フライング! · FOCUS RESET';tone(180,70);
    if(res.ended){await sleep(350);if(tapSession===game)await finishQuickRun(res);return;}
    tapState='transition';await sleep(420);if(tapSession!==game)return;beginQuickRound(res.nextChallenge);return;
  }
  const reaction=Number(res.reactionMs)||0,grade=quickTapGrade(reaction);
- setQuickVisual('result-'+grade.state);tapMessage.textContent=grade.label+' · '+reaction.toFixed(1)+' ms';tone(grade.tone,60);
+ if(reaction<=320)game.focusStreak=(game.focusStreak||0)+1;else game.focusStreak=0;
+ game.maxFocusStreak=Math.max(game.maxFocusStreak||0,game.focusStreak||0);
+ setQuickVisual('result-'+grade.state);tapMessage.textContent=grade.label+' · '+reaction.toFixed(1)+' ms'+(game.focusStreak>=2?' · FOCUS ×'+game.focusStreak:'');tone(grade.tone,60);renderQuickMeta();
  if(res.ended){await sleep(450);if(tapSession===game)await finishQuickRun(res);return;}
  tapState='transition';await sleep(420);if(tapSession!==game)return;beginQuickRound(res.nextChallenge);
 }
@@ -683,7 +685,7 @@ tapButton.onclick=async()=>{
  tapButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
  if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('QUICK TAP FOCUSを開始できません: '+FlecityErrors.text(res.error),'error');return;}
- tapSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,hits:0,targetHits:Number(res.challenge&&res.challenge.targetHits)||7,lives:Number(res.challenge&&res.challenge.lives)||3,falseStarts:0};
+ tapSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,hits:0,targetHits:Number(res.challenge&&res.challenge.targetHits)||7,lives:Number(res.challenge&&res.challenge.lives)||3,falseStarts:0,focusStreak:0,maxFocusStreak:0};
  tapRunStartedAt=performance.now();tapStartedAt=tapRunStartedAt;beginQuickRound(res.challenge);
 };
 tapBack.onclick=async()=>{

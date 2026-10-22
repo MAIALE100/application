@@ -625,6 +625,8 @@ if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in
     fail("PARTY DRAW LB Phone callback throttle is too restrictive")
 if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
     fail("PARTY app-close host handoff is missing")
+if "local room=roomForSource(source)" not in party_lua or "tonumber(member.source)~=tonumber(source)" not in party_lua:
+    fail("PARTY AppClosed must use side-effect-free room lookup")
 if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
     fail("PARTY host migration must prefer app-active members")
 if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:

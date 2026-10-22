@@ -322,3 +322,9 @@ LOOP完成版には不要な変更を入れない。
 - NUIの `handlePartyMessage` で `partySuspend` / `partyResume` 以外は、`appSuspended=true` 中に即return。
 - client側push停止とNUI側event gateの二重防御にし、phone/app close直前に送信済みだったDRAW stroke/clearが遅延到着しても閉じた画面のstate/canvasを更新しない。
 - Resume時は既存 `partyGetRoom` でserver-authoritative snapshotを再取得するため、suspend中に捨てたeventは復帰後に正しい状態へ収束。
+
+
+## 2026-10-23 AppClosed Host race対策
+- `AppClosed` は `roomForPlayer` を通さず `roomForSource` で副作用なしにRoomを取得するよう変更。
+- close処理の直前に `appOpen=true` へ戻したり、閉じようとしている非Hostへ一瞬Host権限がhandoffされるraceを防止。
+- sourceとmember.sourceの一致も確認し、古いsourceからの遅延close eventが現在のmember状態を変更しない。

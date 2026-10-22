@@ -92,10 +92,10 @@ try {
     }
 
     Step 'Manual update complete'
-    Write-Host 'PLAY files are updated. Close the phone once and reopen PLAY.' -ForegroundColor Green
-    Write-Host 'If the displayed version is still old, run this once in txAdmin:' -ForegroundColor Yellow
-    Write-Host '    refresh' -ForegroundColor White
-    Write-Host '    restart flecity_games' -ForegroundColor White
+    Write-Host 'PLAY files are updated.' -ForegroundColor Green
+    Write-Host 'If the updater requested ONE-TIME HELPER ACTIVATION, run only:' -ForegroundColor Yellow
+    Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+    Write-Host 'The helper will refresh metadata and restart flecity_games automatically.' -ForegroundColor Green
     exit 0
 }
 catch {

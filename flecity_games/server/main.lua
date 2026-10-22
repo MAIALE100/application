@@ -40,6 +40,13 @@ local callbacks={
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }
 
+local partyAppEnabled=not (FlecityGamesConfig.Apps.Party and FlecityGamesConfig.Apps.Party.enabled==false)
+if not partyAppEnabled then
+    for name in pairs(callbacks) do
+        if name:find('flecity_games:party:',1,true)==1 then callbacks[name]=nil end
+    end
+end
+
 local registeredPhoneCallbacks=0
 local expectedPhoneCallbacks=0
 for _ in pairs(callbacks) do expectedPhoneCallbacks=expectedPhoneCallbacks+1 end

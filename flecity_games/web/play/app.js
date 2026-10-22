@@ -2283,11 +2283,21 @@ function slideCorrectCount(board){
  return count;
 }
 function slideStars(moves){const n=Number(moves)||999;return n<=60?'★★★':(n<=90?'★★☆':'★☆☆');}
-function slideMovable(index){
- if(!slideGame)return false;
- const blank=slideGame.blank,row=Math.floor(index/4),col=index%4,blankRow=Math.floor(blank/4),blankCol=blank%4;
- return Math.abs(row-blankRow)+Math.abs(col-blankCol)===1;
+function slideMovePath(index){
+ if(!slideGame)return [];
+ const blank=slideGame.blank,target=Number(index);
+ if(!Number.isInteger(target)||target<0||target>=16||target===blank)return [];
+ const row=Math.floor(target/4),col=target%4,blankRow=Math.floor(blank/4),blankCol=blank%4;
+ if(row!==blankRow&&col!==blankCol)return [];
+ const step=row===blankRow?(target>blank?1:-1):(target>blank?4:-4),path=[];
+ for(let cursor=blank+step;;cursor+=step){
+   path.push(cursor);
+   if(cursor===target)break;
+   if(path.length>3)return [];
+ }
+ return path;
 }
+function slideMovable(index){return slideMovePath(index).length>0;}
 function renderSlide(){
  if(!slideGame)return;
  refreshScreenBests();slideBoard.innerHTML='';slideMoves.textContent=String(slideGame.moves);
@@ -2343,13 +2353,23 @@ async function openSlide(forceNew=false,daily=false){
  renderSlide();slideClock=setInterval(updateSlideTime,200);
 }
 async function moveSlide(index){
- const game=slideGame;if(!game||game.finished||game.finalizing||!slideMovable(index))return;
- const blank=game.blank,alignedBefore=slideCorrectCount(game.board);
- game.board[blank]=game.board[index];game.board[index]=0;game.blank=index;game.history.push(index);game.moves+=1;game.progressed=true;
- const alignedAfter=slideCorrectCount(game.board);
+ const game=slideGame;if(!game||game.finished||game.finalizing)return;
+ const path=slideMovePath(index);if(path.length<1)return;
+ const alignedBefore=slideCorrectCount(game.board);
+ for(const nextIndex of path){
+   const blank=game.blank;
+   game.board[blank]=game.board[nextIndex];game.board[nextIndex]=0;game.blank=nextIndex;game.history.push(nextIndex);game.moves+=1;
+ }
+ game.progressed=true;
+ const alignedAfter=slideCorrectCount(game.board),chain=path.length;
  if(alignedAfter>alignedBefore)game.alignStreak=(game.alignStreak||0)+1;else game.alignStreak=0;
  slideBoard.classList.remove('slide-move','slide-align');void slideBoard.offsetWidth;slideBoard.classList.add(alignedAfter>alignedBefore?'slide-align':'slide-move');
- if(alignedAfter>alignedBefore){tone(720+Math.min(180,(game.alignStreak||0)*24),32);setStatus('ALIGN +'+(alignedAfter-alignedBefore)+' · '+alignedAfter+'/15'+(game.alignStreak>=2?' · FLOW ×'+game.alignStreak:''),'good');}else tone(520,18);
+ if(alignedAfter>alignedBefore){
+   tone(720+Math.min(180,(game.alignStreak||0)*24),32);
+   setStatus((chain>1?'CHAIN ×'+chain+' · ':'')+'ALIGN +'+(alignedAfter-alignedBefore)+' · '+alignedAfter+'/15'+(game.alignStreak>=2?' · FLOW ×'+game.alignStreak:''),'good');
+ }else if(chain>1){
+   tone(590+Math.min(100,chain*24),24);setStatus('CHAIN SLIDE ×'+chain+' · '+game.moves+' MOVES','good');
+ }else tone(520,18);
  renderSlide();
  if(slideSolvedBoard(game.board)){await finishSlide();return;}
  await persistSlide();

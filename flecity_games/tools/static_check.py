@@ -464,8 +464,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.63.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.63.0-test")
+if "version '0.64.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.64.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
@@ -484,6 +484,8 @@ if "layerCount)||0)-5" not in play_js:
     fail("TOWER camera follow threshold is too late")
 if "html,body,.wrap{scrollbar-width:none" not in play_css or "html::-webkit-scrollbar" not in play_css:
     fail("PLAY native phone scrollbar suppression is missing")
+if "PLAY submission home visual pass v24" not in play_css or "home-scroll-row" not in play_css or "home-utility-label" not in play_html or "home-edition" not in play_html:
+    fail("PLAY submission home visual pass is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

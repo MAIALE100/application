@@ -1,8 +1,11 @@
 local RESOURCE = GetCurrentResourceName()
 
 local playAppOpen=false
+local partyAppOpen=false
+local partyPushSuspended=false
 local phoneOpen=false
 local playLifecycleGeneration=0
+local partyLifecycleGeneration=0
 
 local function bumpPlayLifecycle()
     playLifecycleGeneration=playLifecycleGeneration+1
@@ -40,12 +43,52 @@ local function playOnClose()
     requestPlayCleanup('app_close')
 end
 
+local function sendPartyLifecycle(messageType,reason)
+    if GetResourceState('lb-phone')~='started' then return end
+    pcall(function()
+        exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
+            type=messageType,
+            reason=tostring(reason or '')
+        })
+    end)
+end
+
+local function schedulePartyResume(reason)
+    partyLifecycleGeneration=partyLifecycleGeneration+1
+    local generation=partyLifecycleGeneration
+    CreateThread(function()
+        Wait(250)
+        if generation~=partyLifecycleGeneration or not partyAppOpen or partyPushSuspended then return end
+        sendPartyLifecycle('partyResume',reason or 'app_open')
+    end)
+end
+
+local function partyOnOpen()
+    partyAppOpen=true
+    partyPushSuspended=false
+    schedulePartyResume('app_open')
+end
+
+local function partyOnClose()
+    if partyAppOpen then sendPartyLifecycle('partySuspend','app_close') end
+    partyAppOpen=false
+    partyPushSuspended=true
+    partyLifecycleGeneration=partyLifecycleGeneration+1
+end
+
 RegisterNetEvent('lb-phone:phoneToggled',function(open)
     phoneOpen=open==true
     if phoneOpen then
         bumpPlayLifecycle()
+        if partyAppOpen then
+            partyPushSuspended=false
+            schedulePartyResume('phone_open')
+        end
     else
         requestPlayCleanup('phone_close')
+        if partyAppOpen then sendPartyLifecycle('partySuspend','phone_close') end
+        partyPushSuspended=true
+        partyLifecycleGeneration=partyLifecycleGeneration+1
     end
 end)
 
@@ -61,6 +104,9 @@ local function makeAppData(app)
     if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
         data.onOpen=playOnOpen
         data.onClose=playOnClose
+    elseif app.identifier==FlecityGamesConfig.Apps.Party.identifier then
+        data.onOpen=partyOnOpen
+        data.onClose=partyOnClose
     end
     return data
 end
@@ -170,7 +216,7 @@ local callbackMap={
 }
 
 RegisterNetEvent('flecity_games:client:partyUpdate',function(room)
-    if GetResourceState('lb-phone')~='started' or type(room)~='table' then return end
+    if GetResourceState('lb-phone')~='started' or type(room)~='table' or not partyAppOpen or partyPushSuspended then return end
     local ok,success,err=pcall(function()
         return exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyUpdate',
@@ -183,7 +229,7 @@ RegisterNetEvent('flecity_games:client:partyUpdate',function(room)
 end)
 
 RegisterNetEvent('flecity_games:client:partyDrawStroke',function(data)
-    if GetResourceState('lb-phone')~='started' or type(data)~='table' then return end
+    if GetResourceState('lb-phone')~='started' or type(data)~='table' or not partyAppOpen or partyPushSuspended then return end
     pcall(function()
         exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyDrawStroke',
@@ -195,7 +241,7 @@ RegisterNetEvent('flecity_games:client:partyDrawStroke',function(data)
 end)
 
 RegisterNetEvent('flecity_games:client:partyDrawClear',function(data)
-    if GetResourceState('lb-phone')~='started' or type(data)~='table' then return end
+    if GetResourceState('lb-phone')~='started' or type(data)~='table' or not partyAppOpen or partyPushSuspended then return end
     pcall(function()
         exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyDrawClear',

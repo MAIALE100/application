@@ -135,6 +135,10 @@ local function makeCode()
         local code=formatString:format(math.random(0,maximum))
         if not roomsByCode[code] then return code end
     end
+    for value=0,maximum do
+        local code=formatString:format(value)
+        if not roomsByCode[code] then return code end
+    end
 end
 local function memberCount(room) local n=0 for _ in pairs(room.members) do n=n+1 end return n end
 local function connectedCount(room) local n=0 for _,m in pairs(room.members) do if not m.disconnected then n=n+1 end end return n end
@@ -229,10 +233,33 @@ local function reconnectMember(room,id,source)
     member.disconnected=false
     member.disconnectedAt=nil
     member.name=characterName(source)
+    if room.state=='lobby' then member.ready=false end
     sourceToRoom[src]=room.id
     migrateHost(room)
     return true
 end
+local function reclaimDisconnectedCapacity(room,maxPlayers)
+    local limit=math.max(1,math.floor(tonumber(maxPlayers) or FlecityGamesConfig.Party.MaxPlayers))
+    if memberCount(room)<limit then return 0 end
+    local candidates={}
+    for id,m in pairs(room.members) do
+        if m.disconnected then
+            candidates[#candidates+1]={id=id,disconnectedAt=tonumber(m.disconnectedAt) or 0,joinOrder=tonumber(m.joinOrder) or 0}
+        end
+    end
+    table.sort(candidates,function(a,b)
+        if a.disconnectedAt==b.disconnectedAt then return a.joinOrder<b.joinOrder end
+        return a.disconnectedAt<b.disconnectedAt
+    end)
+    local removed=0
+    for _,entry in ipairs(candidates) do
+        if memberCount(room)<limit then break end
+        removeMember(room,entry.id)
+        removed=removed+1
+    end
+    return removed
+end
+
 local function memberIdToIdentifier(room,memberId)
     for id,m in pairs(room.members) do if m.memberId==memberId then return id end end
 end
@@ -245,11 +272,13 @@ local function memberName(room,id)
     return m and m.name or 'Player'
 end
 
-local function sanitizedStrokes(strokes,maxStrokes)
+local function sanitizedStrokes(strokes,maxStrokes,maxPoints)
     if type(strokes)~='table' or #strokes<1 or #strokes>(maxStrokes or 80) then return nil end
-    local clean={}
+    local clean={} local totalPoints=0
     for _,stroke in ipairs(strokes) do
         if type(stroke)~='table' or #stroke<2 or #stroke>48 then return nil end
+        totalPoints=totalPoints+#stroke
+        if maxPoints and totalPoints>maxPoints then return nil end
         local points={}
         for _,point in ipairs(stroke) do
             if type(point)~='table' then return nil end
@@ -260,6 +289,12 @@ local function sanitizedStrokes(strokes,maxStrokes)
         clean[#clean+1]=points
     end
     return clean
+end
+
+local function strokePointCount(strokes)
+    local total=0
+    for _,stroke in ipairs(strokes or {}) do total=total+(type(stroke)=='table' and #stroke or 0) end
+    return total
 end
 
 local function telephonePublicChain(room,rs)
@@ -466,6 +501,9 @@ function FlecityGamesParty.JoinRoom(source,data)
         return {ok=true,reconnected=true,room=snapshot(room,id)}
     end
 
+    if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers and connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers then
+        reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)
+    end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
 
@@ -940,8 +978,9 @@ function FlecityGamesParty.AddDrawStroke(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     if #(rs.strokes or {})>=160 then return {ok=false,error='DRAW_LIMIT'} end
-    local clean=sanitizedStrokes({data.points},1)
+    local clean=sanitizedStrokes({data.points},1,48)
     if not clean then return {ok=false,error='INVALID_STROKE'} end
+    if strokePointCount(rs.strokes)+#clean[1]>3200 then return {ok=false,error='DRAW_LIMIT'} end
     rs.strokes[#rs.strokes+1]=clean[1]
     notifyRoomEvent(room,source,'flecity_games:client:partyDrawStroke',{
         token=rs.token,
@@ -1016,7 +1055,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     ensureTelephoneTurn(room)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.currentIdentifier~=id or rs.mode~='draw' then return {ok=false,error='NOT_YOUR_TURN'} end
-    local clean=sanitizedStrokes(data.strokes,80)
+    local clean=sanitizedStrokes(data.strokes,80,2400)
     if not clean then return {ok=false,error='INVALID_DRAWING'} end
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
@@ -1135,6 +1174,7 @@ function FlecityGamesParty.DropSource(source)
     for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
     if not id then return end
     local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
+    if room.state=='lobby' then m.ready=false end
     migrateHost(room) reconcileRound(room) notifyRoom(room)
 end
 

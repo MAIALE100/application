@@ -136,3 +136,15 @@ git pull --ff-only origin games/party-dev
 安全に直せるものはそのまま実装・commitし、CIを確認する。
 LOOP完成版には不要な変更を入れない。
 ユーザー側の手動作業とサーバー再起動は極力減らす。
+
+
+## 2026-10-23 基盤安定化
+- ルームコード生成はランダム試行後に空きコードを走査し、空きがあるのに作成失敗するケースを防止。
+- ロビー中の切断・再接続では Ready を解除し、古い Ready 状態の持ち越しを防止。
+- 満室時に切断済みメンバーだけが枠を占有している場合、最古の切断枠を回収して新規参加を可能にする。
+- DRAW は累積 3200 point、TELEPHONE の1描画は 2400 point に制限し、stroke肥大化を抑制。
+- PARTY の LB Phone onOpen/onClose と phone toggle を使い、閉じている間のpush・poll・RAFを停止。
+- 新ラウンド/ロビー遷移時に DRAW / TELEPHONE の一時描画状態も破棄。
+- Create/Join/Ready/Game select/Start/Return lobby/Leave と主要入力にクライアント側多重送信ガードを追加。
+- ラウンド進行中はホストの「ロビーへ戻る」をUIから隠し、結果表示後のみ通常導線として表示。
+- LOOP の identifier / 配布仕様 / score・save・achievement 系には変更なし。

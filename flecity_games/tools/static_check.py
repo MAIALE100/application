@@ -585,6 +585,21 @@ if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framewo
     fail("framework character-unload bridge is missing")
 if "flecity_games:framework:playerUnloaded" not in server:
     fail("server character-unload cleanup handler is missing")
+if "reclaimDisconnectedCapacity" not in party_lua or "connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers" not in party_lua:
+    fail("PARTY disconnected-slot reclaim is missing")
+if "room.state=='lobby' then member.ready=false end" not in party_lua or "room.state=='lobby' then m.ready=false end" not in party_lua:
+    fail("PARTY lobby ready reset on disconnect/reconnect is missing")
+if "strokePointCount(rs.strokes)+#clean[1]>3200" not in party_lua or "sanitizedStrokes(data.strokes,80,2400)" not in party_lua:
+    fail("PARTY drawing payload limits are missing")
+if "partyOnOpen" not in client or "partyOnClose" not in client or "partyPushSuspended" not in client:
+    fail("PARTY LB Phone lifecycle gating is missing")
+if "partySuspend" not in party_js or "partyResume" not in party_js or "appSuspended" not in party_js:
+    fail("PARTY UI suspend/resume cleanup is missing")
+if "actionLocks" not in party_js or "runOnce('start'" not in party_js:
+    fail("PARTY client action de-duplication is missing")
+if "drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[]" not in party_js:
+    fail("PARTY round runtime cleanup is incomplete")
+
 for marker in (
     "wordWolfPrivacy",
     "liarPrivacy",

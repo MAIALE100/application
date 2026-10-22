@@ -15,7 +15,8 @@ const settingSound=document.getElementById('settingSound'),settingMotion=documen
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
-let refreshInFlight=false,refreshQueued=false;
+let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null;
+const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
@@ -54,6 +55,28 @@ function trianglePosition(elapsedMs,periodMs,phaseMs){
 function resetRoundRuntime(){
  cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);
  reactionState='idle';stopBattleState='idle';
+ drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];
+}
+async function runOnce(key,fn){
+ if(actionLocks.has(key))return;
+ actionLocks.add(key);
+ try{return await fn();}finally{actionLocks.delete(key);}
+}
+function suspendPartyUi(){
+ appSuspended=true;roomPushEnabled=false;resetRoundRuntime();
+ clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
+ if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
+}
+function scheduleBootstrap(delay=0){
+ clearTimeout(bootstrapTimer);
+ bootstrapTimer=setTimeout(()=>{bootstrapTimer=null;document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendPartyUi();else resumePartyUi();});
+bootstrap();},delay);
+}
+function resumePartyUi(){
+ const wasSuspended=appSuspended;appSuspended=false;
+ if(!wasSuspended)return;
+ if(currentRoom){roomPushEnabled=true;refresh();beginPolling();}
+ else scheduleBootstrap(0);
 }
 function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
@@ -176,7 +199,7 @@ function beginRoundToken(rs){
  return true;
 }
 function reactionLoop(){
- if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
+ if(appSuspended||!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
  const rs=currentRoom.roundState,revealTick=Number(rs.startedTick||0)+Number(rs.revealAfterMs||0),until=revealTick-estimatedServerTick();
  if(until>0){
    reactionState='waiting';reactionMessage.textContent='待機';reactionTap.textContent='待機…';reactionTap.disabled=false;
@@ -193,7 +216,7 @@ function setupReaction(room){
  if(reactionState==='idle')reactionLoop();
 }
 function stopBattleLoop(){
- if(!currentRoom||!currentRoom.roundState||stopBattleState==='submitted')return;
+ if(appSuspended||!currentRoom||!currentRoom.roundState||stopBattleState==='submitted')return;
  const rs=currentRoom.roundState,elapsed=estimatedServerTick()-Number(rs.motionStartTick||0);
  if(elapsed<0){
    stopBattleState='waiting';stopBattleMessage.textContent='待機';stopBattleButton.textContent='待機…';stopBattleButton.disabled=true;
@@ -330,8 +353,9 @@ function renderRoom(room,timing){
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
    readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';status('ロビー準備完了。','good');
  }else{
-   lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');lobbyBtn.classList.toggle('hidden',!room.isHost);status('ラウンド '+room.round+' / '+room.selectedGame,'good');
+   lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
+   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));status('ラウンド '+room.round+' / '+room.selectedGame,'good');
    if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);
@@ -344,7 +368,7 @@ function renderRoom(room,timing){
  return true;
 }
 async function refresh(){
- if(!currentRoom)return;
+ if(appSuspended||!currentRoom)return;
  if(refreshInFlight){refreshQueued=true;return;}
  refreshInFlight=true;
  try{
@@ -362,7 +386,7 @@ async function refresh(){
    if(refreshQueued){refreshQueued=false;setTimeout(refresh,0);}
  }
 }
-function beginPolling(){if(poll)clearInterval(poll);poll=setInterval(refresh,10000);}
+function beginPolling(){if(poll)clearInterval(poll);if(appSuspended)return;poll=setInterval(()=>{if(!appSuspended)refresh();},10000);}
 async function loadPartyConfig(){
  const res=await FlecityBridge.call('partyGetConfig',{});
  if(!res.ok||!res.config)return;
@@ -389,7 +413,9 @@ async function loadPartyConfig(){
 }
 function handlePartyMessage(message){
  if(!message||typeof message!=='object')return;
- if(message.type==='partyUpdate'&&message.room){if(roomPushEnabled)renderRoom(message.room);return;}
+ if(message.type==='partySuspend'){suspendPartyUi();return;}
+ if(message.type==='partyResume'){resumePartyUi();return;}
+ if(message.type==='partyUpdate'&&message.room){if(roomPushEnabled&&!appSuspended)renderRoom(message.room);return;}
  if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
    const revision=Number(message.revision);
    if(Number.isFinite(revision)&&revision<=lastRoomRevision)return;
@@ -420,7 +446,7 @@ window.addEventListener('message',event=>{
 
 function registerPhonePushChannel(){
  if(phonePushRegistered||typeof globalThis.onNuiEvent!=='function')return;
- const types=['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate'];
+ const types=['partyUpdate','partyDrawStroke','partyDrawClear','partyInvalidate','partySuspend','partyResume'];
  try{
    types.forEach(type=>{
      globalThis.onNuiEvent(type,data=>{
@@ -435,11 +461,11 @@ function registerPhonePushChannel(){
 }
 registerPhonePushChannel();
 
-createBtn.onclick=async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();};
-joinBtn.onclick=async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();};
-readyBtn.onclick=async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);};
-gameEl.onchange=async()=>{renderGameInfo(gameEl.value);const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);};
-startBtn.onclick=async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});};
+createBtn.onclick=()=>runOnce('create',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
+joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
+readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
+gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
 
 reactionTap.onclick=async()=>{
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
@@ -516,11 +542,16 @@ drawClear.onclick=async()=>{
  if(!res.ok){status('消去失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);
 };
 async function submitDrawGuess(){
- const rs=currentRoom&&currentRoom.roundState,guess=drawGuess.value.trim();if(!rs||!guess)return;
- drawGuessSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitDrawGuess',{token:rs.token,guess});drawGuessSubmit.disabled=false;
- if(!res.ok){status('回答送信失敗: '+FlecityErrors.text(res.error),'error');return;}
- if(res.correct){drawGuess.value='';status('正解！','good');}else status('違います。もう一度！','warn');
- renderRoom(res.room);
+ return runOnce('draw-guess',async()=>{
+  const rs=currentRoom&&currentRoom.roundState,guess=drawGuess.value.trim();if(!rs||!guess)return;
+  drawGuessSubmit.disabled=true;
+  try{
+   const res=await FlecityBridge.call('partySubmitDrawGuess',{token:rs.token,guess});
+   if(!res.ok){status('回答送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   if(res.correct){drawGuess.value='';status('正解！','good');}else status('違います。もう一度！','warn');
+   renderRoom(res.room);
+  }finally{drawGuessSubmit.disabled=false;}
+ });
 }
 drawGuessSubmit.onclick=submitDrawGuess;
 drawGuess.onkeydown=e=>{if(e.key==='Enter')submitDrawGuess();};
@@ -554,21 +585,27 @@ telephoneDrawSubmit.onclick=async()=>{
  if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
 async function submitTelephoneText(){
- const rs=currentRoom&&currentRoom.roundState,value=telephoneText.value.trim();if(!rs||rs.gameId!=='telephone'||rs.mode!=='text'||!rs.isCurrent||!value)return;
- telephoneTextSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneText',{token:rs.token,text:value});telephoneTextSubmit.disabled=false;
- if(!res.ok){status('文章の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneText.value='';renderRoom(res.room);
+ return runOnce('telephone-text',async()=>{
+  const rs=currentRoom&&currentRoom.roundState,value=telephoneText.value.trim();if(!rs||rs.gameId!=='telephone'||rs.mode!=='text'||!rs.isCurrent||!value)return;
+  telephoneTextSubmit.disabled=true;
+  try{
+   const res=await FlecityBridge.call('partySubmitTelephoneText',{token:rs.token,text:value});
+   if(!res.ok){status('文章の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneText.value='';renderRoom(res.room);
+  }finally{telephoneTextSubmit.disabled=false;}
+ });
 }
 telephoneTextSubmit.onclick=submitTelephoneText;
 telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
-lobbyBtn.onclick=async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);};
-leaveBtn.onclick=async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('ルームから退出しました。');};
+lobbyBtn.onclick=()=>runOnce('return-lobby',async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
+leaveBtn.onclick=()=>runOnce('leave',async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('ルームから退出しました。');});
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
 
 async function bootstrap(){
+ if(appSuspended)return;
  const bridge=await FlecityBridge.call('bridgePing',{});
  if(!bridge.ok){
    status('LB Phoneへ再接続中…','warn');
-   setTimeout(bootstrap,1000);
+   scheduleBootstrap(1000);
    return;
  }
  registerPhonePushChannel();
@@ -580,7 +617,7 @@ async function bootstrap(){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
      status(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'PARTYへ再接続中…','warn');
-     setTimeout(bootstrap,1000);
+     scheduleBootstrap(1000);
      return;
    }
  }

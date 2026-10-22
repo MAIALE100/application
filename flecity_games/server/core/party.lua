@@ -297,23 +297,27 @@ local function pickRoomPrompt(room,key,pool)
     return pool[index]
 end
 
+local function bestHostCandidate(room,excludeId,requireAppOpen)
+    local selected
+    for id,m in pairs(room and room.members or {}) do
+        local appEligible=not requireAppOpen or m.appOpen~=false
+        if id~=excludeId and not m.disconnected and appEligible
+            and (not selected or m.joinOrder<selected.member.joinOrder) then
+            selected={id=id,member=m}
+        end
+    end
+    return selected
+end
+
 local function migrateHost(room)
     if room.hostIdentifier and room.members[room.hostIdentifier] and not room.members[room.hostIdentifier].disconnected then return end
-    local selected
-    for id,m in pairs(room.members) do
-        if not m.disconnected and (not selected or m.joinOrder<selected.member.joinOrder) then selected={id=id,member=m} end
-    end
+    local selected=bestHostCandidate(room,nil,true) or bestHostCandidate(room,nil,false)
     room.hostIdentifier=selected and selected.id or nil
 end
 
 local function handoffHostFrom(room,fromId)
     if not room or room.hostIdentifier~=fromId then return false end
-    local selected
-    for id,m in pairs(room.members or {}) do
-        if id~=fromId and not m.disconnected and (not selected or m.joinOrder<selected.member.joinOrder) then
-            selected={id=id,member=m}
-        end
-    end
+    local selected=bestHostCandidate(room,fromId,true)
     if not selected then return false end
     room.hostIdentifier=selected.id
     return true
@@ -347,6 +351,7 @@ local function reconnectMember(room,id,source)
     member.disconnected=false
     member.disconnectedAt=nil
     member.name=characterName(source)
+    member.appOpen=true
     if room.state=='lobby' then member.ready=false end
     sourceToRoom[src]=room.id
     migrateHost(room)
@@ -531,7 +536,14 @@ local function roomForPlayer(source,id)
     if not room then return nil end
 
     local member=id and room.members[id] or nil
-    if member and tonumber(member.source)==src and not member.disconnected then return room end
+    if member and tonumber(member.source)==src and not member.disconnected then
+        member.appOpen=true
+        local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
+        if room.hostIdentifier~=id and host and host.appOpen==false and handoffHostFrom(room,room.hostIdentifier) then
+            notifyRoom(room,src)
+        end
+        return room
+    end
 
     local staleId=nil
     for memberId,m in pairs(room.members) do
@@ -588,7 +600,7 @@ function FlecityGamesParty.CreateRoom(source)
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
     local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
-    room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()}
+    room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -634,7 +646,7 @@ function FlecityGamesParty.JoinRoom(source,data)
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={
         source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),
-        ready=false,disconnected=false,joinOrder=nextJoinOrder,joinedAt=os.time()
+        ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()
     }
     sourceToRoom[tonumber(source)]=room.id
     notifyRoom(room,source)
@@ -1356,6 +1368,7 @@ function FlecityGamesParty.AppClosed(source)
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return end
     local changed=false
+    room.members[id].appOpen=false
     if room.state=='lobby' and room.members[id].ready==true then
         room.members[id].ready=false
         changed=true
@@ -1580,9 +1593,9 @@ function FlecityGamesParty.DebugSelftest()
     local appCloseHostRoom={
         hostIdentifier='a',
         members={
-            a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
-            b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},
-            c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+            a={memberId='A',name='Alpha',disconnected=false,appOpen=false,joinOrder=1},
+            b={memberId='B',name='Bravo',disconnected=false,appOpen=false,joinOrder=2},
+            c={memberId='C',name='Charlie',disconnected=false,appOpen=true,joinOrder=3}
         }
     }
     local appCloseHandoff=handoffHostFrom(appCloseHostRoom,'a')
@@ -1604,7 +1617,7 @@ function FlecityGamesParty.DebugSelftest()
         turnRotation=rotated[1]=='b' and rotated[2]=='c' and rotated[3]=='a',
         roomRevision=revisionValue==4 and revisionRoom.revision==4,
         hostMigration=hostRoom.hostIdentifier=='second',
-        appCloseHostHandoff=appCloseHandoff==true and appCloseHostRoom.hostIdentifier=='b',
+        appCloseHostHandoff=appCloseHandoff==true and appCloseHostRoom.hostIdentifier=='c',
         reconnectGracePreserved=recentReclaimed==0 and memberCount(recentDisconnectRoom)==2,
         expiredCapacityReclaimed=expiredReclaimed==1 and memberCount(expiredDisconnectRoom)==1,
         connectedCount=connectedCount(hostRoom)==2,

@@ -617,6 +617,8 @@ if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:party
     fail("PARTY app-close ready cleanup is missing")
 if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
     fail("PARTY app-close host handoff is missing")
+if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
+    fail("PARTY host migration must prefer app-active members")
 if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:
     fail("PARTY ReturnLobby idempotency/live-round guard is missing")
 if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:

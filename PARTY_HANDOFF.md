@@ -226,3 +226,11 @@ LOOP完成版には不要な変更を入れない。
 - ReturnLobbyは結果確定前にはserver側で拒否。UIを回避した直接callbackでも進行中RoundをHostが中断できない。
 - ReturnLobbyをLobby状態で再送した場合はno-opとして扱い、二重送信で他参加者の新しいReady状態を消さない。
 - DebugSelftestへHost close handoff / reconnect grace / grace経過後capacity回収を追加。
+
+
+## 2026-10-23 Host app-active追跡
+- member内部状態に `appOpen` を追加。Create/Join/Reconnect/有効なPARTY callbackでtrue、AppClosedでfalse。
+- Host移行時はFiveM接続中だけでなく、PARTYアプリを実際に開いている参加者を優先。
+- 例: Host Aがclose、BはFiveM接続中だがPARTYを閉じている、CはPARTYを開いている場合、HostはCへ移行。
+- Host close時に代替Hostがいなかった場合も、別参加者が後からPARTYを開いてcallbackを行うとHost権限を引き継げる。
+- `appOpen` はserver内部状態のみで、他参加者のsnapshotには公開しない。

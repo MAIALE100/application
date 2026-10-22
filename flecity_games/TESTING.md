@@ -258,7 +258,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - Hostが切断するとBへHostが即移行
-- HostがPARTYアプリ/Phoneを閉じた場合も、他の接続中参加者へHost権限が移りRoomが操作不能にならない
+- HostがPARTYアプリ/Phoneを閉じた場合も、PARTYを開いている他参加者を優先してHost権限が移りRoomが操作不能にならない
+- FiveMには接続中でもPARTYを閉じている参加者がいる場合、その人を飛ばしてアプリを開いている参加者へHostが移る
 - 元Hostがアプリを開き直した場合は同Roomへ参加者として復帰できる
 - 最低人数を下回る切断が発生した場合、Roundが理由表示付きで安全終了
 - WORD WOLF / LIARの役職本人が切断した場合、不公平な継続をせずRound終了

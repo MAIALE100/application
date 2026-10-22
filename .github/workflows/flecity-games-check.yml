@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - games/platform-core
+      - games/party-dev
     paths:
       - 'flecity_games/**'
       - 'flecity_dev_safety/**'

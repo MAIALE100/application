@@ -375,6 +375,7 @@ try {
     if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
+    if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\{display:none!important\}') { throw 'PLAY in-game shared status suppression check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'startFallSoftDrop' -or $playAppText -notmatch 'fallSoft') { throw 'FALL soft drop / NEXT queue check failed.' }

@@ -6,12 +6,12 @@ FlecityGamesConfig = {
         Play = {
             enabled = true,
             identifier = 'flecity_play',
-            name = 'PLAY',
+            name = 'LOOP',
             description = '短時間からじっくり遊べるミニゲーム。',
             developer = 'Flecity',
             defaultApp = true,
             ui = 'web/play/index.html',
-            icon = 'web/play/icon.svg'
+            icon = 'web/play/icon.png'
         },
         Party = {
             enabled = true,

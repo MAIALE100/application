@@ -410,10 +410,12 @@ if "difficulty=gap<=8?'TIGHT'" not in play_js or "difficultyBonus" not in play_j
     fail("RANGE RUSH visible risk/bonus feedback is missing")
 if "blockPressure" not in play_js or "mergePressure" not in play_js or "fallPressure" not in play_js:
     fail("PLAY long-run pressure feedback helpers are missing")
-if "CLUTCH · " not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
+if "CLUTCH ESCAPE" not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
     fail("PLAY mastery/clutch feedback is missing")
 if "PLAY depth feedback v12" not in play_css or ".block-danger" not in play_css or ".merge-danger" not in play_css or ".fall-danger" not in play_css or ".tower-danger" not in play_css:
     fail("PLAY depth feedback CSS is missing")
+if "Endless clutch escape feedback v19" not in play_css or ".block-clutch" not in play_css or ".merge-clutch" not in play_css or ".fall-clutch" not in play_css:
+    fail("PLAY endless clutch escape visual feedback is missing")
 if "STOP RUSH progression v13" not in play_css or "dataset.tier" not in play_js:
     fail("STOP RUSH escalating visual feedback is missing")
 if "QUICK TAP FOCUS v15" not in play_css or "#tapRunMeta" not in play_css:

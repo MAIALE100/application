@@ -486,6 +486,8 @@ if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:
     fail("MEMORY server replay/selftest is missing")
 if "movePenaltyMs=movePenalty" not in play_lua or "MOVE PENALTY" not in play_js:
     fail("MEMORY move-accuracy scoring is missing")
+if "PERFECT MEMORY" not in play_js or "memory-perfect" not in play_css or "MEMORY perfect-clear feedback v20" not in play_css:
+    fail("MEMORY perfect-clear feedback is missing")
 if not re.search(r"id='memory'[^\n]*version=2", registry):
     fail("MEMORY FOCUS registry version must be 2")
 if "previewMs=1200" not in play_lua or "memoryPreviewConfigured" not in play_lua:

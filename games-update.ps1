@@ -224,6 +224,9 @@ try {
         if ($playJsText -notmatch 'fallSwipeSteps') {
             throw 'Local safety check could not verify FALL scaled swipe controls.'
         }
+        if ($playJsText -notmatch 'fallGravityDelay' -or $playJsText -notmatch 'fallGravityTick' -or $playJsText -notmatch 'startFallGravity') {
+            throw 'Local safety check could not verify FALL gravity mode.'
+        }
         if ($playJsText -notmatch 'slideMovePath' -or $playJsText -notmatch 'CHAIN SLIDE') {
             throw 'Local safety check could not verify SLIDE line-slide controls.'
         }
@@ -359,6 +362,7 @@ try {
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
+    if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'slideMovePath' -or $playAppText -notmatch 'CHAIN SLIDE') { throw 'SLIDE line-slide control check failed.' }
     if ($playAppText -notmatch 'sortPourCount' -or $playAppText -notmatch 'QUICK POUR') { throw 'SORT quick-pour control check failed.' }
     if ($playAppText -notmatch 'crossNonogramDirect' -or $playAppText -notmatch 'nonogram\.crossed\.delete\(index\);nonogram\.filled\.add\(index\)' -or $playAppText -notmatch 'resetTransientInputState') { throw 'NONOGRAM/transition UX check failed.' }

@@ -432,6 +432,10 @@ if "period5<period1" not in play_lua or "zone5<zone1" not in play_lua:
     fail("STOP RUSH escalation self-test is missing")
 if "STOP!でBULLSEYEを1回" not in play_js:
     fail("STOP BULLSEYE achievement label is stale")
+if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 16000" not in config or "cfg.NumberRushAceMs or 16000" not in play_lua:
+    fail("NUMBER ACE displayed/server threshold mismatch")
+if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
+    fail("COLOR FOCUS displayed/server threshold mismatch")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:

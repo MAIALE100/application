@@ -475,6 +475,8 @@ if not re.search(r"id='mines'[^\n]*version=2", registry):
     fail("MINES save version must be 2 for first-safe boards")
 if "NONOGRAM_PATTERNS_5" not in play_lua or "NONOGRAM_PATTERNS_5" not in play_js or "nonogramCuratedSet" not in play_lua:
     fail("curated NONOGRAM puzzle set is missing")
+if "タップで塗る・長押しで×" not in play_js or "nonogram.crossed.delete(index);nonogram.filled.add(index)" not in play_js:
+    fail("NONOGRAM touch/hold input separation is missing")
 try:
     client_nonogram = play_js.split("const NONOGRAM_PATTERNS_5=[",1)[1].split("];",1)[0]
     server_nonogram = play_lua.split("local NONOGRAM_PATTERNS_5={",1)[1].split("\n}",1)[0]

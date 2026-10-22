@@ -426,7 +426,8 @@ end
 local function telephonePublicChain(room,rs)
     local out={}
     for _,entry in ipairs(rs.chain or {}) do
-        local item={kind=entry.kind,name=entry.byIdentifier and memberName(room,entry.byIdentifier) or 'START'}
+        local contributor=entry.byName or (entry.byIdentifier and memberName(room,entry.byIdentifier)) or 'START'
+        local item={kind=entry.kind,name=contributor}
         if entry.kind=='text' then item.text=entry.text else item.strokes=entry.strokes end
         out[#out+1]=item
     end
@@ -477,7 +478,11 @@ local function publicRoundState(room,viewerId)
         out.prompt=viewerId==rs.drawerIdentifier and rs.prompt or nil
         out.strokes=rs.strokes or {}
         out.selfGuessed=rs.guessed and rs.guessed[viewerId]==true or false
-        local guessedCount=0 for _ in pairs(rs.guessed or {}) do guessedCount=guessedCount+1 end
+        local guessedCount=0
+        for guessedId in pairs(rs.guessed or {}) do
+            local guessedMember=room.members[guessedId]
+            if guessedMember and not guessedMember.disconnected and guessedId~=rs.drawerIdentifier then guessedCount=guessedCount+1 end
+        end
         out.guessedCount=guessedCount
     end
     if rs.gameId=='telephone' then
@@ -1237,7 +1242,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     if rs.currentIdentifier~=id or rs.mode~='draw' then return {ok=false,error='NOT_YOUR_TURN'} end
     local clean=sanitizedStrokes(data.strokes,80,2400)
     if not clean then return {ok=false,error='INVALID_DRAWING'} end
-    rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
+    rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,byName=memberName(room,id),strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
     if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
@@ -1258,7 +1263,7 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     local value=FlecityGamesText.Normalize(data.text)
     local textLength=FlecityGamesText.Length(value)
     if textLength<1 or textLength>80 then return {ok=false,error='INVALID_TEXT'} end
-    rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
+    rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,byName=memberName(room,id),text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
     if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
@@ -1494,6 +1499,16 @@ function FlecityGamesParty.DebugSelftest()
     local telephoneA=publicRoundState(telephoneRoom,'a')
     local telephoneB=publicRoundState(telephoneRoom,'b')
 
+    local telephoneNameRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,joinOrder=2}
+    },roundState={
+        token='tel-name',gameId='telephone',startedAt=0,startedTick=0,complete=true,submissions={},
+        chain={{kind='text',text='START'},{kind='draw',byIdentifier='a',byName='Alpha',strokes={{{x=0,y=0},{x=1,y=1}}}}}
+    }}
+    telephoneNameRoom.members.a=nil
+    local telephoneNameChain=telephonePublicChain(telephoneNameRoom,telephoneNameRoom.roundState)
+
     local majorityRoom={members=members,roundState={
         token='majority',gameId='majority',startedAt=0,startedTick=0,complete=false,
         submissions={a='A',b='A',c='B'},prompt='test',options={'one','two'}
@@ -1563,6 +1578,10 @@ function FlecityGamesParty.DebugSelftest()
     drawRoom.roundState.guessed={b=true,c=true}
     drawRoom.roundState.guessedAt={b=100,c=200}
     drawRoom.roundState.submissions={b=true,c=true}
+    local drawProgressBeforeDisconnect=publicRoundState(drawRoom,'a').guessedCount
+    members.c.disconnected=true
+    local drawProgressAfterDisconnect=publicRoundState(drawRoom,'a').guessedCount
+    members.c.disconnected=false
     maybeFinishDraw(drawRoom)
 
     local targetDisconnectRoom={members={
@@ -1671,6 +1690,7 @@ function FlecityGamesParty.DebugSelftest()
         drawPrompts=#drawPrompts>=50,
         drawAliasMatch=drawGuessMatches('車','自動車') and drawGuessMatches('スマホ','携帯電話') and not drawGuessMatches('猫','犬'),
         drawPrivacy=drawA.prompt=='猫' and drawB.prompt==nil and drawA.isDrawer==true and drawB.isDrawer==false,
+        drawConnectedProgress=drawProgressBeforeDisconnect==2 and drawProgressAfterDisconnect==1,
         drawCompletion=drawRoom.roundState.complete==true
             and #drawRoom.roundState.results.entries==2
             and drawRoom.roundState.results.entries[1].memberId=='B',
@@ -1683,6 +1703,7 @@ function FlecityGamesParty.DebugSelftest()
             and secretLeftRoom.roundState.results.reason=='SECRET_PLAYER_LEFT',
         telephonePrompts=#telephonePrompts>=6,
         telephonePrivacy=telephoneA.promptText=='秘密のお題' and telephoneB.promptText==nil and telephoneA.isCurrent==true and telephoneB.isCurrent==false,
+        telephoneContributorNamePreserved=telephoneNameChain[2] and telephoneNameChain[2].name=='Alpha',
         telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3
             and telephoneSkipRoom.roundState.currentIdentifier=='c'
             and telephoneSkipRoom.roundState.mode=='text',

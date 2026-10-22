@@ -2174,8 +2174,8 @@ async function finishSort(){
  game.finalizing=false;
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.sort;
-   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves;
-   if(sortGame===game){sortTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('sort',res,'SORT '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES');renderSort();}
+   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0,rankScore=Number(res.score)||actual+penalty;
+   if(sortGame===game){sortTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('sort',res,'SORT '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES · MOVE +'+(penalty/1000).toFixed(1)+'s · RANK SCORE '+(rankScore/1000).toFixed(1)+'s');renderSort();}
    await refreshPlatform();
  }else{
    if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
@@ -2306,8 +2306,8 @@ async function finishSlide(){
  game.finalizing=false;
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.slide;
-   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0;
-   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,(res.daily?'デイリー · ':'')+'SLIDE '+slideStars(moves)+' · '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES'+(penalty?' · +'+(penalty/1000).toFixed(1)+'s':''));
+   const actual=Number(res.details&&res.details.timeMs)||durationMs,moves=Number(res.details&&res.details.moves)||game.moves,penalty=Number(res.details&&res.details.movePenaltyMs)||0,rankScore=Number(res.score)||actual+penalty;
+   if(slideGame===game){slideTime.textContent=(actual/1000).toFixed(1)+'s';showScoreResult('slide',res,(res.daily?'デイリー · ':'')+'SLIDE '+slideStars(moves)+' · '+(actual/1000).toFixed(1)+'s · '+moves+' MOVES · MOVE +'+(penalty/1000).toFixed(1)+'s · RANK SCORE '+(rankScore/1000).toFixed(1)+'s');
      renderSlide();}
    await refreshPlatform();
  }else{

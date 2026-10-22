@@ -467,6 +467,15 @@ if not re.search(r"id='mines'[^\n]*version=2", registry):
     fail("MINES save version must be 2 for first-safe boards")
 if "NONOGRAM_PATTERNS_5" not in play_lua or "NONOGRAM_PATTERNS_5" not in play_js or "nonogramCuratedSet" not in play_lua:
     fail("curated NONOGRAM puzzle set is missing")
+try:
+    client_nonogram = play_js.split("const NONOGRAM_PATTERNS_5=[",1)[1].split("];",1)[0]
+    server_nonogram = play_lua.split("local NONOGRAM_PATTERNS_5={",1)[1].split("\n}",1)[0]
+    client_patterns = re.findall(r"\['([01]{5})','([01]{5})','([01]{5})','([01]{5})','([01]{5})'\]", client_nonogram)
+    server_patterns = re.findall(r"\{'([01]{5})','([01]{5})','([01]{5})','([01]{5})','([01]{5})'\}", server_nonogram)
+    if len(client_patterns) != 30 or client_patterns != server_patterns or "nonogramCuratedSet=#NONOGRAM_PATTERNS_5==30" not in play_lua:
+        fail("NONOGRAM curated library must contain 30 synchronized puzzles")
+except (IndexError, ValueError):
+    fail("NONOGRAM curated puzzle library could not be parsed")
 if not re.search(r"id='nonogram'[^\n]*version=2", registry):
     fail("NONOGRAM save version must be 2 for curated puzzles")
 if "replayMemory" not in play_lua or "memoryDeckPairs" not in play_lua:

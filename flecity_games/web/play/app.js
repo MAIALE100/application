@@ -2763,7 +2763,8 @@ async function finishSimon(clearedAll=false){
 }
 async function pressSimon(index){
  const game=simon;if(!game||game.finished||!game.accepting||game.submitting)return;
- game.accepting=false;simonPads.forEach(p=>p.disabled=true);
+ // Lock input synchronously so rapid taps cannot enqueue multiple moves before render catches up.
+ game.accepting=false;game.submitting=true;simonPads.forEach(p=>p.disabled=true);
  game.roundInputs.push(index);
  const expected=game.sequence[game.inputIndex];
  if(index!==expected){
@@ -2785,10 +2786,10 @@ async function pressSimon(index){
  tone([420,560,700,840][index]||660,45);
  game.inputIndex+=1;
  if(game.inputIndex<game.sequence.length){
-   game.accepting=true;renderSimon();simonMessage.textContent='あなたの番 · '+String(game.inputIndex+1)+' / '+game.round;return;
+   game.submitting=false;game.accepting=true;renderSimon();simonMessage.textContent='あなたの番 · '+String(game.inputIndex+1)+' / '+game.round;return;
  }
 
- game.submitting=true;renderSimon();
+ renderSimon();
  const res=await sendSimonRound(game.roundInputs.slice(),game.round);
  game.submitting=false;
  if(simon!==game){await cancelPlaySession(game.sessionToken);return;}

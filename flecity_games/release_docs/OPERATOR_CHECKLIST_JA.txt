@@ -1,9 +1,9 @@
-Flecity Games PLAY v1.0.0
+Flecity Games LOOP v1.0.0
 運営様向け 確認用メモ
 
 ■ 変更範囲
 ・追加リソース：flecity_games
-・LB Phone：AddCustomApp によるPLAY追加のみ
+・LB Phone：AddCustomApp によるLOOP追加のみ
 ・Qbox core：変更なし
 ・LB Phone core：変更なし
 ・oxmysql：既存APIを利用
@@ -20,7 +20,7 @@ flecity_game_daily
 スキーマ初期化は CREATE TABLE IF NOT EXISTS と不足列/indexの補完です。
 DROP TABLE / TRUNCATE TABLE はありません。
 
-■ PLAY
+■ LOOP
 ・15ゲーム
 ・一人用
 ・Daily Challenge

@@ -464,8 +464,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.62.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.62.0-test")
+if "version '0.63.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.63.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
@@ -478,6 +478,8 @@ if "if(inGame){statusEl.textContent='';statusEl.className='status app-status hid
     fail("PLAY shared status bar must stay hidden during gameplay")
 if "stackCameraTarget" not in play_js or "cameraOffset" not in play_js or 'data-camera="follow"' not in play_css:
     fail("TOWER follow camera is missing")
+if "dropStackBlock" not in play_js or "stackArena.onclick" not in play_js or 'aria-label="TOWER: タップでDROP"' not in play_html:
+    fail("TOWER direct-tap DROP control is missing")
 if "layerCount)||0)-5" not in play_js:
     fail("TOWER camera follow threshold is too late")
 if "html,body,.wrap{scrollbar-width:none" not in play_css or "html::-webkit-scrollbar" not in play_css:

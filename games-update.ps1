@@ -251,7 +251,7 @@ try {
         if ($configText -notmatch 'FallMasterLines\s*=\s*20' -or $playLuaText -notmatch 'fall_master' -or $playJsText -notmatch 'fall_master') {
             throw 'Local safety check could not verify FALL MASTER achievement.'
         }
-        if ($playJsText -notmatch 'fallPeekPieces' -or $playJsText -notmatch 'pieceRngState' -or $playHtmlText -notmatch 'Next three pieces') {
+        if ($playJsText -notmatch 'fallPeekPieces' -or $playJsText -notmatch 'pieceRngState' -or $playHtmlText -notmatch 'id="fallNext"') {
             throw 'Local safety check could not verify FALL next-piece preview.'
         }
         if ($playJsText -notmatch 'game\.pieces%3===0' -or $playJsText -notmatch 'persistFall\(false,false\)' -or $playJsText -notmatch 'snapshotLength') {
@@ -377,7 +377,7 @@ try {
     if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
     if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
     if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }
-    if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'pieceRngState' -or $playIndexText -notmatch 'Next three pieces') { throw 'FALL next-piece preview check failed.' }
+    if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'pieceRngState' -or $playIndexText -notmatch 'id="fallNext"') { throw 'FALL next-piece preview check failed.' }
     if ($playAppText -notmatch 'game\.pieces%3===0' -or $playAppText -notmatch 'persistFall\(false,false\)' -or $playAppText -notmatch 'snapshotLength') { throw 'FALL autosave optimization check failed.' }
     if ($playCoreText -notmatch 'normalized\[#normalized\+1\]=\{x=applied\.x,rotation=applied\.rotation,hold=useHold\}' -or $playAppText -notmatch 'game\.history\.push\(\{x:game\.x,rotation:game\.rotation,hold:game\.holdUsed===true\}\)') { throw 'FALL compact history check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }

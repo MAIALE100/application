@@ -221,6 +221,18 @@ try {
         if ($playJsText -notmatch 'openSlide' -or $playJsText -notmatch 'persistSlide' -or $playJsText -notmatch 'finishSlide' -or $playHtmlText -notmatch 'id="slideGame"') {
             throw 'Local safety check could not verify SLIDE client flow.'
         }
+        if ($playJsText -notmatch 'fallSwipeSteps') {
+            throw 'Local safety check could not verify FALL scaled swipe controls.'
+        }
+        if ($playJsText -notmatch 'slideMovePath' -or $playJsText -notmatch 'CHAIN SLIDE') {
+            throw 'Local safety check could not verify SLIDE line-slide controls.'
+        }
+        if ($playJsText -notmatch 'sortPourCount' -or $playJsText -notmatch 'QUICK POUR') {
+            throw 'Local safety check could not verify SORT quick-pour controls.'
+        }
+        if ($playJsText -notmatch 'タップで塗る・長押しで×' -or $playJsText -notmatch 'resetTransientInputState') {
+            throw 'Local safety check could not verify NONOGRAM input separation / transition cleanup.'
+        }
         if ($playJsText -notmatch 'openFall' -or $playJsText -notmatch 'persistFall' -or $playJsText -notmatch 'finishFall' -or $playHtmlText -notmatch 'id="fallGame"') {
             throw 'Local safety check could not verify FALL client flow.'
         }
@@ -346,6 +358,10 @@ try {
     if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
+    if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
+    if ($playAppText -notmatch 'slideMovePath' -or $playAppText -notmatch 'CHAIN SLIDE') { throw 'SLIDE line-slide control check failed.' }
+    if ($playAppText -notmatch 'sortPourCount' -or $playAppText -notmatch 'QUICK POUR') { throw 'SORT quick-pour control check failed.' }
+    if ($playAppText -notmatch 'タップで塗る・長押しで×' -or $playAppText -notmatch 'resetTransientInputState') { throw 'NONOGRAM/transition UX check failed.' }
     if ($playIndexText -notmatch 'id="fallGame"' -or $playAppText -notmatch 'openFall' -or $playAppText -notmatch 'persistFall' -or $playAppText -notmatch 'finishFall') { throw 'FALL client flow check failed.' }
     if ($playCoreText -notmatch 'replayFallState' -or $playCoreText -notmatch 'FALL_BASE_SHAPES' -or $playCoreText -notmatch 'INVALID_FALL_REPLAY') { throw 'FALL server replay check failed.' }
     if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }

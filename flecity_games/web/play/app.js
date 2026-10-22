@@ -1609,7 +1609,8 @@ function updateMinesTime(){if(mines){const ms=Number.isFinite(Number(mines.displ
 function renderMines(){
  if(!mines)return;minesBoard.innerHTML='';updateMinesTime();
  const safeTotal=mines.size*mines.size-mines.mineCount;
- refreshScreenBests();minesMeta.textContent=(mines.daily?'DAILY · ':'')+'地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
+ const flagsLeft=Math.max(0,mines.mineCount-mines.flags.size);
+ refreshScreenBests();minesMeta.textContent=(mines.daily?'DAILY · ':'')+'地雷 '+String(mines.mineCount)+' · FLAG '+String(mines.flags.size)+'/'+String(mines.mineCount)+' · LEFT '+String(flagsLeft)+' · OPEN '+String(mines.revealed.size)+'/'+String(safeTotal);
  for(let i=0;i<mines.size*mines.size;i++){
    const b=document.createElement('button'),revealed=mines.revealed.has(i),flagged=mines.flags.has(i);
    const n=revealed?mineCountAround(i):0;
@@ -1679,6 +1680,7 @@ async function flagMineDirect(index){
  if(!(await activateMinesTiming(null))||mines!==game)return;
  game.progressed=true;
  if(game.flags.has(index)){game.flags.delete(index);tone(270,18);}
+ else if(game.flags.size>=game.mineCount){tone(170,35);setStatus('FLAG LIMIT · 旗は地雷数の '+game.mineCount+' 個までです。','warn');renderMines();return;}
  else{game.flags.add(index);tone(560,28);}
  minesBoard.classList.remove('flag-pop');void minesBoard.offsetWidth;minesBoard.classList.add('flag-pop');
  renderMines();await persistMines();
@@ -1714,7 +1716,10 @@ async function touchMine(index){
  if(mines.mode==='flag'){
    if(mines.revealed.has(index))return;
    mines.progressed=true;
-   if(mines.flags.has(index)){mines.flags.delete(index);tone(270,18);}else{mines.flags.add(index);tone(520,22);}renderMines();await persistMines();return;
+   if(mines.flags.has(index)){mines.flags.delete(index);tone(270,18);}
+   else if(mines.flags.size>=mines.mineCount){tone(170,35);setStatus('FLAG LIMIT · 旗は地雷数の '+mines.mineCount+' 個までです。','warn');renderMines();return;}
+   else{mines.flags.add(index);tone(520,22);}
+   renderMines();await persistMines();return;
  }
  if(mines.flags.has(index))return;
  if(mines.mineSet.has(index)){tone(120,130);minesBoard.classList.remove('mine-hit');void minesBoard.offsetWidth;minesBoard.classList.add('mine-hit');await loseMines(index);return;}

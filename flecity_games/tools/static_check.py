@@ -464,8 +464,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.66.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.66.0-test")
+if "version '0.67.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.67.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
@@ -488,7 +488,7 @@ if "PLAY submission home visual pass v24" not in play_css or "home-scroll-row" n
     fail("PLAY submission home visual pass is missing")
 if "enableHorizontalDragScroll" not in play_js or "touch-action:pan-y" not in play_css or "is-dragging" not in play_css:
     fail("PLAY home horizontal drag scrolling is missing")
-if "body:not(.game-active){padding-top:max(4.5rem" not in play_css or '<div class="brand-title-row"><h1>PLAY</h1>' not in play_html or "PLAY WHEN YOU WAIT." in play_html:
+if "body:not(.game-active){padding-top:max(5.375rem" not in play_css or '<div class="brand-title-row"><h1>PLAY</h1></div><div class="home-meta-row">' not in play_html or "PLAY WHEN YOU WAIT." in play_html:
     fail("PLAY home notch-safe header polish is missing")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")

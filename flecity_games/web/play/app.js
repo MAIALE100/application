@@ -1985,8 +1985,8 @@ async function finishStack(){
    if(stackGame===game)setStatus('TOWERスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');
  }
 }
-stackDrop.onclick=async()=>{
- if(!stackGame||stackGame.finished)return;
+async function dropStackBlock(){
+ if(!stackGame||stackGame.finished||stackGame.finalizing)return;
  const now=performance.now(),previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
  const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
@@ -2024,7 +2024,10 @@ stackDrop.onclick=async()=>{
  stackGame.layerStartedAt=now;
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);
  renderStack();
-};
+}
+stackDrop.onclick=()=>{void dropStackBlock();};
+stackArena.onclick=()=>{void dropStackBlock();};
+stackArena.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void dropStackBlock();}};
 stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
 stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
 

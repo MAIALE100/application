@@ -18,7 +18,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -53,8 +53,8 @@ function trianglePosition(elapsedMs,periodMs,phaseMs){
  return cycle<=half?(cycle/half)*100:((period-cycle)/half)*100;
 }
 function resetRoundRuntime(){
- cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deadlineRaf);
- reactionState='idle';stopBattleState='idle';deadlineRaf=null;
+ cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deadlineRaf);cancelAnimationFrame(deductionPhaseRaf);
+ reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];
 }
@@ -290,20 +290,37 @@ function setupTicTac(room){
    ticTacBoard.appendChild(button);
  }
 }
+function deductionPhaseLoop(token){
+ if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
+ const rs=currentRoom.roundState;
+ if(rs.complete)return;
+ const unlock=Number(rs.voteUnlockTick);
+ if(!Number.isFinite(unlock))return;
+ const remaining=unlock-estimatedServerTick();
+ const locked=remaining>0;
+ deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=locked);
+ const phaseText=locked?'会話タイム · 投票まで '+Math.ceil(remaining/1000)+'秒':'投票タイム · 怪しい人を選んでください';
+ const phase=document.getElementById('deductionPhase');
+ if(phase){phase.textContent=phaseText;phase.className='status compact-status '+(locked?'':'good');}
+ if(locked)deductionPhaseRaf=requestAnimationFrame(()=>deductionPhaseLoop(token));
+}
 function setupDeduction(room){
  const rs=room.roundState;hideRoundGames();deductionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);deductionChoices.innerHTML='';
  if(rs.gameId==='word_wolf'){
    deductionGame.textContent='WORD WOLF';deductionSecret.textContent='あなたのお題: '+String(rs.secretTopic||'---');
-   deductionHint.textContent='全員で会話して、違うお題を持っていると思う人に投票してください。';
+   deductionHint.textContent='まず全員でお題について話し、投票タイムになったら少数派だと思う人を選びます。';
  }else{
    deductionGame.textContent='LIAR';deductionSecret.textContent='質問: '+String(rs.prompt||'---');
-   deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には嘘で答えてください。':'あなたはTRUTHです。質問には正直に答えてください。';
+   deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には自然な嘘で答え、見破られないようにしてください。':'あなたはTRUTHです。質問には正直に答え、LIARを探してください。';
  }
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
+ const phase=document.createElement('div');phase.id='deductionPhase';phase.className='status compact-status';deductionChoices.appendChild(phase);
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);
  });
+ cancelAnimationFrame(deductionPhaseRaf);deductionPhaseRaf=null;
+ deductionPhaseLoop(rs.token);
 }
 function paintCanvas(ctx,canvas,strokes,temp){
  ctx.fillStyle='#f7f7f7';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';

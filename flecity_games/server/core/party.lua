@@ -342,8 +342,14 @@ local function publicRoundState(room,viewerId)
         out.isCurrent=viewerId==rs.currentIdentifier
         out.symbol=rs.symbols and rs.symbols[viewerId] or nil
     end
-    if rs.gameId=='word_wolf' then out.secretTopic=rs.topics and rs.topics[viewerId] or nil end
-    if rs.gameId=='liar' then out.prompt=rs.prompt out.role=rs.roles and rs.roles[viewerId] or nil end
+    if rs.gameId=='word_wolf' then
+        out.secretTopic=rs.topics and rs.topics[viewerId] or nil
+        out.voteUnlockTick=rs.voteUnlockTick
+    end
+    if rs.gameId=='liar' then
+        out.prompt=rs.prompt out.role=rs.roles and rs.roles[viewerId] or nil
+        out.voteUnlockTick=rs.voteUnlockTick
+    end
     if rs.gameId=='draw' then
         out.isDrawer=viewerId==rs.drawerIdentifier
         out.drawerMemberId=memberPublicId(room,rs.drawerIdentifier)
@@ -609,10 +615,13 @@ function FlecityGamesParty.StartRound(source)
     end
     if game.id=='tic_tac' then
         local ids=connectedIdentifiers(room)
+        room.rotation=room.rotation or {draw=0,telephone=0,ticTac=0}
+        room.rotation.ticTac=((tonumber(room.rotation.ticTac) or 0)%#ids)+1
+        local order=rotatedIdentifiers(ids,room.rotation.ticTac)
         rs.board={'','','','','','','','',''}
-        rs.turnOrder={ids[1],ids[2]}
-        rs.currentIdentifier=ids[1]
-        rs.symbols={[ids[1]]='X',[ids[2]]='O'}
+        rs.turnOrder={order[1],order[2]}
+        rs.currentIdentifier=order[1]
+        rs.symbols={[order[1]]='X',[order[2]]='O'}
     end
     if game.id=='word_wolf' then
         local pair=pickRoomPrompt(room,'word_wolf',wordWolfPairs)
@@ -621,11 +630,13 @@ function FlecityGamesParty.StartRound(source)
         local ids=connectedIdentifiers(room) local wolfId=ids[math.random(1,#ids)]
         rs.wolfIdentifier=wolfId rs.majorityTopic=majorityTopic rs.wolfTopic=wolfTopic rs.topics={}
         for _,memberId in ipairs(ids) do rs.topics[memberId]=memberId==wolfId and wolfTopic or majorityTopic end
+        rs.voteUnlockTick=startedTick+(math.min(75,30+(#ids*5))*1000)
     end
     if game.id=='liar' then
         local ids=connectedIdentifiers(room) local liarId=ids[math.random(1,#ids)]
         rs.liarIdentifier=liarId rs.prompt=pickRoomPrompt(room,'liar',liarPrompts) rs.roles={}
         for _,memberId in ipairs(ids) do rs.roles[memberId]=memberId==liarId and 'LIAR' or 'TRUTH' end
+        rs.voteUnlockTick=startedTick+(math.min(75,30+(#ids*5))*1000)
     end
     if game.id=='draw' then
         local ids=connectedIdentifiers(room)
@@ -918,6 +929,7 @@ function FlecityGamesParty.SubmitWordWolfVote(source,data)
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='word_wolf' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
+    if tonumber(rs.voteUnlockTick) and GetGameTimer()<tonumber(rs.voteUnlockTick) then return {ok=false,error='VOTING_LOCKED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishWordWolf(room)
@@ -954,6 +966,7 @@ function FlecityGamesParty.SubmitLiarVote(source,data)
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='liar' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
+    if tonumber(rs.voteUnlockTick) and GetGameTimer()<tonumber(rs.voteUnlockTick) then return {ok=false,error='VOTING_LOCKED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
     if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishLiar(room)
@@ -1252,14 +1265,14 @@ function FlecityGamesParty.DebugSelftest()
 
     local wolfRoom={members=members,roundState={
         token='wolf',gameId='word_wolf',startedAt=0,startedTick=0,complete=false,submissions={},
-        topics={a='猫',b='猫',c='犬'},wolfIdentifier='c',majorityTopic='猫',wolfTopic='犬'
+        topics={a='猫',b='猫',c='犬'},wolfIdentifier='c',majorityTopic='猫',wolfTopic='犬',voteUnlockTick=12345
     }}
     local wolfA=publicRoundState(wolfRoom,'a')
     local wolfC=publicRoundState(wolfRoom,'c')
 
     local liarRoom={members=members,roundState={
         token='liar',gameId='liar',startedAt=0,startedTick=0,complete=false,submissions={},
-        prompt='質問',roles={a='TRUTH',b='LIAR',c='TRUTH'},liarIdentifier='b'
+        prompt='質問',roles={a='TRUTH',b='LIAR',c='TRUTH'},liarIdentifier='b',voteUnlockTick=12345
     }}
     local liarA=publicRoundState(liarRoom,'a')
     local liarB=publicRoundState(liarRoom,'b')

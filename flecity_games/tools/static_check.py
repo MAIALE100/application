@@ -603,6 +603,10 @@ if "roundTimeoutSeconds" not in party_lua or "deadlineTick" not in party_lua or 
     fail("PARTY authoritative round timeout is missing")
 if "deadlineLoop" not in party_js or "roundDeadline" not in party_js or 'id="roundDeadline"' not in party_html:
     fail("PARTY round deadline UI is missing")
+if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "deductionPhaseLoop" not in party_js:
+    fail("PARTY deduction discussion/voting phase separation is missing")
+if "rotation.ticTac" not in party_lua:
+    fail("PARTY TIC-TAC first-player rotation is missing")
 
 for marker in (
     "wordWolfPrivacy",

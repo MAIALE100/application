@@ -76,6 +76,7 @@ window.FlecityErrors = {
         ALREADY_SUBMITTED: 'すでに回答済みです',
         INVALID_TARGET: '選択した相手が無効です',
         SELF_VOTE_NOT_ALLOWED: '自分自身には投票できません',
+        VOTING_LOCKED: 'まだ会話タイムです。投票開始まで待ってください',
         INVALID_CHOICE: '選択肢が不正です',
         CELL_OCCUPIED: 'そのマスはすでに使われています',
         DRAWER_ONLY: '描き手だけが操作できます',

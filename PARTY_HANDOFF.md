@@ -334,3 +334,10 @@ LOOP完成版には不要な変更を入れない。
 - entry画面でapp close/openを繰り返した際、`scheduleBootstrap` ごとに `visibilitychange` listenerが増えていた問題を修正。
 - `visibilityBound` / `bindVisibilityLifecycle` で1回だけ登録。
 - 長時間利用や何度もPhoneを開閉した後にsuspend/resumeが多重発火し、poll/refreshが余計に走る経路を防止。
+
+
+## 2026-10-23 退出誤タップ対策
+- PARTYの「退出」は即実行から2段確認へ変更。
+- 1回目は `もう一度押して退出` に変わり、2.5秒以内の2回目だけ `partyLeaveRoom` を送信。
+- 2.5秒経過 / entry復帰 / app suspendで確認状態を自動解除。
+- server側LeaveRoom仕様は変えず、NUI小画面の誤タップだけを防止。

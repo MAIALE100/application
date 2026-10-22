@@ -15,7 +15,7 @@ const settingSound=document.getElementById('settingSound'),settingMotion=documen
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
-let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false;
+let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
@@ -80,8 +80,11 @@ async function runOnce(key,fn){
  actionLocks.add(key);
  try{return await fn();}finally{actionLocks.delete(key);}
 }
+function resetLeaveConfirmation(){
+ clearTimeout(leaveConfirmTimer);leaveConfirmTimer=null;leaveConfirmUntil=0;leaveBtn.textContent='退出';
+}
 function suspendPartyUi(){
- appSuspended=true;roomPushEnabled=false;resetRoundRuntime();
+ appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();
  clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
 }
@@ -104,7 +107,7 @@ function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
 }
 function showEntry(){
- currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();clearInterval(poll);poll=null;
+ currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function submissionProgress(rs){
@@ -670,7 +673,21 @@ async function submitTelephoneText(){
 telephoneTextSubmit.onclick=submitTelephoneText;
 telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
 lobbyBtn.onclick=()=>runOnce('return-lobby',async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
-leaveBtn.onclick=()=>runOnce('leave',async()=>{await FlecityBridge.call('partyLeaveRoom',{});showEntry();status('ルームから退出しました。');});
+leaveBtn.onclick=()=>{
+ const now=performance.now();
+ if(now>leaveConfirmUntil){
+   leaveConfirmUntil=now+2500;leaveBtn.textContent='もう一度押して退出';
+   clearTimeout(leaveConfirmTimer);
+   leaveConfirmTimer=setTimeout(()=>{if(performance.now()>=leaveConfirmUntil)resetLeaveConfirmation();},2600);
+   return;
+ }
+ resetLeaveConfirmation();
+ runOnce('leave',async()=>{
+   const res=await FlecityBridge.call('partyLeaveRoom',{});
+   if(!res.ok){status('退出できません: '+FlecityErrors.text(res.error),'error');return;}
+   showEntry();status('ルームから退出しました。');
+ });
+};
 codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
 
 async function bootstrap(){

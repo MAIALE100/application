@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -160,7 +160,7 @@ function resetTransientInputState(){
 }
 function hideAll(){document.body.classList.add('game-active');homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(fallGravityClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);fallGravityClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
  resetTransientInputState();
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');document.body.classList.remove('game-active');renderGames(bootstrapData&&bootstrapData.games);
@@ -1351,15 +1351,41 @@ function fallApplyPlacement(board,width,height,pieceType,x,rotation,combo,lines)
 function elapsedFall(){
  return (fallGame?fallGame.elapsedBase:0)+(fallGame&&fallGame.startedAt?performance.now()-fallGame.startedAt:0);
 }
+function fallGravityDelay(game){
+ const level=Math.min(8,1+Math.floor(Math.max(0,Number(game&&game.lines)||0)/5));
+ return Math.max(230,900-((level-1)*95));
+}
+function stopFallGravity(){clearInterval(fallGravityClock);fallGravityClock=null;}
+function startFallGravity(){
+ stopFallGravity();
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.ended||!game.sessionToken)return;
+ game.lastGravityAt=performance.now();game.groundedAt=null;
+ fallGravityClock=setInterval(()=>{void fallGravityTick();},50);
+}
+async function fallGravityTick(){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended||!game.sessionToken)return;
+ const shape=fallShape(game.nextPiece,game.rotation),landingY=fallDropY(game.board,game.width,game.height,shape,game.x);
+ if(landingY===null){game.ended=true;stopFallGravity();renderFall();return;}
+ const now=performance.now();
+ if(game.y<landingY){
+   game.groundedAt=null;
+   if(now-(Number(game.lastGravityAt)||now)>=fallGravityDelay(game)){
+     game.y=Math.min(landingY,game.y+1);game.lastGravityAt=now;renderFall();
+   }
+   return;
+ }
+ if(game.groundedAt==null){game.groundedAt=now;renderFall();return;}
+ if(now-game.groundedAt>=450)await dropFall(true);
+}
 function fallResetCursor(){
  const game=fallGame;if(!game||game.ended)return false;
  const shape=fallShape(game.nextPiece,0);
  const width=Math.max(...shape.map(([x])=>x),0)+1;
- game.rotation=0;game.x=Math.max(0,Math.floor((game.width-width)/2));
+ game.rotation=0;game.x=Math.max(0,Math.floor((game.width-width)/2));game.y=0;game.groundedAt=null;game.lastGravityAt=performance.now();
  if(fallDropY(game.board,game.width,game.height,shape,game.x)!==null)return true;
  const found=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece);
  if(!found){game.ended=true;return false;}
- game.x=found.x;game.rotation=found.rotation;return true;
+ game.x=found.x;game.rotation=found.rotation;game.y=0;return true;
 }
 function renderFallPreview(){
  fallNext.innerHTML='';
@@ -1382,17 +1408,19 @@ function renderFall(){
  const game=fallGame;if(!game)return;
  refreshScreenBests();fallScore.textContent=String(game.score);
  const pressure=fallPressure(game);
- const level=1+Math.floor((Number(game.lines)||0)/5),nextLevelIn=5-((Number(game.lines)||0)%5);
- fallMeta.textContent='LEVEL '+level+' · NEXT +'+String(nextLevelIn)+' · LINES '+String(game.lines)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
+ const level=1+Math.floor((Number(game.lines)||0)/5),nextLevelIn=5-((Number(game.lines)||0)%5),gravity=(fallGravityDelay(game)/1000).toFixed(2);
+ fallMeta.textContent='LEVEL '+level+' · DROP '+gravity+'s · NEXT +'+String(nextLevelIn)+' · LINES '+String(game.lines)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
  fallBoard.classList.toggle('fall-tight',pressure.label==='TIGHT');
  fallBoard.classList.toggle('fall-danger',pressure.label==='DANGER');
+ fallBoard.classList.toggle('fall-grounded',game.groundedAt!=null&&!game.ended);
  fallBoard.innerHTML='';
  const shape=!game.ended?fallShape(game.nextPiece,game.rotation):[];
  const ghostY=!game.ended?fallDropY(game.board,game.width,game.height,shape,game.x):null;
  const active=new Set(),ghost=new Set();
  if(!game.ended){
+   const activeY=Math.max(0,Math.floor(Number(game.y)||0));
    shape.forEach(([dx,dy])=>{
-     const ax=game.x+dx,ay=dy;if(ay>=0&&ay<game.height)active.add(ax+','+ay);
+     const ax=game.x+dx,ay=activeY+dy;if(ay>=0&&ay<game.height)active.add(ax+','+ay);
      if(ghostY!==null){const gy=ghostY+dy;if(gy>=0&&gy<game.height)ghost.add(ax+','+gy);}
    });
  }
@@ -1448,7 +1476,7 @@ async function openFall(forceNew=false){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('FALLを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Math.max(6,Number(session.challenge&&session.challenge.width)||10),height=Math.max(12,Number(session.challenge&&session.challenge.height)||18);
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===height){
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,pieceRngState:Number(session.seed)||1,x:0,rotation:0,
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,pieceRngState:Number(session.seed)||1,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:true,ended:false};
    if(!syncFallCanonical(fallGame,saved.state)){
      await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('FALLの途中保存を読み込めませんでした。','error');showHome();return;
@@ -1456,11 +1484,12 @@ async function openFall(forceNew=false){
    setStatus(fallGame.ended?'FALLのゲームオーバー状態を再開しました。記録を確定します。':'FALLを途中保存から再開しました。','good');
  }else{
    const firstState=fallPieceStateFor(session.seed,0),firstPiece=Number(session.challenge&&session.challenge.firstPiece)||firstState.type;
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,pieceRngState:firstState.state,x:0,rotation:0,
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,pieceRngState:firstState.state,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:0,startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:false,ended:false};
    fallResetCursor();setStatus('新しいFALLを開始しました。','good');
  }
  renderFall();
+ if(fallGame&&!fallGame.ended)startFallGravity();
  if(fallGame&&fallGame.ended&&fallGame.history.length>0)setTimeout(()=>{if(fallGame&&!fallGame.finalizing&&fallGame.sessionToken)void finishFall(true);},120);
 }
 function moveFallHorizontal(delta){
@@ -1469,12 +1498,12 @@ function moveFallHorizontal(delta){
  const direction=requested<0?-1:1,steps=Math.max(1,Math.min(game.width,Math.abs(requested))),shape=fallShape(game.nextPiece,game.rotation);
  let moved=0;
  for(let step=0;step<steps;step++){
-   const nextX=game.x+direction;
-   if(fallDropY(game.board,game.width,game.height,shape,nextX)===null)break;
+   const nextX=game.x+direction,landingY=fallDropY(game.board,game.width,game.height,shape,nextX);
+   if(landingY===null||landingY<game.y)break;
    game.x=nextX;moved+=1;
  }
  if(moved===0){tone(150,20);return;}
- tone(350+Math.min(90,(moved-1)*18),12);renderFall();
+ game.groundedAt=null;tone(350+Math.min(90,(moved-1)*18),12);renderFall();
 }
 function fallSwipeSteps(dx){
  const game=fallGame;if(!game)return 1;
@@ -1486,17 +1515,18 @@ function rotateFall(){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
  const nextRotation=(game.rotation+1)%4,shape=fallShape(game.nextPiece,nextRotation);
  for(const offset of [0,-1,1,-2,2]){
-   const nextX=game.x+offset;
-   if(fallDropY(game.board,game.width,game.height,shape,nextX)!==null){
-     game.rotation=nextRotation;game.x=nextX;tone(460,16);renderFall();return;
+   const nextX=game.x+offset,landingY=fallDropY(game.board,game.width,game.height,shape,nextX);
+   if(landingY!==null&&landingY>=game.y){
+     game.rotation=nextRotation;game.x=nextX;game.groundedAt=null;tone(460,16);renderFall();return;
    }
  }
  tone(150,24);
 }
-async function dropFall(){
+async function dropFall(autoLock=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ game.busy=true;
  const pressureBefore=fallPressure(game),scoreBefore=Number(game.score)||0,levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
- if(!applied){tone(150,30);setStatus('その位置には置けません。','warn');return;}
+ if(!applied){game.busy=false;tone(150,30);setStatus('その位置には置けません。','warn');renderFall();return;}
  game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
  const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
  game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
@@ -1509,10 +1539,11 @@ async function dropFall(){
    const clearLabel=applied.cleared>=4?'QUAD CLEAR':(applied.cleared===3?'TRIPLE CLEAR':(applied.cleared===2?'DOUBLE CLEAR':'LINE CLEAR'));
    const levelAfter=1+Math.floor((Number(game.lines)||0)/5),levelUp=levelAfter>levelBefore?'LEVEL UP '+levelAfter+' · ':'';
    setStatus(rankUp+(escapedDanger?'CLUTCH ESCAPE · ':'')+levelUp+(game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · LEVEL ×'+applied.level+' · +'+applied.gained,'good');
- }else tone(430,18);
- if(!game.ended)fallResetCursor();renderFall();
+ }else if(!autoLock)tone(430,18);
+ if(!game.ended){fallResetCursor();game.busy=false;}
+ renderFall();
  if(game.ended){
-   game.busy=true;renderFall();
+   stopFallGravity();renderFall();
    const saved=await persistFall(true,true);game.busy=false;
    if(fallGame!==game)return;
    renderFall();
@@ -1525,10 +1556,10 @@ async function dropFall(){
 async function finishFall(gameOver=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||!game.sessionToken)return;
  if(game.history.length<1){setStatus('1個以上ブロックを置いてから記録できます。','warn');return;}
- game.finalizing=true;game.busy=true;renderFall();
+ stopFallGravity();game.finalizing=true;game.busy=true;renderFall();
  await saveQueue.catch(()=>{});
  const saved=await persistFall(true,true);
- if(!saved&&fallGame===game){game.finalizing=false;game.busy=false;renderFall();return;}
+ if(!saved&&fallGame===game){game.finalizing=false;game.busy=false;if(!game.ended)startFallGravity();renderFall();return;}
  await saveQueue.catch(()=>{});
  const durationMs=Math.round(elapsedFall());
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs,history:game.history});
@@ -1555,7 +1586,7 @@ fallBoard.onpointerup=event=>{
  try{fallBoard.releasePointerCapture(event.pointerId);}catch(_){}
  const distance=Math.max(Math.abs(dx),Math.abs(dy));
  if(distance<18){rotateFall();return;}
- if(Math.abs(dy)>Math.abs(dx)&&dy>34){void dropFall();return;}
+ if(Math.abs(dy)>Math.abs(dx)&&dy>34){void dropFall(false);return;}
  if(Math.abs(dx)>24){
    const steps=fallSwipeSteps(dx);
    moveFallHorizontal((dx>0?1:-1)*steps);
@@ -1568,12 +1599,13 @@ fallBoard.onpointercancel=event=>{
 fallLeft.onclick=()=>moveFallHorizontal(-1);
 fallRight.onclick=()=>moveFallHorizontal(1);
 fallRotate.onclick=rotateFall;
-fallDrop.onclick=dropFall;
+fallDrop.onclick=()=>{void dropFall(false);};
 fallBack.onclick=async()=>{
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ stopFallGravity();
  if(fallGame&&!fallGame.finished&&fallGame.sessionToken){
    await saveQueue.catch(()=>{});
-   const saved=await persistFall(true,true);if(!saved)return;
+   const saved=await persistFall(true,true);if(!saved){if(fallGame&&!fallGame.ended)startFallGravity();return;}
    await cancelPlaySession(fallGame.sessionToken);
  }
  fallGame=null;showHome();
@@ -1581,6 +1613,7 @@ fallBack.onclick=async()=>{
 fallNew.onclick=async()=>{
  if(fallNew.disabled)return;
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ stopFallGravity();
  const destructive=!!saves.fall||!!(fallGame&&!fallGame.finished);
  if(destructive){
    const ok=await confirmAction('FALLを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
@@ -1597,6 +1630,7 @@ fallNew.onclick=async()=>{
 };
 fallFinish.onclick=async()=>{
  if(!fallGame||fallGame.finalizing)return;
+ stopFallGravity();
  if(!fallGame.ended){
    const ok=await confirmAction('FALLを終了して記録しますか？','現在のスコアを確定して、このRunを終了します。','記録する');
    if(!ok)return;
@@ -3100,9 +3134,9 @@ async function suspendActivePlay(){
    if(confirmResolver)closeConfirm(false);
    clearTimeout(tapTimer);tapTimer=null;
    cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);
-   clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
+   clearInterval(fallGravityClock);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
-   minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+   fallGravityClock=null;minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
    resetTransientInputState();
 
    if(block&&!block.finished&&!block.finalizing){

@@ -396,6 +396,8 @@ if "Rush-mode gameplay v14" not in play_css or ".rush-shift" not in play_css:
     fail("rush-mode gameplay v14 CSS is missing")
 if "flagMineDirect" not in play_js or "crossNonogramDirect" not in play_js or "mineSuppressClickUntil" not in play_js or "nonogramSuppressClickUntil" not in play_js:
     fail("PLAY long-press puzzle controls are missing")
+if "FLAG LIMIT" not in play_js or "flagsLeft" not in play_js or "旗は地雷数まで" not in play_html:
+    fail("MINES flag-budget feedback is missing")
 if "PLAY touch puzzle controls v9" not in play_css or ".flag-pop" not in play_css or ".cross-pop" not in play_css:
     fail("PLAY touch puzzle control CSS is missing")
 if "chordMine" not in play_js or "CHORD OPEN" not in play_js:

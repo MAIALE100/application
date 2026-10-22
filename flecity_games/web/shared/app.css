@@ -757,10 +757,10 @@ body.reduced-motion .high-low-card{transition:none!important}
 
 
 /* LB Phone status-bar clearance & runtime badge v11 */
-body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
+body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.25rem,calc(env(safe-area-inset-top,0rem) + 1rem))}
 .brand-line{flex-wrap:wrap}
-.runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.62rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums}
-@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}}
+.runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;margin-left:auto;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.6rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.25rem,calc(env(safe-area-inset-top,0rem) + 1rem))}}
 
 
 /* PLAY depth feedback v12 */
@@ -939,8 +939,8 @@ body.reduced-motion .fall-board:active{filter:none}
 /* PLAY submission home visual pass v24 */
 .play-home{display:flex;flex-direction:column;gap:0.8125rem}
 .home-brand{min-width:0}
-.brand-title-row{display:flex;align-items:flex-end;gap:0.625rem}
-.home-edition{display:inline-flex;align-items:center;height:1.5rem;margin-bottom:0.3125rem;padding:0 0.5rem;border-radius:99rem;background:#1d2430;border:0.0625rem solid #354152;color:#aeb9c8;font-size:.62rem;font-weight:900;letter-spacing:.12em}
+.brand-title-row{display:flex;align-items:center;gap:0.5rem;min-width:0}
+.home-edition{display:inline-flex;align-items:center;height:1.5rem;padding:0 0.5rem;border-radius:99rem;background:#1d2430;border:0.0625rem solid #354152;color:#aeb9c8;font-size:.62rem;font-weight:900;letter-spacing:.12em}
 .home-subtitle{font-size:.82rem;line-height:1.4;color:#b8c0cd}
 #home>.card{margin-bottom:0}
 .home-feature{padding:1rem;border-radius:1.25rem}

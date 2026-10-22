@@ -255,6 +255,8 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - Host以外はGame Select/Start不可
 - REACTIONのRevealが概ね同時
 - STOP! BATTLEで同じTargetが表示
+- REACTION / STOP! BATTLE は9〜10人でも開始できる
+- DRAWで短いstrokeを連続して描いても約1秒ごとのcallback制限に阻害されずBへ反映
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - Hostが切断するとBへHostが即移行

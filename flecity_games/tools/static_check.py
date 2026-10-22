@@ -615,6 +615,8 @@ if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
     fail("PARTY app-close ready cleanup is missing")
+if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in server:
+    fail("PARTY DRAW LB Phone callback throttle is too restrictive")
 if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
     fail("PARTY app-close host handoff is missing")
 if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
@@ -661,6 +663,8 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
+if not re.search(r"id='reaction'[^\n]*maxPlayers=10", registry) or not re.search(r"id='stop_battle'[^\n]*maxPlayers=10", registry):
+    fail("PARTY quick simultaneous games must support 10-player rooms")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
 missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)

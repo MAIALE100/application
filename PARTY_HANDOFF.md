@@ -234,3 +234,10 @@ LOOP完成版には不要な変更を入れない。
 - 例: Host Aがclose、BはFiveM接続中だがPARTYを閉じている、CはPARTYを開いている場合、HostはCへ移行。
 - Host close時に代替Hostがいなかった場合も、別参加者が後からPARTYを開いてcallbackを行うとHost権限を引き継げる。
 - `appOpen` はserver内部状態のみで、他参加者のsnapshotには公開しない。
+
+
+## 2026-10-23 DRAW callback・10人Quick対応
+- LB Phoneの `party:addDrawStroke` callback rateLimitを900ms→75msへ修正。server/core側の80ms rate limitは維持し、通常描画を阻害せずspam防止もserver-authoritativeに継続。
+- DRAWのstroke数160 / 累積3200 point上限は変更なし。
+- REACTION / STOP! BATTLE のmaxPlayersを8→10へ拡張。処理量が小さく全員同時入力型のため、10人Roomでもゲーム変更を強制されず遊べる。
+- TIC-TACは2人専用、VOTE/MAJORITY/MINORITY/WORD WOLF/LIAR/TELEPHONEは3人以上というゲーム性上の人数制約を維持。

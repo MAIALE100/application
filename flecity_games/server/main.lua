@@ -54,7 +54,7 @@ for _ in pairs(callbacks) do expectedPhoneCallbacks=expectedPhoneCallbacks+1 end
 local callbackOptions={
     ['flecity_games:play:save']={preventSpam=true,rateLimit=300,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
     ['flecity_games:party:getRoom']={preventSpam=true,rateLimit=240,defaultReturn={ok=false,error='CALLBACK_FAILED'}},
-    ['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=900,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
+    ['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
 }
 local defaultCallbackOptions={preventSpam=true,rateLimit=120,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
 

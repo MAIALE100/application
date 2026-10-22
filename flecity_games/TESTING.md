@@ -254,11 +254,14 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 人数不足・未Ready時はHostの開始ボタンが理由付きで無効
 - Host以外はGame Select/Start不可
 - REACTIONのRevealが概ね同時
+- REACTION結果の先頭にWINNER名と反応時間が表示される
 - STOP! BATTLEで同じTargetが表示
+- STOP! BATTLE結果の先頭にWINNER名とscoreが表示される
 - REACTION / STOP! BATTLE は9〜10人でも開始できる
 - DRAWで短いstrokeを連続して描いても約1秒ごとのcallback制限に阻害されずBへ反映
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
+- DRAW結果では最初の正解者がFASTESTとして明示され、正解者0人なら「正解者なし」と表示
 - Hostが切断するとBへHostが即移行
 - HostがPARTYアプリ/Phoneを閉じた場合も、PARTYを開いている他参加者を優先してHost権限が移りRoomが操作不能にならない
 - FiveMには接続中でもPARTYを閉じている参加者がいる場合、その人を飛ばしてアプリを開いている参加者へHostが移る

@@ -154,6 +154,9 @@ function resultHoldLoop(token){
  lobbyBtn.disabled=true;lobbyBtn.textContent='結果を確認 · '+Math.ceil(remaining/1000)+'秒';
  resultHoldRaf=requestAnimationFrame(()=>resultHoldLoop(token));
 }
+function appendResultBanner(text,type='good'){
+ const d=document.createElement('div');d.className='status '+type;d.textContent=String(text||'');resultsEl.appendChild(d);return d;
+}
 function appendResultRow(leftText,rightText){
  const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
  d.className='player';left.textContent=String(leftText??'');right.textContent=String(rightText??'');
@@ -178,8 +181,14 @@ function renderResults(room){
    return;
  }
  if(rs.gameId==='reaction'){
+   const winner=(rs.results.entries||[]).find(e=>e.memberId===rs.results.winnerMemberId);
+   appendResultBanner(winner?'WINNER · '+winner.name+' · '+Number(winner.reactionMs).toFixed(3)+' ms':'有効記録なし',winner?'good':'warn');
+   if(rs.results.timedOut===true)appendResultBanner('未入力の参加者がいたため、入力済みの記録で確定しました。','warn');
    rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.timedOut?'未入力':(e.flying?'フライング':Number(e.reactionMs).toFixed(3)+' ms')));
  }else if(rs.gameId==='stop_battle'){
+   const winner=(rs.results.entries||[]).find(e=>e.memberId===rs.results.winnerMemberId);
+   appendResultBanner(winner?'WINNER · '+winner.name+' · '+winner.score+' pt':'有効記録なし',winner?'good':'warn');
+   if(rs.results.timedOut===true)appendResultBanner('未入力の参加者がいたため、入力済みの記録で確定しました。','warn');
    rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.timedOut?'未入力':e.score+' / '+Number(e.distancePct).toFixed(2)+'%'));
  }else if(rs.gameId==='vote'){
    const winnerIds=Array.isArray(rs.results.winnerMemberIds)?rs.results.winnerMemberIds:[];
@@ -215,6 +224,9 @@ function renderResults(room){
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   const fastest=(rs.results.entries||[])[0];
+   if(fastest)appendResultBanner('FASTEST · '+fastest.name,'good');
+   else if(!rs.results.aborted)appendResultBanner('正解者なし','warn');
    (rs.results.entries||[]).forEach(e=>appendResultRow('#'+e.place+' '+e.name,'正解'));
  }else if(rs.gameId==='telephone'){
    (rs.results.chain||[]).forEach((entry,i)=>{

@@ -249,3 +249,11 @@ LOOP完成版には不要な変更を入れない。
 - 既存のworktree/Task名/配置先は維持し、取得先branchだけを切替えるためユーザー側の再構築は不要。
 - GitHub Actionsに updater branch検査を追加し、今後 `games/platform-core` へ誤って戻る変更をCIで拒否。
 - テストサーバー全体再起動は不要。既存の外部reload helperが有効ならverified build反映後に `flecity_games` のみ再起動される。
+
+
+## 2026-10-23 結果の勝敗明示
+- REACTION結果の最上部に `WINNER · 名前 · 反応時間` を表示。有効記録が無い場合は「有効記録なし」。
+- STOP! BATTLE結果の最上部に `WINNER · 名前 · score` を表示。
+- timeoutで一部未入力がある場合は「入力済みの記録で確定」を結果内に明示。
+- DRAWは最初の正解者を `FASTEST` として表示。正解者0人の場合は「正解者なし」。
+- 順位一覧自体は従来どおり残し、勝敗の要約＋詳細の2段構成にした。

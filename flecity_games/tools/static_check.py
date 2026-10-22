@@ -426,6 +426,8 @@ if "fallSwipeSteps" not in play_js or "Math.round(Math.abs(Number(dx)||0)/cellWi
     fail("FALL touch swipe scaling is missing")
 if "fallGravityDelay" not in play_js or "fallGravityTick" not in play_js or "startFallGravity" not in play_js or "fall-grounded" not in play_css:
     fail("FALL automatic gravity loop is missing")
+if "fallPeekPieces" not in play_js or "fallSoft" not in play_js or "startFallSoftDrop" not in play_js or "NEXT 3" not in play_html:
+    fail("FALL soft drop / NEXT queue is missing")
 if "DROP '+gravity+'s" not in play_js or "HARD DROP" not in play_html:
     fail("FALL gravity speed/control feedback is missing")
 if "CLUTCH ESCAPE" not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
@@ -452,8 +454,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.55.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.55.0-test")
+if "version '0.56.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.56.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:

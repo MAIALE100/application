@@ -6,6 +6,9 @@ on:
       - games/platform-core
     paths:
       - 'flecity_games/**'
+      - 'flecity_dev_safety/**'
+      - 'dev-safety-install.ps1'
+      - 'dev-safety-install.cmd'
       - 'games-update.ps1'
       - 'games-update.cmd'
       - 'games-manual-update.ps1'
@@ -21,6 +24,9 @@ on:
   pull_request:
     paths:
       - 'flecity_games/**'
+      - 'flecity_dev_safety/**'
+      - 'dev-safety-install.ps1'
+      - 'dev-safety-install.cmd'
       - 'games-update.ps1'
       - 'games-update.cmd'
       - 'games-manual-update.ps1'

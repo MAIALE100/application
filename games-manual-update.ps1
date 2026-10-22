@@ -75,6 +75,15 @@ try {
         throw "Updater missing from manual worktree: $Updater"
     }
 
+    Step 'Validating updater syntax'
+    $tokens=$null
+    $parseErrors=$null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($Updater,[ref]$tokens,[ref]$parseErrors)
+    if($parseErrors -and $parseErrors.Count -gt 0){
+        $summary=($parseErrors | ForEach-Object { $_.Message }) -join '; '
+        throw ('Updater syntax validation failed before deployment: ' + $summary)
+    }
+
     Step 'Deploying PLAY to the test server'
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Updater -ServerBase $ServerBase -NoGitSync
     $deployCode=$LASTEXITCODE

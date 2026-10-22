@@ -18,7 +18,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -53,8 +53,9 @@ function trianglePosition(elapsedMs,periodMs,phaseMs){
  return cycle<=half?(cycle/half)*100:((period-cycle)/half)*100;
 }
 function resetRoundRuntime(){
- cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deadlineRaf);cancelAnimationFrame(deductionPhaseRaf);
- reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;
+ cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deadlineRaf);cancelAnimationFrame(deductionPhaseRaf);cancelAnimationFrame(resultHoldRaf);
+ reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;resultHoldRaf=null;resultLobbyUnlockAt=0;
+ lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];
 }
@@ -135,6 +136,7 @@ function startReadiness(room){
 function renderPlayers(room){
  playersEl.innerHTML='';
  const connected=(room.players||[]).filter(p=>!p.disconnected);
+ playersEl.classList.toggle('dense',Number(room.players&&room.players.length||0)>=7);
  const readyCount=connected.filter(p=>p.ready).length;
  readySummary.textContent='接続中 '+connected.length+'人 · 準備OK '+readyCount+'/'+connected.length;
  room.players.forEach(p=>{
@@ -144,6 +146,14 @@ function renderPlayers(room){
    row.append(left,right);playersEl.appendChild(row);
  });
 }
+function resultHoldLoop(token){
+ if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token||!currentRoom.roundState.complete)return;
+ if(!currentRoom.isHost){lobbyBtn.disabled=true;return;}
+ const remaining=resultLobbyUnlockAt-performance.now();
+ if(remaining<=0){lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';return;}
+ lobbyBtn.disabled=true;lobbyBtn.textContent='結果を確認 · '+Math.ceil(remaining/1000)+'秒';
+ resultHoldRaf=requestAnimationFrame(()=>resultHoldLoop(token));
+}
 function appendResultRow(leftText,rightText){
  const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
  d.className='player';left.textContent=String(leftText??'');right.textContent=String(rightText??'');
@@ -152,8 +162,9 @@ function appendResultRow(leftText,rightText){
 function renderResults(room){
  const rs=room.roundState;if(!rs||!rs.complete||!rs.results){resultsPanel.classList.add('hidden');return;}
  cancelAnimationFrame(deadlineRaf);deadlineRaf=null;roundDeadline.classList.add('hidden');
- if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
+ if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;resultLobbyUnlockAt=performance.now()+2500;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
+ cancelAnimationFrame(resultHoldRaf);resultHoldRaf=null;resultHoldLoop(rs.token);
  if(rs.results.aborted===true){
    const box=document.createElement('div');box.className='status warn';
    const reason=String(rs.results.reason||'ROUND_ABORTED');

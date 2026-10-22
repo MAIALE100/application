@@ -230,6 +230,9 @@ try {
         if ($playJsText -notmatch 'fallPeekPieces' -or $playJsText -notmatch 'startFallSoftDrop' -or $playJsText -notmatch 'fallSoft') {
             throw 'Local safety check could not verify FALL soft drop / NEXT queue.'
         }
+        if ($cssText -notmatch '\.fall-preview-cell\.filled\{background:currentColor' -or $cssText -notmatch 'width:min\(100%,14rem\)') {
+            throw 'Local safety check could not verify FALL preview/board visual pass.'
+        }
         if ($playJsText -notmatch 'holdFallPiece' -or $playLuaText -notmatch 'fallHoldReplay' -or $playLuaText -notmatch 'heldPiece=heldPiece or 0') {
             throw 'Local safety check could not verify FALL HOLD replay.'
         }
@@ -370,6 +373,7 @@ try {
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'startFallSoftDrop' -or $playAppText -notmatch 'fallSoft') { throw 'FALL soft drop / NEXT queue check failed.' }
+    if ($cssText -notmatch '\.fall-preview-cell\.filled\{background:currentColor' -or $cssText -notmatch 'width:min\(100%,14rem\)') { throw 'FALL preview/board visual pass check failed.' }
     if ($playAppText -notmatch 'holdFallPiece' -or $playCoreText -notmatch 'fallHoldReplay' -or $playCoreText -notmatch 'heldPiece=heldPiece or 0') { throw 'FALL HOLD replay check failed.' }
     if ($playAppText -notmatch 'slideMovePath' -or $playAppText -notmatch 'CHAIN SLIDE') { throw 'SLIDE line-slide control check failed.' }
     if ($playAppText -notmatch 'sortPourCount' -or $playAppText -notmatch 'QUICK POUR') { throw 'SORT quick-pour control check failed.' }

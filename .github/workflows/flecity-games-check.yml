@@ -114,7 +114,7 @@ jobs:
           )
           foreach ($file in $files) {
             $text = Get-Content -Raw $file
-            if ($text -notmatch "\$Branch\s*=\s*'games/party-dev'") {
+            if ($text -notmatch '\$Branch\s*=\s*''games/party-dev''') {
               throw "$file is not pinned to games/party-dev"
             }
             if ($text -match "games/platform-core") {

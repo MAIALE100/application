@@ -38,12 +38,17 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 設定:
 - identifier: `flecity_party`
 - 表示名: PARTY
-- 開発ブランチでは `enabled=true`
-- 現時点の `defaultApp=true` は開発用のまま。公開時の配布方式は PARTY 完成時に決める。
+- `enabled=true`
+- LB Phone App Store無料配布
+- `defaultApp=false`
+- `game=true`
+- `price=0`
+- PARTY v1.0.0 提出ZIP自動生成済み
+- production resource version: 1.1.0（提出ZIP内でpatch）
 
 既存ゲーム:
-1. REACTION — 2〜8人
-2. STOP! BATTLE — 2〜8人
+1. REACTION — 2〜10人
+2. STOP! BATTLE — 2〜10人
 3. VOTE — 3〜10人
 4. MAJORITY — 3〜10人
 5. MINORITY — 3〜10人
@@ -61,7 +66,8 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 - TELEPHONEのdrawing/text送信
 - ReturnLobby / LeaveRoom
 - disconnect cleanup / room cleanup
-- DebugSelftest / DebugCounts
+- DebugSelftest / DebugCounts / DebugRoomSummaries
+- server console: `game_party_status`
 
 既存UI:
 - 4桁ルームコード
@@ -85,15 +91,21 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 - `flecity_games/tools/static_check.py`
 
 ## 開発優先順位
-1. 現状コードを通読し、各ゲームが本当に成立しているかを実機目線で監査。
-2. ルーム作成→参加→Ready→開始→結果→再戦→ロビー復帰を全ゲーム共通で安定化。
-3. Host離脱、参加者離脱、途中再接続、二重送信、連打、同時操作、人数不足を処理。
-4. サーバーauthoritativeにできる判定はサーバー側で検証し、不正なsubmitを拒否。
-5. 10ゲームを一つずつ「面白さ・テンポ・結果演出・再戦性」まで磨く。
-6. LB Phoneの小さい画面で、縦スクロール・横はみ出し・誤タップ・ステータスバー干渉を確認。
-7. PARTY専用のブランド名・アイコン・App Store配布仕様は内容完成後に決定。
-8. static check / JS syntax / Lua syntax / CI を常時通す。
-9. 最後にPARTY専用提出ZIPと運営向け導入資料を作る。
+完了済み:
+1. コード総合監査。
+2. Room作成→参加→Ready→開始→結果→再戦→Lobby復帰の共通基盤安定化。
+3. Host離脱 / App close / participant離脱 / reconnect / 二重送信 / 同時操作 / 人数不足対策。
+4. server-authoritativeなround token / timeout / submit検証 / secret snapshot。
+5. 10ゲームの主要なテンポ・結果演出・繰り返し対策。
+6. LB Phone小画面向けUI・7〜10人表示・誤タップ防止。
+7. 正式名称 PARTY / icon / App Store無料配布仕様の確定。
+8. static check / JS syntax / Lua syntax / CI。
+9. PARTY v1.0.0提出ZIPと運営向け導入資料。
+
+残タスク:
+1. 実際のFiveM複数クライアントで2人 / 3人以上 / 9〜10人のライブ確認。
+2. `game_party_status` と各端末表示を照合し、実機固有の同期・LB Phone挙動を確認。
+3. 実機で見つかった問題のみ修正し、最終CIを通して提出版を確定。
 
 ## 最初に重点確認する不具合
 - ルームコード重複
@@ -109,6 +121,16 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 - voice系ゲームで秘密情報が他プレイヤーへ漏れる
 - 終了済みroundへの遅延submit
 - phone close / app close後の不要イベント残留
+
+## 現在のテストサーバー反映方法
+- 正本branch: `games/party-dev`
+- 通常の反映: `games-update.cmd`
+- updater / manual updater / auto updater はすべて `games/party-dev` を参照するよう更新済み。
+- verified buildのみ展開し、原則としてサーバー全体再起動は不要。
+- reload helperが有効なら `flecity_games` のみ自動反映。
+- ライブ診断: txAdmin consoleで `game_party_status`
+
+更新方法: `games-update.cmd`
 
 ## 別PCからの開発
 重要データはGitHubに置く。ChatGPTが別PCのローカルディスクを直接読む前提にしない。

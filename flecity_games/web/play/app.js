@@ -170,6 +170,7 @@ function showHome(){
  resetTransientInputState();
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');document.body.classList.remove('game-active');renderGames(bootstrapData&&bootstrapData.games);
+ continueGames.scrollLeft=0;recentGames.scrollLeft=0;
 }
 function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
 function formatGameScore(game,value){

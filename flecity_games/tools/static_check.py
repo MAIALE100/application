@@ -134,6 +134,10 @@ if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
 if "fixBlur=true" not in client or "fixBlur=false" in client:
     fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
+if "local function appEnabled(app)" not in client or "app.enabled~=false" not in client:
+    fail("LB Phone app visibility flag support is missing")
+if config.count("enabled = true") < 2:
+    fail("PLAY/PARTY app visibility flags are missing from config")
 if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:
     fail("auto-reload must refresh FiveM metadata before restarting flecity_games")
 if "reload_v2=1" not in dev_reload:
@@ -464,8 +468,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.69.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.69.0-test")
+if "version '0.70.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.70.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:

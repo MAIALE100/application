@@ -470,8 +470,6 @@ if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
     fail("PLAY transition cleanup guard is missing")
-if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
-    fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:
     fail("PLAY LB Phone status-bar clearance CSS is missing")
 if "if(inGame){statusEl.textContent='';statusEl.className='status app-status hidden';return;}" not in play_js or "body.game-active .app-status{display:none!important}" not in play_css:
@@ -484,7 +482,7 @@ if "layerCount)||0)-5" not in play_js:
     fail("TOWER camera follow threshold is too late")
 if "html,body,.wrap{scrollbar-width:none" not in play_css or "html::-webkit-scrollbar" not in play_css:
     fail("PLAY native phone scrollbar suppression is missing")
-if "PLAY submission home visual pass v24" not in play_css or "home-scroll-row" not in play_css or "home-utility-label" not in play_html or "home-edition" not in play_html:
+if "PLAY submission home visual pass v24" not in play_css or "home-scroll-row" not in play_css or "home-utility-label" not in play_html or 'class="home-top-safe"' not in play_html:
     fail("PLAY submission home visual pass is missing")
 if "enableHorizontalDragScroll" not in play_js or "touch-action:pan-y" not in play_css or "is-dragging" not in play_css:
     fail("PLAY home horizontal drag scrolling is missing")

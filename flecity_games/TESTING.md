@@ -258,10 +258,14 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - Hostが切断するとBへHostが即移行
+- HostがPARTYアプリ/Phoneを閉じた場合も、他の接続中参加者へHost権限が移りRoomが操作不能にならない
+- 元Hostがアプリを開き直した場合は同Roomへ参加者として復帰できる
 - 最低人数を下回る切断が発生した場合、Roundが理由表示付きで安全終了
 - WORD WOLF / LIARの役職本人が切断した場合、不公平な継続をせずRound終了
 - 投票済みプレイヤーが切断した場合、その切断プレイヤーの票を集計へ残さない
-- 元Hostが60秒以内に戻ると同Roomへ復帰
+- 切断者が60秒以内に戻ると同Roomへ復帰
+- 満員Roomで1人が切断しても、60秒の再接続猶予中は新規参加者がその枠を奪えない
+- 60秒猶予経過後は切断枠がcleanupされ、新規参加できる
 - 切断中の同一キャラクターが別Roomへ重複所属しない
 - Phoneを閉じて開いてもRoomを自動復帰
 
@@ -295,6 +299,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 - 全員がA/Bどちらかを選べる
 - 人数が少ない選択肢が勝ちになる
+- 全員が同じ選択肢なら「少数派なし」になる
 - 同数なら勝者なしになる
 - 切断者を集計へ含めない
 
@@ -312,11 +317,14 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - 各自には自分のお題だけ見える
 - 他人のお題がNUIへ漏れていない
 - 少数派は1人
+- 会話タイム中は投票ボタンが無効
+- callbackを直接送っても会話タイム中はVOTING_LOCKED
 - 投票完了後に初めて両方のお題を公開
 
 ### LIAR
 - 各自には自分のRoleだけ見える
 - LIARは1人
+- 会話タイム中は投票できない
 - 投票完了後にRoleを公開
 
 ### TELEPHONE
@@ -325,6 +333,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - Text担当には直前Drawingのみ表示
 - 他プレイヤーには秘密内容を表示しない
 - 途中の担当者が切断した場合は次の接続中プレイヤーへ進む
+- 手番が75秒を超えた場合もその担当だけskipして次へ進む
 - 最後にChain全体が順番通り公開される
 
 ---
@@ -332,13 +341,16 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 # 5. 最終負荷・例外確認
 
 - Room満員
+- 満員Roomの60秒再接続猶予
 - 存在しないRoom Code
-- Round中のJoin
+- Round中のJoin（既存メンバーや切断枠を変更しない）
 - 同時Ready
 - 同時投票
 - 同時DRAW更新
 - 連続でゲーム変更
 - 連続でRound開始
+- 結果確定前にHostがReturnLobby callbackを直接送ってもRoundを中断できない
+- 結果確定後のReturnLobby二重送信で新しいReady状態を消さない
 - 60秒以上切断
 - resource restart
 - SERVER restart

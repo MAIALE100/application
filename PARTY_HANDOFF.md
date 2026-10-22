@@ -216,3 +216,13 @@ LOOP完成版には不要な変更を入れない。
 - production resource versionは提出ZIP内で `1.1.0` にpatch。
 - 開発用reload/tools/TESTING.mdは提出ZIPから除外。
 - GitHub ActionsでLOOP提出ZIPとPARTY提出ZIPをそれぞれbuild・artifact uploadする。
+
+
+## 2026-10-23 満室再接続・Host close・ReturnLobby補強
+- 満員Roomの切断枠は、DisconnectGraceSeconds（現在60秒）経過前には新規参加者へ回収しない。再接続猶予を実際に保証。
+- JoinRoomはRound中判定をcapacity回収より先に実行。Round中の参加試行だけで切断メンバーが削除される経路を封鎖。
+- HostがPARTYアプリまたはPhoneを閉じた場合、Room所属は維持しつつHost権限だけ次の接続中参加者へhandoff。RoomがHost不在で操作不能になることを防止。
+- 元Hostがアプリを開き直してもRoomへ参加者として復帰できる。
+- ReturnLobbyは結果確定前にはserver側で拒否。UIを回避した直接callbackでも進行中RoundをHostが中断できない。
+- ReturnLobbyをLobby状態で再送した場合はno-opとして扱い、二重送信で他参加者の新しいReady状態を消さない。
+- DebugSelftestへHost close handoff / reconnect grace / grace経過後capacity回収を追加。

@@ -306,6 +306,19 @@ local function migrateHost(room)
     room.hostIdentifier=selected and selected.id or nil
 end
 
+local function handoffHostFrom(room,fromId)
+    if not room or room.hostIdentifier~=fromId then return false end
+    local selected
+    for id,m in pairs(room.members or {}) do
+        if id~=fromId and not m.disconnected and (not selected or m.joinOrder<selected.member.joinOrder) then
+            selected={id=id,member=m}
+        end
+    end
+    if not selected then return false end
+    room.hostIdentifier=selected.id
+    return true
+end
+
 local function removeMember(room,id)
     local m=room.members[id]
     if not m then return end
@@ -342,10 +355,13 @@ end
 local function reclaimDisconnectedCapacity(room,maxPlayers)
     local limit=math.max(1,math.floor(tonumber(maxPlayers) or FlecityGamesConfig.Party.MaxPlayers))
     if memberCount(room)<limit then return 0 end
+    local now=os.time()
+    local grace=math.max(0,math.floor(tonumber(FlecityGamesConfig.Party.DisconnectGraceSeconds) or 60))
     local candidates={}
     for id,m in pairs(room.members) do
-        if m.disconnected then
-            candidates[#candidates+1]={id=id,disconnectedAt=tonumber(m.disconnectedAt) or 0,joinOrder=tonumber(m.joinOrder) or 0}
+        local disconnectedAt=tonumber(m.disconnectedAt)
+        if m.disconnected and disconnectedAt and now-disconnectedAt>grace then
+            candidates[#candidates+1]={id=id,disconnectedAt=disconnectedAt,joinOrder=tonumber(m.joinOrder) or 0}
         end
     end
     table.sort(candidates,function(a,b)
@@ -609,11 +625,11 @@ function FlecityGamesParty.JoinRoom(source,data)
         return {ok=true,reconnected=true,room=snapshot(room,id)}
     end
 
+    if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers and connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers then
         reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)
     end
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
-    if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
 
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={
@@ -1225,6 +1241,9 @@ function FlecityGamesParty.ReturnLobby(source)
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
     if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
+    if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end
+    local rs=room.roundState
+    if room.state~='round' or not rs or rs.complete~=true then return {ok=false,error='ROUND_IN_PROGRESS'} end
     room.state='lobby' room.roundState=nil
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
@@ -1336,10 +1355,13 @@ end
 function FlecityGamesParty.AppClosed(source)
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return end
+    local changed=false
     if room.state=='lobby' and room.members[id].ready==true then
         room.members[id].ready=false
-        notifyRoom(room,source)
+        changed=true
     end
+    if handoffHostFrom(room,id) then changed=true end
+    if changed then notifyRoom(room,source) end
 end
 
 function FlecityGamesParty.LeaveRoom(source)
@@ -1555,11 +1577,36 @@ function FlecityGamesParty.DebugSelftest()
     advanceTelephone(telephoneSkipRoom,true)
     reconcileRound(telephoneSkipRoom)
 
+    local appCloseHostRoom={
+        hostIdentifier='a',
+        members={
+            a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+            b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},
+            c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+        }
+    }
+    local appCloseHandoff=handoffHostFrom(appCloseHostRoom,'a')
+
+    local recentDisconnectRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,disconnectedAt=os.time(),joinOrder=2}
+    }}
+    local recentReclaimed=reclaimDisconnectedCapacity(recentDisconnectRoom,2)
+
+    local expiredDisconnectRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,disconnectedAt=os.time()-(FlecityGamesConfig.Party.DisconnectGraceSeconds+5),joinOrder=2}
+    }}
+    local expiredReclaimed=reclaimDisconnectedCapacity(expiredDisconnectRoom,2)
+
     return {
         promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
         turnRotation=rotated[1]=='b' and rotated[2]=='c' and rotated[3]=='a',
         roomRevision=revisionValue==4 and revisionRoom.revision==4,
         hostMigration=hostRoom.hostIdentifier=='second',
+        appCloseHostHandoff=appCloseHandoff==true and appCloseHostRoom.hostIdentifier=='b',
+        reconnectGracePreserved=recentReclaimed==0 and memberCount(recentDisconnectRoom)==2,
+        expiredCapacityReclaimed=expiredReclaimed==1 and memberCount(expiredDisconnectRoom)==1,
         connectedCount=connectedCount(hostRoom)==2,
         memberCount=memberCount(hostRoom)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

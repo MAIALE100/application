@@ -587,6 +587,10 @@ if "flecity_games:framework:playerUnloaded" not in server:
     fail("server character-unload cleanup handler is missing")
 if "reclaimDisconnectedCapacity" not in party_lua or "connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers" not in party_lua:
     fail("PARTY disconnected-slot reclaim is missing")
+if "now-disconnectedAt>grace" not in party_lua:
+    fail("PARTY disconnected-slot reclaim must preserve reconnect grace")
+if party_lua.find("if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end") > party_lua.find("reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)"):
+    fail("PARTY join must reject live rounds before capacity mutation")
 if "room.state=='lobby' then member.ready=false end" not in party_lua or "room.state=='lobby' then m.ready=false end" not in party_lua:
     fail("PARTY lobby ready reset on disconnect/reconnect is missing")
 if "strokePointCount(rs.strokes)+#clean[1]>3200" not in party_lua or "sanitizedStrokes(data.strokes,80,2400)" not in party_lua:
@@ -611,6 +615,10 @@ if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
     fail("PARTY app-close ready cleanup is missing")
+if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
+    fail("PARTY app-close host handoff is missing")
+if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:
+    fail("PARTY ReturnLobby idempotency/live-round guard is missing")
 if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:
     fail("PARTY cleanup must push timeout/reconcile state changes")
 if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
@@ -629,6 +637,9 @@ for marker in (
     "drawAliasMatch",
     "telephonePrivacy",
     "roomRevision",
+    "appCloseHostHandoff",
+    "reconnectGracePreserved",
+    "expiredCapacityReclaimed",
     "disconnectedVoteIgnored",
     "roundAbortLowPlayers",
     "secretRoleDisconnectAbort",

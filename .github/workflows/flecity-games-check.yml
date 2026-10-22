@@ -113,3 +113,16 @@ jobs:
 
       - name: Check Flecity Games wiring
         run: python3 flecity_games/tools/static_check.py
+
+      - name: Build PLAY submission package
+        run: python3 flecity_games/tools/build_submission.py
+
+      - name: Upload PLAY submission package
+        uses: actions/upload-artifact@v4
+        with:
+          name: flecity-games-play-submission-1.0.0
+          path: |
+            dist/flecity-games-play-1.0.0.zip
+            dist/flecity-games-play-1.0.0.zip.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -12,7 +12,7 @@ const blockEl=document.getElementById('blockGame'),blockBoard=document.getElemen
 const blockBack=document.getElementById('blockBack'),blockNew=document.getElementById('blockNew'),blockFinish=document.getElementById('blockFinish');
 const mergeEl=document.getElementById('mergeGame'),mergeBoard=document.getElementById('mergeBoard'),mergeScore=document.getElementById('mergeScore'),mergeMeta=document.getElementById('mergeMeta'),mergeBack=document.getElementById('mergeBack'),mergeNew=document.getElementById('mergeNew'),mergeFinish=document.getElementById('mergeFinish');
 const mergeUp=document.getElementById('mergeUp'),mergeDown=document.getElementById('mergeDown'),mergeLeft=document.getElementById('mergeLeft'),mergeRight=document.getElementById('mergeRight');
-const fallEl=document.getElementById('fallGame'),fallBoard=document.getElementById('fallBoard'),fallScore=document.getElementById('fallScore'),fallMeta=document.getElementById('fallMeta'),fallBest=document.getElementById('fallBest'),fallNext=document.getElementById('fallNext'),fallBack=document.getElementById('fallBack'),fallLeft=document.getElementById('fallLeft'),fallRight=document.getElementById('fallRight'),fallRotate=document.getElementById('fallRotate'),fallSoft=document.getElementById('fallSoft'),fallDrop=document.getElementById('fallDrop'),fallNew=document.getElementById('fallNew'),fallFinish=document.getElementById('fallFinish');
+const fallEl=document.getElementById('fallGame'),fallBoard=document.getElementById('fallBoard'),fallScore=document.getElementById('fallScore'),fallMeta=document.getElementById('fallMeta'),fallBest=document.getElementById('fallBest'),fallNext=document.getElementById('fallNext'),fallHoldPreview=document.getElementById('fallHoldPreview'),fallHold=document.getElementById('fallHold'),fallBack=document.getElementById('fallBack'),fallLeft=document.getElementById('fallLeft'),fallRight=document.getElementById('fallRight'),fallRotate=document.getElementById('fallRotate'),fallSoft=document.getElementById('fallSoft'),fallDrop=document.getElementById('fallDrop'),fallNew=document.getElementById('fallNew'),fallFinish=document.getElementById('fallFinish');
 const minesEl=document.getElementById('minesGame'),minesBoard=document.getElementById('minesBoard'),minesTime=document.getElementById('minesTime'),minesMeta=document.getElementById('minesMeta'),minesBack=document.getElementById('minesBack'),minesMode=document.getElementById('minesMode'),minesNew=document.getElementById('minesNew');
 const stackEl=document.getElementById('stackGame'),stackArena=document.getElementById('stackArena'),stackBase=document.getElementById('stackBase'),stackMover=document.getElementById('stackMover'),stackScore=document.getElementById('stackScore'),stackMeta=document.getElementById('stackMeta'),stackBack=document.getElementById('stackBack'),stackDrop=document.getElementById('stackDrop'),stackNew=document.getElementById('stackNew');
 const nonogramEl=document.getElementById('nonogramGame'),nonogramBoard=document.getElementById('nonogramBoard'),nonogramTime=document.getElementById('nonogramTime'),nonogramMeta=document.getElementById('nonogramMeta'),nonogramBack=document.getElementById('nonogramBack'),nonogramCheck=document.getElementById('nonogramCheck'),nonogramNew=document.getElementById('nonogramNew');
@@ -1404,6 +1404,17 @@ function fallResetCursor(){
  if(!found){game.ended=true;return false;}
  game.x=found.x;game.rotation=found.rotation;game.y=0;return true;
 }
+function renderFallMini(container,pieceType,label='preview'){
+ container.innerHTML='';
+ const preview=document.createElement('div');preview.className='fall-next-piece';preview.setAttribute('aria-label',label);
+ const shape=pieceType?fallShape(pieceType,0):[],occupied=new Set(shape.map(([x,y])=>x+','+y));
+ for(let y=0;y<4;y++)for(let x=0;x<4;x++){
+   const cell=document.createElement('span');
+   cell.className='fall-preview-cell'+(occupied.has(x+','+y)?' filled fall-piece-'+String(pieceType):'');
+   preview.appendChild(cell);
+ }
+ container.appendChild(preview);
+}
 function renderFallPreview(){
  fallNext.innerHTML='';
  const pieces=fallGame&&!fallGame.ended?fallPeekPieces(fallGame,3):[];
@@ -1417,6 +1428,7 @@ function renderFallPreview(){
    }
    fallNext.appendChild(preview);
  });
+ if(fallHoldPreview)renderFallMini(fallHoldPreview,fallGame&&fallGame.heldPiece?fallGame.heldPiece:0,'HOLD');
 }
 function fallPressure(game){
  let top=game.height;
@@ -1455,6 +1467,7 @@ function renderFall(){
  renderFallPreview();
  const locked=game.finished||game.finalizing||game.busy||game.ended||!game.sessionToken;
  fallLeft.disabled=locked;fallRight.disabled=locked;fallRotate.disabled=locked;fallSoft.disabled=locked;fallDrop.disabled=locked;
+ fallHold.disabled=locked||game.holdUsed===true;
  fallNew.disabled=game.finalizing===true;fallFinish.disabled=game.finalizing===true||game.history.length<1||!game.sessionToken;
 }
 function syncFallCanonical(game,canonical){
@@ -1463,7 +1476,8 @@ function syncFallCanonical(game,canonical){
  const board=canonical.board.map(row=>Array.isArray(row)?row.map(Number):[]);
  if(board.some(row=>row.length!==game.width))return false;
  game.board=board;game.score=Number(canonical.score)||0;game.lines=Number(canonical.lines)||0;game.combo=Number(canonical.combo)||0;
- game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>Array.isArray(entry)?[Number(entry[0]),Number(entry[1])]:[Number(entry.x),Number(entry.rotation)]):game.history;
+ game.pieces=Number(canonical.pieces)||0;game.history=Array.isArray(canonical.history)?canonical.history.map(entry=>Array.isArray(entry)?{x:Number(entry[0]),rotation:Number(entry[1]),hold:entry[2]===true||Number(entry[2])===1}:{x:Number(entry.x),rotation:Number(entry.rotation),hold:entry.hold===true}):game.history;
+ game.heldPiece=Math.max(0,Math.floor(Number(canonical.heldPiece)||0));game.holdUsed=false;
  const serverRngState=Number(canonical.rngState);
  if(Number.isFinite(serverRngState)&&serverRngState>0){
    const [pieceState,pieceValue]=fallSeededNext(serverRngState);
@@ -1496,7 +1510,7 @@ async function openFall(forceNew=false){
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('FALLを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Math.max(6,Number(session.challenge&&session.challenge.width)||10),height=Math.max(12,Number(session.challenge&&session.challenge.height)||18);
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===height){
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,pieceRngState:Number(session.seed)||1,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,heldPiece:0,holdUsed:false,pieceRngState:Number(session.seed)||1,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:true,ended:false};
    if(!syncFallCanonical(fallGame,saved.state)){
      await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('FALLの途中保存を読み込めませんでした。','error');showHome();return;
@@ -1504,7 +1518,7 @@ async function openFall(forceNew=false){
    setStatus(fallGame.ended?'FALLのゲームオーバー状態を再開しました。記録を確定します。':'FALLを途中保存から再開しました。','good');
  }else{
    const firstState=fallPieceStateFor(session.seed,0),firstPiece=Number(session.challenge&&session.challenge.firstPiece)||firstState.type;
-   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,pieceRngState:firstState.state,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
+   fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,heldPiece:0,holdUsed:false,pieceRngState:firstState.state,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:0,startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:false,ended:false};
    fallResetCursor();setStatus('新しいFALLを開始しました。','good');
  }
@@ -1542,13 +1556,29 @@ function rotateFall(){
  }
  tone(150,24);
 }
+function holdFallPiece(){
+ const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended||game.holdUsed)return;
+ stopFallSoftDrop();
+ const current=game.nextPiece;
+ if(game.heldPiece){
+   game.nextPiece=game.heldPiece;game.heldPiece=current;
+ }else{
+   game.heldPiece=current;
+   const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
+ }
+ game.holdUsed=true;
+ if(!fallResetCursor()){
+   stopFallGravity();renderFall();setStatus('HOLD後のピースを置けません。FALL終了。','warn');void finishFall(true);return;
+ }
+ tone(610,32);setStatus('HOLD · 次の配置まで再使用できません','good');renderFall();
+}
 async function dropFall(autoLock=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
  game.busy=true;
  const pressureBefore=fallPressure(game),scoreBefore=Number(game.score)||0,levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
  if(!applied){game.busy=false;tone(150,30);setStatus('その位置には置けません。','warn');renderFall();return;}
- game.history.push([game.x,game.rotation]);game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
- const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);
+ game.history.push({x:game.x,rotation:game.rotation,hold:game.holdUsed===true});game.pieces+=1;game.score+=applied.gained;game.lines+=applied.cleared;game.combo=applied.combo;game.progressed=true;
+ const [nextState,nextValue]=fallSeededNext(game.pieceRngState);game.pieceRngState=nextState;game.nextPiece=1+Math.floor(nextValue*FALL_BASE_SHAPES.length);game.holdUsed=false;
  game.ended=fallFindAnyPlacement(game.board,game.width,game.height,game.nextPiece)===null;
  if(applied.cleared>0){
    const pressureAfter=fallPressure(game),escapedDanger=pressureBefore.label==='DANGER'&&pressureAfter.label!=='DANGER',rankUp=liveRankUpPrefix('fall',scoreBefore,game.score);
@@ -1619,6 +1649,7 @@ fallBoard.onpointercancel=event=>{
 fallLeft.onclick=()=>moveFallHorizontal(-1);
 fallRight.onclick=()=>moveFallHorizontal(1);
 fallRotate.onclick=rotateFall;
+fallHold.onclick=holdFallPiece;
 fallSoft.onpointerdown=event=>{if(event.button>0)return;startFallSoftDrop();try{fallSoft.setPointerCapture(event.pointerId);}catch(_){}};
 fallSoft.onpointerup=event=>{stopFallSoftDrop();try{fallSoft.releasePointerCapture(event.pointerId);}catch(_){}};
 fallSoft.onpointercancel=()=>stopFallSoftDrop();

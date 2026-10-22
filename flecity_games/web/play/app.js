@@ -2134,6 +2134,13 @@ function sortSolved(){
  }
  return complete===4;
 }
+function sortPourCount(source,target){
+ if(!Array.isArray(source)||source.length<1||!Array.isArray(target)||target.length>=4)return 0;
+ const value=source[source.length-1],capacity=4-target.length;
+ let run=0;
+ for(let i=source.length-1;i>=0&&source[i]===value&&run<capacity;i--)run++;
+ return run;
+}
 function renderSort(){
  if(!sortGame)return;
  refreshScreenBests();sortBoard.innerHTML='';sortMoves.textContent=String(sortGame.moves);
@@ -2203,12 +2210,17 @@ async function touchSortTube(index){
  const source=game.tubes[from],target=game.tubes[index];
  if(!source||source.length===0){game.selected=null;renderSort();return;}
  if(!target||target.length>=4){tone(150,28);setStatus('そのチューブには入りません。','warn');return;}
- const completeBefore=game.tubes.filter(sortTubeComplete).length;
- const value=source.pop();target.push(value);game.history.push([from,index]);game.moves+=1;game.progressed=true;game.selected=null;
+ const completeBefore=game.tubes.filter(sortTubeComplete).length,pourCount=sortPourCount(source,target);
+ if(pourCount<1){tone(150,28);setStatus('そのチューブには移せません。','warn');return;}
+ for(let moved=0;moved<pourCount;moved++){
+   target.push(source.pop());game.history.push([from,index]);game.moves+=1;
+ }
+ game.progressed=true;game.selected=null;
  const completeAfter=game.tubes.filter(sortTubeComplete).length;
- sortBoard.classList.remove('sort-move');void sortBoard.offsetWidth;sortBoard.classList.add('sort-move');
- tone(sortTubeComplete(target)?760:520,sortTubeComplete(target)?45:20);
- if(completeAfter>completeBefore&&!sortSolved())setStatus('SORT FLOW · '+completeAfter+'/4 完成','good');
+ sortBoard.classList.remove('sort-move','sort-pour');void sortBoard.offsetWidth;sortBoard.classList.add(pourCount>1?'sort-pour':'sort-move');
+ tone(sortTubeComplete(target)?780:(pourCount>1?620:520),sortTubeComplete(target)?48:(pourCount>1?34:20));
+ if(completeAfter>completeBefore&&!sortSolved())setStatus((pourCount>1?'POUR ×'+pourCount+' · ':'')+'SORT FLOW · '+completeAfter+'/4 完成','good');
+ else if(pourCount>1)setStatus('QUICK POUR ×'+pourCount+' · '+game.moves+' MOVES','good');
  renderSort();
  if(sortSolved()){await finishSort();return;}
  await persistSort();

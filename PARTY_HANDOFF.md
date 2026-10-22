@@ -204,3 +204,15 @@ LOOP完成版には不要な変更を入れない。
 - 結果確認時間は単一RAFで管理し、ロビー遷移/アプリsuspend時にcleanupする。
 - 7〜10人ルームでは参加者行を自動で高密度表示。
 - 長いプレイヤー名は折り返し可能、Ready/オフライン状態は潰れないよう右側を固定。
+
+
+## 2026-10-23 PARTY v1配布仕様
+- 正式名称: PARTY
+- identifier: `flecity_party`
+- LB Phone App Store無料配布: `defaultApp=false / game=true / price=0`
+- icon: `web/party/icon.svg` をv1正式アイコンとして採用。
+- LOOP側は `flecity_play / LOOP / defaultApp=false / game=true / price=0` およびscore/save/achievement仕様を維持。
+- PARTY提出版は `flecity-games-party-1.0.0.zip`。既存LOOPを含む `flecity_games` 更新パッケージとして生成。
+- production resource versionは提出ZIP内で `1.1.0` にpatch。
+- 開発用reload/tools/TESTING.mdは提出ZIPから除外。
+- GitHub ActionsでLOOP提出ZIPとPARTY提出ZIPをそれぞれbuild・artifact uploadする。

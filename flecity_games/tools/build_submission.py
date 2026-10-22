@@ -76,8 +76,10 @@ def patch_submission_config() -> None:
         raise RuntimeError("Party app config block not found")
     end += len("\n        }")
     block = text[start:end]
-    if "enabled = true" not in block or "defaultApp = true" not in block:
-        raise RuntimeError("Party app config flags not found")
+    if "enabled = true" not in block:
+        raise RuntimeError("Party app enabled flag not found")
+    if "defaultApp = true" not in block and "defaultApp = false" not in block:
+        raise RuntimeError("Party app defaultApp flag not found")
     block = block.replace("enabled = true", "enabled = false", 1)
     block = block.replace("defaultApp = true", "defaultApp = false", 1)
     text = text[:start] + block + text[end:]

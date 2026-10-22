@@ -133,3 +133,17 @@ jobs:
             dist/flecity-games-loop-1.0.0.zip.sha256
           if-no-files-found: error
           retention-days: 14
+
+
+      - name: Build PARTY submission package
+        run: python3 flecity_games/tools/build_party_submission.py
+
+      - name: Upload PARTY submission package
+        uses: actions/upload-artifact@v4
+        with:
+          name: flecity-games-party-submission-1.0.0
+          path: |
+            dist/flecity-games-party-1.0.0.zip
+            dist/flecity-games-party-1.0.0.zip.sha256
+          if-no-files-found: error
+          retention-days: 14

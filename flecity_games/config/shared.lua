@@ -20,9 +20,12 @@ FlecityGamesConfig = {
             enabled = true,
             identifier = 'flecity_party',
             name = 'PARTY',
-            description = '友達と一緒に遊べるパーティーゲーム。',
+            description = '友達と10種類のミニゲームを遊べるパーティーアプリ。',
             developer = 'Flecity',
-            defaultApp = true,
+            defaultApp = false,
+            game = true,
+            size = 1200,
+            price = 0,
             ui = 'web/party/index.html',
             icon = 'web/party/icon.svg'
         }

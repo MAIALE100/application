@@ -669,6 +669,9 @@ if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
 submission_builder = read("flecity_games/tools/build_submission.py")
 submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
 submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
+party_submission_builder = read("flecity_games/tools/build_party_submission.py")
+party_submission_install = read("flecity_games/release_docs/PARTY_INSTALL_JA.txt")
+party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
 if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder or 'flecity-games-loop-' not in submission_builder or 'web/play/icon.svg' not in submission_builder:
     fail("submission builder LOOP release branding/dev exclusion is missing")
 if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
@@ -677,6 +680,20 @@ if "ensure flecity_games" not in submission_install or "SQLの手動実行は不
     fail("operator submission install guide is incomplete")
 if "PARTYカスタムアプリは無効化" not in submission_checklist or "defaultApp=false / price=0" not in submission_checklist:
     fail("operator submission checklist does not describe LOOP App Store build")
+
+party_config_match = re.search(r"Party\s*=\s*\{(.*?)\n        \}", config, flags=re.S)
+party_config_block = party_config_match.group(1) if party_config_match else ""
+for required_marker in ("identifier = 'flecity_party'", "name = 'PARTY'", "defaultApp = false", "game = true", "price = 0"):
+    if required_marker not in party_config_block:
+        fail(f"PARTY App Store config missing: {required_marker}")
+if 'PARTY_RELEASE_VERSION = "1.0.0"' not in party_submission_builder or 'RESOURCE_RELEASE_VERSION = "1.1.0"' not in party_submission_builder:
+    fail("PARTY submission builder versioning is missing")
+if "flecity-games-party-" not in party_submission_builder or '"server/core/dev_reload.lua"' not in party_submission_builder or "web/party/icon.svg" not in party_submission_builder:
+    fail("PARTY submission builder packaging markers are missing")
+if "PARTY" not in party_submission_install or "restart flecity_games" not in party_submission_install or "SQLの手動実行は不要" not in party_submission_install:
+    fail("PARTY operator install guide is incomplete")
+if "defaultApp=false" not in party_submission_checklist or "game=true" not in party_submission_checklist or "price=0" not in party_submission_checklist:
+    fail("PARTY operator checklist does not describe App Store build")
 
 if re.search(r"\bTODO\b|\bFIXME\b", all_text):
     fail("TODO/FIXME marker found in flecity_games source/docs")

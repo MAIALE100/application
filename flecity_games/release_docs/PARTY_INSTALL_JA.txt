@@ -1,0 +1,81 @@
+Flecity Games PARTY v1.0.0
+運営様向け 導入方法
+
+この度はPARTYの導入をご確認いただき、ありがとうございます。
+既存のLOOP環境を維持したまま更新できるよう、同じ flecity_games リソース内にPARTYを追加した提出版です。
+LB Phone本体、Qbox本体、その他既存リソースのファイルを直接編集していただく必要はありません。
+
+■ 今回の提出内容
+・既存アプリ「LOOP」v1.0.0相当の機能を維持
+・LB Phone用複数人ゲームアプリ「PARTY」v1.0.0
+・PARTY内ミニゲーム 10種
+  REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY
+  TIC-TAC / WORD WOLF / LIAR / DRAW / TELEPHONE
+・ルーム作成 / 4桁コード参加 / Ready / ホスト管理
+・切断 / 再接続 / ホスト移行 / timeout / cleanup
+・LB Phone App Storeから無料ダウンロード
+
+■ PARTYのLB Phone登録仕様
+identifier: flecity_party
+name: PARTY
+defaultApp: false
+game: true
+price: 0
+
+PARTYは初期状態で強制インストールせず、プレイヤーがLB PhoneのApp Storeから必要な時に無料でダウンロードする方式です。
+
+■ 前提
+・qbx_core（Qbox）
+・oxmysql
+・lb-phone 2.9系
+
+■ 更新手順
+1. 念のため、現在の flecity_games フォルダをバックアップしてください。
+
+2. ZIP内の flecity_games フォルダで、現在の flecity_games を更新してください。
+
+3. サーバー稼働中の場合、サーバーコンソールで以下をご実行ください。
+
+refresh
+restart flecity_games
+
+通常、サーバー全体の再起動は不要です。
+
+■ データベース
+PARTYのルーム状態はサーバーメモリ上で管理するため、PARTY専用テーブルの手動作成はありません。
+既存のFlecity Games共通テーブルについても起動時に自動確認するため、通常はSQLの手動実行は不要です。
+DROP TABLE / TRUNCATE TABLE は実行しません。
+
+■ 起動確認
+正常時はサーバーコンソールに概ね以下が表示されます。
+
+[FlecityGames] database schema ready
+[FlecityGames] LB Phone callbacks registered .../...
+[FlecityGames] startup preflight READY_FOR_LIVE_TEST
+
+■ 確認用コマンド
+必要な場合のみ、サーバーコンソールから以下をご利用ください。
+
+game_status
+game_preflight
+game_selftest
+game_healthcheck
+
+■ ゲーム内での最小確認
+1. LB PhoneのApp StoreにLOOPとPARTYが表示されること
+2. PARTYを無料でダウンロードできること
+3. 2台の端末で、片方がルーム作成、もう片方が4桁コード参加できること
+4. Ready後にホストがゲーム開始できること
+5. 退出後もLOOPが従来どおり起動できること
+
+■ 切り戻し
+問題がございましたら、更新前にバックアップした flecity_games フォルダへ戻し、
+
+refresh
+restart flecity_games
+
+で切り戻せます。
+DBテーブルの削除は不要です。
+
+お手数を最小限にできるよう、通常の更新は flecity_games の差し替えと restart flecity_games のみで完了する構成です。
+ご確認のほど、よろしくお願いいたします。

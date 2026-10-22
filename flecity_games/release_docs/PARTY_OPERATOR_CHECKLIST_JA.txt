@@ -1,0 +1,58 @@
+Flecity Games PARTY v1.0.0
+運営様向け 確認用メモ
+
+■ 変更範囲
+・更新リソース：flecity_games
+・LB Phone：AddCustomAppによるPARTY追加
+・Qbox core：変更なし
+・LB Phone core：変更なし
+・oxmysql：既存APIを利用
+・LOOPのidentifier / score / save / achievement仕様：変更なし
+
+■ PARTY
+・identifier: flecity_party
+・表示名: PARTY
+・defaultApp=false
+・game=true
+・price=0
+・2〜10人（ゲームごとに対応人数を制限）
+・4桁ルームコード
+・Ready制
+・ホストのみゲーム選択 / 開始 / 結果後ロビー復帰
+・二重開始 / 二重submit / 古いround submitをserver側で拒否
+・切断時cleanup、ホスト移行、60秒再接続猶予
+・ラウンド / 手番timeout
+・WORD WOLF / LIAR / DRAW / TELEPHONEの秘密情報はviewer別snapshot
+・DRAW描画量上限
+・TELEPHONE途中離脱時は手番skip
+
+■ LOOP
+・表示名: LOOP
+・identifier: flecity_play
+・defaultApp=false
+・game=true
+・price=0
+・既存のスコア / 実績 / セーブ / Daily / ranking仕様を維持
+
+■ データベース
+PARTY専用の永続ルームテーブルは追加しません。
+既存Flecity Gamesテーブルは自動確認されます。
+DROP TABLE / TRUNCATE TABLE はありません。
+
+■ 正常起動の目安
+database schema ready
+LB Phone callbacks registered .../...
+startup preflight READY_FOR_LIVE_TEST
+
+■ 推奨ライブ確認
+・2人：REACTION / STOP! BATTLE / TIC-TAC / DRAW
+・3人以上：VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR / TELEPHONE
+・ホスト切断時の移行
+・参加者切断→60秒以内再接続
+・アプリclose / phone close後のReady解除
+・時間切れ後の結果遷移
+・10人時の参加者表示
+
+■ 切り戻し
+更新前の flecity_games へ戻し、refresh → restart flecity_games で切り戻せます。
+DB削除は不要です。

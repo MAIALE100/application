@@ -629,6 +629,8 @@ if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or 
     fail("PARTY cleanup must push timeout/reconcile state changes")
 if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
     fail("PARTY turn-timeout continuation/forfeit handling is missing")
+if "telephoneTurnTimeoutSeconds" not in party_lua or "mode=='text' and 30 or 45" not in party_lua:
+    fail("PARTY TELEPHONE mode-specific turn pacing is missing")
 if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:

@@ -255,9 +255,13 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=75
+        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45
     }
     return limits[tostring(gameId or '')] or 90
+end
+
+local function telephoneTurnTimeoutSeconds(mode)
+    return mode=='text' and 30 or 45
 end
 
 local function setRoundDeadline(rs,seconds)
@@ -769,7 +773,11 @@ function FlecityGamesParty.StartRound(source)
         rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
     end
 
-    setRoundDeadline(rs,roundTimeoutSeconds(game.id))
+    if game.id=='telephone' then
+        setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
+    else
+        setRoundDeadline(rs,roundTimeoutSeconds(game.id))
+    end
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -1222,7 +1230,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
-    if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
+    if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1243,7 +1251,7 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
-    if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
+    if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1297,7 +1305,7 @@ reconcileRound=function(room)
     if tonumber(rs.deadlineTick) and GetGameTimer()>=tonumber(rs.deadlineTick) then
         if rs.gameId=='telephone' then
             advanceTelephone(room,false)
-            if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
+            if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
         elseif rs.gameId=='tic_tac' then
             local loser=rs.currentIdentifier
             local winnerIdentifier=nil

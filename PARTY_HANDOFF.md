@@ -286,3 +286,11 @@ LOOP完成版には不要な変更を入れない。
 - 各Roomの code / lobby・round / game / round番号 / complete / host / connected・total / Ready / appOpen / disconnected / deadline残秒を1行表示。
 - WORD WOLF / LIARの秘密役・お題、DRAWお題、TELEPHONE途中chain等の秘密情報は診断出力に含めない。
 - 複数クライアント実機テスト時、画面を見比べるだけでなくserver-authoritative状態を1コマンドで照合できる。
+
+
+## 2026-10-23 TELEPHONEテンポ調整
+- TELEPHONEの手番制限を一律75秒から、DRAW 45秒 / TEXT 30秒へ短縮。
+- 10人でも最大待ち時間を大きく圧縮し、1人の放置で長時間止まる問題をさらに軽減。
+- 初手はDRAW 45秒。drawing送信後はTEXT 30秒、text送信後はDRAW 45秒へserver側deadlineを切替。
+- disconnect/timeoutで手番skipした場合はmodeを維持し、そのmodeに対応するdeadlineを再設定。
+- UIの共通残り時間表示はserverの新deadlineをそのまま表示するため、クライアント側専用timer追加は不要。

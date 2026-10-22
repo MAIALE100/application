@@ -103,6 +103,10 @@ function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();clearInterval(poll);poll=null;
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
+function submissionProgress(rs){
+ const done=Math.max(0,Number(rs&&rs.submittedCount)||0),total=Math.max(done,Number(rs&&rs.expectedSubmissions)||0);
+ return total>0?done+'/'+total:'';
+}
 function selectedGameConfig(room){
  const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
  return games.find(g=>g.id===room.selectedGame)||null;
@@ -258,7 +262,7 @@ function setupReaction(room){
  const rs=room.roundState;hideRoundGames();reactionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  if(rs.complete){renderResults(room);return;}
  beginRoundToken(rs);
- if(rs.selfSubmitted){cancelAnimationFrame(reactionRaf);reactionMessage.textContent='入力済み';reactionTap.disabled=true;reactionTap.textContent='ほかの参加者を待っています';reactionState='submitted';return;}
+ if(rs.selfSubmitted){cancelAnimationFrame(reactionRaf);reactionMessage.textContent='入力済み · '+submissionProgress(rs);reactionTap.disabled=true;reactionTap.textContent='ほかの参加者を待っています';reactionState='submitted';return;}
  if(reactionState==='idle')reactionLoop();
 }
 function stopBattleLoop(){
@@ -276,14 +280,14 @@ function setupStopBattle(room){
  const rs=room.roundState;hideRoundGames();stopBattlePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  if(rs.complete){renderResults(room);return;}
  beginRoundToken(rs);stopBattleTarget.style.left=String(Number(rs.targetPct)||50)+'%';
- if(rs.selfSubmitted){cancelAnimationFrame(stopBattleRaf);stopBattleMessage.textContent='入力済み';stopBattleButton.disabled=true;stopBattleButton.textContent='ほかの参加者を待っています';stopBattleState='submitted';return;}
+ if(rs.selfSubmitted){cancelAnimationFrame(stopBattleRaf);stopBattleMessage.textContent='入力済み · '+submissionProgress(rs);stopBattleButton.disabled=true;stopBattleButton.textContent='ほかの参加者を待っています';stopBattleState='submitted';return;}
  if(stopBattleState==='idle')stopBattleLoop();
 }
 function setupVote(room){
  const rs=room.roundState;hideRoundGames();votePanel.classList.remove('hidden');resultsPanel.classList.add('hidden');
  votePrompt.textContent=rs.prompt||'投票';voteChoices.innerHTML='';beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
- if(rs.selfSubmitted){voteChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
+ if(rs.selfSubmitted){voteChoices.innerHTML='<div class="status good">投票済み · '+submissionProgress(rs)+'<br>ほかの参加者を待っています。</div>';return;}
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitVote(rs.token,p.memberId);voteChoices.appendChild(b);
  });
@@ -293,7 +297,7 @@ function setupMajority(room){
  majorityGameLabel.textContent=isMinority?'MINORITY':'MAJORITY';
  majorityPrompt.textContent=rs.prompt||(isMinority?'MINORITY':'MAJORITY');majorityChoices.innerHTML='';
  if(rs.complete){renderResults(room);return;}
- if(rs.selfSubmitted){majorityChoices.innerHTML='<div class="status good">回答済みです。ほかの参加者を待っています。</div>';return;}
+ if(rs.selfSubmitted){majorityChoices.innerHTML='<div class="status good">回答済み · '+submissionProgress(rs)+'<br>ほかの参加者を待っています。</div>';return;}
  const hint=document.createElement('div');hint.className='muted choice-hint';hint.textContent=isMinority?'少ない方になりそうな選択肢を選んでください。':'多い方になりそうな選択肢を選んでください。';majorityChoices.appendChild(hint);
  const options=Array.isArray(rs.options)?rs.options:['A','B'];
  ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary choice-button';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.gameId,rs.token,choice);majorityChoices.appendChild(b);});
@@ -340,7 +344,7 @@ function setupDeduction(room){
    deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には自然な嘘で答え、見破られないようにしてください。':'あなたはTRUTHです。質問には正直に答え、LIARを探してください。';
  }
  if(rs.complete){renderResults(room);return;}
- if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
+ if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済み · '+submissionProgress(rs)+'<br>ほかの参加者を待っています。</div>';return;}
  const phase=document.createElement('div');phase.className='status compact-status deduction-phase';deductionChoices.appendChild(phase);
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);

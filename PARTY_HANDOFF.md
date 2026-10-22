@@ -294,3 +294,10 @@ LOOP完成版には不要な変更を入れない。
 - 初手はDRAW 45秒。drawing送信後はTEXT 30秒、text送信後はDRAW 45秒へserver側deadlineを切替。
 - disconnect/timeoutで手番skipした場合はmodeを維持し、そのmodeに対応するdeadlineを再設定。
 - UIの共通残り時間表示はserverの新deadlineをそのまま表示するため、クライアント側専用timer追加は不要。
+
+
+## 2026-10-23 回答待ち進捗
+- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR のpublic snapshotに `submittedCount` / `expectedSubmissions` を追加。
+- 共有するのは回答済み人数のみ。誰が何を選んだか、WORD WOLF/LIARの秘密情報は引き続き非公開。
+- 自分が回答済みになった後の待機表示を `入力済み 3/5` / `投票済み 4/6` のように更新。
+- 他参加者がsubmitするたび既存partyUpdateで件数が更新されるため、新しいpoll/timerは追加しない。

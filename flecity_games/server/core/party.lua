@@ -441,6 +441,16 @@ local function publicRoundState(room,viewerId)
         deadlineTick=rs.deadlineTick,deadlineDurationSec=rs.deadlineDurationSec,
         complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
     }
+    if rs.gameId=='reaction' or rs.gameId=='stop_battle' or rs.gameId=='vote'
+        or rs.gameId=='majority' or rs.gameId=='minority'
+        or rs.gameId=='word_wolf' or rs.gameId=='liar' then
+        local submitted=0
+        for id,m in pairs(room.members or {}) do
+            if not m.disconnected and rs.submissions and rs.submissions[id]~=nil then submitted=submitted+1 end
+        end
+        out.submittedCount=submitted
+        out.expectedSubmissions=connectedCount(room)
+    end
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
     if rs.gameId=='vote' then out.prompt=rs.prompt end
     if rs.gameId=='stop_battle' then

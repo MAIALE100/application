@@ -609,6 +609,8 @@ if "deadlineLoop" not in party_js or "roundDeadline" not in party_js or 'id="rou
     fail("PARTY round deadline UI is missing")
 if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "deductionPhaseLoop" not in party_js:
     fail("PARTY deduction discussion/voting phase separation is missing")
+if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=connectedCount(room)" not in party_lua or "submissionProgress" not in party_js:
+    fail("PARTY aggregate waiting-progress UI is missing")
 if "rotation.ticTac" not in party_lua:
     fail("PARTY TIC-TAC first-player rotation is missing")
 if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:

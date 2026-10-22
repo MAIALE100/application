@@ -34,10 +34,10 @@
 </section>
 <section id="fallGame" class="hidden">
   <div class="card row"><div><div class="kicker">FALL</div><div id="fallScore" class="big-number small-number">0</div><div id="fallMeta" class="game-meta">LINES 0 · PIECES 0 · COMBO 0</div><div id="fallBest" class="game-meta">BEST ---</div></div><button id="fallBack" class="secondary">戻る</button></div>
-  <div class="game-tip card-tip">自動落下するブロックを左右・回転で操作。SOFT / HARD DROPとHOLDを使ってラインをつなぐ。</div>
+  <div class="game-tip card-tip fall-tip">自動落下。左右・回転・SOFT・HARD・HOLDでラインをつなぐ。</div>
   <div class="card fall-board-card"><div id="fallBoard" class="fall-board" aria-label="FALL board"></div></div>
   <div class="card stack fall-panel">
-    <div class="fall-preview-row"><div><div class="kicker">NEXT 3</div><div id="fallNext" class="fall-next" aria-label="Next three pieces"></div></div><div class="fall-hint"><strong>自動落下</strong><span>← → 位置</span><span>タップで回転</span><span>SOFT長押し</span><span>↓ HARD DROP</span></div></div>
+    <div class="fall-preview-row"><div><div class="kicker">NEXT 3</div><div id="fallNext" class="fall-next" aria-label="Next three pieces"></div></div></div>
     <div class="fall-hold-row"><div><div class="kicker">HOLD</div><div id="fallHoldPreview" class="fall-hold-preview" aria-label="Held piece"></div></div><button id="fallHold" class="secondary">HOLD</button></div>
     <div class="fall-controls"><button id="fallLeft" class="secondary">←</button><button id="fallRotate" class="secondary">↻ 回転</button><button id="fallRight" class="secondary">→</button><button id="fallSoft" class="secondary">↓ SOFT</button><button id="fallDrop">HARD DROP</button></div>
     <div class="row"><button id="fallNew" class="secondary">新しく始める</button><button id="fallFinish" class="danger">終了して記録</button></div>

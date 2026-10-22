@@ -620,6 +620,18 @@ all_text = "\n".join(
 )
 if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
     fail("merge conflict markers found")
+submission_builder = read("flecity_games/tools/build_submission.py")
+submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
+submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
+if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder:
+    fail("submission builder release version/dev exclusion is missing")
+if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
+    fail("submission builder PARTY-disable packaging is missing")
+if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install:
+    fail("operator submission install guide is incomplete")
+if "PARTYカスタムアプリは無効化" not in submission_checklist:
+    fail("operator submission checklist does not describe PLAY-only build")
+
 if re.search(r"\bTODO\b|\bFIXME\b", all_text):
     fail("TODO/FIXME marker found in flecity_games source/docs")
 

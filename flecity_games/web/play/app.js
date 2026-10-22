@@ -1920,7 +1920,7 @@ minesNew.onclick=async()=>{
 
 /* TOWER */
 function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
-function stackCameraTarget(game){return Math.max(0,(Number(game&&game.layerCount)||0)-6);}
+function stackCameraTarget(game){return Math.max(0,(Number(game&&game.layerCount)||0)-5);}
 function renderStack(){
  if(!stackGame)return;
  stackScore.textContent=Math.round(stackGame.score).toLocaleString();

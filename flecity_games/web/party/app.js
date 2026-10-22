@@ -167,13 +167,14 @@ function renderResults(room){
    return;
  }
  if(rs.gameId==='reaction'){
-   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.flying?'フライング':Number(e.reactionMs).toFixed(3)+' ms'));
+   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.timedOut?'未入力':(e.flying?'フライング':Number(e.reactionMs).toFixed(3)+' ms')));
  }else if(rs.gameId==='stop_battle'){
-   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.score+' / '+Number(e.distancePct).toFixed(2)+'%'));
+   rs.results.entries.forEach(e=>appendResultRow('#'+e.place+' '+e.name,e.timedOut?'未入力':e.score+' / '+Number(e.distancePct).toFixed(2)+'%'));
  }else if(rs.gameId==='vote'){
    const winnerIds=Array.isArray(rs.results.winnerMemberIds)?rs.results.winnerMemberIds:[];
    const winnerNames=(rs.results.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
-   if(winnerNames.length){const summary=document.createElement('div');summary.className='status good';summary.textContent=(winnerNames.length>1?'同票: ':'最多票: ')+winnerNames.join(' / ');resultsEl.appendChild(summary);}
+   if(Number(rs.results.totalVotes||0)===0){const summary=document.createElement('div');summary.className='status warn';summary.textContent='有効票なし';resultsEl.appendChild(summary);}
+   else if(winnerNames.length){const summary=document.createElement('div');summary.className='status good';summary.textContent=(winnerNames.length>1?'同票: ':'最多票: ')+winnerNames.join(' / ');resultsEl.appendChild(summary);}
    rs.results.entries.forEach(e=>appendResultRow(e.name,e.votes+'票'));
  }else if(rs.gameId==='majority'||rs.gameId==='minority'){
    const options=rs.results.options||rs.options||['A','B'],counts=rs.results.counts||{A:0,B:0};
@@ -185,7 +186,7 @@ function renderResults(room){
    summary.textContent=winnerText+' · '+options[0]+' '+Number(counts.A||0)+' / '+options[1]+' '+Number(counts.B||0);
    resultsEl.appendChild(summary);
    rs.results.entries.forEach(e=>{
-     const label=e.choice==='A'?options[0]:options[1];
+     const label=e.choice==='A'?options[0]:(e.choice==='B'?options[1]:'未回答');
      appendResultRow(e.name,label+(winning&&e.choice===winning?' ✓':''));
    });
  }else if(rs.gameId==='tic_tac'){
@@ -196,13 +197,13 @@ function renderResults(room){
    const board=Array.isArray(result.board)?result.board:[];
    appendResultRow('盤面',board.map(v=>v||'·').join(' '));
  }else if(rs.gameId==='word_wolf'){
-   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(rs.results.caught?'少数派を見破りました！':'少数派を見破れませんでした')+' · 多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
+   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'少数派を見破りました！':'少数派を見破れませんでした'))+' · 多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← 少数派':'';appendResultRow(e.name+wolf,e.votes+'票');});
  }else if(rs.gameId==='liar'){
-   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした')+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
  }else if(rs.gameId==='draw'){
-   const reveal=document.createElement('div');reveal.className=rs.results.aborted?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':'正解: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    (rs.results.entries||[]).forEach(e=>appendResultRow('#'+e.place+' '+e.name,'正解'));
  }else if(rs.gameId==='telephone'){
    (rs.results.chain||[]).forEach((entry,i)=>{

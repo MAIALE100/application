@@ -667,24 +667,26 @@ local function completedSubmissionCount(room)
     return n
 end
 
-local function maybeFinishReaction(room)
+local function maybeFinishReaction(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='reaction' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    if not rs or rs.gameId~='reaction' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
             local s=rs.submissions[id]
-            entries[#entries+1]={memberId=m.memberId,name=m.name,reactionMs=s and s.reactionMs or nil,flying=(not s) or s.flying==true}
+            entries[#entries+1]={memberId=m.memberId,name=m.name,reactionMs=s and s.reactionMs or nil,flying=s and s.flying==true or false,timedOut=s==nil}
         end
     end
     table.sort(entries,function(a,b)
+        if a.timedOut~=b.timedOut then return not a.timedOut end
         if a.flying~=b.flying then return not a.flying end
-        if a.flying then return a.name<b.name end
+        if a.timedOut or a.flying then return a.name<b.name end
         if a.reactionMs==b.reactionMs then return a.name<b.name end
         return a.reactionMs<b.reactionMs
     end)
     for i,e in ipairs(entries) do e.place=i end
-    rs.complete=true rs.results={entries=entries,winnerMemberId=entries[1] and not entries[1].flying and entries[1].memberId or nil}
+    local winner=entries[1]
+    rs.complete=true rs.results={entries=entries,winnerMemberId=winner and not winner.timedOut and not winner.flying and winner.memberId or nil,timedOut=force==true}
 end
 
 function FlecityGamesParty.SubmitReaction(source,data)
@@ -711,19 +713,24 @@ function FlecityGamesParty.SubmitReaction(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishStopBattle(room)
+local function maybeFinishStopBattle(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='stop_battle' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    if not rs or rs.gameId~='stop_battle' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
             local s=rs.submissions[id]
-            entries[#entries+1]={memberId=m.memberId,name=m.name,score=s and s.score or 0,distancePct=s and s.distancePct or 100,markerPct=s and s.markerPct or nil}
+            entries[#entries+1]={memberId=m.memberId,name=m.name,score=s and s.score or 0,distancePct=s and s.distancePct or 100,markerPct=s and s.markerPct or nil,timedOut=s==nil}
         end
     end
-    table.sort(entries,function(a,b) if a.score==b.score then return a.name<b.name end return a.score>b.score end)
+    table.sort(entries,function(a,b)
+        if a.timedOut~=b.timedOut then return not a.timedOut end
+        if a.score==b.score then return a.name<b.name end
+        return a.score>b.score
+    end)
     for i,e in ipairs(entries) do e.place=i end
-    rs.complete=true rs.results={entries=entries,winnerMemberId=entries[1] and entries[1].memberId or nil,targetPct=rs.targetPct}
+    local winner=entries[1]
+    rs.complete=true rs.results={entries=entries,winnerMemberId=winner and not winner.timedOut and winner.memberId or nil,targetPct=rs.targetPct,timedOut=force==true}
 end
 
 function FlecityGamesParty.SubmitStopBattle(source,data)
@@ -748,9 +755,9 @@ function FlecityGamesParty.SubmitStopBattle(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishMajority(room)
+local function maybeFinishMajority(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='majority' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    if not rs or rs.gameId~='majority' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -780,9 +787,9 @@ function FlecityGamesParty.SubmitMajority(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishMinority(room)
+local function maybeFinishMinority(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='minority' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
+    if not rs or rs.gameId~='minority' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -863,13 +870,17 @@ function FlecityGamesParty.SubmitTicTac(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishVote(room)
+local function maybeFinishVote(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='vote' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={}
+    if not rs or rs.gameId~='vote' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
-        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+        local target=room.members[targetId]
+        if voter and not voter.disconnected and target and not target.disconnected then
+            counts[targetId]=(counts[targetId] or 0)+1
+            totalVotes=totalVotes+1
+        end
     end
     local entries={} local maxVotes=-1
     for id,m in pairs(room.members) do
@@ -879,8 +890,9 @@ local function maybeFinishVote(room)
         end
     end
     table.sort(entries,function(a,b) if a.votes==b.votes then return a.name<b.name end return a.votes>b.votes end)
-    local winners={} for _,e in ipairs(entries) do if e.votes==maxVotes then winners[#winners+1]=e.memberId end end
-    rs.complete=true rs.results={entries=entries,winnerMemberIds=winners}
+    local winners={}
+    if totalVotes>0 then for _,e in ipairs(entries) do if e.votes==maxVotes then winners[#winners+1]=e.memberId end end end
+    rs.complete=true rs.results={entries=entries,winnerMemberIds=winners,totalVotes=totalVotes,timedOut=force==true}
 end
 
 function FlecityGamesParty.SubmitVote(source,data)
@@ -900,13 +912,14 @@ function FlecityGamesParty.SubmitVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishWordWolf(room)
+local function maybeFinishWordWolf(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='word_wolf' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={}
+    if not rs or rs.gameId~='word_wolf' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
-        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+        local target=room.members[targetId]
+        if voter and not voter.disconnected and target and not target.disconnected then counts[targetId]=(counts[targetId] or 0)+1 totalVotes=totalVotes+1 end
     end
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
@@ -920,7 +933,7 @@ local function maybeFinishWordWolf(room)
     rs.complete=true
     rs.results={
         entries=entries,wolfMemberId=wolfMemberId,majorityTopic=rs.majorityTopic,wolfTopic=rs.wolfTopic,
-        caught=topCount==1 and topMemberId==wolfMemberId
+        caught=totalVotes>0 and topCount==1 and topMemberId==wolfMemberId,totalVotes=totalVotes,timedOut=force==true
     }
 end
 
@@ -940,13 +953,14 @@ function FlecityGamesParty.SubmitWordWolfVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishLiar(room)
+local function maybeFinishLiar(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='liar' or rs.complete or completedSubmissionCount(room)<connectedCount(room) then return end
-    local counts={}
+    if not rs or rs.gameId~='liar' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
-        if voter and not voter.disconnected then counts[targetId]=(counts[targetId] or 0)+1 end
+        local target=room.members[targetId]
+        if voter and not voter.disconnected and target and not target.disconnected then counts[targetId]=(counts[targetId] or 0)+1 totalVotes=totalVotes+1 end
     end
     local entries={}
     for id,m in pairs(room.members) do if not m.disconnected then entries[#entries+1]={memberId=m.memberId,name=m.name,votes=counts[id] or 0} end end
@@ -958,7 +972,7 @@ local function maybeFinishLiar(room)
         if entry.votes==topVotes then topCount=topCount+1 topMemberId=entry.memberId end
     end
     rs.complete=true
-    rs.results={entries=entries,liarMemberId=liarMemberId,prompt=rs.prompt,caught=topCount==1 and topMemberId==liarMemberId}
+    rs.results={entries=entries,liarMemberId=liarMemberId,prompt=rs.prompt,caught=totalVotes>0 and topCount==1 and topMemberId==liarMemberId,totalVotes=totalVotes,timedOut=force==true}
 end
 
 function FlecityGamesParty.SubmitLiarVote(source,data)
@@ -977,7 +991,7 @@ function FlecityGamesParty.SubmitLiarVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishDraw(room)
+local function maybeFinishDraw(room,force)
     local rs=room.roundState
     if not rs or rs.gameId~='draw' or rs.complete then return end
     local drawer=room.members[rs.drawerIdentifier]
@@ -990,7 +1004,7 @@ local function maybeFinishDraw(room)
     for id,m in pairs(room.members) do
         if not m.disconnected and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
     end
-    if guessed<needed then return end
+    if guessed<needed and not force then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected and id~=rs.drawerIdentifier and rs.guessed[id] then
@@ -999,7 +1013,7 @@ local function maybeFinishDraw(room)
     end
     table.sort(entries,function(a,b) return a.guessedAt<b.guessedAt end)
     for i,e in ipairs(entries) do e.place=i e.guessedAt=nil end
-    rs.complete=true rs.results={aborted=false,prompt=rs.prompt,entries=entries,drawerMemberId=drawer.memberId}
+    rs.complete=true rs.results={aborted=false,prompt=rs.prompt,entries=entries,drawerMemberId=drawer.memberId,timedOut=force==true and guessed<needed}
 end
 
 function FlecityGamesParty.AddDrawStroke(source,data)
@@ -1184,9 +1198,16 @@ reconcileRound=function(room)
                 forfeit=true,
                 reason='TURN_TIMEOUT'
             }
-        else
-            abortRound(room,'ROUND_TIMEOUT')
-        end
+        elseif rs.gameId=='reaction' then maybeFinishReaction(room,true)
+        elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room,true)
+        elseif rs.gameId=='vote' then maybeFinishVote(room,true)
+        elseif rs.gameId=='majority' then maybeFinishMajority(room,true)
+        elseif rs.gameId=='minority' then maybeFinishMinority(room,true)
+        elseif rs.gameId=='word_wolf' then maybeFinishWordWolf(room,true)
+        elseif rs.gameId=='liar' then maybeFinishLiar(room,true)
+        elseif rs.gameId=='draw' then maybeFinishDraw(room,true)
+        else abortRound(room,'ROUND_TIMEOUT') end
+        if not rs.complete and rs.gameId~='telephone' then abortRound(room,'ROUND_TIMEOUT') end
         return true
     end
 

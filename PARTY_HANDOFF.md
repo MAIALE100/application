@@ -181,3 +181,12 @@ LOOP完成版には不要な変更を入れない。
 - これによりtimeout結果が10秒poll待ちにならず、cleanup周期内で全端末へ反映される。
 - TELEPHONEは手番timeoutでラウンド全体を中断せず、そのプレイヤーの手番だけskipして次へ進む。次手番の期限も再設定。
 - TIC-TACは手番timeout時、相手プレイヤーの不戦勝として結果を確定。
+
+
+## 2026-10-23 未入力者による全体停止の抑制
+- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR / DRAW は時間切れ時、ラウンドを単純中断せず、その時点の有効入力で結果を確定。
+- REACTION / STOP! BATTLE は未入力者を結果上「未入力」と表示し、勝者候補から除外。
+- VOTEは有効票0の場合に全員同票扱いせず「有効票なし」。
+- MAJORITY / MINORITYは未回答者をB扱いせず「未回答」と表示。
+- WORD WOLF / LIAR は有効票0を明示し、秘密役・お題の結果開示は従来どおりラウンド完了後のみ。
+- DRAWは時間切れでも正解のお題と、正解済みプレイヤーの順位を表示。

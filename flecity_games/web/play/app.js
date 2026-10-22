@@ -2049,7 +2049,7 @@ async function openNonogram(forceNew,daily=false){
  const size=Number(session.challenge&&session.challenge.size)||5,seed=Number(session.seed);
  nonogram={size,seed,solution:seededNonogram(seed,size),filled:new Set(saved&&saved.state?saved.state.filled||[]:[]),crossed:new Set(saved&&saved.state?saved.state.crossed||[]:[]),
    elapsedBase:Number(session.baseElapsedMs||0),timingStarted:false,timingStartedAt:null,timingActivating:false,sessionToken:session.sessionToken,finished:false,daily:session.daily===true,progressed:!!saved};
- nonogramNew.textContent=nonogram.daily?'最初から':'新しい問題';setStatus(saved?'NONOGRAMを途中保存から再開しました。':(nonogram.daily?'デイリーNONOGRAM開始。':'新しいNONOGRAMを開始しました。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
+ nonogramNew.textContent=nonogram.daily?'最初から':'新しい問題';setStatus(saved?'NONOGRAMを途中保存から再開しました。タップで塗る・長押しで×。':(nonogram.daily?'デイリーNONOGRAM開始。タップで塗る・長押しで×。':'新しいNONOGRAMを開始しました。タップで塗る・長押しで×。'),'good');renderNonogram();nonogramClock=setInterval(updateNonogramTime,250);
 }
 async function crossNonogramDirect(index){
  const game=nonogram;if(!game||game.finished)return;
@@ -2064,9 +2064,8 @@ async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
  nonogram.progressed=true;const solvedBefore=nonogramSolvedLines();
- if(nonogram.filled.has(index)){nonogram.filled.delete(index);nonogram.crossed.add(index);tone(260,16);}
- else if(nonogram.crossed.has(index)){nonogram.crossed.delete(index);tone(190,12);}
- else{nonogram.filled.add(index);tone(520,18);}
+ if(nonogram.filled.has(index)){nonogram.filled.delete(index);tone(260,16);}
+ else{nonogram.crossed.delete(index);nonogram.filled.add(index);tone(520,18);}
  const solvedAfter=nonogramSolvedLines();
  nonogramBoard.classList.remove('cell-touch','line-solved');void nonogramBoard.offsetWidth;nonogramBoard.classList.add(solvedAfter>solvedBefore?'line-solved':'cell-touch');
  if(solvedAfter>solvedBefore){tone(760,45);setStatus('LINE COMPLETE · '+solvedAfter+'/'+String(nonogram.size*2),'good');}

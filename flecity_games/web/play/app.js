@@ -273,17 +273,35 @@ const achievementLabels={
  slide_master:'SLIDE MASTER · 90秒・120手以内でクリア',
  fall_master:'FALL MASTER · 20ライン以上消して記録'
 };
+function previousBestRow(gameId,daily){
+ return daily?(bootstrapData&&bootstrapData.daily&&bootstrapData.daily.selfBest):(bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId]);
+}
 function scoreBeatsPrevious(gameId,score,daily){
  const game=gameById(gameId);if(!game)return false;
- const previous=daily?(bootstrapData&&bootstrapData.daily&&bootstrapData.daily.selfBest):(bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId]);
+ const previous=previousBestRow(gameId,daily);
  if(!previous||!Number.isFinite(Number(previous.score)))return true;
  const current=Number(score),old=Number(previous.score);
  return game.rankingOrder==='asc'?current<old:current>old;
 }
+function personalBestGainText(gameId,score,daily){
+ const game=gameById(gameId),previous=previousBestRow(gameId,daily);
+ if(!game||!previous||!Number.isFinite(Number(previous.score)))return null;
+ const current=Number(score),old=Number(previous.score);
+ if(!Number.isFinite(current))return null;
+ const gain=game.rankingOrder==='asc'?old-current:current-old;
+ if(gain<=0)return null;
+ if(game.rankingOrder==='asc')return gain>=1000?(gain/1000).toFixed(3)+'s':gain.toFixed(1)+'ms';
+ if(['stack','stop','high_low'].includes(gameId))return Math.round(gain).toLocaleString()+' pts';
+ if(gameId==='simon')return Math.round(gain)+' round';
+ return Math.round(gain).toLocaleString();
+}
 function showScoreResult(gameId,res,message){
- const parts=[],rank=rankForScore(gameId,res.score);
+ const parts=[],rank=rankForScore(gameId,res.score),isNewBest=scoreBeatsPrevious(gameId,res.score,res.daily===true);
  if(rank)parts.push(rank+' RANK');
- if(scoreBeatsPrevious(gameId,res.score,res.daily===true))parts.push('NEW BEST');
+ if(isNewBest){
+   const gain=personalBestGainText(gameId,res.score,res.daily===true);
+   parts.push('NEW BEST'+(gain?' · PB +'+gain:''));
+ }
  parts.push(String(message||'記録を保存しました。'));
  const unlocked=Array.isArray(res.unlocked)?res.unlocked:[];
  if(unlocked.length){

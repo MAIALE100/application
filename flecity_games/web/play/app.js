@@ -1865,7 +1865,7 @@ stackDrop.onclick=async()=>{
    setStatus(rankUp+'KEEP GOING · '+(precision*100).toFixed(1)+'% · +'+placementScore+' pts','good');tone(470,24);
  }
  stackGame.speed=Math.min(190,stackGame.speed+5);
- if(stackGame.layerCount>0&&stackGame.layerCount%5===0){setStatus('HEIGHT '+stackGame.layerCount+' · SPEED UP · '+Math.round(stackGame.speed)+'%/s','good');tone(980,70);}
+ if(stackGame.layerCount>0&&stackGame.layerCount%5===0){setStatus(rankUp+'HEIGHT '+stackGame.layerCount+' · SPEED UP · '+Math.round(stackGame.speed)+'%/s','good');tone(980,70);}
  stackGame.reverse=(stackGame.layerCount%2)===1;
  stackGame.layerStartedAt=now;
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);

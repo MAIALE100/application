@@ -2556,8 +2556,15 @@ function FlecityGamesPlay.DebugSelftest()
         stopAcceptRunScore=stop and validateScore(stop,12500)==12500 or false,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,
         stopRunProgression=(function()
-            local state=newStopState(12345,{maxRounds=5,startPeriodMs=2200,minPeriodMs=520,startTolerancePct=8,minTolerancePct=2.2})
+            local cfg={maxRounds=5,startPeriodMs=2200,minPeriodMs=520,startTolerancePct=8,minTolerancePct=2.2}
+            local state=newStopState(12345,cfg)
+            local period1=stopRoundPeriod(cfg,1)
+            local period5=stopRoundPeriod(cfg,5)
+            local zone1=stopRoundTolerance(cfg,1)
+            local zone5=stopRoundTolerance(cfg,5)
             return state and state.current and state.current.periodMs==2200 and state.current.tolerancePct==8
+                and period5<period1 and period5>=cfg.minPeriodMs
+                and zone5<zone1 and zone5>=cfg.minTolerancePct
         end)(),
         blockRejectNegative=block and validateScore(block,-1)==nil or false,
         blockAcceptInteger=block and validateScore(block,120)==120 or false,

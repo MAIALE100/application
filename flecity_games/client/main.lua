@@ -95,12 +95,16 @@ local function addApp(app)
     return false
 end
 
+local function appEnabled(app)
+    return type(app)=='table' and app.enabled~=false
+end
+
 local function registerApps()
     if GetResourceState('lb-phone')~='started' then return end
     for attempt=1,5 do
         Wait(attempt==1 and 500 or 300)
-        local playOk=addApp(FlecityGamesConfig.Apps.Play)
-        local partyOk=addApp(FlecityGamesConfig.Apps.Party)
+        local playOk=not appEnabled(FlecityGamesConfig.Apps.Play) or addApp(FlecityGamesConfig.Apps.Play)
+        local partyOk=not appEnabled(FlecityGamesConfig.Apps.Party) or addApp(FlecityGamesConfig.Apps.Party)
         if playOk and partyOk then
             print(('[FlecityGames] custom apps ready (attempt %d)'):format(attempt))
             return

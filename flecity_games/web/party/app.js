@@ -1,6 +1,6 @@
 const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
-const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel');
+const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
@@ -18,7 +18,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -53,9 +53,26 @@ function trianglePosition(elapsedMs,periodMs,phaseMs){
  return cycle<=half?(cycle/half)*100:((period-cycle)/half)*100;
 }
 function resetRoundRuntime(){
- cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);
- reactionState='idle';stopBattleState='idle';
+ cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deadlineRaf);
+ reactionState='idle';stopBattleState='idle';deadlineRaf=null;
+ roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];
+}
+function deadlineLoop(token){
+ if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
+ const rs=currentRoom.roundState;
+ if(rs.complete||!Number.isFinite(Number(rs.deadlineTick))){roundDeadline.classList.add('hidden');return;}
+ const remaining=Math.max(0,Number(rs.deadlineTick)-estimatedServerTick());
+ roundDeadline.classList.remove('hidden');
+ roundDeadline.textContent=remaining>0?'残り '+Math.ceil(remaining/1000)+'秒':'時間切れ判定中…';
+ roundDeadline.classList.toggle('warn',remaining<=10000);
+ deadlineRaf=requestAnimationFrame(()=>deadlineLoop(token));
+}
+function startDeadlineLoop(rs){
+ cancelAnimationFrame(deadlineRaf);deadlineRaf=null;
+ roundDeadline.classList.remove('warn');
+ if(!rs||rs.complete||!Number.isFinite(Number(rs.deadlineTick))){roundDeadline.classList.add('hidden');return;}
+ deadlineLoop(rs.token);
 }
 async function runOnce(key,fn){
  if(actionLocks.has(key))return;
@@ -134,6 +151,7 @@ function appendResultRow(leftText,rightText){
 }
 function renderResults(room){
  const rs=room.roundState;if(!rs||!rs.complete||!rs.results){resultsPanel.classList.add('hidden');return;}
+ cancelAnimationFrame(deadlineRaf);deadlineRaf=null;roundDeadline.classList.add('hidden');
  if(lastCompleteToken!==rs.token){lastCompleteToken=rs.token;tone(760,90);}
  hideRoundGames();resultsPanel.classList.remove('hidden');resultsEl.innerHTML='';
  if(rs.results.aborted===true){
@@ -142,6 +160,8 @@ function renderResults(room){
    if(reason==='NOT_ENOUGH_PLAYERS')box.textContent='参加人数が足りなくなったため、このラウンドを終了しました。';
    else if(reason==='SECRET_PLAYER_LEFT')box.textContent='役職プレイヤーが退出したため、このラウンドを終了しました。';
    else if(reason==='DRAWER_LEFT')box.textContent='描き手が退出したため、このラウンドを終了しました。';
+   else if(reason==='TURN_TIMEOUT')box.textContent='手番の制限時間を超えたため、このラウンドを終了しました。';
+   else if(reason==='ROUND_TIMEOUT')box.textContent='制限時間を超えたため、このラウンドを終了しました。';
    else box.textContent='このラウンドは中断されました。';
    resultsEl.appendChild(box);
    return;
@@ -356,6 +376,7 @@ function renderRoom(room,timing){
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
    lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));status('ラウンド '+room.round+' / '+room.selectedGame,'good');
+   startDeadlineLoop(rs);
    if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);

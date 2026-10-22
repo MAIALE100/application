@@ -166,6 +166,21 @@ local function trianglePosition(elapsedMs,periodMs,phaseMs)
     return ((period-cycle)/half)*100
 end
 
+local function roundTimeoutSeconds(gameId)
+    local limits={
+        reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
+        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=75
+    }
+    return limits[tostring(gameId or '')] or 90
+end
+
+local function setRoundDeadline(rs,seconds)
+    if not rs then return end
+    local duration=math.max(5,math.floor(tonumber(seconds) or roundTimeoutSeconds(rs.gameId)))
+    rs.deadlineDurationSec=duration
+    rs.deadlineTick=GetGameTimer()+(duration*1000)
+end
+
 local function ticTacWinner(board)
     local lines={{1,2,3},{4,5,6},{7,8,9},{1,4,7},{2,5,8},{3,6,9},{1,5,9},{3,5,7}}
     for _,line in ipairs(lines) do
@@ -312,6 +327,7 @@ local function publicRoundState(room,viewerId)
     if not rs then return nil end
     local out={
         token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,startedTick=rs.startedTick,
+        deadlineTick=rs.deadlineTick,deadlineDurationSec=rs.deadlineDurationSec,
         complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
     }
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
@@ -628,6 +644,7 @@ function FlecityGamesParty.StartRound(source)
         rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
     end
 
+    setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -825,6 +842,7 @@ function FlecityGamesParty.SubmitTicTac(source,data)
     else
         local first,second=rs.turnOrder[1],rs.turnOrder[2]
         rs.currentIdentifier=id==first and second or first
+        setRoundDeadline(rs,roundTimeoutSeconds('tic_tac'))
     end
 
     notifyRoom(room,source)
@@ -1060,6 +1078,7 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
+    if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1080,6 +1099,7 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,text=value}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
+    if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1121,6 +1141,12 @@ end
 reconcileRound=function(room)
     local rs=room.roundState
     if not rs or rs.complete then return end
+
+    if tonumber(rs.deadlineTick) and GetGameTimer()>=tonumber(rs.deadlineTick) then
+        local reason=(rs.gameId=='tic_tac' or rs.gameId=='telephone') and 'TURN_TIMEOUT' or 'ROUND_TIMEOUT'
+        abortRound(room,reason)
+        return
+    end
 
     purgeDisconnectedTargets(room)
 

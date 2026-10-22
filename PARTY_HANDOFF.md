@@ -148,3 +148,12 @@ LOOP完成版には不要な変更を入れない。
 - Create/Join/Ready/Game select/Start/Return lobby/Leave と主要入力にクライアント側多重送信ガードを追加。
 - ラウンド進行中はホストの「ロビーへ戻る」をUIから隠し、結果表示後のみ通常導線として表示。
 - LOOP の identifier / 配布仕様 / score・save・achievement 系には変更なし。
+
+
+## 2026-10-23 ラウンド停止対策
+- roundState に server-authoritative な `deadlineTick` を追加。
+- REACTION 12秒 / STOP! BATTLE 25秒 / VOTE 60秒 / MAJORITY・MINORITY 45秒 / TIC-TAC 45秒/手 / WORD WOLF・LIAR 150秒 / DRAW 90秒 / TELEPHONE 75秒/手。
+- 個別の `SetTimeout` / client timer event で終了させず、既存のサーバー cleanup が現在の roundState だけを確認するため、前ゲームのtimerが次ゲームへ残らない。
+- TIC-TAC は合法手ごと、TELEPHONE は受け渡しごとに期限を更新。
+- タイムアウト時は結果画面へ安全に遷移し、ホストがロビーへ戻せる。
+- PARTY UI にサーバー時刻基準の残り時間表示を追加し、10秒以下で警告表示。

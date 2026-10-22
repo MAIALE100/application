@@ -599,6 +599,10 @@ if "actionLocks" not in party_js or "runOnce('start'" not in party_js:
     fail("PARTY client action de-duplication is missing")
 if "drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[]" not in party_js:
     fail("PARTY round runtime cleanup is incomplete")
+if "roundTimeoutSeconds" not in party_lua or "deadlineTick" not in party_lua or "TURN_TIMEOUT" not in party_lua or "ROUND_TIMEOUT" not in party_lua:
+    fail("PARTY authoritative round timeout is missing")
+if "deadlineLoop" not in party_js or "roundDeadline" not in party_js or 'id="roundDeadline"' not in party_html:
+    fail("PARTY round deadline UI is missing")
 
 for marker in (
     "wordWolfPrivacy",

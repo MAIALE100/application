@@ -91,7 +91,7 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:0.0625rem s
 .home-section{margin:1.125rem 0 0.875rem}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.625rem}.section-head h2{margin:.12rem 0 0}.section-head.small{margin:0.25rem 0 0}
 .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.875rem;height:1.625rem;border-radius:62.4375rem;background:#242832;border:0.0625rem solid #353b46;font-size:.75rem;font-weight:800;font-variant-numeric:tabular-nums}
-.compact-button{min-height:2.5rem;padding:0.5rem 0.75rem;flex:0 0 auto}.compact-status{min-height:2.5rem;padding:0.5625rem 0.6875rem;margin-bottom:0}
+.compact-button{min-height:2.5rem;padding:0.5rem 0.75rem;flex:0 0 auto}.compact-status{min-height:2.5rem;padding:0.5625rem 0.6875rem;margin-bottom:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .compact-card{padding:0.875rem}
 .stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.5rem}
 .stat-tile{display:flex;flex-direction:column;gap:0.1875rem;padding:0.6875rem 0.75rem;border-radius:0.8125rem;background:#11141a;border:0.0625rem solid #272d37}

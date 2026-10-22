@@ -300,7 +300,7 @@ function deductionPhaseLoop(token){
  const locked=remaining>0;
  deductionChoices.querySelectorAll('button').forEach(b=>b.disabled=locked);
  const phaseText=locked?'会話タイム · 投票まで '+Math.ceil(remaining/1000)+'秒':'投票タイム · 怪しい人を選んでください';
- const phase=document.getElementById('deductionPhase');
+ const phase=deductionChoices.querySelector('.deduction-phase');
  if(phase){phase.textContent=phaseText;phase.className='status compact-status '+(locked?'':'good');}
  if(locked)deductionPhaseRaf=requestAnimationFrame(()=>deductionPhaseLoop(token));
 }
@@ -315,7 +315,7 @@ function setupDeduction(room){
  }
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済みです。ほかの参加者を待っています。</div>';return;}
- const phase=document.createElement('div');phase.id='deductionPhase';phase.className='status compact-status';deductionChoices.appendChild(phase);
+ const phase=document.createElement('div');phase.className='status compact-status deduction-phase';deductionChoices.appendChild(phase);
  room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitDeduction(rs.gameId,rs.token,p.memberId);deductionChoices.appendChild(b);
  });

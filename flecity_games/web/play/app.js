@@ -2565,6 +2565,7 @@ function startRangeRushClock(){
 function renderHighLow(){
  refreshScreenBests();
  if(!highLow){
+   delete highLowEl.dataset.pressure;
    highLowCard.textContent='?';highLowPivot.textContent='50';highLowLives.textContent='♥ ♥ ♥';highLowStreak.textContent='0';highLowMeta.textContent='ROUND 0 / 30 · STREAK 0';
    highLowHigher.textContent='HIGH ↑';highLowLower.textContent='LOW ↓';
    highLowHigher.disabled=true;highLowLower.disabled=true;updateRangeRushTimer();return;
@@ -2579,7 +2580,8 @@ function renderHighLow(){
  const gap=Math.abs(Number(highLow.currentValue)-Number(highLow.pivot));
  const difficulty=gap<=8?'TIGHT':(gap<=18?'TRICKY':'OPEN'),bounty=Math.max(0,45-Math.min(45,gap))*3;
  highLowCard.dataset.difficulty=difficulty.toLowerCase();
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+' · BOUNTY +'+String(bounty)+(highLow.finished?' · GAME OVER':'');
+ highLowEl.dataset.pressure=highLow.lives===1?'last-life':(highLow.lives<=0?'out':'normal');
+ highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+' · BOUNTY +'+String(bounty)+(highLow.lives===1&&!highLow.finished?' · LAST LIFE':'')+(highLow.finished?' · GAME OVER':'');
  highLowLower.textContent='LOW < '+String(highLow.pivot);
  highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
@@ -2642,11 +2644,11 @@ async function guessHighLow(guess){
    tone(700+Math.min(250,game.streak*15),32);
    const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0),difficultyBonus=Math.max(0,Number(res.difficultyBonus)||0),speedBonus=Math.max(0,Number(res.speedBonus)||0);
    const bonus=difficultyBonus>0?' · TIGHT +'+difficultyBonus:'';
-   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':''),'good');
+   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':'')+(game.lives===1?' · CLUTCH':''),'good');
  }else{
    highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong','life-lost');
    tone(150,90);
-   setStatus((res.timedOut?'TIME UP':'MISS')+' · LIFE -1 · 残り'+game.lives,'warn');
+   setStatus((res.timedOut?'TIME UP':'MISS')+' · LIFE -1 · 残り'+game.lives+(game.lives===1?' · LAST LIFE!':''),'warn');
  }
  if(!res.ended){
    game.currentValue=Number(res.nextValue)||game.currentValue;
@@ -2696,13 +2698,15 @@ highLowNew.onclick=async()=>{
 function renderSimon(){
  refreshScreenBests();const game=simon;
  if(!game){
+   delete simonBoard.dataset.speed;
    simonRound.textContent='0';simonMeta.textContent=(simonDaily?'DAILY · ':'')+'ROUND 0 / 30';simonMessage.textContent='スタートを押してください。';
    simonPads.forEach(p=>{p.disabled=true;p.classList.remove('active','wrong');});
    return;
  }
  simonRound.textContent=String(game.cleared);
  const speedStage=game.round>=21?'TURBO':(game.round>=16?'FAST':(game.round>=11?'UP':(game.round>=6?'WARM':'NORMAL')));
- simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · SPEED '+speedStage;
+ simonBoard.dataset.speed=speedStage.toLowerCase();
+ simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · SPEED '+speedStage+(game.round%5===0&&game.round<game.maxRounds?' · CHECKPOINT':'');
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){

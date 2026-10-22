@@ -499,35 +499,10 @@ try {
         if(Test-Path $autoInstalled){
             try {
                 $autoMarker=Get-Content -LiteralPath $autoInstalled -Raw -ErrorAction Stop
-                $autoNeedsBranchRepair=$autoMarker -notmatch ('(?m)^branch=' + [regex]::Escape($Branch) + '
-    }
-
-    Step 'Update complete'
-    Write-Host "Source : $Source"
-    Write-Host "Target : $Destination"
-    Write-Host ''
-    if ($ReloadActivated) {
-        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
-        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
-    } elseif ($ReloadNeedsBootstrap) {
-        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
-        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
-        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
-        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
-    } else {
-        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
-    }
-    Write-Host ''
-    exit 0
-}
-catch {
-    Write-Host ''
-    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
-    Write-Host ''
-    exit 1
-}
-)
-            } catch {
+                $expectedBranchLine='branch=' + $Branch
+                $autoNeedsBranchRepair=-not (($autoMarker -split '[\r\n]+') -contains $expectedBranchLine)
+            }
+            catch {
                 $autoNeedsBranchRepair=$true
             }
         }

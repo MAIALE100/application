@@ -426,6 +426,8 @@ if "liveRankUpPrefix" not in play_js or "RANK UP " not in play_js:
     fail("PLAY live rank-up feedback is missing")
 if "stop:{order:'desc',S:16000,A:8000,B:3500}" not in play_js:
     fail("STOP RUSH cumulative rank thresholds are stale")
+if "period5<period1" not in play_lua or "zone5<zone1" not in play_lua:
+    fail("STOP RUSH escalation self-test is missing")
 if "STOP!でBULLSEYEを1回" not in play_js:
     fail("STOP BULLSEYE achievement label is stale")
 if "word-break:break-word" not in play_css:

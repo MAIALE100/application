@@ -1247,6 +1247,15 @@ reconcileRound=function(room)
         or rs.step~=beforeStep
 end
 
+function FlecityGamesParty.AppClosed(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return end
+    if room.state=='lobby' and room.members[id].ready==true then
+        room.members[id].ready=false
+        notifyRoom(room,source)
+    end
+end
+
 function FlecityGamesParty.LeaveRoom(source)
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=true} end

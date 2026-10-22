@@ -468,6 +468,8 @@ if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:
     fail("PLAY LB Phone status-bar clearance CSS is missing")
+if "body.game-active{padding-top:max(5rem" not in play_css:
+    fail("PLAY in-game status-bar clearance is too small")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

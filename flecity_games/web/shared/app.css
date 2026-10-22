@@ -879,3 +879,23 @@ body.reduced-motion .fall-board.fall-clutch{animation:none!important}
   100%{transform:none;filter:none}
 }
 body.reduced-motion .memory-board.memory-perfect{animation:none!important}
+
+
+/* Endless-session overflow hardening v19 */
+#blockScore,#mergeScore,#fallScore{
+ min-width:0;
+ max-width:100%;
+ font-variant-numeric:tabular-nums;
+ overflow-wrap:anywhere;
+ font-size:clamp(1.8rem,11vw,3rem);
+ line-height:1.05;
+}
+.merge-cell[data-value="1024"],.merge-cell[data-value="2048"],.merge-cell[data-value="4096"],.merge-cell[data-value="8192"]{font-size:1rem;letter-spacing:-.035em}
+.merge-cell[data-value="16384"],.merge-cell[data-value="32768"],.merge-cell[data-value="65536"]{font-size:.82rem;letter-spacing:-.055em}
+#mergeGame>.card.row>div,#blockGame>.card.row>div,#fallGame>.card.row>div{overflow:hidden}
+.merge-controls button,.fall-controls button{min-width:0;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:22.5rem){
+ #blockScore,#mergeScore,#fallScore{font-size:clamp(1.65rem,10vw,2.55rem)}
+ .merge-cell[data-value="1024"],.merge-cell[data-value="2048"],.merge-cell[data-value="4096"],.merge-cell[data-value="8192"]{font-size:.88rem}
+ .merge-cell[data-value="16384"],.merge-cell[data-value="32768"],.merge-cell[data-value="65536"]{font-size:.7rem}
+}

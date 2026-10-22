@@ -136,6 +136,8 @@ if "fixBlur=true" not in client or "fixBlur=false" in client:
     fail("LB Phone fixBlur must be enabled for rem-based custom app rendering")
 if "local function appEnabled(app)" not in client or "app.enabled~=false" not in client:
     fail("LB Phone app visibility flag support is missing")
+if "local partyAppEnabled=not" not in server or "name:find('flecity_games:party:',1,true)==1" not in server:
+    fail("server PARTY callback visibility guard is missing")
 if config.count("enabled = true") < 2:
     fail("PLAY/PARTY app visibility flags are missing from config")
 if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:

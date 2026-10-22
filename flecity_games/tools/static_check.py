@@ -637,6 +637,10 @@ if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not
     fail("PARTY ReturnLobby idempotency/live-round guard is missing")
 if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:
     fail("PARTY cleanup must push timeout/reconcile state changes")
+if "Wait(1000)" not in server or "FlecityGamesParty.Cleanup()" not in server:
+    fail("PARTY cleanup cadence must be 1 second for responsive deadlines")
+if "Wait(5000)" not in server or "FlecityGamesPlay.Cleanup()" not in server:
+    fail("PLAY cleanup cadence changed unexpectedly")
 if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
     fail("PARTY turn-timeout continuation/forfeit handling is missing")
 if "telephoneTurnTimeoutSeconds" not in party_lua or "mode=='text' and 30 or 45" not in party_lua:

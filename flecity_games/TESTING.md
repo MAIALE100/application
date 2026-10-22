@@ -388,6 +388,7 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - 連続でRound開始
 - 結果確定前にHostがReturnLobby callbackを直接送ってもRoundを中断できない
 - 結果確定後のReturnLobby二重送信で新しいReady状態を消さない
+- PARTYの時間切れは表示0秒から概ね1〜2秒以内に結果確定/次手番へ遷移する
 - 60秒以上切断
 - resource restart
 - SERVER restart

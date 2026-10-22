@@ -211,7 +211,17 @@ AddEventHandler('flecity_games:framework:playerUnloaded',function(src)
 end)
 
 CreateThread(function()
-    while true do Wait(5000) FlecityGamesPlay.Cleanup() FlecityGamesParty.Cleanup() end
+    while true do
+        Wait(5000)
+        FlecityGamesPlay.Cleanup()
+    end
+end)
+
+CreateThread(function()
+    while true do
+        Wait(1000)
+        FlecityGamesParty.Cleanup()
+    end
 end)
 
 RegisterCommand('game_selftest',function(source)

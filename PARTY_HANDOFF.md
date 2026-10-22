@@ -353,3 +353,11 @@ LOOP完成版には不要な変更を入れない。
 - FiveM接続は残っているがPARTYを閉じている参加者を「待機中」と誤表示せず「アプリ閉じています」と表示。
 - Hostの開始可否もReady待ちとApp待ちを分離し、閉じた参加者がいる場合は `アプリ待ち N人`。
 - appOpen=falseの参加者を勝手にRoundから除外する変更はしていない。再開時に同Roomへ復帰する現仕様を維持。
+
+
+## 2026-10-23 PARTY timeout判定周期
+- 従来はPLAY/PARTY共通で5秒cleanupだったため、deadline到達後に最大約5秒「時間切れ判定中…」が残る可能性があった。
+- cleanup threadを分離し、PLAYは従来どおり5秒、PARTYだけ1秒周期へ変更。
+- PARTY Roomはメモリ上の小規模テーブル（最大10人/Room）走査のみで、1秒周期でもDB pollingは発生しない。
+- timeout / TELEPHONE skip / TIC-TAC不戦勝 / partial result確定がdeadline後おおむね1秒以内にserver判定される。
+- LOOPのcleanup頻度・DB仕様は変更なし。

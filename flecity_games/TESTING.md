@@ -305,6 +305,7 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - Phoneを閉じて開いてもRoomを自動復帰
 - 「退出」は1回押しただけでは退出せず、2.5秒以内の2回目で確定
 - 退出確認中にPhone/Appを閉じると確認状態が解除される
+- Phone/App close直前に開始したpartyGetRoom/config/settings応答がclose後に返っても閉じたUIへ状態を書き戻さない
 
 ---
 

@@ -15,7 +15,7 @@ const settingSound=document.getElementById('settingSound'),settingMotion=documen
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
-let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0;
+let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
@@ -35,7 +35,7 @@ function applySettings(settings){
  settingSound.checked=appSettings.sound;settingMotion.checked=appSettings.reducedMotion;
  document.body.classList.toggle('reduced-motion',appSettings.reducedMotion);
 }
-async function loadSettings(){const res=await FlecityBridge.call('profileGetSettings',{});if(res.ok)applySettings(res.settings);}
+async function loadSettings(epoch=lifecycleEpoch){const res=await FlecityBridge.call('profileGetSettings',{});if(appSuspended||epoch!==lifecycleEpoch)return;if(res.ok)applySettings(res.settings);}
 async function saveSettings(){
  const res=await FlecityBridge.call('profileUpdateSettings',{sound:settingSound.checked,reducedMotion:settingMotion.checked});
  if(res.ok){applySettings(res.settings);tone(520,55);}else status('設定を保存できません: '+FlecityErrors.text(res.error),'error');
@@ -43,6 +43,7 @@ async function saveSettings(){
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 let statusTimer=null;
 function status(text,type){
+ if(appSuspended)return;
  clearTimeout(statusTimer);statusTimer=null;
  statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
  if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
@@ -84,7 +85,7 @@ function resetLeaveConfirmation(){
  clearTimeout(leaveConfirmTimer);leaveConfirmTimer=null;leaveConfirmUntil=0;leaveBtn.textContent='退出';
 }
 function suspendPartyUi(){
- appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();
+ lifecycleEpoch+=1;appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();
  clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
 }
@@ -98,8 +99,8 @@ function scheduleBootstrap(delay=0){
  bootstrapTimer=setTimeout(()=>{bootstrapTimer=null;bindVisibilityLifecycle();bootstrap();},delay);
 }
 function resumePartyUi(){
- const wasSuspended=appSuspended;appSuspended=false;
- if(!wasSuspended)return;
+ const wasSuspended=appSuspended;if(!wasSuspended)return;
+ lifecycleEpoch+=1;appSuspended=false;
  if(currentRoom){roomPushEnabled=true;refresh();beginPolling();}
  else scheduleBootstrap(0);
 }
@@ -414,7 +415,7 @@ function setupTelephone(room){
  }
 }
 function renderRoom(room,timing){
- if(!room)return false;
+ if(appSuspended||!room)return false;
  const incomingRevision=Number(room.revision);
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
@@ -455,11 +456,13 @@ function renderRoom(room,timing){
 async function refresh(){
  if(appSuspended||!currentRoom)return;
  if(refreshInFlight){refreshQueued=true;return;}
+ const epoch=lifecycleEpoch;
  refreshInFlight=true;
  try{
    const started=performance.now();
    const res=await FlecityBridge.call('partyGetRoom',{});
    const received=performance.now();
+   if(appSuspended||epoch!==lifecycleEpoch)return;
    if(!res.ok){
      if(res.error==='NOT_IN_ROOM')showEntry();
      else status('ルーム更新失敗: '+FlecityErrors.text(res.error),'error');
@@ -472,9 +475,9 @@ async function refresh(){
  }
 }
 function beginPolling(){if(poll)clearInterval(poll);if(appSuspended)return;poll=setInterval(()=>{if(!appSuspended)refresh();},10000);}
-async function loadPartyConfig(){
+async function loadPartyConfig(epoch=lifecycleEpoch){
  const res=await FlecityBridge.call('partyGetConfig',{});
- if(!res.ok||!res.config)return;
+ if(appSuspended||epoch!==lifecycleEpoch||!res.ok||!res.config)return false;
  const length=Math.max(3,Math.min(6,Number(res.config.roomCodeLength)||4));
  partyConfig={...partyConfig,...res.config,roomCodeLength:length};
  codeEl.maxLength=length;
@@ -495,6 +498,7 @@ async function loadPartyConfig(){
    if([...gameEl.options].some(o=>o.value===current))gameEl.value=current;
    renderGameInfo(gameEl.value);
  }
+ return true;
 }
 function handlePartyMessage(message){
  if(!message||typeof message!=='object')return;
@@ -703,17 +707,21 @@ codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyCon
 
 async function bootstrap(){
  if(appSuspended)return;
+ const epoch=lifecycleEpoch;
  const bridge=await FlecityBridge.call('bridgePing',{});
+ if(appSuspended||epoch!==lifecycleEpoch)return;
  if(!bridge.ok){
    status('LB Phoneへ再接続中…','warn');
    scheduleBootstrap(1000);
    return;
  }
  registerPhonePushChannel();
- await loadPartyConfig();
+ await loadPartyConfig(epoch);
+ if(appSuspended||epoch!==lifecycleEpoch)return;
  const roomRequestStarted=performance.now();
  const res=await FlecityBridge.call('partyGetRoom',{});
  const roomRequestReceived=performance.now();
+ if(appSuspended||epoch!==lifecycleEpoch)return;
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
@@ -722,7 +730,8 @@ async function bootstrap(){
      return;
    }
  }
- await loadSettings();
+ await loadSettings(epoch);
+ if(appSuspended||epoch!==lifecycleEpoch)return;
  if(res.ok){renderRoom(res.room,{started:roomRequestStarted,received:roomRequestReceived});beginPolling();if(res.reconnected)status('ルームへ再接続しました。','good');return;}
  showEntry();
  if(res.error==='NOT_IN_ROOM')status('PARTY 準備完了 · v'+String(partyConfig.version||'unknown'),'good');

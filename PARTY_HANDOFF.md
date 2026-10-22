@@ -386,3 +386,11 @@ LOOP完成版には不要な変更を入れない。
 - TEXTなら新しく30秒、DRAWなら新しく45秒を付与。
 - 以前は前担当者の残り時間を次担当が引き継ぐため、離脱タイミング次第で次の人が数秒しか操作できない可能性があった。
 - timeoutによるskipは既にdeadline再設定済みで、今回disconnect/leave経路も同じ挙動へ統一。
+
+
+## 2026-10-23 非同期callback lifecycle世代ガード
+- NUIに `lifecycleEpoch` を追加し、suspend/resumeごとに世代を更新。
+- `refresh` / `bootstrap` / `loadPartyConfig` / `loadSettings` はawait前のepochを保持し、返答時に世代不一致なら破棄。
+- `renderRoom` / `status` 自体もsuspend中は更新しない。
+- phone/app close直前に開始済みのLB Phone callbackが遅延返答しても、閉じたUIへ古いroom stateを復活させない。
+- Resume後は新しいepochでserver snapshotを再取得する。

@@ -601,6 +601,8 @@ if "partySuspend" not in party_js or "partyResume" not in party_js or "appSuspen
     fail("PARTY UI suspend/resume cleanup is missing")
 if "if(appSuspended)return;" not in party_js:
     fail("PARTY suspended NUI must ignore delayed push events")
+if "lifecycleEpoch" not in party_js or party_js.count("epoch!==lifecycleEpoch") < 4 or "if(appSuspended||!room)return false;" not in party_js:
+    fail("PARTY async responses must be lifecycle-epoch guarded")
 if "visibilityBound" not in party_js or "function bindVisibilityLifecycle()" not in party_js:
     fail("PARTY visibility lifecycle listener must bind only once")
 if "actionLocks" not in party_js or "runOnce('start'" not in party_js:

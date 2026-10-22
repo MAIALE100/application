@@ -346,9 +346,15 @@ function renderPlatform(data){
  const dailyIconEl=document.getElementById('dailyIcon'),dailyVisual=gameVisuals[daily.gameId]||{symbol:'◆'};
  if(dailyIconEl)setGameIcon(dailyIconEl,dailyVisual);
  const streak=daily.streak||{},streakCount=Math.max(0,Number(streak.count)||0),nextCount=Math.max(1,Number(streak.nextCount)||1);
- dailyDate.textContent=String(daily.date||'')+' · '+(streak.completedToday?(streakCount+'日連続'):(streakCount>0?(streakCount+'日継続中 · 今日で'+nextCount+'日'):'今日から連続記録スタート'));
+
  const game=daily.game||gameById(daily.gameId);
- dailyBest.textContent=daily.selfBest?'あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(daily.selfRank?' · #'+String(daily.selfRank):''):'今日はまだ挑戦していません。';
+ const dailyCategory=game&&categoryLabels[game.category]?categoryLabels[game.category]:'CHALLENGE';
+ const streakText=streak.completedToday?(streakCount+'日連続'):(streakCount>0?(streakCount+'日継続中 · 今日で'+nextCount+'日'):'今日から連続記録スタート');
+ dailyDate.textContent=dailyCategory+' · '+String(daily.date||'')+' · '+streakText;
+ if(daily.selfBest){
+   const dailyRank=rankForScore(daily.gameId,daily.selfBest.score),goal=nextRankGoal(daily.gameId,daily.selfBest.score);
+   dailyBest.textContent='あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(dailyRank?' · '+dailyRank+' RANK':'')+(daily.selfRank?' · #'+String(daily.selfRank):'')+(goal&&!goal.done?' · NEXT '+goal.rank+' '+formatGameScore(game,goal.target):' · MAX RANK');
+ }else dailyBest.textContent='今日はまだ挑戦していません。最初の記録を残そう。';
  dailyRanking.innerHTML='';
  const dailyTop=(daily.ranking||[]).slice(0,5);
  let selfVisible=false;

@@ -1539,7 +1539,7 @@ async function dropFall(autoLock=false){
    const clearLabel=applied.cleared>=4?'QUAD CLEAR':(applied.cleared===3?'TRIPLE CLEAR':(applied.cleared===2?'DOUBLE CLEAR':'LINE CLEAR'));
    const levelAfter=1+Math.floor((Number(game.lines)||0)/5),levelUp=levelAfter>levelBefore?'LEVEL UP '+levelAfter+' · ':'';
    setStatus(rankUp+(escapedDanger?'CLUTCH ESCAPE · ':'')+levelUp+(game.combo>1?'COMBO ×'+game.combo+' · ':'')+clearLabel+' · LEVEL ×'+applied.level+' · +'+applied.gained,'good');
- }else if(!autoLock)tone(430,18);
+ }else tone(autoLock?330:430,autoLock?12:18);
  if(!game.ended){fallResetCursor();game.busy=false;}
  renderFall();
  if(game.ended){

@@ -622,6 +622,7 @@ body.reduced-motion .slide-board,body.reduced-motion .slide-tile{animation:none!
 .fall-controls button{min-height:2.75rem;padding:0.4375rem 0.25rem;font-size:.78rem}
 #fallDrop{grid-column:auto;min-height:2.75rem;font-size:.82rem;letter-spacing:.06em;background:linear-gradient(145deg,#eaf6f1,#bfe8d9);color:#102019}
 .fall-board.fall-clear{animation:fall-clear-flash .24s ease}
+.fall-board.fall-grounded{border-color:#6f8ea7;box-shadow:inset 0 0 1.1rem rgba(143,215,255,.045),0 0 .8rem rgba(143,215,255,.035)}
 @keyframes fall-clear-flash{45%{filter:brightness(1.55);transform:scale(.985)}}
 @media(max-width:22.5rem){
  .fall-board{width:min(100%,11.5rem);gap:0.0938rem;padding:0.1875rem}

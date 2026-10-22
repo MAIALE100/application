@@ -1687,6 +1687,7 @@ async function touchMine(index){
  const opened=mines.revealed.size-beforeReveal;
  tone(opened>4?620:430,opened>4?36:18);
  minesBoard.classList.remove('safe-open');void minesBoard.offsetWidth;minesBoard.classList.add('safe-open');
+ if(opened>=8)setStatus('SAFE CHAIN · +'+opened+' OPEN','good');
  renderMines();
  if(mines.revealed.size===mines.size*mines.size-mines.mineCount){await finishMines();return;}
  await persistMines();
@@ -1903,7 +1904,8 @@ function nonogramSolvedLines(){
 }
 function renderNonogram(){
  if(!nonogram)return;nonogramBoard.innerHTML='';updateNonogramTime();
- refreshScreenBests();nonogramMeta.textContent=(nonogram.daily?'DAILY · ':'')+String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED';
+ const solvedLines=nonogramSolvedLines();
+ refreshScreenBests();nonogramMeta.textContent=(nonogram.daily?'DAILY · ':'')+String(nonogram.filled.size)+' / '+String(nonogram.solution.size)+' FILLED · LINES '+solvedLines+'/'+String(nonogram.size*2)+(solvedLines>=Math.max(2,nonogram.size)?' · FLOW':'');
  const blank=document.createElement('div');blank.className='nonogram-clue';nonogramBoard.appendChild(blank);
  for(let x=0;x<nonogram.size;x++){
    const vals=[];for(let y=0;y<nonogram.size;y++)vals.push(nonogram.solution.has(y*nonogram.size+x));
@@ -2844,7 +2846,8 @@ function updateMemoryTime(){if(memory){const ms=Number.isFinite(Number(memory.di
 function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
- refreshScreenBests();memoryMeta.textContent=memory.previewing?((memory.daily?'DAILY · ':'')+'記憶中…'):((memory.daily?'DAILY · ':'')+String(memory.matched.size/2)+' / 8 PAIRS · '+String(memory.moves)+' MOVES'+(memory.streak>=2?' · STREAK ×'+memory.streak:''));
+ refreshScreenBests();const memoryPairs=memory.matched.size/2;
+ memoryMeta.textContent=memory.previewing?((memory.daily?'DAILY · ':'')+'記憶中…'):((memory.daily?'DAILY · ':'')+String(memoryPairs)+' / 8 PAIRS · '+String(memory.moves)+' MOVES'+(memory.streak>=2?' · STREAK ×'+memory.streak:'')+(memoryPairs>=4&&!memory.finished?' · '+(memoryPairs>=6?'FINAL PUSH':'HALFWAY'):''));
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);
@@ -2881,6 +2884,8 @@ async function flipMemory(index){
    memoryBoard.classList.remove('memory-streak');void memoryBoard.offsetWidth;if(memory.streak>=2)memoryBoard.classList.add('memory-streak');
    tone(740+Math.min(200,memory.streak*26),55);
    if(memory.streak===3||memory.streak===5)setStatus('PAIR STREAK ×'+memory.streak+' · NICE MEMORY','good');
+   else if(memory.matched.size===8)setStatus('HALFWAY · 4 PAIRS CLEAR','good');
+   else if(memory.matched.size===12)setStatus('FINAL PUSH · 2 PAIRS LEFT','good');
    renderMemory();
    if(memory.matched.size===16){await finishMemory();}
    return;

@@ -1677,3 +1677,38 @@ function FlecityGamesParty.DebugCounts()
     for _,room in pairs(rooms) do roomCount=roomCount+1 memberTotal=memberTotal+memberCount(room) end
     return roomCount,memberTotal
 end
+
+function FlecityGamesParty.DebugRoomSummaries()
+    local out={}
+    local nowTick=GetGameTimer()
+    for _,room in pairs(rooms) do
+        local readyCount,disconnectedCount,appOpenCount=0,0,0
+        for _,m in pairs(room.members or {}) do
+            if m.ready==true and not m.disconnected then readyCount=readyCount+1 end
+            if m.disconnected then disconnectedCount=disconnectedCount+1 end
+            if not m.disconnected and m.appOpen~=false then appOpenCount=appOpenCount+1 end
+        end
+        local rs=room.roundState
+        local remainingMs=nil
+        if rs and not rs.complete and tonumber(rs.deadlineTick) then
+            remainingMs=math.max(0,tonumber(rs.deadlineTick)-nowTick)
+        end
+        local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
+        out[#out+1]={
+            code=room.code,
+            state=room.state,
+            game=rs and rs.gameId or room.selectedGame,
+            round=room.round,
+            complete=rs and rs.complete==true or false,
+            members=memberCount(room),
+            connected=connectedCount(room),
+            ready=readyCount,
+            disconnected=disconnectedCount,
+            appOpen=appOpenCount,
+            host=host and host.name or 'none',
+            deadlineMs=remainingMs
+        }
+    end
+    table.sort(out,function(a,b) return tostring(a.code)<tostring(b.code) end)
+    return out
+end

@@ -232,6 +232,28 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 
 ---
 
+## PARTYライブ診断
+
+複数人テスト中は、txAdminのサーバーコンソールで以下を実行すると、秘密情報を出さずにRoom状態を確認できる。
+
+`game_party_status`
+
+表示内容:
+- Room Code
+- lobby / round
+- 選択中または進行中Game
+- Round番号 / complete
+- Host名
+- connected / total
+- Ready人数
+- PARTYアプリを開いている接続者数
+- disconnected人数
+- 現在Roundの残り秒数
+
+WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内容は出力しない。
+
+---
+
 # 3. 2人で確認
 
 対象:

@@ -347,6 +347,24 @@ RegisterCommand('game_status',function(source)
         prefix,playSessions,rooms,members,scores,saves,achievements,dbMiB))
 end,false)
 
+RegisterCommand('game_party_status',function(source)
+    if not requireServerConsole(source,'game_party_status') then return end
+    local prefix='[FlecityGames PARTY]'
+    local summaries=FlecityGamesParty.DebugRoomSummaries()
+    if #summaries==0 then
+        print(prefix..' no active rooms')
+        return
+    end
+    print(('%s active_rooms=%d'):format(prefix,#summaries))
+    for _,room in ipairs(summaries) do
+        local deadline=room.deadlineMs and (' deadline=%.1fs'):format(room.deadlineMs/1000) or ''
+        print(('%s code=%s state=%s game=%s round=%d complete=%s host=%s connected=%d/%d ready=%d app_open=%d disconnected=%d%s')
+            :format(prefix,tostring(room.code),tostring(room.state),tostring(room.game),tonumber(room.round) or 0,
+                tostring(room.complete),tostring(room.host),tonumber(room.connected) or 0,tonumber(room.members) or 0,
+                tonumber(room.ready) or 0,tonumber(room.appOpen) or 0,tonumber(room.disconnected) or 0,deadline))
+    end
+end,false)
+
 RegisterCommand('game_healthcheck',function(source)
     if not requireServerConsole(source,'game_healthcheck') then return end
     local prefix=source==0 and '[FlecityGames healthcheck]' or ('[FlecityGames healthcheck source=%s]'):format(source)

@@ -44,6 +44,9 @@ database schema ready
 LB Phone callbacks registered .../...
 startup preflight READY_FOR_LIVE_TEST
 
+■ ライブ診断
+サーバーコンソールの game_party_status で、秘密情報を表示せずにRoom数 / Host / 人数 / Game / Round / deadlineを確認できます。
+
 ■ 推奨ライブ確認
 ・2人：REACTION / STOP! BATTLE / TIC-TAC / DRAW
 ・3人以上：VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR / TELEPHONE

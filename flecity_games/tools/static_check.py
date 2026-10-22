@@ -615,6 +615,8 @@ if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
     fail("PARTY app-close ready cleanup is missing")
+if "DebugRoomSummaries" not in party_lua or "game_party_status" not in server:
+    fail("PARTY live room diagnostic command is missing")
 if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in server:
     fail("PARTY DRAW LB Phone callback throttle is too restrictive")
 if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:

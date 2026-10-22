@@ -257,3 +257,10 @@ LOOP完成版には不要な変更を入れない。
 - timeoutで一部未入力がある場合は「入力済みの記録で確定」を結果内に明示。
 - DRAWは最初の正解者を `FASTEST` として表示。正解者0人の場合は「正解者なし」。
 - 順位一覧自体は従来どおり残し、勝敗の要約＋詳細の2段構成にした。
+
+
+## 2026-10-23 ライブ診断コマンド
+- サーバーコンソール専用 `game_party_status` を追加。
+- 各Roomの code / lobby・round / game / round番号 / complete / host / connected・total / Ready / appOpen / disconnected / deadline残秒を1行表示。
+- WORD WOLF / LIARの秘密役・お題、DRAWお題、TELEPHONE途中chain等の秘密情報は診断出力に含めない。
+- 複数クライアント実機テスト時、画面を見比べるだけでなくserver-authoritative状態を1コマンドで照合できる。

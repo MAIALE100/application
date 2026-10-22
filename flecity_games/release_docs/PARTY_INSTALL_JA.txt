@@ -59,6 +59,7 @@ DROP TABLE / TRUNCATE TABLE は実行しません。
 game_status
 game_preflight
 game_selftest
+game_party_status
 game_healthcheck
 
 ■ ゲーム内での最小確認

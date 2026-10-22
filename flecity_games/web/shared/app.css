@@ -86,7 +86,7 @@ body.reduced-motion .stack-arena:active{filter:none}
 
 
 /* PLAY / PARTY home polish */
-.app-header{margin-bottom:0.75rem;padding:0.125rem 0.125rem 0}
+.app-header{margin-bottom:0.6875rem;padding:0 0.125rem}
 .brand-line{display:flex;align-items:center;gap:0.4375rem}
 .brand-dot{width:0.4375rem;height:0.4375rem;border-radius:50%;background:#f3f3f3;box-shadow:0 0 0 0.25rem rgba(255,255,255,.07)}
 .app-header h1{font-size:2.15rem;letter-spacing:-.04em;margin:.28rem 0 .28rem}
@@ -757,10 +757,10 @@ body.reduced-motion .high-low-card{transition:none!important}
 
 
 /* LB Phone status-bar clearance & runtime badge v11 */
-body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.25rem,calc(env(safe-area-inset-top,0rem) + 1rem))}
+body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.5rem,calc(env(safe-area-inset-top,0rem) + 1.125rem))}
 .brand-line{flex-wrap:wrap}
 .runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;margin-left:auto;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.6rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
-@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.25rem,calc(env(safe-area-inset-top,0rem) + 1rem))}}
+@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body:not(.game-active){padding-top:max(4.5rem,calc(env(safe-area-inset-top,0rem) + 1.125rem))}}
 
 
 /* PLAY depth feedback v12 */
@@ -939,7 +939,7 @@ body.reduced-motion .fall-board:active{filter:none}
 /* PLAY submission home visual pass v24 */
 .play-home{display:flex;flex-direction:column;gap:0.8125rem}
 .home-brand{min-width:0}
-.brand-title-row{display:flex;align-items:center;gap:0.5rem;min-width:0}
+.brand-title-row{display:flex;align-items:center;gap:0.5rem;min-width:0;padding-top:0.0625rem}
 .home-edition{display:inline-flex;align-items:center;height:1.5rem;padding:0 0.5rem;border-radius:99rem;background:#1d2430;border:0.0625rem solid #354152;color:#aeb9c8;font-size:.62rem;font-weight:900;letter-spacing:.12em}
 .home-subtitle{font-size:.82rem;line-height:1.4;color:#b8c0cd}
 #home>.card{margin-bottom:0}
@@ -954,8 +954,10 @@ body.reduced-motion .fall-board:active{filter:none}
 .home-strip-card{padding:0.875rem;border-radius:1.125rem;background:linear-gradient(145deg,#181e27,#141920);border-color:#303a47}
 .home-strip-card .section-head{margin-bottom:0.5625rem}
 .home-strip-card .section-head h2{font-size:1rem}
-.home-scroll-row{display:flex;grid-template-columns:none;gap:0.5rem;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding:0.0625rem 0 0.1875rem;scrollbar-width:none}
+.home-scroll-row{display:flex;grid-template-columns:none;gap:0.5rem;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding:0.0625rem 0 0.1875rem;scrollbar-width:none;touch-action:pan-y;cursor:grab;-webkit-overflow-scrolling:touch}
 .home-scroll-row::-webkit-scrollbar{display:none}
+.home-scroll-row.is-dragging{cursor:grabbing;scroll-snap-type:none}
+.home-scroll-row.is-dragging .continue-game{pointer-events:none}
 .home-scroll-row .continue-game{flex:0 0 10.75rem;min-height:4.75rem;scroll-snap-align:start}
 .home-scroll-row .continue-top{width:100%}
 .home-scroll-row .continue-top>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

@@ -230,6 +230,9 @@ try {
         if ($playJsText -notmatch 'fallPeekPieces' -or $playJsText -notmatch 'startFallSoftDrop' -or $playJsText -notmatch 'fallSoft') {
             throw 'Local safety check could not verify FALL soft drop / NEXT queue.'
         }
+        if ($playJsText -notmatch 'holdFallPiece' -or $playLuaText -notmatch 'fallHoldReplay' -or $playLuaText -notmatch 'heldPiece=heldPiece or 0') {
+            throw 'Local safety check could not verify FALL HOLD replay.'
+        }
         if ($playJsText -notmatch 'slideMovePath' -or $playJsText -notmatch 'CHAIN SLIDE') {
             throw 'Local safety check could not verify SLIDE line-slide controls.'
         }
@@ -254,7 +257,7 @@ try {
         if ($playJsText -notmatch 'game\.pieces%3===0' -or $playJsText -notmatch 'persistFall\(false,false\)' -or $playJsText -notmatch 'snapshotLength') {
             throw 'Local safety check could not verify FALL non-blocking autosave.'
         }
-        if ($playLuaText -notmatch 'normalized\[#normalized\+1\]=\{applied\.x,applied\.rotation\}' -or $playJsText -notmatch 'game\.history\.push\(\[game\.x,game\.rotation\]\)') {
+        if ($playLuaText -notmatch 'normalized\[#normalized\+1\]=\{x=applied\.x,rotation=applied\.rotation,hold=useHold\}' -or $playJsText -notmatch 'game\.history\.push\(\{x:game\.x,rotation:game\.rotation,hold:game\.holdUsed===true\}\)') {
             throw 'Local safety check could not verify compact FALL history.'
         }
         if ($playLuaText -notmatch 'generateSlideBoard' -or $playLuaText -notmatch 'replaySlideState' -or $playLuaText -notmatch 'INVALID_SLIDE_REPLAY') {
@@ -367,6 +370,7 @@ try {
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'startFallSoftDrop' -or $playAppText -notmatch 'fallSoft') { throw 'FALL soft drop / NEXT queue check failed.' }
+    if ($playAppText -notmatch 'holdFallPiece' -or $playCoreText -notmatch 'fallHoldReplay' -or $playCoreText -notmatch 'heldPiece=heldPiece or 0') { throw 'FALL HOLD replay check failed.' }
     if ($playAppText -notmatch 'slideMovePath' -or $playAppText -notmatch 'CHAIN SLIDE') { throw 'SLIDE line-slide control check failed.' }
     if ($playAppText -notmatch 'sortPourCount' -or $playAppText -notmatch 'QUICK POUR') { throw 'SORT quick-pour control check failed.' }
     if ($playAppText -notmatch 'crossNonogramDirect' -or $playAppText -notmatch 'nonogram\.crossed\.delete\(index\);nonogram\.filled\.add\(index\)' -or $playAppText -notmatch 'resetTransientInputState') { throw 'NONOGRAM/transition UX check failed.' }
@@ -375,7 +379,7 @@ try {
     if ($playCoreText -notmatch 'fall_master' -or $playAppText -notmatch 'fall_master') { throw 'FALL MASTER achievement check failed.' }
     if ($playAppText -notmatch 'fallPeekNextPiece' -or $playAppText -notmatch 'pieceRngState' -or $playIndexText -notmatch 'Next piece preview') { throw 'FALL next-piece preview check failed.' }
     if ($playAppText -notmatch 'game\.pieces%3===0' -or $playAppText -notmatch 'persistFall\(false,false\)' -or $playAppText -notmatch 'snapshotLength') { throw 'FALL autosave optimization check failed.' }
-    if ($playCoreText -notmatch 'normalized\[#normalized\+1\]=\{applied\.x,applied\.rotation\}' -or $playAppText -notmatch 'game\.history\.push\(\[game\.x,game\.rotation\]\)') { throw 'FALL compact history check failed.' }
+    if ($playCoreText -notmatch 'normalized\[#normalized\+1\]=\{x=applied\.x,rotation=applied\.rotation,hold=useHold\}' -or $playAppText -notmatch 'game\.history\.push\(\{x:game\.x,rotation:game\.rotation,hold:game\.holdUsed===true\}\)') { throw 'FALL compact history check failed.' }
     if ($playCoreText -notmatch 'generateSlideBoard' -or $playCoreText -notmatch 'replaySlideState' -or $playCoreText -notmatch 'INVALID_SLIDE_REPLAY') { throw 'SLIDE server replay check failed.' }
     if ($registryText -notmatch "id='slide'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openSlide\(true,true\)' -or $playAppText -notmatch 'slideGame&&slideGame\.daily') { throw 'Daily SLIDE wiring check failed.' }
     if ($registryText -notmatch "id='color_match'[^\r\n]*supportsDaily=true" -or $playAppText -notmatch 'openColorMatch\(true\)' -or $playAppText -notmatch "daily=colorMatchEl\.dataset\.daily==='1'") { throw 'Daily COLOR MATCH wiring check failed.' }

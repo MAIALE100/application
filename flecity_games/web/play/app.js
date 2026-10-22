@@ -2664,9 +2664,11 @@ async function guessHighLow(guess){
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.busy=false;game.running=false;game.finished=true;renderHighLow();
    setStatus('RANGE RUSHの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
+ const scoreBefore=Number(game.score)||0;
  game.streak=Math.max(0,Number(res.streak)||0);
  game.maxStreak=Math.max(game.maxStreak||0,Number(res.maxStreak)||0);
  game.score=Math.max(0,Number(res.score)||0);
+ const rankUp=liveRankUpPrefix('high_low',scoreBefore,game.score);
  game.lives=Math.max(0,Number(res.lives)??game.lives??0);
  game.completed=Math.max(0,Number(res.completed)||0);
  game.timeLimitMs=Math.max(800,Number(res.timeLimitMs)||game.timeLimitMs||2400);
@@ -2678,7 +2680,7 @@ async function guessHighLow(guess){
    tone(700+Math.min(250,game.streak*15),32);
    const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0),difficultyBonus=Math.max(0,Number(res.difficultyBonus)||0),speedBonus=Math.max(0,Number(res.speedBonus)||0);
    const bonus=difficultyBonus>0?' · TIGHT +'+difficultyBonus:'';
-   setStatus('CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':'')+(game.lives===1?' · CLUTCH':''),'good');
+   setStatus(rankUp+'CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':'')+(game.lives===1?' · CLUTCH':''),'good');
  }else{
    highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong','life-lost');
    tone(150,90);
@@ -2849,7 +2851,8 @@ async function pressSimon(index){
    simonMessage.textContent='通信に失敗しました';
    setStatus('SIMONの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
- game.cleared=Math.max(0,Number(res.cleared)||0);renderSimon();
+ const clearedBefore=Number(game.cleared)||0;
+ game.cleared=Math.max(0,Number(res.cleared)||0);const rankUp=liveRankUpPrefix('simon',clearedBefore,game.cleared);renderSimon();
  if(res.ended===true){await finishSimon(res.clearedAll===true);return;}
 
  const nextSequence=Array.isArray(res.sequence)?res.sequence.map(Number):[];
@@ -2862,7 +2865,8 @@ async function pressSimon(index){
  simonMessage.textContent='CLEAR · ROUND '+game.round;
  const oldStage=Math.floor((game.round-1)/5),newStage=Math.floor((nextRound-1)/5);
  game.round=nextRound;game.sequence=nextSequence;game.inputIndex=0;game.roundInputs=[];
- if(newStage>oldStage){setStatus('SIMON SPEED UP · ROUND '+nextRound,'good');tone(980,70);}
+ if(newStage>oldStage){setStatus(rankUp+'SIMON SPEED UP · ROUND '+nextRound,'good');tone(980,70);}
+ else if(rankUp){setStatus(rankUp+'SIMON · ROUND '+nextRound,'good');tone(920,65);}
  await sleep(newStage>oldStage?700:420);
  if(simon===game&&!game.finished)await playSimonSequence();
 }

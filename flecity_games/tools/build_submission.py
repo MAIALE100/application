@@ -68,13 +68,18 @@ def patch_manifest() -> None:
 def patch_submission_config() -> None:
     path = STAGE / "config/shared.lua"
     text = path.read_text(encoding="utf-8")
-    match = re.search(r"(\n\s*Party\s*=\s*\{.*?\n\s*\},)(?=\n\s*\}\s*,)", text, flags=re.S)
-    if not match:
+    start = text.find("        Party = {")
+    end_marker = "\n        }\n    },"
+    end = text.find(end_marker, start)
+    if start < 0 or end < 0:
         raise RuntimeError("Party app config block not found")
-    block = match.group(1)
+    end += len("\n        }")
+    block = text[start:end]
+    if "enabled = true" not in block or "defaultApp = true" not in block:
+        raise RuntimeError("Party app config flags not found")
     block = block.replace("enabled = true", "enabled = false", 1)
     block = block.replace("defaultApp = true", "defaultApp = false", 1)
-    text = text[: match.start(1)] + block + text[match.end(1) :]
+    text = text[:start] + block + text[end:]
     path.write_text(text, encoding="utf-8")
 
 

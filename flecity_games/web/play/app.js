@@ -1613,24 +1613,22 @@ fallBack.onclick=async()=>{
 fallNew.onclick=async()=>{
  if(fallNew.disabled)return;
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
- stopFallGravity();
  const destructive=!!saves.fall||!!(fallGame&&!fallGame.finished);
  if(destructive){
    const ok=await confirmAction('FALLを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
    if(!ok)return;
  }
- fallNew.disabled=true;
+ stopFallGravity();fallNew.disabled=true;
  try{
    await saveQueue.catch(()=>{});
    if(fallGame&&fallGame.sessionToken)await cancelPlaySession(fallGame.sessionToken);
    const reset=await FlecityBridge.call('playResetSave',{gameId:'fall'});
-   if(!reset.ok){setStatus('FALLの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');return;}
+   if(!reset.ok){setStatus('FALLの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');if(fallGame&&!fallGame.ended&&fallGame.sessionToken)startFallGravity();return;}
    delete saves.fall;fallGame=null;await openFall(true);
  }finally{fallNew.disabled=false;}
 };
 fallFinish.onclick=async()=>{
  if(!fallGame||fallGame.finalizing)return;
- stopFallGravity();
  if(!fallGame.ended){
    const ok=await confirmAction('FALLを終了して記録しますか？','現在のスコアを確定して、このRunを終了します。','記録する');
    if(!ok)return;

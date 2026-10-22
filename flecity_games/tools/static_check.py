@@ -422,6 +422,8 @@ if "QUICK TAP FOCUS v15" not in play_css or "#tapRunMeta" not in play_css:
     fail("QUICK TAP FOCUS visual feedback is missing")
 if "personalBestGainText" not in play_js or "PB +" not in play_js:
     fail("PLAY personal-best gain feedback is missing")
+if "liveRankUpPrefix" not in play_js or "RANK UP " not in play_js:
+    fail("PLAY live rank-up feedback is missing")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:

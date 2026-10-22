@@ -103,7 +103,7 @@ jobs:
 
       - name: Check Lua syntax
         run: |
-          find flecity_games -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+          find flecity_games flecity_dev_safety -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
 
       - name: Check Flecity Games wiring
         run: python3 flecity_games/tools/static_check.py

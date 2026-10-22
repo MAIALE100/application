@@ -1,4 +1,4 @@
-const statusEl=document.getElementById('status'),runtimeVersion=document.getElementById('runtimeVersion'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
+const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
 const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
 const recentCard=document.getElementById('recentCard'),recentGames=document.getElementById('recentGames'),recentCount=document.getElementById('recentCount'),libraryFilters=document.getElementById('libraryFilters'),randomPlay=document.getElementById('randomPlay');
 const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingSelf=document.getElementById('rankingSelf'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
@@ -657,7 +657,7 @@ async function bootstrap(){
    setStatus('PLAYを起動できませんでした。アプリを開き直してもう一度お試しください。','error');
    return;
  }
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);if(runtimeVersion)runtimeVersion.textContent='v'+String(res.version||'unknown');renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY 準備完了 · v'+String(res.version||'unknown'),'good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY 準備完了 · v'+String(res.version||'unknown'),'good');
 }
 
 /* QUICK TAP */

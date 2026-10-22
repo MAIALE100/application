@@ -1460,9 +1460,22 @@ async function openFall(forceNew=false){
 }
 function moveFallHorizontal(delta){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
- const nextX=game.x+delta,shape=fallShape(game.nextPiece,game.rotation);
- if(fallDropY(game.board,game.width,game.height,shape,nextX)===null){tone(150,20);return;}
- game.x=nextX;tone(350,12);renderFall();
+ const requested=Math.round(Number(delta)||0);if(requested===0)return;
+ const direction=requested<0?-1:1,steps=Math.max(1,Math.min(game.width,Math.abs(requested))),shape=fallShape(game.nextPiece,game.rotation);
+ let moved=0;
+ for(let step=0;step<steps;step++){
+   const nextX=game.x+direction;
+   if(fallDropY(game.board,game.width,game.height,shape,nextX)===null)break;
+   game.x=nextX;moved+=1;
+ }
+ if(moved===0){tone(150,20);return;}
+ tone(350+Math.min(90,(moved-1)*18),12);renderFall();
+}
+function fallSwipeSteps(dx){
+ const game=fallGame;if(!game)return 1;
+ const rect=fallBoard.getBoundingClientRect(),cellWidth=rect.width/Math.max(1,game.width);
+ if(!Number.isFinite(cellWidth)||cellWidth<=0)return 1;
+ return Math.max(1,Math.min(5,Math.round(Math.abs(Number(dx)||0)/cellWidth)));
 }
 function rotateFall(){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
@@ -1538,7 +1551,10 @@ fallBoard.onpointerup=event=>{
  const distance=Math.max(Math.abs(dx),Math.abs(dy));
  if(distance<18){rotateFall();return;}
  if(Math.abs(dy)>Math.abs(dx)&&dy>34){void dropFall();return;}
- if(Math.abs(dx)>24)moveFallHorizontal(dx>0?1:-1);
+ if(Math.abs(dx)>24){
+   const steps=fallSwipeSteps(dx);
+   moveFallHorizontal((dx>0?1:-1)*steps);
+ }
 };
 fallBoard.onpointercancel=event=>{
  if(fallPointer&&fallPointer.id===event.pointerId)fallPointer=null;

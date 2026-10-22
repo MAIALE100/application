@@ -140,6 +140,8 @@ if "local partyAppEnabled=not" not in server or "name:find('flecity_games:party:
     fail("server PARTY callback visibility guard is missing")
 if config.count("enabled = true") < 2:
     fail("PLAY/PARTY app visibility flags are missing from config")
+if "name = 'LOOP'" not in config or "icon = 'web/play/icon.png'" not in config:
+    fail("LOOP app branding/icon config is missing")
 if "ExecuteCommand('refresh')" not in dev_reload or "restart %s" not in dev_reload:
     fail("auto-reload must refresh FiveM metadata before restarting flecity_games")
 if "reload_v2=1" not in dev_reload:
@@ -625,8 +627,8 @@ if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
 submission_builder = read("flecity_games/tools/build_submission.py")
 submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
 submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
-if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder:
-    fail("submission builder release version/dev exclusion is missing")
+if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder or 'flecity-games-loop-' not in submission_builder or 'web/play/icon.png' not in submission_builder:
+    fail("submission builder LOOP release branding/dev exclusion is missing")
 if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
     fail("submission builder PARTY-disable packaging is missing")
 if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install:

@@ -1049,7 +1049,7 @@ async function finishBlock(){
  await saveQueue.catch(()=>{});
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
- if(res.ok){if(!game.daily)delete saves.block;if(block===game){showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');renderBlock();}await refreshPlatform();}
+ if(res.ok){game.sessionToken=null;if(!game.daily)delete saves.block;if(block===game){showScoreResult('block',res,(res.daily?'デイリー · ':'')+'BLOCK '+res.score+'点');renderBlock();}await refreshPlatform();}
  else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;
    if(block===game){setStatus('BLOCKの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderBlock();}
@@ -1218,7 +1218,7 @@ async function finishMerge(){
  await saveQueue.catch(()=>{});
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.score,durationMs:Math.round((game.elapsedBase||0)+(performance.now()-game.sessionStarted)),history:game.history});
  game.finalizing=false;
- if(res.ok){delete saves.merge;if(merge===game){showScoreResult('merge',res,'MERGE '+res.score+'点');renderMerge();}await refreshPlatform();}
+ if(res.ok){game.sessionToken=null;delete saves.merge;if(merge===game){showScoreResult('merge',res,'MERGE '+res.score+'点');renderMerge();}await refreshPlatform();}
  else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;game.finished=true;
    if(merge===game){setStatus('MERGEの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderMerge();}

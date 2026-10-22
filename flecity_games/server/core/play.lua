@@ -1170,14 +1170,27 @@ local function replayFallState(seed,history,width,height)
     local board=fallEmptyBoard(width,height)
     local state=math.floor(tonumber(seed) or 1)
     local score,lines,combo,pieces=0,0,0,0
+    local heldPiece=nil
     local normalized={}
     for _,entry in ipairs(history) do
         if type(entry)~='table' then return nil end
         local x=tonumber(entry.x~=nil and entry.x or entry[1])
         local rotation=tonumber(entry.rotation~=nil and entry.rotation or entry[2])
         if not x or not rotation then return nil end
+        local holdValue=entry.hold
+        if holdValue==nil then holdValue=entry[3] end
+        if holdValue~=nil and type(holdValue)~='boolean' and tonumber(holdValue)~=0 and tonumber(holdValue)~=1 then return nil end
+        local useHold=holdValue==true or tonumber(holdValue)==1
         local pieceType
         state,pieceType=fallNextPiece(state)
+        if useHold then
+            if heldPiece then
+                pieceType,heldPiece=heldPiece,pieceType
+            else
+                heldPiece=pieceType
+                state,pieceType=fallNextPiece(state)
+            end
+        end
         if not fallFindAnyPlacement(board,width,height,pieceType) then return nil end
         local applied=fallApplyPlacement(board,width,height,pieceType,x,rotation,combo,lines)
         if not applied then return nil end
@@ -1185,13 +1198,14 @@ local function replayFallState(seed,history,width,height)
         score=score+applied.gained
         lines=lines+applied.cleared
         pieces=pieces+1
-        normalized[#normalized+1]={applied.x,applied.rotation}
+        normalized[#normalized+1]={x=applied.x,rotation=applied.rotation,hold=useHold}
     end
     local _,nextPiece=fallNextPiece(state)
     local canContinue=fallFindAnyPlacement(board,width,height,nextPiece)~=nil
     return {
         board=board,score=score,lines=lines,combo=combo,pieces=pieces,history=normalized,
-        rngState=state,nextPiece=nextPiece,ended=not canContinue,width=width,height=height
+        rngState=state,nextPiece=nextPiece,heldPiece=heldPiece or 0,holdUsed=false,
+        ended=not canContinue,width=width,height=height
     }
 end
 
@@ -2509,6 +2523,11 @@ function FlecityGamesPlay.DebugSelftest()
     local fallEmpty=replayFallState(12345,{},10,18)
     local fallX,fallRotation=fallEmpty and fallFindAnyPlacement(fallEmpty.board,10,18,fallEmpty.nextPiece)
     local fallSingle=(fallX~=nil and fallRotation~=nil) and replayFallState(12345,{{x=fallX,rotation=fallRotation}},10,18) or nil
+    local holdState,holdFirst=fallNextPiece(12345)
+    local _,holdPlaced=fallNextPiece(holdState)
+    local holdBoard=fallEmptyBoard(10,18)
+    local holdX,holdRotation=fallFindAnyPlacement(holdBoard,10,18,holdPlaced)
+    local fallHoldSingle=(holdX~=nil and holdRotation~=nil) and replayFallState(12345,{{x=holdX,rotation=holdRotation,hold=true}},10,18) or nil
     local normalizedIndexes=normalizeIndexList({2,1,2},5)
     local memoryDeck=generateMemoryDeck(12345)
     local memoryPairs={} local memorySeen={}
@@ -2618,6 +2637,7 @@ function FlecityGamesPlay.DebugSelftest()
         mergeReplayMove=mergeSingle and mergeSingle.score==mergeExpectedGain and #mergeSingle.history==1 or false,
         fallReplayEmpty=fall and fallEmpty and fallEmpty.score==0 and fallEmpty.pieces==0 and fallEmpty.ended==false,
         fallReplayMove=fall and fallSingle and fallSingle.score>0 and fallSingle.pieces==1 and #fallSingle.history==1,
+        fallHoldReplay=fall and fallHoldSingle and fallHoldSingle.pieces==1 and fallHoldSingle.heldPiece==holdFirst and fallHoldSingle.history[1] and fallHoldSingle.history[1].hold==true,
         fallValidateScore=fall and validateScore(fall,1000)==1000 or false,
         normalizedIndexes=normalizedIndexes and #normalizedIndexes==2 and normalizedIndexes[1]==1 and normalizedIndexes[2]==2 or false,
         minesValidateTime=minesGame and validateScore(minesGame,60000)==60000 or false,

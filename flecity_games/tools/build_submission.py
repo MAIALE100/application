@@ -137,8 +137,8 @@ def validate_release() -> None:
         raise RuntimeError("PARTY web UI must not be included in LOOP submission")
     if not re.search(r"Party\s*=\s*\{.*?enabled\s*=\s*false.*?defaultApp\s*=\s*false", config, flags=re.S):
         raise RuntimeError("PARTY app is not disabled in submission config")
-    if not re.search(r"Play\s*=\s*\{.*?enabled\s*=\s*true", config, flags=re.S):
-        raise RuntimeError("LOOP app is not enabled in submission config")
+    if not re.search(r"Play\s*=\s*\{.*?enabled\s*=\s*true.*?name\s*=\s*'LOOP'.*?defaultApp\s*=\s*false.*?game\s*=\s*true.*?price\s*=\s*0", config, flags=re.S):
+        raise RuntimeError("LOOP App Store configuration is not submission-safe")
 
 
 def make_zip() -> tuple[Path, str]:

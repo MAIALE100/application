@@ -394,3 +394,8 @@ LOOP完成版には不要な変更を入れない。
 - `renderRoom` / `status` 自体もsuspend中は更新しない。
 - phone/app close直前に開始済みのLB Phone callbackが遅延返答しても、閉じたUIへ古いroom stateを復活させない。
 - Resume後は新しいepochでserver snapshotを再取得する。
+
+
+## 2026-10-23 Suspend timer cleanup補完
+- app/phone suspend時にstatus表示用 `statusTimer` もclear。
+- round RAF / poll / bootstrap / leave確認timerに加えて、閉じた後に残るNUI timerをさらに削減。

@@ -605,6 +605,8 @@ if "lifecycleEpoch" not in party_js or party_js.count("epoch!==lifecycleEpoch") 
     fail("PARTY async responses must be lifecycle-epoch guarded")
 if "visibilityBound" not in party_js or "function bindVisibilityLifecycle()" not in party_js:
     fail("PARTY visibility lifecycle listener must bind only once")
+if "clearTimeout(statusTimer);statusTimer=null" not in party_js:
+    fail("PARTY suspend must clear status timer")
 if "actionLocks" not in party_js or "runOnce('start'" not in party_js:
     fail("PARTY client action de-duplication is missing")
 if "drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[]" not in party_js:

@@ -86,7 +86,7 @@ function resetLeaveConfirmation(){
 }
 function suspendPartyUi(){
  lifecycleEpoch+=1;appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();
- clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
+ clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;clearTimeout(statusTimer);statusTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
 }
 function bindVisibilityLifecycle(){

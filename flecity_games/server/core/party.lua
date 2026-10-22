@@ -1156,30 +1156,54 @@ end
 
 reconcileRound=function(room)
     local rs=room.roundState
-    if not rs or rs.complete then return end
+    if not rs or rs.complete then return false end
+
+    local beforeComplete=rs.complete==true
+    local beforeCurrent=rs.currentIdentifier
+    local beforeStep=rs.step
+    local purged=purgeDisconnectedTargets(room)
 
     if tonumber(rs.deadlineTick) and GetGameTimer()>=tonumber(rs.deadlineTick) then
-        local reason=(rs.gameId=='tic_tac' or rs.gameId=='telephone') and 'TURN_TIMEOUT' or 'ROUND_TIMEOUT'
-        abortRound(room,reason)
-        return
+        if rs.gameId=='telephone' then
+            advanceTelephone(room,false)
+            if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('telephone')) end
+        elseif rs.gameId=='tic_tac' then
+            local loser=rs.currentIdentifier
+            local winnerIdentifier=nil
+            for _,playerId in ipairs(rs.turnOrder or {}) do
+                if playerId~=loser then winnerIdentifier=playerId break end
+            end
+            local winnerSymbol=winnerIdentifier and rs.symbols and rs.symbols[winnerIdentifier] or nil
+            rs.complete=true
+            rs.results={
+                board=rs.board or {},
+                winnerMemberId=memberPublicId(room,winnerIdentifier),
+                winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or 'Player',
+                winnerSymbol=winnerSymbol,
+                draw=false,
+                forfeit=true,
+                reason='TURN_TIMEOUT'
+            }
+        else
+            abortRound(room,'ROUND_TIMEOUT')
+        end
+        return true
     end
-
-    purgeDisconnectedTargets(room)
 
     local game=partyGame(rs.gameId)
     local minimum=game and tonumber(game.minPlayers) or FlecityGamesConfig.Party.MinPlayers
     local continuationMinimum=rs.gameId=='telephone' and 2 or minimum
     if connectedCount(room)<math.max(1,continuationMinimum or 1) then
         abortRound(room,'NOT_ENOUGH_PLAYERS')
-        return
+        return true
     end
 
     if rs.gameId=='word_wolf' then
         local wolf=rs.wolfIdentifier and room.members[rs.wolfIdentifier] or nil
-        if not wolf or wolf.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return end
+        if not wolf or wolf.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
     elseif rs.gameId=='liar' then
         local liar=rs.liarIdentifier and room.members[rs.liarIdentifier] or nil
-        if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return end
+        if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
     end
 
     if rs.gameId=='reaction' then maybeFinishReaction(room)
@@ -1195,15 +1219,11 @@ reconcileRound=function(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
     elseif rs.gameId=='telephone' then ensureTelephoneTurn(room)
     end
-end
 
-function FlecityGamesParty.AppClosed(source)
-    local id=identifier(source) local room=roomForPlayer(source,id)
-    if not id or not room or not room.members[id] then return end
-    if room.state=='lobby' and room.members[id].ready==true then
-        room.members[id].ready=false
-        notifyRoom(room,source)
-    end
+    return purged>0
+        or (rs.complete==true)~=beforeComplete
+        or rs.currentIdentifier~=beforeCurrent
+        or rs.step~=beforeStep
 end
 
 function FlecityGamesParty.LeaveRoom(source)
@@ -1244,8 +1264,9 @@ function FlecityGamesParty.Cleanup()
             local changed=#removals>0
             for _,id in ipairs(removals) do if rooms[roomId] then removeMember(room,id) end end
             if rooms[roomId] then
-                migrateHost(room) reconcileRound(room)
-                if changed then notifyRoom(room) end
+                migrateHost(room)
+                local roundChanged=reconcileRound(room)
+                if changed or roundChanged then notifyRoom(room) end
             end
         end
     end

@@ -174,3 +174,10 @@ LOOP完成版には不要な変更を入れない。
 - ラウンド中のcloseはゲーム状態を直接破壊せず、server-authoritativeなround timeoutへ任せる。
 - MINORITYは片側0票（全員同じ選択）の場合、0票側を「少数派勝者」にせず「少数派なし」とする。
 - MINORITYの全員同一選択をdebug selftestへ追加。
+
+
+## 2026-10-23 タイムアウト結果同期
+- server cleanup内の `reconcileRound` がラウンド状態を変更した場合も即 `partyUpdate` をpushするよう修正。
+- これによりtimeout結果が10秒poll待ちにならず、cleanup周期内で全端末へ反映される。
+- TELEPHONEは手番timeoutでラウンド全体を中断せず、そのプレイヤーの手番だけskipして次へ進む。次手番の期限も再設定。
+- TIC-TACは手番timeout時、相手プレイヤーの不戦勝として結果を確定。

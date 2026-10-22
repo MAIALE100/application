@@ -191,7 +191,7 @@ function renderResults(room){
  }else if(rs.gameId==='tic_tac'){
    const result=rs.results||{};
    const banner=document.createElement('div');banner.className='status '+(result.draw?'warn':'good');
-   banner.textContent=result.draw?'引き分け':'勝者: '+String(result.winnerName||'Player')+' ('+String(result.winnerSymbol||'?')+')';
+   banner.textContent=result.draw?'引き分け':'勝者: '+String(result.winnerName||'Player')+' ('+String(result.winnerSymbol||'?')+')'+(result.forfeit?' · 相手が時間切れ':'');
    resultsEl.appendChild(banner);
    const board=Array.isArray(result.board)?result.board:[];
    appendResultRow('盤面',board.map(v=>v||'·').join(' '));

@@ -611,6 +611,10 @@ if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
     fail("PARTY app-close ready cleanup is missing")
+if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:
+    fail("PARTY cleanup must push timeout/reconcile state changes")
+if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
+    fail("PARTY turn-timeout continuation/forfeit handling is missing")
 
 for marker in (
     "wordWolfPrivacy",

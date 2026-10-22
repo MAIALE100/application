@@ -607,6 +607,10 @@ if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "ded
     fail("PARTY deduction discussion/voting phase separation is missing")
 if "rotation.ticTac" not in party_lua:
     fail("PARTY TIC-TAC first-player rotation is missing")
+if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
+    fail("PARTY MINORITY unanimous-choice handling is missing")
+if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
+    fail("PARTY app-close ready cleanup is missing")
 
 for marker in (
     "wordWolfPrivacy",

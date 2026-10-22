@@ -792,10 +792,13 @@ local function maybeFinishMinority(room)
         end
     end
     table.sort(entries,function(a,b) return a.name<b.name end)
+    local noMinority=counts.A==0 or counts.B==0
     local winningChoice=nil
-    if counts.A<counts.B then winningChoice='A' elseif counts.B<counts.A then winningChoice='B' end
+    if not noMinority then
+        if counts.A<counts.B then winningChoice='A' elseif counts.B<counts.A then winningChoice='B' end
+    end
     rs.complete=true
-    rs.results={counts=counts,entries=entries,winningChoice=winningChoice,options=rs.options,mode='minority'}
+    rs.results={counts=counts,entries=entries,winningChoice=winningChoice,noMinority=noMinority,options=rs.options,mode='minority'}
 end
 
 function FlecityGamesParty.SubmitMinority(source,data)
@@ -1194,6 +1197,15 @@ reconcileRound=function(room)
     end
 end
 
+function FlecityGamesParty.AppClosed(source)
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return end
+    if room.state=='lobby' and room.members[id].ready==true then
+        room.members[id].ready=false
+        notifyRoom(room,source)
+    end
+end
+
 function FlecityGamesParty.LeaveRoom(source)
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room then return {ok=true} end
@@ -1303,6 +1315,11 @@ function FlecityGamesParty.DebugSelftest()
         submissions={a='A',b='A',c='B'},prompt='test',options={'one','two'}
     }}
     maybeFinishMinority(minorityRoom)
+    local minorityUnanimousRoom={members=members,roundState={
+        token='minority-unanimous',gameId='minority',startedAt=0,startedTick=0,complete=false,
+        submissions={a='A',b='A',c='A'},prompt='test',options={'one','two'}
+    }}
+    maybeFinishMinority(minorityUnanimousRoom)
 
     local ticTacRoom={members={
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
@@ -1415,6 +1432,9 @@ function FlecityGamesParty.DebugSelftest()
             and minorityRoom.roundState.results.winningChoice=='B'
             and minorityRoom.roundState.results.counts.A==2
             and minorityRoom.roundState.results.counts.B==1,
+        minorityUnanimousNoWinner=minorityUnanimousRoom.roundState.complete==true
+            and minorityUnanimousRoom.roundState.results.winningChoice==nil
+            and minorityUnanimousRoom.roundState.results.noMinority==true,
         ticTacWinner=ticWinner=='X' and ticTacFull({'X','O','X','X','O','O','O','X','X'})==true,
         reactionRanking=reactionRoom.roundState.complete==true
             and reactionRoom.roundState.results.entries[1].memberId=='C'

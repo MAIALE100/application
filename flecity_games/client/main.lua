@@ -69,8 +69,15 @@ local function partyOnOpen()
     schedulePartyResume('app_open')
 end
 
+local function signalPartyClosed()
+    TriggerServerEvent('flecity_games:server:partyClosed')
+end
+
 local function partyOnClose()
-    if partyAppOpen then sendPartyLifecycle('partySuspend','app_close') end
+    if partyAppOpen then
+        sendPartyLifecycle('partySuspend','app_close')
+        signalPartyClosed()
+    end
     partyAppOpen=false
     partyPushSuspended=true
     partyLifecycleGeneration=partyLifecycleGeneration+1
@@ -86,7 +93,10 @@ RegisterNetEvent('lb-phone:phoneToggled',function(open)
         end
     else
         requestPlayCleanup('phone_close')
-        if partyAppOpen then sendPartyLifecycle('partySuspend','phone_close') end
+        if partyAppOpen then
+            sendPartyLifecycle('partySuspend','phone_close')
+            signalPartyClosed()
+        end
         partyPushSuspended=true
         partyLifecycleGeneration=partyLifecycleGeneration+1
     end

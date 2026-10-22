@@ -166,3 +166,11 @@ LOOP完成版には不要な変更を入れない。
 - 直接callbackを叩いても会話中は `VOTING_LOCKED` で拒否するため、UI回避で早投票できない。
 - WORD WOLFの各自のお題、LIARの役職は従来どおりviewer別snapshotのみで配布。
 - TIC-TACはラウンドごとに先手(X)を交互化し、同じ2人で連戦した際の先手固定を解消。
+
+
+## 2026-10-23 Ready・MINORITY補正
+- PARTYアプリを閉じる / phoneを閉じると、ロビー中の自分のReadyだけを解除する。
+- ルームからは退出させないため、アプリ再オープン時は同じルームへ戻れる。
+- ラウンド中のcloseはゲーム状態を直接破壊せず、server-authoritativeなround timeoutへ任せる。
+- MINORITYは片側0票（全員同じ選択）の場合、0票側を「少数派勝者」にせず「少数派なし」とする。
+- MINORITYの全員同一選択をdebug selftestへ追加。

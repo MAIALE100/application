@@ -179,7 +179,9 @@ function renderResults(room){
    const options=rs.results.options||rs.options||['A','B'],counts=rs.results.counts||{A:0,B:0};
    const summary=document.createElement('div');summary.className='status '+(rs.results.winningChoice?'good':'warn');
    const winning=rs.results.winningChoice,isMinority=rs.gameId==='minority';
-   const winnerText=winning?(isMinority?'少数派: ':'多数派: ')+(winning==='A'?options[0]:options[1]):'同数のため勝者なし';
+   let winnerText;
+   if(isMinority&&rs.results.noMinority===true)winnerText='全員同じ選択 · 少数派なし';
+   else winnerText=winning?(isMinority?'少数派: ':'多数派: ')+(winning==='A'?options[0]:options[1]):'同数のため勝者なし';
    summary.textContent=winnerText+' · '+options[0]+' '+Number(counts.A||0)+' / '+options[1]+' '+Number(counts.B||0);
    resultsEl.appendChild(summary);
    rs.results.entries.forEach(e=>{

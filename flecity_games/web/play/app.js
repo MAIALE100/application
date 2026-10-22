@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -1524,6 +1524,26 @@ async function finishFall(gameOver=false){
    if(fallGame===game){setStatus('FALLの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderFall();}
  }
 }
+function fallPointerPoint(event){return {x:Number(event.clientX)||0,y:Number(event.clientY)||0};}
+fallBoard.onpointerdown=event=>{
+ if(!fallGame||fallGame.finished||fallGame.finalizing||fallGame.busy||fallGame.ended)return;
+ fallPointer={...fallPointerPoint(event),id:event.pointerId};
+ try{fallBoard.setPointerCapture(event.pointerId);}catch(_){}
+};
+fallBoard.onpointerup=event=>{
+ if(!fallPointer||fallPointer.id!==event.pointerId)return;
+ const start=fallPointer,end=fallPointerPoint(event),dx=end.x-start.x,dy=end.y-start.y;
+ fallPointer=null;
+ try{fallBoard.releasePointerCapture(event.pointerId);}catch(_){}
+ const distance=Math.max(Math.abs(dx),Math.abs(dy));
+ if(distance<18){rotateFall();return;}
+ if(Math.abs(dy)>Math.abs(dx)&&dy>34){void dropFall();return;}
+ if(Math.abs(dx)>24)moveFallHorizontal(dx>0?1:-1);
+};
+fallBoard.onpointercancel=event=>{
+ if(fallPointer&&fallPointer.id===event.pointerId)fallPointer=null;
+ try{fallBoard.releasePointerCapture(event.pointerId);}catch(_){}
+};
 fallLeft.onclick=()=>moveFallHorizontal(-1);
 fallRight.onclick=()=>moveFallHorizontal(1);
 fallRotate.onclick=rotateFall;

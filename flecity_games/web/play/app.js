@@ -2335,12 +2335,13 @@ function renderColorMatch(){
    return;
  }
  const round=colorMatch.rounds[colorMatch.index];
- colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+' · '+'♥'.repeat(Math.max(0,colorMatch.lives))+(colorMatch.streak>=2?' · STREAK '+colorMatch.streak:'');
+ const stage=Math.min(4,Math.floor(colorMatch.index/5)+1);
+ colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+' · STAGE '+stage+'/4 · '+'♥'.repeat(Math.max(0,colorMatch.lives))+(colorMatch.streak>=2?' · STREAK '+colorMatch.streak:'')+(colorMatch.streak>=5?' · FEVER':'');
  colorMatchWord.textContent=COLOR_MATCH_COLORS[round.word].name;
  colorMatchWord.style.color=COLOR_MATCH_COLORS[round.ink].css;
  colorMatchChoiceOrder(colorMatch.seed,colorMatch.index).forEach(index=>{
    const entry=COLOR_MATCH_COLORS[index],b=document.createElement('button');b.className='color-match-choice';b.textContent=entry.name;
-   b.onclick=()=>answerColorMatch(index);colorMatchChoices.appendChild(b);
+   b.disabled=colorMatch.busy===true;b.onclick=()=>answerColorMatch(index);colorMatchChoices.appendChild(b);
  });
  updateColorMatchTime();
 }
@@ -2357,11 +2358,12 @@ async function startColorMatch(){
  const session=await startSessionWithRetry({gameId:'color_match',daily});
  if(!session.ok){colorMatchStart.disabled=false;if(session.error!=='APP_SUSPENDED')setStatus('COLOR MATCHを開始できません: '+FlecityErrors.text(session.error),'error');return;}
  const rounds=colorMatchRounds(session.seed,Number(session.challenge&&session.challenge.rounds)||20);
- colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],lives:Number(session.challenge&&session.challenge.lives)||3,misses:0,streak:0,maxStreak:0,startedAt:performance.now(),running:true,finished:false,daily:session.daily===true};
+ colorMatch={sessionToken:session.sessionToken,seed:Number(session.seed)||1,rounds,index:0,history:[],lives:Number(session.challenge&&session.challenge.lives)||3,misses:0,streak:0,maxStreak:0,startedAt:performance.now(),running:true,finished:false,busy:false,daily:session.daily===true};
  colorMatchStart.classList.add('hidden');colorMatchNew.classList.remove('hidden');setStatus(colorMatch.daily?'デイリーCOLOR MATCH RUSH開始。':'COLOR MATCH RUSH開始。3ライフで20問突破を狙え。','good');renderColorMatch();colorMatchClock=setInterval(updateColorMatchTime,100);
 }
 async function answerColorMatch(choice){
- const game=colorMatch;if(!game||!game.running||game.finished)return;
+ const game=colorMatch;if(!game||!game.running||game.finished||game.busy)return;
+ game.busy=true;colorMatchChoices.querySelectorAll('button').forEach(button=>{button.disabled=true;});
  const round=game.rounds[game.index];game.history.push(choice);
  const correct=choice===round.ink;
  colorMatchEl.classList.remove('match-ok','match-miss','match-fever');void colorMatchEl.offsetWidth;colorMatchEl.classList.add(correct?'match-ok':'match-miss');
@@ -2400,7 +2402,10 @@ async function answerColorMatch(choice){
    }
    return;
  }
- if(colorMatch===game)renderColorMatch();
+ if(colorMatch===game){
+   if(game.index%5===0)setStatus('STAGE '+String(Math.min(4,Math.floor(game.index/5)+1))+'/4 · KEEP FOCUS','good');
+   game.busy=false;renderColorMatch();
+ }
 }
 colorMatchStart.onclick=startColorMatch;
 colorMatchBack.onclick=async()=>{if(colorMatch&&colorMatch.finalizing){setStatus('COLOR MATCHの記録を保存中です…','warn');return;}if(colorMatch&&colorMatch.running&&!colorMatch.finished){const ok=await confirmAction('COLOR MATCHを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}clearInterval(colorMatchClock);colorMatchClock=null;if(colorMatch&&colorMatch.sessionToken)await cancelPlaySession(colorMatch.sessionToken);colorMatch=null;showHome();};

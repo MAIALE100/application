@@ -244,7 +244,7 @@ function renderResults(room){
      const wrap=document.createElement('div');wrap.className='card stack';
      const head=document.createElement('div');head.className='kicker';head.textContent=(i===0?'START':entry.name)+' · '+String(entry.kind||'').toUpperCase();wrap.appendChild(head);
      if(entry.kind==='text'){const p=document.createElement('div');p.textContent=entry.text||'';wrap.appendChild(p);}
-     else{const canvas=document.createElement('canvas');canvas.width=320;canvas.height=220;canvas.className='draw-canvas';wrap.appendChild(canvas);paintCanvas(canvas.getContext('2d'),canvas,entry.strokes||[]);}
+     else{const canvas=document.createElement('canvas');canvas.width=360;canvas.height=260;canvas.className='draw-canvas';wrap.appendChild(canvas);paintCanvas(canvas.getContext('2d'),canvas,entry.strokes||[]);}
      resultsEl.appendChild(wrap);
    });
  }

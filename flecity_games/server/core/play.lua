@@ -1404,7 +1404,7 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
     if game.id=='block' and score>=tonumber(cfg.BlockMasterScore or 5000) and unlockAchievement(playerIdentifier,'block_master',game.id,{score=score}) then unlocked[#unlocked+1]='block_master' end
     if game.id=='memory' and tonumber(metadata and metadata.moves)==8 and unlockAchievement(playerIdentifier,'perfect_memory',game.id,{score=score,moves=8}) then unlocked[#unlocked+1]='perfect_memory' end
     if game.id=='number_rush' and tonumber(metadata and metadata.misses)==0
-        and score<=tonumber(cfg.NumberRushAceMs or 12000)
+        and score<=tonumber(cfg.NumberRushAceMs or 16000)
         and unlockAchievement(playerIdentifier,'number_rush_ace',game.id,{score=score,misses=0}) then
         unlocked[#unlocked+1]='number_rush_ace'
     end
@@ -1428,7 +1428,7 @@ local function evaluateAchievements(playerIdentifier,game,score,metadata)
         and unlockAchievement(playerIdentifier,'nonogram_solver',game.id,{score=score}) then
         unlocked[#unlocked+1]='nonogram_solver'
     end
-    if game.id=='color_match' and tonumber(metadata and metadata.misses or 99)==0 and score<=tonumber(cfg.ColorMatchFocusMs or 12000)
+    if game.id=='color_match' and tonumber(metadata and metadata.misses or 99)==0 and score<=tonumber(cfg.ColorMatchFocusMs or 14000)
         and unlockAchievement(playerIdentifier,'color_focus',game.id,{score=score,misses=0}) then
         unlocked[#unlocked+1]='color_focus'
     end

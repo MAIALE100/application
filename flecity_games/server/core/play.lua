@@ -2482,6 +2482,11 @@ function FlecityGamesPlay.DebugSelftest()
     local quickChallenge=challengeFor(quick,12345) local quickChallenge2=challengeFor(quick,12345)
     local dailyNumberA=dailyNumber('2026-10-20')
     local dailyNumberB=dailyNumber('2026-10-21')
+    local dailyMonthEnd=dailyNumber('2026-10-31')
+    local dailyNextMonth=dailyNumber('2026-11-01')
+    local dailyLeapStart=dailyNumber('2028-02-28')
+    local dailyLeapDay=dailyNumber('2028-02-29')
+    local dailyLeapAfter=dailyNumber('2028-03-01')
     local blockChallenge=challengeFor(block,12345) local mergeChallenge=challengeFor(merge,12345)
     local opaqueToken=newToken('SECRET_CITIZEN_ID','quick_tap')
 
@@ -2586,7 +2591,8 @@ function FlecityGamesPlay.DebugSelftest()
             return state and state.current and state.current.delayMs>=850 and state.current.delayMs<=2600 and state.lives==3
         end)(),
         deterministicChallenge=quickChallenge.targetHits==quickChallenge2.targetHits,
-        dailyDateParsing=dailyNumberA==20261020 and dailyNumberB==20261021 and dailyNumberA~=dailyNumberB,
+        dailyDateParsing=dailyNumberB==dailyNumberA+1 and dailyNextMonth==dailyMonthEnd+1
+            and dailyLeapDay==dailyLeapStart+1 and dailyLeapAfter==dailyLeapDay+1,
         opaqueSessionToken=not string.find(opaqueToken,'SECRET_CITIZEN_ID',1,true),
         stopAcceptRunScore=stop and validateScore(stop,12500)==12500 or false,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

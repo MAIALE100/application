@@ -1227,10 +1227,12 @@ end
 
 local function ensureTelephoneTurn(room)
     local rs=room.roundState
-    if not rs or rs.gameId~='telephone' or rs.complete then return end
+    if not rs or rs.gameId~='telephone' or rs.complete then return false end
     local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
-    if current and not current.disconnected then return end
+    if current and not current.disconnected then return false end
     advanceTelephone(room,false)
+    if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+    return true
 end
 
 function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
@@ -1626,10 +1628,10 @@ function FlecityGamesParty.DebugSelftest()
     }
     local telephoneSkipRoom={members=telephoneSkipMembers,roundState={
         token='tel-skip',gameId='telephone',startedAt=0,startedTick=0,complete=false,submissions={},
-        turnOrder={'a','b','c'},step=1,mode='draw',currentIdentifier='a',
-        chain={{kind='text',text='秘密のお題'}}
+        turnOrder={'a','b','c'},step=2,mode='text',currentIdentifier='b',
+        chain={{kind='text',text='秘密のお題'},{kind='draw',byIdentifier='a',byName='Alpha',strokes={{{x=0,y=0},{x=1,y=1}}}}},
+        deadlineTick=1,deadlineDurationSec=45
     }}
-    advanceTelephone(telephoneSkipRoom,true)
     reconcileRound(telephoneSkipRoom)
 
     local appCloseHostRoom={
@@ -1712,6 +1714,8 @@ function FlecityGamesParty.DebugSelftest()
         telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3
             and telephoneSkipRoom.roundState.currentIdentifier=='c'
             and telephoneSkipRoom.roundState.mode=='text',
+        telephoneDisconnectFreshDeadline=telephoneSkipRoom.roundState.deadlineDurationSec==30
+            and tonumber(telephoneSkipRoom.roundState.deadlineTick)>GetGameTimer(),
         telephoneContinuesWithTwo=telephoneSkipRoom.roundState.complete~=true
     }
 end

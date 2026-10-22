@@ -672,6 +672,7 @@ for marker in (
     "drawConnectedProgress",
     "telephonePrivacy",
     "telephoneContributorNamePreserved",
+    "telephoneDisconnectFreshDeadline",
     "roomRevision",
     "appCloseHostHandoff",
     "reconnectGracePreserved",

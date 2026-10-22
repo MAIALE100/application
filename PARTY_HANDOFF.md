@@ -379,3 +379,10 @@ LOOP完成版には不要な変更を入れない。
 - DRAW回答とTELEPHONE文章入力のEnter送信に `!event.isComposing` を追加。
 - 日本語IMEで候補をEnter確定しただけで回答が途中送信される問題を防止。
 - 送信ボタン操作は従来どおり。
+
+
+## 2026-10-23 TELEPHONE離脱時deadline再設定
+- current playerがFiveM切断/Room退出した場合、`ensureTelephoneTurn` で次の接続中playerへskipした後にdeadlineを再設定。
+- TEXTなら新しく30秒、DRAWなら新しく45秒を付与。
+- 以前は前担当者の残り時間を次担当が引き継ぐため、離脱タイミング次第で次の人が数秒しか操作できない可能性があった。
+- timeoutによるskipは既にdeadline再設定済みで、今回disconnect/leave経路も同じ挙動へ統一。

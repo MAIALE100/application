@@ -420,6 +420,10 @@ if "STOP RUSH progression v13" not in play_css or "dataset.tier" not in play_js:
     fail("STOP RUSH escalating visual feedback is missing")
 if "QUICK TAP FOCUS v15" not in play_css or "#tapRunMeta" not in play_css:
     fail("QUICK TAP FOCUS visual feedback is missing")
+if "personalBestGainText" not in play_js or "PB +" not in play_js:
+    fail("PLAY personal-best gain feedback is missing")
+if "word-break:break-word" not in play_css:
+    fail("PLAY narrow-phone status wrapping guard is missing")
 if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in play_js:
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:

@@ -1,11 +1,11 @@
-Flecity Games PLAY v1.0.0
+Flecity Games LOOP v1.0.0
 運営様向け 導入方法
 
 この度は導入のご確認をいただき、ありがとうございます。
 お手数をできる限り増やさないよう、通常はリソース配置と ensure のみで導入できる構成にしております。
 
 ■ 今回の提出内容
-・LB Phone用カスタムアプリ「PLAY」
+・LB Phone用カスタムアプリ「LOOP」
 ・一人用ミニゲーム 15種
 ・ランキング / Daily Challenge / 実績 / 途中保存
 ・今回の提出版では PARTY アプリは非表示にしています。
@@ -56,7 +56,7 @@ DROP TABLE / TRUNCATE TABLE は実行しません。
 [FlecityGames] LB Phone callbacks registered .../...
 [FlecityGames] startup preflight READY_FOR_LIVE_TEST
 
-ゲーム内LB Phoneに「PLAY」が表示され、起動できれば基本導入は完了です。
+ゲーム内LB Phoneに「LOOP」が表示され、起動できれば基本導入は完了です。
 
 ■ 確認用コマンド
 必要な場合のみ、サーバーコンソールから以下をご利用いただけます。

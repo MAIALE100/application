@@ -493,8 +493,7 @@ function enableHorizontalDragScroll(element){
  let drag=null,suppressClickUntil=0;
  element.addEventListener('pointerdown',event=>{
    if(event.pointerType==='mouse'&&event.button!==0)return;
-   drag={id:event.pointerId,startX:event.clientX,startY:event.clientY,startScroll:element.scrollLeft,horizontal:false};
-   try{element.setPointerCapture(event.pointerId);}catch(_){}
+   drag={id:event.pointerId,startX:event.clientX,startY:event.clientY,startScroll:element.scrollLeft,horizontal:false,captured:false};
  });
  element.addEventListener('pointermove',event=>{
    if(!drag||event.pointerId!==drag.id)return;
@@ -503,14 +502,15 @@ function enableHorizontalDragScroll(element){
      if(Math.abs(dx)<8)return;
      if(Math.abs(dx)<=Math.abs(dy))return;
      drag.horizontal=true;element.classList.add('is-dragging');
+     try{element.setPointerCapture(event.pointerId);drag.captured=true;}catch(_){}
    }
    element.scrollLeft=drag.startScroll-dx;
  });
  const finishDrag=event=>{
    if(!drag||event.pointerId!==drag.id)return;
    if(drag.horizontal)suppressClickUntil=performance.now()+350;
-   drag=null;element.classList.remove('is-dragging');
-   try{element.releasePointerCapture(event.pointerId);}catch(_){}
+   const captured=drag.captured;drag=null;element.classList.remove('is-dragging');
+   if(captured){try{element.releasePointerCapture(event.pointerId);}catch(_){}}
  };
  element.addEventListener('pointerup',finishDrag);
  element.addEventListener('pointercancel',finishDrag);

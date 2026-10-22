@@ -154,9 +154,14 @@ async function submitScoreWithRetry(payload){
  return res;
 }
 function scrollAppTop(){window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});}
+function resetTransientInputState(){
+ blockDrag=null;blockSuppressClick=false;mergePointer=null;fallPointer=null;
+ clearBlockDragVisual();
+}
 function hideAll(){document.body.classList.add('game-active');homeEl.classList.add('hidden');quickEl.classList.add('hidden');stopEl.classList.add('hidden');blockEl.classList.add('hidden');mergeEl.classList.add('hidden');fallEl.classList.add('hidden');minesEl.classList.add('hidden');stackEl.classList.add('hidden');nonogramEl.classList.add('hidden');memoryEl.classList.add('hidden');sortEl.classList.add('hidden');slideEl.classList.add('hidden');colorMatchEl.classList.add('hidden');numberRushEl.classList.add('hidden');highLowEl.classList.add('hidden');simonEl.classList.add('hidden');scrollAppTop();}
 function showHome(){
- clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;memoryFlipTimer=null;simonTimer=null;
+ clearTimeout(tapTimer);clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);cancelAnimationFrame(stopRaf);cancelAnimationFrame(stackRaf);clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+ resetTransientInputState();
  tapState='idle';tapSession=null;stopState='idle';stopSession=null;
  hideAll();homeEl.classList.remove('hidden');document.body.classList.remove('game-active');renderGames(bootstrapData&&bootstrapData.games);
 }
@@ -3086,6 +3091,7 @@ async function suspendActivePlay(){
    clearInterval(minesClock);clearInterval(nonogramClock);clearInterval(memoryClock);clearInterval(sortClock);clearInterval(slideClock);clearInterval(colorMatchClock);clearInterval(numberRushClock);clearInterval(highLowClock);
    clearTimeout(memoryFlipTimer);clearTimeout(simonTimer);
    minesClock=null;nonogramClock=null;memoryClock=null;sortClock=null;slideClock=null;colorMatchClock=null;numberRushClock=null;highLowClock=null;memoryFlipTimer=null;simonTimer=null;
+   resetTransientInputState();
 
    if(block&&!block.finished&&!block.finalizing){
      if(!block.daily)await suspendStep('block save',()=>persistBlock(false));

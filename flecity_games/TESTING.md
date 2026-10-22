@@ -286,6 +286,7 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - REACTION / STOP! BATTLE は9〜10人でも開始できる
 - DRAWで短いstrokeを連続して描いても約1秒ごとのcallback制限に阻害されずBへ反映
 - DRAW/TELEPHONEで移動せず1回タップした点もdotとして残る
+- 日本語IMEの変換確定EnterではDRAW回答/TELEPHONE文章が勝手に送信されず、確定後のEnterで送信される
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - 正解済みプレイヤーが途中切断しても「正解 n/接続中対象人数」が分母超過しない

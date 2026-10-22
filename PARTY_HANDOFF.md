@@ -373,3 +373,9 @@ LOOP完成版には不要な変更を入れない。
 - pointer down→ほぼ移動なしで離した1点strokeを破棄せず、極小の2点strokeへ正規化してdotとして保存。
 - DRAWとTELEPHONEの両方へ適用し、目・ボタン・句点のような点描画が消えない。
 - serverのstroke検証（最低2point / 座標0〜1 / point上限）は変更せず、その形式にclient側で安全に合わせる。
+
+
+## 2026-10-23 日本語IME Enter対策
+- DRAW回答とTELEPHONE文章入力のEnter送信に `!event.isComposing` を追加。
+- 日本語IMEで候補をEnter確定しただけで回答が途中送信される問題を防止。
+- 送信ボタン操作は従来どおり。

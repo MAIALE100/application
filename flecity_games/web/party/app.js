@@ -641,7 +641,7 @@ async function submitDrawGuess(){
  });
 }
 drawGuessSubmit.onclick=submitDrawGuess;
-drawGuess.onkeydown=e=>{if(e.key==='Enter')submitDrawGuess();};
+drawGuess.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitDrawGuess();};
 function telephonePoint(event){
  const rect=telephoneCanvas.getBoundingClientRect();
  return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
@@ -682,7 +682,7 @@ async function submitTelephoneText(){
  });
 }
 telephoneTextSubmit.onclick=submitTelephoneText;
-telephoneText.onkeydown=e=>{if(e.key==='Enter')submitTelephoneText();};
+telephoneText.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitTelephoneText();};
 lobbyBtn.onclick=()=>runOnce('return-lobby',async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
 leaveBtn.onclick=()=>{
  const now=performance.now();

@@ -376,6 +376,7 @@ try {
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }
     if ($playIndexText -notmatch 'id="slideGame"' -or $playAppText -notmatch 'openSlide' -or $playAppText -notmatch 'persistSlide' -or $playAppText -notmatch 'finishSlide') { throw 'SLIDE client flow check failed.' }
     if ($playAppText -notmatch 'stackCameraTarget' -or $playAppText -notmatch 'cameraOffset' -or $cssText -notmatch 'data-camera="follow"') { throw 'TOWER follow camera check failed.' }
+    if ($playAppText -notmatch 'dropStackBlock' -or $playAppText -notmatch 'stackArena\.onclick' -or $playIndexText -notmatch 'aria-label="TOWER: タップでDROP"') { throw 'TOWER direct-tap DROP check failed.' }
     if ($playAppText -notmatch 'layerCount\)\|\|0\)-5' -or $cssText -notmatch 'html,body,\.wrap\{scrollbar-width:none' -or $cssText -notmatch 'html::\-webkit\-scrollbar') { throw 'TOWER viewport / scrollbar suppression check failed.' }
     if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\{display:none!important\}') { throw 'PLAY in-game shared status suppression check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }

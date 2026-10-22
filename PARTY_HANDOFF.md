@@ -328,3 +328,9 @@ LOOP完成版には不要な変更を入れない。
 - `AppClosed` は `roomForPlayer` を通さず `roomForSource` で副作用なしにRoomを取得するよう変更。
 - close処理の直前に `appOpen=true` へ戻したり、閉じようとしている非Hostへ一瞬Host権限がhandoffされるraceを防止。
 - sourceとmember.sourceの一致も確認し、古いsourceからの遅延close eventが現在のmember状態を変更しない。
+
+
+## 2026-10-23 visibility listener多重登録対策
+- entry画面でapp close/openを繰り返した際、`scheduleBootstrap` ごとに `visibilitychange` listenerが増えていた問題を修正。
+- `visibilityBound` / `bindVisibilityLifecycle` で1回だけ登録。
+- 長時間利用や何度もPhoneを開閉した後にsuspend/resumeが多重発火し、poll/refreshが余計に走る経路を防止。

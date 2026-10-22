@@ -15,7 +15,7 @@ const settingSound=document.getElementById('settingSound'),settingMotion=documen
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
-let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null;
+let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
@@ -85,10 +85,14 @@ function suspendPartyUi(){
  clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
 }
+function bindVisibilityLifecycle(){
+ if(visibilityBound)return;
+ visibilityBound=true;
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendPartyUi();else resumePartyUi();});
+}
 function scheduleBootstrap(delay=0){
  clearTimeout(bootstrapTimer);
- bootstrapTimer=setTimeout(()=>{bootstrapTimer=null;document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendPartyUi();else resumePartyUi();});
-bootstrap();},delay);
+ bootstrapTimer=setTimeout(()=>{bootstrapTimer=null;bindVisibilityLifecycle();bootstrap();},delay);
 }
 function resumePartyUi(){
  const wasSuspended=appSuspended;appSuspended=false;

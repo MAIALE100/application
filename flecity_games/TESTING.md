@@ -272,6 +272,8 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - AがRoomを作成し、Bが4桁Codeで参加
 - A/B双方のplayer listが同じ
 - Ready状態が双方へ同期
+- PARTYを閉じた参加者は一覧で「アプリ閉じています」と表示
+- Hostの開始ボタンは閉じた参加者がいる場合「アプリ待ち N人」と理由表示
 - REACTION / STOP / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR は回答後に「入力済み人数 / 対象人数」が更新される
 - 回答内容そのものは他プレイヤーへ漏れず、共有されるのは件数だけ
 - 古い状態が新しいRoom状態を巻き戻さない

@@ -255,7 +255,7 @@ LOOP完成版には不要な変更を入れない。
 - Host移行時はFiveM接続中だけでなく、PARTYアプリを実際に開いている参加者を優先。
 - 例: Host Aがclose、BはFiveM接続中だがPARTYを閉じている、CはPARTYを開いている場合、HostはCへ移行。
 - Host close時に代替Hostがいなかった場合も、別参加者が後からPARTYを開いてcallbackを行うとHost権限を引き継げる。
-- `appOpen` はserver内部状態のみで、他参加者のsnapshotには公開しない。
+- `appOpen` はロビーの開始阻害理由を分かりやすくするためplayer snapshotへbooleanのみ公開。閉じた参加者は「アプリ閉じています」、Host開始ボタンは「アプリ待ち N人」と表示。
 
 
 ## 2026-10-23 DRAW callback・10人Quick対応
@@ -346,3 +346,10 @@ LOOP完成版には不要な変更を入れない。
 ## 2026-10-23 TELEPHONE結果キャンバス比率
 - TELEPHONEの入力キャンバスは360×260だが、結果chainだけ320×220になっていたため360×260へ統一。
 - normalized stroke座標を入力時と同じ縦横比で再描画し、最終公開時の絵がわずかに変形する問題を解消。
+
+
+## 2026-10-23 ロビーApp presence表示
+- player snapshotに `appOpen` booleanを追加。
+- FiveM接続は残っているがPARTYを閉じている参加者を「待機中」と誤表示せず「アプリ閉じています」と表示。
+- Hostの開始可否もReady待ちとApp待ちを分離し、閉じた参加者がいる場合は `アプリ待ち N人`。
+- appOpen=falseの参加者を勝手にRoundから除外する変更はしていない。再開時に同Roomへ復帰する現仕様を維持。

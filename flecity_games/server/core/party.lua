@@ -504,7 +504,7 @@ end
 local function snapshot(room,viewerId)
     local players={}
     for id,m in pairs(room.members) do
-        players[#players+1]={memberId=m.memberId,name=m.name,ready=m.ready==true,disconnected=m.disconnected==true,isHost=id==room.hostIdentifier,joinOrder=m.joinOrder}
+        players[#players+1]={memberId=m.memberId,name=m.name,ready=m.ready==true,disconnected=m.disconnected==true,appOpen=m.appOpen~=false,isHost=id==room.hostIdentifier,joinOrder=m.joinOrder}
     end
     table.sort(players,function(a,b) return a.joinOrder<b.joinOrder end)
     local selfMember=room.members[viewerId]

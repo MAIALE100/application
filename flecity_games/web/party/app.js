@@ -137,10 +137,12 @@ function startReadiness(room){
  const min=Math.max(1,Number(game&&game.minPlayers)||partyConfig.minPlayers||2);
  const max=Math.max(min,Number(game&&game.maxPlayers)||partyConfig.maxPlayers||10);
  const connected=Number(room.connectedCount)||0;
- const waiting=(room.players||[]).filter(p=>!p.disconnected&&!p.ready).length;
+ const appWaiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen===false).length;
+ const waiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen!==false&&!p.ready).length;
  if(!room.isHost)return {ok:false,text:'ホストのみ開始できます'};
  if(connected<min)return {ok:false,text:'あと'+(min-connected)+'人必要です'};
  if(connected>max)return {ok:false,text:'参加人数が上限を超えています'};
+ if(appWaiting>0)return {ok:false,text:'アプリ待ち '+appWaiting+'人'};
  if(waiting>0)return {ok:false,text:'準備待ち '+waiting+'人'};
  return {ok:true,text:'全員準備OK'};
 }
@@ -149,11 +151,13 @@ function renderPlayers(room){
  const connected=(room.players||[]).filter(p=>!p.disconnected);
  playersEl.classList.toggle('dense',Number(room.players&&room.players.length||0)>=7);
  const readyCount=connected.filter(p=>p.ready).length;
- readySummary.textContent='接続中 '+connected.length+'人 · 準備OK '+readyCount+'/'+connected.length;
+ const appOpenCount=connected.filter(p=>p.appOpen!==false).length;
+ readySummary.textContent='接続中 '+connected.length+'人 · アプリ '+appOpenCount+'/'+connected.length+' · 準備 '+readyCount+'/'+connected.length;
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
    const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+p.name;
-   const right=document.createElement('span');right.textContent=p.disconnected?'オフライン':(p.ready?'準備OK':'待機中');right.className=p.ready?'good':(p.disconnected?'error':'muted');
+   const state=p.disconnected?'オフライン':(p.appOpen===false?'アプリ閉じています':(p.ready?'準備OK':'待機中'));
+   const right=document.createElement('span');right.textContent=state;right.className=p.ready&&p.appOpen!==false?'good':(p.disconnected?'error':'muted');
    row.append(left,right);playersEl.appendChild(row);
  });
 }

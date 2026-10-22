@@ -4,6 +4,7 @@ FlecityGamesConfig = {
 
     Apps = {
         Play = {
+            enabled = true,
             identifier = 'flecity_play',
             name = 'PLAY',
             description = '短時間からじっくり遊べるミニゲーム。',
@@ -13,6 +14,7 @@ FlecityGamesConfig = {
             icon = 'web/play/icon.svg'
         },
         Party = {
+            enabled = true,
             identifier = 'flecity_party',
             name = 'PARTY',
             description = '友達と一緒に遊べるパーティーゲーム。',

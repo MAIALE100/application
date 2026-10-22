@@ -11,7 +11,7 @@ FlecityGamesConfig = {
             developer = 'Flecity',
             defaultApp = true,
             ui = 'web/play/index.html',
-            icon = 'web/play/icon.png'
+            icon = 'web/play/icon.svg'
         },
         Party = {
             enabled = true,

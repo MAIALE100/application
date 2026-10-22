@@ -561,7 +561,7 @@ function renderGames(games){
    const grid=document.createElement('div');grid.className='grid';
    groups.get(category).forEach(game=>{
      const btn=document.createElement('button');btn.className='game';btn.dataset.game=game.id;
-     const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{symbol:'•',eyebrow:'PLAY'};
+     const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{symbol:'•',eyebrow:'LOOP'};
      const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),favorite=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
      top.className='game-card-top';icon.className='game-icon';tag.className='tag';favorite.className='favorite-toggle'+(isFavoriteGame(game.id)?' active':'');description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
      setGameIcon(icon,visual);tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);
@@ -650,15 +650,15 @@ async function bootstrap(){
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
-     setStatus(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'PLAYへ再接続中…','warn');
+     setStatus(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'LOOPへ再接続中…','warn');
      setTimeout(bootstrap,1000);
      return;
    }
    console.error('[PLAY] bootstrap failed',res.error);
-   setStatus('PLAYを起動できませんでした。アプリを開き直してもう一度お試しください。','error');
+   setStatus('LOOPを起動できませんでした。アプリを開き直してもう一度お試しください。','error');
    return;
  }
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('PLAY 準備完了 · v'+String(res.version||'unknown'),'good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('LOOP 準備完了 · v'+String(res.version||'unknown'),'good');
 }
 
 /* QUICK TAP */

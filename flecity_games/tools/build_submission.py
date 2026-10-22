@@ -12,7 +12,7 @@ REPO = RESOURCE.parent
 DIST = REPO / "dist"
 STAGE = DIST / "flecity_games"
 RELEASE_VERSION = "1.0.0"
-ZIP_NAME = f"flecity-games-play-{RELEASE_VERSION}.zip"
+ZIP_NAME = f"flecity-games-loop-{RELEASE_VERSION}.zip"
 
 EXCLUDED_PREFIXES = {
     "tools",
@@ -24,6 +24,7 @@ EXCLUDED_FILES = {
     "INSTALL.md",
     "TESTING.md",
     "server/core/dev_reload.lua",
+    "web/play/icon.svg",
     "dev-auto-reload.enabled",
     "dev-reload.token",
     "dev-reload-v2.active",
@@ -59,7 +60,7 @@ def copy_release_tree() -> None:
 def patch_manifest() -> None:
     path = STAGE / "fxmanifest.lua"
     text = path.read_text(encoding="utf-8")
-    text = re.sub(r"^description '.+'$", "description 'Flecity Games PLAY - LB Phone mini-game app'", text, flags=re.M)
+    text = re.sub(r"^description '.+'$", "description 'Flecity Games LOOP - LB Phone mini-game app'", text, flags=re.M)
     text = re.sub(r"^version '.+'$", f"version '{RELEASE_VERSION}'", text, flags=re.M)
     text = text.replace("    'server/core/dev_reload.lua',\n", "")
     path.write_text(text, encoding="utf-8")
@@ -97,7 +98,7 @@ def add_release_docs() -> None:
 
     commit = os.environ.get("GITHUB_SHA", "local-build")
     info = (
-        f"Flecity Games PLAY {RELEASE_VERSION}\n"
+        f"Flecity Games LOOP {RELEASE_VERSION}\n"
         f"Source commit: {commit}\n"
         "Build type: production submission\n"
         "PARTY custom app: disabled in this submission build\n"
@@ -117,7 +118,7 @@ def validate_release() -> None:
         STAGE / "server/core/play.lua",
         STAGE / "web/play/index.html",
         STAGE / "web/play/app.js",
-        STAGE / "web/play/icon.svg",
+        STAGE / "web/play/icon.png",
         STAGE / "sql/001_initial.sql",
         STAGE / "導入方法_運営様向け.txt",
         STAGE / "運営確認用メモ.txt",
@@ -133,11 +134,11 @@ def validate_release() -> None:
     if (STAGE / "server/core/dev_reload.lua").exists() or (STAGE / "tools").exists() or (STAGE / "TESTING.md").exists():
         raise RuntimeError("development-only content remains in release")
     if (STAGE / "web/party").exists():
-        raise RuntimeError("PARTY web UI must not be included in PLAY submission")
+        raise RuntimeError("PARTY web UI must not be included in LOOP submission")
     if not re.search(r"Party\s*=\s*\{.*?enabled\s*=\s*false.*?defaultApp\s*=\s*false", config, flags=re.S):
         raise RuntimeError("PARTY app is not disabled in submission config")
     if not re.search(r"Play\s*=\s*\{.*?enabled\s*=\s*true", config, flags=re.S):
-        raise RuntimeError("PLAY app is not enabled in submission config")
+        raise RuntimeError("LOOP app is not enabled in submission config")
 
 
 def make_zip() -> tuple[Path, str]:

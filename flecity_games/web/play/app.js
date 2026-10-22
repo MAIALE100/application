@@ -2033,7 +2033,7 @@ function renderSort(){
  if(!sortGame)return;
  refreshScreenBests();sortBoard.innerHTML='';sortMoves.textContent=String(sortGame.moves);
  const completeCount=sortGame.tubes.filter(sortTubeComplete).length;
- sortMeta.textContent=String(sortGame.moves)+' MOVES · '+String(completeCount)+'/4 SORTED'+(sortGame.finished?' · CLEAR':'');
+ sortMeta.textContent=String(sortGame.moves)+' MOVES · '+String(completeCount)+'/4 SORTED'+(completeCount>=2&&!sortGame.finished?' · FLOW '+String(completeCount):'')+(sortGame.finished?' · CLEAR':'');
  sortGame.tubes.forEach((tube,index)=>{
    const button=document.createElement('button');
    button.className='sort-tube'+(sortGame.selected===index?' selected':'')+(sortTubeComplete(tube)?' complete':'');
@@ -2098,9 +2098,12 @@ async function touchSortTube(index){
  const source=game.tubes[from],target=game.tubes[index];
  if(!source||source.length===0){game.selected=null;renderSort();return;}
  if(!target||target.length>=4){tone(150,28);setStatus('そのチューブには入りません。','warn');return;}
+ const completeBefore=game.tubes.filter(sortTubeComplete).length;
  const value=source.pop();target.push(value);game.history.push([from,index]);game.moves+=1;game.progressed=true;game.selected=null;
+ const completeAfter=game.tubes.filter(sortTubeComplete).length;
  sortBoard.classList.remove('sort-move');void sortBoard.offsetWidth;sortBoard.classList.add('sort-move');
  tone(sortTubeComplete(target)?760:520,sortTubeComplete(target)?45:20);
+ if(completeAfter>completeBefore&&!sortSolved())setStatus('SORT FLOW · '+completeAfter+'/4 完成','good');
  renderSort();
  if(sortSolved()){await finishSort();return;}
  await persistSort();
@@ -2187,7 +2190,7 @@ function slideMovable(index){
 function renderSlide(){
  if(!slideGame)return;
  refreshScreenBests();slideBoard.innerHTML='';slideMoves.textContent=String(slideGame.moves);
- slideMeta.textContent=(slideGame.daily?'DAILY · ':'')+String(slideGame.moves)+' MOVES · PAR 90 · ALIGN '+slideCorrectCount(slideGame.board)+'/15'+(slideGame.finished?' · '+slideStars(slideGame.moves):'');
+ slideMeta.textContent=(slideGame.daily?'DAILY · ':'')+String(slideGame.moves)+' MOVES · PAR 90 · ALIGN '+slideCorrectCount(slideGame.board)+'/15'+((slideGame.alignStreak||0)>=2?' · FLOW ×'+slideGame.alignStreak:'')+(slideGame.finished?' · '+slideStars(slideGame.moves):'');
  slideGame.board.forEach((value,index)=>{
    const button=document.createElement('button');
    const blank=Number(value)===0,movable=!blank&&slideMovable(index);
@@ -2234,7 +2237,7 @@ async function openSlide(forceNew=false,daily=false){
  if(blank<0||blank>=16){
    await cancelPlaySession(session.sessionToken);setStatus('SLIDE盤面が不正です。','error');showHome();return;
  }
- slideGame={board,blank,history,moves,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved,daily:session.daily===true};
+ slideGame={board,blank,history,moves,elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,progressed:!!saved,daily:session.daily===true,alignStreak:0};
  setStatus(saved?'SLIDEを途中保存から再開しました。':(slideGame.daily?'デイリーSLIDEを開始しました。':'新しいSLIDEを開始しました。'),'good');
  renderSlide();slideClock=setInterval(updateSlideTime,200);
 }
@@ -2243,8 +2246,9 @@ async function moveSlide(index){
  const blank=game.blank,alignedBefore=slideCorrectCount(game.board);
  game.board[blank]=game.board[index];game.board[index]=0;game.blank=index;game.history.push(index);game.moves+=1;game.progressed=true;
  const alignedAfter=slideCorrectCount(game.board);
+ if(alignedAfter>alignedBefore)game.alignStreak=(game.alignStreak||0)+1;else game.alignStreak=0;
  slideBoard.classList.remove('slide-move','slide-align');void slideBoard.offsetWidth;slideBoard.classList.add(alignedAfter>alignedBefore?'slide-align':'slide-move');
- if(alignedAfter>alignedBefore){tone(720,32);setStatus('ALIGN +'+(alignedAfter-alignedBefore)+' · '+alignedAfter+'/15','good');}else tone(520,18);
+ if(alignedAfter>alignedBefore){tone(720+Math.min(180,(game.alignStreak||0)*24),32);setStatus('ALIGN +'+(alignedAfter-alignedBefore)+' · '+alignedAfter+'/15'+(game.alignStreak>=2?' · FLOW ×'+game.alignStreak:''),'good');}else tone(520,18);
  renderSlide();
  if(slideSolvedBoard(game.board)){await finishSlide();return;}
  await persistSlide();

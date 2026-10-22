@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Branch = 'games/platform-core'
+$Branch = 'games/party-dev'
 $Source = Join-Path $RepoRoot 'flecity_games'
 $SafetySource = Join-Path $RepoRoot 'flecity_dev_safety'
 $Resources = Join-Path $ServerBase 'resources'
@@ -516,8 +516,8 @@ try {
     } elseif ($ReloadNeedsBootstrap) {
         Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
         Write-Host '    restart flecity_dev_safety' -ForegroundColor White
-        Write-Host 'A pending PLAY reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
-        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PLAY automatically.' -ForegroundColor Green
+        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
     } else {
         Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
     }

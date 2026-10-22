@@ -241,3 +241,11 @@ LOOP完成版には不要な変更を入れない。
 - DRAWのstroke数160 / 累積3200 point上限は変更なし。
 - REACTION / STOP! BATTLE のmaxPlayersを8→10へ拡張。処理量が小さく全員同時入力型のため、10人Roomでもゲーム変更を強制されず遊べる。
 - TIC-TACは2人専用、VOTE/MAJORITY/MINORITY/WORD WOLF/LIAR/TELEPHONEは3人以上というゲーム性上の人数制約を維持。
+
+
+## 2026-10-23 更新経路をPARTY正本へ切替
+- `games-update.ps1` / `games-manual-update.ps1` / 自動更新3スクリプトの取得branchを `games/platform-core` から `games/party-dev` へ変更。
+- これにより `games-update.cmd` を実行した際、完成済みLOOPだけの旧branchへ戻らず、現在のPARTY開発HEADをテストサーバーへ展開する。
+- 既存のworktree/Task名/配置先は維持し、取得先branchだけを切替えるためユーザー側の再構築は不要。
+- GitHub Actionsに updater branch検査を追加し、今後 `games/platform-core` へ誤って戻る変更をCIで拒否。
+- テストサーバー全体再起動は不要。既存の外部reload helperが有効ならverified build反映後に `flecity_games` のみ再起動される。

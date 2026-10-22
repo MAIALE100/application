@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $SourceRepo = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Branch = 'games/platform-core'
+$Branch = 'games/party-dev'
 $TaskName = 'Flecity Games Auto Update'
 $StateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
 $InstalledMarker = Join-Path $StateDir 'installed.flag'
@@ -117,7 +117,7 @@ try {
         $repeatTrigger = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
         $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
         $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
-        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($loginTrigger,$repeatTrigger) -Principal $principal -Settings $settings -Description 'Checks games/platform-core every minute and deploys verified Flecity Games updates.' -Force | Out-Null
+        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($loginTrigger,$repeatTrigger) -Principal $principal -Settings $settings -Description 'Checks games/party-dev every minute and deploys verified Flecity Games updates.' -Force | Out-Null
         Start-ScheduledTask -TaskName $TaskName
         $registered = $true
         Write-Host 'Windows Scheduled Task registered: one-shot check every minute.' -ForegroundColor Green

@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $MainRepo = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Branch = 'games/platform-core'
+$Branch = 'games/party-dev'
 $Worktree = Join-Path (Split-Path -Parent $MainRepo) '_flecity_games_manual'
 $DisableScript = Join-Path $MainRepo 'games-auto-update-disable.ps1'
 
@@ -19,7 +19,7 @@ try {
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $DisableScript | Out-Null
     }
 
-    Step 'Fetching latest PLAY build'
+    Step 'Fetching latest PARTY development build'
     $old=$ErrorActionPreference
     try {
         $ErrorActionPreference='Continue'
@@ -84,15 +84,15 @@ try {
         throw ('Updater syntax validation failed before deployment: ' + $summary)
     }
 
-    Step 'Deploying PLAY to the test server'
+    Step 'Deploying Flecity Games to the test server'
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Updater -ServerBase $ServerBase -NoGitSync
     $deployCode=$LASTEXITCODE
     if($deployCode -ne 0){
-        throw "PLAY deployment failed with exit code $deployCode."
+        throw "Flecity Games deployment failed with exit code $deployCode."
     }
 
     Step 'Manual update complete'
-    Write-Host 'PLAY files are updated.' -ForegroundColor Green
+    Write-Host 'PARTY development files are updated.' -ForegroundColor Green
     Write-Host 'If the updater requested ONE-TIME HELPER ACTIVATION, run only:' -ForegroundColor Yellow
     Write-Host '    restart flecity_dev_safety' -ForegroundColor White
     Write-Host 'The helper will refresh metadata and restart flecity_games automatically.' -ForegroundColor Green

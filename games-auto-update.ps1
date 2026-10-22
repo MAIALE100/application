@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Branch = 'games/platform-core'
+$Branch = 'games/party-dev'
 $UpdateScript = Join-Path $RepoRoot 'games-update.ps1'
 $StateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
 $LogPath = Join-Path $StateDir 'auto-update.log'

@@ -102,6 +102,26 @@ jobs:
           if ((Get-Content -Raw games-auto-update-disable.cmd) -notmatch 'games-auto-update-disable\.ps1') { throw 'disable cmd does not launch disable script' }
           if ((Get-Content -Raw games-auto-update-status.cmd) -notmatch 'games-auto-update-status\.ps1') { throw 'status cmd does not launch status script' }
 
+      - name: Check PARTY updater branch
+        shell: pwsh
+        run: |
+          $files = @(
+            'games-update.ps1',
+            'games-manual-update.ps1',
+            'games-auto-update.ps1',
+            'games-auto-update-once.ps1',
+            'games-auto-update-install.ps1'
+          )
+          foreach ($file in $files) {
+            $text = Get-Content -Raw $file
+            if ($text -notmatch "\$Branch\s*=\s*'games/party-dev'") {
+              throw "$file is not pinned to games/party-dev"
+            }
+            if ($text -match "games/platform-core") {
+              throw "$file still references games/platform-core"
+            }
+          }
+
       - name: Check JavaScript syntax
         run: |
           node --check flecity_games/web/shared/errors.js

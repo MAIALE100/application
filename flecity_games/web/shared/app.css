@@ -1012,5 +1012,5 @@ body.reduced-motion .home-scroll-row{scroll-behavior:auto}
 
 
 /* PARTY authoritative round deadline */
-.round-deadline{position:sticky;top:0;z-index:4;align-self:flex-end;min-width:5.5rem;padding:.375rem .625rem;border-radius:999px;background:#111720;border:.0625rem solid #303946;font-size:.75rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 .25rem .75rem rgba(0,0,0,.18)}
+.round-deadline{position:sticky;top:0;z-index:4;align-self:flex-end;min-width:5.5rem;padding:.375rem .625rem;border-radius:62.4375rem;background:#111720;border:.0625rem solid #303946;font-size:.75rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 .25rem .75rem rgba(0,0,0,.18)}
 .round-deadline.warn{background:#352b17;border-color:#6f5724}

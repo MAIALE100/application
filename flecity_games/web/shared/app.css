@@ -754,9 +754,10 @@ body.reduced-motion .high-low-card{transition:none!important}
 
 /* LB Phone status-bar clearance & runtime badge v11 */
 body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}
+body.game-active{padding-top:max(5rem,calc(env(safe-area-inset-top,0rem) + 1.25rem))}
 .brand-line{flex-wrap:wrap}
 .runtime-version{display:inline-flex;align-items:center;min-height:1.25rem;padding:.12rem .38rem;border-radius:.4rem;background:#171d25;border:.0625rem solid #34404f;color:#aeb9c8;font-size:.62rem;font-weight:850;letter-spacing:.03em;font-variant-numeric:tabular-nums}
-@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}}
+@media(max-width:22.5rem){body{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem))}body.game-active{padding-top:max(5rem,calc(env(safe-area-inset-top,0rem) + 1.25rem))}}
 
 
 /* PLAY depth feedback v12 */

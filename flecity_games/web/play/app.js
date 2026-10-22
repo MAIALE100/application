@@ -2022,7 +2022,9 @@ async function finishStack(){
 }
 async function dropStackBlock(){
  if(!stackGame||stackGame.finished||stackGame.finalizing)return;
- const now=performance.now(),previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
+ const now=performance.now();
+ if(now-stackGame.layerStartedAt<90)return;
+ const previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
  const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
  stackGame.history.push(actionMs);

@@ -316,3 +316,9 @@ LOOP完成版には不要な変更を入れない。
 - 通常 updater 実行時、installed.flagが旧形式/別branchなら自動的にinstallerを再実行し、既存worktreeとScheduled Taskを `games/party-dev` へ修復。
 - ユーザーが明示的にauto-updateをdisableしている場合は再有効化しない。
 - statusスクリプトで現在のauto branchと期待branchを表示。
+
+
+## 2026-10-23 Suspend後の遅延push遮断
+- NUIの `handlePartyMessage` で `partySuspend` / `partyResume` 以外は、`appSuspended=true` 中に即return。
+- client側push停止とNUI側event gateの二重防御にし、phone/app close直前に送信済みだったDRAW stroke/clearが遅延到着しても閉じた画面のstate/canvasを更新しない。
+- Resume時は既存 `partyGetRoom` でserver-authoritative snapshotを再取得するため、suspend中に捨てたeventは復帰後に正しい状態へ収束。

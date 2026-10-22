@@ -483,7 +483,8 @@ function handlePartyMessage(message){
  if(!message||typeof message!=='object')return;
  if(message.type==='partySuspend'){suspendPartyUi();return;}
  if(message.type==='partyResume'){resumePartyUi();return;}
- if(message.type==='partyUpdate'&&message.room){if(roomPushEnabled&&!appSuspended)renderRoom(message.room);return;}
+ if(appSuspended)return;
+ if(message.type==='partyUpdate'&&message.room){if(roomPushEnabled)renderRoom(message.room);return;}
  if(message.type==='partyDrawStroke'&&currentRoom&&currentRoom.roundState&&currentRoom.roundState.gameId==='draw'&&currentRoom.roundState.token===message.token){
    const revision=Number(message.revision);
    if(Number.isFinite(revision)&&revision<=lastRoomRevision)return;

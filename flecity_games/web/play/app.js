@@ -233,7 +233,7 @@ function setGameIcon(el,visual){
 }
 
 const rankTargets={
- quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:990,A:970,B:930},
+ quick_tap:{order:'asc',S:250,A:350,B:500},stop:{order:'desc',S:16000,A:8000,B:3500},
  stack:{order:'desc',S:12000,A:7000,B:3500},block:{order:'desc',S:5000,A:2500,B:1000},merge:{order:'desc',S:15000,A:7000,B:3000},fall:{order:'desc',S:12000,A:6000,B:2500},
  mines:{order:'asc',S:45000,A:75000,B:120000},nonogram:{order:'asc',S:25000,A:45000,B:75000},
  memory:{order:'asc',S:20000,A:30000,B:45000},sort:{order:'asc',S:45000,A:75000,B:120000},slide:{order:'asc',S:60000,A:120000,B:240000},color_match:{order:'asc',S:7000,A:10000,B:15000},
@@ -269,7 +269,7 @@ const achievementLabels={
  perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
  number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス12秒以内',
  high_low_streak:'RANGE MASTER · RANGE RUSH 10問連続正解',
- bullseye:'BULLSEYE · STOP! 990点以上',
+ bullseye:'BULLSEYE · STOP!でBULLSEYEを1回',
  merge_master:'MERGE MASTER · 2048タイル到達',
  mines_sprinter:'MINES SPRINTER · 60秒以内クリア',
  nonogram_solver:'LOGIC SOLVER · NONOGRAM 60秒以内',
@@ -809,7 +809,10 @@ stopButton.onclick=async()=>{
      await cancelPlaySession(game.sessionToken);stopSession=null;stopState='idle';stopButton.disabled=false;stopButton.textContent='もう一度';
      stopMessage.textContent='判定できませんでした';setStatus('STOP RUSHの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
    }
+   const scoreBefore=Number(game.score)||0;
    game.score=Number(res.score)||game.score||0;game.cleared=Number(res.cleared)||0;game.bullseyes=Number(res.bullseyes)||0;
+   const rankUp=liveRankUpPrefix('stop',scoreBefore,game.score);
+   if(rankUp)setStatus(rankUp+'STOP RUSH · SCORE '+String(game.score),'good');
    if(!res.success){
      game.precisionStreak=0;setStopVisual('miss');const missDistance=Number(res.distancePct||0),missZone=Number(res.tolerancePct||0),near=missDistance<=missZone+1.25;stopMessage.textContent=(near?'SO CLOSE':'MISS')+' · ズレ '+missDistance.toFixed(2)+'%';tone(near?310:220,90);
      await sleep(320);if(stopSession===game)await finishStopRun(res);return;

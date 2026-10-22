@@ -9,7 +9,10 @@ FlecityGamesConfig = {
             name = 'LOOP',
             description = '短時間からじっくり遊べるミニゲーム。',
             developer = 'Flecity',
-            defaultApp = true,
+            defaultApp = false,
+            game = true,
+            size = 1800,
+            price = 0,
             ui = 'web/play/index.html',
             icon = 'web/play/icon.svg'
         },

@@ -410,6 +410,8 @@ if "undoSortMove" not in play_js or 'id="sortUndo"' not in play_html:
     fail("SORT undo mechanic is missing")
 if "slideStars" not in play_js or "ALIGN +" not in play_js:
     fail("SLIDE par/alignment mastery feedback is missing")
+if "sortPourCount" not in play_js or "QUICK POUR ×" not in play_js or ".sort-board.sort-pour" not in play_css:
+    fail("SORT quick-pour tempo feedback is missing")
 if "slideMovePath" not in play_js or "CHAIN SLIDE ×" not in play_js:
     fail("SLIDE line-slide tempo controls are missing")
 if "RANK SCORE" not in play_js or "+0.35秒" not in play_html or "+0.20秒" not in play_html:

@@ -458,8 +458,8 @@ if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 
     fail("NUMBER ACE displayed/server threshold mismatch")
 if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.58.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.58.0-test")
+if "version '0.59.0-test'" not in fx:
+    fail("PLAY manifest version must be 0.59.0-test")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
@@ -468,8 +468,8 @@ if 'id="runtimeVersion"' not in play_html or "runtimeVersion.textContent" not in
     fail("PLAY persistent runtime version badge is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:
     fail("PLAY LB Phone status-bar clearance CSS is missing")
-if "body.game-active{padding-top:max(5rem" not in play_css:
-    fail("PLAY in-game status-bar clearance is too small")
+if "body.game-active .app-status{position:fixed" not in play_css or "bottom:max(1rem" not in play_css or "pointer-events:none" not in play_css:
+    fail("PLAY in-game status toast must not shift layout")
 if "PLAY clarity & dedicated icon pass v3" not in play_css or ".game-icon img" not in play_css or ".daily-game-icon" not in play_css:
     fail("PLAY clarity/icon v3 CSS is missing")
 if "PLAY library navigation pass v4" not in play_css or ".library-filter.active" not in play_css or ".recent-feature" not in play_css:

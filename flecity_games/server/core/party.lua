@@ -688,16 +688,9 @@ local function roomForPlayer(source,id)
 
     local member=id and room.members[id] or nil
     if member and tonumber(member.source)==src and not member.disconnected then
-        local reopened=member.appOpen~=true
-        member.appOpen=true
-        local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
-        if room.hostIdentifier~=id and host and host.appOpen==false and handoffHostFrom(room,room.hostIdentifier) then
-            notifyRoom(room,src)
-        elseif reopened then
-            -- Keep the host/other members' app-open view current after a normal reopen.
-            -- Exclude the caller because the callback response already carries its fresh snapshot.
-            notifyRoom(room,src)
-        end
+        -- Membership lookup must not imply that the PARTY UI is open.
+        -- A callback already in flight can arrive after AppClosed; only GetRoom/reconnect
+        -- is allowed to restore appOpen so a delayed submit cannot resurrect presence.
         return room
     end
 
@@ -821,7 +814,18 @@ function FlecityGamesParty.GetRoom(source)
         if room then reconnected=reconnectMember(room,id,source) end
     end
     if not room then return {ok=false,error='NOT_IN_ROOM'} end
-    if reconnected then notifyRoom(room,source) end
+    local reopened=false
+    local member=room.members[id]
+    if member and not member.disconnected and member.appOpen~=true then
+        member.appOpen=true
+        reopened=true
+        local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
+        if room.hostIdentifier~=id and host and host.appOpen==false then
+            handoffHostFrom(room,room.hostIdentifier)
+        end
+        migrateHost(room)
+    end
+    if reconnected or reopened then notifyRoom(room,source) end
     return {ok=true,reconnected=reconnected,room=snapshot(room,id)}
 end
 

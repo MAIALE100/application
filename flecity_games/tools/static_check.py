@@ -171,6 +171,10 @@ if server.count("FlecityGamesPartyFall.DebugSelftest()") < 3:
     fail("PARTY+ FALL BATTLE verifier must run in startup/selftest/preflight")
 if "forfeited=true" not in party_lua or "fallBattleDisconnectForfeit" not in party_lua:
     fail("PARTY+ FALL BATTLE disconnect/reconnect reset guard is missing")
+if "m.appOpen~=false and playerId~=rs.explainerIdentifier" not in party_lua or "rs.gameId=='memory_chain'" not in party_lua:
+    fail("PARTY+ app-close wait-count hardening is missing")
+if "PARTY+ app/phone close実機確認" not in testing or "PARTY+ app/phone close実機確認" not in party_submission_checklist:
+    fail("PARTY+ app-close live-test documentation is missing")
 if "FALL_BASE_SHAPES" in party_fall_js:
     fail("PARTY FALL BATTLE client should keep its implementation isolated from PLAY source markers")
 if "PARTY_PLUS_REQUIRED" not in errors_js:

@@ -130,6 +130,16 @@ local function isNear(src, target, radius)
     return #(coords - target) <= (radius or Config.ServerDistanceTolerance)
 end
 
+local function isPlayerAlive(src)
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return false end
+
+    local ok, health = pcall(GetEntityHealth, ped)
+    if not ok or not health then return false end
+
+    return health > 0
+end
+
 local function allowRequest(src, key, windowMs)
     local now = nowMs()
     requestLocks[src] = requestLocks[src] or {}
@@ -285,6 +295,11 @@ local function beginAction(src, actionType, durationMs, targetCoords, data, labe
 
     if session.action then
         notify(src, '別の作業中です。')
+        return false
+    end
+
+    if not isPlayerAlive(src) then
+        notify(src, '行動不能な状態では作業できません。')
         return false
     end
 
@@ -593,6 +608,13 @@ RegisterNetEvent('flecity_mining:server:finishAction', function(token)
 
     local action = session.action
     if tostring(token or '') ~= action.token then
+        return
+    end
+
+    if not isPlayerAlive(src) then
+        session.action = nil
+        notify(src, '行動不能になったため作業を中断しました。')
+        syncState(src)
         return
     end
 

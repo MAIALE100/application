@@ -145,3 +145,10 @@ PARTY+ app/phone close実機確認（未検証）:
 □ 入力済み参加者だけが残るよう未入力者をcloseし、deadlineを待たず結果確定する
 □ closeした参加者の再openで完了済みRoundが巻き戻らない
 ※ FiveM＋LB Phone複数クライアント実機で確認するまでPASS扱いしない。
+
+
+【実機未検証：client側suspend callback gate】
+□ PARTY/Phone closeと同時にpoll／Ready／submit／GetRoomを発火させ、close後にclientへ届いたrequestがserverへ送信されない
+□ game_party_statusでclosed memberのappOpen=falseが維持され、古いGetRoomでtrueへ戻らない
+□ 通常の再open後はGetRoomが成功し、同じRoomの最新snapshotへ復帰する
+※ server側closed callback拒否との二重防御をFiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。

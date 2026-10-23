@@ -738,7 +738,11 @@ async function resolveQuickTap(){
    await cancelPlaySession(game.sessionToken);tapSession=null;tapState='idle';tapButton.disabled=false;tapButton.textContent='もう一度';
    tapMessage.textContent='判定できませんでした';setStatus('QUICK TAP FOCUSの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
  }
- game.hits=Number(res.hits)||0;game.falseStarts=Number(res.falseStarts)||0;game.lives=Number(res.lives)||0;renderQuickMeta();
+ const responseHits=Number(res.hits),responseFalseStarts=Number(res.falseStarts),responseLives=Number(res.lives);
+ if(Number.isFinite(responseHits))game.hits=Math.max(0,responseHits);
+ if(Number.isFinite(responseFalseStarts))game.falseStarts=Math.max(0,responseFalseStarts);
+ if(Number.isFinite(responseLives))game.lives=Math.max(0,responseLives);
+ renderQuickMeta();
  if(res.falseStart){
    game.focusStreak=0;setQuickVisual('false-start');tapMessage.textContent='フライング! · FOCUS RESET';tone(180,70);
    if(res.ended){await sleep(350);if(tapSession===game)await finishQuickRun(res);return;}

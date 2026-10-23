@@ -167,6 +167,8 @@ if "'server/core/party_fall.lua'" not in fx or "FlecityGamesPartyFall.Validate" 
     fail("PARTY+ FALL BATTLE server verifier is missing")
 if "FlecityGamesPartyFall.DebugSelftest" not in party_fall_lua:
     fail("PARTY+ FALL BATTLE verifier selftest is missing")
+if server.count("FlecityGamesPartyFall.DebugSelftest()") < 3:
+    fail("PARTY+ FALL BATTLE verifier must run in startup/selftest/preflight")
 if "forfeited=true" not in party_lua or "fallBattleDisconnectForfeit" not in party_lua:
     fail("PARTY+ FALL BATTLE disconnect/reconnect reset guard is missing")
 if "FALL_BASE_SHAPES" in party_fall_js:

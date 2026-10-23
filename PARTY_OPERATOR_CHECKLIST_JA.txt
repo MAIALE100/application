@@ -89,3 +89,10 @@ Flecity PARTY 実機オペレーターチェックリスト
 □ WORD WOLF / LIARは会話フェーズ・秘密情報公開条件を壊さず、投票可能フェーズで同様に待ち解除される
 □ B再open後は同Roomへ復帰し、完了済みRoundを巻き戻さない
 ※ FiveM＋LB Phone複数クライアントで未実施の間は成功扱いにしない。
+
+
+[未検証] 投票対象のApp/Phone close
+- VOTE / WORD WOLF / LIARで投票済みの対象者がPARTY/Phoneを閉じた場合、その対象への既存票をserver側で無効化し、closed参加者が勝者/最多票対象として残らないこと。
+- 残るapp-open参加者の投票だけで再集計され、必要なら即結果確定すること。
+- closed参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。
+- FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。

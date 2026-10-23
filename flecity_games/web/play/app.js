@@ -3162,12 +3162,14 @@ async function openMemory(daily=false){
 }
 async function flipMemory(index){
  if(!memory||memory.previewing||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
- memory.revealed.push(index);renderMemory();
- if(memory.revealed.length<2)return;
+ memory.revealed.push(index);
+ if(memory.revealed.length<2){renderMemory();return;}
+ // Lock input synchronously on the second card so queued rapid taps cannot leak into the next turn.
+ memory.busy=true;renderMemory();
  const pair=memory.revealed.slice(0,2);memory.history.push(pair);memory.moves+=1;
  const matched=memory.deck[pair[0]]===memory.deck[pair[1]];
  if(matched){
-   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];memory.streak+=1;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
+   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];memory.busy=false;memory.streak+=1;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
    memoryBoard.classList.remove('memory-streak');void memoryBoard.offsetWidth;if(memory.streak>=2)memoryBoard.classList.add('memory-streak');
    tone(740+Math.min(200,memory.streak*26),55);
    if(memory.streak===3||memory.streak===5)setStatus('PAIR STREAK ×'+memory.streak+' · NICE MEMORY','good');

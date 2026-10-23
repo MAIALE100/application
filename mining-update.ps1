@@ -112,6 +112,8 @@ try {
     Write-Host 'Then verify:' -ForegroundColor Yellow
     Write-Host '    mining_selftest' -ForegroundColor White
     Write-Host '    mining_healthcheck' -ForegroundColor White
+    Write-Host '    mining_configcheck' -ForegroundColor White
+    Write-Host '    mining_economy' -ForegroundColor White
 }
 catch {
     Write-Host ''

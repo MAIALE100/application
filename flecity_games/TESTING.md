@@ -743,3 +743,11 @@ PARTY+ app/phone close実機確認（未検証）:
 - 新Hostは追加の再open操作やserver restartなしでゲーム選択 / Ready後のStartを実行できる。
 - 旧Hostが後からPARTYを再openしても通常参加者として復帰し、Host権限を奪い返さない。
 - FiveM + LB Phone複数クライアント実機で確認するまでPASS扱いしない。
+
+
+## Closed app push suppression（未検証・2026-10-24）
+- PARTY/Phoneを閉じたmemberへ `partyUpdate` / DRAW stroke等のRoom pushがserverから送信されないこと。
+- 別の開いている参加者には同じRoom更新が即時pushされ、進行が止まらないこと。
+- 閉じたmemberが通常フローで再openすると `GetRoom` で最新snapshotへ収束し、閉じていた間のpush再送を必要としないこと。
+- `game_party_status` でclosed memberの `appOpen=false` が維持されること。
+- FiveM + LB Phone複数クライアントで確認するまでPASS扱いしない。

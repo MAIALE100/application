@@ -1571,7 +1571,7 @@ function FlecityGamesParty.SubmitNgWordGuess(source,data)
     else
         local expected,submitted=0,0
         for playerId,m in pairs(room.members) do
-            if not m.disconnected and playerId~=rs.explainerIdentifier then
+            if not m.disconnected and m.appOpen~=false and playerId~=rs.explainerIdentifier then
                 expected=expected+1
                 if rs.guesses[playerId] then submitted=submitted+1 end
             end

@@ -32,6 +32,8 @@ bridge = read("flecity_games/web/shared/bridge.js")
 errors_js = read("flecity_games/web/shared/errors.js")
 safety_server = read("flecity_dev_safety/server.lua")
 safety_fx = read("flecity_dev_safety/fxmanifest.lua")
+testing = read("flecity_games/TESTING.md")
+party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
 
 def dom_ids(js):
     return set(re.findall(r"getElementById\('([^']+)'\)", js))

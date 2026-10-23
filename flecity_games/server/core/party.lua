@@ -681,7 +681,7 @@ local function notifyRoomEvent(room,excludeSource,eventName,payload)
     end
 end
 
-local function roomForPlayer(source,id)
+local function roomForPlayer(source,id,allowClosed)
     local src=tonumber(source)
     local room=roomForSource(src)
     if not room then return nil end
@@ -689,8 +689,10 @@ local function roomForPlayer(source,id)
     local member=id and room.members[id] or nil
     if member and tonumber(member.source)==src and not member.disconnected then
         -- Membership lookup must not imply that the PARTY UI is open.
-        -- A callback already in flight can arrive after AppClosed; only GetRoom/reconnect
-        -- is allowed to restore appOpen so a delayed submit cannot resurrect presence.
+        -- A callback already in flight can arrive after AppClosed. Normal callbacks are
+        -- rejected while closed so delayed Ready/Start/submit traffic cannot mutate state.
+        -- GetRoom is the only callback allowed to observe a closed membership and reopen it.
+        if member.appOpen==false and allowClosed~=true then return nil end
         return room
     end
 
@@ -807,7 +809,7 @@ end
 function FlecityGamesParty.GetRoom(source)
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
-    local room=roomForPlayer(source,id)
+    local room=roomForPlayer(source,id,true)
     local reconnected=false
     if not room then
         room=roomForIdentifier(id)

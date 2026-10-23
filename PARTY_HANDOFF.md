@@ -470,3 +470,13 @@ LOOP完成版には不要な変更を入れない。
 - FALL BATTLE実機確認には2人/10人、90秒timeout、Phone/App close・FiveM切断DNF、再接続後のやり直し不可、途中盤面/score非公開を明記。
 - GitHub Actions最新runも `runner_id=0 / steps=[]` のjob開始前failure。コード実行結果ではないためgreen扱いしない。
 - runner復旧後はJS/Lua/static check/提出ZIP buildを含むworkflow green確認が必要。
+
+
+## 2026-10-23 順番制ゲーム app/phone close耐性
+- FiveM接続中でもPARTY/Phoneだけ閉じた参加者が順番制ゲームを止めないよう補強。
+- TELEPHONEはcurrent playerがappOpen=falseになった時点で即skipし、次のapp-open参加者へmode別の新deadlineを付与。次順候補もappOpen=falseなら自動skip。
+- BOMBはappOpen=falseの参加者へ手番を渡さず、current playerがcloseした場合も即次のapp-open参加者へ移行。
+- TIC-TACは参加者がPARTY/Phoneを閉じた場合、相手の不戦勝（APP_CLOSED）として即結果確定。45秒timeout待ちを発生させない。
+- Room所属は維持するため、closeした参加者もロビー復帰後の次Roundには通常参加可能。
+- DebugSelftestへ telephoneAppCloseSkip / bombAppCloseSkip / ticTacAppCloseForfeit を追加。
+- 実機FiveM複数クライアントでのclose直後push・遅延callback・再open挙動は未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ残す。

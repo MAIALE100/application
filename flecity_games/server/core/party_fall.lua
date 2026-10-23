@@ -115,7 +115,7 @@ end
 function FlecityGamesPartyFall.Validate(seed,history,width,height,maxElapsedMs)
     width=math.max(6,math.min(14,math.floor(tonumber(width) or 10)))
     height=math.max(12,math.min(24,math.floor(tonumber(height) or 18)))
-    if type(history)~='table' or #history<1 or #history>1200 then return nil,'INVALID_HISTORY' end
+    if type(history)~='table' or #history<1 or #history>1200 then return nil,'INVALID_FALL_BATTLE_REPLAY' end
 
     local board=emptyBoard(width,height)
     local state=math.floor(tonumber(seed) or 1)
@@ -126,20 +126,20 @@ function FlecityGamesPartyFall.Validate(seed,history,width,height,maxElapsedMs)
     local normalized={}
 
     for _,entry in ipairs(history) do
-        if type(entry)~='table' then return nil,'INVALID_HISTORY' end
+        if type(entry)~='table' then return nil,'INVALID_FALL_BATTLE_REPLAY' end
         local x=tonumber(entry.x~=nil and entry.x or entry[1])
         local rotation=tonumber(entry.rotation~=nil and entry.rotation or entry[2])
         local holdValue=entry.hold
         if holdValue==nil then holdValue=entry[3] end
         local actionMs=tonumber(entry.t~=nil and entry.t or entry[4])
-        if not x or not rotation or not actionMs or actionMs~=actionMs then return nil,'INVALID_HISTORY' end
+        if not x or not rotation or not actionMs or actionMs~=actionMs then return nil,'INVALID_FALL_BATTLE_REPLAY' end
         actionMs=math.floor(actionMs)
         if actionMs<0 or actionMs>allowedElapsed+500 then return nil,'IMPOSSIBLE_TIMING' end
         if previousActionMs>=0 and actionMs-previousActionMs<60 then return nil,'IMPOSSIBLE_TIMING' end
         previousActionMs=actionMs
 
         if holdValue~=nil and type(holdValue)~='boolean' and tonumber(holdValue)~=0 and tonumber(holdValue)~=1 then
-            return nil,'INVALID_HISTORY'
+            return nil,'INVALID_FALL_BATTLE_REPLAY'
         end
         local useHold=holdValue==true or tonumber(holdValue)==1
         local pieceType
@@ -153,9 +153,9 @@ function FlecityGamesPartyFall.Validate(seed,history,width,height,maxElapsedMs)
             end
         end
 
-        if not findAnyPlacement(board,width,height,pieceType) then return nil,'INVALID_HISTORY' end
+        if not findAnyPlacement(board,width,height,pieceType) then return nil,'INVALID_FALL_BATTLE_REPLAY' end
         local applied=applyPlacement(board,width,height,pieceType,x,rotation,combo,lines)
-        if not applied then return nil,'INVALID_HISTORY' end
+        if not applied then return nil,'INVALID_FALL_BATTLE_REPLAY' end
         combo=applied.combo
         score=score+applied.gained
         lines=lines+applied.cleared

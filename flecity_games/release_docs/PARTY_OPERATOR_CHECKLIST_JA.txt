@@ -116,3 +116,11 @@ PARTY+ app/phone close実機確認（未検証）:
 □ 閉じた端末はRoom所属を維持したまま appOpen=false になり、通常の再openで同じRoomへ復帰できる
 □ Hostを閉じた場合、開いている別参加者へHostが移り、旧Host再open後もRoom操作が破綻しない
 ※ FiveM＋LB Phone複数クライアントでのタイミング依存確認が必要。未実施の間は成功扱いにしない。
+
+
+【実機未検証：閉じたHostと後参加者のHost復旧】
+□ HostがPARTY/Phoneを閉じ、既存参加者も全員アプリを閉じた状態にする
+□ その後、新しい参加者がRoomへJoinすると、その開いている参加者へHostが即移行する
+□ 新Hostが追加の再openやサーバー再起動なしでゲーム選択・開始できる
+□ 旧Hostを再openしてもHost権限を奪い返さず、通常参加者としてRoomへ復帰する
+※ FiveM＋LB Phone複数クライアントで未確認の間は合格扱いにしない

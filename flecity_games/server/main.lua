@@ -16,7 +16,10 @@ local callbacks={
     ['flecity_games:play:statistics']=function(source) return FlecityGamesPlay.Statistics(source) end,
     ['flecity_games:profile:getSettings']=function(source) return FlecityGamesProfile.GetSettings(source) end,
     ['flecity_games:profile:updateSettings']=function(source,data) return FlecityGamesProfile.UpdateSettings(source,data) end,
-    ['flecity_games:party:getConfig']=function() return FlecityGamesParty.GetConfig() end,
+    ['flecity_games:party:getConfig']=function(source) return FlecityGamesParty.GetConfig(source) end,
+    ['flecity_games:party:getPlus']=function(source) return FlecityGamesPartyPlus.GetStatus(source,true) end,
+    ['flecity_games:party:subscribePlus']=function(source) return FlecityGamesPartyPlus.Subscribe(source) end,
+    ['flecity_games:party:cancelPlus']=function(source) return FlecityGamesPartyPlus.Cancel(source) end,
     ['flecity_games:party:createRoom']=function(source) return FlecityGamesParty.CreateRoom(source) end,
     ['flecity_games:party:joinRoom']=function(source,data) return FlecityGamesParty.JoinRoom(source,data) end,
     ['flecity_games:party:getRoom']=function(source) return FlecityGamesParty.GetRoom(source) end,
@@ -86,7 +89,7 @@ local function registerPhoneCallbacks()
     return registeredPhoneCallbacks==expectedPhoneCallbacks
 end
 
-local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily'}
+local requiredTables={'flecity_game_profiles','flecity_game_scores','flecity_game_saves','flecity_game_achievements','flecity_game_daily','flecity_game_subscriptions'}
 
 local function requireServerConsole(source,commandName)
     if source==0 then return true end
@@ -205,9 +208,11 @@ end)
 AddEventHandler('flecity_games:framework:playerUnloaded',function(src)
     src=tonumber(src)
     if not src then return end
+    local playerIdentifier=FlecityGamesFramework.GetIdentifier(src)
     FlecityGamesRateLimit.Clear(src)
     FlecityGamesPlay.DropSource(src)
     FlecityGamesParty.DropSource(src)
+    if playerIdentifier then FlecityGamesPartyPlus.ClearCache(playerIdentifier) end
 end)
 
 CreateThread(function()

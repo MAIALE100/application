@@ -518,6 +518,7 @@ local function snapshot(room,viewerId)
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
+        hostPlusActive=FlecityGamesPartyPlus.CachedActive(room.hostIdentifier),
         roundState=publicRoundState(room,viewerId)
     }
 end
@@ -590,7 +591,7 @@ local function roomForPlayer(source,id)
     return nil
 end
 
-function FlecityGamesParty.GetConfig()
+function FlecityGamesParty.GetConfig(source)
     local games={}
     for _,game in ipairs(FlecityGamesRegistry.List('party',true)) do
         games[#games+1]={
@@ -598,7 +599,8 @@ function FlecityGamesParty.GetConfig()
             name=game.name,
             description=game.description,
             minPlayers=game.minPlayers,
-            maxPlayers=game.maxPlayers
+            maxPlayers=game.maxPlayers,
+            premium=game.premium==true
         }
     end
     return {
@@ -608,7 +610,8 @@ function FlecityGamesParty.GetConfig()
             minPlayers=FlecityGamesConfig.Party.MinPlayers,
             maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
             version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
-            games=games
+            games=games,
+            plus=source and FlecityGamesPartyPlus.GetConfigFor(source,true) or nil
         }
     }
 end
@@ -714,6 +717,10 @@ function FlecityGamesParty.SelectGame(source,data)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(type(data)=='table' and data.gameId or nil)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
+    if game.premium==true then
+        local allowed=FlecityGamesPartyPlus.HasAccess(source,id,true)
+        if not allowed then return {ok=false,error='PARTY_PLUS_REQUIRED'} end
+    end
     room.selectedGame=game.id
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
@@ -739,6 +746,10 @@ function FlecityGamesParty.StartRound(source)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(room.selectedGame)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
+    if game.premium==true then
+        local allowed=FlecityGamesPartyPlus.HasAccess(source,id,true)
+        if not allowed then return {ok=false,error='PARTY_PLUS_REQUIRED'} end
+    end
     local count=connectedCount(room)
     if count<(game.minPlayers or FlecityGamesConfig.Party.MinPlayers) or count>(game.maxPlayers or FlecityGamesConfig.Party.MaxPlayers) then
         return {ok=false,error='PLAYER_COUNT_UNSUPPORTED'}

@@ -82,6 +82,12 @@ if "version '1.1.0-dev'" not in safety_fx:
     fail("DEV Safety external reload helper version is stale")
 if "'server/core/text.lua'" not in fx:
     fail("UTF-8 text helper is not loaded by fxmanifest")
+if "'server/core/party_plus.lua'" not in fx:
+    fail("PARTY+ entitlement layer is not loaded by fxmanifest")
+if "Price = 50000" not in config or "DurationSeconds = 7 * 24 * 60 * 60" not in config:
+    fail("PARTY+ 7-day / 50000 plan config is missing")
+if "RemoveMoney" not in read("flecity_games/server/bridge/framework.lua") or "flecity_game_subscriptions" not in database_lua:
+    fail("PARTY+ payment/persistence wiring is incomplete")
 
 text_lua = read("flecity_games/server/core/text.lua")
 if "utf8.len" not in text_lua or "utf8.offset" not in text_lua or "utf8Truncate" not in text_lua:
@@ -109,6 +115,8 @@ required_schema_markers = (
     "game_version INT UNSIGNED",
     "flecity_game_achievements",
     "flecity_game_daily",
+    "flecity_game_subscriptions",
+    "active_until DATETIME NOT NULL",
     "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 )
 for marker in required_schema_markers:

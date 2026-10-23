@@ -758,3 +758,10 @@ PARTY+ app/phone close実機確認（未検証）:
 - 進捗表示の分母・分子がapp-open参加者基準へ即更新され、`入力済み 2/3` のような閉じた端末待ち表示が残らないこと。
 - 閉じた参加者はRoom所属を維持し、再open後は終了済みRoundへ遅延submitできず、次Roundには通常参加できること。
 - FiveM + LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+
+## PARTY App close即時再評価（LIVE TEST REQUIRED）
+- 同時入力ゲームでA入力済み・B未入力の状態からBがPARTY/Phoneを閉じる。
+- Bのcloseをserver側のreconcileトリガーとして、残るapp-open参加者が全員入力済みならdeadlineを待たず結果確定すること。
+- B再open後は同Roomへ復帰し、完了済みRoundや結果を巻き戻さないこと。
+- FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。

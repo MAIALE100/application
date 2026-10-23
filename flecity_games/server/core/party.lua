@@ -2136,6 +2136,12 @@ reconcileRound=function(room)
     elseif rs.gameId=='liar' then maybeFinishLiar(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
     elseif rs.gameId=='telephone' then ensureTelephoneTurn(room)
+    elseif rs.gameId=='fake_answer' then
+        if fakeAnswerPhaseReady(room) then
+            if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,false) end
+        end
+    elseif rs.gameId=='memory_chain' then
+        maybeResolveMemoryStage(room)
     elseif rs.gameId=='bomb' then
         local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
         if not current or current.disconnected then

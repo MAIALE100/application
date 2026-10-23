@@ -124,3 +124,11 @@ PARTY+ app/phone close実機確認（未検証）:
 □ 新Hostが追加の再openやサーバー再起動なしでゲーム選択・開始できる
 □ 旧Hostを再openしてもHost権限を奪い返さず、通常参加者としてRoomへ復帰する
 ※ FiveM＋LB Phone複数クライアントで未確認の間は合格扱いにしない
+
+
+【実機未検証：閉じた端末へのRoom push抑止】
+□ PARTY/Phoneを閉じた参加者へ partyUpdate / DRAW stroke等のRoom pushが送信されない
+□ 開いている他参加者には同じ更新が即時反映され、Round進行が止まらない
+□ 閉じた参加者を再openするとGetRoomで最新状態へ復帰し、server再起動を必要としない
+□ game_party_statusで閉じた参加者のappOpen=falseが維持される
+※ FiveM＋LB Phone複数クライアントで未確認の間は合格扱いにしない

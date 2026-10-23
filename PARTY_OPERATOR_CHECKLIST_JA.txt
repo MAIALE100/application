@@ -81,3 +81,11 @@ Flecity PARTY 実機オペレーターチェックリスト
 □ closed memberはRoom所属を維持し appOpen=false、通常の再openで同じRoomへ復帰
 □ Host close時は開いている別参加者へHost移行し、旧Host再open後も操作可能
 ※ FiveM＋LB Phone複数クライアントで未実施の間は成功扱いにしない。
+
+
+[未検証] 同時入力ゲームのclose即時確定
+□ 2台以上でAが入力済み、Bは未入力の状態を作る
+□ BがPARTYアプリ/Phoneを閉じた直後、REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY等がdeadlineを待たず結果確定する
+□ WORD WOLF / LIARは会話フェーズ・秘密情報公開条件を壊さず、投票可能フェーズで同様に待ち解除される
+□ B再open後は同Roomへ復帰し、完了済みRoundを巻き戻さない
+※ FiveM＋LB Phone複数クライアントで未実施の間は成功扱いにしない。

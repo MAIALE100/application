@@ -735,3 +735,11 @@ PARTY+ app/phone close実機確認（未検証）:
 - Confirm the closed member remains in the room with `appOpen=false`, and reopening PARTY via the normal app flow restores presence through `GetRoom` without requiring a server restart.
 - Confirm another active member can receive Host handoff while the old Host is closed.
 - This race requires real FiveM + LB Phone timing and remains **LIVE TEST REQUIRED** until verified with multiple clients.
+
+
+## Closed Host + later Join host recovery（未検証・2026-10-24）
+- HostだけがPARTY/Phoneを閉じ、他のRoom memberも全員appOpen=falseの状態では、Room所属を維持したまま一時的にclosed Hostを保持してよい。
+- その後、別の新規参加者がRoomへJoinした時点で、そのapp-open参加者へHost権限が即handoffされる。
+- 新Hostは追加の再open操作やserver restartなしでゲーム選択 / Ready後のStartを実行できる。
+- 旧Hostが後からPARTYを再openしても通常参加者として復帰し、Host権限を奪い返さない。
+- FiveM + LB Phone複数クライアント実機で確認するまでPASS扱いしない。

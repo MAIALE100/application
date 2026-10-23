@@ -159,6 +159,16 @@ local function containsPartyTerm(text,term)
     return needle~='' and haystack:find(needle,1,true)~=nil
 end
 
+local function shuffledCopy(values)
+    local out={}
+    for i,value in ipairs(values or {}) do out[i]=value end
+    for i=#out,2,-1 do
+        local j=math.random(1,i)
+        out[i],out[j]=out[j],out[i]
+    end
+    return out
+end
+
 local telephonePrompts={
     '赤い車で海へ行く',
     '猫がピザを食べている',
@@ -265,7 +275,7 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45
+        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -530,6 +540,35 @@ local function publicRoundState(room,viewerId)
             end
             out.submittedCount=submitted
             out.expectedSubmissions=expected
+        end
+    end
+    if rs.gameId=='fake_answer' then
+        out.phase=rs.phase
+        out.question=rs.question
+        if rs.phase=='submit' then
+            out.selfSubmitted=rs.fakeAnswers and rs.fakeAnswers[viewerId]~=nil or false
+            local submitted=0
+            for playerId,m in pairs(room.members or {}) do
+                if not m.disconnected and rs.fakeAnswers and rs.fakeAnswers[playerId]~=nil then submitted=submitted+1 end
+            end
+            out.submittedCount=submitted
+            out.expectedSubmissions=connectedCount(room)
+        elseif rs.phase=='vote' then
+            out.selfSubmitted=rs.votes and rs.votes[viewerId]~=nil or false
+            out.options={}
+            for _,option in ipairs(rs.options or {}) do
+                out.options[#out.options+1]={
+                    id=option.id,
+                    text=option.text,
+                    own=option.creatorIdentifier==viewerId
+                }
+            end
+            local submitted=0
+            for playerId,m in pairs(room.members or {}) do
+                if not m.disconnected and rs.votes and rs.votes[playerId]~=nil then submitted=submitted+1 end
+            end
+            out.submittedCount=submitted
+            out.expectedSubmissions=connectedCount(room)
         end
     end
     if rs.complete then
@@ -856,11 +895,23 @@ function FlecityGamesParty.StartRound(source)
         rs.guesses={}
         rs.guessOrder={}
     end
+    if game.id=='fake_answer' then
+        local prompt=pickRoomPrompt(room,'fake_answer',FlecityGamesPartyPlusPrompts.FakeAnswer)
+        rs.question=prompt.question
+        rs.correctAnswer=prompt.answer
+        rs.decoys=prompt.decoys
+        rs.phase='submit'
+        rs.fakeAnswers={}
+        rs.votes={}
+        rs.options={}
+    end
 
     if game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
     elseif game.id=='ng_word' then
         setRoundDeadline(rs,45)
+    elseif game.id=='fake_answer' then
+        setRoundDeadline(rs,60)
     else
         setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     end
@@ -1433,6 +1484,171 @@ function FlecityGamesParty.SubmitNgWordGuess(source,data)
     return {ok=true,correct=correct,room=snapshot(room,id)}
 end
 
+
+local function buildFakeAnswerOptions(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='fake_answer' or rs.complete or rs.phase~='submit' then return false end
+
+    local raw={{text=rs.correctAnswer,kind='correct'}}
+    local used={[normalizedPartyAnswer(rs.correctAnswer)]=true}
+    for id,m in pairs(room.members) do
+        local answer=rs.fakeAnswers and rs.fakeAnswers[id] or nil
+        local normalized=answer and normalizedPartyAnswer(answer) or ''
+        if not m.disconnected and normalized~='' and not used[normalized] then
+            used[normalized]=true
+            raw[#raw+1]={text=answer,kind='fake',creatorIdentifier=id,creatorName=m.name}
+        end
+    end
+    for _,decoy in ipairs(rs.decoys or {}) do
+        local normalized=normalizedPartyAnswer(decoy)
+        if normalized~='' and not used[normalized] then
+            used[normalized]=true
+            raw[#raw+1]={text=decoy,kind='decoy'}
+        end
+    end
+
+    raw=shuffledCopy(raw)
+    rs.options={}
+    for index,entry in ipairs(raw) do
+        entry.id=('choice_%02d'):format(index)
+        rs.options[#rs.options+1]=entry
+    end
+    rs.phase='vote'
+    rs.votes={}
+    setRoundDeadline(rs,45)
+    return true
+end
+
+local function finishFakeAnswer(room,timedOut)
+    local rs=room.roundState
+    if not rs or rs.gameId~='fake_answer' or rs.complete then return end
+    if rs.phase=='submit' then buildFakeAnswerOptions(room) return end
+
+    local choices={} local correctOptionId=nil
+    for _,option in ipairs(rs.options or {}) do
+        if option.kind=='correct' then correctOptionId=option.id end
+        choices[option.id]={id=option.id,text=option.text,kind=option.kind,creatorIdentifier=option.creatorIdentifier,creatorName=option.creatorName,votes=0}
+    end
+
+    local scoreById={}
+    for id,m in pairs(room.members) do
+        if not m.disconnected then scoreById[id]={memberId=m.memberId,name=m.name,score=0,correct=false,foolVotes=0} end
+    end
+    for voterId,optionId in pairs(rs.votes or {}) do
+        local voter=room.members[voterId]
+        local choice=choices[optionId]
+        if voter and not voter.disconnected and choice then
+            choice.votes=choice.votes+1
+            local playerScore=scoreById[voterId]
+            if playerScore and optionId==correctOptionId then
+                playerScore.correct=true
+                playerScore.score=playerScore.score+2
+            end
+            local creatorId=choice.creatorIdentifier
+            if creatorId and creatorId~=voterId and scoreById[creatorId] then
+                scoreById[creatorId].foolVotes=scoreById[creatorId].foolVotes+1
+                scoreById[creatorId].score=scoreById[creatorId].score+1
+            end
+        end
+    end
+
+    local entries={}
+    for _,entry in pairs(scoreById) do entries[#entries+1]=entry end
+    table.sort(entries,function(a,b)
+        if a.score==b.score then return a.name<b.name end
+        return a.score>b.score
+    end)
+    local best=entries[1] and entries[1].score or 0
+    local winners={}
+    for _,entry in ipairs(entries) do
+        if entry.score==best then winners[#winners+1]=entry.memberId end
+    end
+
+    local resultChoices={}
+    for _,option in ipairs(rs.options or {}) do
+        local choice=choices[option.id]
+        resultChoices[#resultChoices+1]={
+            text=choice.text,
+            votes=choice.votes,
+            correct=choice.kind=='correct',
+            creatorName=choice.creatorName
+        }
+    end
+
+    rs.complete=true
+    rs.results={
+        question=rs.question,
+        correctAnswer=rs.correctAnswer,
+        choices=resultChoices,
+        entries=entries,
+        winnerMemberIds=winners,
+        timedOut=timedOut==true
+    }
+end
+
+function FlecityGamesParty.SubmitFakeAnswer(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'fake_answer_submit',350) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='fake_answer' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.phase~='submit' then return {ok=false,error='VOTING_STARTED'} end
+    if rs.fakeAnswers[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+
+    local answer=FlecityGamesText.Normalize(data.answer)
+    local length=FlecityGamesText.Length(answer)
+    if length<1 or length>50 then return {ok=false,error='INVALID_TEXT'} end
+    local normalized=normalizedPartyAnswer(answer)
+    if normalized==normalizedPartyAnswer(rs.correctAnswer) then return {ok=false,error='FAKE_ANSWER_UNAVAILABLE'} end
+    for _,existing in pairs(rs.fakeAnswers or {}) do
+        if normalized==normalizedPartyAnswer(existing) then return {ok=false,error='FAKE_ANSWER_UNAVAILABLE'} end
+    end
+
+    rs.fakeAnswers[id]=answer
+    local submitted,expected=0,0
+    for playerId,m in pairs(room.members) do
+        if not m.disconnected then
+            expected=expected+1
+            if rs.fakeAnswers[playerId] then submitted=submitted+1 end
+        end
+    end
+    if expected>0 and submitted>=expected then buildFakeAnswerOptions(room) end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.SubmitFakeVote(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'fake_answer_vote',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='fake_answer' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.phase~='vote' then return {ok=false,error='VOTING_LOCKED'} end
+    if rs.votes[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+
+    local optionId=tostring(data.optionId or '')
+    local selected=nil
+    for _,option in ipairs(rs.options or {}) do if option.id==optionId then selected=option break end end
+    if not selected then return {ok=false,error='INVALID_CHOICE'} end
+    if selected.creatorIdentifier==id then return {ok=false,error='SELF_VOTE_NOT_ALLOWED'} end
+
+    rs.votes[id]=optionId
+    local submitted,expected=0,0
+    for playerId,m in pairs(room.members) do
+        if not m.disconnected then
+            expected=expected+1
+            if rs.votes[playerId] then submitted=submitted+1 end
+        end
+    end
+    if expected>0 and submitted>=expected then finishFakeAnswer(room,false) end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1509,8 +1725,10 @@ reconcileRound=function(room)
         elseif rs.gameId=='liar' then maybeFinishLiar(room,true)
         elseif rs.gameId=='draw' then maybeFinishDraw(room,true)
         elseif rs.gameId=='ng_word' then finishNgWord(room,true,rs.phase=='clue')
+        elseif rs.gameId=='fake_answer' then
+            if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,true) end
         else abortRound(room,'ROUND_TIMEOUT') end
-        if not rs.complete and rs.gameId~='telephone' then abortRound(room,'ROUND_TIMEOUT') end
+        if not rs.complete and rs.gameId~='telephone' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
         return true
     end
 

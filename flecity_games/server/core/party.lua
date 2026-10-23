@@ -556,9 +556,14 @@ local function roomForPlayer(source,id)
 
     local member=id and room.members[id] or nil
     if member and tonumber(member.source)==src and not member.disconnected then
+        local reopened=member.appOpen~=true
         member.appOpen=true
         local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
         if room.hostIdentifier~=id and host and host.appOpen==false and handoffHostFrom(room,room.hostIdentifier) then
+            notifyRoom(room,src)
+        elseif reopened then
+            -- Keep the host/other members' app-open view current after a normal reopen.
+            -- Exclude the caller because the callback response already carries its fresh snapshot.
             notifyRoom(room,src)
         end
         return room

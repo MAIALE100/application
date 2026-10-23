@@ -34,7 +34,10 @@ jobs:
         run: |
           set -euo pipefail
           test -f flecity_mining/fxmanifest.lua
-          test -f flecity_mining/config.lua
+          test -f flecity_mining/config/gameplay.lua
+          test -f flecity_mining/config/economy.lua
+          test -f flecity_mining/config/locations.lua
+          test -f flecity_mining/OPERATIONS.md
           test -f flecity_mining/client/main.lua
           test -f flecity_mining/server/main.lua
           test -f flecity_mining/README.md
@@ -44,6 +47,19 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "dependency 'qbx_core'" flecity_mining/fxmanifest.lua
-          grep -q "Config.MaxRawOre" flecity_mining/config.lua
+          grep -q "Config.MaxRawOre" flecity_mining/config/gameplay.lua
+          grep -q "Config.Economy" flecity_mining/config/economy.lua
+          grep -q "Config.Foreman" flecity_mining/config/locations.lua
           grep -q "exports.qbx_core:AddMoney" flecity_mining/server/main.lua
           ! grep -RniE 'mining(level|xp)|miner(level|xp)' flecity_mining --include='*.lua'
+          grep -q "server/selftest.lua" flecity_mining/fxmanifest.lua
+          grep -q "mining_configcheck" flecity_mining/server/main.lua
+          grep -q "mining_economy" flecity_mining/server/main.lua
+
+      - name: Check operator config isolation
+        run: |
+          set -euo pipefail
+          grep -q "config/gameplay.lua" flecity_mining/fxmanifest.lua
+          grep -q "config/economy.lua" flecity_mining/fxmanifest.lua
+          grep -q "config/locations.lua" flecity_mining/fxmanifest.lua
+          ! grep -RniE 'value[[:space:]]*=[[:space:]]*[0-9]+' flecity_mining/server flecity_mining/client --include='*.lua'

@@ -38,7 +38,8 @@ local defs = {
     {order=90,id='ng_word',name='NG WORD',app='party',category='voice',description='NGワードを避けてお題を説明し、みんなで最速正解を狙う。',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true},
     {order=100,id='fake_answer',name='FAKE ANSWER',app='party',category='social',description='本物っぽい偽回答を作り、正解を見抜きながら他の人を騙す。',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true},
     {order=110,id='bomb',name='BOMB',app='party',category='voice',description='お題に答えたら次へ。誰の手元で爆発するか分からないVCリレー。',minPlayers=3,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true},
-    {order=120,id='memory_chain',name='MEMORY CHAIN',app='party',category='quick',description='伸びていく記号列を覚えて入力。間違い・未入力で脱落する記憶勝負。',minPlayers=2,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true}
+    {order=120,id='memory_chain',name='MEMORY CHAIN',app='party',category='quick',description='伸びていく記号列を覚えて入力。間違い・未入力で脱落する記憶勝負。',minPlayers=2,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true},
+    {order=130,id='fall_battle',name='FALL BATTLE',app='party',category='arcade',description='全員同じピース列で90秒勝負。FALLの操作感でスコアとライン数を競う。',minPlayers=2,maxPlayers=10,supportsResume=false,supportsRanking=false,supportsDaily=false,rankingOrder='desc',enabled=true,version=1,premium=true}
 }
 
 for _, def in ipairs(defs) do register(def) end

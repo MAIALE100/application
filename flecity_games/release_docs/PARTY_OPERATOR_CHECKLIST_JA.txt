@@ -77,3 +77,11 @@ startup preflight READY_FOR_LIVE_TEST
 ■ 切り戻し
 更新前の flecity_games へ戻し、refresh → restart flecity_games で切り戻せます。
 DB削除は不要です。
+
+
+[実機確認: 順番制ゲームのアプリ終了]
+□ TELEPHONEの手番中にPARTY/Phoneを閉じると、その手番を即skipして次の開いている参加者へ進む
+□ BOMBの手番中にPARTY/Phoneを閉じると、閉じた参加者を飛ばして次へ進む
+□ TIC-TAC中にPARTY/Phoneを閉じると、相手の不戦勝として結果確定する
+□ 上記でRoom自体からは退出せず、次Roundには通常参加できる
+※ FiveM複数クライアント実機で未確認の間は合格扱いにしない

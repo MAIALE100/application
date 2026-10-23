@@ -175,7 +175,6 @@ function startReadiness(room){
  const appWaiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen===false).length;
  const waiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen!==false&&!p.ready).length;
  if(!room.isHost)return {ok:false,text:'ホストのみ開始できます'};
- if(game&&game.premium===true&&room.hostPlusActive!==true)return {ok:false,text:'ホストのPARTY+が必要です'};
  if(connected<min)return {ok:false,text:'あと'+(min-connected)+'人必要です'};
  if(connected>max)return {ok:false,text:'参加人数が上限を超えています'};
  if(appWaiting>0)return {ok:false,text:'アプリ待ち '+appWaiting+'人'};

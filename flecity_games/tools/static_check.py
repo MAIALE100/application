@@ -158,6 +158,14 @@ if not re.search(r"id='memory_chain'[^\n]*premium=true", registry):
     fail("PARTY+ MEMORY CHAIN registry metadata is missing")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
     fail("PARTY+ error mapping is missing")
+
+party_plus_prompts = read("flecity_games/server/data/party_plus_prompts.lua")
+taboo_count = len(re.findall(r"\{word='", party_plus_prompts))
+fake_answer_count = len(re.findall(r"\{question='", party_plus_prompts))
+bomb_match = re.search(r"FlecityGamesPartyPlusPrompts\.Bomb\s*=\s*\{(.*?)\n\}", party_plus_prompts, re.S)
+bomb_count = len(re.findall(r"^\s*'[^']+',?\s*$", bomb_match.group(1), re.M)) if bomb_match else 0
+if taboo_count < 80 or fake_answer_count < 80 or bomb_count < 120:
+    fail(f"PARTY+ prompt banks too small: taboo={taboo_count}, fake={fake_answer_count}, bomb={bomb_count}")
 if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
 if "fixBlur=true" not in client or "fixBlur=false" in client:

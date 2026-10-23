@@ -1462,6 +1462,19 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
 end
 
 
+local function ngWordAllRemainingGuessed(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='ng_word' or rs.phase~='guess' then return false end
+    local expected,submitted=0,0
+    for id,m in pairs(room.members or {}) do
+        if not m.disconnected and id~=rs.explainerIdentifier then
+            expected=expected+1
+            if rs.guesses and rs.guesses[id]~=nil then submitted=submitted+1 end
+        end
+    end
+    return expected>0 and submitted>=expected
+end
+
 local function finishNgWord(room,timedOut,noClue)
     local rs=room.roundState
     if not rs or rs.gameId~='ng_word' or rs.complete then return end
@@ -1583,6 +1596,20 @@ local function buildFakeAnswerOptions(room)
     rs.votes={}
     setRoundDeadline(rs,45)
     return true
+end
+
+local function fakeAnswerPhaseReady(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='fake_answer' or rs.complete then return false end
+    local expected,submitted=0,0
+    for id,m in pairs(room.members or {}) do
+        if not m.disconnected then
+            expected=expected+1
+            if rs.phase=='submit' and rs.fakeAnswers and rs.fakeAnswers[id]~=nil then submitted=submitted+1 end
+            if rs.phase=='vote' and rs.votes and rs.votes[id]~=nil then submitted=submitted+1 end
+        end
+    end
+    return expected>0 and submitted>=expected
 end
 
 local function finishFakeAnswer(room,timedOut)
@@ -2003,6 +2030,12 @@ reconcileRound=function(room)
     elseif rs.gameId=='liar' then maybeFinishLiar(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
     elseif rs.gameId=='telephone' then ensureTelephoneTurn(room)
+    elseif rs.gameId=='ng_word' then
+        if rs.phase=='guess' and ngWordAllRemainingGuessed(room) then finishNgWord(room,false,false) end
+    elseif rs.gameId=='fake_answer' then
+        if fakeAnswerPhaseReady(room) then
+            if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,false) end
+        end
     elseif rs.gameId=='bomb' then
         local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
         if not current or current.disconnected then

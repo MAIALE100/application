@@ -662,7 +662,7 @@ local function notifyRoom(room,excludeSource)
     local excluded=excludeSource and tonumber(excludeSource) or nil
     for viewerId,member in pairs(room.members) do
         local src=member.source and tonumber(member.source) or nil
-        if src and not member.disconnected and src~=excluded then
+        if src and not member.disconnected and member.appOpen~=false and src~=excluded then
             TriggerClientEvent('flecity_games:client:partyUpdate',src,snapshot(room,viewerId))
         end
     end
@@ -675,7 +675,7 @@ local function notifyRoomEvent(room,excludeSource,eventName,payload)
     local excluded=excludeSource and tonumber(excludeSource) or nil
     for _,member in pairs(room.members) do
         local src=member.source and tonumber(member.source) or nil
-        if src and not member.disconnected and src~=excluded then
+        if src and not member.disconnected and member.appOpen~=false and src~=excluded then
             TriggerClientEvent(eventName,src,payload)
         end
     end

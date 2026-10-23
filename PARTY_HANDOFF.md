@@ -463,3 +463,10 @@ LOOP完成版には不要な変更を入れない。
 - DNFはRoom退出ではなく当該Roundのみ。次Roundでは通常参加可能。
 - FALL BATTLE画面には `FINISH n/N` を表示し、他人の盤面・scoreを途中公開せず待ち人数だけ確認できる。
 - static checkのPARTY registry順序を無料10本＋PARTY+ 5本の合計15本へ更新。
+
+
+## 2026-10-23 CI / 運営資料整合性
+- PARTY運営確認用メモの旧表記「PARTY+ 4ゲーム」を5ゲームへ更新し、FALL BATTLEを正式な確認対象へ追加。
+- FALL BATTLE実機確認には2人/10人、90秒timeout、Phone/App close・FiveM切断DNF、再接続後のやり直し不可、途中盤面/score非公開を明記。
+- GitHub Actions最新runも `runner_id=0 / steps=[]` のjob開始前failure。コード実行結果ではないためgreen扱いしない。
+- runner復旧後はJS/Lua/static check/提出ZIP buildを含むworkflow green確認が必要。

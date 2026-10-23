@@ -542,3 +542,10 @@ LOOP完成版には不要な変更を入れない。
 - Round中に未入力者がPARTY/Phoneを閉じても、残るapp-open参加者が全員入力済みならserver-authoritativeに即結果確定し、timeoutまで待たない。
 - public snapshotの `submittedCount / expectedSubmissions` もapp-open参加者基準へ統一し、閉じた端末を待っているように見える進捗表示を防止。
 - Room所属・再open・次Round参加は従来どおり維持。FiveM + LB Phone複数クライアント実機確認までは未検証扱い。
+
+
+## 2026-10-24 App close直後の同時入力Round再評価
+- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR 等で、未入力者がapp/phone closeした瞬間に残りapp-open参加者が全員入力済みなら、AppClosed処理内からserver-authoritativeなreconcileを即実行する。
+- activeCount基準だけでは「最後の入力済み後に未入力者がclose」した場合に次のsubmitが発生せずdeadlineまで待つ穴があったため、close自体を再評価トリガーにした。
+- 順番制/PARTY+の既存close処理後にもreconcileを通すが、complete済みRoundではno-opのため二重確定しない。
+- FiveM + LB Phone複数クライアントで「A入力済み→未入力B close→timeoutを待たず結果確定→B再open」を確認するまでは未検証扱い。

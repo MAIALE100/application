@@ -215,6 +215,7 @@ local function publicState(session)
             maxRawOre = Config.MaxRawOre,
             refined = emptyRefined(),
             refinedCount = 0,
+            nodeCooldowns = {},
         }
     end
 
@@ -223,12 +224,22 @@ local function publicState(session)
         refined[product.id] = tonumber(session.refined[product.id]) or 0
     end
 
+    local cooldowns = {}
+    local now = nowMs()
+    for nodeId, cooldownUntil in pairs(session.nodeCooldowns or {}) do
+        local remaining = math.max(0, (tonumber(cooldownUntil) or 0) - now)
+        if remaining > 0 then
+            cooldowns[tostring(nodeId)] = remaining
+        end
+    end
+
     return {
         active = session.active == true,
         rawOre = tonumber(session.rawOre) or 0,
         maxRawOre = Config.MaxRawOre,
         refined = refined,
         refinedCount = refinedCount(session),
+        nodeCooldowns = cooldowns,
     }
 end
 

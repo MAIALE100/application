@@ -751,3 +751,10 @@ PARTY+ app/phone close実機確認（未検証）:
 - 閉じたmemberが通常フローで再openすると `GetRoom` で最新snapshotへ収束し、閉じていた間のpush再送を必要としないこと。
 - `game_party_status` でclosed memberの `appOpen=false` が維持されること。
 - FiveM + LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+
+## 同時入力ゲームのapp/phone close（未検証・2026-10-24）
+- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR で、未入力者がPARTY/Phoneを閉じた場合、その端末を回答待ち人数から即除外し、残るapp-open参加者が全員入力済みならtimeoutを待たず結果確定すること。
+- 進捗表示の分母・分子がapp-open参加者基準へ即更新され、`入力済み 2/3` のような閉じた端末待ち表示が残らないこと。
+- 閉じた参加者はRoom所属を維持し、再open後は終了済みRoundへ遅延submitできず、次Roundには通常参加できること。
+- FiveM + LB Phone複数クライアントで確認するまでPASS扱いしない。

@@ -11,6 +11,7 @@ const deductionPanel=document.getElementById('deductionPanel'),deductionGame=doc
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
 const ngWordPanel=document.getElementById('ngWordPanel'),ngWordTitle=document.getElementById('ngWordTitle'),ngWordHint=document.getElementById('ngWordHint'),ngWordForbidden=document.getElementById('ngWordForbidden'),ngWordClueControls=document.getElementById('ngWordClueControls'),ngWordClue=document.getElementById('ngWordClue'),ngWordClueSubmit=document.getElementById('ngWordClueSubmit'),ngWordGuessControls=document.getElementById('ngWordGuessControls'),ngWordGuess=document.getElementById('ngWordGuess'),ngWordGuessSubmit=document.getElementById('ngWordGuessSubmit');
+const fakeAnswerPanel=document.getElementById('fakeAnswerPanel'),fakeAnswerQuestion=document.getElementById('fakeAnswerQuestion'),fakeAnswerHint=document.getElementById('fakeAnswerHint'),fakeAnswerSubmitControls=document.getElementById('fakeAnswerSubmitControls'),fakeAnswerInput=document.getElementById('fakeAnswerInput'),fakeAnswerSubmit=document.getElementById('fakeAnswerSubmit'),fakeAnswerChoices=document.getElementById('fakeAnswerChoices');
 const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -107,7 +108,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -270,6 +271,17 @@ function renderResults(room){
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
+ }else if(rs.gameId==='fake_answer'){
+   const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
+   const winnerNames=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
+   appendResultBanner(winnerNames.length?'TOP · '+winnerNames.join(' / '):'結果','good');
+   appendResultRow('問題',result.question||'---');
+   appendResultRow('正解',result.correctAnswer||'---');
+   (result.choices||[]).forEach(choice=>{
+     const owner=choice.correct?'正解':(choice.creatorName?choice.creatorName+' の偽回答':'内蔵デコイ');
+     appendResultRow(choice.text,owner+' · '+Number(choice.votes||0)+'票');
+   });
+   (result.entries||[]).forEach(e=>appendResultRow(e.name,Number(e.score||0)+' pt · 正解 '+(e.correct?'○':'×')+' · 騙した '+Number(e.foolVotes||0)+'票'));
  }else if(rs.gameId==='ng_word'){
    const result=rs.results||{};
    appendResultBanner(result.winnerName?'FASTEST · '+result.winnerName:'正解者なし',result.winnerName?'good':'warn');
@@ -453,6 +465,29 @@ function setupTelephone(room){
    telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
  }
 }
+function setupFakeAnswer(room){
+ const rs=room.roundState;hideRoundGames();fakeAnswerPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ fakeAnswerQuestion.textContent=String(rs.question||'---');fakeAnswerSubmitControls.classList.add('hidden');fakeAnswerChoices.innerHTML='';
+ if(rs.complete){renderResults(room);return;}
+ if(rs.phase==='submit'){
+   if(rs.selfSubmitted){
+     fakeAnswerHint.textContent='偽回答送信済み · '+submissionProgress(rs)+' · ほかの参加者を待っています。';
+   }else{
+     fakeAnswerHint.textContent='正解に見えそうな偽回答を1つ作ってください。';
+     fakeAnswerSubmitControls.classList.remove('hidden');
+   }
+ }else{
+   if(rs.selfSubmitted){
+     fakeAnswerHint.textContent='投票済み · '+submissionProgress(rs)+' · 結果を待っています。';
+   }else{
+     fakeAnswerHint.textContent='本当の正解だと思うものを選んでください。自分の偽回答には投票できません。';
+     (rs.options||[]).forEach(option=>{
+       const b=document.createElement('button');b.className='secondary choice-button';b.textContent=String(option.text||'');
+       b.disabled=option.own===true;b.onclick=()=>submitFakeVote(rs.token,option.id);fakeAnswerChoices.appendChild(b);
+     });
+   }
+ }
+}
 function setupNgWord(room){
  const rs=room.roundState;hideRoundGames();ngWordPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  ngWordClueControls.classList.add('hidden');ngWordGuessControls.classList.add('hidden');ngWordForbidden.classList.add('hidden');
@@ -517,6 +552,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='draw')setupDraw(room);
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
    else if(rs&&rs.gameId==='ng_word')setupNgWord(room);
+   else if(rs&&rs.gameId==='fake_answer')setupFakeAnswer(room);
  }
  return true;
 }
@@ -760,6 +796,28 @@ telephoneDrawSubmit.onclick=async()=>{
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
  if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
+async function submitFakeAnswer(){
+ return runOnce('fake-answer-submit',async()=>{
+  const rs=currentRoom&&currentRoom.roundState,value=fakeAnswerInput.value.trim();if(!rs||rs.gameId!=='fake_answer'||rs.phase!=='submit'||!value)return;
+  fakeAnswerSubmit.disabled=true;
+  try{
+   const res=await FlecityBridge.call('partySubmitFakeAnswer',{token:rs.token,answer:value});
+   if(!res.ok){status('偽回答送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   fakeAnswerInput.value='';renderRoom(res.room);
+  }finally{fakeAnswerSubmit.disabled=false;}
+ });
+}
+async function submitFakeVote(token,optionId){
+ return runOnce('fake-answer-vote',async()=>{
+  fakeAnswerChoices.querySelectorAll('button').forEach(b=>b.disabled=true);
+  const res=await FlecityBridge.call('partySubmitFakeVote',{token,optionId});
+  if(!res.ok){status('投票失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+  renderRoom(res.room);
+ });
+}
+fakeAnswerSubmit.onclick=submitFakeAnswer;
+fakeAnswerInput.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitFakeAnswer();};
+
 async function submitNgWordClue(){
  return runOnce('ng-word-clue',async()=>{
   const rs=currentRoom&&currentRoom.roundState,value=ngWordClue.value.trim();if(!rs||rs.gameId!=='ng_word'||rs.phase!=='clue'||!rs.isExplainer||!value)return;

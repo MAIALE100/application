@@ -103,7 +103,9 @@ window.FlecityErrors = {
         EXPLAINER_ONLY: '説明役だけがヒントを送信できます',
         EXPLAINER_CANNOT_GUESS: '説明役は回答できません',
         CLUE_NOT_READY: 'まだヒントが送信されていません',
-        TABOO_FORBIDDEN_WORD: 'お題またはNGワードがヒントに含まれています'
+        TABOO_FORBIDDEN_WORD: 'お題またはNGワードがヒントに含まれています',
+        VOTING_STARTED: 'すでに投票フェーズへ進んでいます',
+        FAKE_ANSWER_UNAVAILABLE: 'その偽回答は使えません。別の回答を入力してください'
     },
 
     text(code) {

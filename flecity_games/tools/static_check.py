@@ -53,14 +53,14 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 25:
-    fail(f"expected 25 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 26:
+    fail(f"expected 26 enabled games, found {len(enabled)}: {enabled}")
 play_enabled = re.findall(r"id='([^']+)'[^\n]*app='play'[^\n]*enabled=true", registry)
 party_enabled = re.findall(r"id='([^']+)'[^\n]*app='party'[^\n]*enabled=true", registry)
 if len(play_enabled) != 15:
     fail(f"PLAY game count is frozen at 15; found {len(play_enabled)}: {play_enabled}")
-if len(party_enabled) != 10:
-    fail(f"PARTY game count must remain 10; found {len(party_enabled)}: {party_enabled}")
+if len(party_enabled) != 11:
+    fail(f"PARTY game count must be 11; found {len(party_enabled)}: {party_enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -140,6 +140,10 @@ if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
     fail("PARTY direct-push UI wiring is missing")
 if "partySubscribePlus" not in party_js or "partyCancelPlus" not in party_js or 'id="partyPlusCard"' not in party_html:
     fail("PARTY+ subscription UI is missing")
+if "partySubmitNgWordClue" not in party_js or "partySubmitNgWordGuess" not in party_js or 'id="ngWordPanel"' not in party_html:
+    fail("PARTY+ NG WORD client flow is missing")
+if not re.search(r"id='ng_word'[^\n]*premium=true", registry):
+    fail("PARTY+ NG WORD registry metadata is missing")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
     fail("PARTY+ error mapping is missing")
 if "action=='bridgePing'" not in client:

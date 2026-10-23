@@ -10,6 +10,7 @@ const ticTacPanel=document.getElementById('ticTacPanel'),ticTacStatus=document.g
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
+const ngWordPanel=document.getElementById('ngWordPanel'),ngWordTitle=document.getElementById('ngWordTitle'),ngWordHint=document.getElementById('ngWordHint'),ngWordForbidden=document.getElementById('ngWordForbidden'),ngWordClueControls=document.getElementById('ngWordClueControls'),ngWordClue=document.getElementById('ngWordClue'),ngWordClueSubmit=document.getElementById('ngWordClueSubmit'),ngWordGuessControls=document.getElementById('ngWordGuessControls'),ngWordGuess=document.getElementById('ngWordGuess'),ngWordGuessSubmit=document.getElementById('ngWordGuessSubmit');
 const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -106,7 +107,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -269,6 +270,13 @@ function renderResults(room){
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
+ }else if(rs.gameId==='ng_word'){
+   const result=rs.results||{};
+   appendResultBanner(result.winnerName?'FASTEST · '+result.winnerName:'正解者なし',result.winnerName?'good':'warn');
+   appendResultRow('お題',result.targetWord||'---');
+   appendResultRow('ヒント',result.clue||'未送信');
+   appendResultRow('NG',Array.isArray(result.forbiddenWords)?result.forbiddenWords.join(' / '):'---');
+   (result.entries||[]).forEach(e=>appendResultRow(e.name,e.guess?(e.guess+(e.correct?' ✓':'')):'未回答'));
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    const fastest=(rs.results.entries||[])[0];
@@ -445,6 +453,33 @@ function setupTelephone(room){
    telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
  }
 }
+function setupNgWord(room){
+ const rs=room.roundState;hideRoundGames();ngWordPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ ngWordClueControls.classList.add('hidden');ngWordGuessControls.classList.add('hidden');ngWordForbidden.classList.add('hidden');
+ if(rs.complete){renderResults(room);return;}
+ const explainer=room.players.find(p=>p.memberId===rs.explainerMemberId);
+ if(rs.phase==='clue'){
+   if(rs.isExplainer){
+     ngWordTitle.textContent='お題: '+String(rs.targetWord||'---');
+     ngWordHint.textContent='下のNGワードを使わずに、答えそのものも言わずに説明してください。';
+     ngWordForbidden.textContent='NG: '+(Array.isArray(rs.forbiddenWords)?rs.forbiddenWords.join(' / '):'---');
+     ngWordForbidden.classList.remove('hidden');ngWordClueControls.classList.remove('hidden');
+   }else{
+     ngWordTitle.textContent=(explainer?explainer.name:'説明役')+' がヒントを考えています';
+     ngWordHint.textContent='お題とNGワードは説明役だけに表示されています。';
+   }
+ }else{
+   ngWordTitle.textContent='ヒント: '+String(rs.clue||'---');
+   if(rs.isExplainer){
+     ngWordHint.textContent='回答を待っています · '+submissionProgress(rs);
+   }else if(rs.selfSubmitted){
+     ngWordHint.textContent='回答済み · '+submissionProgress(rs)+' · ほかの参加者を待っています。';
+   }else{
+     ngWordHint.textContent='ヒントからお題を当ててください · '+submissionProgress(rs);
+     ngWordGuessControls.classList.remove('hidden');
+   }
+ }
+}
 function renderRoom(room,timing){
  if(appSuspended||!room)return false;
  const incomingRevision=Number(room.revision);
@@ -481,6 +516,7 @@ function renderRoom(room,timing){
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
+   else if(rs&&rs.gameId==='ng_word')setupNgWord(room);
  }
  return true;
 }
@@ -724,6 +760,33 @@ telephoneDrawSubmit.onclick=async()=>{
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
  if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
+async function submitNgWordClue(){
+ return runOnce('ng-word-clue',async()=>{
+  const rs=currentRoom&&currentRoom.roundState,value=ngWordClue.value.trim();if(!rs||rs.gameId!=='ng_word'||rs.phase!=='clue'||!rs.isExplainer||!value)return;
+  ngWordClueSubmit.disabled=true;
+  try{
+   const res=await FlecityBridge.call('partySubmitNgWordClue',{token:rs.token,clue:value});
+   if(!res.ok){status('ヒント送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   ngWordClue.value='';renderRoom(res.room);
+  }finally{ngWordClueSubmit.disabled=false;}
+ });
+}
+async function submitNgWordGuess(){
+ return runOnce('ng-word-guess',async()=>{
+  const rs=currentRoom&&currentRoom.roundState,value=ngWordGuess.value.trim();if(!rs||rs.gameId!=='ng_word'||rs.phase!=='guess'||rs.isExplainer||!value)return;
+  ngWordGuessSubmit.disabled=true;
+  try{
+   const res=await FlecityBridge.call('partySubmitNgWordGuess',{token:rs.token,guess:value});
+   if(!res.ok){status('回答送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   ngWordGuess.value='';if(res.correct)status('正解！','good');renderRoom(res.room);
+  }finally{ngWordGuessSubmit.disabled=false;}
+ });
+}
+ngWordClueSubmit.onclick=submitNgWordClue;
+ngWordGuessSubmit.onclick=submitNgWordGuess;
+ngWordClue.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitNgWordClue();};
+ngWordGuess.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitNgWordGuess();};
+
 async function submitTelephoneText(){
  return runOnce('telephone-text',async()=>{
   const rs=currentRoom&&currentRoom.roundState,value=telephoneText.value.trim();if(!rs||rs.gameId!=='telephone'||rs.mode!=='text'||!rs.isCurrent||!value)return;

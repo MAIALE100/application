@@ -99,7 +99,11 @@ window.FlecityErrors = {
         INVALID_SLIDE_REPLAY: 'SLIDEの操作履歴とクリア状態が一致しません。',
         INVALID_FALL_SAVE: 'FALLの途中保存を確認できませんでした。',
         INVALID_FALL_REPLAY: 'FALLの操作履歴とスコアが一致しません。',
-        INVALID_TEXT: '入力した文章が不正です'
+        INVALID_TEXT: '入力した文章が不正です',
+        EXPLAINER_ONLY: '説明役だけがヒントを送信できます',
+        EXPLAINER_CANNOT_GUESS: '説明役は回答できません',
+        CLUE_NOT_READY: 'まだヒントが送信されていません',
+        TABOO_FORBIDDEN_WORD: 'お題またはNGワードがヒントに含まれています'
     },
 
     text(code) {

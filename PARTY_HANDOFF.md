@@ -480,3 +480,11 @@ LOOP完成版には不要な変更を入れない。
 - Room所属は維持するため、closeした参加者もロビー復帰後の次Roundには通常参加可能。
 - DebugSelftestへ telephoneAppCloseSkip / bombAppCloseSkip / ticTacAppCloseForfeit を追加。
 - 実機FiveM複数クライアントでのclose直後push・遅延callback・再open挙動は未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ残す。
+
+
+## 2026-10-23 PARTY+ app/phone close放置耐性
+- NG WORD: 説明役がapp/phone closeした場合は即ラウンド中断。回答役closeは回答待ち人数から除外し、残り回答者が完了済みなら即結果確定。
+- FAKE ANSWER: submit/vote両phaseともappOpen=false参加者を待ち人数から除外。close直後に残り全員入力済みなら次phase/結果へ即進行。
+- MEMORY CHAIN: app/phone closeした参加者をそのstageで脱落扱いにし、残り参加者の進行を15秒timeoutまで止めない。
+- Room所属は維持し、次Roundには再参加可能。課金権利やHost共有仕様は変更なし。
+- 上記のclose直後push、再open、複数人同時closeはFiveM複数クライアント実機で未検証。

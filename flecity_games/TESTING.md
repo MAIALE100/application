@@ -695,3 +695,10 @@ PARTY+ prompt-bank static target:
 - TIC-TAC中にどちらかがPARTY/Phoneを閉じた場合、相手の不戦勝（reason=APP_CLOSED）として即結果確定する。
 - 上記いずれもRoomからは自動退出させず、ロビー復帰後の次Roundには通常参加できる。
 - app close直前の遅延callbackが後から届いても、古い手番を復活させない。
+
+
+PARTY+ app/phone close実機確認（未検証）:
+- NG WORDで説明役close時に即終了し、回答役close時は残り回答者だけで完了できること。
+- FAKE ANSWERの偽回答phase/投票phaseで1人closeしても45秒待たず残り入力で進行すること。
+- MEMORY CHAINで入力待ち参加者close時にそのstage脱落となり、残り参加者が継続できること。
+- close後に再openしても終了済み/進行済みphaseへ古い入力を送れず、次Roundには通常参加できること。

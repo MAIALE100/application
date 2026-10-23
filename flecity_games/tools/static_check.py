@@ -165,6 +165,10 @@ if not re.search(r"id='fall_battle'[^\n]*premium=true", registry):
     fail("PARTY+ FALL BATTLE registry metadata is missing")
 if "'server/core/party_fall.lua'" not in fx or "FlecityGamesPartyFall.Validate" not in party_fall_lua:
     fail("PARTY+ FALL BATTLE server verifier is missing")
+if "FlecityGamesPartyFall.DebugSelftest" not in party_fall_lua:
+    fail("PARTY+ FALL BATTLE verifier selftest is missing")
+if "forfeited=true" not in party_lua or "fallBattleDisconnectForfeit" not in party_lua:
+    fail("PARTY+ FALL BATTLE disconnect/reconnect reset guard is missing")
 if "FALL_BASE_SHAPES" in party_fall_js:
     fail("PARTY FALL BATTLE client should keep its implementation isolated from PLAY source markers")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
@@ -738,7 +742,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone"]
+expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]

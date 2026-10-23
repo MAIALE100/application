@@ -82,7 +82,7 @@ function drawBoard(){
  }
  const score=el('fallBattleScore'),meta=el('fallBattleMeta'),hint=el('fallBattleHint');
  if(score)score.textContent=String(game.score)+' pt';
- if(meta)meta.textContent='LINES '+game.lines+' · PIECES '+game.pieces+' · '+(game.submitted?'送信済み':(game.ended?'GAME OVER':'PLAY'));
+ if(meta)meta.textContent='LINES '+game.lines+' · PIECES '+game.pieces+' · FINISH '+game.finishedCount+'/'+game.expectedCount+' · '+(game.submitted?'送信済み':(game.ended?'GAME OVER':'PLAY'));
  if(hint){
    if(game.submitted)hint.textContent='記録送信済み · 他の参加者を待っています。';
    else if(game.ended)hint.textContent='GAME OVER · 記録を送信します。';
@@ -192,10 +192,13 @@ function render(room){
    let rngState,next;[rngState,next]=nextPiece(Number(rs.seed)||1);
    game={token:rs.token,width:Number(rs.width)||10,height:Number(rs.height)||18,seed:Number(rs.seed)||1,rngState,nextPiece:next,heldPiece:0,holdUsed:false,
      board:emptyBoard(Number(rs.width)||10,Number(rs.height)||18),score:0,lines:0,combo:0,pieces:0,history:[],x:0,y:0,rotation:0,
-     startedTick:Number(rs.startedTick)||0,deadlineTick:Number(rs.deadlineTick)||0,lastGravityAt:performance.now(),groundedAt:null,lastLockMs:-1,submitted:false,submitting:false,ended:false};
+     startedTick:Number(rs.startedTick)||0,deadlineTick:Number(rs.deadlineTick)||0,lastGravityAt:performance.now(),groundedAt:null,lastLockMs:-1,submitted:false,submitting:false,ended:false,
+     finishedCount:Number(rs.submittedCount)||0,expectedCount:Math.max(1,Number(rs.expectedSubmissions)||Number(room.connectedCount)||1)};
    resetCursor();startClocks();
  }
  game.deadlineTick=Number(rs.deadlineTick)||game.deadlineTick;
+ game.finishedCount=Math.max(0,Number(rs.submittedCount)||0);
+ game.expectedCount=Math.max(1,Number(rs.expectedSubmissions)||Number(room.connectedCount)||1);
  if(rs.selfSubmitted===true&&!game.submitted){game.submitted=true;stopClocks();}
  if(rs.complete){game.submitted=true;stopClocks();}
  drawBoard();

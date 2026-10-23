@@ -527,3 +527,11 @@ LOOP完成版には不要な変更を入れない。
 - static checkへ「通常callbackはclosed member拒否」「GetRoomのみclosed membership例外」の回帰防止検査を追加。
 - FiveM + LB Phone複数クライアントでのclose/submit競合タイミングは実機未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtにLIVE TEST REQUIREDとして残した。
 - LOOP identifier / App Store / score・save・achievement仕様には変更なし。
+
+
+## 2026-10-24 closed Hostへの後参加者によるHost復旧
+- HostがPARTY/Phoneを閉じた時点でapp-openな既存参加者が0人でも、Roomは破棄せず従来どおり所属を維持する。
+- その後、新しい参加者がJoinした場合、Join完了時にclosed Hostを検出して新規app-open参加者へHostを即handoffする。
+- これにより、全員が一度アプリを閉じたRoomへ後から参加した人がいても、closed Host待ちでゲーム選択/開始が停止しない。
+- static checkへJoinRoom内のHost復旧経路を固定するguardを追加。
+- FiveM + LB Phone複数クライアントで「Host close→全既存member closed→新規Join→Host操作→旧Host再open」は未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ残した。

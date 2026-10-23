@@ -2659,8 +2659,12 @@ async function answerColorMatch(choice){
    game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
    if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
    if(colorMatch===game){
+     const elapsedMs=Math.max(0,Math.round(performance.now()-game.startedAt));
      colorMatchChoices.innerHTML='';colorMatchWord.textContent='GAME OVER';colorMatchWord.style.color='';
+     colorMatchProgress.textContent=String(game.index)+' / '+String(game.rounds.length)+' · LIFE 0';
+     colorMatchTime.textContent=(elapsedMs/1000).toFixed(1)+'s';
      colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';colorMatchNew.classList.add('hidden');
+     setStatus('GAME OVER · '+game.index+'/'+game.rounds.length+' ROUND · MISS '+game.misses+' · MAX STREAK '+game.maxStreak+' · RETRY!','warn');
    }
    return;
  }

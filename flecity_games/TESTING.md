@@ -727,3 +727,11 @@ PARTY+ app/phone close実機確認（未検証）:
 - close後の遅延submitでHost権限が閉じた端末へ戻らない。
 - PARTYを再openした時はbootstrapのGetRoomでのみ `appOpen=true` へ戻り、最新server snapshotへ収束する。
 - 上記は2台以上のFiveM + LB Phone実機で確認するまでPASS扱いしない。
+
+
+### Closed-app delayed callback race
+- Start a PARTY round with at least 2 clients, then submit/Ready/Start an action at nearly the same moment the same client closes PARTY or the whole phone.
+- Confirm any callback that reaches the server after `partyClosed` does not mutate Ready, game selection, round state, drawing, vote, score, or PARTY+ game state.
+- Confirm the closed member remains in the room with `appOpen=false`, and reopening PARTY via the normal app flow restores presence through `GetRoom` without requiring a server restart.
+- Confirm another active member can receive Host handoff while the old Host is closed.
+- This race requires real FiveM + LB Phone timing and remains **LIVE TEST REQUIRED** until verified with multiple clients.

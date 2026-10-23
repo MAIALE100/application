@@ -13,6 +13,7 @@ const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=d
 const ngWordPanel=document.getElementById('ngWordPanel'),ngWordTitle=document.getElementById('ngWordTitle'),ngWordHint=document.getElementById('ngWordHint'),ngWordForbidden=document.getElementById('ngWordForbidden'),ngWordClueControls=document.getElementById('ngWordClueControls'),ngWordClue=document.getElementById('ngWordClue'),ngWordClueSubmit=document.getElementById('ngWordClueSubmit'),ngWordGuessControls=document.getElementById('ngWordGuessControls'),ngWordGuess=document.getElementById('ngWordGuess'),ngWordGuessSubmit=document.getElementById('ngWordGuessSubmit');
 const fakeAnswerPanel=document.getElementById('fakeAnswerPanel'),fakeAnswerQuestion=document.getElementById('fakeAnswerQuestion'),fakeAnswerHint=document.getElementById('fakeAnswerHint'),fakeAnswerSubmitControls=document.getElementById('fakeAnswerSubmitControls'),fakeAnswerInput=document.getElementById('fakeAnswerInput'),fakeAnswerSubmit=document.getElementById('fakeAnswerSubmit'),fakeAnswerChoices=document.getElementById('fakeAnswerChoices');
 const bombPanel=document.getElementById('bombPanel'),bombPrompt=document.getElementById('bombPrompt'),bombHolder=document.getElementById('bombHolder'),bombHint=document.getElementById('bombHint'),bombPass=document.getElementById('bombPass');
+const memoryChainPanel=document.getElementById('memoryChainPanel'),memoryChainTitle=document.getElementById('memoryChainTitle'),memoryChainSequence=document.getElementById('memoryChainSequence'),memoryChainHint=document.getElementById('memoryChainHint'),memoryChainControls=document.getElementById('memoryChainControls'),memoryChainButtons=document.getElementById('memoryChainButtons'),memoryChainInputEl=document.getElementById('memoryChainInput'),memoryChainReset=document.getElementById('memoryChainReset'),memoryChainSubmit=document.getElementById('memoryChainSubmit');
 const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -22,7 +23,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[];
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='';
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -62,7 +63,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;resultHoldRaf=null;resultLobbyUnlockAt=0;
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
- drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];
+ drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';
 }
 function deadlineLoop(token){
  if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
@@ -109,7 +110,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -272,6 +273,12 @@ function renderResults(room){
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
+ }else if(rs.gameId==='memory_chain'){
+   const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
+   const winners=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
+   appendResultBanner(winners.length?'WINNER · '+winners.join(' / '):'勝者なし',winners.length?'good':'warn');
+   appendResultRow('最終ステージ',String(Number(result.finalStage||0)));
+   (result.entries||[]).forEach(e=>appendResultRow(e.name,'STAGE '+Number(e.stageReached||0)+(e.survived?' · SURVIVED':'')));
  }else if(rs.gameId==='bomb'){
    const result=rs.results||{};
    appendResultBanner('BOOM · '+String(result.loserName||'Player'),'warn');
@@ -472,6 +479,33 @@ function setupTelephone(room){
    telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
  }
 }
+function memorySymbol(value){return ({A:'●',B:'▲',C:'■',D:'★'})[value]||'?';}
+function renderMemoryLocal(){memoryChainInputEl.textContent='入力: '+(memoryChainLocal.length?memoryChainLocal.map(memorySymbol).join(' '):'---');}
+function setupMemoryChain(room){
+ const rs=room.roundState;hideRoundGames();memoryChainPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ const key=String(rs.token)+':'+String(rs.stage);
+ if(memoryChainKey!==key){memoryChainKey=key;memoryChainLocal=[];}
+ memoryChainTitle.textContent='STAGE '+Number(rs.stage||1)+' / '+Number(rs.maxStages||8)+' · 生存 '+Number(rs.aliveCount||0)+'人';
+ memoryChainControls.classList.add('hidden');
+ if(rs.selfEliminated){
+   memoryChainSequence.textContent='OUT';
+   memoryChainHint.textContent='脱落しました。残っているプレイヤーを見守れます。';
+   return;
+ }
+ if(rs.phase==='memorize'){
+   memoryChainSequence.textContent=(rs.sequence||[]).map(memorySymbol).join(' ');
+   memoryChainHint.textContent='順番を覚えてください。入力フェーズでは列が消えます。';
+   memoryChainLocal=[];
+ }else if(rs.selfSubmitted){
+   memoryChainSequence.textContent='✓';
+   memoryChainHint.textContent='入力済み · '+submissionProgress(rs)+' · ほかの参加者を待っています。';
+ }else{
+   memoryChainSequence.textContent='？ × '+Number(rs.sequenceLength||0);
+   memoryChainHint.textContent='覚えた順番を入力してください · '+submissionProgress(rs);
+   memoryChainControls.classList.remove('hidden');renderMemoryLocal();
+ }
+}
 function setupBomb(room){
  const rs=room.roundState;hideRoundGames();bombPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
@@ -571,6 +605,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='ng_word')setupNgWord(room);
    else if(rs&&rs.gameId==='fake_answer')setupFakeAnswer(room);
    else if(rs&&rs.gameId==='bomb')setupBomb(room);
+   else if(rs&&rs.gameId==='memory_chain')setupMemoryChain(room);
  }
  return true;
 }
@@ -814,6 +849,26 @@ telephoneDrawSubmit.onclick=async()=>{
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
  if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
+memoryChainButtons.querySelectorAll('[data-memory]').forEach(button=>{
+ button.onclick=()=>{
+   const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='memory_chain'||rs.phase!=='input'||rs.selfSubmitted||rs.selfEliminated)return;
+   const limit=Math.max(1,Number(rs.sequenceLength)||1);
+   if(memoryChainLocal.length<limit)memoryChainLocal.push(button.dataset.memory);
+   renderMemoryLocal();
+ };
+});
+memoryChainReset.onclick=()=>{memoryChainLocal=[];renderMemoryLocal();};
+memoryChainSubmit.onclick=()=>runOnce('memory-chain-submit',async()=>{
+ const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='memory_chain'||rs.phase!=='input'||rs.selfSubmitted||rs.selfEliminated)return;
+ if(memoryChainLocal.length!==Number(rs.sequenceLength||0)){status('記号を最後まで入力してください。','warn');return;}
+ memoryChainSubmit.disabled=true;
+ try{
+   const res=await FlecityBridge.call('partySubmitMemoryChain',{token:rs.token,answer:memoryChainLocal.join('')});
+   if(!res.ok){status('MEMORY CHAIN送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   renderRoom(res.room);
+ }finally{memoryChainSubmit.disabled=false;}
+});
+
 bombPass.onclick=()=>runOnce('bomb-pass',async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='bomb'||!rs.isCurrent)return;
  bombPass.disabled=true;

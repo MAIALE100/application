@@ -105,7 +105,9 @@ window.FlecityErrors = {
         CLUE_NOT_READY: 'まだヒントが送信されていません',
         TABOO_FORBIDDEN_WORD: 'お題またはNGワードがヒントに含まれています',
         VOTING_STARTED: 'すでに投票フェーズへ進んでいます',
-        FAKE_ANSWER_UNAVAILABLE: 'その偽回答は使えません。別の回答を入力してください'
+        FAKE_ANSWER_UNAVAILABLE: 'その偽回答は使えません。別の回答を入力してください',
+        MEMORY_NOT_INPUT_PHASE: 'まだ記憶フェーズです',
+        PLAYER_ELIMINATED: 'このラウンドではすでに脱落しています'
     },
 
     text(code) {

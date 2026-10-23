@@ -53,14 +53,14 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 28:
-    fail(f"expected 28 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 29:
+    fail(f"expected 29 enabled games, found {len(enabled)}: {enabled}")
 play_enabled = re.findall(r"id='([^']+)'[^\n]*app='play'[^\n]*enabled=true", registry)
 party_enabled = re.findall(r"id='([^']+)'[^\n]*app='party'[^\n]*enabled=true", registry)
 if len(play_enabled) != 15:
     fail(f"PLAY game count is frozen at 15; found {len(play_enabled)}: {play_enabled}")
-if len(party_enabled) != 13:
-    fail(f"PARTY game count must be 13; found {len(party_enabled)}: {party_enabled}")
+if len(party_enabled) != 14:
+    fail(f"PARTY game count must be 14; found {len(party_enabled)}: {party_enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -152,6 +152,10 @@ if "partySubmitBombPass" not in party_js or 'id="bombPanel"' not in party_html:
     fail("PARTY+ BOMB client flow is missing")
 if not re.search(r"id='bomb'[^\n]*premium=true", registry):
     fail("PARTY+ BOMB registry metadata is missing")
+if "partySubmitMemoryChain" not in party_js or 'id="memoryChainPanel"' not in party_html:
+    fail("PARTY+ MEMORY CHAIN client flow is missing")
+if not re.search(r"id='memory_chain'[^\n]*premium=true", registry):
+    fail("PARTY+ MEMORY CHAIN registry metadata is missing")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
     fail("PARTY+ error mapping is missing")
 if "action=='bridgePing'" not in client:

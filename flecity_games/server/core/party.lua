@@ -275,7 +275,7 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60
+        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -541,6 +541,12 @@ local function publicRoundState(room,viewerId)
             out.submittedCount=submitted
             out.expectedSubmissions=expected
         end
+    end
+    if rs.gameId=='bomb' then
+        out.prompt=rs.prompt
+        out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
+        out.isCurrent=viewerId==rs.currentIdentifier
+        out.passes=tonumber(rs.passes) or 0
     end
     if rs.gameId=='fake_answer' then
         out.phase=rs.phase
@@ -905,6 +911,17 @@ function FlecityGamesParty.StartRound(source)
         rs.votes={}
         rs.options={}
     end
+    if game.id=='bomb' then
+        local ids=connectedIdentifiers(room)
+        room.rotation=room.rotation or {}
+        room.rotation.bomb=((tonumber(room.rotation.bomb) or 0)%#ids)+1
+        rs.turnOrder=rotatedIdentifiers(ids,room.rotation.bomb)
+        rs.currentIndex=1
+        rs.currentIdentifier=rs.turnOrder[1]
+        rs.prompt=pickRoomPrompt(room,'bomb',FlecityGamesPartyPlusPrompts.Bomb)
+        rs.passes=0
+        rs.bombFuseTick=startedTick+math.random(25000,50000)
+    end
 
     if game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
@@ -912,6 +929,8 @@ function FlecityGamesParty.StartRound(source)
         setRoundDeadline(rs,45)
     elseif game.id=='fake_answer' then
         setRoundDeadline(rs,60)
+    elseif game.id=='bomb' then
+        setRoundDeadline(rs,10)
     else
         setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     end
@@ -1649,6 +1668,60 @@ function FlecityGamesParty.SubmitFakeVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+
+local function finishBomb(room,reason)
+    local rs=room.roundState
+    if not rs or rs.gameId~='bomb' or rs.complete then return end
+    local loserId=rs.currentIdentifier
+    rs.complete=true
+    rs.results={
+        prompt=rs.prompt,
+        loserMemberId=memberPublicId(room,loserId),
+        loserName=loserId and memberName(room,loserId) or 'Player',
+        reason=reason or 'BOMB',
+        passes=tonumber(rs.passes) or 0
+    }
+end
+
+local function advanceBomb(room)
+    local rs=room.roundState
+    if not rs or rs.gameId~='bomb' or rs.complete then return false end
+    local order=rs.turnOrder or {}
+    if #order<1 then return false end
+    for offset=1,#order do
+        local index=((tonumber(rs.currentIndex) or 1)-1+offset)%#order+1
+        local id=order[index]
+        local member=room.members[id]
+        if member and not member.disconnected then
+            rs.currentIndex=index
+            rs.currentIdentifier=id
+            setRoundDeadline(rs,10)
+            return true
+        end
+    end
+    return false
+end
+
+function FlecityGamesParty.SubmitBombPass(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'bomb_pass',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='bomb' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+    if GetGameTimer()>=tonumber(rs.bombFuseTick or 0) then
+        finishBomb(room,'BOMB')
+        notifyRoom(room,source)
+        return {ok=true,room=snapshot(room,id)}
+    end
+    rs.passes=(tonumber(rs.passes) or 0)+1
+    if not advanceBomb(room) then finishBomb(room,'NO_NEXT_PLAYER') end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1695,6 +1768,11 @@ reconcileRound=function(room)
     local beforeStep=rs.step
     local purged=purgeDisconnectedTargets(room)
 
+    if rs.gameId=='bomb' and tonumber(rs.bombFuseTick) and GetGameTimer()>=tonumber(rs.bombFuseTick) then
+        finishBomb(room,'BOMB')
+        return true
+    end
+
     if tonumber(rs.deadlineTick) and GetGameTimer()>=tonumber(rs.deadlineTick) then
         if rs.gameId=='telephone' then
             advanceTelephone(room,false)
@@ -1727,6 +1805,7 @@ reconcileRound=function(room)
         elseif rs.gameId=='ng_word' then finishNgWord(room,true,rs.phase=='clue')
         elseif rs.gameId=='fake_answer' then
             if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,true) end
+        elseif rs.gameId=='bomb' then finishBomb(room,'TURN_TIMEOUT')
         else abortRound(room,'ROUND_TIMEOUT') end
         if not rs.complete and rs.gameId~='telephone' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
         return true
@@ -1763,6 +1842,11 @@ reconcileRound=function(room)
     elseif rs.gameId=='liar' then maybeFinishLiar(room)
     elseif rs.gameId=='draw' then maybeFinishDraw(room)
     elseif rs.gameId=='telephone' then ensureTelephoneTurn(room)
+    elseif rs.gameId=='bomb' then
+        local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+        if not current or current.disconnected then
+            if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
+        end
     end
 
     return purged>0

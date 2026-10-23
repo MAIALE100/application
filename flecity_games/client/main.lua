@@ -228,6 +228,7 @@ local callbackMap={
     partySubmitNgWordGuess='flecity_games:party:submitNgWordGuess',
     partySubmitFakeAnswer='flecity_games:party:submitFakeAnswer',
     partySubmitFakeVote='flecity_games:party:submitFakeVote',
+    partySubmitBombPass='flecity_games:party:submitBombPass',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

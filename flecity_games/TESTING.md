@@ -720,3 +720,10 @@ PARTY+ app/phone close実機確認（未検証）:
 - FALL BATTLE: 2人開始後に1人切断した場合、Round全体をabortせず切断者をDNFとして残し、残存者の提出で順位を確定する。
 - FALL BATTLEで結果提出済みの参加者がその後切断した場合、検証済みscore/linesを消さず結果に残す。
 - 上記はFiveM複数クライアント実機未検証。コード/selftestのみをPASS根拠にしない。
+
+
+## PARTY app close / delayed callback race（未検証・2026-10-23）
+- Round中にsubmit操作とほぼ同時にPhone/PARTYを閉じ、遅延中callbackがAppClosed後にserverへ到着しても、そのmemberの `appOpen=false` が勝手にtrueへ戻らない。
+- close後の遅延submitでHost権限が閉じた端末へ戻らない。
+- PARTYを再openした時はbootstrapのGetRoomでのみ `appOpen=true` へ戻り、最新server snapshotへ収束する。
+- 上記は2台以上のFiveM + LB Phone実機で確認するまでPASS扱いしない。

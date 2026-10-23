@@ -260,6 +260,7 @@ local function makeCode()
 end
 local function memberCount(room) local n=0 for _ in pairs(room.members) do n=n+1 end return n end
 local function connectedCount(room) local n=0 for _,m in pairs(room.members) do if not m.disconnected then n=n+1 end end return n end
+local function activeCount(room) local n=0 for _,m in pairs(room.members) do if not m.disconnected and m.appOpen~=false then n=n+1 end end return n end
 local function connectedIdentifiers(room)
     local list={}
     for id,m in pairs(room.members) do if not m.disconnected then list[#list+1]={id=id,joinOrder=m.joinOrder} end end
@@ -484,10 +485,10 @@ local function publicRoundState(room,viewerId)
         or rs.gameId=='word_wolf' or rs.gameId=='liar' then
         local submitted=0
         for id,m in pairs(room.members or {}) do
-            if not m.disconnected and rs.submissions and rs.submissions[id]~=nil then submitted=submitted+1 end
+            if not m.disconnected and m.appOpen~=false and rs.submissions and rs.submissions[id]~=nil then submitted=submitted+1 end
         end
         out.submittedCount=submitted
-        out.expectedSubmissions=connectedCount(room)
+        out.expectedSubmissions=activeCount(room)
     end
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
     if rs.gameId=='vote' then out.prompt=rs.prompt end
@@ -592,10 +593,10 @@ local function publicRoundState(room,viewerId)
         out.selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
         local submitted=0
         for playerId,m in pairs(room.members or {}) do
-            if not m.disconnected and rs.submissions and rs.submissions[playerId]~=nil then submitted=submitted+1 end
+            if not m.disconnected and m.appOpen~=false and rs.submissions and rs.submissions[playerId]~=nil then submitted=submitted+1 end
         end
         out.submittedCount=submitted
-        out.expectedSubmissions=connectedCount(room)
+        out.expectedSubmissions=activeCount(room)
     end
     if rs.gameId=='fake_answer' then
         out.phase=rs.phase
@@ -604,10 +605,10 @@ local function publicRoundState(room,viewerId)
             out.selfSubmitted=rs.fakeAnswers and rs.fakeAnswers[viewerId]~=nil or false
             local submitted=0
             for playerId,m in pairs(room.members or {}) do
-                if not m.disconnected and rs.fakeAnswers and rs.fakeAnswers[playerId]~=nil then submitted=submitted+1 end
+                if not m.disconnected and m.appOpen~=false and rs.fakeAnswers and rs.fakeAnswers[playerId]~=nil then submitted=submitted+1 end
             end
             out.submittedCount=submitted
-            out.expectedSubmissions=connectedCount(room)
+            out.expectedSubmissions=activeCount(room)
         elseif rs.phase=='vote' then
             out.selfSubmitted=rs.votes and rs.votes[viewerId]~=nil or false
             out.options={}
@@ -620,10 +621,10 @@ local function publicRoundState(room,viewerId)
             end
             local submitted=0
             for playerId,m in pairs(room.members or {}) do
-                if not m.disconnected and rs.votes and rs.votes[playerId]~=nil then submitted=submitted+1 end
+                if not m.disconnected and m.appOpen~=false and rs.votes and rs.votes[playerId]~=nil then submitted=submitted+1 end
             end
             out.submittedCount=submitted
-            out.expectedSubmissions=connectedCount(room)
+            out.expectedSubmissions=activeCount(room)
         end
     end
     if rs.complete then
@@ -1020,13 +1021,13 @@ end
 
 local function completedSubmissionCount(room)
     local rs=room.roundState local n=0
-    for id,m in pairs(room.members) do if not m.disconnected and rs.submissions[id]~=nil then n=n+1 end end
+    for id,m in pairs(room.members) do if not m.disconnected and m.appOpen~=false and rs.submissions[id]~=nil then n=n+1 end end
     return n
 end
 
 local function maybeFinishReaction(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='reaction' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='reaction' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -1072,7 +1073,7 @@ end
 
 local function maybeFinishStopBattle(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='stop_battle' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='stop_battle' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -1114,7 +1115,7 @@ end
 
 local function maybeFinishMajority(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='majority' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='majority' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -1146,7 +1147,7 @@ end
 
 local function maybeFinishMinority(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='minority' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='minority' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected then
@@ -1229,7 +1230,7 @@ end
 
 local function maybeFinishVote(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='vote' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='vote' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
@@ -1271,7 +1272,7 @@ end
 
 local function maybeFinishWordWolf(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='word_wolf' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='word_wolf' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
@@ -1312,7 +1313,7 @@ end
 
 local function maybeFinishLiar(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='liar' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='liar' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={} local totalVotes=0
     for voterId,targetId in pairs(rs.submissions) do
         local voter=room.members[voterId]
@@ -1948,7 +1949,7 @@ end
 
 local function maybeFinishFallBattle(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='fall_battle' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+    if not rs or rs.gameId~='fall_battle' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
 
     local entries={}
     local bestScore=nil

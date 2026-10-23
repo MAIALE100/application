@@ -92,20 +92,22 @@ DBテーブルは現在不要です。
 
     mining_server_status
 
-## 主な設定
+## 運営向け設定
 
-config.lua だけで以下を変更できます。
+運営が調整するファイルをロジック本体から分離しています。
 
-- 採掘/選鉱/売却時間
-- 容量
-- 1回の採掘量
-- ノードクールダウン
-- 鉱石確率
-- 鉱石単価
-- 支払方法
-- 全座標
-- マーカー
-- ブリップ
+- `config/economy.lua`: 鉱石の抽選比率・NPC買取価格・支払方法
+- `config/gameplay.lua`: 採掘時間・容量・採掘量・クールダウン
+- `config/locations.lua`: 受付・選鉱設備・採掘地点・ブリップ
+- `OPERATIONS.md`: 運営向け設定ガイド
+
+報酬調整のために client/server のロジックを編集する必要はありません。
+
+確認コマンド:
+
+    mining_selftest
+    mining_healthcheck
+    mining_economy
 
 ## 今後の候補
 

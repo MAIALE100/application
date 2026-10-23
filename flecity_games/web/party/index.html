@@ -28,6 +28,17 @@
    <div id="fakeAnswerPanel" class="hidden"><div class="kicker">PARTY+ · FAKE ANSWER</div><h2 id="fakeAnswerQuestion">待機中…</h2><p id="fakeAnswerHint" class="muted"></p><div id="fakeAnswerSubmitControls" class="row hidden"><input id="fakeAnswerInput" maxlength="50" placeholder="本物っぽい偽回答"><button id="fakeAnswerSubmit">偽回答を送信</button></div><div id="fakeAnswerChoices" class="stack"></div></div>
    <div id="bombPanel" class="hidden big-center"><div class="kicker">PARTY+ · BOMB</div><h2 id="bombPrompt">待機中…</h2><div id="bombHolder" class="big-number">---</div><p id="bombHint" class="muted"></p><button id="bombPass" class="hidden">答えた！ 次へ</button></div>
    <div id="memoryChainPanel" class="hidden big-center"><div class="kicker">PARTY+ · MEMORY CHAIN</div><h2 id="memoryChainTitle">待機中…</h2><div id="memoryChainSequence" class="big-number">---</div><p id="memoryChainHint" class="muted"></p><div id="memoryChainControls" class="stack hidden"><div id="memoryChainButtons" class="row"><button data-memory="A" class="secondary">●</button><button data-memory="B" class="secondary">▲</button><button data-memory="C" class="secondary">■</button><button data-memory="D" class="secondary">★</button></div><div id="memoryChainInput" class="status compact-status">入力: ---</div><div class="row"><button id="memoryChainReset" class="secondary">やり直す</button><button id="memoryChainSubmit">決定</button></div></div></div>
+   <div id="fallBattlePanel" class="hidden">
+     <div class="kicker">PARTY+ · FALL BATTLE</div>
+     <div class="row"><strong id="fallBattleScore">0 pt</strong><span id="fallBattleMeta" class="muted">LINES 0</span></div>
+     <div class="fall-board-card"><div id="fallBattleBoard" class="fall-board" aria-label="FALL BATTLE board"></div></div>
+     <div class="fall-hold-row"><div><strong>HOLD</strong><span class="muted">1配置1回</span></div><button id="fallBattleHold" class="secondary">HOLD</button></div>
+     <div class="fall-controls">
+       <button id="fallBattleLeft" class="secondary">←</button><button id="fallBattleRotate" class="secondary">↻</button><button id="fallBattleRight" class="secondary">→</button>
+       <button id="fallBattleSoft" class="secondary">▼</button><button id="fallBattleDrop">DROP</button>
+     </div>
+     <p id="fallBattleHint" class="muted">全員同じピース列で90秒勝負。</p>
+   </div>
    <div id="resultsPanel" class="hidden"><div class="kicker">結果</div><div id="results" class="stack"></div></div>
    <button id="lobby" class="secondary hidden">ロビーに戻る</button>
  </div>
@@ -42,9 +53,14 @@
   const loadApp=()=>{
     if(loaded)return;
     loaded=true;
-    const script=document.createElement('script');
-    script.src='./app.js';
-    document.body.appendChild(script);
+    const battleScript=document.createElement('script');
+    battleScript.src='./fall_battle.js';
+    battleScript.onload=()=>{
+      const script=document.createElement('script');
+      script.src='./app.js';
+      document.body.appendChild(script);
+    };
+    document.body.appendChild(battleScript);
   };
   const devMode=!window.invokeNative;
   if(devMode){

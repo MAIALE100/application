@@ -1,0 +1,66 @@
+Flecity PARTY 実機オペレーターチェックリスト
+対象: flecity_games / PARTY
+正本: MAIALE100/application games/party-dev
+
+前提
+- 本番想定: QBox 2.5.4 / oxmysql / citizenid = CSN
+- LOOP v1.0.0 は完成済み。flecity_play / App Store無料配布 / score-save-achievement互換は変更しない。
+- PARTY: flecity_party / App Store無料配布。
+- GitHubから更新後、原則サーバー全体再起動は不要。必要時も restart flecity_games のみ。
+- resource起動ログで startup preflight READY_FOR_LIVE_TEST を確認。
+- txAdmin consoleの game_party_status は秘密情報を表示しない診断用。
+
+重要
+このファイルの項目はFiveM複数クライアント実機でのみ合格判定する。
+コード監査、CI、selftestだけでPASS扱いしない。
+
+[ ] 2人: Room作成→参加→双方で同じplayer list
+[ ] 2人: Ready同期、未Ready/アプリ閉鎖時はStart不可
+[ ] 2人: Host以外のSelectGame/Startをserverが拒否
+[ ] 2人: Host切断で接続中かつPARTYを開いている参加者へHost移行
+[ ] 2人: Host app/phone closeでもRoom所属を維持しHostだけ移行
+[ ] 2人: Host close時に相手が切断中でも、相手の再接続+GetRoom直後にHost移行
+[ ] 2人: 元Host再openで同Roomへ参加者として復帰
+[ ] 2人: app/phone close→reopenで最新snapshotへ収束し、古い遅延callbackで巻き戻らない
+[ ] 2人: disconnect後60秒以内は同一CSNが同Roomへ復帰
+[ ] 2人: disconnect中の同一CSNが別Roomへ重複所属しない
+[ ] 満室: disconnect grace 60秒中は新規参加者が枠を奪えない
+[ ] 満室: grace経過後は切断枠が回収され新規参加できる
+[ ] Round中Joinで既存member/切断枠を変更しない
+[ ] 同時Ready/連打Readyで状態が破綻しない
+[ ] StartRound連打で二重Roundにならない
+[ ] submit連打/同時submitで二重集計しない
+[ ] 終了済みround tokenへの遅延submitを拒否
+[ ] server-authoritative deadline後、おおむね1〜2秒で結果/次手番へ進む
+[ ] 結果確定前のReturnLobby直接callbackを拒否
+[ ] 結果確定後のReturnLobby二重送信で新LobbyのReadyを消さない
+
+ゲーム
+[ ] REACTION: 2〜10人、Reveal同期、WINNER/反応時間、未入力timeout
+[ ] STOP! BATTLE: 2〜10人、同一Target、WINNER/score、未入力timeout
+[ ] VOTE: 3〜10人、自分投票不可、票数一致、0票timeout表示
+[ ] MAJORITY: 3〜10人、同一設問、未回答をB扱いしない
+[ ] MINORITY: 3〜10人、全員同一=少数派なし、同数=勝者なし
+[ ] TIC-TAC: 2人専用、合法手/勝敗/引分、手番timeoutは相手勝利
+[ ] WORD WOLF: 3〜10人、本人のお題だけ公開、会話中VOTING_LOCKED、結果後のみ公開
+[ ] LIAR: 3〜10人、本人Roleだけ公開、会話中VOTING_LOCKED、結果後のみ公開
+[ ] DRAW: 2〜10人、stroke/clear同期、dot、日本語IME、別解、FASTEST、stroke上限
+[ ] TELEPHONE: 3〜10人、途中chain秘密、DRAW45秒/TEXT30秒、離脱skip後に期限再付与、最終chain順序
+
+小画面・7〜10人
+[ ] LB Phone実寸で主要ボタンが画面外へ消えない
+[ ] 7〜10人player listで名前/Ready/Offline/App closedが判別できる
+[ ] 長い名前でReady/状態表示が潰れない
+[ ] 「退出」は2段確認で誤タップしない
+[ ] 結果を2.5秒以上確認でき、再戦/ロビー導線が明確
+[ ] 10人で複数Roundを連戦してtimer/listener/描画が重くならない
+
+診断
+[ ] 各重要操作後に game_party_status と各端末表示が一致
+[ ] WORD WOLF/LIAR/DRAW/TELEPHONEの秘密情報がgame_party_status/NUI他端末へ漏れない
+[ ] NUI JavaScript errorなし
+[ ] SERVER callback errorなし
+[ ] resource restart後にPARTY/LOOPが再登録される
+[ ] LOOPのscore/save/achievementが従来どおりDBへ残る
+
+詳細手順とPLAY回帰項目は flecity_games/TESTING.md を参照。

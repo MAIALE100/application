@@ -1,0 +1,548 @@
+local RESOURCE = GetCurrentResourceName()
+
+local sessions = {}
+local requestLocks = {}
+local tokenSequence = 0
+
+math.randomseed(os.time())
+math.random(); math.random(); math.random()
+
+local function nowMs()
+    return GetGameTimer()
+end
+
+local function notify(src, message)
+    TriggerClientEvent('flecity_mining:client:notify', src, tostring(message))
+end
+
+local function getPlayerData(src)
+    if GetResourceState('qbx_core') ~= 'started' then return nil end
+
+    local ok, player = pcall(function()
+        return exports.qbx_core:GetPlayer(src)
+    end)
+
+    if not ok or not player or not player.PlayerData then
+        return nil
+    end
+
+    return player.PlayerData
+end
+
+local function getPlayerCoords(src)
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return nil end
+    return GetEntityCoords(ped)
+end
+
+local function isNear(src, target, radius)
+    local coords = getPlayerCoords(src)
+    if not coords then return false end
+    return #(coords - target) <= (radius or Config.ServerDistanceTolerance)
+end
+
+local function allowRequest(src, key, windowMs)
+    local now = nowMs()
+    requestLocks[src] = requestLocks[src] or {}
+
+    local previous = requestLocks[src][key] or 0
+    if now - previous < (windowMs or 350) then
+        return false
+    end
+
+    requestLocks[src][key] = now
+    return true
+end
+
+local function emptyRefined()
+    local data = {}
+    for _, product in ipairs(Config.RefinedProducts) do
+        data[product.id] = 0
+    end
+    return data
+end
+
+local function refinedCount(session)
+    local count = 0
+    for _, amount in pairs(session.refined or {}) do
+        count = count + math.max(0, tonumber(amount) or 0)
+    end
+    return count
+end
+
+local function makeSession(src)
+    local pd = getPlayerData(src)
+    if not pd or not pd.citizenid then
+        return nil
+    end
+
+    return {
+        citizenid = tostring(pd.citizenid),
+        active = true,
+        rawOre = 0,
+        refined = emptyRefined(),
+        nodeCooldowns = {},
+        action = nil,
+        startedAt = os.time(),
+    }
+end
+
+local function publicState(session)
+    if not session then
+        return {
+            active = false,
+            rawOre = 0,
+            maxRawOre = Config.MaxRawOre,
+            refined = emptyRefined(),
+            refinedCount = 0,
+        }
+    end
+
+    local refined = {}
+    for _, product in ipairs(Config.RefinedProducts) do
+        refined[product.id] = tonumber(session.refined[product.id]) or 0
+    end
+
+    return {
+        active = session.active == true,
+        rawOre = tonumber(session.rawOre) or 0,
+        maxRawOre = Config.MaxRawOre,
+        refined = refined,
+        refinedCount = refinedCount(session),
+    }
+end
+
+local function syncState(src)
+    TriggerClientEvent('flecity_mining:client:state', src, publicState(sessions[src]))
+end
+
+local function findNode(nodeId)
+    nodeId = tonumber(nodeId)
+    if not nodeId then return nil end
+
+    for _, node in ipairs(Config.MiningNodes) do
+        if tonumber(node.id) == nodeId then
+            return node
+        end
+    end
+
+    return nil
+end
+
+local function newToken(src, actionType)
+    tokenSequence = tokenSequence + 1
+    return ('%s:%s:%s:%s'):format(src, actionType, nowMs(), tokenSequence)
+end
+
+local function clearExpiredAction(session)
+    if not session or not session.action then return end
+
+    if nowMs() > session.action.expiresAt then
+        session.action = nil
+    end
+end
+
+local function beginAction(src, actionType, durationMs, targetCoords, data, label)
+    local session = sessions[src]
+    if not session or not session.active then
+        notify(src, '先に鉱山受付で作業を開始してください。')
+        return false
+    end
+
+    clearExpiredAction(session)
+
+    if session.action then
+        notify(src, '別の作業中です。')
+        return false
+    end
+
+    if not isNear(src, targetCoords) then
+        notify(src, '作業地点から離れすぎています。')
+        return false
+    end
+
+    local token = newToken(src, actionType)
+    local start = nowMs()
+
+    session.action = {
+        type = actionType,
+        token = token,
+        startedAt = start,
+        minFinishAt = start + math.max(500, durationMs - 650),
+        expiresAt = start + durationMs + 15000,
+        target = targetCoords,
+        data = data or {},
+    }
+
+    TriggerClientEvent('flecity_mining:client:actionApproved', src, {
+        type = actionType,
+        token = token,
+        durationMs = durationMs,
+        label = label,
+    })
+
+    return true
+end
+
+local function chooseProduct()
+    local totalWeight = 0
+    for _, product in ipairs(Config.RefinedProducts) do
+        totalWeight = totalWeight + math.max(0, tonumber(product.weight) or 0)
+    end
+
+    if totalWeight <= 0 then
+        return Config.RefinedProducts[1]
+    end
+
+    local roll = math.random(1, totalWeight)
+    local cursor = 0
+
+    for _, product in ipairs(Config.RefinedProducts) do
+        cursor = cursor + math.max(0, tonumber(product.weight) or 0)
+        if roll <= cursor then
+            return product
+        end
+    end
+
+    return Config.RefinedProducts[#Config.RefinedProducts]
+end
+
+local function finishMining(src, session, action)
+    local node = findNode(action.data.nodeId)
+    if not node then
+        notify(src, '採掘地点の検証に失敗しました。')
+        return
+    end
+
+    if not isNear(src, node.coords) then
+        notify(src, '採掘地点から離れたため採掘を中止しました。')
+        return
+    end
+
+    if session.rawOre >= Config.MaxRawOre then
+        notify(src, '原石が満載です。選鉱設備へ運んでください。')
+        return
+    end
+
+    local yield = math.random(Config.RawYield.min, Config.RawYield.max)
+    yield = math.min(yield, Config.MaxRawOre - session.rawOre)
+
+    session.rawOre = session.rawOre + yield
+    session.nodeCooldowns[node.id] = nowMs() + Config.NodeCooldownMs
+
+    notify(src, ('原石を %d 個採掘しました。 [%d/%d]'):format(yield, session.rawOre, Config.MaxRawOre))
+end
+
+local function finishProcessing(src, session, action)
+    if not isNear(src, Config.Processor.coords) then
+        notify(src, '選鉱設備から離れたため処理を中止しました。')
+        return
+    end
+
+    local amount = math.min(
+        math.max(0, tonumber(action.data.amount) or 0),
+        math.max(0, tonumber(session.rawOre) or 0)
+    )
+
+    if amount <= 0 then
+        notify(src, '処理できる原石がありません。')
+        return
+    end
+
+    session.rawOre = session.rawOre - amount
+
+    local summary = {}
+    for _ = 1, amount do
+        local product = chooseProduct()
+        session.refined[product.id] = (session.refined[product.id] or 0) + 1
+        summary[product.id] = (summary[product.id] or 0) + 1
+    end
+
+    local parts = {}
+    for _, product in ipairs(Config.RefinedProducts) do
+        local count = summary[product.id] or 0
+        if count > 0 then
+            parts[#parts + 1] = ('%s×%d'):format(product.label, count)
+        end
+    end
+
+    notify(src, ('選鉱完了: %s'):format(table.concat(parts, ' / ')))
+end
+
+local function calculatePayout(session)
+    local payout = 0
+    local breakdown = {}
+
+    for _, product in ipairs(Config.RefinedProducts) do
+        local count = math.max(0, tonumber(session.refined[product.id]) or 0)
+        if count > 0 then
+            payout = payout + (count * product.value)
+            breakdown[#breakdown + 1] = {
+                id = product.id,
+                label = product.label,
+                count = count,
+                unitValue = product.value,
+            }
+        end
+    end
+
+    return math.floor(payout), breakdown
+end
+
+local function finishSelling(src, session)
+    if not isNear(src, Config.Foreman.coords) then
+        notify(src, '受付から離れたため売却を中止しました。')
+        return
+    end
+
+    local payout, breakdown = calculatePayout(session)
+    if payout <= 0 then
+        notify(src, '売却できる精製鉱石がありません。')
+        return
+    end
+
+    local ok, result = pcall(function()
+        return exports.qbx_core:AddMoney(src, Config.MoneyType, payout, Config.MoneyReason)
+    end)
+
+    if not ok or result == false then
+        print(('[%s] AddMoney failed source=%s payout=%s result=%s'):format(
+            RESOURCE, src, payout, tostring(result)
+        ))
+        notify(src, '報酬の支払いに失敗しました。鉱石は保持されています。')
+        return
+    end
+
+    session.refined = emptyRefined()
+
+    local detail = {}
+    for _, row in ipairs(breakdown) do
+        detail[#detail + 1] = ('%s×%d'):format(row.label, row.count)
+    end
+
+    notify(src, ('$%d を受け取りました。 (%s)'):format(payout, table.concat(detail, ' / ')))
+end
+
+RegisterNetEvent('flecity_mining:server:startShift', function()
+    local src = source
+    if not allowRequest(src, 'startShift', 750) then return end
+
+    if not isNear(src, Config.Foreman.coords) then
+        return
+    end
+
+    if sessions[src] and sessions[src].active then
+        syncState(src)
+        notify(src, 'すでに鉱山作業中です。')
+        return
+    end
+
+    local session = makeSession(src)
+    if not session then
+        notify(src, 'キャラクター情報を取得できませんでした。少し待って再度お試しください。')
+        return
+    end
+
+    sessions[src] = session
+    syncState(src)
+    notify(src, '鉱山作業を開始しました。採掘地点で原石を集めてください。')
+end)
+
+RegisterNetEvent('flecity_mining:server:requestState', function()
+    local src = source
+    if not allowRequest(src, 'requestState', 300) then return end
+    syncState(src)
+end)
+
+RegisterNetEvent('flecity_mining:server:beginMine', function(nodeId)
+    local src = source
+    if not allowRequest(src, 'beginMine', 500) then return end
+
+    local session = sessions[src]
+    if not session or not session.active then
+        notify(src, '先に鉱山受付で作業を開始してください。')
+        return
+    end
+
+    if session.rawOre >= Config.MaxRawOre then
+        notify(src, '原石が満載です。選鉱設備へ運んでください。')
+        return
+    end
+
+    local node = findNode(nodeId)
+    if not node or not isNear(src, node.coords) then
+        return
+    end
+
+    local cooldownUntil = session.nodeCooldowns[node.id] or 0
+    local remaining = cooldownUntil - nowMs()
+    if remaining > 0 then
+        notify(src, ('この場所は崩した直後です。あと約 %d 秒待ってください。'):format(
+            math.ceil(remaining / 1000)
+        ))
+        return
+    end
+
+    beginAction(
+        src,
+        'mine',
+        Config.MiningDurationMs,
+        node.coords,
+        { nodeId = node.id },
+        '採掘中'
+    )
+end)
+
+RegisterNetEvent('flecity_mining:server:beginProcess', function()
+    local src = source
+    if not allowRequest(src, 'beginProcess', 500) then return end
+
+    local session = sessions[src]
+    if not session or not session.active then
+        notify(src, '先に鉱山受付で作業を開始してください。')
+        return
+    end
+
+    if session.rawOre <= 0 then
+        notify(src, '処理する原石がありません。')
+        return
+    end
+
+    beginAction(
+        src,
+        'process',
+        Config.ProcessingDurationMs,
+        Config.Processor.coords,
+        { amount = session.rawOre },
+        '選鉱中'
+    )
+end)
+
+RegisterNetEvent('flecity_mining:server:beginSell', function()
+    local src = source
+    if not allowRequest(src, 'beginSell', 500) then return end
+
+    local session = sessions[src]
+    if not session or not session.active then
+        notify(src, '先に鉱山受付で作業を開始してください。')
+        return
+    end
+
+    if refinedCount(session) <= 0 then
+        notify(src, '売却できる精製鉱石がありません。')
+        return
+    end
+
+    beginAction(
+        src,
+        'sell',
+        Config.SellingDurationMs,
+        Config.Foreman.coords,
+        {},
+        '精算中'
+    )
+end)
+
+RegisterNetEvent('flecity_mining:server:finishAction', function(token)
+    local src = source
+    if not allowRequest(src, 'finishAction', 250) then return end
+
+    local session = sessions[src]
+    if not session or not session.action then
+        return
+    end
+
+    local action = session.action
+    if tostring(token or '') ~= action.token then
+        return
+    end
+
+    local now = nowMs()
+    if now < action.minFinishAt then
+        print(('[%s] rejected early action source=%s type=%s delta=%sms'):format(
+            RESOURCE, src, action.type, action.minFinishAt - now
+        ))
+        session.action = nil
+        notify(src, '作業時間の検証に失敗しました。')
+        syncState(src)
+        return
+    end
+
+    if now > action.expiresAt then
+        session.action = nil
+        notify(src, '作業がタイムアウトしました。')
+        syncState(src)
+        return
+    end
+
+    session.action = nil
+
+    if action.type == 'mine' then
+        finishMining(src, session, action)
+    elseif action.type == 'process' then
+        finishProcessing(src, session, action)
+    elseif action.type == 'sell' then
+        finishSelling(src, session)
+    end
+
+    syncState(src)
+end)
+
+RegisterNetEvent('flecity_mining:server:cancelAction', function(token)
+    local src = source
+    local session = sessions[src]
+    if not session or not session.action then return end
+
+    if tostring(token or '') == session.action.token then
+        session.action = nil
+        syncState(src)
+    end
+end)
+
+RegisterNetEvent('flecity_mining:server:endShift', function()
+    local src = source
+    if not allowRequest(src, 'endShift', 750) then return end
+
+    local session = sessions[src]
+    if not session then
+        syncState(src)
+        return
+    end
+
+    if not isNear(src, Config.Foreman.coords) then
+        notify(src, '作業終了は鉱山受付で行ってください。')
+        return
+    end
+
+    if session.rawOre > 0 or refinedCount(session) > 0 then
+        notify(src, '未処理または未売却の鉱石があります。先に精算してください。')
+        return
+    end
+
+    sessions[src] = nil
+    syncState(src)
+    notify(src, '鉱山作業を終了しました。')
+end)
+
+AddEventHandler('playerDropped', function()
+    local src = source
+    sessions[src] = nil
+    requestLocks[src] = nil
+end)
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= RESOURCE then return end
+    sessions = {}
+    requestLocks = {}
+end)
+
+RegisterCommand('mining_server_status', function(src)
+    if src ~= 0 then return end
+
+    local active = 0
+    for _ in pairs(sessions) do
+        active = active + 1
+    end
+
+    print(('[%s] active sessions: %d'):format(RESOURCE, active))
+end, true)

@@ -827,6 +827,8 @@ if re.search(r"\bTODO\b|\bFIXME\b", all_text):
 
 if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:
     fail("PARTY room lookup can regress into reopening app presence on delayed callbacks")
+if party_lua.count("member.appOpen~=false and src~=excluded") < 2:
+    fail("PARTY server pushes must skip members whose app is closed")
 if "local function roomForPlayer(source,id,allowClosed)" not in party_lua or "if member.appOpen==false and allowClosed~=true then return nil end" not in party_lua:
     fail("PARTY closed-app callbacks must be rejected server-side")
 get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")

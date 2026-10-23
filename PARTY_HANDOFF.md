@@ -488,3 +488,10 @@ LOOP完成版には不要な変更を入れない。
 - MEMORY CHAIN: app/phone closeした参加者をそのstageで脱落扱いにし、残り参加者の進行を15秒timeoutまで止めない。
 - Room所属は維持し、次Roundには再参加可能。課金権利やHost共有仕様は変更なし。
 - 上記のclose直後push、再open、複数人同時closeはFiveM複数クライアント実機で未検証。
+
+
+## 2026-10-23 PARTY+ FiveM切断時の即時進行
+- FAKE ANSWERは偽回答/投票の両phaseでFiveM切断者を待機人数から除外し、残り全員が入力済みならreconcile時に即進行する。
+- MEMORY CHAINはFiveM切断者をalive人数から除外し、残り全員が入力済みならreconcile時に即stage判定する。
+- app/phone closeだけでなくplayerDropped経路でも放置待ちを減らした。再接続grace自体は維持し、既に進んだphase/stageは巻き戻さない。
+- 実機複数クライアントでの切断→即進行→60秒以内再接続は未検証。

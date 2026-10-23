@@ -108,3 +108,11 @@ PARTY+ app/phone close実機確認（未検証）:
 □ MEMORY CHAIN: 2人開始→1人切断で残存1人を勝者確定
 □ FALL BATTLE: 2人開始→1人切断をDNFとして残し、残存者提出で順位確定
 □ FALL BATTLE: server検証済み提出後に切断してもscore/linesが結果に残る
+
+
+【実機未検証：アプリ終了と遅延callbackの競合】
+□ 2台以上でラウンド中、入力送信とほぼ同時にPARTYアプリまたはPhoneを閉じる
+□ close後に遅れて到着したReady／開始／各ゲームsubmitがサーバー状態を変更しない
+□ 閉じた端末はRoom所属を維持したまま appOpen=false になり、通常の再openで同じRoomへ復帰できる
+□ Hostを閉じた場合、開いている別参加者へHostが移り、旧Host再open後もRoom操作が破綻しない
+※ FiveM＋LB Phone複数クライアントでのタイミング依存確認が必要。未実施の間は成功扱いにしない。

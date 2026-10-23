@@ -358,6 +358,11 @@ local function reconnectMember(room,id,source)
     member.appOpen=true
     if room.state=='lobby' then member.ready=false end
     sourceToRoom[src]=room.id
+    local hostId=room.hostIdentifier
+    local host=hostId and room.members[hostId] or nil
+    if hostId~=id and host and host.appOpen==false then
+        handoffHostFrom(room,hostId)
+    end
     migrateHost(room)
     return true
 end

@@ -8,7 +8,7 @@
 
 ```cmd
 cd /d D:\FiveM_Dev\application
-git pull origin games/platform-core
+git pull --ff-only origin games/party-dev
 robocopy "D:\FiveM_Dev\application\flecity_games" "D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games" /MIR /R:2 /W:1 /XF dev-auto-reload.enabled dev-reload.token dev-build.txt
 powershell.exe -NoProfile -Command "Set-Content -Path 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games\dev-auto-reload.enabled' -Value '1' -NoNewline -Encoding ascii; Set-Content -Path 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base\resources\flecity_games\dev-reload.token' -Value ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()) -NoNewline -Encoding ascii"
 ```

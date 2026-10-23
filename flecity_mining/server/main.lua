@@ -456,10 +456,13 @@ RegisterNetEvent('flecity_mining:server:startShift', function()
         return
     end
 
-    if sessions[src] and sessions[src].active then
-        syncState(src)
-        notify(src, 'すでに鉱山作業中です。')
-        return
+    if sessions[src] then
+        local existing = getOwnedSession(src, true)
+        if existing and existing.active then
+            syncState(src)
+            notify(src, 'すでに鉱山作業中です。')
+            return
+        end
     end
 
     local session = makeSession(src)

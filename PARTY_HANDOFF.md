@@ -434,3 +434,21 @@ LOOP完成版には不要な変更を入れない。
 - 課金成功時event `flecity_games:server:partyPlusCharged` を発火。会社口座等への売上振替は未設定で、必要なら運営仕様確定後にevent listenerのみ追加する。
 - 実機FiveM複数クライアントでの課金・Host共有・各4ゲーム・切断/再接続は未検証。TESTING.md / PARTY運営確認用メモに残す。
 - GitHub Actionsはrunner_id=0 / steps空の状態でjob開始前failureが継続中。コード検査PASSとは扱わず、runner復旧後のgreen確認を必須とする。
+
+
+## 2026-10-23 Flecity運営確認済み本番前提
+- Framework: QBox 2.5.4
+- Database access: oxmysql
+- 永続プレイヤー識別: `citizenid = CSN`
+- PuriPhoto / LOOP / PARTY等を独立resourceとして制作・テスト後、今後も追加LB Phoneアプリとして提出して問題なしとの運営回答。
+- PARTYの永続課金権利はsourceではなくcitizenid(CSN)単位で扱う。
+
+## 2026-10-23 PARTY+ 拡張
+- PARTY本体と既存無料10ゲームは無料のまま維持。
+- PARTY+: 7日 / 50,000 / 自動更新。加入HostのRoomでは未加入参加者もプレミアムゲームを利用可能。
+- 限定品・シーズン・月替わり追加を前提にせず、運営/開発双方の更新作業を増やさない。
+- プレミアムゲーム: NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE の5本。
+- お題量は NG WORD 120 / FAKE ANSWER 124 / BOMB 180。MEMORY CHAINはserver生成。
+- FALL BATTLEはPLAYのFALL操作系をPARTY専用対戦として再実装。LOOP本体のFALLコードやscore/save/achievement互換は変更しない。
+- FALL BATTLEは2〜10人・90秒・全員同一seed。配置履歴をserver再生してscore/linesを検証し、クライアント申告scoreを信用しない。
+- 実機複数クライアントでのPARTY+課金、Host共有、FALL BATTLE 2人/10人、小画面操作、close/reopenは未検証。TESTING.mdの確認を必須とする。

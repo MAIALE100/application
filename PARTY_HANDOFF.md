@@ -557,3 +557,11 @@ LOOP完成版には不要な変更を入れない。
 - 特にGetRoomは通常再open時のpresence復帰に必要な例外だが、close後の古いNUI requestがpresenceを復活させるraceをclient lifecycleで抑止する。
 - static checkへgateの回帰guardを追加。FiveM＋LB Phone実機でclose競合→`appOpen=false`維持→正常再openを確認するまでは未検証扱い。
 - LOOP側のcallback・identifier・App Store・score/save/achievement仕様は変更なし。
+
+
+## 2026-10-24 DRAW・秘密役App close耐性
+- DRAWは描き手がPARTY/Phoneを閉じた場合、90秒timeoutを待たずDRAWER_LEFTとして即終了する。
+- DRAWの完了人数判定はappOpenな回答者だけを対象にし、閉じた未回答者を待ち続けない。
+- WORD WOLFのWolf / LIARのLiarがPARTY/Phoneを閉じた場合、秘密役不在のまま結果確定させずSECRET_PLAYER_LEFTとして即中断する。
+- Room所属は維持し、再open後の次Round参加は従来どおり。
+- FiveM＋LB Phone複数クライアントで「DRAW描き手close」「DRAW未回答者close」「秘密役close→即中断→再open」を確認するまでは未検証扱い。

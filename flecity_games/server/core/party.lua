@@ -1949,10 +1949,11 @@ local function maybeFinishFallBattle(room,force)
                 score=s and tonumber(s.score) or 0,
                 lines=s and tonumber(s.lines) or 0,
                 pieces=s and tonumber(s.pieces) or 0,
-                timedOut=s==nil
+                timedOut=s==nil,
+                forfeited=s and s.forfeited==true or false
             }
             entries[#entries+1]=entry
-            if not entry.timedOut then
+            if not entry.timedOut and not entry.forfeited then
                 if bestScore==nil or entry.score>bestScore or (entry.score==bestScore and entry.lines>(bestLines or -1)) then
                     bestScore=entry.score
                     bestLines=entry.lines
@@ -1972,7 +1973,7 @@ local function maybeFinishFallBattle(room,force)
     local winners={}
     if bestScore~=nil then
         for _,entry in ipairs(entries) do
-            if not entry.timedOut and entry.score==bestScore and entry.lines==bestLines then
+            if not entry.timedOut and not entry.forfeited and entry.score==bestScore and entry.lines==bestLines then
                 winners[#winners+1]=entry.memberId
             end
         end
@@ -2156,6 +2157,13 @@ function FlecityGamesParty.AppClosed(source)
     end
     if room.state=='lobby' and room.members[id].ready==true then
         room.members[id].ready=false
+        changed=true
+    end
+    local rs=room.roundState
+    if room.state=='round' and rs and rs.gameId=='fall_battle' and not rs.complete
+        and rs.submissions and rs.submissions[id]==nil then
+        rs.submissions[id]={score=0,lines=0,pieces=0,ended=true,forfeited=true}
+        maybeFinishFallBattle(room)
         changed=true
     end
     if handoffHostFrom(room,id) then changed=true end

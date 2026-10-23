@@ -1,0 +1,49 @@
+name: Flecity Mining Static Check
+
+on:
+  push:
+    branches:
+      - jobs/mining-dev
+    paths:
+      - 'flecity_mining/**'
+      - 'MINING_HANDOFF.md'
+      - '.github/workflows/flecity-mining-check.yml'
+  pull_request:
+    paths:
+      - 'flecity_mining/**'
+      - 'MINING_HANDOFF.md'
+      - '.github/workflows/flecity-mining-check.yml'
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.4
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lua5.4
+
+      - name: Check Lua syntax
+        run: |
+          set -euo pipefail
+          find flecity_mining -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+
+      - name: Check required files
+        run: |
+          set -euo pipefail
+          test -f flecity_mining/fxmanifest.lua
+          test -f flecity_mining/config.lua
+          test -f flecity_mining/client/main.lua
+          test -f flecity_mining/server/main.lua
+          test -f flecity_mining/README.md
+          test -f flecity_mining/TESTING.md
+
+      - name: Check beginner-safe design invariants
+        run: |
+          set -euo pipefail
+          grep -q "dependency 'qbx_core'" flecity_mining/fxmanifest.lua
+          grep -q "Config.MaxRawOre" flecity_mining/config.lua
+          grep -q "exports.qbx_core:AddMoney" flecity_mining/server/main.lua
+          ! grep -RniE 'mining(level|xp)|miner(level|xp)' flecity_mining --include='*.lua'

@@ -1996,7 +1996,7 @@ function FlecityGamesParty.SubmitFallBattle(source,data)
     local serverElapsed=math.max(0,GetGameTimer()-(tonumber(rs.startedTick) or GetGameTimer()))
     local allowedElapsed=math.min(90000,serverElapsed)
     local validated,errorCode=FlecityGamesPartyFall.Validate(rs.seed,data.history,rs.width,rs.height,allowedElapsed)
-    if not validated then return {ok=false,error=errorCode or 'INVALID_HISTORY'} end
+    if not validated then return {ok=false,error=errorCode or 'INVALID_FALL_BATTLE_REPLAY'} end
 
     rs.submissions[id]={
         score=validated.score,
@@ -2188,7 +2188,13 @@ function FlecityGamesParty.DropSource(source)
     local id
     for memberId,m in pairs(room.members) do if m.source==src then id=memberId break end end
     if not id then return end
-    local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
+    local m=room.members[id]
+    local rs=room.roundState
+    if room.state=='round' and rs and rs.gameId=='fall_battle' and not rs.complete
+        and rs.submissions and rs.submissions[id]==nil then
+        rs.submissions[id]={score=0,lines=0,pieces=0,ended=true,forfeited=true}
+    end
+    m.source=nil m.disconnected=true m.disconnectedAt=os.time()
     if room.state=='lobby' then m.ready=false end
     migrateHost(room) reconcileRound(room) notifyRoom(room)
 end
@@ -2417,7 +2423,24 @@ function FlecityGamesParty.DebugSelftest()
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=true,disconnectedAt=os.time()-(FlecityGamesConfig.Party.DisconnectGraceSeconds+5),joinOrder=2}
     }}
-    local expiredReclaimed=reclaimDisconnectedCapacity(expiredDisconnectRoom,2)
+    local fallBattleRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,joinOrder=3}
+    },roundState={
+        token='fall-battle-test',gameId='fall_battle',startedAt=0,startedTick=0,complete=false,
+        submissions={
+            a={score=1200,lines=4,pieces=20},
+            b={score=1200,lines=3,pieces=21},
+            c={score=0,lines=0,pieces=0,forfeited=true}
+        }
+    }}
+    maybeFinishFallBattle(fallBattleRoom)
+
+    local fallBattleDisconnectForfeit=fallBattleRoom.roundState.complete==true
+        and #fallBattleRoom.roundState.results.winnerMemberIds==1
+        and fallBattleRoom.roundState.results.winnerMemberIds[1]=='A'
+        and fallBattleRoom.roundState.results.entries[3].forfeited==true
 
     return {
         promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
@@ -2427,6 +2450,7 @@ function FlecityGamesParty.DebugSelftest()
         appCloseHostHandoff=appCloseHandoff==true and appCloseHostRoom.hostIdentifier=='c',
         reconnectGracePreserved=recentReclaimed==0 and memberCount(recentDisconnectRoom)==2,
         expiredCapacityReclaimed=expiredReclaimed==1 and memberCount(expiredDisconnectRoom)==1,
+        fallBattleDisconnectForfeit=fallBattleDisconnectForfeit,
         connectedCount=connectedCount(hostRoom)==2,
         memberCount=memberCount(hostRoom)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

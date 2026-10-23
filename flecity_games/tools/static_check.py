@@ -25,6 +25,7 @@ play_lua = read("flecity_games/server/core/play.lua")
 registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
 config = read("flecity_games/config/shared.lua")
+database_lua = read("flecity_games/server/core/database.lua")
 party_fall_lua = read("flecity_games/server/core/party_fall.lua")
 party_fall_js = read("flecity_games/web/party/fall_battle.js")
 bridge = read("flecity_games/web/shared/bridge.js")
@@ -158,7 +159,7 @@ if "partySubmitMemoryChain" not in party_js or 'id="memoryChainPanel"' not in pa
     fail("PARTY+ MEMORY CHAIN client flow is missing")
 if not re.search(r"id='memory_chain'[^\n]*premium=true", registry):
     fail("PARTY+ MEMORY CHAIN registry metadata is missing")
-if "partySubmitFallBattle" not in party_js or 'id="fallBattlePanel"' not in party_html:
+if "partySubmitFallBattle" not in party_fall_js or 'id="fallBattlePanel"' not in party_html:
     fail("PARTY+ FALL BATTLE client flow is missing")
 if not re.search(r"id='fall_battle'[^\n]*premium=true", registry):
     fail("PARTY+ FALL BATTLE registry metadata is missing")

@@ -2907,7 +2907,8 @@ async function guessHighLow(guess){
  game.maxStreak=Math.max(game.maxStreak||0,Number(res.maxStreak)||0);
  game.score=Math.max(0,Number(res.score)||0);
  const rankUp=liveRankUpPrefix('high_low',scoreBefore,game.score);
- game.lives=Math.max(0,Number(res.lives)??game.lives??0);
+ const responseLives=Number(res.lives);
+ if(Number.isFinite(responseLives))game.lives=Math.max(0,responseLives);
  game.completed=Math.max(0,Number(res.completed)||0);
  game.timeLimitMs=Math.max(800,Number(res.timeLimitMs)||game.timeLimitMs||2400);
  game.busy=false;

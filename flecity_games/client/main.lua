@@ -224,6 +224,8 @@ local callbackMap={
     partySubmitDrawGuess='flecity_games:party:submitDrawGuess',
     partySubmitTelephoneDrawing='flecity_games:party:submitTelephoneDrawing',
     partySubmitTelephoneText='flecity_games:party:submitTelephoneText',
+    partySubmitNgWordClue='flecity_games:party:submitNgWordClue',
+    partySubmitNgWordGuess='flecity_games:party:submitNgWordGuess',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

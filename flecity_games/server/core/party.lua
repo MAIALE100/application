@@ -149,6 +149,16 @@ local function drawGuessMatches(prompt,guess)
     return false
 end
 
+local function normalizedPartyAnswer(value)
+    return string.lower(FlecityGamesText.Normalize(value)):gsub('%s+','')
+end
+
+local function containsPartyTerm(text,term)
+    local haystack=normalizedPartyAnswer(text)
+    local needle=normalizedPartyAnswer(term)
+    return needle~='' and haystack:find(needle,1,true)~=nil
+end
+
 local telephonePrompts={
     '赤い車で海へ行く',
     '猫がピザを食べている',
@@ -255,7 +265,7 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45
+        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -498,6 +508,28 @@ local function publicRoundState(room,viewerId)
             local previous=rs.chain and rs.chain[#rs.chain] or nil
             if rs.mode=='draw' and previous and previous.kind=='text' then out.promptText=previous.text end
             if rs.mode=='text' and previous and previous.kind=='draw' then out.promptStrokes=previous.strokes end
+        end
+    end
+    if rs.gameId=='ng_word' then
+        out.phase=rs.phase
+        out.explainerMemberId=memberPublicId(room,rs.explainerIdentifier)
+        out.isExplainer=viewerId==rs.explainerIdentifier
+        if out.isExplainer then
+            out.targetWord=rs.targetWord
+            out.forbiddenWords=rs.forbiddenWords
+        end
+        if rs.phase=='guess' then
+            out.clue=rs.clue
+            out.selfSubmitted=rs.guesses and rs.guesses[viewerId]~=nil or false
+            local submitted,expected=0,0
+            for playerId,m in pairs(room.members or {}) do
+                if not m.disconnected and playerId~=rs.explainerIdentifier then
+                    expected=expected+1
+                    if rs.guesses and rs.guesses[playerId]~=nil then submitted=submitted+1 end
+                end
+            end
+            out.submittedCount=submitted
+            out.expectedSubmissions=expected
         end
     end
     if rs.complete then
@@ -811,9 +843,24 @@ function FlecityGamesParty.StartRound(source)
         rs.step=1 rs.mode='draw' rs.currentIdentifier=rs.turnOrder[1]
         rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
     end
+    if game.id=='ng_word' then
+        local ids=connectedIdentifiers(room)
+        room.rotation=room.rotation or {}
+        room.rotation.ngWord=((tonumber(room.rotation.ngWord) or 0)%#ids)+1
+        rs.explainerIdentifier=ids[room.rotation.ngWord]
+        local prompt=pickRoomPrompt(room,'ng_word',FlecityGamesPartyPlusPrompts.Taboo)
+        rs.targetWord=prompt.word
+        rs.forbiddenWords=prompt.forbidden
+        rs.phase='clue'
+        rs.clue=nil
+        rs.guesses={}
+        rs.guessOrder={}
+    end
 
     if game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
+    elseif game.id=='ng_word' then
+        setRoundDeadline(rs,45)
     else
         setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     end
@@ -1297,6 +1344,95 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+
+local function finishNgWord(room,timedOut,noClue)
+    local rs=room.roundState
+    if not rs or rs.gameId~='ng_word' or rs.complete then return end
+    local entries={}
+    for id,m in pairs(room.members) do
+        if not m.disconnected and id~=rs.explainerIdentifier then
+            local guess=rs.guesses and rs.guesses[id] or nil
+            entries[#entries+1]={
+                memberId=m.memberId,
+                name=m.name,
+                guess=guess and guess.text or nil,
+                correct=guess and guess.correct==true or false
+            }
+        end
+    end
+    table.sort(entries,function(a,b) return a.name<b.name end)
+    rs.complete=true
+    rs.results={
+        targetWord=rs.targetWord,
+        forbiddenWords=rs.forbiddenWords,
+        clue=rs.clue,
+        explainerMemberId=memberPublicId(room,rs.explainerIdentifier),
+        winnerMemberId=rs.winnerIdentifier and memberPublicId(room,rs.winnerIdentifier) or nil,
+        winnerName=rs.winnerIdentifier and memberName(room,rs.winnerIdentifier) or nil,
+        entries=entries,
+        timedOut=timedOut==true,
+        noClue=noClue==true
+    }
+end
+
+function FlecityGamesParty.SubmitNgWordClue(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'ng_word_clue',500) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='ng_word' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.explainerIdentifier~=id then return {ok=false,error='EXPLAINER_ONLY'} end
+    if rs.phase~='clue' then return {ok=false,error='ALREADY_SUBMITTED'} end
+    local clue=FlecityGamesText.Normalize(data.clue)
+    local clueLength=FlecityGamesText.Length(clue)
+    if clueLength<3 or clueLength>100 then return {ok=false,error='INVALID_TEXT'} end
+    if containsPartyTerm(clue,rs.targetWord) then return {ok=false,error='TABOO_FORBIDDEN_WORD'} end
+    for _,term in ipairs(rs.forbiddenWords or {}) do
+        if containsPartyTerm(clue,term) then return {ok=false,error='TABOO_FORBIDDEN_WORD'} end
+    end
+    rs.clue=clue
+    rs.phase='guess'
+    setRoundDeadline(rs,45)
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.SubmitNgWordGuess(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'ng_word_guess',300) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='ng_word' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.phase~='guess' then return {ok=false,error='CLUE_NOT_READY'} end
+    if rs.explainerIdentifier==id then return {ok=false,error='EXPLAINER_CANNOT_GUESS'} end
+    if rs.guesses[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    local guess=FlecityGamesText.Normalize(data.guess)
+    local guessLength=FlecityGamesText.Length(guess)
+    if guessLength<1 or guessLength>40 then return {ok=false,error='INVALID_GUESS'} end
+    local correct=normalizedPartyAnswer(guess)==normalizedPartyAnswer(rs.targetWord)
+    rs.guesses[id]={text=guess,correct=correct}
+    rs.guessOrder[#rs.guessOrder+1]=id
+    if correct then
+        rs.winnerIdentifier=id
+        finishNgWord(room,false,false)
+    else
+        local expected,submitted=0,0
+        for playerId,m in pairs(room.members) do
+            if not m.disconnected and playerId~=rs.explainerIdentifier then
+                expected=expected+1
+                if rs.guesses[playerId] then submitted=submitted+1 end
+            end
+        end
+        if expected>0 and submitted>=expected then finishNgWord(room,false,false) end
+    end
+    notifyRoom(room,source)
+    return {ok=true,correct=correct,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1372,6 +1508,7 @@ reconcileRound=function(room)
         elseif rs.gameId=='word_wolf' then maybeFinishWordWolf(room,true)
         elseif rs.gameId=='liar' then maybeFinishLiar(room,true)
         elseif rs.gameId=='draw' then maybeFinishDraw(room,true)
+        elseif rs.gameId=='ng_word' then finishNgWord(room,true,rs.phase=='clue')
         else abortRound(room,'ROUND_TIMEOUT') end
         if not rs.complete and rs.gameId~='telephone' then abortRound(room,'ROUND_TIMEOUT') end
         return true
@@ -1391,6 +1528,9 @@ reconcileRound=function(room)
     elseif rs.gameId=='liar' then
         local liar=rs.liarIdentifier and room.members[rs.liarIdentifier] or nil
         if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
+    elseif rs.gameId=='ng_word' then
+        local explainer=rs.explainerIdentifier and room.members[rs.explainerIdentifier] or nil
+        if not explainer or explainer.disconnected then abortRound(room,'EXPLAINER_LEFT') return true end
     end
 
     if rs.gameId=='reaction' then maybeFinishReaction(room)

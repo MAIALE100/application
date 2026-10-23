@@ -39,6 +39,8 @@ local callbacks={
     ['flecity_games:party:submitDrawGuess']=function(source,data) return FlecityGamesParty.SubmitDrawGuess(source,data) end,
     ['flecity_games:party:submitTelephoneDrawing']=function(source,data) return FlecityGamesParty.SubmitTelephoneDrawing(source,data) end,
     ['flecity_games:party:submitTelephoneText']=function(source,data) return FlecityGamesParty.SubmitTelephoneText(source,data) end,
+    ['flecity_games:party:submitNgWordClue']=function(source,data) return FlecityGamesParty.SubmitNgWordClue(source,data) end,
+    ['flecity_games:party:submitNgWordGuess']=function(source,data) return FlecityGamesParty.SubmitNgWordGuess(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

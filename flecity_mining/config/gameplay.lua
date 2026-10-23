@@ -28,3 +28,8 @@ Config.RawYield = {
     min = 1,
     max = 2,
 }
+
+
+-- 運営設定に誤りがある場合、resource自体を落とすのではなく
+-- 新規作業開始だけを停止し、コンソールに理由を表示します。
+-- 確認: mining_configcheck

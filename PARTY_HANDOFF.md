@@ -535,3 +535,10 @@ LOOP完成版には不要な変更を入れない。
 - これにより、全員が一度アプリを閉じたRoomへ後から参加した人がいても、closed Host待ちでゲーム選択/開始が停止しない。
 - static checkへJoinRoom内のHost復旧経路を固定するguardを追加。
 - FiveM + LB Phone複数クライアントで「Host close→全既存member closed→新規Join→Host操作→旧Host再open」は未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ残した。
+
+
+## 2026-10-24 同時入力ゲームのApp close待ち解除
+- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR の完了判定を、FiveM接続人数ではなく `appOpen` な参加者数基準へ変更。
+- Round中に未入力者がPARTY/Phoneを閉じても、残るapp-open参加者が全員入力済みならserver-authoritativeに即結果確定し、timeoutまで待たない。
+- public snapshotの `submittedCount / expectedSubmissions` もapp-open参加者基準へ統一し、閉じた端末を待っているように見える進捗表示を防止。
+- Room所属・再open・次Round参加は従来どおり維持。FiveM + LB Phone複数クライアント実機確認までは未検証扱い。

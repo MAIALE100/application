@@ -176,6 +176,37 @@ local function makeSession(src)
     }
 end
 
+local function getOwnedSession(src, notifyOnMismatch)
+    local session = sessions[src]
+    if not session then return nil end
+
+    local pd = getPlayerData(src)
+    if not pd or not pd.citizenid then
+        -- QBox/player data can be briefly unavailable during framework or
+        -- character transitions. Keep the session in memory, but never allow
+        -- an action or payout until ownership can be verified again.
+        return nil
+    end
+
+    local currentCitizenId = tostring(pd.citizenid)
+    if currentCitizenId ~= tostring(session.citizenid) then
+        print(('[%s] discarded stale mining session source=%s owner=%s current=%s'):format(
+            RESOURCE,
+            tostring(src),
+            tostring(session.citizenid),
+            currentCitizenId
+        ))
+        sessions[src] = nil
+        requestLocks[src] = nil
+        if notifyOnMismatch then
+            notify(src, 'キャラクターが変更されたため、以前の鉱山作業を終了しました。受付から開始してください。')
+        end
+        return nil
+    end
+
+    return session
+end
+
 local function publicState(session)
     if not session then
         return {
@@ -202,7 +233,8 @@ local function publicState(session)
 end
 
 local function syncState(src)
-    TriggerClientEvent('flecity_mining:client:state', src, publicState(sessions[src]))
+    local session = sessions[src] and getOwnedSession(src, true) or nil
+    TriggerClientEvent('flecity_mining:client:state', src, publicState(session))
 end
 
 local function findNode(nodeId)
@@ -232,7 +264,7 @@ local function clearExpiredAction(session)
 end
 
 local function beginAction(src, actionType, durationMs, targetCoords, data, label)
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session or not session.active then
         notify(src, '先に鉱山受付で作業を開始してください。')
         return false
@@ -451,7 +483,7 @@ RegisterNetEvent('flecity_mining:server:beginMine', function(nodeId)
     local src = source
     if not allowRequest(src, 'beginMine', 500) then return end
 
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session or not session.active then
         notify(src, '先に鉱山受付で作業を開始してください。')
         return
@@ -490,7 +522,7 @@ RegisterNetEvent('flecity_mining:server:beginProcess', function()
     local src = source
     if not allowRequest(src, 'beginProcess', 500) then return end
 
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session or not session.active then
         notify(src, '先に鉱山受付で作業を開始してください。')
         return
@@ -515,7 +547,7 @@ RegisterNetEvent('flecity_mining:server:beginSell', function()
     local src = source
     if not allowRequest(src, 'beginSell', 500) then return end
 
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session or not session.active then
         notify(src, '先に鉱山受付で作業を開始してください。')
         return
@@ -540,7 +572,7 @@ RegisterNetEvent('flecity_mining:server:finishAction', function(token)
     local src = source
     if not allowRequest(src, 'finishAction', 250) then return end
 
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session or not session.action then
         return
     end
@@ -583,7 +615,7 @@ end)
 
 RegisterNetEvent('flecity_mining:server:cancelAction', function(token)
     local src = source
-    local session = sessions[src]
+    local session = getOwnedSession(src, false)
     if not session or not session.action then return end
 
     if tostring(token or '') == session.action.token then
@@ -596,7 +628,7 @@ RegisterNetEvent('flecity_mining:server:endShift', function()
     local src = source
     if not allowRequest(src, 'endShift', 750) then return end
 
-    local session = sessions[src]
+    local session = getOwnedSession(src, true)
     if not session then
         syncState(src)
         return

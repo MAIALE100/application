@@ -694,6 +694,8 @@ if "telephoneAppCloseSkip" not in party_lua or "bombAppCloseSkip" not in party_l
     fail("PARTY turn-based app-close selftests are missing")
 if "member.appOpen~=false" not in party_lua or "reason='APP_CLOSED'" not in party_lua:
     fail("PARTY turn-based app-close handling is incomplete")
+if "not target or target.disconnected or target.appOpen==false" not in party_lua:
+    fail("PARTY votes targeting closed-app members must be purged")
 if "DebugRoomSummaries" not in party_lua or "game_party_status" not in server:
     fail("PARTY live room diagnostic command is missing")
 if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in server:

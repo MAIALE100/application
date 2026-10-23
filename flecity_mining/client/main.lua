@@ -4,6 +4,8 @@ local state = {
     maxRawOre = Config.MaxRawOre,
     refined = {},
     refinedCount = 0,
+    nodeCooldowns = {},
+    cooldownSyncedAt = 0,
 }
 
 local busy = false
@@ -30,17 +32,35 @@ local function setRoute(coords, label)
     EndTextCommandSetBlipName(routeBlip)
 end
 
+local function nodeCooldownRemaining(nodeId)
+    local initial = tonumber(state.nodeCooldowns[tostring(nodeId)]) or 0
+    if initial <= 0 then return 0 end
+
+    local elapsed = math.max(0, GetGameTimer() - (state.cooldownSyncedAt or 0))
+    return math.max(0, initial - elapsed)
+end
+
 local function nearestMiningNode()
     local playerCoords = GetEntityCoords(PlayerPedId())
     local nearest, nearestDistance = nil, nil
+    local fallback, fallbackDistance = nil, nil
+
     for _, node in ipairs(Config.MiningNodes) do
         local distance = #(playerCoords - node.coords)
-        if not nearestDistance or distance < nearestDistance then
+
+        if not fallbackDistance or distance < fallbackDistance then
+            fallback = node
+            fallbackDistance = distance
+        end
+
+        if nodeCooldownRemaining(node.id) <= 0 and (not nearestDistance or distance < nearestDistance) then
             nearest = node
             nearestDistance = distance
         end
     end
-    return nearest
+
+    -- If every node is cooling down, keep guidance useful instead of removing it.
+    return nearest or fallback
 end
 
 local function updateGuidanceRoute()
@@ -220,6 +240,8 @@ RegisterNetEvent('flecity_mining:client:state', function(newState)
     state.maxRawOre = tonumber(newState.maxRawOre) or Config.MaxRawOre
     state.refined = type(newState.refined) == 'table' and newState.refined or {}
     state.refinedCount = tonumber(newState.refinedCount) or 0
+    state.nodeCooldowns = type(newState.nodeCooldowns) == 'table' and newState.nodeCooldowns or {}
+    state.cooldownSyncedAt = GetGameTimer()
     updateGuidanceRoute()
 end)
 

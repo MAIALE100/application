@@ -314,7 +314,7 @@ function renderResults(room){
    const winners=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
    appendResultBanner(winners.length?'WINNER · '+winners.join(' / '):'有効記録なし',winners.length?'good':'warn');
    if(result.timedOut===true)appendResultBanner('90秒終了 · 送信済みの記録で確定しました。','warn');
-   (result.entries||[]).forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.timedOut?'未送信':(Number(e.score||0)+' pt · '+Number(e.lines||0)+' LINES')));
+   (result.entries||[]).forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.forfeited?'DNF · アプリを閉じました':(e.timedOut?'未送信':(Number(e.score||0)+' pt · '+Number(e.lines||0)+' LINES'))));
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    const fastest=(rs.results.entries||[])[0];

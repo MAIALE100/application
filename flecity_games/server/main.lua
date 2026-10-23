@@ -145,6 +145,9 @@ local function startupDiagnostics()
     for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do
         check('PARTY '..name,ok==true)
     end
+    for name,ok in pairs(FlecityGamesPartyFall.DebugSelftest()) do
+        check('PARTY FALL '..name,ok==true)
+    end
 
     if #failures==0 then
         print('[FlecityGames] startup preflight READY_FOR_LIVE_TEST')
@@ -272,6 +275,9 @@ RegisterCommand('game_selftest',function(source)
     local party=FlecityGamesParty.DebugSelftest()
     for name,ok in pairs(party) do check('PARTY '..name,ok==true) end
 
+    local partyFall=FlecityGamesPartyFall.DebugSelftest()
+    for name,ok in pairs(partyFall) do check('PARTY FALL '..name,ok==true) end
+
     local roomCount,memberTotal=FlecityGamesParty.DebugCounts()
     print(('%s rooms=%d members=%d'):format(prefix,roomCount,memberTotal))
     print(('%s end failures=%d'):format(prefix,failures))
@@ -330,6 +336,7 @@ RegisterCommand('game_preflight',function(source)
     for name,ok in pairs(FlecityGamesText.DebugSelftest()) do check('TEXT '..name,ok==true) end
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end
     for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
+    for name,ok in pairs(FlecityGamesPartyFall.DebugSelftest()) do check('PARTY FALL '..name,ok==true) end
 
     print(prefix..' player-specific identity/settings check SKIPPED from server console')
 

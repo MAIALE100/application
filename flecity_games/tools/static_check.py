@@ -24,6 +24,9 @@ server = read("flecity_games/server/main.lua")
 play_lua = read("flecity_games/server/core/play.lua")
 registry = read("flecity_games/shared/game_registry.lua")
 fx = read("flecity_games/fxmanifest.lua")
+config = read("flecity_games/config/shared.lua")
+party_fall_lua = read("flecity_games/server/core/party_fall.lua")
+party_fall_js = read("flecity_games/web/party/fall_battle.js")
 bridge = read("flecity_games/web/shared/bridge.js")
 errors_js = read("flecity_games/web/shared/errors.js")
 safety_server = read("flecity_dev_safety/server.lua")
@@ -53,14 +56,14 @@ for action, callback in mapped.items():
 
 enabled = re.findall(r"id='([^']+)'[^\n]*enabled=true", registry)
 disabled = re.findall(r"id='([^']+)'[^\n]*enabled=false", registry)
-if len(enabled) != 29:
-    fail(f"expected 29 enabled games, found {len(enabled)}: {enabled}")
+if len(enabled) != 30:
+    fail(f"expected 30 enabled games, found {len(enabled)}: {enabled}")
 play_enabled = re.findall(r"id='([^']+)'[^\n]*app='play'[^\n]*enabled=true", registry)
 party_enabled = re.findall(r"id='([^']+)'[^\n]*app='party'[^\n]*enabled=true", registry)
 if len(play_enabled) != 15:
     fail(f"PLAY game count is frozen at 15; found {len(play_enabled)}: {play_enabled}")
-if len(party_enabled) != 14:
-    fail(f"PARTY game count must be 14; found {len(party_enabled)}: {party_enabled}")
+if len(party_enabled) != 15:
+    fail(f"PARTY game count must be 15; found {len(party_enabled)}: {party_enabled}")
 if disabled:
     fail(f"initial registry still contains disabled games: {disabled}")
 
@@ -93,7 +96,6 @@ text_lua = read("flecity_games/server/core/text.lua")
 if "utf8.len" not in text_lua or "utf8.offset" not in text_lua or "utf8Truncate" not in text_lua:
     fail("UTF-8 text helper/selftest is incomplete")
 
-config = read("flecity_games/config/shared.lua")
 profile_lua = read("flecity_games/server/core/profile.lua")
 identifiers = re.findall(r"identifier\s*=\s*'([^']+)'", config)
 if len(identifiers) < 2 or len(set(identifiers[:2])) != 2:
@@ -156,6 +158,14 @@ if "partySubmitMemoryChain" not in party_js or 'id="memoryChainPanel"' not in pa
     fail("PARTY+ MEMORY CHAIN client flow is missing")
 if not re.search(r"id='memory_chain'[^\n]*premium=true", registry):
     fail("PARTY+ MEMORY CHAIN registry metadata is missing")
+if "partySubmitFallBattle" not in party_js or 'id="fallBattlePanel"' not in party_html:
+    fail("PARTY+ FALL BATTLE client flow is missing")
+if not re.search(r"id='fall_battle'[^\n]*premium=true", registry):
+    fail("PARTY+ FALL BATTLE registry metadata is missing")
+if "'server/core/party_fall.lua'" not in fx or "FlecityGamesPartyFall.Validate" not in party_fall_lua:
+    fail("PARTY+ FALL BATTLE server verifier is missing")
+if "FALL_BASE_SHAPES" in party_fall_js:
+    fail("PARTY FALL BATTLE client should keep its implementation isolated from PLAY source markers")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
     fail("PARTY+ error mapping is missing")
 
@@ -164,7 +174,7 @@ taboo_count = len(re.findall(r"\{word='", party_plus_prompts))
 fake_answer_count = len(re.findall(r"\{question='", party_plus_prompts))
 bomb_match = re.search(r"FlecityGamesPartyPlusPrompts\.Bomb\s*=\s*\{(.*?)\n\}", party_plus_prompts, re.S)
 bomb_count = len(re.findall(r"^\s*'[^']+',?\s*$", bomb_match.group(1), re.M)) if bomb_match else 0
-if taboo_count < 80 or fake_answer_count < 80 or bomb_count < 120:
+if taboo_count < 120 or fake_answer_count < 124 or bomb_count < 180:
     fail(f"PARTY+ prompt banks too small: taboo={taboo_count}, fake={fake_answer_count}, bomb={bomb_count}")
 if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")

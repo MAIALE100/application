@@ -2210,6 +2210,9 @@ async function crossNonogramDirect(index){
 }
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
+ const inputAt=performance.now();
+ if(game.lastTapIndex===index&&inputAt-(game.lastTapAt||0)<120)return;
+ game.lastTapIndex=index;game.lastTapAt=inputAt;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
  nonogram.progressed=true;const solvedBefore=nonogramSolvedLines();
  if(nonogram.filled.has(index)){nonogram.filled.delete(index);tone(260,16);}

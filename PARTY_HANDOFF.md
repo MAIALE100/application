@@ -512,3 +512,9 @@ LOOP完成版には不要な変更を入れない。
 - `appOpen=true` の復元は再接続処理または明示的な `GetRoom`（再open bootstrap）だけで行う。
 - これによりclose直後の遅延callbackがHost presenceを奪い返すraceも抑止。
 - 実機2台以上でclose/submit競合→再openを確認するまでは未検証。
+
+
+## 2026-10-24 static check fail-closed修正
+- app presence race対策で追加した2つのstatic guardが、誤って最終 `if errors: ... sys.exit(1)` とPASS出力より後ろに配置されていた不整合を修正。
+- guardを最終error判定より前へ移動し、今後room lookupが遅延callbackで `appOpen` を復活させる回帰や、GetRoomが明示的presence復帰を失った場合にstatic checkが確実に非0終了するようにした。
+- PARTY runtime / LOOP / App Store / score-save-achievement互換への挙動変更はなし。テスト基盤のみのfail-closed補強。

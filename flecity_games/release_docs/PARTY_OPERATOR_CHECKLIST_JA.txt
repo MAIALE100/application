@@ -99,3 +99,12 @@ PARTY+ app/phone close実機確認（未検証）:
 □ MEMORY CHAIN入力待ちで未入力者が切断しても、残り入力済みなら即stage判定する
 □ 60秒以内再接続で既に進んだphase/stageが巻き戻らない
 ※ FiveM複数クライアント実機で未確認の間は合格扱いにしない
+
+
+[未検証] PARTY+ 開始後の最低人数割れ
+□ NG WORD: 3人開始→回答役1人FiveM切断後も残り2人で継続（説明役切断は終了）
+□ FAKE ANSWER: 3人開始→1人切断後も残り2人のsubmit/voteで進行
+□ BOMB: 3人開始→1人切断後も残り2人へ手番継続
+□ MEMORY CHAIN: 2人開始→1人切断で残存1人を勝者確定
+□ FALL BATTLE: 2人開始→1人切断をDNFとして残し、残存者提出で順位確定
+□ FALL BATTLE: server検証済み提出後に切断してもscore/linesが結果に残る

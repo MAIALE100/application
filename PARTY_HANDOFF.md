@@ -113,7 +113,7 @@ PARTY+は限定品・シーズン・月替わり更新を前提にしない恒�
 2. Room作成→参加→Ready→開始→結果→再戦→Lobby復帰の共通基盤安定化。
 3. Host離脱 / App close / participant離脱 / reconnect / 二重送信 / 同時操作 / 人数不足対策。
 4. server-authoritativeなround token / timeout / submit検証 / secret snapshot。
-5. 無料10ゲーム＋PARTY+ 4ゲームの主要なテンポ・結果演出・繰り返し対策。
+5. 無料10ゲーム＋PARTY+ 5ゲームの主要なテンポ・結果演出・繰り返し対策。
 6. LB Phone小画面向けUI・7〜10人表示・誤タップ防止。
 7. 正式名称 PARTY / icon / App Store無料配布仕様の確定。
 8. static check / JS syntax / Lua syntax / CI。
@@ -495,3 +495,12 @@ LOOP完成版には不要な変更を入れない。
 - MEMORY CHAINはFiveM切断者をalive人数から除外し、残り全員が入力済みならreconcile時に即stage判定する。
 - app/phone closeだけでなくplayerDropped経路でも放置待ちを減らした。再接続grace自体は維持し、既に進んだphase/stageは巻き戻さない。
 - 実機複数クライアントでの切断→即進行→60秒以内再接続は未検証。
+
+
+## 2026-10-23 PARTY+ 最低人数割れ後の継続
+- Round開始時のminPlayers判定は変更せず、開始後の切断だけゲーム別continuation minimumで扱う。
+- NG WORD / FAKE ANSWER / BOMB は3人開始後に1人切断して2人になっても、ゲーム固有のreconcileで継続可能。
+- MEMORY CHAINは2人開始後に1人切断した場合、残存1人を勝者として確定する。
+- FALL BATTLEは2人開始後に1人切断してもRound全体をabortせず、切断者をDNFとして結果に残し、残存者の提出で順位確定する。
+- FALL BATTLEは提出済み後の切断でもserver検証済みscore/linesを結果から消さない。
+- DebugSelftest/static checkを追加。FiveM複数クライアント実機確認はTESTING.mdの未検証項目として残す。

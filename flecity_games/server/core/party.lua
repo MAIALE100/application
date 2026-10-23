@@ -2239,6 +2239,10 @@ function FlecityGamesParty.AppClosed(source)
             changed=true
         end
     end
+    -- appOpen changed above can reduce the set of participants a simultaneous-input
+    -- round is waiting for. Reconcile immediately so a closed, unsubmitted client
+    -- cannot leave everyone else waiting until the deadline.
+    if room.state=='round' and reconcileRound(room) then changed=true end
     if handoffHostFrom(room,id) then changed=true end
     if changed then notifyRoom(room,source) end
 end

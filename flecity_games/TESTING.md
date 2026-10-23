@@ -684,3 +684,14 @@ PARTY+ prompt-bank static target:
 - close後にクライアントのgravity/deadline timerが停止し、再表示時に古いtimerが二重起動しない。
 - 7〜10人でも盤面同期を毎フレーム行わず、Room push負荷が増えない。
 - LOOPのFALL save/score/achievement、LOOP identifier=`flecity_play` に変化がない。
+
+
+## PARTY 順番制ゲーム app/phone close（未検証）
+
+- TELEPHONEで現在手番の参加者がPARTY/Phoneを閉じた場合、その人の手番を即skipし、次のapp-open参加者へTEXT 30秒 / DRAW 45秒を新規付与する。
+- TELEPHONEで次順の参加者が既にPARTYを閉じている場合、その参加者を自動skipし、閉じた端末待ちで30〜45秒停止しない。
+- BOMBで現在手番の参加者がPARTY/Phoneを閉じた場合、次のapp-open参加者へ即移行する。
+- BOMBの順番走査はapp-open=falseの参加者を飛ばし、閉じた端末へ爆弾を渡さない。
+- TIC-TAC中にどちらかがPARTY/Phoneを閉じた場合、相手の不戦勝（reason=APP_CLOSED）として即結果確定する。
+- 上記いずれもRoomからは自動退出させず、ロビー復帰後の次Roundには通常参加できる。
+- app close直前の遅延callbackが後から届いても、古い手番を復活させない。

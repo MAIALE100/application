@@ -1941,23 +1941,22 @@ local function maybeFinishFallBattle(room,force)
     local bestScore=nil
     local bestLines=nil
     for id,m in pairs(room.members) do
-        if not m.disconnected then
-            local s=rs.submissions[id]
-            local entry={
-                memberId=m.memberId,
-                name=m.name,
-                score=s and tonumber(s.score) or 0,
-                lines=s and tonumber(s.lines) or 0,
-                pieces=s and tonumber(s.pieces) or 0,
-                timedOut=s==nil,
-                forfeited=s and s.forfeited==true or false
-            }
-            entries[#entries+1]=entry
-            if not entry.timedOut and not entry.forfeited then
-                if bestScore==nil or entry.score>bestScore or (entry.score==bestScore and entry.lines>(bestLines or -1)) then
-                    bestScore=entry.score
-                    bestLines=entry.lines
-                end
+        local s=rs.submissions[id]
+        local entry={
+            memberId=m.memberId,
+            name=m.name,
+            score=s and tonumber(s.score) or 0,
+            lines=s and tonumber(s.lines) or 0,
+            pieces=s and tonumber(s.pieces) or 0,
+            timedOut=s==nil,
+            forfeited=s and s.forfeited==true or false,
+            disconnected=m.disconnected==true
+        }
+        entries[#entries+1]=entry
+        if not entry.timedOut and not entry.forfeited then
+            if bestScore==nil or entry.score>bestScore or (entry.score==bestScore and entry.lines>(bestLines or -1)) then
+                bestScore=entry.score
+                bestLines=entry.lines
             end
         end
     end
@@ -2107,7 +2106,15 @@ reconcileRound=function(room)
 
     local game=partyGame(rs.gameId)
     local minimum=game and tonumber(game.minPlayers) or FlecityGamesConfig.Party.MinPlayers
-    local continuationMinimum=rs.gameId=='telephone' and 2 or minimum
+    local continuationMinimumByGame={
+        telephone=2,
+        ng_word=2,
+        fake_answer=2,
+        bomb=2,
+        memory_chain=1,
+        fall_battle=1
+    }
+    local continuationMinimum=continuationMinimumByGame[rs.gameId] or minimum
     if connectedCount(room)<math.max(1,continuationMinimum or 1) then
         abortRound(room,'NOT_ENOUGH_PLAYERS')
         return true
@@ -2524,6 +2531,27 @@ function FlecityGamesParty.DebugSelftest()
     }}
     finishTicTacForfeit(appClosedTicRoom,'a','APP_CLOSED')
 
+    local memoryDisconnectRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=true,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,appOpen=false,joinOrder=2}
+    },roundState={
+        token='memory-disconnect',gameId='memory_chain',startedAt=0,startedTick=0,complete=false,submissions={},
+        stage=3,phase='input',sequence={'A','B','C'},stageSubmissions={},eliminated={b=3},maxStages=8
+    }}
+    reconcileRound(memoryDisconnectRoom)
+
+    local fallDisconnectRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=true,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=true,appOpen=false,joinOrder=2}
+    },roundState={
+        token='fall-disconnect',gameId='fall_battle',startedAt=0,startedTick=0,complete=false,
+        submissions={
+            a={score=900,lines=2,pieces=16},
+            b={score=0,lines=0,pieces=0,ended=true,forfeited=true}
+        }
+    }}
+    reconcileRound(fallDisconnectRoom)
+
     return {
         promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
         turnRotation=rotated[1]=='b' and rotated[2]=='c' and rotated[3]=='a',
@@ -2541,6 +2569,13 @@ function FlecityGamesParty.DebugSelftest()
         ticTacAppCloseForfeit=appClosedTicRoom.roundState.complete==true
             and appClosedTicRoom.roundState.results.winnerMemberId=='B'
             and appClosedTicRoom.roundState.results.reason=='APP_CLOSED',
+        memoryChainDisconnectContinues=memoryDisconnectRoom.roundState.complete==true
+            and memoryDisconnectRoom.roundState.results.winnerMemberIds[1]=='A'
+            and memoryDisconnectRoom.roundState.results.reason=='LAST_ALIVE',
+        fallBattleDisconnectContinues=fallDisconnectRoom.roundState.complete==true
+            and fallDisconnectRoom.roundState.results.winnerMemberIds[1]=='A'
+            and #fallDisconnectRoom.roundState.results.entries==2
+            and fallDisconnectRoom.roundState.results.entries[2].forfeited==true,
         connectedCount=connectedCount(hostRoom)==2,
         memberCount=memberCount(hostRoom)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

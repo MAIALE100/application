@@ -2752,7 +2752,7 @@ async function startNumberRush(){
  renderNumberRush();numberRushClock=setInterval(updateNumberRushTime,50);
 }
 async function tapNumberRush(index){
- if(!numberRush||!numberRush.running||numberRush.finished)return;
+ if(!numberRush||!numberRush.running||numberRush.finished||numberRush.completed.has(index))return;
  numberRush.history.push(index);
  const value=numberRush.board[index];
  if(value!==numberRush.next){

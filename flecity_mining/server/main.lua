@@ -38,10 +38,49 @@ local function validateRuntimeConfig()
     end
 
     if totalWeight <= 0 then return false, 'total product weight is zero' end
-    if not tonumber(Config.MaxRawOre) or tonumber(Config.MaxRawOre) < 1 then return false, 'invalid MaxRawOre' end
+
+    local capacity = tonumber(Config.MaxRawOre)
+    if not capacity or capacity < 1 or capacity % 1 ~= 0 then return false, 'invalid MaxRawOre' end
+
+    local cooldown = tonumber(Config.NodeCooldownMs)
+    if not cooldown or cooldown < 0 then return false, 'invalid NodeCooldownMs' end
+
+    local miningDuration = tonumber(Config.MiningDurationMs)
+    local processingDuration = tonumber(Config.ProcessingDurationMs)
+    local sellingDuration = tonumber(Config.SellingDurationMs)
+    if not miningDuration or miningDuration < 1000 then return false, 'invalid MiningDurationMs' end
+    if not processingDuration or processingDuration < 1000 then return false, 'invalid ProcessingDurationMs' end
+    if not sellingDuration or sellingDuration < 500 then return false, 'invalid SellingDurationMs' end
+
+    local yieldMin = Config.RawYield and tonumber(Config.RawYield.min)
+    local yieldMax = Config.RawYield and tonumber(Config.RawYield.max)
+    if not yieldMin or not yieldMax or yieldMin < 1 or yieldMax < yieldMin
+        or yieldMin % 1 ~= 0 or yieldMax % 1 ~= 0 then
+        return false, 'invalid RawYield min/max'
+    end
+
+    local tolerance = tonumber(Config.ServerDistanceTolerance)
+    if not tolerance or tolerance <= 0 or tolerance > 20.0 then
+        return false, 'invalid ServerDistanceTolerance'
+    end
+
     if not Config.Foreman or type(Config.Foreman.coords) ~= 'vector3' then return false, 'invalid Foreman coords' end
     if not Config.Processor or type(Config.Processor.coords) ~= 'vector3' then return false, 'invalid Processor coords' end
     if type(Config.MiningNodes) ~= 'table' or #Config.MiningNodes == 0 then return false, 'mining nodes are empty' end
+
+    local nodeIds = {}
+    for index, node in ipairs(Config.MiningNodes) do
+        if type(node) ~= 'table' or node.id == nil then
+            return false, ('mining node #%d has no id'):format(index)
+        end
+        if nodeIds[node.id] then
+            return false, ('duplicate mining node id: %s'):format(tostring(node.id))
+        end
+        if type(node.coords) ~= 'vector3' then
+            return false, ('invalid coords for mining node %s'):format(tostring(node.id))
+        end
+        nodeIds[node.id] = true
+    end
 
     return true
 end

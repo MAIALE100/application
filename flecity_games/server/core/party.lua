@@ -1622,7 +1622,7 @@ local function fakeAnswerPhaseReady(room)
     if not rs or rs.gameId~='fake_answer' or rs.complete then return false end
     local expected,submitted=0,0
     for id,m in pairs(room.members or {}) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             expected=expected+1
             if rs.phase=='submit' and rs.fakeAnswers and rs.fakeAnswers[id]~=nil then submitted=submitted+1 end
             if rs.phase=='vote' and rs.votes and rs.votes[id]~=nil then submitted=submitted+1 end
@@ -1721,7 +1721,7 @@ function FlecityGamesParty.SubmitFakeAnswer(source,data)
     rs.fakeAnswers[id]=answer
     local submitted,expected=0,0
     for playerId,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             expected=expected+1
             if rs.fakeAnswers[playerId] then submitted=submitted+1 end
         end
@@ -1751,7 +1751,7 @@ function FlecityGamesParty.SubmitFakeVote(source,data)
     rs.votes[id]=optionId
     local submitted,expected=0,0
     for playerId,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             expected=expected+1
             if rs.votes[playerId] then submitted=submitted+1 end
         end
@@ -2121,7 +2121,7 @@ reconcileRound=function(room)
         if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
     elseif rs.gameId=='ng_word' then
         local explainer=rs.explainerIdentifier and room.members[rs.explainerIdentifier] or nil
-        if not explainer or explainer.disconnected then abortRound(room,'EXPLAINER_LEFT') return true end
+        if not explainer or explainer.disconnected or explainer.appOpen==false then abortRound(room,'EXPLAINER_LEFT') return true end
     end
 
     if rs.gameId=='reaction' then maybeFinishReaction(room)
@@ -2186,6 +2186,30 @@ function FlecityGamesParty.AppClosed(source)
                     break
                 end
             end
+        elseif rs.gameId=='ng_word' then
+            if rs.explainerIdentifier==id then
+                abortRound(room,'EXPLAINER_LEFT')
+            elseif rs.phase=='guess' then
+                local expected,submitted=0,0
+                for playerId,m in pairs(room.members) do
+                    if not m.disconnected and m.appOpen~=false and playerId~=rs.explainerIdentifier then
+                        expected=expected+1
+                        if rs.guesses and rs.guesses[playerId] then submitted=submitted+1 end
+                    end
+                end
+                if expected==0 or submitted>=expected then finishNgWord(room,false,false) end
+            end
+            changed=true
+        elseif rs.gameId=='fake_answer' then
+            if fakeAnswerPhaseReady(room) then
+                if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,false) end
+            end
+            changed=true
+        elseif rs.gameId=='memory_chain' then
+            rs.eliminated=rs.eliminated or {}
+            if not rs.eliminated[id] then rs.eliminated[id]=tonumber(rs.stage) or 1 end
+            maybeResolveMemoryStage(room)
+            changed=true
         end
     end
     if handoffHostFrom(room,id) then changed=true end

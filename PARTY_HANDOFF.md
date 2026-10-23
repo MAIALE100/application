@@ -565,3 +565,10 @@ LOOP完成版には不要な変更を入れない。
 - WORD WOLFのWolf / LIARのLiarがPARTY/Phoneを閉じた場合、秘密役不在のまま結果確定させずSECRET_PLAYER_LEFTとして即中断する。
 - Room所属は維持し、再open後の次Round参加は従来どおり。
 - FiveM＋LB Phone複数クライアントで「DRAW描き手close」「DRAW未回答者close」「秘密役close→即中断→再open」を確認するまでは未検証扱い。
+
+
+## 2026-10-24 投票対象App close整合性
+- VOTE / WORD WOLF / LIARで、既存票の投票先がFiveM切断だけでなく `appOpen=false` になった場合もserver側でその票を破棄する。
+- App/Phoneを閉じた参加者が、残存app-open参加者だけで進む結果集計に「閉じる前にもらった票」だけで残る不整合を防止。
+- Room所属・再open・次Round参加仕様は変更しない。
+- 実機複数クライアントで「投票済み→投票対象close→票再集計→必要なら即結果確定」を確認するまで未検証扱い。

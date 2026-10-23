@@ -2089,6 +2089,7 @@ function FlecityGamesParty.DropSource(source)
     if not id then return end
     local m=room.members[id] m.source=nil m.disconnected=true m.disconnectedAt=os.time()
     if room.state=='lobby' then m.ready=false end
+    FlecityGamesPartyPlus.ClearCache(id)
     migrateHost(room) reconcileRound(room) notifyRoom(room)
 end
 

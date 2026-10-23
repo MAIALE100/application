@@ -20,7 +20,7 @@ const settingSound=document.getElementById('settingSound'),settingMotion=documen
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
 let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
-let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,lifecycleEpoch=0;
+let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
 let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='';
@@ -89,8 +89,13 @@ async function runOnce(key,fn){
 function resetLeaveConfirmation(){
  clearTimeout(leaveConfirmTimer);leaveConfirmTimer=null;leaveConfirmUntil=0;leaveBtn.textContent='退出';
 }
+function resetPartyPlusConfirmation(){
+ clearTimeout(partyPlusConfirmTimer);partyPlusConfirmTimer=null;partyPlusConfirmUntil=0;
+ if(partyConfig.plus&&!partyConfig.plus.active)partyPlusSubscribe.textContent=(Number(partyConfig.plus.durationDays)||7)+'日 '+formatMoney(Number(partyConfig.plus.price)||50000);
+ else if(partyConfig.plus&&partyConfig.plus.active&&partyConfig.plus.autoRenew!==true)partyPlusSubscribe.textContent='自動更新を再開';
+}
 function suspendPartyUi(){
- lifecycleEpoch+=1;appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();
+ lifecycleEpoch+=1;appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();resetPartyPlusConfirmation();
  clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;clearTimeout(statusTimer);statusTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
 }
@@ -712,15 +717,29 @@ joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D
 readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
 gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
 startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
-partyPlusSubscribe.onclick=()=>runOnce('party-plus-subscribe',async()=>{
- partyPlusSubscribe.disabled=true;
- try{
-   const res=await FlecityBridge.call('partySubscribePlus',{});
-   if(!res.ok){status('PARTY+加入失敗: '+FlecityErrors.text(res.error),'error');return;}
-   partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('PARTY+が有効になりました。','good');
-   if(currentRoom)await refresh();
- }finally{partyPlusSubscribe.disabled=false;}
-});
+partyPlusSubscribe.onclick=()=>{
+ const plus=partyConfig.plus||{};
+ if(!plus.active){
+   const now=performance.now();
+   if(now>partyPlusConfirmUntil){
+     partyPlusConfirmUntil=now+2500;
+     partyPlusSubscribe.textContent='もう一度押して加入 · '+formatMoney(Number(plus.price)||50000);
+     clearTimeout(partyPlusConfirmTimer);
+     partyPlusConfirmTimer=setTimeout(()=>{if(performance.now()>=partyPlusConfirmUntil)resetPartyPlusConfirmation();},2600);
+     return;
+   }
+ }
+ resetPartyPlusConfirmation();
+ runOnce('party-plus-subscribe',async()=>{
+  partyPlusSubscribe.disabled=true;
+  try{
+    const res=await FlecityBridge.call('partySubscribePlus',{});
+    if(!res.ok){status('PARTY+加入失敗: '+FlecityErrors.text(res.error),'error');return;}
+    partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('PARTY+が有効になりました。','good');
+    if(currentRoom)await refresh();
+  }finally{partyPlusSubscribe.disabled=false;}
+ });
+};
 partyPlusCancel.onclick=()=>runOnce('party-plus-cancel',async()=>{
  partyPlusCancel.disabled=true;
  try{

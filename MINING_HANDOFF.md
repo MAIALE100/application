@@ -5,7 +5,7 @@
 - Repository: MAIALE100/application
 - Development branch: jobs/mining-dev
 - Resource: flecity_mining
-- Current version: 0.1.0-dev
+- Current version: 0.2.0-dev
 
 ## Product goal
 
@@ -21,6 +21,17 @@
 - 無料開始
 - 通常坑道は苦行寄りだが安定して儲かる
 - 将来、重労働/危険坑道で本人の選択によるリスク・リターン差を追加する
+
+## Operator-facing configuration
+
+運営が触る設定をゲームロジックから分離済み:
+
+- `flecity_mining/config/economy.lua` - 鉱石確率・NPC買取価格・支払方法
+- `flecity_mining/config/gameplay.lua` - 作業時間・容量・採掘量・クールダウン
+- `flecity_mining/config/locations.lua` - 全座標・ブリップ・マーカー
+- `flecity_mining/OPERATIONS.md` - 運営向け設定ガイド
+- `mining_economy` - 現在の確率/単価/期待値を表示
+- `mining-update.cmd` - テストサーバーへの1コマンド配備
 
 ## Implemented
 
@@ -61,7 +72,7 @@
 
 ## Next recommended work
 
-1. Static/code review of v0.1
+1. Static/code review of v0.2
 2. Deploy resource to test server
 3. Confirm Davis Quartz marker coordinates
 4. Complete one full mine -> process -> sell loop

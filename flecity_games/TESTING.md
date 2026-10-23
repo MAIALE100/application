@@ -644,3 +644,42 @@ PARTY+ prompt-bank static target:
 - FAKE ANSWER >= 80（現在84）
 - BOMB >= 120
 - MEMORY CHAINはserver生成
+
+
+---
+
+# PARTY+ / FALL BATTLE 実機確認（未検証）
+
+本項目はFiveM + LB Phone複数クライアントでの実機確認が必要。未実施の項目をPASS扱いしない。
+
+## PARTY+ entitlement / 課金
+- Flecity本番前提は QBox 2.5.4 / oxmysql / citizenid=CSN。
+- PARTY本体・無料10ゲームは未加入でも従来どおり利用できる。
+- PARTY+は7日 / 50,000、bankからserver側で課金される。
+- 購入成功後、同じCSNで再接続しても有効期限が維持される。
+- 自動更新OFFでも現在期限までは利用できる。
+- 期限切れ後の次回利用時だけ1期間更新され、オフライン中の期間をまとめて連続課金しない。
+- 残高不足時は課金されず、自動更新ループにならない。
+- DB保存失敗時に課金だけ残らない（refund経路）。
+- PARTY+加入者がHostなら、未加入参加者もプレミアムゲームへ参加できる。
+- Hostが未加入者へ移行した場合、進行中Roundは壊さず、次のプレミアムRound開始は拒否される。
+- NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE の5本がPARTY+表示になる。
+
+## PARTY+ お題プール
+- NG WORDは120題規模で、同一Roomでは直前題を連続選出しない。
+- FAKE ANSWERは124問規模で、正解と作者情報が投票前に漏れない。
+- BOMBは180題規模で、幅のあるカテゴリが出る。
+- MEMORY CHAINは固定問題ではなくserver生成の記号列を使う。
+
+## FALL BATTLE
+- 2〜10人で開始でき、全員へ同じseed / ピース列が配布される。
+- 10×18盤面、7種ブロック、左右移動・回転・HOLD・SOFT/DROPがLB Phone小画面で操作できる。
+- 90秒でserver-authoritativeに終了する。
+- クライアントが送るのは配置履歴で、score/linesはserver側再計算結果だけを採用する。
+- 不正な位置・回転・ピース順・60ms未満の不可能な配置間隔・期限を越えた履歴は拒否される。
+- 途中の他プレイヤー盤面や履歴を公開snapshotへ含めない。
+- 時間切れ未送信者は勝者候補から除外され、送信済み結果だけで順位確定する。
+- 同点はscore→linesで比較し、完全同値なら同着勝者になる。
+- Phone/App close時にクライアントのgravity/deadline timerが停止し、再表示時に古いtimerが二重起動しない。
+- 7〜10人でも盤面同期を毎フレーム行わず、Room push負荷が増えない。
+- LOOPのFALL save/score/achievement、LOOP identifier=`flecity_play` に変化がない。

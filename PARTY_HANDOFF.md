@@ -504,3 +504,11 @@ LOOP完成版には不要な変更を入れない。
 - FALL BATTLEは2人開始後に1人切断してもRound全体をabortせず、切断者をDNFとして結果に残し、残存者の提出で順位確定する。
 - FALL BATTLEは提出済み後の切断でもserver検証済みscore/linesを結果から消さない。
 - DebugSelftest/static checkを追加。FiveM複数クライアント実機確認はTESTING.mdの未検証項目として残す。
+
+
+## 2026-10-23 delayed callbackによるapp presence復活防止
+- `roomForPlayer` をmembership lookupとして純化し、通常callbackが `appOpen=true` を暗黙復元しないよう変更。
+- AppClosed後に既に飛んでいたsubmit等が遅延到着しても、閉じた端末を「アプリを開いている」状態へ復活させない。
+- `appOpen=true` の復元は再接続処理または明示的な `GetRoom`（再open bootstrap）だけで行う。
+- これによりclose直後の遅延callbackがHost presenceを奪い返すraceも抑止。
+- 実機2台以上でclose/submit競合→再openを確認するまでは未検証。

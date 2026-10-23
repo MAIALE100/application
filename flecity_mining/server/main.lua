@@ -285,6 +285,11 @@ local function clearExpiredAction(session)
 end
 
 local function beginAction(src, actionType, durationMs, targetCoords, data, label)
+    if not configReady then
+        notify(src, '鉱山設定に問題があるため作業を開始できません。運営へお知らせください。')
+        return false
+    end
+
     local session = getOwnedSession(src, true)
     if not session or not session.active then
         notify(src, '先に鉱山受付で作業を開始してください。')
@@ -602,6 +607,14 @@ RegisterNetEvent('flecity_mining:server:finishAction', function(token)
     if not allowRequest(src, 'finishAction', 250) then return end
 
     local session = getOwnedSession(src, true)
+    if not configReady then
+        if session and session.action then
+            session.action = nil
+        end
+        notify(src, '鉱山設定に問題が検出されたため作業を中断しました。鉱石や報酬は変更されていません。')
+        syncState(src)
+        return
+    end
     if not session or not session.action then
         return
     end

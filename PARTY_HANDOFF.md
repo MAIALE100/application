@@ -518,3 +518,12 @@ LOOP完成版には不要な変更を入れない。
 - app presence race対策で追加した2つのstatic guardが、誤って最終 `if errors: ... sys.exit(1)` とPASS出力より後ろに配置されていた不整合を修正。
 - guardを最終error判定より前へ移動し、今後room lookupが遅延callbackで `appOpen` を復活させる回帰や、GetRoomが明示的presence復帰を失った場合にstatic checkが確実に非0終了するようにした。
 - PARTY runtime / LOOP / App Store / score-save-achievement互換への挙動変更はなし。テスト基盤のみのfail-closed補強。
+
+
+## 2026-10-24 close後の遅延callback遮断
+- `roomForPlayer` は通常callbackについて `appOpen=false` のmemberを拒否するよう変更。
+- App/Phone closeとほぼ同時に送ったReady / Start / game submit等が遅れてserverへ届いても、close後のRoom・Round状態を変更しない。
+- `GetRoom` だけを明示的な例外として、同じRoom所属のclosed memberを取得して `appOpen=true` へ復帰できる。
+- static checkへ「通常callbackはclosed member拒否」「GetRoomのみclosed membership例外」の回帰防止検査を追加。
+- FiveM + LB Phone複数クライアントでのclose/submit競合タイミングは実機未検証。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtにLIVE TEST REQUIREDとして残した。
+- LOOP identifier / App Store / score・save・achievement仕様には変更なし。

@@ -833,3 +833,10 @@ print(f" - UI actions mapped: {len(actions)}")
 print(" - DOM references: PASS")
 print(" - LB Phone bridge: PASS")
 print(" - replay/privacy markers: PASS")
+
+if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:
+    fail("PARTY room lookup can regress into reopening app presence on delayed callbacks")
+get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
+set_ready_start = party_lua.find("function FlecityGamesParty.SetReady(source")
+if get_room_start < 0 or set_ready_start < 0 or "member.appOpen=true" not in party_lua[get_room_start:set_ready_start]:
+    fail("PARTY GetRoom must explicitly restore app-open presence")

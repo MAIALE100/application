@@ -230,6 +230,7 @@ local callbackMap={
     partySubmitFakeVote='flecity_games:party:submitFakeVote',
     partySubmitBombPass='flecity_games:party:submitBombPass',
     partySubmitMemoryChain='flecity_games:party:submitMemoryChain',
+    partySubmitFallBattle='flecity_games:party:submitFallBattle',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }

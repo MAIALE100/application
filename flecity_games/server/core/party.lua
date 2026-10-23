@@ -802,6 +802,13 @@ function FlecityGamesParty.JoinRoom(source,data)
         ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()
     }
     sourceToRoom[tonumber(source)]=room.id
+    -- If the previous host closed PARTY while nobody else had the app open,
+    -- a later join must be able to recover host control immediately.
+    local host=room.hostIdentifier and room.members[room.hostIdentifier] or nil
+    if room.hostIdentifier~=id and host and host.appOpen==false then
+        handoffHostFrom(room,room.hostIdentifier)
+    end
+    migrateHost(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end

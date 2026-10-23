@@ -287,9 +287,14 @@ CreateThread(function()
                         TriggerServerEvent('flecity_mining:server:beginSell')
                     end
                 else
-                    draw3DText(Config.Foreman.coords + vector3(0.0, 0.0, 1.0), '[E] 作業状況を確認')
+                    draw3DText(
+                        Config.Foreman.coords + vector3(0.0, 0.0, 1.0),
+                        '[E] 作業状況を確認  [G] 鉱山作業を終了'
+                    )
                     if not busy and IsControlJustReleased(0, 38) then
                         showStatus()
+                    elseif not busy and IsControlJustReleased(0, 47) then
+                        TriggerServerEvent('flecity_mining:server:endShift')
                     end
                 end
             end

@@ -549,3 +549,11 @@ LOOP完成版には不要な変更を入れない。
 - activeCount基準だけでは「最後の入力済み後に未入力者がclose」した場合に次のsubmitが発生せずdeadlineまで待つ穴があったため、close自体を再評価トリガーにした。
 - 順番制/PARTY+の既存close処理後にもreconcileを通すが、complete済みRoundではno-opのため二重確定しない。
 - FiveM + LB Phone複数クライアントで「A入力済み→未入力B close→timeoutを待たず結果確定→B再open」を確認するまでは未検証扱い。
+
+
+## 2026-10-24 client側suspend callback gate
+- 共通NUI bridgeで、PARTY/Phoneがclose/suspend済みなら `party*` callbackをLB Phone callbackへ渡す前に `APP_SUSPENDED` で拒否するよう補強。
+- server側の `appOpen=false` callback拒否に加え、close後にclientへ到着した遅延poll/Ready/submit/GetRoom自体をserverへ送らない二重防御にした。
+- 特にGetRoomは通常再open時のpresence復帰に必要な例外だが、close後の古いNUI requestがpresenceを復活させるraceをclient lifecycleで抑止する。
+- static checkへgateの回帰guardを追加。FiveM＋LB Phone実機でclose競合→`appOpen=false`維持→正常再openを確認するまでは未検証扱い。
+- LOOP側のcallback・identifier・App Store・score/save/achievement仕様は変更なし。

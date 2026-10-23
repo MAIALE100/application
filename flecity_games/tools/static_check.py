@@ -829,6 +829,10 @@ if "local function activeCount(room)" not in party_lua or party_lua.count("compl
     fail("PARTY simultaneous rounds must not wait for members whose app is closed")
 if "if room.state=='round' and reconcileRound(room) then changed=true end" not in party_lua:
     fail("PARTY AppClosed must immediately reconcile simultaneous-input rounds")
+if party_lua.count("or wolf.appOpen==false") < 1 or party_lua.count("or liar.appOpen==false") < 1:
+    fail("PARTY secret-role rounds must abort when the secret player closes the app")
+if "not drawer or drawer.disconnected or drawer.appOpen==false" not in party_lua or "not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier" not in party_lua:
+    fail("PARTY DRAW must stop on drawer close and exclude closed guessers from completion")
 if "action:sub(1,5)=='party' and (not partyAppOpen or partyPushSuspended)" not in client or "error='APP_SUSPENDED'" not in client:
     fail("PARTY NUI callbacks must be rejected client-side while the app/phone is suspended")
 if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:

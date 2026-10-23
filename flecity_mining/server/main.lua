@@ -7,6 +7,56 @@ local tokenSequence = 0
 math.randomseed(os.time())
 math.random(); math.random(); math.random()
 
+local configReady = false
+local configError = nil
+
+local function validateRuntimeConfig()
+    if type(Config.RefinedProducts) ~= 'table' or #Config.RefinedProducts == 0 then
+        return false, 'refined products are empty'
+    end
+
+    local ids = {}
+    local totalWeight = 0
+    for index, product in ipairs(Config.RefinedProducts) do
+        if type(product) ~= 'table' or not product.id or tostring(product.id) == '' then
+            return false, ('product #%d has no id'):format(index)
+        end
+        if ids[product.id] then
+            return false, ('duplicate product id: %s'):format(tostring(product.id))
+        end
+        ids[product.id] = true
+
+        local weight = tonumber(product.weight)
+        local value = tonumber(product.value)
+        if not weight or weight <= 0 then
+            return false, ('invalid weight for %s'):format(tostring(product.id))
+        end
+        if not value or value < 0 then
+            return false, ('invalid value for %s'):format(tostring(product.id))
+        end
+        totalWeight = totalWeight + weight
+    end
+
+    if totalWeight <= 0 then return false, 'total product weight is zero' end
+    if not tonumber(Config.MaxRawOre) or Config.MaxRawOre < 1 then return false, 'invalid MaxRawOre' end
+    if not Config.Foreman or type(Config.Foreman.coords) ~= 'vector3' then return false, 'invalid Foreman coords' end
+    if not Config.Processor or type(Config.Processor.coords) ~= 'vector3' then return false, 'invalid Processor coords' end
+    if type(Config.MiningNodes) ~= 'table' or #Config.MiningNodes == 0 then return false, 'mining nodes are empty' end
+
+    return true
+end
+
+local function refreshConfigHealth()
+    configReady, configError = validateRuntimeConfig()
+    if not configReady then
+        print(('[%s] CONFIG ERROR: %s. Player mining is disabled until configuration is fixed.'):format(
+            RESOURCE, tostring(configError)
+        ))
+    end
+end
+
+refreshConfigHealth()
+
 local function nowMs()
     return GetGameTimer()
 end
@@ -276,12 +326,12 @@ local function calculatePayout(session)
     for _, product in ipairs(Config.RefinedProducts) do
         local count = math.max(0, tonumber(session.refined[product.id]) or 0)
         if count > 0 then
-            payout = payout + (count * product.value)
+            payout = payout + (count * math.max(0, tonumber(product.value) or 0))
             breakdown[#breakdown + 1] = {
                 id = product.id,
                 label = product.label,
                 count = count,
-                unitValue = product.value,
+                unitValue = math.max(0, tonumber(product.value) or 0),
             }
         end
     end
@@ -325,6 +375,10 @@ end
 
 RegisterNetEvent('flecity_mining:server:startShift', function()
     local src = source
+    if not configReady then
+        notify(src, '鉱山設定に問題があるため現在利用できません。運営へお知らせください。')
+        return
+    end
     if not allowRequest(src, 'startShift', 750) then return end
 
     if not isNear(src, Config.Foreman.coords) then
@@ -535,6 +589,13 @@ AddEventHandler('onResourceStop', function(resource)
     sessions = {}
     requestLocks = {}
 end)
+
+RegisterCommand('mining_configcheck', function(src)
+    refreshConfigHealth()
+    local message = configReady and 'Mining config: PASS' or ('Mining config: FAIL - ' .. tostring(configError))
+    print(('[%s] %s'):format(RESOURCE, message))
+    if src > 0 then notify(src, message) end
+end, false)
 
 RegisterCommand('mining_server_status', function(src)
     if src ~= 0 then return end

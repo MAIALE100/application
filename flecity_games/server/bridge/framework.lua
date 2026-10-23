@@ -49,8 +49,41 @@ function FlecityGamesFramework.GetCharacterName(source)
     local pd = getQboxPlayerData(source)
     local c = pd and pd.charinfo
     if not c then return ('Player %s'):format(source) end
-    local name = ((c.firstname or '') .. ' ' .. (c.lastname or '')):gsub('^%s+', ''):gsub('%s+$', '')
+    local name = ((c.firstname or '') .. ' ' .. (c.lastname or '')):gsub('^%s+', ''):gsub('%s+
+-- Keep the framework-specific event name inside this adapter and expose a
+-- framework-neutral lifecycle event to the rest of Flecity Games.
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
+    if GetResourceState('qbx_core')~='started' then return end
+    local src=tonumber(source)
+    if src then TriggerEvent('flecity_games:framework:playerUnloaded',src) end
+end)
+, '')
     return name ~= '' and name or ('Player %s'):format(source)
+end
+
+function FlecityGamesFramework.GetMoney(source,moneyType)
+    if GetResourceState('qbx_core')~='started' then return nil end
+    local ok,value=pcall(function()
+        return exports.qbx_core:GetMoney(tonumber(source),tostring(moneyType or 'bank'))
+    end)
+    if not ok or value==false then return nil end
+    return tonumber(value)
+end
+
+function FlecityGamesFramework.RemoveMoney(source,moneyType,amount,reason)
+    if GetResourceState('qbx_core')~='started' then return false end
+    local ok,result=pcall(function()
+        return exports.qbx_core:RemoveMoney(tonumber(source),tostring(moneyType or 'bank'),math.floor(tonumber(amount) or 0),reason or 'flecity_games')
+    end)
+    return ok and result==true
+end
+
+function FlecityGamesFramework.AddMoney(source,moneyType,amount,reason)
+    if GetResourceState('qbx_core')~='started' then return false end
+    local ok,result=pcall(function()
+        return exports.qbx_core:AddMoney(tonumber(source),tostring(moneyType or 'bank'),math.floor(tonumber(amount) or 0),reason or 'flecity_games')
+    end)
+    return ok and result==true
 end
 
 

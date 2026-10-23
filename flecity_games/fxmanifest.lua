@@ -24,6 +24,7 @@ server_scripts {
     'server/core/profile.lua',
     'server/core/dev_reload.lua',
     'server/core/play.lua',
+    'server/core/party_plus.lua',
     'server/core/party.lua',
     'server/main.lua'
 }

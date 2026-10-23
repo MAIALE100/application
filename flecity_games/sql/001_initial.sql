@@ -54,3 +54,15 @@ CREATE TABLE IF NOT EXISTS flecity_game_daily (
     PRIMARY KEY (challenge_date),
     INDEX idx_flecity_game_daily_game (game_id, challenge_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS flecity_game_subscriptions (
+    player_identifier VARCHAR(128) NOT NULL,
+    plan_id VARCHAR(32) NOT NULL DEFAULT 'party_plus',
+    active_until DATETIME NOT NULL,
+    auto_renew TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (player_identifier),
+    INDEX idx_flecity_game_subscription_expiry (plan_id, active_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -2032,7 +2032,9 @@ async function finishStack(){
 async function dropStackBlock(){
  if(!stackGame||stackGame.finished||stackGame.finalizing)return;
  const now=performance.now();
- if(now-stackGame.layerStartedAt<90)return;
+ // Ignore touch/click bounce after a placement so one physical tap cannot drop the next layer too.
+ // 140ms is short enough to stay below any meaningful TOWER timing window while covering mobile double-fire.
+ if(now-stackGame.layerStartedAt<140)return;
  const previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
  const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);

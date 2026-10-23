@@ -73,3 +73,11 @@ Flecity PARTY 実機オペレーターチェックリスト
 □ MEMORY CHAIN: 2人開始→1人切断で残存1人を勝者確定
 □ FALL BATTLE: 2人開始→1人切断をDNFとして残し、残存者提出で順位確定
 □ FALL BATTLE: server検証済み提出後に切断してもscore/linesが結果に残る
+
+
+[未検証] App/Phone close と遅延callbackの競合
+□ 2台以上で入力送信とほぼ同時にPARTYアプリまたはPhoneを閉じる
+□ close後に遅れて到着したReady／Start／各ゲームsubmitがRoom・Round状態を変更しない
+□ closed memberはRoom所属を維持し appOpen=false、通常の再openで同じRoomへ復帰
+□ Host close時は開いている別参加者へHost移行し、旧Host再open後も操作可能
+※ FiveM＋LB Phone複数クライアントで未実施の間は成功扱いにしない。

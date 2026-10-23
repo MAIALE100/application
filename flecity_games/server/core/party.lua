@@ -1425,7 +1425,7 @@ local function advanceTelephone(room,toggleMode)
         if rs.step>#(rs.turnOrder or {}) then rs.complete=true rs.currentIdentifier=nil return end
         local candidate=rs.turnOrder[rs.step]
         local member=room.members[candidate]
-        if member and not member.disconnected then rs.currentIdentifier=candidate return end
+        if member and not member.disconnected and member.appOpen~=false then rs.currentIdentifier=candidate return end
     end
 end
 
@@ -1433,7 +1433,7 @@ local function ensureTelephoneTurn(room)
     local rs=room.roundState
     if not rs or rs.gameId~='telephone' or rs.complete then return false end
     local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
-    if current and not current.disconnected then return false end
+    if current and not current.disconnected and current.appOpen~=false then return false end
     advanceTelephone(room,false)
     if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
     return true
@@ -1785,7 +1785,7 @@ local function advanceBomb(room)
         local index=((tonumber(rs.currentIndex) or 1)-1+offset)%#order+1
         local id=order[index]
         local member=room.members[id]
-        if member and not member.disconnected then
+        if member and not member.disconnected and member.appOpen~=false then
             rs.currentIndex=index
             rs.currentIdentifier=id
             setRoundDeadline(rs,10)
@@ -2031,6 +2031,27 @@ local function abortRound(room,reason)
     return true
 end
 
+local function finishTicTacForfeit(room,loserIdentifier,reason)
+    local rs=room and room.roundState or nil
+    if not rs or rs.gameId~='tic_tac' or rs.complete then return false end
+    local winnerIdentifier=nil
+    for _,playerId in ipairs(rs.turnOrder or {}) do
+        if playerId~=loserIdentifier then winnerIdentifier=playerId break end
+    end
+    local winnerSymbol=winnerIdentifier and rs.symbols and rs.symbols[winnerIdentifier] or nil
+    rs.complete=true
+    rs.results={
+        board=rs.board or {},
+        winnerMemberId=memberPublicId(room,winnerIdentifier),
+        winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or 'Player',
+        winnerSymbol=winnerSymbol,
+        draw=false,
+        forfeit=true,
+        reason=reason or 'FORFEIT'
+    }
+    return true
+end
+
 local function purgeDisconnectedTargets(room)
     local rs=room and room.roundState or nil
     if not rs or rs.complete then return 0 end
@@ -2065,22 +2086,7 @@ reconcileRound=function(room)
             advanceTelephone(room,false)
             if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
         elseif rs.gameId=='tic_tac' then
-            local loser=rs.currentIdentifier
-            local winnerIdentifier=nil
-            for _,playerId in ipairs(rs.turnOrder or {}) do
-                if playerId~=loser then winnerIdentifier=playerId break end
-            end
-            local winnerSymbol=winnerIdentifier and rs.symbols and rs.symbols[winnerIdentifier] or nil
-            rs.complete=true
-            rs.results={
-                board=rs.board or {},
-                winnerMemberId=memberPublicId(room,winnerIdentifier),
-                winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or 'Player',
-                winnerSymbol=winnerSymbol,
-                draw=false,
-                forfeit=true,
-                reason='TURN_TIMEOUT'
-            }
+            finishTicTacForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='reaction' then maybeFinishReaction(room,true)
         elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room,true)
         elseif rs.gameId=='vote' then maybeFinishVote(room,true)
@@ -2160,11 +2166,27 @@ function FlecityGamesParty.AppClosed(source)
         changed=true
     end
     local rs=room.roundState
-    if room.state=='round' and rs and rs.gameId=='fall_battle' and not rs.complete
-        and rs.submissions and rs.submissions[id]==nil then
-        rs.submissions[id]={score=0,lines=0,pieces=0,ended=true,forfeited=true}
-        maybeFinishFallBattle(room)
-        changed=true
+    if room.state=='round' and rs and not rs.complete then
+        if rs.gameId=='fall_battle' and rs.submissions and rs.submissions[id]==nil then
+            rs.submissions[id]={score=0,lines=0,pieces=0,ended=true,forfeited=true}
+            maybeFinishFallBattle(room)
+            changed=true
+        elseif rs.gameId=='telephone' and rs.currentIdentifier==id then
+            advanceTelephone(room,false)
+            if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+            changed=true
+        elseif rs.gameId=='bomb' and rs.currentIdentifier==id then
+            if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
+            changed=true
+        elseif rs.gameId=='tic_tac' then
+            for _,playerId in ipairs(rs.turnOrder or {}) do
+                if playerId==id then
+                    finishTicTacForfeit(room,id,'APP_CLOSED')
+                    changed=true
+                    break
+                end
+            end
+        end
     end
     if handoffHostFrom(room,id) then changed=true end
     if changed then notifyRoom(room,source) end
@@ -2442,6 +2464,36 @@ function FlecityGamesParty.DebugSelftest()
         and fallBattleRoom.roundState.results.winnerMemberIds[1]=='A'
         and fallBattleRoom.roundState.results.entries[3].forfeited==true
 
+    local appClosedTelephoneRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,appOpen=true,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,appOpen=true,joinOrder=3}
+    },roundState={
+        token='tel-app-closed',gameId='telephone',startedAt=0,startedTick=0,complete=false,submissions={},
+        turnOrder={'a','b','c'},step=1,mode='draw',currentIdentifier='a',
+        chain={{kind='text',text='START'}}
+    }}
+    ensureTelephoneTurn(appClosedTelephoneRoom)
+
+    local appClosedBombRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,appOpen=true,joinOrder=2},
+        c={memberId='C',name='Charlie',disconnected=false,appOpen=true,joinOrder=3}
+    },roundState={
+        token='bomb-app-closed',gameId='bomb',startedAt=0,startedTick=0,complete=false,submissions={},
+        turnOrder={'a','b','c'},currentIndex=3,currentIdentifier='c',passes=0
+    }}
+    advanceBomb(appClosedBombRoom)
+
+    local appClosedTicRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=false,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,appOpen=true,joinOrder=2}
+    },roundState={
+        token='tic-app-closed',gameId='tic_tac',startedAt=0,startedTick=0,complete=false,submissions={},
+        board={'','','','','','','','',''},turnOrder={'a','b'},currentIdentifier='a',symbols={a='X',b='O'}
+    }}
+    finishTicTacForfeit(appClosedTicRoom,'a','APP_CLOSED')
+
     return {
         promptNoImmediateRepeat=noRepeatPrompt=='B' and promptRoom.promptIndexes.test==2,
         turnRotation=rotated[1]=='b' and rotated[2]=='c' and rotated[3]=='a',
@@ -2451,6 +2503,14 @@ function FlecityGamesParty.DebugSelftest()
         reconnectGracePreserved=recentReclaimed==0 and memberCount(recentDisconnectRoom)==2,
         expiredCapacityReclaimed=expiredReclaimed==1 and memberCount(expiredDisconnectRoom)==1,
         fallBattleDisconnectForfeit=fallBattleDisconnectForfeit,
+        telephoneAppCloseSkip=appClosedTelephoneRoom.roundState.currentIdentifier=='b'
+            and appClosedTelephoneRoom.roundState.step==2
+            and appClosedTelephoneRoom.roundState.deadlineDurationSec==45,
+        bombAppCloseSkip=appClosedBombRoom.roundState.currentIdentifier=='b'
+            and appClosedBombRoom.roundState.currentIndex==2,
+        ticTacAppCloseForfeit=appClosedTicRoom.roundState.complete==true
+            and appClosedTicRoom.roundState.results.winnerMemberId=='B'
+            and appClosedTicRoom.roundState.results.reason=='APP_CLOSED',
         connectedCount=connectedCount(hostRoom)==2,
         memberCount=memberCount(hostRoom)==3,
         stopMidpoint=math.abs(trianglePosition(450,1800,0)-50)<0.001,

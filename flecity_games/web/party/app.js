@@ -12,6 +12,7 @@ const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElem
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
 const ngWordPanel=document.getElementById('ngWordPanel'),ngWordTitle=document.getElementById('ngWordTitle'),ngWordHint=document.getElementById('ngWordHint'),ngWordForbidden=document.getElementById('ngWordForbidden'),ngWordClueControls=document.getElementById('ngWordClueControls'),ngWordClue=document.getElementById('ngWordClue'),ngWordClueSubmit=document.getElementById('ngWordClueSubmit'),ngWordGuessControls=document.getElementById('ngWordGuessControls'),ngWordGuess=document.getElementById('ngWordGuess'),ngWordGuessSubmit=document.getElementById('ngWordGuessSubmit');
 const fakeAnswerPanel=document.getElementById('fakeAnswerPanel'),fakeAnswerQuestion=document.getElementById('fakeAnswerQuestion'),fakeAnswerHint=document.getElementById('fakeAnswerHint'),fakeAnswerSubmitControls=document.getElementById('fakeAnswerSubmitControls'),fakeAnswerInput=document.getElementById('fakeAnswerInput'),fakeAnswerSubmit=document.getElementById('fakeAnswerSubmit'),fakeAnswerChoices=document.getElementById('fakeAnswerChoices');
+const bombPanel=document.getElementById('bombPanel'),bombPrompt=document.getElementById('bombPrompt'),bombHolder=document.getElementById('bombHolder'),bombHint=document.getElementById('bombHint'),bombPass=document.getElementById('bombPass');
 const drawCtx=drawCanvas.getContext('2d'),telephoneCtx=telephoneCanvas.getContext('2d');
 const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.getElementById('results'),lobbyBtn=document.getElementById('lobby');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -108,7 +109,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -271,6 +272,12 @@ function renderResults(room){
  }else if(rs.gameId==='liar'){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
+ }else if(rs.gameId==='bomb'){
+   const result=rs.results||{};
+   appendResultBanner('BOOM · '+String(result.loserName||'Player'),'warn');
+   appendResultRow('お題',result.prompt||'---');
+   appendResultRow('パス回数',String(Number(result.passes||0)));
+   appendResultRow('終了理由',result.reason==='TURN_TIMEOUT'?'回答時間切れ':'爆発');
  }else if(rs.gameId==='fake_answer'){
    const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
    const winnerNames=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
@@ -465,6 +472,16 @@ function setupTelephone(room){
    telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
  }
 }
+function setupBomb(room){
+ const rs=room.roundState;hideRoundGames();bombPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ const current=room.players.find(p=>p.memberId===rs.currentMemberId);
+ bombPrompt.textContent=String(rs.prompt||'---');
+ bombHolder.textContent=rs.isCurrent?'あなたの番！':(current?current.name:'次の人');
+ bombHint.textContent=rs.isCurrent?'VCでお題に答えたらボタンで次の人へ渡してください。爆発時刻は見えません。':'爆弾を持っている人の回答を待っています · パス '+Number(rs.passes||0)+'回';
+ bombPass.classList.toggle('hidden',!rs.isCurrent);
+ bombPass.disabled=!rs.isCurrent;
+}
 function setupFakeAnswer(room){
  const rs=room.roundState;hideRoundGames();fakeAnswerPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  fakeAnswerQuestion.textContent=String(rs.question||'---');fakeAnswerSubmitControls.classList.add('hidden');fakeAnswerChoices.innerHTML='';
@@ -553,6 +570,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='telephone')setupTelephone(room);
    else if(rs&&rs.gameId==='ng_word')setupNgWord(room);
    else if(rs&&rs.gameId==='fake_answer')setupFakeAnswer(room);
+   else if(rs&&rs.gameId==='bomb')setupBomb(room);
  }
  return true;
 }
@@ -796,6 +814,14 @@ telephoneDrawSubmit.onclick=async()=>{
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
  if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
+bombPass.onclick=()=>runOnce('bomb-pass',async()=>{
+ const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='bomb'||!rs.isCurrent)return;
+ bombPass.disabled=true;
+ const res=await FlecityBridge.call('partySubmitBombPass',{token:rs.token});
+ if(!res.ok){status('BOMB送信失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ renderRoom(res.room);
+});
+
 async function submitFakeAnswer(){
  return runOnce('fake-answer-submit',async()=>{
   const rs=currentRoom&&currentRoom.roundState,value=fakeAnswerInput.value.trim();if(!rs||rs.gameId!=='fake_answer'||rs.phase!=='submit'||!value)return;

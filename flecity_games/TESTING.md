@@ -702,3 +702,9 @@ PARTY+ app/phone close実機確認（未検証）:
 - FAKE ANSWERの偽回答phase/投票phaseで1人closeしても45秒待たず残り入力で進行すること。
 - MEMORY CHAINで入力待ち参加者close時にそのstage脱落となり、残り参加者が継続できること。
 - close後に再openしても終了済み/進行済みphaseへ古い入力を送れず、次Roundには通常参加できること。
+
+
+## PARTY+ FiveM切断時の即時進行（未検証）
+- FAKE ANSWERの偽回答phase / 投票phaseで未入力者がFiveM切断した場合、その人を待たず残り全員が入力済みなら即座に次phase / 結果へ進む。
+- MEMORY CHAINの入力phaseで未入力者がFiveM切断した場合、その人をalive人数から除外し、残り全員が入力済みなら15秒timeoutを待たずstage判定する。
+- 60秒以内に再接続しても既に進行したphase/stageを巻き戻さず、古いtoken/phase入力を受理しない。

@@ -634,6 +634,8 @@ body.reduced-motion .slide-board,body.reduced-motion .slide-tile{animation:none!
 .fall-controls button{min-width:0;min-height:2.75rem;padding:0.4375rem 0.25rem;font-size:.78rem}
 #fallLeft,#fallRotate,#fallRight{grid-column:span 2}
 #fallSoft,#fallDrop{grid-column:span 3}
+#fallBattleLeft,#fallBattleRotate,#fallBattleRight{grid-column:span 2}
+#fallBattleSoft,#fallBattleDrop{grid-column:span 3}
 #fallSoft{touch-action:none}
 #fallDrop{min-height:2.75rem;font-size:.82rem;letter-spacing:.04em;background:linear-gradient(145deg,#eaf6f1,#bfe8d9);color:#102019}
 .fall-board.fall-clear{animation:fall-clear-flash .24s ease}

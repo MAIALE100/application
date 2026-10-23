@@ -64,6 +64,7 @@ function resetRoundRuntime(){
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';
+ if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
 }
 function deadlineLoop(token){
  if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
@@ -116,6 +117,7 @@ function resumePartyUi(){
 }
 function hideRoundGames(){
  reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
+ if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -307,6 +309,12 @@ function renderResults(room){
    appendResultRow('ヒント',result.clue||'未送信');
    appendResultRow('NG',Array.isArray(result.forbiddenWords)?result.forbiddenWords.join(' / '):'---');
    (result.entries||[]).forEach(e=>appendResultRow(e.name,e.guess?(e.guess+(e.correct?' ✓':'')):'未回答'));
+ }else if(rs.gameId==='fall_battle'){
+   const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
+   const winners=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
+   appendResultBanner(winners.length?'WINNER · '+winners.join(' / '):'有効記録なし',winners.length?'good':'warn');
+   if(result.timedOut===true)appendResultBanner('90秒終了 · 送信済みの記録で確定しました。','warn');
+   (result.entries||[]).forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.timedOut?'未送信':(Number(e.score||0)+' pt · '+Number(e.lines||0)+' LINES')));
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    const fastest=(rs.results.entries||[])[0];
@@ -610,6 +618,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='fake_answer')setupFakeAnswer(room);
    else if(rs&&rs.gameId==='bomb')setupBomb(room);
    else if(rs&&rs.gameId==='memory_chain')setupMemoryChain(room);
+   else if(rs&&rs.gameId==='fall_battle'){hideRoundGames();if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.render(room);}
  }
  return true;
 }

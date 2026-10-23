@@ -173,6 +173,8 @@ if server.count("FlecityGamesPartyFall.DebugSelftest()") < 3:
     fail("PARTY+ FALL BATTLE verifier must run in startup/selftest/preflight")
 if "forfeited=true" not in party_lua or "fallBattleDisconnectForfeit" not in party_lua:
     fail("PARTY+ FALL BATTLE disconnect/reconnect reset guard is missing")
+if "continuationMinimumByGame" not in party_lua or "memoryChainDisconnectContinues" not in party_lua or "fallBattleDisconnectContinues" not in party_lua:
+    fail("PARTY+ disconnect continuation guards are missing")
 if "elseif rs.gameId=='fake_answer' then" not in party_lua or "if fakeAnswerPhaseReady(room) then" not in party_lua:
     fail("PARTY+ FAKE ANSWER disconnect reconciliation is missing")
 if "elseif rs.gameId=='memory_chain' then" not in party_lua or "maybeResolveMemoryStage(room)" not in party_lua:

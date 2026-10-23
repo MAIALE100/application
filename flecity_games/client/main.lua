@@ -287,6 +287,12 @@ RegisterNUICallback('flecityGames:callback',function(data,cb)
 
     local callbackName=callbackMap[action]
     if not callbackName then return cb({ok=false,error='UNKNOWN_ACTION'}) end
+    -- NUI promises can resolve after LB Phone has already suspended/closed PARTY.
+    -- Reject any PARTY request that reaches the client after that lifecycle edge so
+    -- stale polling/submits (including GetRoom presence recovery) never reach server.
+    if action:sub(1,5)=='party' and (not partyAppOpen or partyPushSuspended) then
+        return cb({ok=false,error='APP_SUSPENDED'})
+    end
     local ok,result=pcall(function()
         return exports['lb-phone']:AwaitCallback(callbackName,type(data.payload)=='table' and data.payload or {})
     end)

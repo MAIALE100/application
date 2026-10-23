@@ -2072,7 +2072,7 @@ local function purgeDisconnectedTargets(room)
     local removed=0
     for voterId,targetId in pairs(rs.submissions or {}) do
         local target=room.members[targetId]
-        if not target or target.disconnected then
+        if not target or target.disconnected or target.appOpen==false then
             rs.submissions[voterId]=nil
             removed=removed+1
         end

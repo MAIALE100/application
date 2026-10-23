@@ -772,3 +772,9 @@ PARTY+ app/phone close実機確認（未検証）:
 - closed中の遅延GetRoomがserverへ届かず、`game_party_status` の `appOpen=false` を勝手にtrueへ戻さないこと。
 - 通常の再openではonOpen→resume後のGetRoomが通り、最新snapshotへ復帰できること。
 - server側のclosed-member callback拒否と合わせた二重防御として確認し、FiveM＋LB Phone複数クライアント実機で確認するまでPASS扱いしない。
+
+LIVE TEST REQUIRED: PARTY App/Phone close role handling
+- DRAW: 描き手がcloseしたら90秒timeoutを待たずDRAWER_LEFTで終了すること。
+- DRAW: 未回答者がcloseしたら、その端末を待たず残りapp-open回答者だけで完了判定されること。
+- WORD WOLF / LIAR: Wolf/Liar本人がcloseしたらSECRET_PLAYER_LEFTで即中断し、秘密役不在の結果確定へ進まないこと。
+- closeした参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。

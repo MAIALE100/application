@@ -675,6 +675,12 @@ RegisterNetEvent('flecity_mining:server:endShift', function()
         return
     end
 
+    clearExpiredAction(session)
+    if session.action then
+        notify(src, '作業中は終了できません。作業完了後に受付でもう一度お試しください。')
+        return
+    end
+
     if session.rawOre > 0 or refinedCount(session) > 0 then
         notify(src, '未処理または未売却の鉱石があります。先に精算してください。')
         return

@@ -45,6 +45,7 @@ local callbacks={
     ['flecity_games:party:submitFakeVote']=function(source,data) return FlecityGamesParty.SubmitFakeVote(source,data) end,
     ['flecity_games:party:submitBombPass']=function(source,data) return FlecityGamesParty.SubmitBombPass(source,data) end,
     ['flecity_games:party:submitMemoryChain']=function(source,data) return FlecityGamesParty.SubmitMemoryChain(source,data) end,
+    ['flecity_games:party:submitFallBattle']=function(source,data) return FlecityGamesParty.SubmitFallBattle(source,data) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

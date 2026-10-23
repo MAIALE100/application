@@ -27,9 +27,9 @@ Flecity Games PARTY v1.0.0
 ・WORD WOLF / LIAR / DRAW / TELEPHONEの秘密情報はviewer別snapshot
 ・DRAW描画量上限
 ・TELEPHONE途中離脱時は手番skip
-・無料ゲーム10種 + PARTY+ゲーム4種
+・無料ゲーム10種 + PARTY+ゲーム5種
 ・PARTY+：7日 / 50,000、加入HostのRoom全員が利用可
-・PARTY+：NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN
+・PARTY+：NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE
 ・PARTY+購入は2段確認、自動更新停止可、期限までは利用可
 ・期限後の自動更新は次回PARTY利用時に1期間だけ実行
 
@@ -69,8 +69,10 @@ startup preflight READY_FOR_LIVE_TEST
 ・時間切れ後の結果遷移
 ・10人時の参加者表示
 ・PARTY+初回加入 / 二重送信 / 自動更新停止 / 期限更新 / 残高不足
-・加入Host + 未加入参加者でPARTY+ 4ゲーム
+・加入Host + 未加入参加者でPARTY+ 5ゲーム
 ・NG WORD秘密情報 / FAKE ANSWER匿名投票 / BOMB隠しFuse / MEMORY CHAIN入力時の正解列非公開
+・FALL BATTLE 2人/10人、90秒timeout、Phone/App close・FiveM切断DNF、再接続後のやり直し不可
+・FALL BATTLEは途中の他参加者盤面/scoreを公開せず、完了人数だけ共有
 
 ■ 切り戻し
 更新前の flecity_games へ戻し、refresh → restart flecity_games で切り戻せます。

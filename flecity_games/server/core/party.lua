@@ -1353,14 +1353,14 @@ local function maybeFinishDraw(room,force)
     local rs=room.roundState
     if not rs or rs.gameId~='draw' or rs.complete then return end
     local drawer=room.members[rs.drawerIdentifier]
-    if not drawer or drawer.disconnected then
+    if not drawer or drawer.disconnected or drawer.appOpen==false then
         rs.complete=true
         rs.results={aborted=true,reason='DRAWER_LEFT',prompt=rs.prompt,entries={}}
         return
     end
     local needed=0 local guessed=0
     for id,m in pairs(room.members) do
-        if not m.disconnected and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
+        if not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
     end
     if guessed<needed and not force then return end
     local entries={}
@@ -2136,10 +2136,10 @@ reconcileRound=function(room)
 
     if rs.gameId=='word_wolf' then
         local wolf=rs.wolfIdentifier and room.members[rs.wolfIdentifier] or nil
-        if not wolf or wolf.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
+        if not wolf or wolf.disconnected or wolf.appOpen==false then abortRound(room,'SECRET_PLAYER_LEFT') return true end
     elseif rs.gameId=='liar' then
         local liar=rs.liarIdentifier and room.members[rs.liarIdentifier] or nil
-        if not liar or liar.disconnected then abortRound(room,'SECRET_PLAYER_LEFT') return true end
+        if not liar or liar.disconnected or liar.appOpen==false then abortRound(room,'SECRET_PLAYER_LEFT') return true end
     elseif rs.gameId=='ng_word' then
         local explainer=rs.explainerIdentifier and room.members[rs.explainerIdentifier] or nil
         if not explainer or explainer.disconnected or explainer.appOpen==false then abortRound(room,'EXPLAINER_LEFT') return true end

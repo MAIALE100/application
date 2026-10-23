@@ -8,6 +8,66 @@ local state = {
 
 local busy = false
 local currentActionToken = nil
+local routeBlip = nil
+
+local function clearRoute()
+    if routeBlip and DoesBlipExist(routeBlip) then
+        RemoveBlip(routeBlip)
+    end
+    routeBlip = nil
+end
+
+local function setRoute(coords, label)
+    clearRoute()
+    routeBlip = AddBlipForCoord(coords.x, coords.y, coords.z)
+    SetBlipSprite(routeBlip, 1)
+    SetBlipColour(routeBlip, 5)
+    SetBlipScale(routeBlip, 0.75)
+    SetBlipRoute(routeBlip, true)
+    SetBlipRouteColour(routeBlip, 5)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentString(label)
+    EndTextCommandSetBlipName(routeBlip)
+end
+
+local function nearestMiningNode()
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local nearest, nearestDistance = nil, nil
+    for _, node in ipairs(Config.MiningNodes) do
+        local distance = #(playerCoords - node.coords)
+        if not nearestDistance or distance < nearestDistance then
+            nearest = node
+            nearestDistance = distance
+        end
+    end
+    return nearest
+end
+
+local function updateGuidanceRoute()
+    if not state.active then
+        clearRoute()
+        return
+    end
+
+    if (state.refinedCount or 0) > 0 and (state.rawOre or 0) <= 0 then
+        setRoute(Config.Foreman.coords, '鉱山受付 / 買取')
+        return
+    end
+
+    if (state.rawOre or 0) >= (state.maxRawOre or Config.MaxRawOre) then
+        setRoute(Config.Processor.coords, '選鉱設備')
+        return
+    end
+
+    if (state.rawOre or 0) > 0 then
+        local node = nearestMiningNode()
+        if node then setRoute(node.coords, node.label or '採掘地点') end
+        return
+    end
+
+    local node = nearestMiningNode()
+    if node then setRoute(node.coords, node.label or '採掘地点') end
+end
 
 local function notify(message)
     BeginTextCommandThefeedPost('STRING')
@@ -160,6 +220,7 @@ RegisterNetEvent('flecity_mining:client:state', function(newState)
     state.maxRawOre = tonumber(newState.maxRawOre) or Config.MaxRawOre
     state.refined = type(newState.refined) == 'table' and newState.refined or {}
     state.refinedCount = tonumber(newState.refinedCount) or 0
+    updateGuidanceRoute()
 end)
 
 RegisterNetEvent('flecity_mining:client:actionApproved', function(data)
@@ -297,6 +358,7 @@ end, false)
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
 
+    clearRoute()
     local ped = PlayerPedId()
     ClearPedTasksImmediately(ped)
     FreezeEntityPosition(ped, false)

@@ -5,6 +5,11 @@
 <main class="wrap">
 <header class="header app-header"><div><div class="brand-line"><span class="brand-dot"></span><span class="kicker">PLAY TOGETHER.</span></div><h1>PARTY</h1><div class="muted">同じルームで、そのまま次のゲームへ。</div></div></header>
 <section id="status" class="status app-status">ルームを作成するか、参加してください。</section>
+<section id="partyPlusCard" class="card stack party-plus-card">
+ <div class="row"><div><div class="kicker">PARTY+</div><strong id="partyPlusTitle">7日間プレミアム</strong></div><span id="partyPlusBadge" class="muted">確認中…</span></div>
+ <p id="partyPlusDescription" class="muted">加入した人がホストなら、そのルーム全員がPARTY+ゲームを遊べます。</p>
+ <div class="row"><button id="partyPlusSubscribe" class="secondary">7日 50,000</button><button id="partyPlusCancel" class="danger compact-button hidden">自動更新を停止</button></div>
+</section>
 <section id="entry" class="card stack party-entry"><div><div class="kicker">QUICK START</div><h2>友達と遊ぶ</h2><p class="muted">1人がルームを作成し、ほかの人はコードで参加します。</p></div><button id="create" class="party-primary">ルームを作成</button><div class="join-row"><input id="code" inputmode="numeric" maxlength="4" placeholder="ルームコード"><button id="join" class="secondary">参加</button></div></section>
 <section id="room" class="hidden">
  <div class="card stack room-hero"><div class="row room-code-row"><div><div class="kicker">ROOM CODE</div><div id="roomCode" class="big-number room-code">----</div></div><button id="leave" class="danger compact-button">退出</button></div><div id="readySummary" class="room-summary">参加者を待っています。</div><div id="players" class="players"></div></div>

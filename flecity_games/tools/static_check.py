@@ -138,6 +138,10 @@ if "partyUpdate" not in client or "partyDrawStroke" not in client:
     fail("PARTY direct-push client wiring is missing")
 if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
     fail("PARTY direct-push UI wiring is missing")
+if "partySubscribePlus" not in party_js or "partyCancelPlus" not in party_js or 'id="partyPlusCard"' not in party_html:
+    fail("PARTY+ subscription UI is missing")
+if "PARTY_PLUS_REQUIRED" not in errors_js:
+    fail("PARTY+ error mapping is missing")
 if "action=='bridgePing'" not in client:
     fail("local LB Phone bridgePing diagnostic is missing")
 if "fixBlur=true" not in client or "fixBlur=false" in client:

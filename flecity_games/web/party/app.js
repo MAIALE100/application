@@ -1,6 +1,7 @@
 const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
 const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline');
+const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
@@ -14,7 +15,7 @@ const resultsPanel=document.getElementById('resultsPanel'),resultsEl=document.ge
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
 
 let currentRoom=null,ready=false,poll=null,activeRoundToken=null,serverOffsetMs=0,serverOffsetReady=false,appSettings={sound:true,reducedMotion:false},audioCtx=null,lastCompleteToken=null,lastRoomRevision=-1,roomPushEnabled=false;
-let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10};
+let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
@@ -119,6 +120,35 @@ function selectedGameConfig(room){
  const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
  return games.find(g=>g.id===room.selectedGame)||null;
 }
+function formatMoney(value){return Number(value||0).toLocaleString('ja-JP');}
+function formatExpiry(unix){
+ const value=Number(unix)||0;if(value<=0)return '';
+ const date=new Date(value*1000);
+ return date.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function renderPartyPlus(){
+ const plus=partyConfig.plus;
+ if(!plus||plus.enabled===false){partyPlusCard.classList.add('hidden');return;}
+ partyPlusCard.classList.remove('hidden');
+ const days=Math.max(1,Number(plus.durationDays)||7),price=Math.max(0,Number(plus.price)||50000);
+ partyPlusTitle.textContent=days+'日間プレミアム';
+ partyPlusSubscribe.textContent=days+'日 '+formatMoney(price);
+ if(plus.active){
+   partyPlusBadge.textContent='加入中';
+   partyPlusBadge.className='good';
+   partyPlusDescription.textContent='有効期限 '+formatExpiry(plus.expiresAt)+' · '+(plus.autoRenew?'自動更新ON':'自動更新OFF')+' · あなたがホストなら部屋全員が利用できます。';
+   partyPlusSubscribe.classList.toggle('hidden',plus.autoRenew===true);
+   partyPlusSubscribe.textContent=plus.autoRenew?days+'日 '+formatMoney(price):'自動更新を再開';
+   partyPlusCancel.classList.toggle('hidden',plus.autoRenew!==true);
+ }else{
+   partyPlusBadge.textContent='未加入';
+   partyPlusBadge.className='muted';
+   partyPlusDescription.textContent='加入した人がホストなら、そのルーム全員がPARTY+ゲームを遊べます。限定品や月替わり更新はありません。';
+   partyPlusSubscribe.classList.remove('hidden');
+   partyPlusCancel.classList.add('hidden');
+ }
+ if(plus.renewError)partyPlusDescription.textContent+=' · 自動更新: '+FlecityErrors.text(plus.renewError);
+}
 function renderGameInfo(gameId){
  const games=Array.isArray(partyConfig.games)?partyConfig.games:[];
  const game=games.find(g=>g.id===gameId);
@@ -127,7 +157,7 @@ function renderGameInfo(gameId){
    const text=document.createElement('span');text.className='muted';text.textContent='ゲーム情報を取得できません。';gameInfo.appendChild(text);return;
  }
  const title=document.createElement('strong'),meta=document.createElement('span'),description=document.createElement('span');
- title.textContent=String(game.name||game.id);meta.className='game-info-meta';description.className='muted';
+ title.textContent=(game.premium?'PARTY+ · ':'')+String(game.name||game.id);meta.className='game-info-meta';description.className='muted';
  const min=Math.max(1,Number(game.minPlayers)||2),max=Math.max(min,Number(game.maxPlayers)||10);
  meta.textContent=(min===max?min+'人':min+'〜'+max+'人');
  description.textContent=String(game.description||'');
@@ -141,6 +171,7 @@ function startReadiness(room){
  const appWaiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen===false).length;
  const waiting=(room.players||[]).filter(p=>!p.disconnected&&p.appOpen!==false&&!p.ready).length;
  if(!room.isHost)return {ok:false,text:'ホストのみ開始できます'};
+ if(game&&game.premium===true&&room.hostPlusActive!==true)return {ok:false,text:'ホストのPARTY+が必要です'};
  if(connected<min)return {ok:false,text:'あと'+(min-connected)+'人必要です'};
  if(connected>max)return {ok:false,text:'参加人数が上限を超えています'};
  if(appWaiting>0)return {ok:false,text:'アプリ待ち '+appWaiting+'人'};
@@ -480,6 +511,7 @@ async function loadPartyConfig(epoch=lifecycleEpoch){
  if(appSuspended||epoch!==lifecycleEpoch||!res.ok||!res.config)return false;
  const length=Math.max(3,Math.min(6,Number(res.config.roomCodeLength)||4));
  partyConfig={...partyConfig,...res.config,roomCodeLength:length};
+ renderPartyPlus();
  codeEl.maxLength=length;
  codeEl.placeholder=length+'桁のルームコード';
 
@@ -491,7 +523,7 @@ async function loadPartyConfig(epoch=lifecycleEpoch){
      const option=document.createElement('option');
      option.value=game.id;
      const min=Number(game.minPlayers)||2,max=Number(game.maxPlayers)||10;
-     option.textContent=game.name+' · '+(min===max?min+'人':min+'〜'+max+'人');
+     option.textContent=(game.premium?'★ ':'')+game.name+' · '+(min===max?min+'人':min+'〜'+max+'人');
      option.title=game.description||'';
      gameEl.appendChild(option);
    });
@@ -556,6 +588,23 @@ joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D
 readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
 gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
 startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
+partyPlusSubscribe.onclick=()=>runOnce('party-plus-subscribe',async()=>{
+ partyPlusSubscribe.disabled=true;
+ try{
+   const res=await FlecityBridge.call('partySubscribePlus',{});
+   if(!res.ok){status('PARTY+加入失敗: '+FlecityErrors.text(res.error),'error');return;}
+   partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('PARTY+が有効になりました。','good');
+   if(currentRoom)await refresh();
+ }finally{partyPlusSubscribe.disabled=false;}
+});
+partyPlusCancel.onclick=()=>runOnce('party-plus-cancel',async()=>{
+ partyPlusCancel.disabled=true;
+ try{
+   const res=await FlecityBridge.call('partyCancelPlus',{});
+   if(!res.ok){status('自動更新を停止できません: '+FlecityErrors.text(res.error),'error');return;}
+   partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('期限まではPARTY+を利用できます。','good');
+ }finally{partyPlusCancel.disabled=false;}
+});
 
 reactionTap.onclick=async()=>{
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;

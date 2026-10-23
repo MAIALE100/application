@@ -13,6 +13,12 @@ window.FlecityErrors = {
         APP_SUSPENDED: 'アプリを閉じたため開始を取り消しました',
 
         GAME_UNAVAILABLE: 'このゲームは現在利用できません',
+        PARTY_PLUS_REQUIRED: 'このゲームはホストのPARTY+加入が必要です',
+        PARTY_PLUS_DISABLED: 'PARTY+は現在利用できません',
+        INSUFFICIENT_FUNDS: '銀行残高が足りません',
+        PAYMENT_FAILED: '支払い処理に失敗しました',
+        SUBSCRIPTION_BUSY: 'PARTY+の更新処理中です。少し待ってください',
+        SUBSCRIPTION_SAVE_FAILED: 'PARTY+の有効期限を保存できませんでした',
         DAILY_UNAVAILABLE: '今日のチャレンジを取得できません',
         DAILY_GAME_MISMATCH: '今日のチャレンジ内容が一致しません',
         DAILY_EXPIRED: '日付が変わったため、このデイリーチャレンジは終了しました',

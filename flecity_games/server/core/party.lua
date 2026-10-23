@@ -585,6 +585,18 @@ local function publicRoundState(room,viewerId)
         end
         out.aliveCount=alive
     end
+    if rs.gameId=='fall_battle' then
+        out.seed=rs.seed
+        out.width=rs.width
+        out.height=rs.height
+        out.selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
+        local submitted=0
+        for playerId,m in pairs(room.members or {}) do
+            if not m.disconnected and rs.submissions and rs.submissions[playerId]~=nil then submitted=submitted+1 end
+        end
+        out.submittedCount=submitted
+        out.expectedSubmissions=connectedCount(room)
+    end
     if rs.gameId=='fake_answer' then
         out.phase=rs.phase
         out.question=rs.question
@@ -967,6 +979,11 @@ function FlecityGamesParty.StartRound(source)
         rs.eliminated={}
         rs.stageSubmissions={}
     end
+    if game.id=='fall_battle' then
+        rs.seed=math.random(1,2147483646)
+        rs.width=10
+        rs.height=18
+    end
 
     if game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
@@ -978,6 +995,8 @@ function FlecityGamesParty.StartRound(source)
         setRoundDeadline(rs,10)
     elseif game.id=='memory_chain' then
         setRoundDeadline(rs,memoryRevealSeconds(rs.sequence))
+    elseif game.id=='fall_battle' then
+        setRoundDeadline(rs,90)
     else
         setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     end
@@ -1914,6 +1933,81 @@ function FlecityGamesParty.SubmitMemoryChain(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+local function maybeFinishFallBattle(room,force)
+    local rs=room.roundState
+    if not rs or rs.gameId~='fall_battle' or rs.complete or (not force and completedSubmissionCount(room)<connectedCount(room)) then return end
+
+    local entries={}
+    local bestScore=nil
+    local bestLines=nil
+    for id,m in pairs(room.members) do
+        if not m.disconnected then
+            local s=rs.submissions[id]
+            local entry={
+                memberId=m.memberId,
+                name=m.name,
+                score=s and tonumber(s.score) or 0,
+                lines=s and tonumber(s.lines) or 0,
+                pieces=s and tonumber(s.pieces) or 0,
+                timedOut=s==nil
+            }
+            entries[#entries+1]=entry
+            if not entry.timedOut then
+                if bestScore==nil or entry.score>bestScore or (entry.score==bestScore and entry.lines>(bestLines or -1)) then
+                    bestScore=entry.score
+                    bestLines=entry.lines
+                end
+            end
+        end
+    end
+
+    table.sort(entries,function(a,b)
+        if a.timedOut~=b.timedOut then return not a.timedOut end
+        if a.score~=b.score then return a.score>b.score end
+        if a.lines~=b.lines then return a.lines>b.lines end
+        if a.pieces~=b.pieces then return a.pieces>b.pieces end
+        return a.name<b.name
+    end)
+
+    local winners={}
+    if bestScore~=nil then
+        for _,entry in ipairs(entries) do
+            if not entry.timedOut and entry.score==bestScore and entry.lines==bestLines then
+                winners[#winners+1]=entry.memberId
+            end
+        end
+    end
+
+    rs.complete=true
+    rs.results={entries=entries,winnerMemberIds=winners,timedOut=force==true}
+end
+
+function FlecityGamesParty.SubmitFallBattle(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'fall_battle_submit',750) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='fall_battle' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+
+    local serverElapsed=math.max(0,GetGameTimer()-(tonumber(rs.startedTick) or GetGameTimer()))
+    local allowedElapsed=math.min(90000,serverElapsed)
+    local validated,errorCode=FlecityGamesPartyFall.Validate(rs.seed,data.history,rs.width,rs.height,allowedElapsed)
+    if not validated then return {ok=false,error=errorCode or 'INVALID_HISTORY'} end
+
+    rs.submissions[id]={
+        score=validated.score,
+        lines=validated.lines,
+        pieces=validated.pieces,
+        ended=validated.ended==true
+    }
+    maybeFinishFallBattle(room)
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.ReturnLobby(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1998,6 +2092,7 @@ reconcileRound=function(room)
         elseif rs.gameId=='fake_answer' then
             if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,true) end
         elseif rs.gameId=='bomb' then finishBomb(room,'TURN_TIMEOUT')
+        elseif rs.gameId=='fall_battle' then maybeFinishFallBattle(room,true)
         else abortRound(room,'ROUND_TIMEOUT') end
         if not rs.complete and rs.gameId~='telephone' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
         return true
@@ -2039,6 +2134,8 @@ reconcileRound=function(room)
         if not current or current.disconnected then
             if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
         end
+    elseif rs.gameId=='fall_battle' then
+        maybeFinishFallBattle(room)
     end
 
     return purged>0

@@ -546,3 +546,51 @@ RegisterCommand('mining_server_status', function(src)
 
     print(('[%s] active sessions: %d'):format(RESOURCE, active))
 end, true)
+
+
+local function economySnapshot()
+    local totalWeight = 0
+    local weightedValue = 0
+
+    for _, product in ipairs(Config.RefinedProducts or {}) do
+        local weight = math.max(0, tonumber(product.weight) or 0)
+        local value = math.max(0, tonumber(product.value) or 0)
+        totalWeight = totalWeight + weight
+        weightedValue = weightedValue + (weight * value)
+    end
+
+    local expectedPerRaw = totalWeight > 0 and (weightedValue / totalWeight) or 0
+    local expectedFullLoad = expectedPerRaw * math.max(0, tonumber(Config.MaxRawOre) or 0)
+
+    return totalWeight, expectedPerRaw, expectedFullLoad
+end
+
+RegisterCommand('mining_economy', function(src)
+    local totalWeight, expectedPerRaw, expectedFullLoad = economySnapshot()
+
+    local lines = {
+        ('Mining economy | weight=%d | expected/raw=$%.1f | expected/full-load=$%.1f'):format(
+            totalWeight,
+            expectedPerRaw,
+            expectedFullLoad
+        )
+    }
+
+    for _, product in ipairs(Config.RefinedProducts or {}) do
+        local chance = totalWeight > 0 and ((math.max(0, tonumber(product.weight) or 0) / totalWeight) * 100) or 0
+        lines[#lines + 1] = ('  %s (%s): %.1f%% | $%d each'):format(
+            tostring(product.label or product.id),
+            tostring(product.id),
+            chance,
+            math.floor(math.max(0, tonumber(product.value) or 0))
+        )
+    end
+
+    for _, line in ipairs(lines) do
+        print(('[%s] %s'):format(RESOURCE, line))
+    end
+
+    if src > 0 then
+        notify(src, ('期待値: 原石1個 約$%.1f / 満載 約$%.1f'):format(expectedPerRaw, expectedFullLoad))
+    end
+end, false)

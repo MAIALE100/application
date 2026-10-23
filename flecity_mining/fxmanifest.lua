@@ -1,0 +1,15 @@
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+author 'Flecity'
+description 'Flecity public solo mining job - beginner-friendly no-level money loop'
+version '0.1.0-dev'
+
+shared_script 'config.lua'
+
+client_script 'client/main.lua'
+
+server_script 'server/main.lua'
+
+dependency 'qbx_core'

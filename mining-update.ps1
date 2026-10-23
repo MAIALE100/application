@@ -58,7 +58,9 @@ try {
     Step 'Running mining safety checks'
     $required = @(
         (Join-Path $Source 'fxmanifest.lua'),
-        (Join-Path $Source 'config.lua'),
+        (Join-Path $Source 'config\gameplay.lua'),
+        (Join-Path $Source 'config\economy.lua'),
+        (Join-Path $Source 'config\locations.lua'),
         (Join-Path $Source 'client\main.lua'),
         (Join-Path $Source 'server\main.lua'),
         (Join-Path $Source 'server\selftest.lua')
@@ -73,6 +75,9 @@ try {
 
     if ($manifest -notmatch "dependency\s+'qbx_core'") {
         throw 'fxmanifest.lua does not declare qbx_core dependency.'
+    }
+    if ($manifest -notmatch "config/economy.lua" -or $manifest -notmatch "config/gameplay.lua" -or $manifest -notmatch "config/locations.lua") {
+        throw 'Split operator config files are not loaded by fxmanifest.lua.'
     }
     if ($server -notmatch "exports\.qbx_core:AddMoney") {
         throw 'Server payout path could not be verified.'

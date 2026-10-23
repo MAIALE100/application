@@ -38,7 +38,7 @@ local function validateRuntimeConfig()
     end
 
     if totalWeight <= 0 then return false, 'total product weight is zero' end
-    if not tonumber(Config.MaxRawOre) or Config.MaxRawOre < 1 then return false, 'invalid MaxRawOre' end
+    if not tonumber(Config.MaxRawOre) or tonumber(Config.MaxRawOre) < 1 then return false, 'invalid MaxRawOre' end
     if not Config.Foreman or type(Config.Foreman.coords) ~= 'vector3' then return false, 'invalid Foreman coords' end
     if not Config.Processor or type(Config.Processor.coords) ~= 'vector3' then return false, 'invalid Processor coords' end
     if type(Config.MiningNodes) ~= 'table' or #Config.MiningNodes == 0 then return false, 'mining nodes are empty' end

@@ -765,3 +765,10 @@ PARTY+ app/phone close実機確認（未検証）:
 - Bのcloseをserver側のreconcileトリガーとして、残るapp-open参加者が全員入力済みならdeadlineを待たず結果確定すること。
 - B再open後は同Roomへ復帰し、完了済みRoundや結果を巻き戻さないこと。
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+
+## PARTY client-side suspend callback gate（LIVE TEST REQUIRED）
+- PARTY/Phoneを閉じる瞬間にpoll/Ready/submit/GetRoomを発火させ、close後にNUI requestがclientへ到着した場合は `APP_SUSPENDED` でserver送信前に拒否されること。
+- closed中の遅延GetRoomがserverへ届かず、`game_party_status` の `appOpen=false` を勝手にtrueへ戻さないこと。
+- 通常の再openではonOpen→resume後のGetRoomが通り、最新snapshotへ復帰できること。
+- server側のclosed-member callback拒否と合わせた二重防御として確認し、FiveM＋LB Phone複数クライアント実機で確認するまでPASS扱いしない。

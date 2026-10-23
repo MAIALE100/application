@@ -829,6 +829,8 @@ if "local function activeCount(room)" not in party_lua or party_lua.count("compl
     fail("PARTY simultaneous rounds must not wait for members whose app is closed")
 if "if room.state=='round' and reconcileRound(room) then changed=true end" not in party_lua:
     fail("PARTY AppClosed must immediately reconcile simultaneous-input rounds")
+if "action:sub(1,5)=='party' and (not partyAppOpen or partyPushSuspended)" not in client or "error='APP_SUSPENDED'" not in client:
+    fail("PARTY NUI callbacks must be rejected client-side while the app/phone is suspended")
 if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:
     fail("PARTY room lookup can regress into reopening app presence on delayed callbacks")
 if party_lua.count("member.appOpen~=false and src~=excluded") < 2:

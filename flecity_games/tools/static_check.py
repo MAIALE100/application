@@ -704,6 +704,10 @@ if "local room=roomForSource(source)" not in party_lua or "tonumber(member.sourc
     fail("PARTY AppClosed must use side-effect-free room lookup")
 if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
     fail("PARTY host migration must prefer app-active members")
+join_start = party_lua.find("function FlecityGamesParty.JoinRoom(source,data)")
+get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
+if join_start < 0 or get_room_start < 0 or "host and host.appOpen==false" not in party_lua[join_start:get_room_start] or "handoffHostFrom(room,room.hostIdentifier)" not in party_lua[join_start:get_room_start]:
+    fail("PARTY new join must recover host control from a closed host")
 if "appOpen=m.appOpen~=false" not in party_lua or "アプリ閉じています" not in party_js or "アプリ待ち " not in party_js:
     fail("PARTY lobby must expose app-presence blocking state")
 if "m.appOpen==false or m.ready~=true" not in party_lua:

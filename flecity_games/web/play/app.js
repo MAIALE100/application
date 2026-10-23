@@ -1619,6 +1619,11 @@ function holdFallPiece(){
 }
 async function dropFall(autoLock=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ if(!autoLock){
+   const now=performance.now();
+   if(now-(Number(game.lastManualDropAt)||0)<120)return;
+   game.lastManualDropAt=now;
+ }
  game.busy=true;
  const pressureBefore=fallPressure(game),scoreBefore=Number(game.score)||0,levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
  if(!applied){game.busy=false;tone(150,30);setStatus('その位置には置けません。','warn');renderFall();return;}

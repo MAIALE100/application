@@ -8,9 +8,11 @@ LB Phone本体、Qbox本体、その他既存リソースのファイルを直�
 ■ 今回の提出内容
 ・既存アプリ「LOOP」v1.0.0相当の機能を維持
 ・LB Phone用複数人ゲームアプリ「PARTY」v1.0.0
-・PARTY内ミニゲーム 10種
-  REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY
-  TIC-TAC / WORD WOLF / LIAR / DRAW / TELEPHONE
+・PARTY内ミニゲーム 14種
+  無料: REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY
+        TIC-TAC / WORD WOLF / LIAR / DRAW / TELEPHONE
+  PARTY+: NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN
+・PARTY+：7日 / 50,000。加入者がHostのRoomでは未加入者もPARTY+ゲームを利用可能
 ・ルーム作成 / 4桁コード参加 / Ready / ホスト管理
 ・切断 / 再接続 / ホスト移行 / timeout / cleanup
 ・LB Phone App Storeから無料ダウンロード
@@ -25,8 +27,9 @@ price: 0
 PARTYは初期状態で強制インストールせず、プレイヤーがLB PhoneのApp Storeから必要な時に無料でダウンロードする方式です。
 
 ■ 前提
-・qbx_core（Qbox）
+・qbx_core（QBox 2.5.4）
 ・oxmysql
+・player identifier: citizenid = CSN
 ・lb-phone 2.9系
 
 ■ 更新手順
@@ -42,9 +45,17 @@ restart flecity_games
 通常、サーバー全体の再起動は不要です。
 
 ■ データベース
-PARTYのルーム状態はサーバーメモリ上で管理するため、PARTY専用テーブルの手動作成はありません。
-既存のFlecity Games共通テーブルについても起動時に自動確認するため、通常はSQLの手動実行は不要です。
+PARTYのルーム状態はサーバーメモリ上で管理します。
+PARTY+の有効期限・自動更新状態のみ flecity_game_subscriptions に保存し、起動時に自動作成・確認します。
+通常はSQLの手動実行は不要です。
 DROP TABLE / TRUNCATE TABLE は実行しません。
+
+■ PARTY+決済
+・bankから50,000をserver側で減算します。
+・有効期間は7日です。
+・自動更新ONの場合、期限後の次回PARTY利用時に1期間だけ更新を試行します。
+・自動更新を停止しても期限までは利用できます。
+・現提出候補では料金は経済sinkです。会社口座等への売上振替が必要な場合は、運営仕様確定後に決済成功eventへ口座処理を接続します。
 
 ■ 起動確認
 正常時はサーバーコンソールに概ね以下が表示されます。

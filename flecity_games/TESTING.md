@@ -576,3 +576,71 @@ Roomは一時データのため、resource/SERVER restartで消えてよい。PL
 - Close the phone mid-run, reopen PLAY, and verify the same saved SORT state is available.
 - Complete all four monochrome tubes and confirm the server accepts the replay and records ranking score = elapsed time + 350ms × moves.
 - Run game_selftest and confirm sortSeedCounts, sortReplayMove, and sortValidateTime all PASS.
+
+
+## PARTY+ live verification (2026-10-23)
+
+運営確認済み本番前提:
+- QBox 2.5.4
+- oxmysql
+- citizenid = CSN
+- 独立resource形式のLB Phone追加提出は継続可能
+
+PARTY+課金:
+- bank残高が50,000以上のCSNで加入ボタンを1回押しても課金されず、2.5秒以内の2回目でだけ確定する
+- 初回加入でbankから50,000だけ減り、`flecity_game_subscriptions`へ約7日後のactive_untilが保存される
+- 加入操作を連打/二重送信しても二重引落しされない
+- 有効期限内に再度subscribeしても追加50,000を引かない
+- 自動更新を停止してもactive_untilまではPARTY+が有効
+- 自動更新ONの期限切れ状態で次回PARTY利用時、50,000を1回だけ引き新しい7日を開始する
+- 期限切れ時に残高不足ならPARTY+は有効化せず、自動更新OFFになり再試行課金ループを起こさない
+- resource restart / reconnect後も同一CSNの期限・自動更新状態が維持される
+- 未加入者がHostの場合はPARTY+ game select/startをserver側で拒否する
+- 加入者がHostなら未加入者9人を含む最大10人RoomでもPARTY+ゲームを開始できる
+- PARTY+ Round進行中にHostが離脱して非加入Hostへ移行しても進行中Roundを破壊しない
+- 課金成功event `flecity_games:server:partyPlusCharged` が1決済につき1回だけ発火する
+- 現仕様は50,000を経済sinkとして減算。会社口座への売上振替が必要な場合は本番前に運営仕様を確定する
+
+PARTY+ NG WORD (3〜10人):
+- 説明役だけにお題と3つのNGワードが表示され、他端末snapshotへ漏れない
+- お題そのもの/NGワードを含むヒントはserver側で拒否する
+- 正常ヒント送信後のみ全員が回答フェーズへ進む
+- 説明役は回答不可、回答者は自分の入力だけ送信できる
+- 最速正解者・お題・NGワードはRound完了後に全員へ公開される
+- 説明役切断で安全終了、最後の未回答者切断時は残存参加者だけで即確定する
+- 80題から直前と同じ題を避けて出題する
+
+PARTY+ FAKE ANSWER (3〜10人):
+- 全員同じ問題を受け、1人1つの偽回答を送れる
+- 正解と同一/他人と同一の偽回答をそのまま採用しない
+- 投票フェーズでは正解・作者情報が表示されない
+- 自分の偽回答には投票できない
+- 正解投票=2pt、他人を自分の偽回答へ誘導=1pt/票で集計される
+- timeout時は内蔵デコイを含めて安全に投票へ進む/結果確定する
+- 切断が最後の未提出者/未投票者になった場合は残存参加者だけで即進行する
+- 84問の問題バンクから出題される
+
+PARTY+ BOMB (3〜10人):
+- 全員に同じお題を表示し、現在の保持者だけ「答えた！次へ」を押せる
+- 爆発予定時刻はNUI snapshotへ含めずserverだけが保持する
+- Passごとに次の接続中playerへ移り、手番10秒を新しく付与する
+- 隠しFuse到達時はその時点の保持者がBOOMになる
+- 手番10秒超過も保持者の負けとしてRoundを終了する
+- 保持者切断時は人数条件を満たす限り次の接続中playerへ移る
+- 120カテゴリのお題が幅広く出る
+
+PARTY+ MEMORY CHAIN (2〜10人):
+- memorizeフェーズだけ正解記号列を表示する
+- inputフェーズへ入ると正解列がsnapshotから消える
+- 4記号のボタンだけで指定長まで入力でき、やり直しもできる
+- 全員提出後に正誤をserver判定し、誤答者を脱落させる
+- input timeout時は未入力者を脱落扱いにする
+- 生存1人以下で勝者確定、全員正解が続く場合は最大8stageで終了する
+- 他player submit pushで自分の入力途中状態が消えない
+- disconnect後も残存生存者だけで停止せず進行する
+
+PARTY+ prompt-bank static target:
+- NG WORD >= 80
+- FAKE ANSWER >= 80（現在84）
+- BOMB >= 120
+- MEMORY CHAINはserver生成

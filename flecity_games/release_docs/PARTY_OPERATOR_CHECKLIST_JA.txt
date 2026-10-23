@@ -6,7 +6,9 @@ Flecity Games PARTY v1.0.0
 ・LB Phone：AddCustomAppによるPARTY追加
 ・Qbox core：変更なし
 ・LB Phone core：変更なし
-・oxmysql：既存APIを利用
+・QBox：2.5.4を前提（運営様ご回答済み）
+・oxmysql：使用（運営様ご回答済み）
+・player identifier：citizenid = CSN
 ・LOOPのidentifier / score / save / achievement仕様：変更なし
 
 ■ PARTY
@@ -25,6 +27,11 @@ Flecity Games PARTY v1.0.0
 ・WORD WOLF / LIAR / DRAW / TELEPHONEの秘密情報はviewer別snapshot
 ・DRAW描画量上限
 ・TELEPHONE途中離脱時は手番skip
+・無料ゲーム10種 + PARTY+ゲーム4種
+・PARTY+：7日 / 50,000、加入HostのRoom全員が利用可
+・PARTY+：NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN
+・PARTY+購入は2段確認、自動更新停止可、期限までは利用可
+・期限後の自動更新は次回PARTY利用時に1期間だけ実行
 
 ■ LOOP
 ・表示名: LOOP
@@ -35,9 +42,15 @@ Flecity Games PARTY v1.0.0
 ・既存のスコア / 実績 / セーブ / Daily / ranking仕様を維持
 
 ■ データベース
-PARTY専用の永続ルームテーブルは追加しません。
-既存Flecity Gamesテーブルは自動確認されます。
+PARTYのRoom自体はメモリ管理で、永続Roomテーブルは追加しません。
+PARTY+のみ citizenid(CSN) / active_until / auto_renew を保持する flecity_game_subscriptions を自動作成します。
+SQLの手動実行は通常不要です。
 DROP TABLE / TRUNCATE TABLE はありません。
+
+■ PARTY+決済
+bankから50,000をserver側で減算します。
+現提出候補では50,000は経済sinkで、会社口座等への売上振替先は未設定です。
+売上振替が必要な場合は、運営仕様確定後に決済成功eventへ口座処理を接続できます。
 
 ■ 正常起動の目安
 database schema ready
@@ -55,6 +68,9 @@ startup preflight READY_FOR_LIVE_TEST
 ・アプリclose / phone close後のReady解除
 ・時間切れ後の結果遷移
 ・10人時の参加者表示
+・PARTY+初回加入 / 二重送信 / 自動更新停止 / 期限更新 / 残高不足
+・加入Host + 未加入参加者でPARTY+ 4ゲーム
+・NG WORD秘密情報 / FAKE ANSWER匿名投票 / BOMB隠しFuse / MEMORY CHAIN入力時の正解列非公開
 
 ■ 切り戻し
 更新前の flecity_games へ戻し、refresh → restart flecity_games で切り戻せます。

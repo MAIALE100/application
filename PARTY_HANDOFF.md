@@ -7,8 +7,11 @@ LB Phone 向けの複数人用ミニゲームアプリ「PARTY」を、既存の
 - Repository: `MAIALE100/application`
 - Branch: `games/party-dev`
 - Resource: `flecity_games`
-- Framework: Qbox / oxmysql / MariaDB
+- Framework: QBox 2.5.4（運営確認済み）
+- DB adapter: oxmysql（運営確認済み）
+- Player identifier: citizenid = CSN（運営確認済み）
 - Phone: LB Phone 2.9.0
+- 独立resourceとして今後も追加LB Phoneアプリを提出可能（運営確認済み）
 - テストサーバー側の既存作業パス: `D:\FiveM_Dev\application`
 
 ## 絶対に守ること
@@ -46,7 +49,7 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 - PARTY v1.0.0 提出ZIP自動生成済み
 - production resource version: 1.1.0（提出ZIP内でpatch）
 
-既存ゲーム:
+無料ゲーム（既存10種）:
 1. REACTION — 2〜10人
 2. STOP! BATTLE — 2〜10人
 3. VOTE — 3〜10人
@@ -57,6 +60,18 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 8. LIAR — 3〜10人
 9. DRAW — 2〜10人
 10. TELEPHONE — 3〜10人
+
+PARTY+（7日 / 50,000、加入HostのRoom全員が利用可）:
+11. NG WORD — 3〜10人
+12. FAKE ANSWER — 3〜10人
+13. BOMB — 3〜10人
+14. MEMORY CHAIN — 2〜10人
+
+PARTY+は限定品・シーズン・月替わり更新を前提にしない恒常プラン。
+出題バンクはNG WORD 80題 / FAKE ANSWER 84問 / BOMB 120題を同梱し、MEMORY CHAINはserver生成のため固定問題追加を不要とする。
+課金はcitizenid（CSN）単位で保持し、銀行から50,000を減算。7日経過後は次回利用時に自動更新を試行する。
+自動更新停止後も期限までは利用できる。加入購入は誤タップ防止の2段確認。
+現時点の50,000は経済sink。会社口座等への売上振替が必要な場合は、成功時event `flecity_games:server:partyPlusCharged` へ運営環境の口座処理を接続する。
 
 既存サーバー機能:
 - CreateRoom / JoinRoom / GetRoom
@@ -84,6 +99,8 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 - `flecity_games/shared/game_registry.lua`
 - `flecity_games/client/main.lua`
 - `flecity_games/server/core/party.lua`
+- `flecity_games/server/core/party_plus.lua`
+- `flecity_games/server/data/party_plus_prompts.lua`
 - `flecity_games/web/party/index.html`
 - `flecity_games/web/party/app.js`
 - `flecity_games/web/party/icon.svg`
@@ -96,7 +113,7 @@ PARTY開発中に LOOP の提出仕様を巻き戻さないこと。
 2. Room作成→参加→Ready→開始→結果→再戦→Lobby復帰の共通基盤安定化。
 3. Host離脱 / App close / participant離脱 / reconnect / 二重送信 / 同時操作 / 人数不足対策。
 4. server-authoritativeなround token / timeout / submit検証 / secret snapshot。
-5. 10ゲームの主要なテンポ・結果演出・繰り返し対策。
+5. 無料10ゲーム＋PARTY+ 4ゲームの主要なテンポ・結果演出・繰り返し対策。
 6. LB Phone小画面向けUI・7〜10人表示・誤タップ防止。
 7. 正式名称 PARTY / icon / App Store無料配布仕様の確定。
 8. static check / JS syntax / Lua syntax / CI。
@@ -399,3 +416,21 @@ LOOP完成版には不要な変更を入れない。
 ## 2026-10-23 Suspend timer cleanup補完
 - app/phone suspend時にstatus表示用 `statusTimer` もclear。
 - round RAF / poll / bootstrap / leave確認timerに加えて、閉じた後に残るNUI timerをさらに削減。
+
+
+## 2026-10-23 PARTY+ 恒常サブスクリプション
+- PARTY本体は引き続きLB Phone App Store無料（`flecity_party / price=0`）。LOOPの`flecity_play`、App Store仕様、score/save/achievement互換は変更しない。
+- PARTY+は7日 / 50,000。citizenid=CSN単位で`flecity_game_subscriptions`へ有効期限・自動更新状態を保存。
+- 課金はQBoxのbankからserver側で実行。subscribe同時実行ガード、残高確認、DB保存失敗時refundを持つ。
+- 期限切れ時はオフライン中に連続課金せず、次回PARTY利用時に1期間だけ自動更新を試行する。残高不足時は再試行ループを避けるため自動更新をOFFへ移行。
+- 自動更新はユーザーが停止可能。停止しても現在の期限までは利用可。
+- 加入HostのRoomでは未加入参加者もPARTY+ゲームを利用できる。勝敗・スコアに課金優位は付けない。
+- Hostが非加入者へ移行した場合、進行中Roundは壊さず、次のPARTY+開始時のみserver entitlementで拒否する。
+- NG WORD 80題、FAKE ANSWER 84問、BOMB 120題。MEMORY CHAINは記号列をserver生成。
+- NG WORD: 説明役だけがお題/NG語を受け取り、NG語を含むヒントはserver拒否。
+- FAKE ANSWER: 偽回答作成→匿名選択肢→投票→正解+騙した票で結果。投票中は正解/作者を非公開。
+- BOMB: 爆発時刻はserverのみ保持。VC回答後のPassで次へ渡し、手番10秒上限。
+- MEMORY CHAIN: 記憶→入力のserverフェーズ制。入力時は正解列をsnapshotから除外し、間違い/未入力で脱落、最大8stage。
+- 課金成功時event `flecity_games:server:partyPlusCharged` を発火。会社口座等への売上振替は未設定で、必要なら運営仕様確定後にevent listenerのみ追加する。
+- 実機FiveM複数クライアントでの課金・Host共有・各4ゲーム・切断/再接続は未検証。TESTING.md / PARTY運営確認用メモに残す。
+- GitHub Actionsはrunner_id=0 / steps空の状態でjob開始前failureが継続中。コード検査PASSとは扱わず、runner復旧後のgreen確認を必須とする。

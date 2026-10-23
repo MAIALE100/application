@@ -680,6 +680,7 @@ PARTY+ prompt-bank static target:
 - 途中の他プレイヤー盤面や履歴を公開snapshotへ含めない。
 - 時間切れ未送信者は勝者候補から除外され、送信済み結果だけで順位確定する。
 - 同点はscore→linesで比較し、完全同値なら同着勝者になる。
-- Phone/App close時にクライアントのgravity/deadline timerが停止し、再表示時に古いtimerが二重起動しない。
+- Phone/App close時にそのFALL BATTLE RoundはDNFとしてserver確定し、盤面リセットによるやり直しができない。ルーム所属は維持され、次Roundは参加できる。
+- close後にクライアントのgravity/deadline timerが停止し、再表示時に古いtimerが二重起動しない。
 - 7〜10人でも盤面同期を毎フレーム行わず、Room push負荷が増えない。
 - LOOPのFALL save/score/achievement、LOOP identifier=`flecity_play` に変化がない。

@@ -452,3 +452,14 @@ LOOP完成版には不要な変更を入れない。
 - FALL BATTLEはPLAYのFALL操作系をPARTY専用対戦として再実装。LOOP本体のFALLコードやscore/save/achievement互換は変更しない。
 - FALL BATTLEは2〜10人・90秒・全員同一seed。配置履歴をserver再生してscore/linesを検証し、クライアント申告scoreを信用しない。
 - 実機複数クライアントでのPARTY+課金、Host共有、FALL BATTLE 2人/10人、小画面操作、close/reopenは未検証。TESTING.mdの確認を必須とする。
+
+
+## 2026-10-23 FALL BATTLE 再接続・診断補強
+- PARTY+の5本目としてFALL BATTLEを2〜10人 / 90秒 / 同一seedで実装。
+- 各端末の盤面そのものは同期せず、公開snapshotは完了人数だけを共有。10人でも毎フレームRoom通信しない。
+- 配置履歴はserver側の独立verifierで再生し、score / lines / piecesをserver計算する。
+- verifier selftestをstartup preflight / `game_selftest` / `game_preflight` の3経路へ組み込み。
+- Phone/App closeだけでなくFiveM切断でも未提出者はそのRoundをDNF扱いにし、60秒以内再接続で盤面を最初からやり直す抜け道を封鎖。
+- DNFはRoom退出ではなく当該Roundのみ。次Roundでは通常参加可能。
+- FALL BATTLE画面には `FINISH n/N` を表示し、他人の盤面・scoreを途中公開せず待ち人数だけ確認できる。
+- static checkのPARTY registry順序を無料10本＋PARTY+ 5本の合計15本へ更新。

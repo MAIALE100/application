@@ -10,6 +10,9 @@ shared_script 'config.lua'
 
 client_script 'client/main.lua'
 
-server_script 'server/main.lua'
+server_scripts {
+    'server/selftest.lua',
+    'server/main.lua'
+}
 
 dependency 'qbx_core'

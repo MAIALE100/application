@@ -293,6 +293,7 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - DRAW結果では最初の正解者がFASTESTとして明示され、正解者0人なら「正解者なし」と表示
 - Hostが切断するとBへHostが即移行
 - HostがPARTYアプリ/Phoneを閉じた場合も、PARTYを開いている他参加者を優先してHost権限が移りRoomが操作不能にならない
+- HostがPARTYを閉じた時点で他参加者が切断中でも、その参加者が再接続してPARTYを開けばGetRoom復帰直後に閉じたHostから権限が移る
 - FiveMには接続中でもPARTYを閉じている参加者がいる場合、その人を飛ばしてアプリを開いている参加者へHostが移る
 - 元Hostがアプリを開き直した場合は同Roomへ参加者として復帰できる
 - 最低人数を下回る切断が発生した場合、Roundが理由表示付きで安全終了

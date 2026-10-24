@@ -97,9 +97,16 @@ end
 MySQL.ready(function()
     local ok, err = pcall(createSchema)
     if ok then
+        local qbxReady = GetResourceState("qbx_core") == "started"
+        local spotCount = #(Config.PhotoSpots or {})
         print("[puriphoto] album schema ready")
+        if qbxReady then
+            print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, photo_spots=%d)"):format(spotCount))
+        else
+            print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, photo_spots=%d)"):format(GetResourceState("qbx_core"), spotCount))
+        end
     else
-        print(("[puriphoto] failed to prepare album schema: %s"):format(err))
+        print(("[puriphoto] selftest FAIL (album schema): %s"):format(err))
     end
 end)
 

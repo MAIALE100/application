@@ -31,7 +31,8 @@ DROP TABLE / TRUNCATE TABLE はありません。
 ・キャラクター単位の設定 / 記録
 
 ■ 今回の提出版
-LOOPは defaultApp=false / price=0 で登録し、LB PhoneのApp Storeから無料ダウンロードする方式です。\nPARTYカスタムアプリは無効化しています。
+LOOPは defaultApp=false / game=true / price=0 で登録し、LB PhoneのApp Storeから無料ダウンロードする方式です。
+PARTYカスタムアプリは無効化しています。
 開発用の自動reload、静的テストツール、TESTING.mdは提出ZIPから除外しています。
 
 ■ 正常起動の目安

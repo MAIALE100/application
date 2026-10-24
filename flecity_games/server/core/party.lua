@@ -1513,7 +1513,7 @@ local function finishNgWord(room,timedOut,noClue)
     if not rs or rs.gameId~='ng_word' or rs.complete then return end
     local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected and id~=rs.explainerIdentifier then
+        if not m.disconnected and m.appOpen~=false and id~=rs.explainerIdentifier then
             local guess=rs.guesses and rs.guesses[id] or nil
             entries[#entries+1]={
                 memberId=m.memberId,
@@ -1850,7 +1850,7 @@ local function finishMemoryChain(room,reason)
     for _,id in ipairs(alive) do winnerIds[#winnerIds+1]=memberPublicId(room,id) end
     local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             local eliminatedStage=rs.eliminated and tonumber(rs.eliminated[id]) or nil
             entries[#entries+1]={
                 memberId=m.memberId,

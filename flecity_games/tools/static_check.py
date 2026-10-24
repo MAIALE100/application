@@ -187,6 +187,10 @@ if len(re.findall(r"not m\.disconnected and m\.appOpen~=false and not \(rs\.elim
     fail("PARTY+ MEMORY CHAIN snapshot progress must exclude app-closed members")
 if "not m.disconnected and m.appOpen~=false then scoreById[id]=" not in party_lua or "not voter.disconnected and voter.appOpen~=false and choice" not in party_lua:
     fail("PARTY+ FAKE ANSWER scoring must exclude app-closed players and votes")
+if not re.search(r"local function finishNgWord\(room,timedOut,noClue\).*?not m\.disconnected and m\.appOpen~=false and id~=rs\.explainerIdentifier", party_lua, re.S):
+    fail("PARTY+ NG WORD results must exclude app-closed guessers")
+if not re.search(r"local function finishMemoryChain\(room,reason\).*?not m\.disconnected and m\.appOpen~=false then", party_lua, re.S):
+    fail("PARTY+ MEMORY CHAIN results must exclude app-closed members")
 if "PARTY+ app/phone close実機確認" not in testing or "PARTY+ app/phone close実機確認" not in party_submission_checklist:
     fail("PARTY+ app-close live-test documentation is missing")
 if "FALL_BASE_SHAPES" in party_fall_js:

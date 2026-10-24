@@ -98,3 +98,5 @@ Flecity PARTY 実機オペレーターチェックリスト
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
 
 [ ] LIVE TEST REQUIRED: LB Phone小画面・7〜10人Roomで参加者一覧だけが内部スクロールし、ROOM CODE / Ready / ゲーム選択 / 開始ボタンが操作しやすいこと。長い名前でも横崩れしないこと。
+
+[ ] DRAW: 正解済み参加者がapp/phone closeすると進捗の正解者数から外れ、残るapp-open対象人数より分子が大きくならない。再open後は最新snapshotへ収束

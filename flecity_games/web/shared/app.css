@@ -1170,7 +1170,7 @@ body.reduced-motion .connect4-cell.connect4-winning{animation:none;transform:sca
   display:grid;
   grid-template-columns:repeat(8,minmax(0,1fr));
   grid-template-rows:repeat(8,minmax(0,1fr));
-  gap:1px;
+  gap:.0625rem;
   width:min(100%,19rem);
   aspect-ratio:1/1;
   margin:.55rem auto;
@@ -1196,14 +1196,14 @@ body.reduced-motion .connect4-cell.connect4-winning{animation:none;transform:sca
   border:0;
   border-radius:.08rem;
   background:#2f6a3c;
-  box-shadow:inset 0 0 0 1px rgba(10,35,17,.55);
+  box-shadow:inset 0 0 0 .0625rem rgba(10,35,17,.55);
   overflow:hidden;
   appearance:none;
 }
 .reversi-cell:disabled{opacity:1}
 .reversi-cell.valid:not(:disabled){
   cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(10,35,17,.55),inset 0 0 0 .12rem rgba(255,255,255,.08);
+  box-shadow:inset 0 0 0 .0625rem rgba(10,35,17,.55),inset 0 0 0 .12rem rgba(255,255,255,.08);
 }
 .reversi-disc{
   display:block;

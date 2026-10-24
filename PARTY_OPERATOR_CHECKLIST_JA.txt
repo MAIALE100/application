@@ -101,3 +101,5 @@ Flecity PARTY 実機オペレーターチェックリスト
 
 [ ] DRAW: 正解済み参加者がapp/phone closeすると進捗の正解者数から外れ、残るapp-open対象人数より分子が大きくならない。再open後は最新snapshotへ収束
 [ ] MEMORY CHAIN: input中に未回答者がPARTY/Phoneを閉じる → 残存app-open参加者だけで進行/LAST_ALIVE確定 → 再openしても完了済みstage/roundが巻き戻らない（実機複数クライアント必須）
+
+[ ] FAKE ANSWER: submit/vote済み参加者がapp/phone close → closed本人をscore/winner候補から除外し、close前の本人voteも最終集計へ加算しない。残存app-open参加者だけで結果確定（実機複数クライアント必須）

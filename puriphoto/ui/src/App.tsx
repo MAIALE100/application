@@ -523,10 +523,9 @@ const App = () => {
 
     const resumeLastSavedEdit = () => {
         if (!lastSavedSnapshot || saveLock.current) return
-        resetEditorState()
         setPhotoUrl(sourcePhotoUrl || photoUrl)
         setPhotoAspectRatio(null)
-        applySnapshot(lastSavedSnapshot)
+        setToolsCollapsed(false)
         setIsEditing(true)
         setError(null)
     }
@@ -563,7 +562,7 @@ const App = () => {
         const current = JSON.stringify(makeSnapshot())
         const baseline = lastSavedSnapshot
             ? JSON.stringify(lastSavedSnapshot)
-            : JSON.stringify({ frame: 'none', stamps: [], captions: [], strokes: [] } satisfies EditorSnapshot)
+            : JSON.stringify({ frame: 'none', stamps: [], captions: [], strokes: [] } as EditorSnapshot)
         return current !== baseline
     }
 
@@ -1252,8 +1251,9 @@ const App = () => {
             setPhotoUrl(uploadedUrl)
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
+            cancelTransientInteractions()
+            setSelectedOverlay(null)
             setIsEditing(false)
-            resetEditorState()
             setSaveNotice(albumSaved ? 'ギャラリーとマイアルバムに保存しました' : 'ギャラリーに保存しました（マイアルバム登録のみ失敗）')
             if (saveNoticeTimer.current !== null) window.clearTimeout(saveNoticeTimer.current)
             saveNoticeTimer.current = window.setTimeout(() => {
@@ -1786,7 +1786,7 @@ const App = () => {
                                             setToolsCollapsed(false)
                                             setIsEditing(true)
                                         }}>
-                                            {savedPhotoUrl && lastSavedSnapshot ? '再編集する' : hasDecorations() ? '編集を再開' : '編集する'}
+                                            {savedPhotoUrl && lastSavedSnapshot ? (hasUnsavedChanges() ? '編集を再開' : '再編集する') : hasDecorations() ? '編集を再開' : '編集する'}
                                         </button>
                                         {captureLocation && (
                                             <div className="capture-location-note">
@@ -1841,8 +1841,8 @@ const App = () => {
                                     <article key={project.id} className="album-card">
                                         <img src={project.finishedUrl} alt="PuriPhoto作品" loading="lazy" />
                                         <div className="album-card-body">
-                                            <strong>{formatAlbumDate(project.updatedAt)}</strong>
-                                            <span>{project.location?.label || '撮影場所：記録なし'}</span>
+                                            <strong>最終編集 {formatAlbumDate(project.updatedAt)}</strong>
+                                            <span>{project.location?.label ? `撮影場所：${project.location.label}` : '撮影場所：記録なし'}</span>
                                             <div className="album-card-actions">
                                                 <button type="button" onClick={() => restoreAlbumProject(project)}>再編集</button>
                                                 <button type="button" className="danger-subtle" onClick={() => deleteAlbumProject(project.id)}>削除</button>

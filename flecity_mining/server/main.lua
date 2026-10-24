@@ -93,6 +93,12 @@ local function validateRuntimeConfig()
         if type(node.coords) ~= 'vector3' then
             return false, ('invalid coords for mining node %s'):format(tostring(node.id))
         end
+        if type(node.target) ~= 'vector3' then
+            return false, ('invalid wall target for mining node %s'):format(tostring(node.id))
+        end
+        if #(node.target - node.coords) < 0.25 or #(node.target - node.coords) > 4.0 then
+            return false, ('wall target distance for mining node %s must be 0.25-4.0m'):format(tostring(node.id))
+        end
 
         -- Duplicate coordinates create two logical nodes at the same world
         -- position, allowing a player to alternate IDs and bypass per-node
@@ -375,6 +381,7 @@ local function beginAction(src, actionType, durationMs, targetCoords, data, labe
         token = token,
         durationMs = durationMs,
         label = label,
+        nodeId = data and data.nodeId or nil,
     })
 
     return true

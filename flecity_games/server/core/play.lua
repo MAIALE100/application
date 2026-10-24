@@ -1869,7 +1869,6 @@ function FlecityGamesPlay.StartSession(source,data)
 end
 
 function FlecityGamesPlay.QuickRound(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'quick_round',80) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source)
     local token=tostring(data.sessionToken or '')
@@ -1884,6 +1883,7 @@ function FlecityGamesPlay.QuickRound(source,data)
     if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
     if state.lastStep==step and state.lastResult then return state.lastResult end
+    if not FlecityGamesRateLimit.Allow(source,'quick_round',80) then return {ok=false,error='RATE_LIMIT'} end
     if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     local expectedStep=state.hits+state.falseStarts+1
     if step~=expectedStep then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
@@ -1900,7 +1900,6 @@ function FlecityGamesPlay.QuickRound(source,data)
 end
 
 function FlecityGamesPlay.StopRound(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'stop_round',90) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source)
     local token=tostring(data.sessionToken or '')
@@ -1915,6 +1914,7 @@ function FlecityGamesPlay.StopRound(source,data)
     if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
     if state.lastStep==step and state.lastResult then return state.lastResult end
+    if not FlecityGamesRateLimit.Allow(source,'stop_round',90) then return {ok=false,error='RATE_LIMIT'} end
     if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     if step~=state.cleared+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     local actionMs=math.floor(tonumber(data.actionMs) or -1)

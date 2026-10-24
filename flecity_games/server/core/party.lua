@@ -561,28 +561,124 @@ local function miniShogiAllMoves(board,hands,side,skipPawnMateRule)
     end
     return out
 end
-local function miniShogiChooseAiMove(rs)
-    local moves=miniShogiAllMoves(rs.board,rs.hands,'W')
-    if #moves<1 then return nil end
-    local bestScore=-999999 local best={}
-    for _,move in ipairs(moves) do
-        local score=0
-        if move.type=='move' then
-            local target=rs.board[move.to]
-            if target~='' then score=score+(miniShogiValues[miniShogiKind(target)] or 0) end
-            if move.promote then score=score+180 end
-        else
-            score=score+35
+local miniShogiPromotionBonus={R=550,B=450,S=260,N=240,L=220,P=180}
+local function miniShogiEvaluate(board,hands)
+    local score=0
+    for cell=1,81 do
+        local piece=board[cell]
+        if piece and piece~='' then
+            local side=miniShogiSide(piece)
+            local kind=miniShogiKind(piece)
+            local value=miniShogiValues[kind] or 0
+            if miniShogiPromoted(piece) then value=value+(miniShogiPromotionBonus[kind] or 0) end
+            local row,col=miniShogiRowCol(cell)
+            local center=(5-math.abs(5-row))+(5-math.abs(5-col))
+            local positional=center*3
+            if kind=='K' then
+                local homeDistance=side=='W' and (row-1) or (9-row)
+                positional=positional-(homeDistance*10)
+            elseif kind=='P' or kind=='L' or kind=='N' or kind=='S' then
+                local advance=side=='W' and (row-1) or (9-row)
+                positional=positional+(advance*4)
+            end
+            local signed=value+positional
+            if side=='W' then score=score+signed else score=score-signed end
         end
-        local row,col=miniShogiRowCol(move.to)
-        score=score+(5-math.abs(5-row))+(5-math.abs(5-col))
-        local b=miniShogiCopyBoard(rs.board) local h=miniShogiCopyHands(rs.hands)
-        miniShogiApplyAction(b,h,move)
-        if miniShogiInCheck(b,'B') then score=score+120 end
-        if score>bestScore then bestScore=score best={move}
-        elseif score==bestScore then best[#best+1]=move end
     end
-    return best[math.random(1,#best)]
+    for _,side in ipairs({'W','B'}) do
+        local sign=side=='W' and 1 or -1
+        for _,kind in ipairs({'R','B','G','S','N','L','P'}) do
+            local count=tonumber(hands and hands[side] and hands[side][kind]) or 0
+            score=score+(sign*count*math.floor((miniShogiValues[kind] or 0)*1.08))
+        end
+    end
+    if miniShogiInCheck(board,'B') then score=score+260 end
+    if miniShogiInCheck(board,'W') then score=score-320 end
+    return score
+end
+local function miniShogiMoveOrderScore(board,hands,move,side)
+    local score=0
+    if move.type=='move' then
+        local target=board[move.to]
+        if target and target~='' then score=score+(miniShogiValues[miniShogiKind(target)] or 0)*12 end
+        if move.promote then score=score+2200 end
+    else
+        score=score+(miniShogiValues[move.kind] or 0)*2
+    end
+    local row,col=miniShogiRowCol(move.to)
+    score=score+((5-math.abs(5-row))+(5-math.abs(5-col)))*8
+    local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
+    miniShogiApplyAction(b,h,move)
+    local opponent=side=='W' and 'B' or 'W'
+    if miniShogiInCheck(b,opponent) then score=score+3500 end
+    if miniShogiInCheck(b,side) then score=score-50000 end
+    return score
+end
+local function miniShogiOrderedMoves(board,hands,side,limit)
+    local moves=miniShogiAllMoves(board,hands,side)
+    table.sort(moves,function(a,b)
+        return miniShogiMoveOrderScore(board,hands,a,side)>miniShogiMoveOrderScore(board,hands,b,side)
+    end)
+    if limit and #moves>limit then
+        local trimmed={}
+        for i=1,limit do trimmed[i]=moves[i] end
+        return trimmed
+    end
+    return moves
+end
+local function miniShogiChooseAiMove(rs)
+    local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',22)
+    if #rootMoves<1 then return nil end
+
+    local bestScore=-math.huge
+    local bestMoves={}
+    for _,move in ipairs(rootMoves) do
+        local boardAfter=miniShogiCopyBoard(rs.board)
+        local handsAfter=miniShogiCopyHands(rs.hands)
+        miniShogiApplyAction(boardAfter,handsAfter,move)
+
+        local humanReplies=miniShogiOrderedMoves(boardAfter,handsAfter,'B',16)
+        local score
+        if #humanReplies<1 then
+            score=miniShogiInCheck(boardAfter,'B') and 10000000 or 5000000
+        else
+            local worstForAi=math.huge
+            for _,reply in ipairs(humanReplies) do
+                local replyBoard=miniShogiCopyBoard(boardAfter)
+                local replyHands=miniShogiCopyHands(handsAfter)
+                miniShogiApplyAction(replyBoard,replyHands,reply)
+
+                local aiReplies=miniShogiOrderedMoves(replyBoard,replyHands,'W',8)
+                local continuation
+                if #aiReplies<1 then
+                    continuation=miniShogiInCheck(replyBoard,'W') and -10000000 or -5000000
+                else
+                    local bestContinuation=-math.huge
+                    for _,counter in ipairs(aiReplies) do
+                        local counterBoard=miniShogiCopyBoard(replyBoard)
+                        local counterHands=miniShogiCopyHands(replyHands)
+                        miniShogiApplyAction(counterBoard,counterHands,counter)
+                        local value=miniShogiEvaluate(counterBoard,counterHands)
+                        if miniShogiInCheck(counterBoard,'B') then value=value+180 end
+                        if value>bestContinuation then bestContinuation=value end
+                    end
+                    continuation=bestContinuation
+                end
+                if continuation<worstForAi then worstForAi=continuation end
+                if worstForAi<=bestScore-1200 then break end
+            end
+            score=worstForAi
+        end
+
+        score=score+(math.random()*0.01)
+        if score>bestScore then
+            bestScore=score
+            bestMoves={move}
+        elseif math.abs(score-bestScore)<0.001 then
+            bestMoves[#bestMoves+1]=move
+        end
+    end
+    return bestMoves[math.random(1,#bestMoves)]
 end
 
 local function newCodeBreakSecret(allowDuplicates)

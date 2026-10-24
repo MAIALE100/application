@@ -36,13 +36,33 @@ local function runSelfTest()
     add(results, isVector(Config.Foreman and Config.Foreman.coords), 'foreman coords', tostring(Config.Foreman and Config.Foreman.coords))
     add(results, isVector(Config.Processor and Config.Processor.coords), 'processor coords', tostring(Config.Processor and Config.Processor.coords))
 
+    local drill = Config.DrillVisuals
+    local drillOk = type(drill) == 'table'
+        and type(drill.model) == 'string' and drill.model ~= ''
+        and type(drill.animDict) == 'string' and drill.animDict ~= ''
+        and type(drill.animName) == 'string' and drill.animName ~= ''
+    add(results, drillOk, 'drill visuals', drillOk and tostring(drill.model) or 'invalid')
+
+    local interiorOk = not Config.MineInterior
+        or (type(Config.MineInterior) == 'table'
+            and Config.MineInterior.enabled ~= true
+            or (type(Config.MineInterior.ipl) == 'string'
+                and Config.MineInterior.ipl ~= ''
+                and isVector(Config.MineInterior.anchor)))
+    add(results, interiorOk, 'mine interior', Config.MineInterior and tostring(Config.MineInterior.ipl) or 'none')
+
     local nodeIds = {}
     local nodeCoords = {}
     local nodesOk = type(Config.MiningNodes) == 'table' and #Config.MiningNodes > 0
     if nodesOk then
         for _, node in ipairs(Config.MiningNodes) do
             if type(node.id) ~= 'number' or node.id % 1 ~= 0 or node.id < 1
-                or nodeIds[node.id] or not isVector(node.coords) then
+                or nodeIds[node.id] or not isVector(node.coords) or not isVector(node.target) then
+                nodesOk = false
+                break
+            end
+            local targetDistance = #(node.target - node.coords)
+            if targetDistance < 0.25 or targetDistance > 4.0 then
                 nodesOk = false
                 break
             end

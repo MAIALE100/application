@@ -11,6 +11,9 @@ local state = {
 local busy = false
 local currentActionToken = nil
 local routeBlip = nil
+local activeMineProp = nil
+local activeMineSound = nil
+local activeMineTarget = nil
 
 local function clearRoute()
     if routeBlip and DoesBlipExist(routeBlip) then
@@ -59,8 +62,18 @@ local function nearestMiningNode()
         end
     end
 
-    -- If every node is cooling down, keep guidance useful instead of removing it.
     return nearest or fallback
+end
+
+local function findNode(nodeId)
+    nodeId = tonumber(nodeId)
+    if not nodeId then return nil end
+    for _, node in ipairs(Config.MiningNodes) do
+        if tonumber(node.id) == nodeId then
+            return node
+        end
+    end
+    return nil
 end
 
 local function updateGuidanceRoute()
@@ -76,12 +89,6 @@ local function updateGuidanceRoute()
 
     if (state.rawOre or 0) >= (state.maxRawOre or Config.MaxRawOre) then
         setRoute(Config.Processor.coords, '選鉱設備')
-        return
-    end
-
-    if (state.rawOre or 0) > 0 then
-        local node = nearestMiningNode()
-        if node then setRoute(node.coords, node.label or '採掘地点') end
         return
     end
 
@@ -121,10 +128,6 @@ local function drawScreenText(text)
     DrawText(0.5, 0.88)
 end
 
-local function distanceTo(coords)
-    return #(GetEntityCoords(PlayerPedId()) - coords)
-end
-
 local function refinedSummary()
     local parts = {}
 
@@ -135,10 +138,7 @@ local function refinedSummary()
         end
     end
 
-    if #parts == 0 then
-        return 'なし'
-    end
-
+    if #parts == 0 then return 'なし' end
     return table.concat(parts, ' / ')
 end
 
@@ -164,8 +164,134 @@ local function createBlip()
     EndTextCommandSetBlipName(blip)
 end
 
+local function requestModelWithTimeout(model, timeoutMs)
+    local hash = type(model) == 'number' and model or GetHashKey(model)
+    if not IsModelInCdimage(hash) or not IsModelValid(hash) then return nil end
+
+    RequestModel(hash)
+    local started = GetGameTimer()
+    while not HasModelLoaded(hash) do
+        if GetGameTimer() - started > timeoutMs then return nil end
+        Wait(0)
+    end
+    return hash
+end
+
+local function requestAnimWithTimeout(dict, timeoutMs)
+    RequestAnimDict(dict)
+    local started = GetGameTimer()
+    while not HasAnimDictLoaded(dict) do
+        if GetGameTimer() - started > timeoutMs then return false end
+        Wait(0)
+    end
+    return true
+end
+
+local function requestPtfxWithTimeout(dict, timeoutMs)
+    RequestNamedPtfxAsset(dict)
+    local started = GetGameTimer()
+    while not HasNamedPtfxAssetLoaded(dict) do
+        if GetGameTimer() - started > timeoutMs then return false end
+        Wait(0)
+    end
+    return true
+end
+
+local function headingTo(fromCoords, toCoords)
+    return GetHeadingFromVector_2d(toCoords.x - fromCoords.x, toCoords.y - fromCoords.y)
+end
+
+local function stopDrillPresentation()
+    if activeMineSound then
+        StopSound(activeMineSound)
+        ReleaseSoundId(activeMineSound)
+        activeMineSound = nil
+    end
+
+    if activeMineProp and DoesEntityExist(activeMineProp) then
+        DeleteEntity(activeMineProp)
+        activeMineProp = nil
+    end
+
+    activeMineTarget = nil
+end
+
+local function startDrillPresentation(ped, node)
+    local cfg = Config.DrillVisuals or {}
+    if cfg.enabled ~= true or not node or type(node.target) ~= 'vector3' then
+        return false
+    end
+
+    local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 2500)
+    local model = requestModelWithTimeout(cfg.model or 'hei_prop_heist_drill', timeoutMs)
+    local animOk = requestAnimWithTimeout(cfg.animDict or 'anim@heists@fleeca_bank@drilling', timeoutMs)
+
+    if not model or not animOk then
+        if model then SetModelAsNoLongerNeeded(model) end
+        return false
+    end
+
+    local pedCoords = GetEntityCoords(ped)
+    SetEntityHeading(ped, headingTo(pedCoords, node.target))
+
+    local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
+    if not prop or prop == 0 then
+        SetModelAsNoLongerNeeded(model)
+        return false
+    end
+
+    AttachEntityToEntity(
+        prop,
+        ped,
+        GetPedBoneIndex(ped, 57005),
+        0.14, 0.0, -0.01,
+        90.0, -90.0, 180.0,
+        false, false, false, false, 2, true
+    )
+
+    TaskPlayAnim(
+        ped,
+        cfg.animDict or 'anim@heists@fleeca_bank@drilling',
+        cfg.animName or 'drill_straight_fail',
+        3.0, 3.0, -1, 1, 0.0,
+        false, false, false
+    )
+
+    activeMineProp = prop
+    activeMineTarget = node.target
+
+    if cfg.sound == true then
+        local soundId = GetSoundId()
+        PlaySoundFromEntity(soundId, 'Drill', prop, 'DLC_HEIST_FLEECA_SOUNDSET', true, 0)
+        activeMineSound = soundId
+    end
+
+    if cfg.dust == true then
+        CreateThread(function()
+            local ptfxOk = requestPtfxWithTimeout('core', timeoutMs)
+            if not ptfxOk then return end
+
+            while busy and activeMineTarget and activeMineProp and DoesEntityExist(activeMineProp) do
+                UseParticleFxAssetNextCall('core')
+                StartParticleFxNonLoopedAtCoord(
+                    'ent_dst_rocks',
+                    activeMineTarget.x, activeMineTarget.y, activeMineTarget.z,
+                    0.0, 0.0, GetEntityHeading(ped) - 180.0,
+                    0.55,
+                    false, false, false
+                )
+                Wait(math.max(250, tonumber(cfg.dustIntervalMs) or 550))
+            end
+
+            RemoveNamedPtfxAsset('core')
+        end)
+    end
+
+    SetModelAsNoLongerNeeded(model)
+    return true
+end
+
 local scenarios = {
-    mine = 'WORLD_HUMAN_HAMMERING',
     process = 'WORLD_HUMAN_WELDING',
     sell = 'WORLD_HUMAN_CLIPBOARD',
 }
@@ -182,10 +308,17 @@ local function runApprovedAction(data)
     currentActionToken = token
 
     local ped = PlayerPedId()
-    local scenario = scenarios[actionType]
+    local usedDrill = false
 
-    if scenario then
-        TaskStartScenarioInPlace(ped, scenario, 0, true)
+    if actionType == 'mine' then
+        local node = findNode(data.nodeId)
+        usedDrill = startDrillPresentation(ped, node)
+        if not usedDrill then
+            TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_CONST_DRILL', 0, true)
+        end
+    else
+        local scenario = scenarios[actionType]
+        if scenario then TaskStartScenarioInPlace(ped, scenario, 0, true) end
     end
 
     FreezeEntityPosition(ped, true)
@@ -214,6 +347,7 @@ local function runApprovedAction(data)
         end
     end
 
+    stopDrillPresentation()
     ClearPedTasks(ped)
     FreezeEntityPosition(ped, false)
 
@@ -253,6 +387,10 @@ RegisterNetEvent('flecity_mining:client:actionApproved', function(data)
 end)
 
 CreateThread(function()
+    if Config.MineInterior and Config.MineInterior.enabled == true and Config.MineInterior.ipl then
+        RequestIpl(Config.MineInterior.ipl)
+    end
+
     createBlip()
     Wait(1000)
     TriggerServerEvent('flecity_mining:server:requestState')
@@ -263,17 +401,20 @@ CreateThread(function()
         local coords = GetEntityCoords(ped)
 
         local foremanDistance = #(coords - Config.Foreman.coords)
-        if foremanDistance <= Config.DrawDistance then
+        local foremanMarker = Config.Markers.foreman
+        if foremanDistance <= (foremanMarker.visibleDistance or Config.DrawDistance) then
             waitMs = 0
 
-            DrawMarker(
-                Config.Markers.foreman.type,
-                Config.Foreman.coords.x, Config.Foreman.coords.y, Config.Foreman.coords.z - 0.82,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                Config.Markers.foreman.scale.x, Config.Markers.foreman.scale.y, Config.Markers.foreman.scale.z,
-                60, 180, 90, 150,
-                false, false, 2, false, nil, nil, false
-            )
+            if foremanMarker.enabled ~= false then
+                DrawMarker(
+                    foremanMarker.type,
+                    Config.Foreman.coords.x, Config.Foreman.coords.y, Config.Foreman.coords.z - 0.82,
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                    foremanMarker.scale.x, foremanMarker.scale.y, foremanMarker.scale.z,
+                    60, 180, 90, 150,
+                    false, false, 2, false, nil, nil, false
+                )
+            end
 
             if foremanDistance <= Config.InteractDistance then
                 if not state.active then
@@ -302,17 +443,20 @@ CreateThread(function()
 
         if state.active then
             local processorDistance = #(coords - Config.Processor.coords)
-            if processorDistance <= Config.DrawDistance then
+            local processorMarker = Config.Markers.processor
+            if processorDistance <= (processorMarker.visibleDistance or Config.DrawDistance) then
                 waitMs = 0
 
-                DrawMarker(
-                    Config.Markers.processor.type,
-                    Config.Processor.coords.x, Config.Processor.coords.y, Config.Processor.coords.z - 0.82,
-                    0.0, 0.0, 0.0, 0.0, 0.0,
-                    Config.Markers.processor.scale.x, Config.Markers.processor.scale.y, Config.Markers.processor.scale.z,
-                    220, 160, 60, 150,
-                    false, false, 2, false, nil, nil, false
-                )
+                if processorMarker.enabled ~= false then
+                    DrawMarker(
+                        processorMarker.type,
+                        Config.Processor.coords.x, Config.Processor.coords.y, Config.Processor.coords.z - 0.82,
+                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                        processorMarker.scale.x, processorMarker.scale.y, processorMarker.scale.z,
+                        220, 160, 60, 150,
+                        false, false, 2, false, nil, nil, false
+                    )
+                end
 
                 if processorDistance <= Config.InteractDistance then
                     if state.rawOre > 0 then
@@ -332,31 +476,35 @@ CreateThread(function()
 
             for _, node in ipairs(Config.MiningNodes) do
                 local nodeDistance = #(coords - node.coords)
+                local mineMarker = Config.Markers.mine
+                local visibleDistance = mineMarker.visibleDistance or 4.0
 
-                if nodeDistance <= Config.DrawDistance then
+                if nodeDistance <= visibleDistance then
                     waitMs = 0
 
-                    DrawMarker(
-                        Config.Markers.mine.type,
-                        node.coords.x, node.coords.y, node.coords.z + 0.15,
-                        0.0, 0.0, 0.0, 0.0, 180.0, 0.0,
-                        Config.Markers.mine.scale.x, Config.Markers.mine.scale.y, Config.Markers.mine.scale.z,
-                        160, 160, 160, 150,
-                        false, false, 2, false, nil, nil, false
-                    )
+                    if mineMarker.enabled ~= false then
+                        DrawMarker(
+                            mineMarker.type,
+                            node.coords.x, node.coords.y, node.coords.z + 0.05,
+                            0.0, 0.0, 0.0, 0.0, 180.0, 0.0,
+                            mineMarker.scale.x, mineMarker.scale.y, mineMarker.scale.z,
+                            150, 150, 150, 95,
+                            false, false, 2, false, nil, nil, false
+                        )
+                    end
 
                     if nodeDistance <= Config.InteractDistance then
                         if state.rawOre < state.maxRawOre then
                             draw3DText(
-                                node.coords + vector3(0.0, 0.0, 0.8),
-                                ('[E] 採掘  原石 %d/%d'):format(state.rawOre, state.maxRawOre)
+                                node.coords + vector3(0.0, 0.0, 0.75),
+                                ('[E] 壁面をドリル採掘  原石 %d/%d'):format(state.rawOre, state.maxRawOre)
                             )
 
                             if not busy and IsControlJustReleased(0, 38) then
                                 TriggerServerEvent('flecity_mining:server:beginMine', node.id)
                             end
                         else
-                            draw3DText(node.coords + vector3(0.0, 0.0, 0.8), '原石が満載です')
+                            draw3DText(node.coords + vector3(0.0, 0.0, 0.75), '原石が満載です')
                         end
                     end
                 end
@@ -378,14 +526,45 @@ RegisterCommand('mine_end', function()
         notify('作業中は終了できません。')
         return
     end
-
     TriggerServerEvent('flecity_mining:server:endShift')
+end, false)
+
+RegisterCommand('mine_devpos', function()
+    if Config.DevTools ~= true then return end
+    local ped = PlayerPedId()
+    local c = GetEntityCoords(ped)
+    local h = GetEntityHeading(ped)
+    local text = ('stand = vector3(%.2f, %.2f, %.2f), heading = %.2f'):format(c.x, c.y, c.z, h)
+    print('[flecity_mining] ' .. text)
+    notify(text)
+end, false)
+
+RegisterCommand('mine_devwall', function()
+    if Config.DevTools ~= true then return end
+
+    local ped = PlayerPedId()
+    local from = GetEntityCoords(ped) + vector3(0.0, 0.0, 0.9)
+    local forward = GetEntityForwardVector(ped)
+    local to = from + (forward * 5.0)
+
+    local ray = StartShapeTestRay(from.x, from.y, from.z, to.x, to.y, to.z, 1, ped, 0)
+    local _, hit, endCoords = GetShapeTestResult(ray)
+
+    if hit == 1 then
+        local text = ('target = vector3(%.2f, %.2f, %.2f)'):format(endCoords.x, endCoords.y, endCoords.z)
+        print('[flecity_mining] ' .. text)
+        notify(text)
+    else
+        notify('5m以内の壁面を検出できませんでした。壁へ正面を向いて再実行してください。')
+    end
 end, false)
 
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
 
     clearRoute()
+    stopDrillPresentation()
+
     local ped = PlayerPedId()
     ClearPedTasksImmediately(ped)
     FreezeEntityPosition(ped, false)

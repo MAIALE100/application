@@ -583,3 +583,11 @@ LOOP完成版には不要な変更を入れない。
 - PARTY専用HTML内だけで参加者一覧に最大高さと内部スクロールを追加し、7〜10人時にRoom操作が画面下へ押し流され続ける問題を抑制。
 - 低い/狭い画面では一覧高さを10.5remへ縮小し、参加者行の文字も僅かに圧縮。共有CSSやLOOP UIには変更なし。
 - LB Phone実機で7〜10人、長い表示名、縦スクロール/内部スクロールの操作性を確認するまでは未検証扱い。
+
+
+## 2026-10-24 FAKE ANSWER close scoring hardening
+- FAKE ANSWERの最終score/winner集計から `appOpen=false` の参加者を除外。
+- close前に送信済みだったclosed参加者のvoteも最終集計へ加算しない。
+- close後の待機解除だけでなく、結果集計もapp-open参加者基準へ統一。
+- 実機FiveM＋LB Phone複数クライアント確認は未実施で、TESTING/checklist上はLIVE TEST REQUIRED。
+- LOOP / games-update.cmd系は変更なし。

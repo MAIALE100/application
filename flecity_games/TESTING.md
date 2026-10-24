@@ -815,3 +815,5 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - 3人以上で全員回答後の結果確定直前に、回答済み1人がPARTY/Phoneをcloseする。
 - closeした参加者の回答が最終count/entriesから除外され、残存app-open参加者だけで勝敗が確定することを確認する。
 - reopen後も完了済みroundのcount/勝敗が巻き戻らないことを確認する。
+
+- REACTION / STOP! BATTLE app/phone close実機確認: submit済み参加者が結果確定直前にcloseした場合、その参加者を最終entries/winner候補から除外し、残存app-open参加者だけで結果が確定すること。reopen後も完了済みroundが巻き戻らないこと。

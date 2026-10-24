@@ -35,6 +35,10 @@ LOOPは defaultApp=false / game=true / price=0 で登録し、LB PhoneのApp Sto
 PARTYカスタムアプリは無効化しています。
 開発用の自動reload、静的テストツール、TESTING.mdは提出ZIPから除外しています。
 
+■ 提出前確認
+同梱の「提出前確認結果.txt」に、selftest / preflight / healthcheck / LB Phone実機QAの結果を記載しています。
+運営様側では、App StoreにLOOPが表示されることと、1回起動できることをご確認いただければ十分な想定です。
+
 ■ 正常起動の目安
 database schema ready
 LB Phone callbacks registered .../...

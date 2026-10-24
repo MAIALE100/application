@@ -1148,3 +1148,130 @@
         width: 100%;
     }
 }
+
+
+.feature-tabs {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.25rem;
+    border-radius: 0.8rem;
+    background: #f7e8ef;
+}
+
+.feature-tabs button {
+    min-width: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    padding: 0.55rem 0.45rem;
+    background: transparent;
+    color: #795b70;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.feature-tabs button.selected {
+    background: #fff;
+    color: #8f2f55;
+    box-shadow: 0 0.08rem 0.25rem rgba(91, 40, 67, 0.14);
+}
+
+.my-spot-register {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border: 1px solid #ead3df;
+    border-radius: 1rem;
+    background: #fff;
+}
+
+.my-spot-register > strong {
+    color: #5c334b;
+    font-size: 0.78rem;
+}
+
+.my-spot-register > p {
+    color: #795b70;
+    font-size: 0.62rem;
+    line-height: 1.5;
+}
+
+.my-spot-register-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+}
+
+.my-spot-register-row input {
+    min-width: 0;
+    border: 1px solid #e4c8d6;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #fffafc;
+    color: #392b36;
+    font: inherit;
+    font-size: 0.65rem;
+    outline: none;
+}
+
+.my-spot-register-row input:focus {
+    border-color: #b85a83;
+    box-shadow: 0 0 0 0.12rem rgba(184, 90, 131, 0.14);
+}
+
+.my-spot-register-row button,
+.my-spot-actions button {
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.my-spot-register-row button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.my-spot-card small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #9b7a8d;
+    font-size: 0.55rem;
+    line-height: 1.35;
+}
+
+.my-spot-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.my-spot-actions .danger-subtle {
+    background: #f5e7ed;
+    color: #93425f;
+}
+
+@media (max-width: 26.25rem) {
+    .my-spot-register-row {
+        grid-template-columns: 1fr;
+    }
+
+    .my-spot-actions {
+        width: 100%;
+    }
+
+    .my-spot-actions button {
+        width: 100%;
+    }
+}

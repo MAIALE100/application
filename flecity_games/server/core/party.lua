@@ -331,8 +331,8 @@ end
 
 local function roundTimeoutSeconds(gameId)
     local limits={
-        code_break=120,reversi=60,gomoku=60,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,mini_shogi=120,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
+        code_break=120,reversi=0,gomoku=60,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
+        tic_tac=45,mini_shogi=0,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -343,7 +343,14 @@ end
 
 local function setRoundDeadline(rs,seconds)
     if not rs then return end
-    local duration=math.max(5,math.floor(tonumber(seconds) or roundTimeoutSeconds(rs.gameId)))
+    local duration=tonumber(seconds)
+    if duration==nil then duration=roundTimeoutSeconds(rs.gameId) end
+    if not duration or duration<=0 then
+        rs.deadlineDurationSec=nil
+        rs.deadlineTick=nil
+        return
+    end
+    duration=math.max(5,math.floor(duration))
     rs.deadlineDurationSec=duration
     rs.deadlineTick=GetGameTimer()+(duration*1000)
 end

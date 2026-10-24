@@ -68,7 +68,9 @@ FlecityGamesConfig = {
         Price = 50000,
         DurationSeconds = 7 * 24 * 60 * 60,
         MoneyType = 'bank',
-        AutoRenewDefault = true
+        AutoRenewDefault = true,
+        RevenueAccount = 'weazel',
+        RevenueProvider = 'auto'
     },
 
     RateLimits = {

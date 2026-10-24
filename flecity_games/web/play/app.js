@@ -2305,8 +2305,8 @@ function renderSort(){
  sortGame.tubes.forEach((tube,index)=>{
    const button=document.createElement('button');
    button.className='sort-tube'+(sortGame.selected===index?' selected':'')+(sortTubeComplete(tube)?' complete':'');
-   button.disabled=sortGame.finished||sortGame.finalizing;
-   button.setAttribute('aria-label','チューブ '+String(index+1));
+   button.disabled=sortGame.finished||sortGame.finalizing||sortTubeComplete(tube);
+   button.setAttribute('aria-label','チューブ '+String(index+1)+(sortTubeComplete(tube)?' 完成・固定':''));
    for(let slot=0;slot<4;slot++){
      const value=tube[slot],cell=document.createElement('span');
      cell.className='sort-slot'+(value===undefined?' empty':' sort-color-'+String(value));

@@ -16,6 +16,12 @@ type DrawPoint = { x: number; y: number }
 type DrawTool = 'pen' | 'eraser'
 type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
 type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: CaptionInstance[]; strokes: DrawStroke[] }
+type CaptureLocation = { label: string; street: string; zone: string; x: number; y: number; z: number }
+type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData: string; location: CaptureLocation | null; createdAt: string; updatedAt: string }
+type PhotoSpot = { id: string; name: string; category: string; description: string; coords: { x: number; y: number; z: number } }
+type AlbumResponse = { ok: boolean; projects?: AlbumProject[]; error?: string }
+type SaveProjectResponse = { ok: boolean; id?: number; error?: string }
+type SimpleResponse = { ok: boolean; error?: string }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -102,6 +108,22 @@ const STAMPS: StampDefinition[] = [...BASE_STAMPS, ...COMMUNITY_STAMPS]
 const stampAssetUrl = (stamp: StampDefinition) =>
     stamp.image ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/stamps/${stamp.image}` : null
 
+const getNuiResourceName = () => {
+    const getter = (window as Window & { GetParentResourceName?: () => string }).GetParentResourceName
+    return typeof getter === 'function' ? getter() : 'puriphoto'
+}
+
+const nuiRequest = async <T,>(callback: string, data: unknown = {}): Promise<T> => {
+    if (devMode) throw new Error('NUI callback is unavailable in browser preview')
+    const response = await fetch(`https://${getNuiResourceName()}/${callback}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify(data)
+    })
+    if (!response.ok) throw new Error(`NUI callback failed: ${callback}`)
+    return response.json() as Promise<T>
+}
+
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [sourcePhotoUrl, setSourcePhotoUrl] = useState<string | null>(null)
@@ -150,6 +172,16 @@ const App = () => {
     const historyTimer = useRef<number | null>(null)
     const lastSnapshot = useRef<string>('')
     const historyActionLock = useRef(false)
+    const [page, setPage] = useState<'main' | 'album' | 'spots'>('main')
+    const [captureLocation, setCaptureLocation] = useState<CaptureLocation | null>(null)
+    const [currentProjectId, setCurrentProjectId] = useState<number | null>(null)
+    const [lastSavedSnapshot, setLastSavedSnapshot] = useState<EditorSnapshot | null>(null)
+    const [albumProjects, setAlbumProjects] = useState<AlbumProject[]>([])
+    const [albumLoading, setAlbumLoading] = useState(false)
+    const [albumMessage, setAlbumMessage] = useState<string | null>(null)
+    const [photoSpots, setPhotoSpots] = useState<PhotoSpot[]>([])
+    const [spotsLoading, setSpotsLoading] = useState(false)
+    const [spotNotice, setSpotNotice] = useState<string | null>(null)
 
     const makeSnapshot = (): EditorSnapshot => ({
         frame: selectedFrame,
@@ -318,12 +350,24 @@ const App = () => {
         }
 
         try {
-            window.useCamera((url) => {
+            window.useCamera(async (url) => {
                 if (saveLock.current) return
                 if (typeof url === 'string' && url.trim()) {
+                    let location: CaptureLocation | null = null
+                    try {
+                        const result = await nuiRequest<{ ok: boolean; location?: CaptureLocation }>('puriphotoGetCaptureLocation')
+                        if (result.ok && result.location) location = result.location
+                    } catch (cause) {
+                        console.warn('[PuriPhoto] Could not record capture location:', cause)
+                    }
+
+                    setPage('main')
                     setPhotoUrl(url)
                     setSourcePhotoUrl(url)
                     setSavedPhotoUrl(null)
+                    setCaptureLocation(location)
+                    setCurrentProjectId(null)
+                    setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
                     setPhotoAspectRatio(null)
@@ -345,9 +389,13 @@ const App = () => {
 
     const resetPhotoSession = () => {
         if (saveLock.current) return
+        setPage('main')
         setPhotoUrl(null)
         setSourcePhotoUrl(null)
         setSavedPhotoUrl(null)
+        setCaptureLocation(null)
+        setCurrentProjectId(null)
+        setLastSavedSnapshot(null)
         setIsEditing(false)
         resetEditorState()
         setPhotoAspectRatio(null)
@@ -381,9 +429,13 @@ const App = () => {
                         return
                     }
 
+                    setPage('main')
                     setPhotoUrl(selected.src)
                     setSourcePhotoUrl(selected.src)
                     setSavedPhotoUrl(null)
+                    setCaptureLocation(null)
+                    setCurrentProjectId(null)
+                    setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
                     setPhotoAspectRatio(null)
@@ -393,6 +445,138 @@ const App = () => {
         } catch (cause) {
             console.error('[PuriPhoto] Failed to open gallery:', cause)
             setError('ギャラリーを開けませんでした。')
+        }
+    }
+
+    const formatAlbumDate = (value: string) => {
+        const normalized = value && !/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? value.replace(' ', 'T') : value
+        const date = new Date(normalized)
+        if (Number.isNaN(date.getTime())) return value || '日時不明'
+        return new Intl.DateTimeFormat('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date)
+    }
+
+    const openAlbum = async () => {
+        if (saveLock.current) return
+        setPage('album')
+        setAlbumLoading(true)
+        setAlbumMessage(null)
+        try {
+            const result = await nuiRequest<AlbumResponse>('puriphotoGetAlbum')
+            if (!result.ok) throw new Error(result.error || 'album_load_failed')
+            setAlbumProjects(result.projects ?? [])
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load album:', cause)
+            setAlbumProjects([])
+            setAlbumMessage('マイアルバムを読み込めませんでした。')
+        } finally {
+            setAlbumLoading(false)
+        }
+    }
+
+    const openPhotoSpots = async () => {
+        if (saveLock.current) return
+        setPage('spots')
+        setSpotsLoading(true)
+        setSpotNotice(null)
+        try {
+            const result = await nuiRequest<{ ok: boolean; spots?: PhotoSpot[]; error?: string }>('puriphotoGetPhotoSpots')
+            if (!result.ok) throw new Error(result.error || 'spots_load_failed')
+            setPhotoSpots(result.spots ?? [])
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load photo spots:', cause)
+            setPhotoSpots([])
+            setSpotNotice('撮影スポットを読み込めませんでした。')
+        } finally {
+            setSpotsLoading(false)
+        }
+    }
+
+    const restoreAlbumProject = (project: AlbumProject) => {
+        try {
+            const snapshot = JSON.parse(project.editData) as EditorSnapshot
+            if (!snapshot || !Array.isArray(snapshot.stamps) || !Array.isArray(snapshot.captions) || !Array.isArray(snapshot.strokes)) {
+                throw new Error('invalid_snapshot')
+            }
+            resetEditorState()
+            setPage('main')
+            setPhotoUrl(project.sourceUrl)
+            setSourcePhotoUrl(project.sourceUrl)
+            setSavedPhotoUrl(project.finishedUrl)
+            setCaptureLocation(project.location)
+            setCurrentProjectId(project.id)
+            setLastSavedSnapshot(snapshot)
+            setPhotoAspectRatio(null)
+            applySnapshot(snapshot)
+            setIsEditing(true)
+            setError(null)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to restore album project:', cause)
+            setAlbumMessage('この作品の編集データを復元できませんでした。')
+        }
+    }
+
+    const resumeLastSavedEdit = () => {
+        if (!lastSavedSnapshot || saveLock.current) return
+        resetEditorState()
+        setPhotoUrl(sourcePhotoUrl || photoUrl)
+        setPhotoAspectRatio(null)
+        applySnapshot(lastSavedSnapshot)
+        setIsEditing(true)
+        setError(null)
+    }
+
+    const deleteAlbumProject = async (projectId: number) => {
+        if (saveLock.current) return
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoDeleteProject', { id: projectId })
+            if (!result.ok) throw new Error(result.error || 'delete_failed')
+            setAlbumProjects((current) => current.filter((project) => project.id !== projectId))
+            if (currentProjectId === projectId) setCurrentProjectId(null)
+            setAlbumMessage('作品をマイアルバムから削除しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to delete album project:', cause)
+            setAlbumMessage('作品を削除できませんでした。')
+        }
+    }
+
+    const setPhotoSpotWaypoint = async (spot: PhotoSpot) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoSetPhotoSpotWaypoint', { id: spot.id })
+            if (!result.ok) throw new Error(result.error || 'waypoint_failed')
+            setSpotNotice(`${spot.name}をGPSに設定しました。`)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to set waypoint:', cause)
+            setSpotNotice('GPSを設定できませんでした。')
+        }
+    }
+
+    const hasDecorations = () =>
+        selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
+
+    const handleBack = () => {
+        if (saveLock.current) return
+        if (page !== 'main') {
+            setPage('main')
+            setAlbumMessage(null)
+            setSpotNotice(null)
+            return
+        }
+        if (isEditing) {
+            cancelTransientInteractions()
+            setPhotoUrl(sourcePhotoUrl || photoUrl)
+            setIsEditing(false)
+            setError(null)
+            return
+        }
+        if (photoUrl) {
+            if (hasDecorations()) setConfirmExit(true)
+            else resetPhotoSession()
         }
     }
 
@@ -763,8 +947,11 @@ const App = () => {
         setError(null)
 
         const exportPhotoUrl = photoUrl
+        const exportSourceUrl = sourcePhotoUrl || photoUrl
         const exportAspectRatio = photoAspectRatio
         const exportSnapshot = makeSnapshot()
+        const exportLocation = captureLocation
+        const exportProjectId = currentProjectId
 
         try {
             if (typeof components === 'undefined' || typeof components.uploadMedia !== 'function' || typeof components.saveToGallery !== 'function') {
@@ -1028,12 +1215,38 @@ const App = () => {
                 30000,
                 'Gallery save'
             )
+
+            let albumSaved = false
+            let savedProjectId = exportProjectId
+            try {
+                const editData = JSON.stringify(exportSnapshot)
+                if (new Blob([editData]).size > 1900000) {
+                    throw new Error('project_data_too_large')
+                }
+                const projectResult = await nuiRequest<SaveProjectResponse>('puriphotoSaveProject', {
+                    id: exportProjectId,
+                    sourceUrl: exportSourceUrl,
+                    finishedUrl: uploadedUrl,
+                    editData,
+                    location: exportLocation
+                })
+                if (!projectResult.ok || !projectResult.id) {
+                    throw new Error(projectResult.error || 'album_save_failed')
+                }
+                albumSaved = true
+                savedProjectId = projectResult.id
+            } catch (cause) {
+                console.warn('[PuriPhoto] Finished photo saved, but album project persistence failed:', cause)
+            }
+
+            setCurrentProjectId(savedProjectId)
+            setLastSavedSnapshot(exportSnapshot)
             setPhotoUrl(uploadedUrl)
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
             setIsEditing(false)
             resetEditorState()
-            setSaveNotice('ギャラリーに保存しました')
+            setSaveNotice(albumSaved ? 'ギャラリーとマイアルバムに保存しました' : 'ギャラリーに保存しました（マイアルバム登録のみ失敗）')
             if (saveNoticeTimer.current !== null) window.clearTimeout(saveNoticeTimer.current)
             saveNoticeTimer.current = window.setTimeout(() => {
                 setSaveNotice(null)

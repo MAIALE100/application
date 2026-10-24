@@ -41,7 +41,12 @@ local function getCitizenId(source)
 end
 
 local function sendResponse(source, requestId, payload)
-    TriggerClientEvent("puriphoto:client:serverResponse", source, requestId, payload)
+    local encoded = json.encode(payload)
+    if encoded and #encoded > 60000 then
+        TriggerLatentClientEvent("puriphoto:client:serverResponse", source, 500000, requestId, payload)
+    else
+        TriggerClientEvent("puriphoto:client:serverResponse", source, requestId, payload)
+    end
 end
 
 local function normalizeLocation(location)
@@ -112,7 +117,7 @@ RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
 
     local limit = math.max(1, math.min(200, tonumber(Config.AlbumLimit) or 100))
     local sql = ([[
-        SELECT id, source_url, finished_url, edit_data,
+        SELECT id, source_url, finished_url,
                location_label, location_street, location_zone,
                location_x, location_y, location_z,
                created_at, updated_at
@@ -130,7 +135,6 @@ RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
             id = row.id,
             sourceUrl = row.source_url,
             finishedUrl = row.finished_url,
-            editData = row.edit_data,
             location = row.location_x and {
                 label = row.location_label or "",
                 street = row.location_street or "",
@@ -147,6 +151,59 @@ RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
     sendResponse(source, requestId, {
         ok = true,
         projects = projects
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:getProject", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local projectId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not projectId or projectId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT id, source_url, finished_url, edit_data,
+               location_label, location_street, location_zone,
+               location_x, location_y, location_z,
+               created_at, updated_at
+        FROM puriphoto_projects
+        WHERE id = ? AND citizenid = ?
+        LIMIT 1
+    ]], { projectId, citizenid }) or {}
+
+    local row = rows[1]
+    if not row then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "project_not_found"
+        })
+        return
+    end
+
+    sendResponse(source, requestId, {
+        ok = true,
+        project = {
+            id = row.id,
+            sourceUrl = row.source_url,
+            finishedUrl = row.finished_url,
+            editData = row.edit_data,
+            location = row.location_x and {
+                label = row.location_label or "",
+                street = row.location_street or "",
+                zone = row.location_zone or "",
+                x = row.location_x,
+                y = row.location_y,
+                z = row.location_z
+            } or nil,
+            createdAt = row.created_at,
+            updatedAt = row.updated_at
+        }
     })
 end)
 

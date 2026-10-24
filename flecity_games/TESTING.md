@@ -290,6 +290,7 @@ WORD WOLF / LIARのお題・役職、DRAWのお題、TELEPHONEのchain途中内�
 - DRAWでAの線がBへ反映
 - Bが正解すると双方へ反映
 - 正解済みプレイヤーが途中切断しても「正解 n/接続中対象人数」が分母超過しない
+- 正解済みプレイヤーがPARTY/Phoneを閉じてもDRAW進捗の正解者数から外れ、残るapp-open対象人数より分子が大きくならない。再open後は最新snapshotへ収束する
 - DRAW結果では最初の正解者がFASTESTとして明示され、正解者0人なら「正解者なし」と表示
 - Hostが切断するとBへHostが即移行
 - HostがPARTYアプリ/Phoneを閉じた場合も、PARTYを開いている他参加者を優先してHost権限が移りRoomが操作不能にならない

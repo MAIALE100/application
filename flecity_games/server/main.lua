@@ -388,11 +388,12 @@ RegisterCommand('game_party_status',function(source)
     if not requireServerConsole(source,'game_party_status') then return end
     local prefix='[FlecityGames PARTY]'
     local plus=FlecityGamesPartyPlus.DebugRevenueStatus()
-    print(('%s plus enabled=%s price=%d duration_days=%d money=%s revenue=%s provider=%s resolved=%s renewed=%s qb_banking=%s')
+    local renewedVersion=GetResourceMetadata('Renewed-Banking','version',0) or 'unknown'
+    print(('%s plus enabled=%s price=%d duration_days=%d money=%s revenue=%s provider=%s resolved=%s renewed=%s renewed_version=%s qb_banking=%s')
         :format(prefix,tostring(plus.enabled==true),tonumber(plus.price) or 0,
             tonumber(plus.durationDays) or 0,tostring(plus.moneyType or 'bank'),
             tostring(plus.revenueAccount or 'weazel'),tostring(plus.revenueProvider or 'auto'),
-            tostring(plus.resolvedProvider or 'none'),tostring(plus.renewedState),tostring(plus.qbBankingState)))
+            tostring(plus.resolvedProvider or 'none'),tostring(plus.renewedState),tostring(renewedVersion),tostring(plus.qbBankingState)))
     local summaries=FlecityGamesParty.DebugRoomSummaries()
     if #summaries==0 then
         print(prefix..' no active rooms')

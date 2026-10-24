@@ -70,6 +70,8 @@ FlecityGamesConfig = {
         MoneyType = 'bank',
         AutoRenewDefault = true,
         RevenueAccount = 'weazel',
+        RevenueAccountLabel = 'WEAZEL',
+        RevenueAutoCreate = true,
         RevenueProvider = 'auto'
     },
 

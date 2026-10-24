@@ -546,7 +546,7 @@ local function publicRoundState(room,viewerId)
             out.selfSubmitted=rs.guesses and rs.guesses[viewerId]~=nil or false
             local submitted,expected=0,0
             for playerId,m in pairs(room.members or {}) do
-                if not m.disconnected and playerId~=rs.explainerIdentifier then
+                if not m.disconnected and m.appOpen~=false and playerId~=rs.explainerIdentifier then
                     expected=expected+1
                     if rs.guesses and rs.guesses[playerId]~=nil then submitted=submitted+1 end
                 end
@@ -1500,7 +1500,7 @@ local function ngWordAllRemainingGuessed(room)
     if not rs or rs.gameId~='ng_word' or rs.phase~='guess' then return false end
     local expected,submitted=0,0
     for id,m in pairs(room.members or {}) do
-        if not m.disconnected and id~=rs.explainerIdentifier then
+        if not m.disconnected and m.appOpen~=false and id~=rs.explainerIdentifier then
             expected=expected+1
             if rs.guesses and rs.guesses[id]~=nil then submitted=submitted+1 end
         end

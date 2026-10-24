@@ -58,6 +58,11 @@ function Is-ExcludedReleasePath([string]$RelativePath) {
     return $false
 }
 
+function Write-Utf8NoBom([string]$Path, [string]$Text) {
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path,$Text,$encoding)
+}
+
 function Require-File([string]$Path, [string]$Label) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Release validation missing $Label : $Path"
@@ -117,7 +122,7 @@ try {
     $manifest = [regex]::Replace($manifest,"(?m)^description '.+'$","description 'Flecity Games LOOP - LB Phone mini-game app'")
     $manifest = [regex]::Replace($manifest,"(?m)^version '.+'$","version '$ReleaseVersion'")
     $manifest = [regex]::Replace($manifest,"(?m)^\s*'server/core/dev_reload\.lua',\r?\n",'')
-    Set-Content -LiteralPath $manifestPath -Value $manifest -Encoding UTF8
+    Write-Utf8NoBom -Path $manifestPath -Text $manifest
 
     $configPath = Join-Path $stageResource 'config\shared.lua'
     Require-File $configPath 'config/shared.lua'
@@ -131,7 +136,7 @@ try {
     $partyBlock = [regex]::Replace($partyBlock,'enabled\s*=\s*true','enabled = false',1)
     $partyBlock = [regex]::Replace($partyBlock,'defaultApp\s*=\s*true','defaultApp = false',1)
     $config = $config.Substring(0,$partyMatch.Index) + $partyBlock + $config.Substring($partyMatch.Index + $partyMatch.Length)
-    Set-Content -LiteralPath $configPath -Value $config -Encoding UTF8
+    Write-Utf8NoBom -Path $configPath -Text $config
 
     $serverMainPath = Join-Path $stageResource 'server\main.lua'
     Require-File $serverMainPath 'server/main.lua'
@@ -142,7 +147,7 @@ try {
     $prefix = $serverMain.Substring(0,$markerIndex)
     if ($prefix -notmatch 'runtime-active\.txt') { throw 'Development runtime stamp block was not found.' }
     $serverMain = $serverMain.Substring($markerIndex)
-    Set-Content -LiteralPath $serverMainPath -Value $serverMain -Encoding UTF8
+    Write-Utf8NoBom -Path $serverMainPath -Text $serverMain
 
     Step 'Adding operator documents'
     $docsSource = Join-Path $sourceResource 'release_docs'
@@ -164,7 +169,7 @@ try {
         'PARTY custom app: disabled in this submission build',
         'Development auto-reload/tools: excluded'
     ) -join [Environment]::NewLine
-    Set-Content -LiteralPath (Join-Path $stageResource 'BUILD_INFO.txt') -Value ($buildInfo + [Environment]::NewLine) -Encoding UTF8
+    Write-Utf8NoBom -Path (Join-Path $stageResource 'BUILD_INFO.txt') -Text ($buildInfo + [Environment]::NewLine)
 
     Step 'Validating submission contents'
     foreach ($relative in @(

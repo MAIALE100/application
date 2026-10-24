@@ -1,4 +1,4 @@
-fx_version 'cerulean'
+fx_version '0.71.1-test'
 game 'gta5'
 lua54 'yes'
 

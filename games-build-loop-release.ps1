@@ -63,6 +63,10 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
     [System.IO.File]::WriteAllText($Path,$Text,$encoding)
 }
 
+function Decode-Utf8Base64([string]$Value) {
+    return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Value))
+}
+
 function Require-File([string]$Path, [string]$Label) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Release validation missing $Label : $Path"
@@ -173,10 +177,14 @@ try {
 
     Step 'Adding operator documents'
     $docsSource = Join-Path $sourceResource 'release_docs'
+    $installName = Decode-Utf8Base64 '5bCO5YWl5pa55rOVX+mBi+WWtuanmOWQkeOBkS50eHQ='
+    $checkName = Decode-Utf8Base64 '6YGL5Za256K66KqN55So44Oh44OiLnR4dA=='
+    $qaName = Decode-Utf8Base64 '5o+Q5Ye65YmN56K66KqN57WQ5p6cLnR4dA=='
+
     $docs = @(
-        @('INSTALL_JA.txt','導入方法_運営様向け.txt'),
-        @('OPERATOR_CHECKLIST_JA.txt','運営確認用メモ.txt'),
-        @('QA_RESULT_JA.txt','提出前確認結果.txt')
+        @('INSTALL_JA.txt',$installName),
+        @('OPERATOR_CHECKLIST_JA.txt',$checkName),
+        @('QA_RESULT_JA.txt',$qaName)
     )
     foreach ($pair in $docs) {
         $src = Join-Path $docsSource $pair[0]
@@ -203,9 +211,9 @@ try {
         'web\play\app.js',
         'web\play\icon.svg',
         'sql\001_initial.sql',
-        '導入方法_運営様向け.txt',
-        '運営確認用メモ.txt',
-        '提出前確認結果.txt'
+        $installName,
+        $checkName,
+        $qaName
     )) {
         Require-File (Join-Path $stageResource $relative) $relative
     }

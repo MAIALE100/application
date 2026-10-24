@@ -125,10 +125,38 @@ try {
 
         if ($run -and $run.status -eq 'completed') {
             if ($run.conclusion -ne 'success') {
-                throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+                $runnerInfrastructureFailure=$false
+                try {
+                    $jobsApi="https://api.github.com/repos/$repoSlug/actions/runs/$($run.id)/jobs?per_page=100"
+                    $jobsResponse=Invoke-RestMethod -Uri $jobsApi -Headers $headers -Method Get -ErrorAction Stop
+                    $jobs=@($jobsResponse.jobs)
+                    if($jobs.Count -gt 0){
+                        $runnerInfrastructureFailure=$true
+                        foreach($job in $jobs){
+                            $hasRunner=([int64]($job.runner_id) -gt 0) -or (-not [string]::IsNullOrWhiteSpace([string]$job.runner_name))
+                            $hasSteps=$job.steps -and @($job.steps).Count -gt 0
+                            if($hasRunner -or $hasSteps){
+                                $runnerInfrastructureFailure=$false
+                                break
+                            }
+                        }
+                    }
+                }
+                catch {
+                    $runnerInfrastructureFailure=$false
+                }
+
+                if($runnerInfrastructureFailure){
+                    Write-Host ("GitHub Actions runner did not start for {0}. Falling back to local safety checks." -f $headCommit.Substring(0,7)) -ForegroundColor Yellow
+                }
+                else {
+                    throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+                }
             }
-            $workflowVerified = $true
-            Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+            else {
+                $workflowVerified = $true
+                Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+            }
         }
         elseif ($run) {
             Write-Host ("GitHub Actions is still {0}. Using local safety checks instead of waiting." -f $run.status) -ForegroundColor Yellow

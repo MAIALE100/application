@@ -1,0 +1,51 @@
+Flecity Games LOOP v1.0.0
+提出前確認結果
+
+確認日：2026-10-24
+実機QA基準コミット：19dbb623
+以降の変更は、提出用パッケージング・開発用runtime marker制御・PARTY無効時の診断整理・提出資料のみです。
+LOOPのゲーム内容およびスコアロジックには追加変更を行っていません。
+
+■ サーバー側確認結果
+・game_selftest：end failures=0
+・game_preflight：READY_FOR_LIVE_TEST / failures=0
+・game_healthcheck：
+  expired_sessions=0
+  missing_game_sessions=0
+  invalid_source_sessions=0
+  pending_starts=0
+  invalid_score_rows=0
+  invalid_save_rows=0
+  invalid_daily_rows=0
+  invalid_achievement_rows=0
+
+■ LB Phone実機確認
+・LB Phone App Storeに「LOOP」が表示されることを確認
+・無料で導入済み状態から正常に起動できることを確認
+・ホーム画面 / Daily Challenge / CONTINUE / 最近遊んだゲーム / ゲーム一覧の表示を確認
+・STOP RUSHを実プレイし、結果画面・SCORE・BEST反映を確認
+・FALLを実プレイし、操作および途中保存 / 再開動作に問題がないことを確認
+
+■ 確認環境
+・FiveM artifact：FXServer-master SERVER v1.0.0.37437 win32
+・Qbox test environment：1.24.0
+・LB Phone：2.9.0
+・MariaDB：12.3.3
+・oxmysql：稼働状態で確認
+
+■ 本番環境について
+本番環境はQBox 2.5.4 / oxmysql / citizenid=CSNを前提としております。
+Framework接続はauto bridgeを使用し、LB Phone本体やQbox本体の改変は行いません。
+
+テスト環境と本番QBoxバージョンは異なるため、導入時は
+「LOOPがApp Storeに表示されること」と「1回起動できること」
+のみ最終確認いただければ十分な想定です。
+
+■ 提出版
+・LOOP：有効
+・defaultApp=false
+・game=true
+・price=0
+・PARTY：無効
+・開発用auto-reload / build marker / static test tools：提出ZIPから除外
+・version：1.0.0

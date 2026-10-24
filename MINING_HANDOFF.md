@@ -5,7 +5,7 @@
 - Repository: MAIALE100/application
 - Development branch: jobs/mining-dev
 - Resource: flecity_mining
-- Current version: 0.2.0-dev
+- Current version: 0.3.0-dev
 
 ## Product goal
 
@@ -90,3 +90,21 @@ Current Flecity information:
 - no SQL required for v0.1
 
 Do not add a mining level or permanent performance progression without explicit product-direction change.
+
+
+## v0.3 Cave presentation
+
+- 通常採掘場所をGreat Chaparral Abandoned Mineへ移行
+- 標準IPL `cs6_08_interior_cs6_08_mine_int` をrequest
+- 採掘nodeは `coords`（立ち位置）と `target`（壁面）を分離
+- Fleeca drill prop `hei_prop_heist_drill`
+- drilling animation `anim@heists@fleeca_bank@drilling`
+- drill sound + rock dust effect
+- 採掘マーカーを近距離の小型表示へ縮小
+- `/mine_devpos` と `/mine_devwall` で実機座標採取可能
+- 坑道node座標は実機未確定。スクリーンショット/座標で調整すること
+- 通常坑道の実機合格までは重労働・危険坑道を本実装しない
+
+GitHub ActionsのFlecity Mining Static Checkはこのリポジトリ上で過去runを含め成功履歴がなく、
+job stepが開始される前にfailureになっているため、現時点ではCI成功を実機合格条件にしない。
+FiveM起動時selftest/configcheckと実機smoke testを必須ゲートとする。

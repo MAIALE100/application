@@ -785,3 +785,8 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - 残るapp-open参加者の投票だけで再集計され、必要なら即結果確定すること。
 - closed参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+### NG WORD close progress（実機未検証）
+- 3人以上でNG WORDのguess phaseへ進み、未回答者1人がPARTY/Phoneをcloseする。
+- 残ったapp-open回答者だけで `submittedCount / expectedSubmissions` が一致し、閉じた参加者を待ち人数へ残さないことを確認する。
+- `game_party_status` と各端末表示を照合し、closeした参加者の再open後も完了済みRoundが巻き戻らないことを確認する。

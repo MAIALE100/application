@@ -19,6 +19,7 @@ type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: Ca
 type CaptureLocation = { label: string; street: string; zone: string; x: number; y: number; z: number }
 type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData?: string; location: CaptureLocation | null; createdAt: string; updatedAt: string }
 type PhotoSpot = { id: string; name: string; category: string; description: string; coords: { x: number; y: number; z: number } }
+type MySpot = { id: number; name: string; label: string; street: string; zone: string; x: number; y: number; z: number; createdAt: unknown }
 type AlbumResponse = { ok: boolean; projects?: AlbumProject[]; error?: string }
 type SaveProjectResponse = { ok: boolean; id?: number; error?: string }
 type SimpleResponse = { ok: boolean; error?: string }
@@ -182,6 +183,11 @@ const App = () => {
     const [photoSpots, setPhotoSpots] = useState<PhotoSpot[]>([])
     const [spotsLoading, setSpotsLoading] = useState(false)
     const [spotNotice, setSpotNotice] = useState<string | null>(null)
+    const [spotTab, setSpotTab] = useState<'recommended' | 'mine'>('recommended')
+    const [mySpots, setMySpots] = useState<MySpot[]>([])
+    const [mySpotsLoading, setMySpotsLoading] = useState(false)
+    const [mySpotName, setMySpotName] = useState('')
+    const [mySpotSaving, setMySpotSaving] = useState(false)
 
     const makeSnapshot = (): EditorSnapshot => ({
         frame: selectedFrame,
@@ -448,17 +454,29 @@ const App = () => {
         }
     }
 
-    const formatAlbumDate = (value: string) => {
-        const normalized = value && !/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? value.replace(' ', 'T') : value
-        const date = new Date(normalized)
-        if (Number.isNaN(date.getTime())) return value || '日時不明'
-        return new Intl.DateTimeFormat('ja-JP', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).format(date)
+    const formatAlbumDate = (value: unknown) => {
+        try {
+            if (value === null || value === undefined || value === '') return '日時不明'
+            let normalized: string | number
+            if (typeof value === 'number') {
+                normalized = value < 100000000000 ? value * 1000 : value
+            } else {
+                const text = String(value)
+                normalized = !/[zZ]|[+-]\d\d:?\d\d$/.test(text) ? text.replace(' ', 'T') : text
+            }
+            const date = new Date(normalized)
+            if (Number.isNaN(date.getTime())) return '日時不明'
+            return new Intl.DateTimeFormat('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date)
+        } catch (cause) {
+            console.warn('[PuriPhoto] Invalid album date:', value, cause)
+            return '日時不明'
+        }
     }
 
     const openAlbum = async () => {
@@ -469,7 +487,10 @@ const App = () => {
         try {
             const result = await nuiRequest<AlbumResponse>('puriphotoGetAlbum')
             if (!result.ok) throw new Error(result.error || 'album_load_failed')
-            setAlbumProjects(result.projects ?? [])
+            const projects = Array.isArray(result.projects)
+                ? result.projects.filter((project): project is AlbumProject => Boolean(project && Number(project.id) > 0))
+                : []
+            setAlbumProjects(projects)
         } catch (cause) {
             console.error('[PuriPhoto] Failed to load album:', cause)
             setAlbumProjects([])
@@ -479,21 +500,80 @@ const App = () => {
         }
     }
 
+    const loadMySpots = async () => {
+        setMySpotsLoading(true)
+        try {
+            const result = await nuiRequest<{ ok: boolean; spots?: MySpot[]; error?: string }>('puriphotoGetMySpots')
+            if (!result.ok) throw new Error(result.error || 'my_spots_load_failed')
+            setMySpots(Array.isArray(result.spots) ? result.spots.filter(Boolean) : [])
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load my spots:', cause)
+            setMySpots([])
+            setSpotNotice('マイスポットを読み込めませんでした。')
+        } finally {
+            setMySpotsLoading(false)
+        }
+    }
+
     const openPhotoSpots = async () => {
         if (saveLock.current) return
         setPage('spots')
+        setSpotTab('recommended')
         setSpotsLoading(true)
         setSpotNotice(null)
+        void loadMySpots()
         try {
             const result = await nuiRequest<{ ok: boolean; spots?: PhotoSpot[]; error?: string }>('puriphotoGetPhotoSpots')
             if (!result.ok) throw new Error(result.error || 'spots_load_failed')
-            setPhotoSpots(result.spots ?? [])
+            setPhotoSpots(Array.isArray(result.spots) ? result.spots : [])
         } catch (cause) {
             console.error('[PuriPhoto] Failed to load photo spots:', cause)
             setPhotoSpots([])
             setSpotNotice('撮影スポットを読み込めませんでした。')
         } finally {
             setSpotsLoading(false)
+        }
+    }
+
+    const saveMySpot = async () => {
+        const name = mySpotName.trim().slice(0, 64)
+        if (!name || mySpotSaving) return
+        setMySpotSaving(true)
+        setSpotNotice(null)
+        try {
+            const result = await nuiRequest<{ ok: boolean; id?: number; error?: string }>('puriphotoSaveMySpot', { name })
+            if (!result.ok) throw new Error(result.error || 'my_spot_save_failed')
+            setMySpotName('')
+            await loadMySpots()
+            setSpotNotice('現在地をマイスポットに登録しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to save my spot:', cause)
+            setSpotNotice('マイスポットを登録できませんでした。')
+        } finally {
+            setMySpotSaving(false)
+        }
+    }
+
+    const deleteMySpot = async (spotId: number) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoDeleteMySpot', { id: spotId })
+            if (!result.ok) throw new Error(result.error || 'my_spot_delete_failed')
+            setMySpots((current) => current.filter((spot) => spot.id !== spotId))
+            setSpotNotice('マイスポットから削除しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to delete my spot:', cause)
+            setSpotNotice('マイスポットを削除できませんでした。')
+        }
+    }
+
+    const setMySpotWaypoint = async (spot: MySpot) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoSetMySpotWaypoint', { x: spot.x, y: spot.y })
+            if (!result.ok) throw new Error(result.error || 'my_spot_waypoint_failed')
+            setSpotNotice(`${spot.name}をGPSに設定しました。`)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to set my spot waypoint:', cause)
+            setSpotNotice('GPSを設定できませんでした。')
         }
     }
 
@@ -583,6 +663,7 @@ const App = () => {
             setPage('main')
             setAlbumMessage(null)
             setSpotNotice(null)
+            setSpotTab('recommended')
             return
         }
         if (isEditing) {
@@ -1866,30 +1947,83 @@ const App = () => {
                     </section>
                 )}
                 {page === 'spots' && (
-                    <section className="feature-page" aria-label="おすすめ撮影スポット">
+                    <section className="feature-page" aria-label="撮影スポット">
                         <div className="feature-page-header">
                             <button type="button" className="feature-back-button" onClick={handleBack}>← 戻る</button>
                             <div>
                                 <p>次の一枚を探しに行こう。</p>
-                                <h2>おすすめ撮影スポット</h2>
+                                <h2>撮影スポット</h2>
                             </div>
                         </div>
+                        <div className="feature-tabs" aria-label="撮影スポットの種類">
+                            <button type="button" className={spotTab === 'recommended' ? 'selected' : ''} onClick={() => setSpotTab('recommended')}>おすすめ</button>
+                            <button type="button" className={spotTab === 'mine' ? 'selected' : ''} onClick={() => setSpotTab('mine')}>マイスポット</button>
+                        </div>
                         {spotNotice && <p className="feature-message" role="status">{spotNotice}</p>}
-                        {spotsLoading ? (
-                            <div className="feature-empty">撮影スポットを読み込んでいます…</div>
-                        ) : (
-                            <div className="spot-list">
-                                {photoSpots.map((spot) => (
-                                    <article key={spot.id} className="spot-card">
-                                        <div>
-                                            <span className="spot-category">{spot.category}</span>
-                                            <strong>{spot.name}</strong>
-                                            <p>{spot.description}</p>
-                                        </div>
-                                        <button type="button" onClick={() => setPhotoSpotWaypoint(spot)}>GPSに設定</button>
-                                    </article>
-                                ))}
-                            </div>
+
+                        {spotTab === 'recommended' && (
+                            spotsLoading ? (
+                                <div className="feature-empty">撮影スポットを読み込んでいます…</div>
+                            ) : (
+                                <div className="spot-list">
+                                    {photoSpots.map((spot) => (
+                                        <article key={spot.id} className="spot-card">
+                                            <div>
+                                                <span className="spot-category">{spot.category}</span>
+                                                <strong>{spot.name}</strong>
+                                                <p>{spot.description}</p>
+                                            </div>
+                                            <button type="button" onClick={() => setPhotoSpotWaypoint(spot)}>GPSに設定</button>
+                                        </article>
+                                    ))}
+                                </div>
+                            )
+                        )}
+
+                        {spotTab === 'mine' && (
+                            <>
+                                <div className="my-spot-register">
+                                    <strong>現在地を登録</strong>
+                                    <p>好きな撮影場所に立った状態で、名前を付けて保存できます。</p>
+                                    <div className="my-spot-register-row">
+                                        <input
+                                            type="text"
+                                            maxLength={64}
+                                            value={mySpotName}
+                                            onChange={(event) => setMySpotName(event.target.value)}
+                                            placeholder="例：お気に入りの夜景"
+                                        />
+                                        <button type="button" disabled={!mySpotName.trim() || mySpotSaving} onClick={saveMySpot}>
+                                            {mySpotSaving ? '登録中…' : '現在地を登録'}
+                                        </button>
+                                    </div>
+                                </div>
+                                {mySpotsLoading ? (
+                                    <div className="feature-empty">マイスポットを読み込んでいます…</div>
+                                ) : mySpots.length === 0 ? (
+                                    <div className="feature-empty">
+                                        <strong>まだマイスポットがありません</strong>
+                                        <span>気に入った場所を自分だけの撮影スポットとして登録できます。</span>
+                                    </div>
+                                ) : (
+                                    <div className="spot-list">
+                                        {mySpots.map((spot) => (
+                                            <article key={spot.id} className="spot-card my-spot-card">
+                                                <div>
+                                                    <span className="spot-category">マイスポット</span>
+                                                    <strong>{spot.name}</strong>
+                                                    <p>{spot.label || '登録地点'}</p>
+                                                    <small>登録 {formatAlbumDate(spot.createdAt)}</small>
+                                                </div>
+                                                <div className="my-spot-actions">
+                                                    <button type="button" onClick={() => setMySpotWaypoint(spot)}>GPSに設定</button>
+                                                    <button type="button" className="danger-subtle" onClick={() => deleteMySpot(spot.id)}>削除</button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </section>
                 )}

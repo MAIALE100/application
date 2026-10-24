@@ -17,7 +17,7 @@ type DrawTool = 'pen' | 'eraser'
 type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
 type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: CaptionInstance[]; strokes: DrawStroke[] }
 type CaptureLocation = { label: string; street: string; zone: string; x: number; y: number; z: number }
-type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData: string; location: CaptureLocation | null; createdAt: string; updatedAt: string }
+type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData?: string; location: CaptureLocation | null; createdAt: string; updatedAt: string }
 type PhotoSpot = { id: string; name: string; category: string; description: string; coords: { x: number; y: number; z: number } }
 type AlbumResponse = { ok: boolean; projects?: AlbumProject[]; error?: string }
 type SaveProjectResponse = { ok: boolean; id?: number; error?: string }
@@ -497,19 +497,30 @@ const App = () => {
         }
     }
 
-    const restoreAlbumProject = (project: AlbumProject) => {
+    const restoreAlbumProject = async (project: AlbumProject) => {
+        setAlbumMessage('編集データを読み込んでいます…')
         try {
-            const snapshot = JSON.parse(project.editData) as EditorSnapshot
+            let loadedProject = project
+            if (!loadedProject.editData) {
+                const result = await nuiRequest<{ ok: boolean; project?: AlbumProject; error?: string }>('puriphotoGetProject', { id: project.id })
+                if (!result.ok || !result.project?.editData) {
+                    throw new Error(result.error || 'project_load_failed')
+                }
+                loadedProject = result.project
+            }
+
+            const snapshot = JSON.parse(loadedProject.editData) as EditorSnapshot
             if (!snapshot || !Array.isArray(snapshot.stamps) || !Array.isArray(snapshot.captions) || !Array.isArray(snapshot.strokes)) {
                 throw new Error('invalid_snapshot')
             }
             resetEditorState()
             setPage('main')
-            setPhotoUrl(project.sourceUrl)
-            setSourcePhotoUrl(project.sourceUrl)
-            setSavedPhotoUrl(project.finishedUrl)
-            setCaptureLocation(project.location)
-            setCurrentProjectId(project.id)
+            setAlbumMessage(null)
+            setPhotoUrl(loadedProject.sourceUrl)
+            setSourcePhotoUrl(loadedProject.sourceUrl)
+            setSavedPhotoUrl(loadedProject.finishedUrl)
+            setCaptureLocation(loadedProject.location)
+            setCurrentProjectId(loadedProject.id)
             setLastSavedSnapshot(snapshot)
             setPhotoAspectRatio(null)
             applySnapshot(snapshot)

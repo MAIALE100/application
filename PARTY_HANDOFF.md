@@ -66,9 +66,10 @@ PARTY+（7日 / 50,000、加入HostのRoom全員が利用可）:
 12. FAKE ANSWER — 3〜10人
 13. BOMB — 3〜10人
 14. MEMORY CHAIN — 2〜10人
+15. FALL BATTLE — 2〜10人
 
 PARTY+は限定品・シーズン・月替わり更新を前提にしない恒常プラン。
-出題バンクはNG WORD 80題 / FAKE ANSWER 84問 / BOMB 120題を同梱し、MEMORY CHAINはserver生成のため固定問題追加を不要とする。
+出題バンクはNG WORD 120題 / FAKE ANSWER 124問 / BOMB 180題を同梱し、MEMORY CHAINはserver生成のため固定問題追加を不要とする。FALL BATTLEはserver-authoritative verifierで配置履歴を検証する。
 課金はcitizenid（CSN）単位で保持し、銀行から50,000を減算。7日経過後は次回利用時に自動更新を試行する。
 自動更新停止後も期限までは利用できる。加入購入は誤タップ防止の2段確認。
 現時点の50,000は経済sink。会社口座等への売上振替が必要な場合は、成功時event `flecity_games:server:partyPlusCharged` へ運営環境の口座処理を接続する。

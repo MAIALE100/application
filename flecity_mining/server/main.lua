@@ -79,6 +79,27 @@ local function validateRuntimeConfig()
 
     if not Config.Foreman or type(Config.Foreman.coords) ~= 'vector3' then return false, 'invalid Foreman coords' end
     if not Config.Processor or type(Config.Processor.coords) ~= 'vector3' then return false, 'invalid Processor coords' end
+
+    if Config.MineInterior ~= nil then
+        if type(Config.MineInterior) ~= 'table' then return false, 'invalid MineInterior config' end
+        if Config.MineInterior.enabled == true then
+            if type(Config.MineInterior.ipl) ~= 'string' or Config.MineInterior.ipl == '' then
+                return false, 'invalid MineInterior IPL'
+            end
+            if type(Config.MineInterior.anchor) ~= 'vector3' then
+                return false, 'invalid MineInterior anchor'
+            end
+        end
+    end
+
+    local drill = Config.DrillVisuals
+    if type(drill) ~= 'table'
+        or type(drill.model) ~= 'string' or drill.model == ''
+        or type(drill.animDict) ~= 'string' or drill.animDict == ''
+        or type(drill.animName) ~= 'string' or drill.animName == '' then
+        return false, 'invalid DrillVisuals config'
+    end
+
     if type(Config.MiningNodes) ~= 'table' or #Config.MiningNodes == 0 then return false, 'mining nodes are empty' end
 
     local nodeIds = {}

@@ -1,4 +1,4 @@
-import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
+import { Component, ErrorInfo, PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import '@fontsource/m-plus-rounded-1c/700.css'
 import './App.css'
 import Frame from './components/Frame'
@@ -123,6 +123,34 @@ const nuiRequest = async <T,>(callback: string, data: unknown = {}): Promise<T> 
     })
     if (!response.ok) throw new Error(`NUI callback failed: ${callback}`)
     return response.json() as Promise<T>
+}
+
+class PuriPhotoErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+    state = { error: null as string | null }
+
+    static getDerivedStateFromError(error: Error) {
+        return { error: error?.message || 'unknown_error' }
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error('[PuriPhoto] UI render error:', error, info)
+    }
+
+    render() {
+        if (this.state.error) {
+            return (
+                <main className="app">
+                    <div className="ui-error-fallback">
+                        <strong>画面の読み込みに失敗しました</strong>
+                        <p>写真や編集内容はサーバー側から削除されていません。</p>
+                        <button type="button" onClick={() => window.location.reload()}>PuriPhotoを再読み込み</button>
+                    </div>
+                </main>
+            )
+        }
+
+        return this.props.children
+    }
 }
 
 const App = () => {
@@ -1370,6 +1398,7 @@ const App = () => {
     }
 
     return (
+        <PuriPhotoErrorBoundary>
         <AppProvider>
             <main className="app">
                 <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
@@ -2045,6 +2074,7 @@ const App = () => {
                 {saveNotice && <div className="save-toast" role="status">{saveNotice}</div>}
             </main>
         </AppProvider>
+        </PuriPhotoErrorBoundary>
     )
 }
 

@@ -1118,7 +1118,7 @@ local function maybeFinishMajority(room,force)
     if not rs or rs.gameId~='majority' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             local choice=rs.submissions[id]
             if choice=='A' or choice=='B' then counts[choice]=counts[choice]+1 end
             entries[#entries+1]={memberId=m.memberId,name=m.name,choice=choice}
@@ -1150,7 +1150,7 @@ local function maybeFinishMinority(room,force)
     if not rs or rs.gameId~='minority' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local counts={A=0,B=0} local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             local choice=rs.submissions[id]
             if choice=='A' or choice=='B' then counts[choice]=counts[choice]+1 end
             entries[#entries+1]={memberId=m.memberId,name=m.name,choice=choice}

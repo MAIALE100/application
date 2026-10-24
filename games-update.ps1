@@ -441,14 +441,14 @@ try {
     if ($clientMainText -notmatch 'RemoveCustomApp\(app\.identifier\)' -or $clientMainText -notmatch 'APP_ALREADY_EXISTS') { throw 'LB Phone custom app re-registration check failed.' }
     if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=55,id='fall'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='code_break'" -or $registryText -notmatch "order=20,id='reversi'" -or $registryText -notmatch "order=40,id='gomoku'" -or $registryText -notmatch "order=45,id='connect4'" -or $registryText -notmatch "order=80,id='telephone'" -or $registryText -notmatch "order=130,id='fall_battle'") { throw 'Game registry order check failed.' }
 
-    $requiredPartyIds=@('code_break','reversi','vote','gomoku','connect4','tic_tac','word_wolf','liar','draw','telephone','ng_word','fake_answer','bomb','memory_chain','fall_battle')
+    $requiredPartyIds=@('code_break','reversi','vote','gomoku','connect4','mini_shogi','word_wolf','liar','draw','telephone','ng_word','fake_answer','bomb','memory_chain','fall_battle')
     foreach($partyId in $requiredPartyIds){
         if($registryText -notmatch ("id='" + [regex]::Escape($partyId) + "'[^\r\n]*app='party'[^\r\n]*enabled=true")){
             throw ("PARTY staged build is missing enabled game: {0}" -f $partyId)
         }
     }
-    if($registryText -notmatch "id='ng_word'[^\r\n]*premium=true" -or $registryText -notmatch "id='fall_battle'[^\r\n]*premium=true"){
-        throw 'PARTY+ premium registry validation failed.'
+    if($partyCoreText -notmatch 'local function weeklyPremiumRotation' -or $partyCoreText -notmatch 'premiumRotationCount=5' -or $partyCoreText -notmatch 'isWeeklyPremiumGame\(game\.id\)'){
+        throw 'PARTY+ weekly premium rotation validation failed.'
     }
     $partyPlusPath=Join-Path $DestinationForValidation 'server\core\party_plus.lua'
     $partyFallPath=Join-Path $DestinationForValidation 'server\core\party_fall.lua'

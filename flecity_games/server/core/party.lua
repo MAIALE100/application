@@ -3488,6 +3488,25 @@ function FlecityGamesParty.DebugSelftest()
     ticTacRoom.roundState.board[3]='X'
     local ticWinner=ticTacWinner(ticTacRoom.roundState.board)
 
+    local shogiInitialBoard=miniShogiInitialBoard()
+    local shogiInitialHands=miniShogiInitialHands()
+    local shogiInitialMoves=miniShogiAllMoves(shogiInitialBoard,shogiInitialHands,'B')
+    local shogiNifuHands=miniShogiInitialHands()
+    shogiNifuHands.B.P=1
+    local shogiNifuBlocked=not miniShogiDropAllowed(shogiInitialBoard,'B','P',miniShogiCell(6,1))
+    local shogiPromoBoard={} for i=1,81 do shogiPromoBoard[i]='' end
+    shogiPromoBoard[miniShogiCell(9,5)]='BK'
+    shogiPromoBoard[miniShogiCell(1,5)]='WK'
+    shogiPromoBoard[miniShogiCell(4,4)]='BP'
+    local shogiPromoMoves=miniShogiAllMoves(shogiPromoBoard,miniShogiInitialHands(),'B')
+    local shogiPromoOptional=false
+    local shogiPromoPlain=false
+    for _,move in ipairs(shogiPromoMoves) do
+        if move.from==miniShogiCell(4,4) and move.to==miniShogiCell(3,4) then
+            if move.promote then shogiPromoOptional=true else shogiPromoPlain=true end
+        end
+    end
+
     local reactionRoom={members=members,roundState={
         token='reaction',gameId='reaction',startedAt=0,startedTick=0,complete=false,
         submissions={
@@ -3718,6 +3737,10 @@ function FlecityGamesParty.DebugSelftest()
             and minorityUnanimousRoom.roundState.results.winningChoice==nil
             and minorityUnanimousRoom.roundState.results.noMinority==true,
         ticTacWinner=ticWinner=='X' and ticTacFull({'X','O','X','X','O','O','O','X','X'})==true,
+        shogiStandardBoard=#shogiInitialBoard==81 and shogiInitialBoard[miniShogiCell(9,5)]=='BK' and shogiInitialBoard[miniShogiCell(1,5)]=='WK',
+        shogiInitialLegalMoves=#shogiInitialMoves>0,
+        shogiNifuRule=shogiNifuBlocked,
+        shogiOptionalPromotion=shogiPromoOptional and shogiPromoPlain,
         reactionRanking=reactionRoom.roundState.complete==true
             and reactionRoom.roundState.results.entries[1].memberId=='C'
             and reactionRoom.roundState.results.entries[2].memberId=='A'

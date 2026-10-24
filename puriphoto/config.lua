@@ -12,6 +12,7 @@ Config.Developer = "PuriPhoto"
 -- to run SQL manually.
 Config.AlbumLimit = 100
 Config.ProjectDataMaxBytes = 2000000
+Config.MySpotLimit = 30
 
 -- Static photo spots keep operation simple: no admin panel or recurring updates
 -- are required. Add/remove entries here only when the city wants to change them.

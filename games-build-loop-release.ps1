@@ -18,18 +18,18 @@ function Step([string]$Message) {
     Write-Host ('==> ' + $Message) -ForegroundColor Cyan
 }
 
-function Invoke-Git([string]$Repo, [string[]]$Args) {
+function Invoke-Git([string]$Repo, [string[]]$GitArgs) {
     $old = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $output = & git -C $Repo @Args 2>&1
+        $output = & git -C $Repo @GitArgs 2>&1
         $code = $LASTEXITCODE
     }
     finally {
         $ErrorActionPreference = $old
     }
     if ($code -ne 0) {
-        throw ('git {0} failed: {1}' -f ($Args -join ' '), (($output | Out-String).Trim()))
+        throw ('git {0} failed: {1}' -f ($GitArgs -join ' '), (($output | Out-String).Trim()))
     }
     return (($output | Out-String).Trim())
 }
@@ -40,7 +40,7 @@ try {
         throw "Git repository was not found: $MainRepo"
     }
 
-    Invoke-Git $MainRepo @('fetch','--prune','origin',$Branch) | Out-Null
+    Invoke-Git -Repo $MainRepo -GitArgs @('fetch','--prune','origin',$Branch) | Out-Null
 
     if (Test-Path -LiteralPath $Worktree) {
         if (-not (Test-Path -LiteralPath (Join-Path $Worktree '.git'))) {
@@ -48,14 +48,14 @@ try {
         }
     }
     else {
-        Invoke-Git $MainRepo @('worktree','add','--detach',$Worktree,"origin/$Branch") | Out-Null
+        Invoke-Git -Repo $MainRepo -GitArgs @('worktree','add','--detach',$Worktree,"origin/$Branch") | Out-Null
     }
 
-    Invoke-Git $Worktree @('fetch','--prune','origin',$Branch) | Out-Null
-    Invoke-Git $Worktree @('reset','--hard',"origin/$Branch") | Out-Null
-    Invoke-Git $Worktree @('clean','-fd') | Out-Null
+    Invoke-Git -Repo $Worktree -GitArgs @('fetch','--prune','origin',$Branch) | Out-Null
+    Invoke-Git -Repo $Worktree -GitArgs @('reset','--hard',"origin/$Branch") | Out-Null
+    Invoke-Git -Repo $Worktree -GitArgs @('clean','-fd') | Out-Null
 
-    $commit = (Invoke-Git $Worktree @('rev-parse','HEAD')).Trim()
+    $commit = (Invoke-Git -Repo $Worktree -GitArgs @('rev-parse','HEAD')).Trim()
     Write-Host ("Source commit: {0}" -f $commit) -ForegroundColor Green
 
     Step 'Locating Python'

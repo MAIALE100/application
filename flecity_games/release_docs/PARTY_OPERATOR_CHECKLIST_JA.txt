@@ -1,180 +1,139 @@
 Flecity Games PARTY v1.0.0
 運営様向け 確認用メモ
 
-■ 変更範囲
-・更新リソース：flecity_games
-・LB Phone：AddCustomAppによるPARTY追加
-・Qbox core：変更なし
+■ 更新概要
+・更新resource：flecity_games
+・既存LOOPを維持したままPARTYを追加
+・resource提出版version：1.1.0
 ・LB Phone core：変更なし
-・QBox：2.5.4を前提（運営様ご回答済み）
-・oxmysql：使用（運営様ご回答済み）
-・player identifier：citizenid = CSN
-・LOOPのidentifier / score / save / achievement仕様：変更なし
+・Qbox core：変更なし
+・server.cfg：既存「ensure flecity_games」を継続使用
+・サーバー全体再起動：通常不要
+
+■ 本番前提
+・QBox 2.5.4
+・oxmysql
+・citizenid = CSN
+・LB Phone 2.9系
+
+■ LOOP維持事項
+・identifier: flecity_play
+・name: LOOP
+・defaultApp=false
+・game=true
+・price=0
+・score / BEST / save / achievement / Daily / ranking互換を維持
+・既存DBデータを削除しない
 
 ■ PARTY
 ・identifier: flecity_party
-・表示名: PARTY
+・name: PARTY
 ・defaultApp=false
 ・game=true
 ・price=0
-・2〜10人（ゲームごとに対応人数を制限）
-・4桁ルームコード
+・2〜10人（ゲーム別人数制限あり）
+・4桁Room code
 ・Ready制
-・ホストのみゲーム選択 / 開始 / 結果後ロビー復帰
-・二重開始 / 二重submit / 古いround submitをserver側で拒否
-・切断時cleanup、ホスト移行、60秒再接続猶予
-・ラウンド / 手番timeout
-・WORD WOLF / LIAR / DRAW / TELEPHONEの秘密情報はviewer別snapshot
-・DRAW描画量上限
-・TELEPHONE途中離脱時は手番skip
-・無料ゲーム10種 + PARTY+ゲーム5種
-・PARTY+：7日 / 50,000、加入HostのRoom全員が利用可
-・PARTY+：NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE
-・PARTY+購入は2段確認、自動更新停止可、期限までは利用可
-・期限後の自動更新は次回PARTY利用時に1期間だけ実行
+・Hostのみゲーム選択 / 開始
+・切断cleanup / Host移行 / 60秒再接続猶予
+・二重Start / 二重submit / 古いround submitをserver側で拒否
+・round / turn timeout
+・秘密情報はviewer別snapshot
+・App / Phone close時の進行停止対策
+・7〜10人Room向け小画面UI対策
 
-■ LOOP
-・表示名: LOOP
-・identifier: flecity_play
-・defaultApp=false
-・game=true
-・price=0
-・既存のスコア / 実績 / セーブ / Daily / ranking仕様を維持
+■ ゲーム構成
+無料 10種
+REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY /
+TIC-TAC / WORD WOLF / LIAR / DRAW / TELEPHONE
+
+PARTY+ 5種
+NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE
+
+合計15種です。
+
+■ PARTY+
+・7日 / 50,000
+・加入HostのRoomでは未加入参加者もPARTY+ゲームを利用可能
+・購入はserver側で処理
+・プレイヤーbankから50,000を減算
+・自動更新停止可
+・停止後も期限までは利用可能
+・期限後の次回PARTY利用時に1期間だけ自動更新を試行
+・残高不足時は更新失敗として処理
+
+■ PARTY+売上
+売上先：WEAZEL企業口座
+account name：weazel
+provider：auto
+
+provider autoの判定順：
+1. Renewed-Banking
+2. qb-banking
+
+企業口座への入金に失敗した場合：
+・購読を成立させない
+・プレイヤーへ50,000返金を試行
+
+企業口座入金後に購読DB保存が失敗した場合：
+・WEAZEL口座から入金額を取り消す
+・プレイヤーへ返金を試行
+・rollback不完全時はserver consoleへCRITICALログを出力
 
 ■ データベース
-PARTYのRoom自体はメモリ管理で、永続Roomテーブルは追加しません。
-PARTY+のみ citizenid(CSN) / active_until / auto_renew を保持する flecity_game_subscriptions を自動作成します。
-SQLの手動実行は通常不要です。
-DROP TABLE / TRUNCATE TABLE はありません。
+・PARTY Roomはメモリ管理
+・永続Roomテーブルは追加しない
+・PARTY+のみflecity_game_subscriptionsへ保存
+・citizenid(CSN) / active_until / auto_renewを保持
+・通常はSQL手動実行不要
+・DROP TABLE / TRUNCATE TABLEなし
 
-■ PARTY+決済
-bankから50,000をserver側で減算します。
-現提出候補では50,000は経済sinkで、会社口座等への売上振替先は未設定です。
-売上振替が必要な場合は、運営仕様確定後に決済成功eventへ口座処理を接続できます。
+■ 最小導入確認
+□ App StoreにLOOPが従来どおり表示される
+□ App StoreにPARTYが表示される
+□ PARTYを無料ダウンロードできる
+□ LOOPが従来どおり起動できる
+□ 2台以上でRoom作成→参加→Ready→開始できる
+□ game_preflight が READY_FOR_LIVE_TEST
+□ game_selftest の failures=0
+□ game_healthcheck に異常がない
+
+■ PARTY+最小決済確認
+□ 購入前後でプレイヤーbankが -50,000
+□ WEAZEL企業口座が +50,000
+□ 購入後PARTY+が有効になる
+□ 加入Host + 未加入参加者でPARTY+ゲーム開始可能
+□ 自動更新OFF後も期限までは利用可能
+□ 残高不足時に不要な課金が発生しない
+
+■ 推奨複数人確認
+□ 2人：REACTION / STOP! BATTLE / TIC-TAC / DRAW / FALL BATTLE
+□ 3人以上：VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR / TELEPHONE
+□ PARTY+：NG WORD / FAKE ANSWER / BOMB / MEMORY CHAIN / FALL BATTLE
+□ Host切断時に別参加者へHost移行
+□ 切断後60秒以内の再接続
+□ App / Phone close後のReady・手番・回答待ち処理
+□ timeout後の結果遷移
+□ 7〜10人Roomの参加者一覧・操作性
+□ FALL BATTLEのDNF / timeout / server検証
 
 ■ 正常起動の目安
-database schema ready
-LB Phone callbacks registered .../...
-startup preflight READY_FOR_LIVE_TEST
+[FlecityGames] database schema ready
+[FlecityGames] LB Phone callbacks registered .../...
+[FlecityGames] startup preflight READY_FOR_LIVE_TEST
 
-■ ライブ診断
-サーバーコンソールの game_party_status で、秘密情報を表示せずにRoom数 / Host / 人数 / Game / Round / deadlineを確認できます。
-
-■ 推奨ライブ確認
-・2人：REACTION / STOP! BATTLE / TIC-TAC / DRAW
-・3人以上：VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR / TELEPHONE
-・ホスト切断時の移行
-・参加者切断→60秒以内再接続
-・アプリclose / phone close後のReady解除
-・時間切れ後の結果遷移
-・10人時の参加者表示
-・PARTY+初回加入 / 二重送信 / 自動更新停止 / 期限更新 / 残高不足
-・加入Host + 未加入参加者でPARTY+ 5ゲーム
-・NG WORD秘密情報 / FAKE ANSWER匿名投票 / BOMB隠しFuse / MEMORY CHAIN入力時の正解列非公開
-・FALL BATTLE 2人/10人、90秒timeout、Phone/App close・FiveM切断DNF、再接続後のやり直し不可
-・FALL BATTLEは途中の他参加者盤面/scoreを公開せず、完了人数だけ共有
+■ 診断コマンド
+game_status
+game_preflight
+game_selftest
+game_party_status
+game_healthcheck
 
 ■ 切り戻し
-更新前の flecity_games へ戻し、refresh → restart flecity_games で切り戻せます。
+更新前のLOOP版「flecity_games」へ戻し、
+
+refresh
+restart flecity_games
+
+で切り戻し可能です。
 DB削除は不要です。
-
-
-[実機確認: 順番制ゲームのアプリ終了]
-□ TELEPHONEの手番中にPARTY/Phoneを閉じると、その手番を即skipして次の開いている参加者へ進む
-□ BOMBの手番中にPARTY/Phoneを閉じると、閉じた参加者を飛ばして次へ進む
-□ TIC-TAC中にPARTY/Phoneを閉じると、相手の不戦勝として結果確定する
-□ 上記でRoom自体からは退出せず、次Roundには通常参加できる
-※ FiveM複数クライアント実機で未確認の間は合格扱いにしない
-
-
-PARTY+ app/phone close実機確認（未検証）:
-- NG WORDで説明役close時に即終了し、回答役close時は残り回答者だけで完了できること。
-- FAKE ANSWERの偽回答phase/投票phaseで1人closeしても45秒待たず残り入力で進行すること。
-- MEMORY CHAINで入力待ち参加者close時にそのstage脱落となり、残り参加者が継続できること。
-- close後に再openしても終了済み/進行済みphaseへ古い入力を送れず、次Roundには通常参加できること。
-
-
-[実機確認: PARTY+ FiveM切断時の即時進行]
-□ FAKE ANSWERの偽回答/投票待ちで未入力者が切断しても、残り入力済みなら即進行する
-□ MEMORY CHAIN入力待ちで未入力者が切断しても、残り入力済みなら即stage判定する
-□ 60秒以内再接続で既に進んだphase/stageが巻き戻らない
-※ FiveM複数クライアント実機で未確認の間は合格扱いにしない
-
-
-[未検証] PARTY+ 開始後の最低人数割れ
-□ NG WORD: 3人開始→回答役1人FiveM切断後も残り2人で継続（説明役切断は終了）
-□ FAKE ANSWER: 3人開始→1人切断後も残り2人のsubmit/voteで進行
-□ BOMB: 3人開始→1人切断後も残り2人へ手番継続
-□ MEMORY CHAIN: 2人開始→1人切断で残存1人を勝者確定
-□ FALL BATTLE: 2人開始→1人切断をDNFとして残し、残存者提出で順位確定
-□ FALL BATTLE: server検証済み提出後に切断してもscore/linesが結果に残る
-
-
-【実機未検証：アプリ終了と遅延callbackの競合】
-□ 2台以上でラウンド中、入力送信とほぼ同時にPARTYアプリまたはPhoneを閉じる
-□ close後に遅れて到着したReady／開始／各ゲームsubmitがサーバー状態を変更しない
-□ 閉じた端末はRoom所属を維持したまま appOpen=false になり、通常の再openで同じRoomへ復帰できる
-□ Hostを閉じた場合、開いている別参加者へHostが移り、旧Host再open後もRoom操作が破綻しない
-※ FiveM＋LB Phone複数クライアントでのタイミング依存確認が必要。未実施の間は成功扱いにしない。
-
-
-【実機未検証：閉じたHostと後参加者のHost復旧】
-□ HostがPARTY/Phoneを閉じ、既存参加者も全員アプリを閉じた状態にする
-□ その後、新しい参加者がRoomへJoinすると、その開いている参加者へHostが即移行する
-□ 新Hostが追加の再openやサーバー再起動なしでゲーム選択・開始できる
-□ 旧Hostを再openしてもHost権限を奪い返さず、通常参加者としてRoomへ復帰する
-※ FiveM＋LB Phone複数クライアントで未確認の間は合格扱いにしない
-
-
-【実機未検証：閉じた端末へのRoom push抑止】
-□ PARTY/Phoneを閉じた参加者へ partyUpdate / DRAW stroke等のRoom pushが送信されない
-□ 開いている他参加者には同じ更新が即時反映され、Round進行が止まらない
-□ 閉じた参加者を再openするとGetRoomで最新状態へ復帰し、server再起動を必要としない
-□ game_party_statusで閉じた参加者のappOpen=falseが維持される
-※ FiveM＋LB Phone複数クライアントで未確認の間は合格扱いにしない
-
-
-## 同時入力ゲームのapp/phone close（未検証・2026-10-24）
-- REACTION / STOP! BATTLE / VOTE / MAJORITY / MINORITY / WORD WOLF / LIAR で、未入力者がPARTY/Phoneを閉じた場合、その端末を回答待ち人数から即除外し、残るapp-open参加者が全員入力済みならtimeoutを待たず結果確定すること。
-- 進捗表示の分母・分子がapp-open参加者基準へ即更新され、`入力済み 2/3` のような閉じた端末待ち表示が残らないこと。
-- 閉じた参加者はRoom所属を維持し、再open後は終了済みRoundへ遅延submitできず、次Roundには通常参加できること。
-- FiveM + LB Phone複数クライアントで確認するまでPASS扱いしない。
-
-
-[未検証] 同時入力ゲームのApp/Phone close即時再評価
-□ 入力済み参加者だけが残るよう未入力者をcloseし、deadlineを待たず結果確定する
-□ closeした参加者の再openで完了済みRoundが巻き戻らない
-※ FiveM＋LB Phone複数クライアント実機で確認するまでPASS扱いしない。
-
-
-【実機未検証：client側suspend callback gate】
-□ PARTY/Phone closeと同時にpoll／Ready／submit／GetRoomを発火させ、close後にclientへ届いたrequestがserverへ送信されない
-□ game_party_statusでclosed memberのappOpen=falseが維持され、古いGetRoomでtrueへ戻らない
-□ 通常の再open後はGetRoomが成功し、同じRoomの最新snapshotへ復帰する
-※ server側closed callback拒否との二重防御をFiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
-
-LIVE TEST REQUIRED: PARTY App/Phone close role handling
-- DRAW: 描き手がcloseしたら90秒timeoutを待たずDRAWER_LEFTで終了すること。
-- DRAW: 未回答者がcloseしたら、その端末を待たず残りapp-open回答者だけで完了判定されること。
-- WORD WOLF / LIAR: Wolf/Liar本人がcloseしたらSECRET_PLAYER_LEFTで即中断し、秘密役不在の結果確定へ進まないこと。
-- closeした参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。
-
-【NG WORD close progress（実機未検証）】
-・guess中の未回答者がPARTY/Phoneを閉じた時、残るapp-open参加者だけで回答進捗が再計算されること。
-・閉じた参加者が待ち人数に残らず、再openしても完了済みRoundが巻き戻らないこと。
-・game_party_status と端末表示を照合すること。
-
-[ ] LIVE TEST REQUIRED: LB Phone小画面・7〜10人Roomで参加者一覧だけが内部スクロールし、ROOM CODE / Ready / ゲーム選択 / 開始ボタンが操作しやすいこと。長い名前でも横崩れしないこと。
-
-[ ] LIVE TEST REQUIRED: VOTE / WORD WOLF / LIARで投票候補の参加者がPARTY/Phoneを閉じると候補から消え、close前の候補を遅延送信してもINVALID_TARGETになる。再open後は最新snapshotで候補へ復帰する。
-
-[ ] DRAW: 正解済み参加者がapp/phone closeすると進捗の正解者数から外れ、残るapp-open対象人数より分子が大きくならない。再open後は最新snapshotへ収束
-[ ] MEMORY CHAIN: input中に未回答者がPARTY/Phoneを閉じる → 残存app-open参加者だけで進行/LAST_ALIVE確定 → 再openしても完了済みstage/roundが巻き戻らない（実機複数クライアント必須）
-
-[ ] FAKE ANSWER: submit/vote済み参加者がapp/phone close → closed本人をscore/winner候補から除外し、close前の本人voteも最終集計へ加算しない。残存app-open参加者だけで結果確定（実機複数クライアント必須）
-
-[ ] LIVE TEST REQUIRED: MAJORITY / MINORITYで回答済み参加者が結果確定前にPARTY/Phoneをcloseした場合、その回答と本人が最終count/entriesから除外され、残存app-open参加者だけで勝敗確定すること。reopen後も完了済みroundが巻き戻らないこと。
-
-- REACTION / STOP! BATTLE app/phone close実機確認: submit済み参加者が結果確定直前にcloseした場合、その参加者を最終entries/winner候補から除外し、残存app-open参加者だけで結果が確定すること。reopen後も完了済みroundが巻き戻らないこと。
-
-- LIVE TEST REQUIRED: NG WORD / MEMORY CHAINで入力済み参加者が結果確定前にPARTY/Phoneをcloseした場合、closed参加者を最終results entriesから除外し、残存app-open参加者だけの結果表示になること。再open後も完了済みRoundを巻き戻さないこと。

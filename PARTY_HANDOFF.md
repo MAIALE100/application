@@ -591,3 +591,11 @@ LOOP完成版には不要な変更を入れない。
 - close後の待機解除だけでなく、結果集計もapp-open参加者基準へ統一。
 - 実機FiveM＋LB Phone複数クライアント確認は未実施で、TESTING/checklist上はLIVE TEST REQUIRED。
 - LOOP / games-update.cmd系は変更なし。
+
+
+## 2026-10-24 PARTY+ revenue構文破損の修復
+- GitHub Actions runnerがjob開始前failureを継続している期間に、WEAZEL売上振替対応の文字列置換で `party_plus.lua` と `server/bridge/framework.lua` に構文破損・旧実装重複が混入していたことを手動監査で検出。
+- `party_plus.lua` を単一実装へ再構成し、7日/50,000、自動更新、WEAZEL口座入金、入金失敗時refund、購読保存失敗時の企業口座rollback+player refundを維持。
+- framework adapterも単一のAddSocietyMoney/RemoveSocietyMoney実装へ整理し、Qbox character unload bridgeの重複を除去。
+- static checkに、subscription core重複・society adapter重複・account trim破損・売上deposit/rollback欠落をfail-closedで検出するguardを追加。
+- GitHub-hosted runnerが復旧するまではLua parserを含むActions greenを確認できないため、最新HEADを提出可とは扱わない。

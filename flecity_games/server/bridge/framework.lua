@@ -65,7 +65,12 @@ end
 function FlecityGamesFramework.RemoveMoney(source,moneyType,amount,reason)
     if GetResourceState('qbx_core')~='started' then return false end
     local ok,result=pcall(function()
-        return exports.qbx_core:RemoveMoney(tonumber(source),tostring(moneyType or 'bank'),math.floor(tonumber(amount) or 0),reason or 'flecity_games')
+        return exports.qbx_core:RemoveMoney(
+            tonumber(source),
+            tostring(moneyType or 'bank'),
+            math.floor(tonumber(amount) or 0),
+            reason or 'flecity_games'
+        )
     end)
     return ok and result==true
 end
@@ -73,11 +78,15 @@ end
 function FlecityGamesFramework.AddMoney(source,moneyType,amount,reason)
     if GetResourceState('qbx_core')~='started' then return false end
     local ok,result=pcall(function()
-        return exports.qbx_core:AddMoney(tonumber(source),tostring(moneyType or 'bank'),math.floor(tonumber(amount) or 0),reason or 'flecity_games')
+        return exports.qbx_core:AddMoney(
+            tonumber(source),
+            tostring(moneyType or 'bank'),
+            math.floor(tonumber(amount) or 0),
+            reason or 'flecity_games'
+        )
     end)
     return ok and result==true
 end
-
 
 local function societyProvider(preferred)
     preferred=tostring(preferred or 'auto'):lower()
@@ -92,17 +101,7 @@ local function societyProvider(preferred)
 end
 
 function FlecityGamesFramework.AddSocietyMoney(accountName,amount,provider)
-    local account=tostring(accountName or ''):gsub('^%s+',''):gsub('%s+
-
--- Qbox emits this before the loaded character is removed from core memory.
--- Keep the framework-specific event name inside this adapter and expose a
--- framework-neutral lifecycle event to the rest of Flecity Games.
-AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
-    if GetResourceState('qbx_core')~='started' then return end
-    local src=tonumber(source)
-    if src then TriggerEvent('flecity_games:framework:playerUnloaded',src) end
-end)
-,'')
+    local account=tostring(accountName or ''):gsub('^%s+',''):gsub('%s+$','')
     local value=math.floor(tonumber(amount) or 0)
     if account=='' or value<=0 then return false,nil end
     local selected=societyProvider(provider)
@@ -126,17 +125,7 @@ end)
 end
 
 function FlecityGamesFramework.RemoveSocietyMoney(accountName,amount,provider)
-    local account=tostring(accountName or ''):gsub('^%s+',''):gsub('%s+
-
--- Qbox emits this before the loaded character is removed from core memory.
--- Keep the framework-specific event name inside this adapter and expose a
--- framework-neutral lifecycle event to the rest of Flecity Games.
-AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
-    if GetResourceState('qbx_core')~='started' then return end
-    local src=tonumber(source)
-    if src then TriggerEvent('flecity_games:framework:playerUnloaded',src) end
-end)
-,'')
+    local account=tostring(accountName or ''):gsub('^%s+',''):gsub('%s+$','')
     local value=math.floor(tonumber(amount) or 0)
     if account=='' or value<=0 then return false,nil end
     local selected=societyProvider(provider)
@@ -158,7 +147,6 @@ end)
 
     return false,selected
 end
-
 
 -- Qbox emits this before the loaded character is removed from core memory.
 -- Keep the framework-specific event name inside this adapter and expose a

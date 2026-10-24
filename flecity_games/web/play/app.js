@@ -2780,6 +2780,11 @@ async function startNumberRush(){
 }
 async function tapNumberRush(index){
  if(!numberRush||!numberRush.running||numberRush.finished||numberRush.completed.has(index))return;
+ const tapNow=performance.now();
+ // Ignore only same-cell bounce: a mistaken double tap should not charge two misses,
+ // while rapid taps across different cells remain fully responsive.
+ if(numberRush.lastTapIndex===index&&tapNow-(numberRush.lastTapAt||0)<120)return;
+ numberRush.lastTapIndex=index;numberRush.lastTapAt=tapNow;
  numberRush.history.push(index);
  const value=numberRush.board[index];
  if(value!==numberRush.next){

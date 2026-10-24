@@ -46,30 +46,34 @@ local function validateRuntimeConfig()
 
     if totalWeight <= 0 then return false, 'total product weight is zero' end
 
-    local capacity = tonumber(Config.MaxRawOre)
-    if not capacity or capacity < 1 or capacity % 1 ~= 0 or capacity > 1000 then
-        return false, 'invalid MaxRawOre (must be an integer from 1 to 1000)'
+    -- These values are used directly in arithmetic/comparisons later. Do not
+    -- accept numeric strings here: tonumber("12") would pass validation but
+    -- Config.MaxRawOre would still be a string at runtime and could crash a
+    -- player action. Operator config must use real Lua numbers.
+    local capacity = Config.MaxRawOre
+    if type(capacity) ~= 'number' or capacity < 1 or capacity % 1 ~= 0 or capacity > 1000 then
+        return false, 'invalid MaxRawOre (must be a numeric integer from 1 to 1000)'
     end
 
-    local cooldown = tonumber(Config.NodeCooldownMs)
-    if not cooldown or cooldown < 0 then return false, 'invalid NodeCooldownMs' end
+    local cooldown = Config.NodeCooldownMs
+    if type(cooldown) ~= 'number' or cooldown < 0 then return false, 'invalid NodeCooldownMs (must be numeric)' end
 
-    local miningDuration = tonumber(Config.MiningDurationMs)
-    local processingDuration = tonumber(Config.ProcessingDurationMs)
-    local sellingDuration = tonumber(Config.SellingDurationMs)
-    if not miningDuration or miningDuration < 1000 then return false, 'invalid MiningDurationMs' end
-    if not processingDuration or processingDuration < 1000 then return false, 'invalid ProcessingDurationMs' end
-    if not sellingDuration or sellingDuration < 500 then return false, 'invalid SellingDurationMs' end
+    local miningDuration = Config.MiningDurationMs
+    local processingDuration = Config.ProcessingDurationMs
+    local sellingDuration = Config.SellingDurationMs
+    if type(miningDuration) ~= 'number' or miningDuration < 1000 then return false, 'invalid MiningDurationMs (must be numeric)' end
+    if type(processingDuration) ~= 'number' or processingDuration < 1000 then return false, 'invalid ProcessingDurationMs (must be numeric)' end
+    if type(sellingDuration) ~= 'number' or sellingDuration < 500 then return false, 'invalid SellingDurationMs (must be numeric)' end
 
-    local yieldMin = Config.RawYield and tonumber(Config.RawYield.min)
-    local yieldMax = Config.RawYield and tonumber(Config.RawYield.max)
-    if not yieldMin or not yieldMax or yieldMin < 1 or yieldMax < yieldMin
+    local yieldMin = Config.RawYield and Config.RawYield.min
+    local yieldMax = Config.RawYield and Config.RawYield.max
+    if type(yieldMin) ~= 'number' or type(yieldMax) ~= 'number' or yieldMin < 1 or yieldMax < yieldMin
         or yieldMin % 1 ~= 0 or yieldMax % 1 ~= 0 then
         return false, 'invalid RawYield min/max'
     end
 
-    local tolerance = tonumber(Config.ServerDistanceTolerance)
-    if not tolerance or tolerance <= 0 or tolerance > 20.0 then
+    local tolerance = Config.ServerDistanceTolerance
+    if type(tolerance) ~= 'number' or tolerance <= 0 or tolerance > 20.0 then
         return false, 'invalid ServerDistanceTolerance'
     end
 

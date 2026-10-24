@@ -1834,7 +1834,7 @@ local function memoryAliveIdentifiers(room)
     local rs=room.roundState
     local alive={}
     for id,m in pairs(room.members or {}) do
-        if not m.disconnected and not (rs.eliminated and rs.eliminated[id]) then alive[#alive+1]=id end
+        if not m.disconnected and m.appOpen~=false and not (rs.eliminated and rs.eliminated[id]) then alive[#alive+1]=id end
     end
     table.sort(alive,function(a,b)
         return (room.members[a].joinOrder or 0)<(room.members[b].joinOrder or 0)
@@ -2558,6 +2558,15 @@ function FlecityGamesParty.DebugSelftest()
     }}
     reconcileRound(memoryDisconnectRoom)
 
+    local memoryAppClosedRoom={members={
+        a={memberId='A',name='Alpha',disconnected=false,appOpen=true,joinOrder=1},
+        b={memberId='B',name='Bravo',disconnected=false,appOpen=false,joinOrder=2}
+    },roundState={
+        token='memory-app-closed',gameId='memory_chain',startedAt=0,startedTick=0,complete=false,submissions={},
+        stage=3,phase='input',sequence={'A','B','C'},stageSubmissions={},eliminated={},maxStages=8
+    }}
+    reconcileRound(memoryAppClosedRoom)
+
     local fallDisconnectRoom={members={
         a={memberId='A',name='Alpha',disconnected=false,appOpen=true,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=true,appOpen=false,joinOrder=2}
@@ -2590,6 +2599,9 @@ function FlecityGamesParty.DebugSelftest()
         memoryChainDisconnectContinues=memoryDisconnectRoom.roundState.complete==true
             and memoryDisconnectRoom.roundState.results.winnerMemberIds[1]=='A'
             and memoryDisconnectRoom.roundState.results.reason=='LAST_ALIVE',
+        memoryChainAppCloseContinues=memoryAppClosedRoom.roundState.complete==true
+            and memoryAppClosedRoom.roundState.results.winnerMemberIds[1]=='A'
+            and memoryAppClosedRoom.roundState.results.reason=='LAST_ALIVE',
         fallBattleDisconnectContinues=fallDisconnectRoom.roundState.complete==true
             and fallDisconnectRoom.roundState.results.winnerMemberIds[1]=='A'
             and #fallDisconnectRoom.roundState.results.entries==2

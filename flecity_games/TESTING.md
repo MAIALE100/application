@@ -817,3 +817,5 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - reopen後も完了済みroundのcount/勝敗が巻き戻らないことを確認する。
 
 - REACTION / STOP! BATTLE app/phone close実機確認: submit済み参加者が結果確定直前にcloseした場合、その参加者を最終entries/winner候補から除外し、残存app-open参加者だけで結果が確定すること。reopen後も完了済みroundが巻き戻らないこと。
+
+- LIVE TEST REQUIRED: NG WORD / MEMORY CHAINで入力済み参加者が結果確定前にPARTY/Phoneをcloseした場合、closed参加者を最終results entriesから除外し、残存app-open参加者だけの結果表示になること。再open後も完了済みRoundを巻き戻さないこと。

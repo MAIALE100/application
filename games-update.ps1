@@ -124,11 +124,32 @@ try {
         $run = $runs.workflow_runs | Where-Object { $_.head_sha -eq $headCommit -and $_.name -in @('Flecity Games Static Check','Flecity Games Check') } | Select-Object -First 1
 
         if ($run -and $run.status -eq 'completed') {
-            if ($run.conclusion -ne 'success') {
-                throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+            if ($run.conclusion -eq 'success') {
+                $workflowVerified = $true
+                Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
             }
-            $workflowVerified = $true
-            Write-Host ("GitHub Actions: PASS ({0})" -f $headCommit.Substring(0,7)) -ForegroundColor Green
+            else {
+                $preStartFailure = $false
+                try {
+                    $jobs = Invoke-RestMethod -Uri $run.jobs_url -Headers $headers -Method Get -ErrorAction Stop
+                    $jobList = @($jobs.jobs)
+                    if ($jobList.Count -gt 0) {
+                        $executedSteps = 0
+                        foreach ($job in $jobList) {
+                            if ($null -ne $job.steps) { $executedSteps += @($job.steps).Count }
+                        }
+                        $preStartFailure = $executedSteps -eq 0
+                    }
+                }
+                catch {}
+
+                if ($preStartFailure) {
+                    Write-Host ("GitHub Actions ended before any step ran ({0}). Falling back to local safety checks." -f $run.conclusion) -ForegroundColor Yellow
+                }
+                else {
+                    throw "GitHub Actions rejected commit $($headCommit.Substring(0,7)) ($($run.conclusion)). Test server was not changed."
+                }
+            }
         }
         elseif ($run) {
             Write-Host ("GitHub Actions is still {0}. Using local safety checks instead of waiting." -f $run.status) -ForegroundColor Yellow
@@ -382,7 +403,7 @@ try {
     if ($playIndexText -notmatch 'class="home-top-safe"' -or $cssText -notmatch '\.home-top-safe\{height:3rem' -or $playIndexText -match '<header class="header app-header">' -or $playIndexText -match 'id="runtimeVersion"') { throw 'PLAY clean home top check failed.' }
     if ($playAppText -notmatch 'enableHorizontalDragScroll' -or $cssText -notmatch 'touch-action:pan-y' -or $cssText -notmatch 'is-dragging') { throw 'PLAY home horizontal drag scroll check failed.' }
     if ($playAppText -notmatch 'continueGames\.scrollLeft=0;recentGames\.scrollLeft=0;') { throw 'PLAY home strip reset check failed.' }
-    if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\{display:none!important\}') { throw 'PLAY in-game shared status suppression check failed.' }
+    if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\.hidden\{display:none!important\}') { throw 'PLAY in-game status toast visibility check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'startFallSoftDrop' -or $playAppText -notmatch 'fallSoft') { throw 'FALL soft drop / NEXT queue check failed.' }

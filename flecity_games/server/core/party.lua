@@ -631,57 +631,95 @@ local function miniShogiOrderedMoves(board,hands,side,limit)
     for i=1,count do ordered[i]=ranked[i].move end
     return ordered
 end
+local function miniShogiSearch(board,hands,side,depth,alpha,beta,limits,ply)
+    local limit=limits and limits[math.min(ply or 1,#limits)] or nil
+    local moves=miniShogiOrderedMoves(board,hands,side,limit)
+    if #moves<1 then
+        if side=='W' then return -10000000+(ply or 0) end
+        return 10000000-(ply or 0)
+    end
+    if depth<=0 then return miniShogiEvaluate(board,hands) end
+
+    if side=='W' then
+        local best=-math.huge
+        for _,move in ipairs(moves) do
+            local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
+            miniShogiApplyAction(b,h,move)
+            local value=miniShogiSearch(b,h,'B',depth-1,alpha,beta,limits,(ply or 0)+1)
+            if value>best then best=value end
+            if best>alpha then alpha=best end
+            if beta<=alpha then break end
+        end
+        return best
+    end
+
+    local best=math.huge
+    for _,move in ipairs(moves) do
+        local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
+        miniShogiApplyAction(b,h,move)
+        local value=miniShogiSearch(b,h,'W',depth-1,alpha,beta,limits,(ply or 0)+1)
+        if value<best then best=value end
+        if best<beta then beta=best end
+        if beta<=alpha then break end
+    end
+    return best
+end
+
 local function miniShogiChooseAiMove(rs)
-    local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',22)
+    local difficulty=tostring(rs and rs.aiDifficulty or 'hard')
+    if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' and difficulty~='oni' then difficulty='hard' end
+
+    local config={
+        easy={root=12,depth=0,limits={8}},
+        normal={root=18,depth=1,limits={12}},
+        hard={root=22,depth=2,limits={16,8}},
+        oni={root=20,depth=3,limits={12,8,5}}
+    }
+    local cfg=config[difficulty] or config.hard
+    local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',cfg.root)
     if #rootMoves<1 then return nil end
+
+    if difficulty=='easy' then
+        local pool={}
+        local count=math.min(#rootMoves,8)
+        for i=1,count do
+            local move=rootMoves[i]
+            local b=miniShogiCopyBoard(rs.board) local h=miniShogiCopyHands(rs.hands)
+            miniShogiApplyAction(b,h,move)
+            local score=miniShogiEvaluate(b,h)+miniShogiMoveOrderScore(rs.board,rs.hands,move,'W')*0.08
+            pool[#pool+1]={move=move,score=score+(math.random()*650)}
+        end
+        table.sort(pool,function(a,b) return a.score>b.score end)
+        local pick=math.random(1,math.min(3,#pool))
+        return pool[pick].move
+    end
 
     local bestScore=-math.huge
     local bestMoves={}
+    local alpha=-math.huge
     for _,move in ipairs(rootMoves) do
         local boardAfter=miniShogiCopyBoard(rs.board)
         local handsAfter=miniShogiCopyHands(rs.hands)
         miniShogiApplyAction(boardAfter,handsAfter,move)
 
-        local humanReplies=miniShogiOrderedMoves(boardAfter,handsAfter,'B',16)
+        local humanMoves=miniShogiAllMoves(boardAfter,handsAfter,'B')
         local score
-        if #humanReplies<1 then
-            score=miniShogiInCheck(boardAfter,'B') and 10000000 or 5000000
+        if #humanMoves<1 then
+            score=10000000
+        elseif cfg.depth<=0 then
+            score=miniShogiEvaluate(boardAfter,handsAfter)
         else
-            local worstForAi=math.huge
-            for _,reply in ipairs(humanReplies) do
-                local replyBoard=miniShogiCopyBoard(boardAfter)
-                local replyHands=miniShogiCopyHands(handsAfter)
-                miniShogiApplyAction(replyBoard,replyHands,reply)
-
-                local aiReplies=miniShogiOrderedMoves(replyBoard,replyHands,'W',8)
-                local continuation
-                if #aiReplies<1 then
-                    continuation=miniShogiInCheck(replyBoard,'W') and -10000000 or -5000000
-                else
-                    local bestContinuation=-math.huge
-                    for _,counter in ipairs(aiReplies) do
-                        local counterBoard=miniShogiCopyBoard(replyBoard)
-                        local counterHands=miniShogiCopyHands(replyHands)
-                        miniShogiApplyAction(counterBoard,counterHands,counter)
-                        local value=miniShogiEvaluate(counterBoard,counterHands)
-                        if miniShogiInCheck(counterBoard,'B') then value=value+180 end
-                        if value>bestContinuation then bestContinuation=value end
-                    end
-                    continuation=bestContinuation
-                end
-                if continuation<worstForAi then worstForAi=continuation end
-                if worstForAi<=bestScore-1200 then break end
-            end
-            score=worstForAi
+            score=miniShogiSearch(boardAfter,handsAfter,'B',cfg.depth,alpha,math.huge,cfg.limits,1)
         end
 
-        score=score+(math.random()*0.01)
+        if difficulty=='normal' then score=score+(math.random()*12) end
         if score>bestScore then
             bestScore=score
             bestMoves={move}
         elseif math.abs(score-bestScore)<0.001 then
             bestMoves[#bestMoves+1]=move
         end
+        if bestScore>alpha then alpha=bestScore end
     end
     return bestMoves[math.random(1,#bestMoves)]
 end
@@ -1154,6 +1192,7 @@ local function publicRoundState(room,viewerId)
         out.board=rs.board or {}
         out.hands=rs.hands or miniShogiInitialHands()
         out.aiEnabled=rs.aiEnabled==true
+        out.aiDifficulty=rs.aiDifficulty or 'hard'
         out.currentMemberId=rs.currentIdentifier=='AI' and 'AI' or memberPublicId(room,rs.currentIdentifier)
         out.isCurrent=viewerId==rs.currentIdentifier
         out.side=rs.sides and rs.sides[viewerId] or nil
@@ -1314,6 +1353,7 @@ local function snapshot(room,viewerId)
     return {
         code=room.code,revision=tonumber(room.revision) or 0,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
         mastermindOptions=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},
+        shogiOptions=room.shogiOptions or {aiDifficulty='hard'},
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -1430,7 +1470,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},shogiOptions={aiDifficulty='hard'},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -1575,6 +1615,20 @@ function FlecityGamesParty.SetMastermindOptions(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
+function FlecityGamesParty.SetShogiOptions(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
+    if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
+    if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
+    local difficulty=tostring(type(data)=='table' and data.aiDifficulty or 'hard')
+    if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' and difficulty~='oni' then difficulty='hard' end
+    room.shogiOptions={aiDifficulty=difficulty}
+    for _,m in pairs(room.members) do m.ready=false end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.StartRound(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1671,6 +1725,8 @@ function FlecityGamesParty.StartRound(source)
         local ids=connectedIdentifiers(room)
         rs.board=miniShogiInitialBoard()
         rs.hands=miniShogiInitialHands()
+        local shogiOptions=room.shogiOptions or {aiDifficulty='hard'}
+        rs.aiDifficulty=tostring(shogiOptions.aiDifficulty or 'hard')
         rs.aiEnabled=#ids==1
         if rs.aiEnabled then
             rs.turnOrder={ids[1],'AI'}

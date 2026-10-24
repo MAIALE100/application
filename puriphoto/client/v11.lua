@@ -6,7 +6,13 @@ local function replyLater(callback, action, payload)
     local requestId = nextRequestId
 
     pendingRequests[requestId] = callback
-    TriggerServerEvent(("puriphoto:server:%s"):format(action), requestId, payload)
+
+    local eventName = ("puriphoto:server:%s"):format(action)
+    if action == "saveProject" then
+        TriggerLatentServerEvent(eventName, 500000, requestId, payload)
+    else
+        TriggerServerEvent(eventName, requestId, payload)
+    end
 
     SetTimeout(12000, function()
         local pending = pendingRequests[requestId]
@@ -83,6 +89,10 @@ end)
 
 RegisterNUICallback("puriphotoSaveProject", function(data, cb)
     replyLater(cb, "saveProject", data)
+end)
+
+RegisterNUICallback("puriphotoGetProject", function(data, cb)
+    replyLater(cb, "getProject", data)
 end)
 
 RegisterNUICallback("puriphotoDeleteProject", function(data, cb)

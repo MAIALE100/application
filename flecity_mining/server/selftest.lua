@@ -64,7 +64,7 @@ local function runSelfTest()
         for _, product in ipairs(Config.RefinedProducts) do
             local weight = tonumber(product.weight) or 0
             local value = tonumber(product.value) or -1
-            if not product.id or tostring(product.id) == '' or product.label == nil or tostring(product.label) == ''
+            if type(product.id) ~= 'string' or product.id == '' or type(product.label) ~= 'string' or product.label == ''
                 or productIds[product.id] or weight <= 0 or value < 0 then
                 productsOk = false
                 break

@@ -345,7 +345,7 @@ function renderResults(room){
 
    const hero=document.createElement('div');
    hero.className='fall-result-hero'+(winners.some(e=>e.memberId===selfId)?' is-self-winner':'');
-   const eyebrow=document.createElement('div');eyebrow.className='fall-result-eyebrow';eyebrow.textContent=winners.length?'FALL BATTLE RESULT':'RESULT';
+   const eyebrow=document.createElement('div');eyebrow.className='fall-result-eyebrow';eyebrow.textContent=winners.length?'落下バトル 結果':'結果';
    const title=document.createElement('div');title.className='fall-result-title';
    title.textContent=winners.length===1?'1st · '+winners[0].name:(winners.length>1?'TIE · '+winners.map(e=>e.name).join(' / '):'有効記録なし');
    const sub=document.createElement('div');sub.className='fall-result-sub';
@@ -695,7 +695,7 @@ function setupDeduction(room){
    deductionHint.textContent='まず全員でお題について話し、投票タイムになったら少数派だと思う人を選びます。';
  }else{
    deductionGame.textContent='ウソつき探し';deductionSecret.textContent='質問: '+String(rs.prompt||'---');
-   deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には自然な嘘で答え、見破られないようにしてください。':'あなたはTRUTHです。質問には正直に答え、LIARを探してください。';
+   deductionHint.textContent=rs.role==='LIAR'?'あなたはウソつき役です。質問には自然な嘘で答え、見破られないようにしてください。':'あなたは正直者です。質問には正直に答え、ウソつき役を探してください。';
  }
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){deductionChoices.innerHTML='<div class="status good">投票済み · '+submissionProgress(rs)+'<br>ほかの参加者を待っています。</div>';return;}
@@ -880,7 +880,7 @@ function renderRoom(room,timing){
  }else{
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
-   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));status('ラウンド '+room.round+' / '+room.selectedGame,'good');
+   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));const activeGame=selectedGameConfig(room);status('ラウンド '+room.round+' / '+String(activeGame&&activeGame.name||room.selectedGame),'good');
    startDeadlineLoop(rs);
    if(rs&&rs.gameId==='code_break')setupCodeBreak(room);
    else if(rs&&rs.gameId==='reversi')setupReversi(room);
@@ -1009,7 +1009,7 @@ gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value)
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
  const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no',turnLimit:mastermindTurnLimit.value!=='no',firstTurn:mastermindFirstTurn.value});
- if(!res.ok){status('MASTERMIND設定変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ if(!res.ok){status('暗号解読の設定変更に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
  renderRoom(res.room);
 }
 mastermindAiDifficulty.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
@@ -1186,7 +1186,7 @@ memoryChainSubmit.onclick=()=>runOnce('memory-chain-submit',async()=>{
  memoryChainSubmit.disabled=true;
  try{
    const res=await FlecityBridge.call('partySubmitMemoryChain',{token:rs.token,answer:memoryChainLocal.join('')});
-   if(!res.ok){status('MEMORY CHAIN送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   if(!res.ok){status('記憶チェインの送信に失敗: '+FlecityErrors.text(res.error),'error');return;}
    renderRoom(res.room);
  }finally{memoryChainSubmit.disabled=false;}
 });
@@ -1195,7 +1195,7 @@ bombPass.onclick=()=>runOnce('bomb-pass',async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='bomb'||!rs.isCurrent)return;
  bombPass.disabled=true;
  const res=await FlecityBridge.call('partySubmitBombPass',{token:rs.token});
- if(!res.ok){status('BOMB送信失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ if(!res.ok){status('爆弾リレーの送信に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
  renderRoom(res.room);
 });
 

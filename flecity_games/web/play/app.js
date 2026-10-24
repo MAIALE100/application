@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,fallSoftClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,slideGame=null,slideClock=null,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,fallSoftClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,mineSuppressClickIndex=-1,mineLastTapAt=0,mineLastTapIndex=-1,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,nonogramSuppressClickIndex=-1,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,sortLastTapAt=0,sortLastTapIndex=-1,slideGame=null,slideClock=null,slideLastTapAt=0,slideLastTapIndex=-1,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -64,13 +64,16 @@ function setStatus(text,type){
  clearTimeout(statusTimer);statusTimer=null;
  const inGame=document.body.classList.contains('game-active');
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
- if(inGame){statusEl.textContent='';statusEl.className='status app-status hidden';return;}
  statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
  if(type==='good'){
    const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);
  }else if(type==='warn'){
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),2600);
+ }else if(type==='error'&&inGame){
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),3200);
+ }else if(inGame){
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
  }
 }
 let confirmResolver=null;
@@ -738,7 +741,11 @@ async function resolveQuickTap(){
    await cancelPlaySession(game.sessionToken);tapSession=null;tapState='idle';tapButton.disabled=false;tapButton.textContent='もう一度';
    tapMessage.textContent='判定できませんでした';setStatus('QUICK TAP FOCUSの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
  }
- game.hits=Number(res.hits)||0;game.falseStarts=Number(res.falseStarts)||0;game.lives=Number(res.lives)||0;renderQuickMeta();
+ const responseHits=Number(res.hits),responseFalseStarts=Number(res.falseStarts),responseLives=Number(res.lives);
+ if(Number.isFinite(responseHits))game.hits=Math.max(0,responseHits);
+ if(Number.isFinite(responseFalseStarts))game.falseStarts=Math.max(0,responseFalseStarts);
+ if(Number.isFinite(responseLives))game.lives=Math.max(0,responseLives);
+ renderQuickMeta();
  if(res.falseStart){
    game.focusStreak=0;setQuickVisual('false-start');tapMessage.textContent='フライング! · FOCUS RESET';tone(180,70);
    if(res.ended){await sleep(350);if(tapSession===game)await finishQuickRun(res);return;}
@@ -1615,6 +1622,11 @@ function holdFallPiece(){
 }
 async function dropFall(autoLock=false){
  const game=fallGame;if(!game||game.finished||game.finalizing||game.busy||game.ended)return;
+ if(!autoLock){
+   const now=performance.now();
+   if(now-(Number(game.lastManualDropAt)||0)<120)return;
+   game.lastManualDropAt=now;
+ }
  game.busy=true;
  const pressureBefore=fallPressure(game),scoreBefore=Number(game.score)||0,levelBefore=1+Math.floor((Number(game.lines)||0)/5),applied=fallApplyPlacement(game.board,game.width,game.height,game.nextPiece,game.x,game.rotation,game.combo,game.lines);
  if(!applied){game.busy=false;tone(150,30);setStatus('その位置には置けません。','warn');renderFall();return;}
@@ -1790,9 +1802,9 @@ function renderMines(){
    b.disabled=mines.finished;
    let holdTimer=null;
    const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
-   b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;mineSuppressClickUntil=performance.now()+650;void flagMineDirect(i);},420);};
+   b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;mineSuppressClickIndex=i;mineSuppressClickUntil=performance.now()+650;void flagMineDirect(i);},420);};
    b.onpointerup=clearHold;b.onpointercancel=clearHold;b.onpointerleave=clearHold;
-   b.onclick=()=>{clearHold();if(performance.now()<mineSuppressClickUntil)return;void touchMine(i);};
+   b.onclick=()=>{clearHold();const now=performance.now();if(i===mineSuppressClickIndex&&now<mineSuppressClickUntil)return;if(now>=mineSuppressClickUntil)mineSuppressClickIndex=-1;if(mineLastTapIndex===i&&now-mineLastTapAt<120)return;mineLastTapIndex=i;mineLastTapAt=now;void touchMine(i);};
    minesBoard.appendChild(b);
  }
  minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');
@@ -2022,7 +2034,11 @@ async function finishStack(){
 }
 async function dropStackBlock(){
  if(!stackGame||stackGame.finished||stackGame.finalizing)return;
- const now=performance.now(),previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
+ const now=performance.now();
+ // Ignore touch/click bounce after a placement so one physical tap cannot drop the next layer too.
+ // 140ms is short enough to stay below any meaningful TOWER timing window while covering mobile double-fire.
+ if(now-stackGame.layerStartedAt<140)return;
+ const previous=stackGame.history.length?stackGame.history[stackGame.history.length-1]:0;
  const actionMs=Math.max(previous+.001,Math.round((now-stackGame.startedAt)*1000)/1000);
  stackGame.x=stackPosition(now-stackGame.layerStartedAt,stackGame.width,stackGame.speed,stackGame.reverse);
  stackGame.history.push(actionMs);
@@ -2162,9 +2178,9 @@ function renderNonogram(){
      b.textContent=nonogram.crossed.has(index)?'×':'';b.disabled=nonogram.finished;
      let holdTimer=null;
      const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
-     b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;nonogramSuppressClickUntil=performance.now()+650;void crossNonogramDirect(index);},420);};
+     b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;nonogramSuppressClickIndex=index;nonogramSuppressClickUntil=performance.now()+650;void crossNonogramDirect(index);},420);};
      b.onpointerup=clearHold;b.onpointercancel=clearHold;b.onpointerleave=clearHold;
-     b.onclick=()=>{clearHold();if(performance.now()<nonogramSuppressClickUntil)return;void touchNonogram(index);};
+     b.onclick=()=>{clearHold();const now=performance.now();if(index===nonogramSuppressClickIndex&&now<nonogramSuppressClickUntil)return;if(now>=nonogramSuppressClickUntil)nonogramSuppressClickIndex=-1;void touchNonogram(index);};
      nonogramBoard.appendChild(b);
    }
  }
@@ -2204,6 +2220,9 @@ async function crossNonogramDirect(index){
 }
 async function touchNonogram(index){
  const game=nonogram;if(!game||game.finished)return;
+ const inputAt=performance.now();
+ if(game.lastTapIndex===index&&inputAt-(game.lastTapAt||0)<120)return;
+ game.lastTapIndex=index;game.lastTapAt=inputAt;
  if(!(await activateNonogramTiming())||nonogram!==game)return;
  nonogram.progressed=true;const solvedBefore=nonogramSolvedLines();
  if(nonogram.filled.has(index)){nonogram.filled.delete(index);tone(260,16);}
@@ -2286,8 +2305,8 @@ function renderSort(){
  sortGame.tubes.forEach((tube,index)=>{
    const button=document.createElement('button');
    button.className='sort-tube'+(sortGame.selected===index?' selected':'')+(sortTubeComplete(tube)?' complete':'');
-   button.disabled=sortGame.finished||sortGame.finalizing;
-   button.setAttribute('aria-label','チューブ '+String(index+1));
+   button.disabled=sortGame.finished||sortGame.finalizing||sortTubeComplete(tube);
+   button.setAttribute('aria-label','チューブ '+String(index+1)+(sortTubeComplete(tube)?' 完成・固定':''));
    for(let slot=0;slot<4;slot++){
      const value=tube[slot],cell=document.createElement('span');
      cell.className='sort-slot'+(value===undefined?' empty':' sort-color-'+String(value));
@@ -2337,6 +2356,9 @@ async function openSort(forceNew){
 }
 async function touchSortTube(index){
  const game=sortGame;if(!game||game.finished||game.finalizing)return;
+ const now=performance.now();
+ if(index===sortLastTapIndex&&now-sortLastTapAt<120)return;
+ sortLastTapIndex=index;sortLastTapAt=now;
  const tube=game.tubes[index];
  if(game.selected==null){
    if(!tube||tube.length===0){tone(170,20);setStatus('空のチューブです。','warn');return;}
@@ -2507,6 +2529,9 @@ async function openSlide(forceNew=false,daily=false){
 }
 async function moveSlide(index){
  const game=slideGame;if(!game||game.finished||game.finalizing)return;
+ const now=performance.now();
+ if(index===slideLastTapIndex&&now-slideLastTapAt<120)return;
+ slideLastTapIndex=index;slideLastTapAt=now;
  const path=slideMovePath(index);if(path.length<1)return;
  const alignedBefore=slideCorrectCount(game.board);
  for(const nextIndex of path){
@@ -2653,8 +2678,12 @@ async function answerColorMatch(choice){
    game.running=false;game.finished=true;clearInterval(colorMatchClock);colorMatchClock=null;
    if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
    if(colorMatch===game){
+     const elapsedMs=Math.max(0,Math.round(performance.now()-game.startedAt));
      colorMatchChoices.innerHTML='';colorMatchWord.textContent='GAME OVER';colorMatchWord.style.color='';
+     colorMatchProgress.textContent=String(game.index)+' / '+String(game.rounds.length)+' · LIFE 0';
+     colorMatchTime.textContent=(elapsedMs/1000).toFixed(1)+'s';
      colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';colorMatchNew.classList.add('hidden');
+     setStatus('GAME OVER · '+game.index+'/'+game.rounds.length+' ROUND · MISS '+game.misses+' · MAX STREAK '+game.maxStreak+' · RETRY!','warn');
    }
    return;
  }
@@ -2750,7 +2779,12 @@ async function startNumberRush(){
  renderNumberRush();numberRushClock=setInterval(updateNumberRushTime,50);
 }
 async function tapNumberRush(index){
- if(!numberRush||!numberRush.running||numberRush.finished)return;
+ if(!numberRush||!numberRush.running||numberRush.finished||numberRush.completed.has(index))return;
+ const tapNow=performance.now();
+ // Ignore only same-cell bounce: a mistaken double tap should not charge two misses,
+ // while rapid taps across different cells remain fully responsive.
+ if(numberRush.lastTapIndex===index&&tapNow-(numberRush.lastTapAt||0)<120)return;
+ numberRush.lastTapIndex=index;numberRush.lastTapAt=tapNow;
  numberRush.history.push(index);
  const value=numberRush.board[index];
  if(value!==numberRush.next){
@@ -2901,13 +2935,15 @@ async function guessHighLow(guess){
    setStatus('RANGE RUSHの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
  const scoreBefore=Number(game.score)||0;
- game.streak=Math.max(0,Number(res.streak)||0);
- game.maxStreak=Math.max(game.maxStreak||0,Number(res.maxStreak)||0);
- game.score=Math.max(0,Number(res.score)||0);
+ const responseStreak=Number(res.streak),responseMaxStreak=Number(res.maxStreak),responseScore=Number(res.score),responseCompleted=Number(res.completed),responseTimeLimit=Number(res.timeLimitMs);
+ if(Number.isFinite(responseStreak))game.streak=Math.max(0,responseStreak);
+ if(Number.isFinite(responseMaxStreak))game.maxStreak=Math.max(game.maxStreak||0,responseMaxStreak);
+ if(Number.isFinite(responseScore))game.score=Math.max(0,responseScore);
  const rankUp=liveRankUpPrefix('high_low',scoreBefore,game.score);
- game.lives=Math.max(0,Number(res.lives)??game.lives??0);
- game.completed=Math.max(0,Number(res.completed)||0);
- game.timeLimitMs=Math.max(800,Number(res.timeLimitMs)||game.timeLimitMs||2400);
+ const responseLives=Number(res.lives);
+ if(Number.isFinite(responseLives))game.lives=Math.max(0,responseLives);
+ if(Number.isFinite(responseCompleted))game.completed=Math.max(0,responseCompleted);
+ if(Number.isFinite(responseTimeLimit))game.timeLimitMs=Math.max(800,responseTimeLimit);
  game.busy=false;
  highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
  highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout','life-lost');void highLowEl.offsetWidth;
@@ -3019,7 +3055,7 @@ async function startSimon(){
    simonStart.disabled=false;setStatus('SIMONの初期状態を取得できませんでした。','error');return;
  }
  simonDaily=session.daily===true;
- simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,startedAt:performance.now(),daily:session.daily===true};
+ simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,lastInputAt:0,lastInputIndex:-1,startedAt:performance.now(),daily:session.daily===true};
  simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus((simon.daily?'デイリーSIMON開始。':'SIMON開始。')+'未来のラウンドはSERVERから順番に配信します。','good');
  await playSimonSequence();
 }
@@ -3052,6 +3088,10 @@ async function finishSimon(clearedAll=false){
 }
 async function pressSimon(index){
  const game=simon;if(!game||game.finished||!game.accepting||game.submitting)return;
+ const now=performance.now();
+ // Ignore touch/click bounce so one physical tap cannot consume two identical sequence steps.
+ if(index===game.lastInputIndex&&now-(Number(game.lastInputAt)||0)<90)return;
+ game.lastInputAt=now;game.lastInputIndex=index;
  // Lock input synchronously so rapid taps cannot enqueue multiple moves before render catches up.
  game.accepting=false;game.submitting=true;simonPads.forEach(p=>p.disabled=true);
  game.roundInputs.push(index);
@@ -3149,7 +3189,7 @@ async function openMemory(daily=false){
  const session=await startSessionWithRetry({gameId:'memory',daily:daily===true});
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,streak:0,maxStreak:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,streak:0,maxStreak:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs,lastTapIndex:-1,lastTapAt:0};
  setStatus((previewMs/1000).toFixed(1)+'秒だけカードを覚えてください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
  memoryFlipTimer=setTimeout(()=>{
@@ -3160,12 +3200,18 @@ async function openMemory(daily=false){
 }
 async function flipMemory(index){
  if(!memory||memory.previewing||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
- memory.revealed.push(index);renderMemory();
- if(memory.revealed.length<2)return;
+ // Ignore only same-card tap bounce; keep rapid taps on different cards responsive.
+ const tapAt=performance.now();
+ if(memory.lastTapIndex===index&&tapAt-memory.lastTapAt<120)return;
+ memory.lastTapIndex=index;memory.lastTapAt=tapAt;
+ memory.revealed.push(index);
+ if(memory.revealed.length<2){renderMemory();return;}
+ // Lock input synchronously on the second card so queued rapid taps cannot leak into the next turn.
+ memory.busy=true;renderMemory();
  const pair=memory.revealed.slice(0,2);memory.history.push(pair);memory.moves+=1;
  const matched=memory.deck[pair[0]]===memory.deck[pair[1]];
  if(matched){
-   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];memory.streak+=1;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
+   memory.matched.add(pair[0]);memory.matched.add(pair[1]);memory.revealed=[];memory.busy=false;memory.streak+=1;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
    memoryBoard.classList.remove('memory-streak');void memoryBoard.offsetWidth;if(memory.streak>=2)memoryBoard.classList.add('memory-streak');
    tone(740+Math.min(200,memory.streak*26),55);
    if(memory.streak===3||memory.streak===5)setStatus('PAIR STREAK ×'+memory.streak+' · NICE MEMORY','good');

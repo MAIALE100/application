@@ -1869,7 +1869,6 @@ function FlecityGamesPlay.StartSession(source,data)
 end
 
 function FlecityGamesPlay.QuickRound(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'quick_round',80) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source)
     local token=tostring(data.sessionToken or '')
@@ -1881,8 +1880,11 @@ function FlecityGamesPlay.QuickRound(source,data)
         return {ok=false,error='EXPIRED_SESSION'}
     end
     local state=session.quick
-    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
+    if state.lastStep==step and state.lastResult then return state.lastResult end
+    if not FlecityGamesRateLimit.Allow(source,'quick_round',80) then return {ok=false,error='RATE_LIMIT'} end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     local expectedStep=state.hits+state.falseStarts+1
     if step~=expectedStep then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     local actionMs=math.floor(tonumber(data.actionMs) or -1)
@@ -1892,11 +1894,12 @@ function FlecityGamesPlay.QuickRound(source,data)
     local result=applyQuickTap(state,actionMs)
     if not result then return {ok=false,error='INVALID_TIMING'} end
     result.ok=true
+    state.lastStep=step
+    state.lastResult=result
     return result
 end
 
 function FlecityGamesPlay.StopRound(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'stop_round',90) then return {ok=false,error='RATE_LIMIT'} end
     if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
     local id=identifier(source)
     local token=tostring(data.sessionToken or '')
@@ -1908,8 +1911,11 @@ function FlecityGamesPlay.StopRound(source,data)
         return {ok=false,error='EXPIRED_SESSION'}
     end
     local state=session.stop
-    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
+    if state.lastStep==step and state.lastResult then return state.lastResult end
+    if not FlecityGamesRateLimit.Allow(source,'stop_round',90) then return {ok=false,error='RATE_LIMIT'} end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     if step~=state.cleared+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     local actionMs=math.floor(tonumber(data.actionMs) or -1)
     local serverRoundElapsed=math.max(0,GetGameTimer()-(tonumber(state.roundStartedTick) or GetGameTimer()))
@@ -1918,6 +1924,8 @@ function FlecityGamesPlay.StopRound(source,data)
     local result=applyStopRound(state,actionMs)
     if not result then return {ok=false,error='INVALID_TIMING'} end
     result.ok=true
+    state.lastStep=step
+    state.lastResult=result
     return result
 end
 
@@ -2538,8 +2546,13 @@ function FlecityGamesPlay.DebugSelftest()
     end
     local memoryReplay=replayMemory(12345,memoryPairs)
     local colorRounds=generateColorMatch(12345,20)
-    local colorHistory={} for _,round in ipairs(colorRounds) do colorHistory[#colorHistory+1]=round.ink end
+    local colorHistory={}
+    for i,round in ipairs(colorRounds) do colorHistory[i]=round.ink end
     local colorReplay=replayColorMatch(12345,colorHistory,20)
+    local colorReplayOk=colorReplay~=nil
+        and colorReplay.complete==true
+        and tonumber(colorReplay.rounds)==20
+        and tonumber(colorReplay.misses)==0
     local numberRushHistory=perfectNumberRushHistory(12345,25) or {}
     local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
     local rangeRushRounds=generateRangeRushRounds(12345,30)
@@ -2662,7 +2675,11 @@ function FlecityGamesPlay.DebugSelftest()
         slideReplaySolve=slide and slideReplay and slideReplay.complete==true and slideReplay.moves==#slideSolution,
         slideValidateTime=slide and validateScore(slide,60000)==60000 or false,
         memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
-        colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==20 and colorReplay.misses==0 or false,
+        colorMatchHistoryCount=#colorHistory==20,
+        colorMatchReplayCreated=colorReplay~=nil,
+        colorMatchReplayRounds=colorReplay~=nil and tonumber(colorReplay.rounds)==20,
+        colorMatchReplayMisses=colorReplay~=nil and tonumber(colorReplay.misses)==0,
+        colorMatchReplay=colorMatch~=nil and colorReplayOk,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,

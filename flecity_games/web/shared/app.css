@@ -634,8 +634,6 @@ body.reduced-motion .slide-board,body.reduced-motion .slide-tile{animation:none!
 .fall-controls button{min-width:0;min-height:2.75rem;padding:0.4375rem 0.25rem;font-size:.78rem}
 #fallLeft,#fallRotate,#fallRight{grid-column:span 2}
 #fallSoft,#fallDrop{grid-column:span 3}
-#fallBattleLeft,#fallBattleRotate,#fallBattleRight{grid-column:span 2}
-#fallBattleSoft,#fallBattleDrop{grid-column:span 3}
 #fallSoft{touch-action:none}
 #fallDrop{min-height:2.75rem;font-size:.82rem;letter-spacing:.04em;background:linear-gradient(145deg,#eaf6f1,#bfe8d9);color:#102019}
 .fall-board.fall-clear{animation:fall-clear-flash .24s ease}
@@ -857,7 +855,7 @@ body.reduced-motion .sort-board.sort-undo,body.reduced-motion .slide-board.slide
 
 
 /* PLAY gameplay layout stability v15 */
-body.game-active .app-status{display:none!important}
+body.game-active .app-status.hidden{display:none!important}
 body.game-active .card.stack>.row{flex-wrap:wrap}
 body.game-active .card.stack>.row>button{min-width:8rem;flex:1 1 8rem}
 
@@ -1013,11 +1011,59 @@ body.reduced-motion .fall-board:active{filter:none}
 body.reduced-motion .home-scroll-row{scroll-behavior:auto}
 
 
+/* PLAY in-game feedback toast v18 */
+body.game-active .app-status:not(.hidden){position:fixed;top:max(3.75rem,calc(env(safe-area-inset-top,0rem) + .75rem));left:50%;transform:translateX(-50%);z-index:120;width:min(calc(100vw - 1.5rem),24rem);min-height:0;margin:0;padding:.58rem .72rem;border-radius:.72rem;box-shadow:0 .55rem 1.5rem rgba(0,0,0,.34);pointer-events:none;text-align:center;font-size:.82rem;line-height:1.3}
+@media(max-width:22.5rem){body.game-active .app-status:not(.hidden){width:calc(100vw - 1rem);font-size:.78rem;padding:.52rem .62rem}}
+
+
+/* PLAY narrow-phone / long-session resilience */
+.game-active .wrap{width:100%;min-width:0}
+.game-active .card,.game-active .big-center,.game-active .row>*{min-width:0}
+.game-active .big-number,.game-active .game-meta{max-width:100%;overflow-wrap:anywhere}
+.game-active .game-meta{line-height:1.35}
+.block-board,.merge-board,.mines-board,.memory-board,.number-rush-board,.simon-board,.nonogram-grid{width:100%;max-width:100%;min-width:0}
+.piece-list,.merge-controls,.high-low-actions,.color-match-choices{min-width:0}
+.piece,.merge-controls button,.high-low-actions button,.color-match-choice{min-width:0;overflow-wrap:anywhere}
+.fall-controls{min-width:0}
+.fall-controls button{min-width:0}
+@media(max-width:22.5rem){
+  .game-active{padding-left:.625rem;padding-right:.625rem}
+  .game-active .card{padding:.75rem}
+  .game-active .card.row{align-items:flex-start}
+  .game-active .card.row>button{flex:0 0 auto;max-width:6rem}
+  .game-active .big-number{font-size:2.55rem}
+  .game-active .small-number{font-size:1.65rem}
+  .game-active .game-meta{font-size:.69rem;letter-spacing:.035em}
+  .piece-list{gap:.375rem}
+  .piece{padding:.375rem;min-height:4.25rem}
+  .merge-board,.memory-board,.number-rush-board,.simon-board{gap:.375rem}
+  .merge-cell{font-size:1.05rem}
+  .stop-run-meta{font-size:.66rem}
+  .high-low-actions,.color-match-choices{gap:.375rem}
+  .high-low-actions button,.color-match-choice{padding:.5rem .375rem}
+}
+@media(max-width:19.5rem){
+  .game-active .card.row{display:grid;grid-template-columns:minmax(0,1fr) auto}
+  .game-active .card.row>button{align-self:start}
+  .game-active .row:not(.card){flex-wrap:wrap}
+  .game-active .row:not(.card)>button{flex:1 1 8rem}
+  .nonogram-grid{grid-template-columns:3.15rem repeat(5,minmax(0,1fr));gap:.125rem;padding:.25rem}
+  .nonogram-clue{font-size:.64rem;padding:.125rem;overflow-wrap:anywhere}
+  .nonogram-cell{min-width:0;padding:0}
+  .number-rush-board{gap:.25rem;padding:.3125rem}
+  .number-rush-cell{font-size:.82rem}
+  .piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mini-piece{grid-template-columns:repeat(3,.625rem);grid-template-rows:repeat(3,.625rem)}
+  #quickTap #tapMessage{font-size:2.75rem}
+  .color-match-word{font-size:2.15rem;overflow-wrap:anywhere}
+}
+
+/* PARTY-specific shared styles retained after PLAY sync */
+#fallBattleLeft,#fallBattleRotate,#fallBattleRight{grid-column:span 2}
+#fallBattleSoft,#fallBattleDrop{grid-column:span 3}
 /* PARTY authoritative round deadline */
 .round-deadline{position:sticky;top:0;z-index:4;align-self:flex-end;min-width:5.5rem;padding:.375rem .625rem;border-radius:62.4375rem;background:#111720;border:.0625rem solid #303946;font-size:.75rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 .25rem .75rem rgba(0,0,0,.18)}
 .round-deadline.warn{background:#352b17;border-color:#6f5724}
-
-
 /* PARTY result confirmation and large-room density */
 #players .player>span:first-child{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 #players .player>span:last-child{flex:0 0 auto;white-space:nowrap}

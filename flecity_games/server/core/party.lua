@@ -436,10 +436,30 @@ local function gomokuWinner(board,size)
     return nil
 end
 local function connect4Winner(board)
-    local function at(r,c) if r<1 or r>6 or c<1 or c>7 then return nil end return board[((r-1)*7)+c] end
+    local function at(r,c)
+        if r<1 or r>6 or c<1 or c>7 then return nil end
+        return board[((r-1)*7)+c]
+    end
     local dirs={{1,0},{0,1},{1,1},{1,-1}}
-    for r=1,6 do for c=1,7 do local mark=at(r,c) if mark and mark~='' then for _,dir in ipairs(dirs) do local count=1 for step=1,3 do if at(r+dir[1]*step,c+dir[2]*step)~=mark then break end count=count+1 end if count>=4 then return mark end end end end end
-    return nil
+    for r=1,6 do
+        for c=1,7 do
+            local mark=at(r,c)
+            if mark and mark~='' then
+                for _,dir in ipairs(dirs) do
+                    local cells={((r-1)*7)+c}
+                    local matched=true
+                    for step=1,3 do
+                        local rr=r+(dir[1]*step)
+                        local cc=c+(dir[2]*step)
+                        if at(rr,cc)~=mark then matched=false break end
+                        cells[#cells+1]=((rr-1)*7)+cc
+                    end
+                    if matched then return mark,cells end
+                end
+            end
+        end
+    end
+    return nil,nil
 end
 
 local function pickRoomPrompt(room,key,pool)
@@ -1609,9 +1629,18 @@ function FlecityGamesParty.SubmitReversi(source,data)
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
-local function finishSimpleBoardGame(room,reason,winnerIdentifier)
+local function finishSimpleBoardGame(room,reason,winnerIdentifier,winningCells)
     local rs=room.roundState if not rs or (rs.gameId~='gomoku' and rs.gameId~='connect4') or rs.complete then return end
-    rs.complete=true rs.results={board=rs.board,moves=tonumber(rs.moves) or 0,draw=winnerIdentifier==nil,winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,reason=reason}
+    rs.complete=true
+    rs.results={
+        board=rs.board,
+        moves=tonumber(rs.moves) or 0,
+        draw=winnerIdentifier==nil,
+        winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,
+        winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,
+        winningCells=winningCells or {},
+        reason=reason
+    }
 end
 local function finishSimpleBoardForfeit(room,loserIdentifier,reason)
     local rs=room.roundState if not rs or rs.complete then return end local winner=nil for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end finishSimpleBoardGame(room,reason or 'FORFEIT',winner)
@@ -1640,8 +1669,8 @@ function FlecityGamesParty.SubmitConnect4(source,data)
     local col=math.floor(tonumber(data.column) or 0) if col<1 or col>7 then return {ok=false,error='INVALID_CHOICE'} end
     local cell=nil for row=6,1,-1 do local index=((row-1)*7)+col if (rs.board[index] or '')=='' then cell=index break end end if not cell then return {ok=false,error='INVALID_CHOICE'} end
     local mark=rs.marks[id] rs.board[cell]=mark rs.moves=(tonumber(rs.moves) or 0)+1
-    local winner=connect4Winner(rs.board)
-    if winner then finishSimpleBoardGame(room,'FOUR_IN_ROW',identifierForMark(rs,winner))
+    local winner,winningCells=connect4Winner(rs.board)
+    if winner then finishSimpleBoardGame(room,'FOUR_IN_ROW',identifierForMark(rs,winner),winningCells)
     elseif rs.moves>=42 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
     else local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first setRoundDeadline(rs,roundTimeoutSeconds('connect4')) end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}

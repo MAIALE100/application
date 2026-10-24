@@ -28,7 +28,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='';
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null;
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -513,10 +513,53 @@ function setupGomoku(room){
 }
 function setupConnect4(room){
  const rs=room.roundState;hideRoundGames();connect4Panel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
- if(rs.complete){renderResults(room);return;}
- const board=Array.isArray(rs.board)?rs.board:Array(42).fill('');connect4Columns.innerHTML='';connect4Board.innerHTML='';
- for(let col=1;col<=7;col++){const b=document.createElement('button');b.className='secondary';b.textContent='▼';b.disabled=!rs.isCurrent||(Array.isArray(rs.fullColumns)&&rs.fullColumns.includes(col));b.onclick=()=>runOnce('connect4-move',async()=>{const res=await FlecityBridge.call('partySubmitConnect4',{token:rs.token,column:col});if(!res.ok){status('CONNECT 4: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});connect4Columns.appendChild(b);}
- board.forEach(mark=>{const c=document.createElement('div');c.className='connect4-cell';c.textContent=mark==='R'?'●':(mark==='Y'?'○':'');connect4Board.appendChild(c);});
+ const result=rs&&rs.results||{};
+ const winningCells=new Set(Array.isArray(result.winningCells)?result.winningCells.map(Number):[]);
+ const board=Array.isArray(rs&&rs.board)?rs.board:(Array.isArray(result.board)?result.board:Array(42).fill(''));
+ const renderBoard=(locked)=>{
+   connect4Columns.innerHTML='';connect4Board.innerHTML='';
+   for(let col=1;col<=7;col++){
+     const b=document.createElement('button');b.className='secondary';b.textContent='▼';
+     b.disabled=locked||!rs.isCurrent||(Array.isArray(rs.fullColumns)&&rs.fullColumns.includes(col));
+     b.onclick=()=>runOnce('connect4-move',async()=>{
+       const res=await FlecityBridge.call('partySubmitConnect4',{token:rs.token,column:col});
+       if(!res.ok){status('CONNECT 4: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       renderRoom(res.room);
+     });
+     connect4Columns.appendChild(b);
+   }
+   board.forEach((mark,index)=>{
+     const c=document.createElement('div');
+     c.className='connect4-cell'+(winningCells.has(index+1)?' connect4-winning':'');
+     c.textContent=mark==='R'?'●':(mark==='Y'?'○':'');
+     connect4Board.appendChild(c);
+   });
+ };
+
+ if(rs.complete){
+   if(winningCells.size){
+     renderBoard(true);
+     connect4Status.textContent='WIN! 4つつながりました';
+     connect4Meta.textContent=(result.winnerName?String(result.winnerName)+' · ':'')+'勝ち筋を確認中…';
+     const token=String(rs.token||'');
+     if(connect4CeremonyToken!==token){
+       connect4CeremonyToken=token;
+       connect4CeremonyUntil=performance.now()+2500;
+       if(connect4CeremonyTimer)clearTimeout(connect4CeremonyTimer);
+       connect4CeremonyTimer=setTimeout(()=>{
+         connect4CeremonyTimer=null;
+         const current=currentRoom&&currentRoom.roundState;
+         if(current&&String(current.token||'')===token&&current.complete)renderResults(currentRoom);
+       },2500);
+     }else if(performance.now()>=connect4CeremonyUntil){
+       renderResults(room);
+     }
+     return;
+   }
+   renderResults(room);return;
+ }
+
+ renderBoard(false);
  connect4Status.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='R'?'●':'○'):'相手の手番';
  connect4Meta.textContent='7×6 · 4つ並べる · '+Number(rs.moves||0)+'手';
 }

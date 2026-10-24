@@ -36,6 +36,7 @@ local function runSelfTest()
     add(results, isVector(Config.Processor and Config.Processor.coords), 'processor coords', tostring(Config.Processor and Config.Processor.coords))
 
     local nodeIds = {}
+    local nodeCoords = {}
     local nodesOk = type(Config.MiningNodes) == 'table' and #Config.MiningNodes > 0
     if nodesOk then
         for _, node in ipairs(Config.MiningNodes) do
@@ -43,7 +44,13 @@ local function runSelfTest()
                 nodesOk = false
                 break
             end
+            local coordKey = ('%.2f:%.2f:%.2f'):format(node.coords.x, node.coords.y, node.coords.z)
+            if nodeCoords[coordKey] then
+                nodesOk = false
+                break
+            end
             nodeIds[node.id] = true
+            nodeCoords[coordKey] = node.id
         end
     end
     add(results, nodesOk, 'mining nodes', ('count=%s'):format(type(Config.MiningNodes) == 'table' and #Config.MiningNodes or 0))

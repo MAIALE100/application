@@ -410,7 +410,7 @@ try {
     if ($playIndexText -notmatch 'class="home-top-safe"' -or $cssText -notmatch '\.home-top-safe\{height:3rem' -or $playIndexText -match '<header class="header app-header">' -or $playIndexText -match 'id="runtimeVersion"') { throw 'PLAY clean home top check failed.' }
     if ($playAppText -notmatch 'enableHorizontalDragScroll' -or $cssText -notmatch 'touch-action:pan-y' -or $cssText -notmatch 'is-dragging') { throw 'PLAY home horizontal drag scroll check failed.' }
     if ($playAppText -notmatch 'continueGames\.scrollLeft=0;recentGames\.scrollLeft=0;') { throw 'PLAY home strip reset check failed.' }
-    if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\{display:none!important\}') { throw 'PLAY in-game shared status suppression check failed.' }
+    if ($playAppText -notmatch "const inGame=document\.body\.classList\.contains\('game-active'\)" -or $cssText -notmatch 'body\.game-active \.app-status\.hidden\{display:none!important\}' -or $cssText -notmatch 'body\.game-active \.app-status:not\(\.hidden\)\{position:fixed') { throw 'PLAY in-game status toast check failed.' }
     if ($playAppText -notmatch 'fallSwipeSteps') { throw 'FALL scaled swipe control check failed.' }
     if ($playAppText -notmatch 'fallGravityDelay' -or $playAppText -notmatch 'fallGravityTick' -or $playAppText -notmatch 'startFallGravity') { throw 'FALL gravity mode check failed.' }
     if ($playAppText -notmatch 'fallPeekPieces' -or $playAppText -notmatch 'startFallSoftDrop' -or $playAppText -notmatch 'fallSoft') { throw 'FALL soft drop / NEXT queue check failed.' }

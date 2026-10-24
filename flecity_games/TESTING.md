@@ -803,3 +803,10 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - close前に送信済みだったclosed参加者のvoteを最終集計へ加算しないこと。
 - 残るapp-open参加者のscore / foolVotes / winner表示だけで結果が確定し、再openしても完了済みRoundを巻き戻さないこと。
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+
+### MEMORY CHAIN close progress snapshot（実機未検証・2026-10-24）
+- MEMORY CHAIN input中にalive参加者がPARTY/Phoneをcloseした直後、`submittedCount / expectedSubmissions / aliveCount` がapp-open参加者だけを基準に再計算されること。
+- close済み参加者がaliveCountや待機人数へ残らず、表示上の分母とserver側の進行判定が一致すること。
+- `game_party_status` と残存端末表示を照合し、再open後も完了済みstage/roundを巻き戻さないこと。
+- FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。

@@ -63,6 +63,8 @@ CreateThread(function()
             print(('[Flecity DEV Safety] PLAY reload request %s: refresh'):format(token))
             ExecuteCommand('refresh')
             Wait(800)
+            local expectedBuild=cleanToken(LoadResourceFile('flecity_games','dev-build.txt') or 'unknown')
+            SaveResourceFile('flecity_games','runtime-active.txt','',-1)
             print('[Flecity DEV Safety] restarting flecity_games after metadata refresh')
             ExecuteCommand('restart flecity_games')
 
@@ -72,11 +74,14 @@ CreateThread(function()
                 Wait(500)
                 if GetResourceState('flecity_games')=='started' then
                     local version=GetResourceMetadata('flecity_games','version',0) or 'unknown'
-                    local build=cleanToken(LoadResourceFile('flecity_games','dev-build.txt') or 'unknown')
-                    writeResourceFile(reloadAckFile,('token=%s\nstatus=started\nversion=%s\nbuild=%s\n'):format(token,version,build))
-                    print(('[Flecity DEV Safety] flecity_games active: version=%s build=%s'):format(version,build))
-                    activated=true
-                    break
+                    local runtime=LoadResourceFile('flecity_games','runtime-active.txt') or ''
+                    local activeBuild=runtime:match('build=([^\r\n]+)')
+                    if activeBuild and cleanToken(activeBuild)==expectedBuild then
+                        writeResourceFile(reloadAckFile,('token=%s\nstatus=started\nversion=%s\nbuild=%s\n'):format(token,version,expectedBuild))
+                        print(('[Flecity DEV Safety] flecity_games active: version=%s build=%s'):format(version,expectedBuild))
+                        activated=true
+                        break
+                    end
                 end
             end
             if not activated then

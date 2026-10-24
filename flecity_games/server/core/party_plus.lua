@@ -186,6 +186,8 @@ local function purchasePeriod(source,id,row,isRenewal)
 
         local updated={planId='party_plus',expiresAt=expiresAt,autoRenew=true}
         remember(id,updated)
+        print(('[FlecityGames] PARTY+ payment success player=%s amount=%d revenue=%s provider=%s expires_at=%d renewal=%s')
+            :format(tostring(id),amount,revenueAccount(),tostring(depositProvider or revenueProvider()),expiresAt,tostring(isRenewal==true)))
         TriggerEvent(
             'flecity_games:server:partyPlusCharged',
             tonumber(source),
@@ -225,9 +227,7 @@ function FlecityGamesPartyPlus.GetStatus(source,allowRenew)
 end
 
 function FlecityGamesPartyPlus.DebugRevenueStatus()
-    local account=revenueAccount()
     local provider=revenueProvider()
-    local balance,balanceProvider=FlecityGamesFramework.GetSocietyMoney(account,provider)
     local renewedState=GetResourceState('Renewed-Banking')
     local qbBankingState=GetResourceState('qb-banking')
     local resolvedProvider='none'
@@ -244,11 +244,9 @@ function FlecityGamesPartyPlus.DebugRevenueStatus()
         price=price(),
         durationDays=math.floor(durationSeconds()/86400),
         moneyType=moneyType(),
-        revenueAccount=account,
+        revenueAccount=revenueAccount(),
         revenueProvider=provider,
         resolvedProvider=resolvedProvider,
-        balanceProvider=balanceProvider or 'none',
-        revenueBalance=balance,
         renewedState=renewedState,
         qbBankingState=qbBankingState
     }

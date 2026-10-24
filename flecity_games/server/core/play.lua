@@ -2662,7 +2662,7 @@ function FlecityGamesPlay.DebugSelftest()
         slideReplaySolve=slide and slideReplay and slideReplay.complete==true and slideReplay.moves==#slideSolution,
         slideValidateTime=slide and validateScore(slide,60000)==60000 or false,
         memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
-        colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==10 or false,
+        colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==20 and colorReplay.misses==0 or false,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,

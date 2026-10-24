@@ -2500,6 +2500,7 @@ function FlecityGamesParty.DebugSelftest()
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=true,disconnectedAt=os.time()-(FlecityGamesConfig.Party.DisconnectGraceSeconds+5),joinOrder=2}
     }}
+    local expiredReclaimed=reclaimDisconnectedCapacity(expiredDisconnectRoom,2)
     local fallBattleRoom={members={
         a={memberId='A',name='Alpha',disconnected=false,joinOrder=1},
         b={memberId='B',name='Bravo',disconnected=false,joinOrder=2},

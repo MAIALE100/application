@@ -474,10 +474,295 @@ try {
         while ((Get-Date) -lt $reloadDeadline) {
             if (Test-Path -LiteralPath $reloadAckPath) {
                 $ack = Get-Content -LiteralPath $reloadAckPath -Raw -ErrorAction SilentlyContinue
-                $tokenOk = $ack -match ('(?m)^token=' + [regex]::Escape($reloadToken) + '$')
-                $statusOk = $ack -match '(?m)^status=started$'
-                $versionOk = $ack -match ('(?m)^version=' + [regex]::Escape($version) + '$')
-                if ($tokenOk -and $statusOk -and $versionOk) {
+                $tokenOk = $ack -match ('(?m)^token=' + [regex]::Escape($reloadToken) + '
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        if (-not $ReloadActivated) {
+            Set-Content -LiteralPath $reloadRequestPath -Value $reloadToken -NoNewline -Encoding ascii
+            $ReloadNeedsBootstrap = $true
+            Write-Host 'External reload helper did not acknowledge the new runtime. A one-time helper restart is required.' -ForegroundColor Yellow
+        }
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper' + [Environment]::NewLine + 'ensure flecity_dev_safety'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_dev_safety' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending PLAY reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PLAY automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+)
+                $statusOk = $ack -match '(?m)^status=started
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        if (-not $ReloadActivated) {
+            Set-Content -LiteralPath $reloadRequestPath -Value $reloadToken -NoNewline -Encoding ascii
+            $ReloadNeedsBootstrap = $true
+            Write-Host 'External reload helper did not acknowledge the new runtime. A one-time helper restart is required.' -ForegroundColor Yellow
+        }
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper' + [Environment]::NewLine + 'ensure flecity_dev_safety'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_dev_safety' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending PLAY reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PLAY automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+                $versionOk = $ack -match ('(?m)^version=' + [regex]::Escape($version) + '
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        if (-not $ReloadActivated) {
+            Set-Content -LiteralPath $reloadRequestPath -Value $reloadToken -NoNewline -Encoding ascii
+            $ReloadNeedsBootstrap = $true
+            Write-Host 'External reload helper did not acknowledge the new runtime. A one-time helper restart is required.' -ForegroundColor Yellow
+        }
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper' + [Environment]::NewLine + 'ensure flecity_dev_safety'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_dev_safety' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending PLAY reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PLAY automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+)
+                $buildOk = $ack -match ('(?m)^build=' + [regex]::Escape($commit) + '
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        if (-not $ReloadActivated) {
+            Set-Content -LiteralPath $reloadRequestPath -Value $reloadToken -NoNewline -Encoding ascii
+            $ReloadNeedsBootstrap = $true
+            Write-Host 'External reload helper did not acknowledge the new runtime. A one-time helper restart is required.' -ForegroundColor Yellow
+        }
+    }
+
+    Step 'Checking server.cfg'
+    if (Test-Path $ServerCfg) {
+        $cfg = Get-Content $ServerCfg -Raw
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper' + [Environment]::NewLine + 'ensure flecity_dev_safety'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_dev_safety' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
+    }
+
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoInstalled) -and -not (Test-Path $autoDisabled)) {
+            Step 'Enabling background automatic updates'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending PLAY reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PLAY automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+)
+                if ($tokenOk -and $statusOk -and $versionOk -and $buildOk) {
                     $ReloadActivated = $true
                     break
                 }

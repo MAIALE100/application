@@ -287,7 +287,7 @@ end
 
 local function roundTimeoutSeconds(gameId)
     local limits={
-        reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
+        code_break=120,reversi=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
         tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90
@@ -317,6 +317,39 @@ end
 local function ticTacFull(board)
     for i=1,9 do if not board[i] or board[i]=='' then return false end end
     return true
+end
+
+local function newCodeBreakSecret()
+    local out={} for i=1,4 do out[i]=math.random(1,6) end return out
+end
+local function codeBreakScore(secret,guess)
+    local exact=0 local secretCounts={} local guessCounts={}
+    for i=1,4 do
+        local s=tonumber(secret and secret[i]) or 0 local g=tonumber(guess and guess[i]) or 0
+        if s==g then exact=exact+1 else secretCounts[s]=(secretCounts[s] or 0)+1 guessCounts[g]=(guessCounts[g] or 0)+1 end
+    end
+    local misplaced=0 for value,count in pairs(guessCounts) do misplaced=misplaced+math.min(count,secretCounts[value] or 0) end
+    return exact,misplaced
+end
+local reversiDirections={{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}}
+local function reversiCell(row,col) return ((row-1)*8)+col end
+local function reversiInBounds(row,col) return row>=1 and row<=8 and col>=1 and col<=8 end
+local function reversiFlips(board,cell,mark)
+    local index=math.floor(tonumber(cell) or 0)
+    if index<1 or index>64 or (board[index] or '')~='' then return {} end
+    local row=math.floor((index-1)/8)+1 local col=((index-1)%8)+1 local other=mark=='B' and 'W' or 'B' local flips={}
+    for _,dir in ipairs(reversiDirections) do
+        local r=row+dir[1] local c=col+dir[2] local line={}
+        while reversiInBounds(r,c) and board[reversiCell(r,c)]==other do line[#line+1]=reversiCell(r,c) r=r+dir[1] c=c+dir[2] end
+        if #line>0 and reversiInBounds(r,c) and board[reversiCell(r,c)]==mark then for _,flip in ipairs(line) do flips[#flips+1]=flip end end
+    end
+    return flips
+end
+local function reversiValidMoves(board,mark)
+    local moves={} for cell=1,64 do if #reversiFlips(board,cell,mark)>0 then moves[#moves+1]=cell end end return moves
+end
+local function reversiCounts(board)
+    local black,white=0,0 for i=1,64 do if board[i]=='B' then black=black+1 elseif board[i]=='W' then white=white+1 end end return black,white
 end
 
 local function pickRoomPrompt(room,key,pool)
@@ -489,6 +522,15 @@ local function publicRoundState(room,viewerId)
         end
         out.submittedCount=submitted
         out.expectedSubmissions=activeCount(room)
+    end
+    if rs.gameId=='code_break' then
+        local history=rs.codeBreakHistory and rs.codeBreakHistory[viewerId] or {}
+        out.history=history out.maxAttempts=tonumber(rs.maxAttempts) or 8 out.attemptsLeft=math.max(0,out.maxAttempts-#history) out.solved=rs.solved and rs.solved[viewerId]~=nil or false
+    end
+    if rs.gameId=='reversi' then
+        out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil
+        out.validMoves=out.isCurrent and reversiValidMoves(rs.board or {},out.mark) or {}
+        out.blackCount,out.whiteCount=reversiCounts(rs.board or {}) out.lastPassMemberId=memberPublicId(room,rs.lastPassIdentifier)
     end
     if rs.gameId=='reaction' then out.revealAfterMs=rs.revealAfterMs end
     if rs.gameId=='vote' then out.prompt=rs.prompt end
@@ -753,7 +795,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='reaction',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -901,6 +943,13 @@ function FlecityGamesParty.StartRound(source)
     local rs={token=('round:%d:%06d:%06d'):format(room.round,GetGameTimer()%1000000,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
     room.roundState=rs
 
+    if game.id=='code_break' then rs.secret=newCodeBreakSecret() rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={} end
+    if game.id=='reversi' then
+        local ids=connectedIdentifiers(room) room.rotation=room.rotation or {} room.rotation.reversi=((tonumber(room.rotation.reversi) or 0)%#ids)+1
+        local order=rotatedIdentifiers(ids,room.rotation.reversi) rs.board={} for i=1,64 do rs.board[i]='' end
+        rs.board[28]='W' rs.board[29]='B' rs.board[36]='B' rs.board[37]='W'
+        rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.marks={[order[1]]='B',[order[2]]='W'} rs.lastPassIdentifier=nil rs.moves=0
+    end
     if game.id=='reaction' then rs.revealAfterMs=math.random(1500,4000) end
     if game.id=='vote' then rs.prompt=pickRoomPrompt(room,'vote',votePrompts) end
     if game.id=='stop_battle' then
@@ -1181,6 +1230,72 @@ function FlecityGamesParty.SubmitMinority(source,data)
     maybeFinishMinority(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
+end
+
+local function maybeFinishCodeBreak(room,force)
+    local rs=room.roundState if not rs or rs.gameId~='code_break' or rs.complete then return end
+    local active,done=0,0
+    for id,m in pairs(room.members or {}) do if not m.disconnected and m.appOpen~=false then active=active+1 local history=rs.codeBreakHistory and rs.codeBreakHistory[id] or {} if (rs.solved and rs.solved[id]) or #history>=(tonumber(rs.maxAttempts) or 8) then done=done+1 end end end
+    if not force and (active<1 or done<active) then return end
+    local entries={}
+    for id,m in pairs(room.members or {}) do
+        local history=rs.codeBreakHistory and rs.codeBreakHistory[id] or {} local solved=rs.solved and rs.solved[id] or nil local bestExact,bestMisplaced=0,0
+        for _,attempt in ipairs(history) do local exact=tonumber(attempt.exact) or 0 local misplaced=tonumber(attempt.misplaced) or 0 if exact>bestExact or (exact==bestExact and misplaced>bestMisplaced) then bestExact=exact bestMisplaced=misplaced end end
+        entries[#entries+1]={memberId=m.memberId,name=m.name,solved=solved~=nil,solveMs=solved and math.max(0,(tonumber(solved.atTick) or rs.startedTick)-rs.startedTick) or nil,attempts=#history,bestExact=bestExact,bestMisplaced=bestMisplaced}
+    end
+    table.sort(entries,function(a,b)
+        if a.solved~=b.solved then return a.solved end
+        if a.solved and b.solved then if a.solveMs~=b.solveMs then return a.solveMs<b.solveMs end if a.attempts~=b.attempts then return a.attempts<b.attempts end
+        else if a.bestExact~=b.bestExact then return a.bestExact>b.bestExact end if a.bestMisplaced~=b.bestMisplaced then return a.bestMisplaced>b.bestMisplaced end if a.attempts~=b.attempts then return a.attempts<b.attempts end end
+        return tostring(a.name)<tostring(b.name)
+    end)
+    local best=entries[1]
+    for index,entry in ipairs(entries) do entry.place=index entry.winner=best and best.solved and entry.solved and entry.solveMs==best.solveMs or false end
+    rs.complete=true rs.results={entries=entries,secret=rs.secret,timedOut=force==true}
+end
+
+function FlecityGamesParty.SubmitCodeBreak(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'code_break_guess',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id) if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='code_break' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.solved and rs.solved[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
+    rs.codeBreakHistory=rs.codeBreakHistory or {} local history=rs.codeBreakHistory[id] or {}
+    if #history>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ALREADY_SUBMITTED'} end
+    if type(data.guess)~='table' or #data.guess~=4 then return {ok=false,error='INVALID_CHOICE'} end
+    local guess={} for i=1,4 do local value=math.floor(tonumber(data.guess[i]) or 0) if value<1 or value>6 then return {ok=false,error='INVALID_CHOICE'} end guess[i]=value end
+    local exact,misplaced=codeBreakScore(rs.secret,guess) history[#history+1]={guess=guess,exact=exact,misplaced=misplaced} rs.codeBreakHistory[id]=history
+    if exact==4 then rs.solved=rs.solved or {} rs.solved[id]={atTick=GetGameTimer(),attempts=#history} end
+    maybeFinishCodeBreak(room,false) notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
+end
+
+local function finishReversi(room,reason,winnerIdentifier)
+    local rs=room.roundState if not rs or rs.gameId~='reversi' or rs.complete then return end
+    local black,white=reversiCounts(rs.board or {})
+    if not winnerIdentifier and black~=white then local winningMark=black>white and 'B' or 'W' for id,mark in pairs(rs.marks or {}) do if mark==winningMark then winnerIdentifier=id break end end end
+    rs.complete=true rs.results={board=rs.board,blackCount=black,whiteCount=white,draw=winnerIdentifier==nil and black==white,winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,reason=reason}
+end
+local function finishReversiForfeit(room,loserIdentifier,reason)
+    local rs=room.roundState if not rs or rs.gameId~='reversi' or rs.complete then return end
+    local winner=nil for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end finishReversi(room,reason or 'FORFEIT',winner)
+end
+function FlecityGamesParty.SubmitReversi(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'reversi_move',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id) if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='reversi' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+    local mark=rs.marks and rs.marks[id] or nil if mark~='B' and mark~='W' then return {ok=false,error='INVALID_ROUND'} end
+    local cell=math.floor(tonumber(data.cell) or 0) local flips=reversiFlips(rs.board or {},cell,mark) if #flips<1 then return {ok=false,error='INVALID_CHOICE'} end
+    rs.board[cell]=mark for _,flip in ipairs(flips) do rs.board[flip]=mark end rs.moves=(tonumber(rs.moves) or 0)+1 rs.submissions[id]=(rs.submissions[id] or 0)+1
+    local first,second=rs.turnOrder[1],rs.turnOrder[2] local nextId=id==first and second or first local nextMark=rs.marks[nextId]
+    local currentMoves=reversiValidMoves(rs.board,mark) local nextMoves=reversiValidMoves(rs.board,nextMark)
+    if #nextMoves>0 then rs.currentIdentifier=nextId rs.lastPassIdentifier=nil setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
+    elseif #currentMoves>0 then rs.currentIdentifier=id rs.lastPassIdentifier=nextId setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
+    else finishReversi(room,'BOARD_COMPLETE',nil) end
+    notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
 function FlecityGamesParty.SubmitTicTac(source,data)
@@ -2098,6 +2213,9 @@ reconcileRound=function(room)
         if rs.gameId=='telephone' then
             advanceTelephone(room,false)
             if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+        elseif rs.gameId=='reversi' then
+            finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
+        elseif rs.gameId=='code_break' then maybeFinishCodeBreak(room,true)
         elseif rs.gameId=='tic_tac' then
             finishTicTacForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='reaction' then maybeFinishReaction(room,true)
@@ -2145,7 +2263,11 @@ reconcileRound=function(room)
         if not explainer or explainer.disconnected or explainer.appOpen==false then abortRound(room,'EXPLAINER_LEFT') return true end
     end
 
-    if rs.gameId=='reaction' then maybeFinishReaction(room)
+    if rs.gameId=='code_break' then maybeFinishCodeBreak(room)
+    elseif rs.gameId=='reversi' then
+        local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+        if not current or current.disconnected or current.appOpen==false then finishReversiForfeit(room,rs.currentIdentifier,'PLAYER_LEFT') end
+    elseif rs.gameId=='reaction' then maybeFinishReaction(room)
     elseif rs.gameId=='stop_battle' then maybeFinishStopBattle(room)
     elseif rs.gameId=='vote' then maybeFinishVote(room)
     elseif rs.gameId=='majority' then maybeFinishMajority(room)
@@ -2205,6 +2327,10 @@ function FlecityGamesParty.AppClosed(source)
         elseif rs.gameId=='bomb' and rs.currentIdentifier==id then
             if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
             changed=true
+        elseif rs.gameId=='reversi' then
+            for _,playerId in ipairs(rs.turnOrder or {}) do
+                if playerId==id then finishReversiForfeit(room,id,'APP_CLOSED') changed=true break end
+            end
         elseif rs.gameId=='tic_tac' then
             for _,playerId in ipairs(rs.turnOrder or {}) do
                 if playerId==id then

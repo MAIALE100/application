@@ -332,7 +332,7 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         code_break=120,reversi=60,gomoku=60,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
+        tic_tac=45,mini_shogi=90,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -361,6 +361,110 @@ end
 local function ticTacFull(board)
     for i=1,9 do if not board[i] or board[i]=='' then return false end end
     return true
+end
+
+local miniShogiValues={K=1000,R=60,B=50,G=40,S=30,P=10}
+local function miniShogiCell(row,col) return ((row-1)*5)+col end
+local function miniShogiRowCol(cell)
+    local n=math.floor(tonumber(cell) or 0)
+    return math.floor((n-1)/5)+1,((n-1)%5)+1
+end
+local function miniShogiInBounds(row,col) return row>=1 and row<=5 and col>=1 and col<=5 end
+local function miniShogiSide(piece) return type(piece)=='string' and piece:sub(1,1) or '' end
+local function miniShogiKind(piece) return type(piece)=='string' and piece:sub(2,2) or '' end
+local function miniShogiInitialBoard()
+    local board={} for i=1,25 do board[i]='' end
+    board[1]='WR' board[2]='WB' board[3]='WS' board[4]='WG' board[5]='WK'
+    board[6]='WP'
+    board[20]='BP'
+    board[21]='BK' board[22]='BG' board[23]='BS' board[24]='BB' board[25]='BR'
+    return board
+end
+local function miniShogiStepMoves(board,cell,side,deltas)
+    local out={} local row,col=miniShogiRowCol(cell)
+    for _,d in ipairs(deltas) do
+        local r=row+d[1] local c=col+d[2]
+        if miniShogiInBounds(r,c) then
+            local to=miniShogiCell(r,c) local target=board[to]
+            if target=='' or miniShogiSide(target)~=side then out[#out+1]={from=cell,to=to} end
+        end
+    end
+    return out
+end
+local function miniShogiSlideMoves(board,cell,side,deltas)
+    local out={} local row,col=miniShogiRowCol(cell)
+    for _,d in ipairs(deltas) do
+        local r=row+d[1] local c=col+d[2]
+        while miniShogiInBounds(r,c) do
+            local to=miniShogiCell(r,c) local target=board[to]
+            if target=='' then out[#out+1]={from=cell,to=to}
+            else
+                if miniShogiSide(target)~=side then out[#out+1]={from=cell,to=to} end
+                break
+            end
+            r=r+d[1] c=c+d[2]
+        end
+    end
+    return out
+end
+local function miniShogiMovesForPiece(board,cell)
+    local piece=board[cell]
+    if not piece or piece=='' then return {} end
+    local side=miniShogiSide(piece) local kind=miniShogiKind(piece)
+    local forward=side=='B' and -1 or 1
+    if kind=='K' then
+        return miniShogiStepMoves(board,cell,side,{{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}})
+    elseif kind=='G' then
+        return miniShogiStepMoves(board,cell,side,{{forward,-1},{forward,0},{forward,1},{0,-1},{0,1},{-forward,0}})
+    elseif kind=='S' then
+        return miniShogiStepMoves(board,cell,side,{{forward,-1},{forward,0},{forward,1},{-forward,-1},{-forward,1}})
+    elseif kind=='B' then
+        return miniShogiSlideMoves(board,cell,side,{{-1,-1},{-1,1},{1,-1},{1,1}})
+    elseif kind=='R' then
+        return miniShogiSlideMoves(board,cell,side,{{-1,0},{1,0},{0,-1},{0,1}})
+    elseif kind=='P' then
+        return miniShogiStepMoves(board,cell,side,{{forward,0}})
+    end
+    return {}
+end
+local function miniShogiAllMoves(board,side)
+    local out={}
+    for cell=1,25 do
+        if miniShogiSide(board[cell])==side then
+            for _,move in ipairs(miniShogiMovesForPiece(board,cell)) do out[#out+1]=move end
+        end
+    end
+    return out
+end
+local function miniShogiApplyMove(board,from,to)
+    local piece=board[from] local captured=board[to]
+    board[to]=piece board[from]=''
+    local row=miniShogiRowCol(to)
+    local side=miniShogiSide(piece) local kind=miniShogiKind(piece)
+    if (kind=='P' or kind=='S') and ((side=='B' and row==1) or (side=='W' and row==5)) then
+        board[to]=side..'G'
+    end
+    return captured
+end
+local function miniShogiChooseAiMove(rs)
+    local moves=miniShogiAllMoves(rs.board,'W')
+    if #moves<1 then return nil end
+    local bestScore=-999999 local best={}
+    for _,move in ipairs(moves) do
+        local target=rs.board[move.to] local score=0
+        if target~='' then
+            local kind=miniShogiKind(target)
+            score=score+(miniShogiValues[kind] or 0)
+            if kind=='K' then score=score+10000 end
+        end
+        local row,col=miniShogiRowCol(move.to)
+        score=score+(3-math.abs(3-row))+(3-math.abs(3-col))
+        local piece=rs.board[move.from]
+        if miniShogiKind(piece)=='P' and row==5 then score=score+25 end
+        if score>bestScore then bestScore=score best={move}
+        elseif score==bestScore then best[#best+1]=move end
+    end
+    return best[math.random(1,#best)]
 end
 
 local function newCodeBreakSecret(allowDuplicates)
@@ -826,6 +930,19 @@ local function publicRoundState(room,viewerId)
         out.aiEnabled=rs.aiEnabled==true
         out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil out.moves=tonumber(rs.moves) or 0
         if rs.gameId=='connect4' then out.fullColumns={} for col=1,7 do if (rs.board[col] or '')~='' then out.fullColumns[#out.fullColumns+1]=col end end end
+    end
+    if rs.gameId=='mini_shogi' then
+        out.board=rs.board or {}
+        out.aiEnabled=rs.aiEnabled==true
+        out.currentMemberId=rs.currentIdentifier=='AI' and 'AI' or memberPublicId(room,rs.currentIdentifier)
+        out.isCurrent=viewerId==rs.currentIdentifier
+        out.side=rs.sides and rs.sides[viewerId] or nil
+        out.legalMoves={}
+        if out.isCurrent and out.side then
+            for _,move in ipairs(miniShogiAllMoves(rs.board or {},out.side)) do
+                out.legalMoves[#out.legalMoves+1]={from=move.from,to=move.to}
+            end
+        end
     end
     if rs.gameId=='tic_tac' then
         out.aiEnabled=rs.aiEnabled==true
@@ -1325,6 +1442,24 @@ function FlecityGamesParty.StartRound(source)
             local order=rotatedIdentifiers(ids,room.rotation[key])
             rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1]
             rs.marks={[order[1]]=game.id=='gomoku' and 'X' or 'R',[order[2]]=game.id=='gomoku' and 'O' or 'Y'}
+        end
+        rs.moves=0
+    end
+    if game.id=='mini_shogi' then
+        local ids=connectedIdentifiers(room)
+        rs.board=miniShogiInitialBoard()
+        rs.aiEnabled=#ids==1
+        if rs.aiEnabled then
+            rs.turnOrder={ids[1],'AI'}
+            rs.currentIdentifier=ids[1]
+            rs.sides={[ids[1]]='B',AI='W'}
+        else
+            room.rotation=room.rotation or {}
+            room.rotation.miniShogi=((tonumber(room.rotation.miniShogi) or 0)%#ids)+1
+            local order=rotatedIdentifiers(ids,room.rotation.miniShogi)
+            rs.turnOrder={order[1],order[2]}
+            rs.currentIdentifier=order[1]
+            rs.sides={[order[1]]='B',[order[2]]='W'}
         end
         rs.moves=0
     end
@@ -1911,6 +2046,75 @@ function FlecityGamesParty.SubmitConnect4(source,data)
         if not rs.complete and rs.currentIdentifier~='AI' then setRoundDeadline(rs,roundTimeoutSeconds('connect4')) end
     end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
+end
+
+local function finishMiniShogi(room,reason,winnerIdentifier,winnerIsAi)
+    local rs=room.roundState
+    if not rs or rs.gameId~='mini_shogi' or rs.complete then return end
+    rs.complete=true
+    rs.results={
+        board=rs.board,
+        moves=tonumber(rs.moves) or 0,
+        winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or (winnerIsAi and 'AI' or nil),
+        winnerName=winnerIsAi and 'AI' or (winnerIdentifier and memberName(room,winnerIdentifier) or nil),
+        reason=reason
+    }
+end
+local function finishMiniShogiForfeit(room,loserIdentifier,reason)
+    local rs=room.roundState
+    if not rs or rs.gameId~='mini_shogi' or rs.complete then return end
+    if rs.aiEnabled then
+        if loserIdentifier=='AI' then finishMiniShogi(room,reason,rs.turnOrder[1],false)
+        else finishMiniShogi(room,reason,nil,true) end
+        return
+    end
+    local winner=nil
+    for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end
+    finishMiniShogi(room,reason,winner,false)
+end
+local function miniShogiRunAi(room)
+    local rs=room.roundState
+    if not rs or rs.complete or not rs.aiEnabled then return end
+    local move=miniShogiChooseAiMove(rs)
+    if not move then finishMiniShogi(room,'NO_LEGAL_MOVE',rs.turnOrder[1],false) return end
+    local captured=miniShogiApplyMove(rs.board,move.from,move.to)
+    rs.moves=(tonumber(rs.moves) or 0)+1
+    if miniShogiKind(captured)=='K' then finishMiniShogi(room,'KING_CAPTURED',nil,true) return end
+    rs.currentIdentifier=rs.turnOrder[1]
+end
+function FlecityGamesParty.SubmitMiniShogi(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'mini_shogi_move',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='mini_shogi' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+    local from=math.floor(tonumber(data.from) or 0) local to=math.floor(tonumber(data.to) or 0)
+    local side=rs.sides and rs.sides[id] or nil
+    if side==nil or miniShogiSide(rs.board[from])~=side then return {ok=false,error='INVALID_CHOICE'} end
+    local legal=false
+    for _,move in ipairs(miniShogiMovesForPiece(rs.board,from)) do if move.to==to then legal=true break end end
+    if not legal then return {ok=false,error='INVALID_CHOICE'} end
+    local captured=miniShogiApplyMove(rs.board,from,to)
+    rs.moves=(tonumber(rs.moves) or 0)+1
+    if miniShogiKind(captured)=='K' then
+        finishMiniShogi(room,'KING_CAPTURED',id,false)
+    elseif rs.aiEnabled then
+        rs.currentIdentifier='AI'
+        miniShogiRunAi(room)
+    else
+        local first,second=rs.turnOrder[1],rs.turnOrder[2]
+        rs.currentIdentifier=id==first and second or first
+        if #miniShogiAllMoves(rs.board,rs.sides[rs.currentIdentifier])<1 then
+            finishMiniShogi(room,'NO_LEGAL_MOVE',id,false)
+        elseif not rs.complete then
+            setRoundDeadline(rs,roundTimeoutSeconds('mini_shogi'))
+        end
+    end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
 end
 
 function FlecityGamesParty.SubmitTicTac(source,data)
@@ -2836,6 +3040,8 @@ reconcileRound=function(room)
         elseif rs.gameId=='reversi' then
             finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='code_break' then maybeFinishCodeBreak(room,true)
+        elseif rs.gameId=='mini_shogi' then
+            finishMiniShogiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='tic_tac' then
             finishTicTacForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='reaction' then maybeFinishReaction(room,true)
@@ -2895,6 +3101,11 @@ reconcileRound=function(room)
     elseif rs.gameId=='vote' then maybeFinishVote(room)
     elseif rs.gameId=='majority' then maybeFinishMajority(room)
     elseif rs.gameId=='minority' then maybeFinishMinority(room)
+    elseif rs.gameId=='mini_shogi' then
+        if rs.currentIdentifier~='AI' then
+            local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+            if not current or current.disconnected or current.appOpen==false then finishMiniShogiForfeit(room,rs.currentIdentifier,'PLAYER_LEFT') end
+        end
     elseif rs.gameId=='tic_tac' then
         local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
         if not current or current.disconnected then abortRound(room,'PLAYER_LEFT') end
@@ -2953,6 +3164,10 @@ function FlecityGamesParty.AppClosed(source)
         elseif rs.gameId=='reversi' then
             for _,playerId in ipairs(rs.turnOrder or {}) do
                 if playerId==id then finishReversiForfeit(room,id,'APP_CLOSED') changed=true break end
+            end
+        elseif rs.gameId=='mini_shogi' then
+            for _,playerId in ipairs(rs.turnOrder or {}) do
+                if playerId==id then finishMiniShogiForfeit(room,id,'APP_CLOSED') changed=true break end
             end
         elseif rs.gameId=='tic_tac' then
             for _,playerId in ipairs(rs.turnOrder or {}) do

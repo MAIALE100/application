@@ -178,7 +178,15 @@ CreateThread(function()
         print(('[FlecityGames] artifact=%s'):format(artifactVersion))
         print('[FlecityGames] database schema ready')
         registerPhoneCallbacks()
-        startupDiagnostics()
+        local startupOk=startupDiagnostics()
+        if startupOk then
+            local runtimeMarker=('version=%s\nbuild=%s\nstarted=%s\n'):format(
+                gamesVersion,
+                buildCommit,
+                os.date('!%Y-%m-%dT%H:%M:%SZ')
+            )
+            SaveResourceFile(GetCurrentResourceName(),'runtime-active.txt',runtimeMarker,-1)
+        end
     end)
 end)
 

@@ -60,28 +60,32 @@ CreateThread(function()
             handled=token
             writeResourceFile(reloadRequestFile,'')
             writeResourceFile(reloadAckFile,('token=%s\nstatus=refreshing\n'):format(token))
+            local expectedBuild=cleanToken(LoadResourceFile('flecity_games','dev-build.txt') or '')
             print(('[Flecity DEV Safety] PLAY reload request %s: refresh'):format(token))
             ExecuteCommand('refresh')
             Wait(800)
             print('[Flecity DEV Safety] restarting flecity_games after metadata refresh')
             ExecuteCommand('restart flecity_games')
 
-            local deadline=GetGameTimer()+15000
+            local deadline=GetGameTimer()+20000
             local activated=false
             while GetGameTimer()<deadline do
                 Wait(500)
                 if GetResourceState('flecity_games')=='started' then
-                    local version=GetResourceMetadata('flecity_games','version',0) or 'unknown'
-                    local build=cleanToken(LoadResourceFile('flecity_games','dev-build.txt') or 'unknown')
-                    writeResourceFile(reloadAckFile,('token=%s\nstatus=started\nversion=%s\nbuild=%s\n'):format(token,version,build))
-                    print(('[Flecity DEV Safety] flecity_games active: version=%s build=%s'):format(version,build))
-                    activated=true
-                    break
+                    local runtime=LoadResourceFile('flecity_games','runtime-active.txt') or ''
+                    local activeBuild=cleanToken(runtime:match('build=([^\r\n]+)') or '')
+                    if expectedBuild~='' and activeBuild==expectedBuild then
+                        local version=GetResourceMetadata('flecity_games','version',0) or 'unknown'
+                        writeResourceFile(reloadAckFile,('token=%s\nstatus=started\nversion=%s\nbuild=%s\n'):format(token,version,activeBuild))
+                        print(('[Flecity DEV Safety] flecity_games active: version=%s build=%s'):format(version,activeBuild))
+                        activated=true
+                        break
+                    end
                 end
             end
             if not activated then
-                writeResourceFile(reloadAckFile,('token=%s\nstatus=timeout\n'):format(token))
-                print('[Flecity DEV Safety] flecity_games did not reach started state after reload request')
+                writeResourceFile(reloadAckFile,('token=%s\nstatus=timeout\nexpected_build=%s\n'):format(token,expectedBuild))
+                print(('[Flecity DEV Safety] flecity_games reload was not verified for build=%s'):format(expectedBuild))
             end
         end
     end

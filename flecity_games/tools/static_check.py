@@ -656,6 +656,8 @@ if "lastRound" not in play_lua or "sendSimonRound(inputs,round)" not in play_js:
 
 party_lua = read("flecity_games/server/core/party.lua")
 framework_lua = read("flecity_games/server/bridge/framework.lua")
+helper_lua = read("flecity_dev_safety/server.lua")
+updater_ps1 = read("games-update.ps1")
 party_plus_lua = read("flecity_games/server/core/party_plus.lua")
 if framework_lua.count("QBCore:Server:OnPlayerUnload") != 1:
     fail("framework unload bridge must be defined exactly once")
@@ -669,6 +671,15 @@ if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framewo
     fail("framework character-unload bridge is missing")
 if "flecity_games:framework:playerUnloaded" not in server:
     fail("server character-unload cleanup handler is missing")
+if "runtime-active.txt" not in server or "local startupOk=startupDiagnostics()" not in server:
+    fail("flecity_games runtime activation marker is missing")
+if "runtime-active.txt" not in helper_lua or "activeBuild==expectedBuild" not in helper_lua:
+    fail("external reload helper must verify the activated build marker")
+for ace_node in ("command.refresh","command.restart","command.stop","command.start"):
+    if f"add_ace resource.flecity_dev_safety {ace_node} allow" not in updater_ps1:
+        fail(f"updater missing scoped reload-helper ACE: {ace_node}")
+if "$buildOk" not in updater_ps1:
+    fail("updater reload acknowledgement must verify build SHA")
 if "reclaimDisconnectedCapacity" not in party_lua or "connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers" not in party_lua:
     fail("PARTY disconnected-slot reclaim is missing")
 if "now-disconnectedAt>grace" not in party_lua:

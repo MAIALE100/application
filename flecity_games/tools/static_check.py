@@ -696,6 +696,8 @@ if "rotation.ticTac" not in party_lua:
     fail("PARTY TIC-TAC first-player rotation is missing")
 if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
     fail("PARTY MINORITY unanimous-choice handling is missing")
+if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
+    fail("PARTY MAJORITY/MINORITY results must exclude members whose app is closed")
 if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
     fail("PARTY app-close ready cleanup is missing")
 if "telephoneAppCloseSkip" not in party_lua or "bombAppCloseSkip" not in party_lua or "ticTacAppCloseForfeit" not in party_lua:

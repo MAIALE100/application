@@ -572,7 +572,7 @@ local function publicRoundState(room,viewerId)
             out.selfSubmitted=rs.stageSubmissions and rs.stageSubmissions[viewerId]~=nil or false
             local submitted,expected=0,0
             for playerId,m in pairs(room.members or {}) do
-                if not m.disconnected and not (rs.eliminated and rs.eliminated[playerId]) then
+                if not m.disconnected and m.appOpen~=false and not (rs.eliminated and rs.eliminated[playerId]) then
                     expected=expected+1
                     if rs.stageSubmissions and rs.stageSubmissions[playerId]~=nil then submitted=submitted+1 end
                 end
@@ -582,7 +582,7 @@ local function publicRoundState(room,viewerId)
         end
         local alive=0
         for playerId,m in pairs(room.members or {}) do
-            if not m.disconnected and not (rs.eliminated and rs.eliminated[playerId]) then alive=alive+1 end
+            if not m.disconnected and m.appOpen~=false and not (rs.eliminated and rs.eliminated[playerId]) then alive=alive+1 end
         end
         out.aliveCount=alive
     end

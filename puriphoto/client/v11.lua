@@ -106,6 +106,38 @@ RegisterNUICallback("puriphotoGetPhotoSpots", function(_, cb)
     })
 end)
 
+RegisterNUICallback("puriphotoGetMySpots", function(_, cb)
+    replyLater(cb, "getMySpots", {})
+end)
+
+RegisterNUICallback("puriphotoSaveMySpot", function(data, cb)
+    data = type(data) == "table" and data or {}
+    data.location = getLocation()
+    replyLater(cb, "saveMySpot", data)
+end)
+
+RegisterNUICallback("puriphotoDeleteMySpot", function(data, cb)
+    replyLater(cb, "deleteMySpot", data)
+end)
+
+RegisterNUICallback("puriphotoSetMySpotWaypoint", function(data, cb)
+    local x = type(data) == "table" and tonumber(data.x) or nil
+    local y = type(data) == "table" and tonumber(data.y) or nil
+
+    if not x or not y or math.abs(x) > 10000 or math.abs(y) > 10000 then
+        cb({
+            ok = false,
+            error = "invalid_coords"
+        })
+        return
+    end
+
+    SetNewWaypoint(x + 0.0, y + 0.0)
+    cb({
+        ok = true
+    })
+end)
+
 RegisterNUICallback("puriphotoSetPhotoSpotWaypoint", function(data, cb)
     local wantedId = type(data) == "table" and data.id or nil
     local selected = nil

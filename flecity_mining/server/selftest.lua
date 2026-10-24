@@ -23,6 +23,15 @@ local function runSelfTest()
     add(results, tonumber(Config.MiningDurationMs) and Config.MiningDurationMs >= 1000, 'mining duration', tostring(Config.MiningDurationMs))
     add(results, tonumber(Config.ProcessingDurationMs) and Config.ProcessingDurationMs >= 1000, 'processing duration', tostring(Config.ProcessingDurationMs))
     add(results, tonumber(Config.SellingDurationMs) and Config.SellingDurationMs >= 500, 'selling duration', tostring(Config.SellingDurationMs))
+    local cooldown = tonumber(Config.NodeCooldownMs)
+    add(results, cooldown and cooldown >= 0, 'node cooldown', tostring(Config.NodeCooldownMs))
+    local tolerance = tonumber(Config.ServerDistanceTolerance)
+    add(results, tolerance and tolerance > 0 and tolerance <= 20.0, 'server distance tolerance', tostring(Config.ServerDistanceTolerance))
+    local yieldMin = Config.RawYield and tonumber(Config.RawYield.min)
+    local yieldMax = Config.RawYield and tonumber(Config.RawYield.max)
+    local yieldOk = yieldMin and yieldMax and yieldMin >= 1 and yieldMax >= yieldMin
+        and yieldMin % 1 == 0 and yieldMax % 1 == 0
+    add(results, yieldOk, 'raw yield range', ('%s-%s'):format(tostring(yieldMin), tostring(yieldMax)))
     add(results, isVector(Config.Foreman and Config.Foreman.coords), 'foreman coords', tostring(Config.Foreman and Config.Foreman.coords))
     add(results, isVector(Config.Processor and Config.Processor.coords), 'processor coords', tostring(Config.Processor and Config.Processor.coords))
 

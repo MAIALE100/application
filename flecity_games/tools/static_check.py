@@ -809,8 +809,8 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
-    fail("PARTY quick simultaneous games must support 10-player rooms")
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+    fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
 missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)
@@ -1044,8 +1044,8 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
-    fail("PARTY quick simultaneous games must support 10-player rooms")
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+    fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
 missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)
@@ -1273,8 +1273,8 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
-    fail("PARTY quick simultaneous games must support 10-player rooms")
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+    fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
 missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)

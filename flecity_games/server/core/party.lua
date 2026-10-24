@@ -519,7 +519,7 @@ local function publicRoundState(room,viewerId)
         local guessedCount=0
         for guessedId in pairs(rs.guessed or {}) do
             local guessedMember=room.members[guessedId]
-            if guessedMember and not guessedMember.disconnected and guessedId~=rs.drawerIdentifier then guessedCount=guessedCount+1 end
+            if guessedMember and not guessedMember.disconnected and guessedMember.appOpen~=false and guessedId~=rs.drawerIdentifier then guessedCount=guessedCount+1 end
         end
         out.guessedCount=guessedCount
     end

@@ -210,6 +210,7 @@ local callbackMap={
     partyGetRoom='flecity_games:party:getRoom',
     partySetReady='flecity_games:party:setReady',
     partySelectGame='flecity_games:party:selectGame',
+    partySetMastermindOptions='flecity_games:party:setMastermindOptions',
     partyStartRound='flecity_games:party:startRound',
     partySubmitReaction='flecity_games:party:submitReaction',
     partySubmitStopBattle='flecity_games:party:submitStopBattle',

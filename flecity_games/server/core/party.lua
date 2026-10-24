@@ -319,8 +319,12 @@ local function ticTacFull(board)
     return true
 end
 
-local function newCodeBreakSecret()
-    local out={} for i=1,4 do out[i]=math.random(1,6) end return out
+local function newCodeBreakSecret(allowDuplicates)
+    local out={}
+    if allowDuplicates~=false then for i=1,4 do out[i]=math.random(1,6) end return out end
+    local pool={1,2,3,4,5,6}
+    for i=1,4 do local pick=math.random(1,#pool) out[i]=table.remove(pool,pick) end
+    return out
 end
 local function codeBreakScore(secret,guess)
     local exact=0 local secretCounts={} local guessCounts={}
@@ -338,35 +342,62 @@ local function codeBreakSameGuess(a,b)
     return true
 end
 
-local function codeBreakAiGuess(history)
-    history=history or {}
-    if #history==0 then return {1,1,2,2} end
+local function codeBreakCandidateAllowed(candidate,allowDuplicates)
+    if allowDuplicates~=false then return true end
+    local seen={}
+    for i=1,4 do local value=tonumber(candidate[i]) or 0 if seen[value] then return false end seen[value]=true end
+    return true
+end
+
+local function codeBreakRandomGuess(allowDuplicates)
+    if allowDuplicates~=false then return {math.random(1,6),math.random(1,6),math.random(1,6),math.random(1,6)} end
+    local pool={1,2,3,4,5,6} local out={}
+    for i=1,4 do local pick=math.random(1,#pool) out[i]=table.remove(pool,pick) end
+    return out
+end
+
+local function codeBreakConsistentCandidates(history,allowDuplicates)
+    local candidates={}
     for a=1,6 do for b=1,6 do for c=1,6 do for d=1,6 do
         local candidate={a,b,c,d}
-        local valid=true
-        for _,previous in ipairs(history) do
-            local exact,misplaced=codeBreakScore(candidate,previous.guess)
-            if exact~=(tonumber(previous.exact) or 0) or misplaced~=(tonumber(previous.misplaced) or 0) then
-                valid=false break
+        if codeBreakCandidateAllowed(candidate,allowDuplicates) then
+            local valid=true
+            for _,previous in ipairs(history or {}) do
+                local exact,misplaced=codeBreakScore(candidate,previous.guess)
+                if exact~=(tonumber(previous.exact) or 0) or misplaced~=(tonumber(previous.misplaced) or 0) then valid=false break end
+            end
+            if valid then
+                local used=false
+                for _,previous in ipairs(history or {}) do if codeBreakSameGuess(candidate,previous.guess) then used=true break end end
+                if not used then candidates[#candidates+1]=candidate end
             end
         end
-        if valid then
-            local already=false
-            for _,previous in ipairs(history) do if codeBreakSameGuess(candidate,previous.guess) then already=true break end end
-            if not already then return candidate end
-        end
     end end end end
-    return {math.random(1,6),math.random(1,6),math.random(1,6),math.random(1,6)}
+    return candidates
+end
+
+local function codeBreakAiGuess(history,difficulty,allowDuplicates)
+    history=history or {} difficulty=tostring(difficulty or 'normal')
+    if difficulty=='easy' then return codeBreakRandomGuess(allowDuplicates) end
+    local candidates=codeBreakConsistentCandidates(history,allowDuplicates)
+    if #candidates<1 then return codeBreakRandomGuess(allowDuplicates) end
+    if difficulty=='normal' then return candidates[math.random(1,#candidates)] end
+    if #history==0 then
+        local opening=allowDuplicates==false and {1,2,3,4} or {1,1,2,2}
+        if codeBreakCandidateAllowed(opening,allowDuplicates) then return opening end
+    end
+    return candidates[1]
 end
 
 local function codeBreakAiTurn(rs)
     if not rs or not rs.aiEnabled or rs.aiSolved or #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8) then return end
     rs.aiHistory=rs.aiHistory or {}
-    local guess=codeBreakAiGuess(rs.aiHistory)
+    local guess=codeBreakAiGuess(rs.aiHistory,rs.aiDifficulty,rs.allowDuplicates)
     local exact,misplaced=codeBreakScore(rs.secret,guess)
     rs.aiHistory[#rs.aiHistory+1]={guess=guess,exact=exact,misplaced=misplaced}
     if exact==4 then rs.aiSolved={atTick=GetGameTimer(),attempts=#rs.aiHistory} end
 end
+
 local reversiDirections={{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}}
 local function reversiCell(row,col) return ((row-1)*8)+col end
 local function reversiInBounds(row,col) return row>=1 and row<=8 and col>=1 and col<=8 end
@@ -585,6 +616,8 @@ local function publicRoundState(room,viewerId)
         local history=rs.codeBreakHistory and rs.codeBreakHistory[viewerId] or {}
         out.history=history out.maxAttempts=tonumber(rs.maxAttempts) or 8 out.attemptsLeft=math.max(0,out.maxAttempts-#history) out.solved=rs.solved and rs.solved[viewerId]~=nil or false
         out.aiEnabled=rs.aiEnabled==true
+        out.aiDifficulty=rs.aiDifficulty or 'normal'
+        out.allowDuplicates=rs.allowDuplicates~=false
         out.aiAttempts=#(rs.aiHistory or {})
         out.aiHistory={}
         for _,attempt in ipairs(rs.aiHistory or {}) do
@@ -758,6 +791,7 @@ local function snapshot(room,viewerId)
     local selfMember=room.members[viewerId]
     return {
         code=room.code,revision=tonumber(room.revision) or 0,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
+        mastermindOptions=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true},
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -869,7 +903,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -996,6 +1030,21 @@ local function allReady(room,game)
     return count>=minimum and count<=maximum
 end
 
+function FlecityGamesParty.SetMastermindOptions(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
+    if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
+    if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
+    local difficulty=tostring(type(data)=='table' and data.aiDifficulty or 'normal')
+    if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' then difficulty='normal' end
+    local allowDuplicates=not (type(data)=='table' and data.allowDuplicates==false)
+    room.mastermindOptions={aiDifficulty=difficulty,allowDuplicates=allowDuplicates}
+    for _,m in pairs(room.members) do m.ready=false end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
 function FlecityGamesParty.StartRound(source)
     if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -1020,7 +1069,10 @@ function FlecityGamesParty.StartRound(source)
     room.roundState=rs
 
     if game.id=='code_break' then
-        rs.secret=newCodeBreakSecret() rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={}
+        local options=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true}
+        rs.allowDuplicates=options.allowDuplicates~=false
+        rs.aiDifficulty=tostring(options.aiDifficulty or 'normal')
+        rs.secret=newCodeBreakSecret(rs.allowDuplicates) rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={}
         rs.aiEnabled=connectedCount(room)==1
         rs.aiHistory={}
         rs.aiSolved=nil
@@ -1376,7 +1428,13 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
     rs.codeBreakHistory=rs.codeBreakHistory or {} local history=rs.codeBreakHistory[id] or {}
     if #history>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ALREADY_SUBMITTED'} end
     if type(data.guess)~='table' or #data.guess~=4 then return {ok=false,error='INVALID_CHOICE'} end
-    local guess={} for i=1,4 do local value=math.floor(tonumber(data.guess[i]) or 0) if value<1 or value>6 then return {ok=false,error='INVALID_CHOICE'} end guess[i]=value end
+    local guess={} local seen={}
+    for i=1,4 do
+        local value=math.floor(tonumber(data.guess[i]) or 0)
+        if value<1 or value>6 then return {ok=false,error='INVALID_CHOICE'} end
+        if rs.allowDuplicates==false and seen[value] then return {ok=false,error='INVALID_CHOICE'} end
+        seen[value]=true guess[i]=value
+    end
     local exact,misplaced=codeBreakScore(rs.secret,guess) history[#history+1]={guess=guess,exact=exact,misplaced=misplaced} rs.codeBreakHistory[id]=history
     if exact==4 then
         rs.solved=rs.solved or {} rs.solved[id]={atTick=GetGameTimer(),attempts=#history}

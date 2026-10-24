@@ -69,6 +69,7 @@ local function validateRuntimeConfig()
     if type(Config.MiningNodes) ~= 'table' or #Config.MiningNodes == 0 then return false, 'mining nodes are empty' end
 
     local nodeIds = {}
+    local nodeCoords = {}
     for index, node in ipairs(Config.MiningNodes) do
         if type(node) ~= 'table' or node.id == nil then
             return false, ('mining node #%d has no id'):format(index)
@@ -79,7 +80,19 @@ local function validateRuntimeConfig()
         if type(node.coords) ~= 'vector3' then
             return false, ('invalid coords for mining node %s'):format(tostring(node.id))
         end
+
+        -- Duplicate coordinates create two logical nodes at the same world
+        -- position, allowing a player to alternate IDs and bypass per-node
+        -- cooldowns. Treat near-identical configured positions as invalid.
+        local coordKey = ('%.2f:%.2f:%.2f'):format(node.coords.x, node.coords.y, node.coords.z)
+        if nodeCoords[coordKey] then
+            return false, ('duplicate mining node coords: %s and %s'):format(
+                tostring(nodeCoords[coordKey]), tostring(node.id)
+            )
+        end
+
         nodeIds[node.id] = true
+        nodeCoords[coordKey] = node.id
     end
 
     return true

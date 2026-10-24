@@ -172,3 +172,5 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 [ ] MEMORY CHAIN: input中に未回答者がPARTY/Phoneを閉じる → 残存app-open参加者だけで進行/LAST_ALIVE確定 → 再openしても完了済みstage/roundが巻き戻らない（実機複数クライアント必須）
 
 [ ] FAKE ANSWER: submit/vote済み参加者がapp/phone close → closed本人をscore/winner候補から除外し、close前の本人voteも最終集計へ加算しない。残存app-open参加者だけで結果確定（実機複数クライアント必須）
+
+[ ] LIVE TEST REQUIRED: MAJORITY / MINORITYで回答済み参加者が結果確定前にPARTY/Phoneをcloseした場合、その回答と本人が最終count/entriesから除外され、残存app-open参加者だけで勝敗確定すること。reopen後も完了済みroundが巻き戻らないこと。

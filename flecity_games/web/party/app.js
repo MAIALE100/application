@@ -247,7 +247,7 @@ function renderResults(room){
    const winners=entries.filter(e=>e.winner===true).map(e=>e.name);
    appendResultBanner(winners.length?'MASTERMIND · '+winners.join(' / '):'時間切れ · 正解者なし',winners.length?'good':'warn');
    appendResultRow('秘密コード',(Array.isArray(result.secret)?result.secret:[]).map(v=>['','RED','BLUE','GREEN','YELLOW','PURPLE','ORANGE'][Number(v)]||'?').join(' · '));
-   entries.forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.solved?(Number(e.solveMs||0)/1000).toFixed(2)+'秒 · '+Number(e.attempts||0)+'手':'未解読 · BEST '+Number(e.bestExact||0)+' HIT / '+Number(e.bestMisplaced||0)+' BLOW'));
+   entries.forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.solved?Number(e.attempts||0)+'手で解読':'未解読'));
  }else if(rs.gameId==='reversi'){
    const result=rs.results||{};
    appendResultBanner(result.draw?'DRAW':('WINNER · '+String(result.winnerName||'Player')),result.draw?'warn':'good');
@@ -412,20 +412,21 @@ function setupCodeBreak(room){
  const rs=room.roundState;hideRoundGames();codeBreakPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  if(codeBreakToken!==rs.token){codeBreakToken=rs.token;codeBreakGuess=[];}
- codeBreakTitle.textContent=rs.solved?'解読成功！':(rs.aiEnabled?'AIより先に解読':'秘密コードを解読');
- if(rs.solved)codeBreakHint.textContent='結果を確定しています。';
- else if(rs.aiEnabled)codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · '+Number(rs.aiAttempts||0)+'手目 · 同色'+(rs.allowDuplicates===false?'なし':'あり');
- else codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · 同色'+(rs.allowDuplicates===false?'なし':'あり');
- codeBreakSubmit.disabled=rs.solved===true||codeBreakGuess.length!==4;
- codeBreakBack.disabled=rs.solved===true||codeBreakGuess.length===0;
- [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=rs.solved===true||codeBreakGuess.length>=4);
+ const canPlay=rs.aiEnabled||rs.isCurrent===true;
+ codeBreakTitle.textContent=rs.solved?'解読成功！':(canPlay?'あなたの手番':'相手の手番');
+ if(rs.solved)codeBreakHint.textContent='相手の同じ手数まで結果を待っています。';
+ else if(rs.aiEnabled)codeBreakHint.textContent='ターン '+Number(rs.turnNumber||1)+' · 残り '+Number(rs.attemptsLeft||0)+'手 · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ else codeBreakHint.textContent=(canPlay?'推理してください':'相手の推理を待っています')+' · 残り '+Number(rs.attemptsLeft||0)+'手 · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ codeBreakSubmit.disabled=!canPlay||rs.solved===true||codeBreakGuess.length!==4;
+ codeBreakBack.disabled=!canPlay||rs.solved===true||codeBreakGuess.length===0;
+ [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=!canPlay||rs.solved===true||codeBreakGuess.length>=4);
  renderCodeBreakGuess();codeBreakHistory.innerHTML='';
  const renderMastermindHistory=(target,items)=>{
    target.innerHTML='';
    const history=Array.isArray(items)?items:[];
-   history.slice().reverse().forEach((h,reverseIndex)=>{
+   history.forEach((h,index)=>{
      const row=document.createElement('div');row.className='code-break-row';
-     const turn=document.createElement('small');turn.textContent=String(history.length-reverseIndex).padStart(2,'0');
+     const turn=document.createElement('small');turn.textContent=String(index+1).padStart(2,'0');
      const guess=document.createElement('div');guess.className='mastermind-row-pegs';(Array.isArray(h.guess)?h.guess:[]).forEach(v=>guess.appendChild(codeBreakPeg(v)));
      const feedbackWrap=document.createElement('div');feedbackWrap.className='mastermind-feedback-wrap';
      const score=document.createElement('div');score.className='mastermind-feedback';
@@ -434,6 +435,7 @@ function setupCodeBreak(room){
      for(let i=Number(h.exact||0)+Number(h.misplaced||0);i<4;i++){const p=document.createElement('i');p.className='mastermind-pin empty';score.appendChild(p);}
      feedbackWrap.append(score);row.append(turn,guess,feedbackWrap);target.appendChild(row);
    });
+   requestAnimationFrame(()=>{target.scrollTop=target.scrollHeight;});
  };
  renderMastermindHistory(codeBreakHistory,rs.history);
  codeBreakAiSection.classList.toggle('hidden',!rs.aiEnabled);

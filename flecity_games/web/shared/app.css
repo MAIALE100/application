@@ -1128,3 +1128,6 @@ body.reduced-motion .fall-result-hero,body.reduced-motion .fall-result-rank{anim
 .mastermind-lobby-options{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.6rem;border:.0625rem solid #303844;border-radius:.75rem;background:#121720}
 .mastermind-lobby-options label{display:flex;flex-direction:column;gap:.3rem;min-width:0}.mastermind-lobby-options label>span{font-size:.68rem;font-weight:800;color:#c8d0da}.mastermind-lobby-options select{width:100%;min-width:0}.mastermind-lobby-options .muted{grid-column:1/-1;margin:0;font-size:.64rem}
 @media(max-width:22.5rem){.mastermind-lobby-options{grid-template-columns:1fr}.mastermind-lobby-options .muted{grid-column:1}}
+
+.code-break-history{overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.mastermind-board{touch-action:pan-y}

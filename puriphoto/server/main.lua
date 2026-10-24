@@ -72,7 +72,7 @@ local function normalizeLocation(location)
     }
 end
 
-local CREATE_SCHEMA_SQL = [[
+local CREATE_PROJECTS_SQL = [[
     CREATE TABLE IF NOT EXISTS puriphoto_projects (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         citizenid VARCHAR(64) NOT NULL,
@@ -92,25 +92,50 @@ local CREATE_SCHEMA_SQL = [[
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ]]
 
+local CREATE_MY_SPOTS_SQL = [[
+    CREATE TABLE IF NOT EXISTS puriphoto_my_spots (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        citizenid VARCHAR(64) NOT NULL,
+        name VARCHAR(64) NOT NULL,
+        location_label VARCHAR(255) NOT NULL,
+        location_street VARCHAR(128) NULL,
+        location_zone VARCHAR(128) NULL,
+        location_x DOUBLE NOT NULL,
+        location_y DOUBLE NOT NULL,
+        location_z DOUBLE NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_puriphoto_spot_owner_created (citizenid, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+]]
+
 print("[puriphoto] v1.1 server starting")
 
 MySQL.ready(function()
-    -- Do not block the server thread while MariaDB checks/creates the table.
-    MySQL.query(CREATE_SCHEMA_SQL, {}, function(result)
-        if result == nil then
+    -- Keep schema checks asynchronous so restarting PuriPhoto cannot stall the server thread.
+    MySQL.query(CREATE_PROJECTS_SQL, {}, function(projectResult)
+        if projectResult == nil then
             print("[puriphoto] selftest FAIL (album schema query returned nil)")
             return
         end
 
-        local qbxState = GetResourceState("qbx_core")
-        local spotCount = #(Config.PhotoSpots or {})
-        print("[puriphoto] album schema ready")
+        MySQL.query(CREATE_MY_SPOTS_SQL, {}, function(spotResult)
+            if spotResult == nil then
+                print("[puriphoto] selftest FAIL (my spots schema query returned nil)")
+                return
+            end
 
-        if qbxState == "started" then
-            print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, photo_spots=%d)"):format(spotCount))
-        else
-            print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, photo_spots=%d)"):format(qbxState, spotCount))
-        end
+            local qbxState = GetResourceState("qbx_core")
+            local spotCount = #(Config.PhotoSpots or {})
+            print("[puriphoto] album schema ready")
+            print("[puriphoto] my spots schema ready")
+
+            if qbxState == "started" then
+                print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, my_spots=ready, photo_spots=%d)"):format(spotCount))
+            else
+                print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, my_spots=ready, photo_spots=%d)"):format(qbxState, spotCount))
+            end
+        end)
     end)
 end)
 
@@ -345,6 +370,154 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
     sendResponse(source, requestId, {
         ok = true,
         id = insertedId
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:getMySpots", function(requestId)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "player_unavailable"
+        })
+        return
+    end
+
+    local limit = math.max(1, math.min(100, tonumber(Config.MySpotLimit) or 30))
+    local sql = ([[
+        SELECT id, name, location_label, location_street, location_zone,
+               location_x, location_y, location_z, created_at
+        FROM puriphoto_my_spots
+        WHERE citizenid = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT %d
+    ]]):format(limit)
+
+    local rows = MySQL.query.await(sql, { citizenid }) or {}
+    local spots = {}
+
+    for _, row in ipairs(rows) do
+        spots[#spots + 1] = {
+            id = row.id,
+            name = row.name,
+            label = row.location_label,
+            street = row.location_street or "",
+            zone = row.location_zone or "",
+            x = row.location_x,
+            y = row.location_y,
+            z = row.location_z,
+            createdAt = row.created_at
+        }
+    end
+
+    sendResponse(source, requestId, {
+        ok = true,
+        spots = spots
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:saveMySpot", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid or type(payload) ~= "table" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local name = safeString(payload.name or "", 64)
+    if not name then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_name"
+        })
+        return
+    end
+
+    name = name:match("^%s*(.-)%s*$") or ""
+    if name == "" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_name"
+        })
+        return
+    end
+
+    local location = normalizeLocation(payload.location)
+    if not location then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_location"
+        })
+        return
+    end
+
+    local insertedId = MySQL.insert.await([[
+        INSERT INTO puriphoto_my_spots (
+            citizenid, name, location_label, location_street, location_zone,
+            location_x, location_y, location_z
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        citizenid,
+        name,
+        location.label ~= "" and location.label or "登録地点",
+        location.street,
+        location.zone,
+        location.x,
+        location.y,
+        location.z
+    })
+
+    local limit = math.max(1, math.min(100, tonumber(Config.MySpotLimit) or 30))
+    local pruneSql = ([[
+        DELETE FROM puriphoto_my_spots
+        WHERE citizenid = ?
+          AND id NOT IN (
+              SELECT id FROM (
+                  SELECT id
+                  FROM puriphoto_my_spots
+                  WHERE citizenid = ?
+                  ORDER BY created_at DESC, id DESC
+                  LIMIT %d
+              ) AS keep_rows
+          )
+    ]]):format(limit)
+
+    MySQL.query.await(pruneSql, { citizenid, citizenid })
+
+    sendResponse(source, requestId, {
+        ok = true,
+        id = insertedId
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:deleteMySpot", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local spotId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not spotId or spotId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local affected = MySQL.update.await(
+        "DELETE FROM puriphoto_my_spots WHERE id = ? AND citizenid = ?",
+        { spotId, citizenid }
+    )
+
+    sendResponse(source, requestId, {
+        ok = true,
+        deleted = affected and affected > 0 or false
     })
 end)
 

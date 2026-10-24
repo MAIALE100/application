@@ -2,6 +2,7 @@ const statusEl=document.getElementById('status'),entryEl=document.getElementById
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
 const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline');
 const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
+const shogiLobbyOptions=document.getElementById('shogiLobbyOptions'),shogiAiDifficulty=document.getElementById('shogiAiDifficulty'),shogiOptionsNote=document.getElementById('shogiOptionsNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
@@ -874,6 +875,11 @@ function renderRoom(room,timing){
    mastermindTurnLimit.disabled=!room.isHost;
    mastermindFirstTurn.disabled=!room.isHost;
    mastermindOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'AI強さは1人プレイ時に使用します。':'2人対戦ではAI強さは使用しません。';
+   const shogiOptions=room.shogiOptions||{aiDifficulty:'hard'};
+   shogiLobbyOptions.classList.toggle('hidden',room.selectedGame!=='mini_shogi');
+   shogiAiDifficulty.value=String(shogiOptions.aiDifficulty||'hard');
+   shogiAiDifficulty.disabled=!room.isHost;
+   shogiOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'1人プレイ時のAI強さを選べます。':'2人対戦ではAI強さは使用しません。';
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
    readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';status('ロビー準備完了。','good');
@@ -1005,7 +1011,7 @@ registerPhonePushChannel();
 createBtn.onclick=()=>runOnce('create',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
-gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');shogiLobbyOptions.classList.toggle('hidden',gameEl.value!=='mini_shogi');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
  const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no',turnLimit:mastermindTurnLimit.value!=='no',firstTurn:mastermindFirstTurn.value});
@@ -1016,6 +1022,14 @@ mastermindAiDifficulty.onchange=()=>runOnce('mastermind-options',saveMastermindO
 mastermindDuplicates.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
 mastermindTurnLimit.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
 mastermindFirstTurn.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
+
+async function saveShogiOptions(){
+ if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
+ const res=await FlecityBridge.call('partySetShogiOptions',{aiDifficulty:shogiAiDifficulty.value});
+ if(!res.ok){status('将棋AIの設定変更に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ renderRoom(res.room);
+}
+shogiAiDifficulty.onchange=()=>runOnce('shogi-options',saveShogiOptions);
 
 startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
 partyPlusSubscribe.onclick=()=>{

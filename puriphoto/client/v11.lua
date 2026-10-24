@@ -99,6 +99,10 @@ RegisterNUICallback("puriphotoDeleteProject", function(data, cb)
     replyLater(cb, "deleteProject", data)
 end)
 
+RegisterNUICallback("puriphotoUpdateProjectMeta", function(data, cb)
+    replyLater(cb, "updateProjectMeta", data)
+end)
+
 RegisterNUICallback("puriphotoGetPhotoSpots", function(_, cb)
     cb({
         ok = true,

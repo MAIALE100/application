@@ -795,3 +795,4 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - [LIVE TEST REQUIRED] LB Phone小画面で7〜10人Roomを作り、参加者一覧が約10.5〜14rem内でスクロールし、ROOM CODE・Ready・ゲーム選択・開始操作へ過度な縦スクロールなしで到達できること。長い表示名でも横崩れしないこと。
 
 - [LIVE TEST REQUIRED] VOTE / WORD WOLF / LIAR: 投票画面表示中に別参加者がPARTY/Phoneをcloseした場合、その参加者が候補から消え、close前に保持した候補を遅延submitしても `INVALID_TARGET` で拒否されること。再open後は次の有効snapshotで候補へ復帰すること。
+- LIVE TEST REQUIRED: MEMORY CHAIN input中に未回答者がPARTY/Phoneをcloseした場合、closed参加者をalive/待機対象に残さず、残存app-open参加者だけで即時進行またはLAST_ALIVE確定すること。再open後に完了済みstage/roundが巻き戻らないこと。

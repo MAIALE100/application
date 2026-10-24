@@ -157,6 +157,18 @@ try {
     $prefix = $serverMain.Substring(0,$markerIndex)
     if ($prefix -notmatch 'runtime-active\.txt') { throw 'Development runtime stamp block was not found.' }
     $serverMain = $serverMain.Substring($markerIndex)
+
+    $serverMain = [regex]::Replace(
+        $serverMain,
+        "local buildCommit=FlecityGamesText\.Normalize\(LoadResourceFile\(GetCurrentResourceName\(\),'dev-build\.txt'\) or ''\)\r?\n\s*if buildCommit=='' then buildCommit='packaged' end",
+        "local buildCommit='packaged'"
+    )
+    $serverMain = [regex]::Replace(
+        $serverMain,
+        "local build=FlecityGamesText\.Normalize\(LoadResourceFile\(GetCurrentResourceName\(\),'dev-build\.txt'\) or ''\)\r?\n\s*if build=='' then build='packaged' end",
+        "local build='packaged'"
+    )
+
     Write-Utf8NoBom -Path $serverMainPath -Text $serverMain
 
     Step 'Adding operator documents'

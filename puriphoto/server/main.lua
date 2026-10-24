@@ -72,42 +72,46 @@ local function normalizeLocation(location)
     }
 end
 
-local function createSchema()
-    MySQL.query.await([[
-        CREATE TABLE IF NOT EXISTS puriphoto_projects (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            citizenid VARCHAR(64) NOT NULL,
-            source_url TEXT NOT NULL,
-            finished_url TEXT NOT NULL,
-            edit_data LONGTEXT NOT NULL,
-            location_label VARCHAR(255) NULL,
-            location_street VARCHAR(128) NULL,
-            location_zone VARCHAR(128) NULL,
-            location_x DOUBLE NULL,
-            location_y DOUBLE NULL,
-            location_z DOUBLE NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            INDEX idx_puriphoto_owner_updated (citizenid, updated_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    ]])
-end
+local CREATE_SCHEMA_SQL = [[
+    CREATE TABLE IF NOT EXISTS puriphoto_projects (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        citizenid VARCHAR(64) NOT NULL,
+        source_url TEXT NOT NULL,
+        finished_url TEXT NOT NULL,
+        edit_data LONGTEXT NOT NULL,
+        location_label VARCHAR(255) NULL,
+        location_street VARCHAR(128) NULL,
+        location_zone VARCHAR(128) NULL,
+        location_x DOUBLE NULL,
+        location_y DOUBLE NULL,
+        location_z DOUBLE NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_puriphoto_owner_updated (citizenid, updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+]]
+
+print("[puriphoto] v1.1 server starting")
 
 MySQL.ready(function()
-    local ok, err = pcall(createSchema)
-    if ok then
-        local qbxReady = GetResourceState("qbx_core") == "started"
+    -- Do not block the server thread while MariaDB checks/creates the table.
+    MySQL.query(CREATE_SCHEMA_SQL, {}, function(result)
+        if result == nil then
+            print("[puriphoto] selftest FAIL (album schema query returned nil)")
+            return
+        end
+
+        local qbxState = GetResourceState("qbx_core")
         local spotCount = #(Config.PhotoSpots or {})
         print("[puriphoto] album schema ready")
-        if qbxReady then
+
+        if qbxState == "started" then
             print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, photo_spots=%d)"):format(spotCount))
         else
-            print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, photo_spots=%d)"):format(GetResourceState("qbx_core"), spotCount))
+            print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, photo_spots=%d)"):format(qbxState, spotCount))
         end
-    else
-        print(("[puriphoto] selftest FAIL (album schema): %s"):format(err))
-    end
+    end)
 end)
 
 RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)

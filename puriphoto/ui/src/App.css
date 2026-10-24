@@ -1312,3 +1312,116 @@
     font-weight: 700;
     cursor: pointer;
 }
+
+
+.photo-meta-editor,
+.album-meta-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid #ead3df;
+    border-radius: 0.9rem;
+    background: #fff;
+}
+
+.photo-meta-editor label,
+.album-meta-editor label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    color: #795b70;
+    font-size: 0.62rem;
+    font-weight: 700;
+}
+
+.photo-meta-editor input,
+.photo-meta-editor textarea,
+.album-meta-editor input,
+.album-meta-editor textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #e4c8d6;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #fffafc;
+    color: #392b36;
+    font: inherit;
+    font-size: 0.65rem;
+    line-height: 1.45;
+    outline: none;
+    resize: vertical;
+}
+
+.photo-meta-editor input:focus,
+.photo-meta-editor textarea:focus,
+.album-meta-editor input:focus,
+.album-meta-editor textarea:focus {
+    border-color: #b85a83;
+    box-shadow: 0 0 0 0.12rem rgba(184, 90, 131, 0.14);
+}
+
+.album-auto-location {
+    color: #9b7a8d;
+    font-size: 0.54rem;
+    line-height: 1.35;
+}
+
+.album-memo {
+    margin: 0.1rem 0 0;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.55rem;
+    background: #fff7fa;
+    color: #6e5364;
+    font-size: 0.59rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.album-card-actions-three {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.album-meta-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem;
+}
+
+.album-meta-actions button,
+.secondary-meta-button {
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.55rem;
+    font: inherit;
+    font-size: 0.6rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.album-meta-actions button {
+    background: #a94875;
+    color: #fff;
+}
+
+.album-meta-actions .secondary-meta-button,
+.album-card-actions .secondary-meta-button {
+    background: #f5e7ed;
+    color: #7d2f54;
+}
+
+.album-meta-actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+@media (max-width: 26.25rem) {
+    .album-card-actions-three {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .album-card-actions-three .danger-subtle {
+        grid-column: 1 / -1;
+    }
+}

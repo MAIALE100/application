@@ -244,7 +244,7 @@ function renderResults(room){
  if(rs.gameId==='code_break'){
    const result=rs.results||{},entries=Array.isArray(result.entries)?result.entries:[];
    const winners=entries.filter(e=>e.winner===true).map(e=>e.name);
-   appendResultBanner(winners.length?'CODE CRACKED · '+winners.join(' / '):'時間切れ · 正解者なし',winners.length?'good':'warn');
+   appendResultBanner(winners.length?'MASTERMIND · '+winners.join(' / '):'時間切れ · 正解者なし',winners.length?'good':'warn');
    appendResultRow('秘密コード',(Array.isArray(result.secret)?result.secret:[]).map(v=>['','●','◆','▲','■','★','⬢'][Number(v)]||'?').join(' '));
    entries.forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.solved?(Number(e.solveMs||0)/1000).toFixed(2)+'秒 · '+Number(e.attempts||0)+'手':'未解読 · BEST '+Number(e.bestExact||0)+' HIT / '+Number(e.bestMisplaced||0)+' BLOW'));
  }else if(rs.gameId==='reversi'){
@@ -406,8 +406,10 @@ function setupCodeBreak(room){
  const rs=room.roundState;hideRoundGames();codeBreakPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  if(codeBreakToken!==rs.token){codeBreakToken=rs.token;codeBreakGuess=[];}
- codeBreakTitle.textContent=rs.solved?'解読成功！':'秘密コードを解読';
- codeBreakHint.textContent=rs.solved?'ほかの参加者の結果を待っています。':'残り '+Number(rs.attemptsLeft||0)+'手 · HIT=位置一致 / BLOW=記号一致';
+ codeBreakTitle.textContent=rs.solved?'解読成功！':(rs.aiEnabled?'AIより先に解読':'秘密コードを解読');
+ if(rs.solved)codeBreakHint.textContent='結果を確定しています。';
+ else if(rs.aiEnabled)codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · AI '+Number(rs.aiAttempts||0)+'手目'+(rs.aiLastExact!=null?' · AI '+Number(rs.aiLastExact)+' HIT / '+Number(rs.aiLastMisplaced||0)+' BLOW':'');
+ else codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · HIT=位置一致 / BLOW=記号一致';
  codeBreakSubmit.disabled=rs.solved===true||codeBreakGuess.length!==4;
  codeBreakBack.disabled=rs.solved===true||codeBreakGuess.length===0;
  [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=rs.solved===true||codeBreakGuess.length>=4);

@@ -331,6 +331,42 @@ local function codeBreakScore(secret,guess)
     local misplaced=0 for value,count in pairs(guessCounts) do misplaced=misplaced+math.min(count,secretCounts[value] or 0) end
     return exact,misplaced
 end
+
+local function codeBreakSameGuess(a,b)
+    if type(a)~='table' or type(b)~='table' then return false end
+    for i=1,4 do if tonumber(a[i])~=tonumber(b[i]) then return false end end
+    return true
+end
+
+local function codeBreakAiGuess(history)
+    history=history or {}
+    if #history==0 then return {1,1,2,2} end
+    for a=1,6 do for b=1,6 do for c=1,6 do for d=1,6 do
+        local candidate={a,b,c,d}
+        local valid=true
+        for _,previous in ipairs(history) do
+            local exact,misplaced=codeBreakScore(candidate,previous.guess)
+            if exact~=(tonumber(previous.exact) or 0) or misplaced~=(tonumber(previous.misplaced) or 0) then
+                valid=false break
+            end
+        end
+        if valid then
+            local already=false
+            for _,previous in ipairs(history) do if codeBreakSameGuess(candidate,previous.guess) then already=true break end end
+            if not already then return candidate end
+        end
+    end end end end
+    return {math.random(1,6),math.random(1,6),math.random(1,6),math.random(1,6)}
+end
+
+local function codeBreakAiTurn(rs)
+    if not rs or not rs.aiEnabled or rs.aiSolved or #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8) then return end
+    rs.aiHistory=rs.aiHistory or {}
+    local guess=codeBreakAiGuess(rs.aiHistory)
+    local exact,misplaced=codeBreakScore(rs.secret,guess)
+    rs.aiHistory[#rs.aiHistory+1]={guess=guess,exact=exact,misplaced=misplaced}
+    if exact==4 then rs.aiSolved={atTick=GetGameTimer(),attempts=#rs.aiHistory} end
+end
 local reversiDirections={{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}}
 local function reversiCell(row,col) return ((row-1)*8)+col end
 local function reversiInBounds(row,col) return row>=1 and row<=8 and col>=1 and col<=8 end
@@ -548,6 +584,10 @@ local function publicRoundState(room,viewerId)
     if rs.gameId=='code_break' then
         local history=rs.codeBreakHistory and rs.codeBreakHistory[viewerId] or {}
         out.history=history out.maxAttempts=tonumber(rs.maxAttempts) or 8 out.attemptsLeft=math.max(0,out.maxAttempts-#history) out.solved=rs.solved and rs.solved[viewerId]~=nil or false
+        out.aiEnabled=rs.aiEnabled==true
+        out.aiAttempts=#(rs.aiHistory or {})
+        local aiLast=rs.aiHistory and rs.aiHistory[#rs.aiHistory] or nil
+        if aiLast then out.aiLastExact=aiLast.exact out.aiLastMisplaced=aiLast.misplaced end
     end
     if rs.gameId=='reversi' then
         out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil
@@ -969,7 +1009,12 @@ function FlecityGamesParty.StartRound(source)
     local rs={token=('round:%d:%06d:%06d'):format(room.round,GetGameTimer()%1000000,math.random(0,999999)),gameId=game.id,startedAt=os.time(),startedTick=startedTick,submissions={},complete=false}
     room.roundState=rs
 
-    if game.id=='code_break' then rs.secret=newCodeBreakSecret() rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={} end
+    if game.id=='code_break' then
+        rs.secret=newCodeBreakSecret() rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={}
+        rs.aiEnabled=connectedCount(room)==1
+        rs.aiHistory={}
+        rs.aiSolved=nil
+    end
     if game.id=='reversi' then
         local ids=connectedIdentifiers(room) room.rotation=room.rotation or {} room.rotation.reversi=((tonumber(room.rotation.reversi) or 0)%#ids)+1
         local order=rotatedIdentifiers(ids,room.rotation.reversi) rs.board={} for i=1,64 do rs.board[i]='' end
@@ -1267,14 +1312,36 @@ end
 local function maybeFinishCodeBreak(room,force)
     local rs=room.roundState if not rs or rs.gameId~='code_break' or rs.complete then return end
     local active,done=0,0
-    for id,m in pairs(room.members or {}) do if not m.disconnected and m.appOpen~=false then active=active+1 local history=rs.codeBreakHistory and rs.codeBreakHistory[id] or {} if (rs.solved and rs.solved[id]) or #history>=(tonumber(rs.maxAttempts) or 8) then done=done+1 end end end
-    if not force and (active<1 or done<active) then return end
+    local humanSolved=false
+    for id,m in pairs(room.members or {}) do
+        if not m.disconnected and m.appOpen~=false then
+            active=active+1
+            local history=rs.codeBreakHistory and rs.codeBreakHistory[id] or {}
+            if rs.solved and rs.solved[id] then humanSolved=true end
+            if (rs.solved and rs.solved[id]) or #history>=(tonumber(rs.maxAttempts) or 8) then done=done+1 end
+        end
+    end
+    local aiDone=not rs.aiEnabled or rs.aiSolved~=nil or #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8)
+    if not force then
+        if rs.aiEnabled then
+            if not humanSolved and not rs.aiSolved and not (active>0 and done>=active and aiDone) then return end
+        elseif active<1 or done<active then
+            return
+        end
+    end
+
     local entries={}
     for id,m in pairs(room.members or {}) do
         local history=rs.codeBreakHistory and rs.codeBreakHistory[id] or {} local solved=rs.solved and rs.solved[id] or nil local bestExact,bestMisplaced=0,0
         for _,attempt in ipairs(history) do local exact=tonumber(attempt.exact) or 0 local misplaced=tonumber(attempt.misplaced) or 0 if exact>bestExact or (exact==bestExact and misplaced>bestMisplaced) then bestExact=exact bestMisplaced=misplaced end end
         entries[#entries+1]={memberId=m.memberId,name=m.name,solved=solved~=nil,solveMs=solved and math.max(0,(tonumber(solved.atTick) or rs.startedTick)-rs.startedTick) or nil,attempts=#history,bestExact=bestExact,bestMisplaced=bestMisplaced}
     end
+    if rs.aiEnabled then
+        local history=rs.aiHistory or {} local solved=rs.aiSolved local bestExact,bestMisplaced=0,0
+        for _,attempt in ipairs(history) do local exact=tonumber(attempt.exact) or 0 local misplaced=tonumber(attempt.misplaced) or 0 if exact>bestExact or (exact==bestExact and misplaced>bestMisplaced) then bestExact=exact bestMisplaced=misplaced end end
+        entries[#entries+1]={memberId='AI',name='AI',solved=solved~=nil,solveMs=solved and math.max(0,(tonumber(solved.atTick) or rs.startedTick)-rs.startedTick) or nil,attempts=#history,bestExact=bestExact,bestMisplaced=bestMisplaced,ai=true}
+    end
+
     table.sort(entries,function(a,b)
         if a.solved~=b.solved then return a.solved end
         if a.solved and b.solved then if a.solveMs~=b.solveMs then return a.solveMs<b.solveMs end if a.attempts~=b.attempts then return a.attempts<b.attempts end
@@ -1283,7 +1350,7 @@ local function maybeFinishCodeBreak(room,force)
     end)
     local best=entries[1]
     for index,entry in ipairs(entries) do entry.place=index entry.winner=best and best.solved and entry.solved and entry.solveMs==best.solveMs or false end
-    rs.complete=true rs.results={entries=entries,secret=rs.secret,timedOut=force==true}
+    rs.complete=true rs.results={entries=entries,secret=rs.secret,timedOut=force==true,aiEnabled=rs.aiEnabled==true}
 end
 
 function FlecityGamesParty.SubmitCodeBreak(source,data)
@@ -1298,7 +1365,11 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
     if type(data.guess)~='table' or #data.guess~=4 then return {ok=false,error='INVALID_CHOICE'} end
     local guess={} for i=1,4 do local value=math.floor(tonumber(data.guess[i]) or 0) if value<1 or value>6 then return {ok=false,error='INVALID_CHOICE'} end guess[i]=value end
     local exact,misplaced=codeBreakScore(rs.secret,guess) history[#history+1]={guess=guess,exact=exact,misplaced=misplaced} rs.codeBreakHistory[id]=history
-    if exact==4 then rs.solved=rs.solved or {} rs.solved[id]={atTick=GetGameTimer(),attempts=#history} end
+    if exact==4 then
+        rs.solved=rs.solved or {} rs.solved[id]={atTick=GetGameTimer(),attempts=#history}
+    elseif rs.aiEnabled then
+        codeBreakAiTurn(rs)
+    end
     maybeFinishCodeBreak(room,false) notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 

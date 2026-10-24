@@ -4,8 +4,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $MainRepo = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Worktree = Join-Path (Split-Path -Parent $MainRepo) '_flecity_games_release'
-$OutputDir = Join-Path $MainRepo 'dist'
+$RepoParent = Split-Path -Parent $MainRepo
+$Worktree = Join-Path $RepoParent '_flecity_games_release'
+$OutputRepo = $MainRepo
+$PrimaryRepo = Join-Path $RepoParent 'application'
+if ((Split-Path -Leaf $MainRepo) -eq '_flecity_games_manual' -and (Test-Path (Join-Path $PrimaryRepo '.git'))) {
+    $OutputRepo = $PrimaryRepo
+}
+$OutputDir = Join-Path $OutputRepo 'dist'
 
 function Step([string]$Message) {
     Write-Host ''

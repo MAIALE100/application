@@ -377,7 +377,7 @@ function setupVote(room){
  votePrompt.textContent=rs.prompt||'投票';voteChoices.innerHTML='';beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  if(rs.selfSubmitted){voteChoices.innerHTML='<div class="status good">投票済み · '+submissionProgress(rs)+'<br>ほかの参加者を待っています。</div>';return;}
- room.players.filter(p=>!p.disconnected&&p.memberId!==room.selfMemberId).forEach(p=>{
+ room.players.filter(p=>!p.disconnected&&p.appOpen!==false&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitVote(rs.token,p.memberId);voteChoices.appendChild(b);
  });
 }

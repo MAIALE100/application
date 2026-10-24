@@ -572,3 +572,8 @@ LOOP完成版には不要な変更を入れない。
 - App/Phoneを閉じた参加者が、残存app-open参加者だけで進む結果集計に「閉じる前にもらった票」だけで残る不整合を防止。
 - Room所属・再open・次Round参加仕様は変更しない。
 - 実機複数クライアントで「投票済み→投票対象close→票再集計→必要なら即結果確定」を確認するまで未検証扱い。
+
+## 2026-10-24 NG WORD close progress整合
+- NG WORD guess phaseの `submittedCount / expectedSubmissions` と完了判定をapp-open参加者基準へ統一。
+- 未回答者がPARTY/Phoneを閉じた後、サーバーは残存回答者だけで完了判定し、UI進捗にも閉じた参加者を残さない。
+- 実機複数クライアント確認は未実施。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ確認手順を追加。

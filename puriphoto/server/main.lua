@@ -229,8 +229,17 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
 
     local sourceUrl = validHttpUrl(payload.sourceUrl)
     local finishedUrl = validHttpUrl(payload.finishedUrl)
-    local editData = safeString(payload.editData, tonumber(Config.ProjectDataMaxBytes) or 2000000)
+    local maxProjectBytes = tonumber(Config.ProjectDataMaxBytes) or 2000000
+    local editData = type(payload.editData) == "string" and payload.editData or nil
     local location = normalizeLocation(payload.location)
+
+    if editData and #editData > maxProjectBytes then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "project_too_large"
+        })
+        return
+    end
 
     if not sourceUrl or not finishedUrl or not editData or editData == "" then
         sendResponse(source, requestId, {
@@ -251,27 +260,32 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
 
     local projectId = tonumber(payload.id)
     if projectId and projectId > 0 then
-        local affected = MySQL.update.await([[
-            UPDATE puriphoto_projects
-            SET source_url = ?, finished_url = ?, edit_data = ?,
-                location_label = ?, location_street = ?, location_zone = ?,
-                location_x = ?, location_y = ?, location_z = ?
-            WHERE id = ? AND citizenid = ?
-        ]], {
-            sourceUrl,
-            finishedUrl,
-            editData,
-            location and location.label or nil,
-            location and location.street or nil,
-            location and location.zone or nil,
-            location and location.x or nil,
-            location and location.y or nil,
-            location and location.z or nil,
-            projectId,
-            citizenid
-        })
+        local existingId = MySQL.scalar.await(
+            "SELECT id FROM puriphoto_projects WHERE id = ? AND citizenid = ? LIMIT 1",
+            { projectId, citizenid }
+        )
 
-        if affected and affected > 0 then
+        if existingId then
+            MySQL.update.await([[
+                UPDATE puriphoto_projects
+                SET source_url = ?, finished_url = ?, edit_data = ?,
+                    location_label = ?, location_street = ?, location_zone = ?,
+                    location_x = ?, location_y = ?, location_z = ?
+                WHERE id = ? AND citizenid = ?
+            ]], {
+                sourceUrl,
+                finishedUrl,
+                editData,
+                location and location.label or nil,
+                location and location.street or nil,
+                location and location.zone or nil,
+                location and location.x or nil,
+                location and location.y or nil,
+                location and location.z or nil,
+                projectId,
+                citizenid
+            })
+
             sendResponse(source, requestId, {
                 ok = true,
                 id = projectId

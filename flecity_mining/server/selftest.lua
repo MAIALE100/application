@@ -41,7 +41,8 @@ local function runSelfTest()
     local nodesOk = type(Config.MiningNodes) == 'table' and #Config.MiningNodes > 0
     if nodesOk then
         for _, node in ipairs(Config.MiningNodes) do
-            if not node.id or nodeIds[node.id] or not isVector(node.coords) then
+            if type(node.id) ~= 'number' or node.id % 1 ~= 0 or node.id < 1
+                or nodeIds[node.id] or not isVector(node.coords) then
                 nodesOk = false
                 break
             end

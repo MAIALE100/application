@@ -790,3 +790,5 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - 3人以上でNG WORDのguess phaseへ進み、未回答者1人がPARTY/Phoneをcloseする。
 - 残ったapp-open回答者だけで `submittedCount / expectedSubmissions` が一致し、閉じた参加者を待ち人数へ残さないことを確認する。
 - `game_party_status` と各端末表示を照合し、closeした参加者の再open後も完了済みRoundが巻き戻らないことを確認する。
+
+- [LIVE TEST REQUIRED] LB Phone小画面で7〜10人Roomを作り、参加者一覧が約10.5〜14rem内でスクロールし、ROOM CODE・Ready・ゲーム選択・開始操作へ過度な縦スクロールなしで到達できること。長い表示名でも横崩れしないこと。

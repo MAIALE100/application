@@ -119,8 +119,8 @@ try {
     $manifestPath = Join-Path $stageResource 'fxmanifest.lua'
     Require-File $manifestPath 'fxmanifest.lua'
     $manifest = Get-Content -LiteralPath $manifestPath -Raw
-    $manifest = [regex]::Replace($manifest,"(?m)^description '.+'$","description 'Flecity Games LOOP - LB Phone mini-game app'")
-    $manifest = [regex]::Replace($manifest,"(?m)^version '.+'$","version '$ReleaseVersion'")
+    $manifest = [regex]::Replace($manifest,"(?m)^description '.+'\r?$","description 'Flecity Games LOOP - LB Phone mini-game app'")
+    $manifest = [regex]::Replace($manifest,"(?m)^version '.+'\r?$","version '$ReleaseVersion'")
     $manifest = [regex]::Replace($manifest,"(?m)^\s*'server/core/dev_reload\.lua',\r?\n",'')
     Write-Utf8NoBom -Path $manifestPath -Text $manifest
 

@@ -1658,12 +1658,12 @@ local function finishFakeAnswer(room,timedOut)
 
     local scoreById={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then scoreById[id]={memberId=m.memberId,name=m.name,score=0,correct=false,foolVotes=0} end
+        if not m.disconnected and m.appOpen~=false then scoreById[id]={memberId=m.memberId,name=m.name,score=0,correct=false,foolVotes=0} end
     end
     for voterId,optionId in pairs(rs.votes or {}) do
         local voter=room.members[voterId]
         local choice=choices[optionId]
-        if voter and not voter.disconnected and choice then
+        if voter and not voter.disconnected and voter.appOpen~=false and choice then
             choice.votes=choice.votes+1
             local playerScore=scoreById[voterId]
             if playerScore and optionId==correctOptionId then

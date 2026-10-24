@@ -224,6 +224,36 @@ function FlecityGamesPartyPlus.GetStatus(source,allowRenew)
     return {ok=true,status=publicStatus(row,renewError)}
 end
 
+function FlecityGamesPartyPlus.DebugRevenueStatus()
+    local account=revenueAccount()
+    local provider=revenueProvider()
+    local balance,balanceProvider=FlecityGamesFramework.GetSocietyMoney(account,provider)
+    local renewedState=GetResourceState('Renewed-Banking')
+    local qbBankingState=GetResourceState('qb-banking')
+    local resolvedProvider='none'
+    if provider=='auto' then
+        if renewedState=='started' then resolvedProvider='renewed-banking'
+        elseif qbBankingState=='started' then resolvedProvider='qb-banking' end
+    elseif provider=='renewed-banking' and renewedState=='started' then
+        resolvedProvider='renewed-banking'
+    elseif provider=='qb-banking' and qbBankingState=='started' then
+        resolvedProvider='qb-banking'
+    end
+    return {
+        enabled=planEnabled(),
+        price=price(),
+        durationDays=math.floor(durationSeconds()/86400),
+        moneyType=moneyType(),
+        revenueAccount=account,
+        revenueProvider=provider,
+        resolvedProvider=resolvedProvider,
+        balanceProvider=balanceProvider or 'none',
+        revenueBalance=balance,
+        renewedState=renewedState,
+        qbBankingState=qbBankingState
+    }
+end
+
 function FlecityGamesPartyPlus.GetConfigFor(source,allowRenew)
     local statusResult=FlecityGamesPartyPlus.GetStatus(source,allowRenew)
     local status=statusResult.ok and statusResult.status or {active=false,expiresAt=0,autoRenew=false}

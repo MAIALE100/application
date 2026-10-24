@@ -387,26 +387,14 @@ end,false)
 RegisterCommand('game_party_status',function(source)
     if not requireServerConsole(source,'game_party_status') then return end
     local prefix='[FlecityGames PARTY]'
-    local plus=FlecityGamesConfig.PartyPlus or {}
-    local renewedState=GetResourceState('Renewed-Banking')
-    local qbBankingState=GetResourceState('qb-banking')
-    local configuredProvider=tostring(plus.RevenueProvider or 'auto')
-    local resolvedProvider='none'
-    if configuredProvider=='auto' then
-        if renewedState=='started' then resolvedProvider='renewed-banking'
-        elseif qbBankingState=='started' then resolvedProvider='qb-banking' end
-    elseif configuredProvider=='renewed-banking' and renewedState=='started' then
-        resolvedProvider='renewed-banking'
-    elseif configuredProvider=='qb-banking' and qbBankingState=='started' then
-        resolvedProvider='qb-banking'
-    end
-    local revenueAccount=tostring(plus.RevenueAccount or 'weazel')
-    local revenueBalance,balanceProvider=FlecityGamesFramework.GetSocietyMoney(revenueAccount,configuredProvider)
-    local revenueBalanceText=revenueBalance~=nil and tostring(math.floor(revenueBalance)) or 'unavailable'
+    local plus=FlecityGamesPartyPlus.DebugRevenueStatus()
+    local revenueBalanceText=plus.revenueBalance~=nil and tostring(math.floor(plus.revenueBalance)) or 'unavailable'
     print(('%s plus enabled=%s price=%d duration_days=%d money=%s revenue=%s provider=%s resolved=%s balance_provider=%s revenue_balance=%s renewed=%s qb_banking=%s')
-        :format(prefix,tostring(plus.Enabled~=false),tonumber(plus.Price) or 0,
-            math.floor((tonumber(plus.DurationSeconds) or 0)/86400),tostring(plus.MoneyType or 'bank'),
-            revenueAccount,configuredProvider,resolvedProvider,tostring(balanceProvider or 'none'),revenueBalanceText,renewedState,qbBankingState))
+        :format(prefix,tostring(plus.enabled==true),tonumber(plus.price) or 0,
+            tonumber(plus.durationDays) or 0,tostring(plus.moneyType or 'bank'),
+            tostring(plus.revenueAccount or 'weazel'),tostring(plus.revenueProvider or 'auto'),
+            tostring(plus.resolvedProvider or 'none'),tostring(plus.balanceProvider or 'none'),
+            revenueBalanceText,tostring(plus.renewedState),tostring(plus.qbBankingState)))
     local summaries=FlecityGamesParty.DebugRoomSummaries()
     if #summaries==0 then
         print(prefix..' no active rooms')

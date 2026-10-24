@@ -4,6 +4,7 @@ import hashlib
 import os
 import re
 import shutil
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -29,6 +30,7 @@ EXCLUDED_FILES = {
     "dev-reload.token",
     "dev-reload-v2.active",
     "dev-runtime.txt",
+    "runtime-active.txt",
     "dev-build.txt",
 }
 
@@ -66,6 +68,20 @@ def patch_manifest() -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def patch_submission_server() -> None:
+    path = STAGE / "server/main.lua"
+    text = path.read_text(encoding="utf-8")
+    marker = "math.randomseed(os.time()+GetGameTimer())"
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        raise RuntimeError("server/main.lua startup marker not found")
+    prefix = text[:marker_index]
+    if "runtime-active.txt" not in prefix:
+        raise RuntimeError("development runtime stamp block not found")
+    text = text[marker_index:]
+    path.write_text(text, encoding="utf-8")
+
+
 def patch_submission_config() -> None:
     path = STAGE / "config/shared.lua"
     text = path.read_text(encoding="utf-8")
@@ -89,6 +105,7 @@ def add_release_docs() -> None:
     mapping = {
         "INSTALL_JA.txt": "導入方法_運営様向け.txt",
         "OPERATOR_CHECKLIST_JA.txt": "運営確認用メモ.txt",
+        "QA_RESULT_JA.txt": "提出前確認結果.txt",
     }
     for source_name, target_name in mapping.items():
         source = docs / source_name
@@ -96,7 +113,16 @@ def add_release_docs() -> None:
             raise RuntimeError(f"release document missing: {source}")
         shutil.copy2(source, STAGE / target_name)
 
-    commit = os.environ.get("GITHUB_SHA", "local-build")
+    commit = os.environ.get("GITHUB_SHA", "").strip()
+    if not commit:
+        try:
+            commit = subprocess.check_output(
+                ["git", "-C", str(REPO), "rev-parse", "HEAD"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except (OSError, subprocess.CalledProcessError):
+            commit = "local-build"
     info = (
         f"Flecity Games LOOP {RELEASE_VERSION}\n"
         f"Source commit: {commit}\n"
@@ -122,6 +148,7 @@ def validate_release() -> None:
         STAGE / "sql/001_initial.sql",
         STAGE / "導入方法_運営様向け.txt",
         STAGE / "運営確認用メモ.txt",
+        STAGE / "提出前確認結果.txt",
     ]
     missing = [str(path.relative_to(STAGE)) for path in required if not path.is_file()]
     if missing:
@@ -131,8 +158,18 @@ def validate_release() -> None:
         raise RuntimeError("release manifest version is not production-safe")
     if "server/core/dev_reload.lua" in manifest:
         raise RuntimeError("development reload script remains in release manifest")
-    if (STAGE / "server/core/dev_reload.lua").exists() or (STAGE / "tools").exists() or (STAGE / "TESTING.md").exists():
+    if (
+        (STAGE / "server/core/dev_reload.lua").exists()
+        or (STAGE / "tools").exists()
+        or (STAGE / "TESTING.md").exists()
+        or (STAGE / "runtime-active.txt").exists()
+        or (STAGE / "dev-build.txt").exists()
+        or (STAGE / "dev-runtime.txt").exists()
+    ):
         raise RuntimeError("development-only content remains in release")
+    server_main = (STAGE / "server/main.lua").read_text(encoding="utf-8")
+    if "runtime-active.txt" in server_main or "dev-build.txt" in server_main:
+        raise RuntimeError("development runtime stamp logic remains in release server/main.lua")
     if (STAGE / "web/party").exists():
         raise RuntimeError("PARTY web UI must not be included in LOOP submission")
     if not re.search(r"Party\s*=\s*\{.*?enabled\s*=\s*false.*?defaultApp\s*=\s*false", config, flags=re.S):
@@ -162,6 +199,7 @@ def main() -> None:
     DIST.mkdir(parents=True, exist_ok=True)
     copy_release_tree()
     patch_manifest()
+    patch_submission_server()
     patch_submission_config()
     add_release_docs()
     validate_release()

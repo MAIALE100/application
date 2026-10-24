@@ -2935,14 +2935,15 @@ async function guessHighLow(guess){
    setStatus('RANGE RUSHの判定通信に失敗しました。もう一度お試しください。','error');return;
  }
  const scoreBefore=Number(game.score)||0;
- game.streak=Math.max(0,Number(res.streak)||0);
- game.maxStreak=Math.max(game.maxStreak||0,Number(res.maxStreak)||0);
- game.score=Math.max(0,Number(res.score)||0);
+ const responseStreak=Number(res.streak),responseMaxStreak=Number(res.maxStreak),responseScore=Number(res.score),responseCompleted=Number(res.completed),responseTimeLimit=Number(res.timeLimitMs);
+ if(Number.isFinite(responseStreak))game.streak=Math.max(0,responseStreak);
+ if(Number.isFinite(responseMaxStreak))game.maxStreak=Math.max(game.maxStreak||0,responseMaxStreak);
+ if(Number.isFinite(responseScore))game.score=Math.max(0,responseScore);
  const rankUp=liveRankUpPrefix('high_low',scoreBefore,game.score);
  const responseLives=Number(res.lives);
  if(Number.isFinite(responseLives))game.lives=Math.max(0,responseLives);
- game.completed=Math.max(0,Number(res.completed)||0);
- game.timeLimitMs=Math.max(800,Number(res.timeLimitMs)||game.timeLimitMs||2400);
+ if(Number.isFinite(responseCompleted))game.completed=Math.max(0,responseCompleted);
+ if(Number.isFinite(responseTimeLimit))game.timeLimitMs=Math.max(800,responseTimeLimit);
  game.busy=false;
  highLowCard.classList.remove('card-pop');void highLowCard.offsetWidth;highLowCard.classList.add('card-pop');
  highLowEl.classList.remove('guess-correct','guess-wrong','range-timeout','life-lost');void highLowEl.offsetWidth;

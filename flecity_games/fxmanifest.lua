@@ -1,10 +1,10 @@
-fx_version '0.71.1-test'
+fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
 author 'Flecity'
 description 'Flecity Games - PLAY and PARTY LB Phone game platform'
-version '0.71.0-test'
+version '0.71.1-test'
 
 shared_scripts {
     'config/shared.lua',

@@ -1163,3 +1163,75 @@ body.reduced-motion .fall-result-hero,body.reduced-motion .fall-result-rank{anim
   to{transform:scale(1.16);filter:brightness(1.55)}
 }
 body.reduced-motion .connect4-cell.connect4-winning{animation:none;transform:scale(1.1)}
+
+/* REVERSI board */
+#reversiPanel{max-width:100%;min-width:0;overflow:hidden}
+.reversi-board{
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  grid-template-rows:repeat(8,minmax(0,1fr));
+  gap:1px;
+  width:min(100%,19rem);
+  aspect-ratio:1/1;
+  margin:.55rem auto;
+  padding:.28rem;
+  box-sizing:border-box;
+  border-radius:.72rem;
+  background:#17361f;
+  border:.08rem solid #426b4b;
+  box-shadow:inset 0 0 0 .08rem rgba(255,255,255,.04),0 .25rem .55rem rgba(0,0,0,.28);
+  overflow:hidden;
+}
+.reversi-cell{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  padding:0;
+  margin:0;
+  border:0;
+  border-radius:.08rem;
+  background:#2f6a3c;
+  box-shadow:inset 0 0 0 1px rgba(10,35,17,.55);
+  overflow:hidden;
+  appearance:none;
+}
+.reversi-cell:disabled{opacity:1}
+.reversi-cell.valid:not(:disabled){
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(10,35,17,.55),inset 0 0 0 .12rem rgba(255,255,255,.08);
+}
+.reversi-disc{
+  display:block;
+  width:76%;
+  aspect-ratio:1/1;
+  border-radius:50%;
+  box-sizing:border-box;
+  pointer-events:none;
+}
+.reversi-disc.black{
+  background:radial-gradient(circle at 35% 30%,#454545 0%,#181818 45%,#050505 100%);
+  border:.05rem solid #000;
+  box-shadow:inset .06rem .08rem .12rem rgba(255,255,255,.1),0 .05rem .12rem rgba(0,0,0,.45);
+}
+.reversi-disc.white{
+  background:radial-gradient(circle at 35% 30%,#fff 0%,#ececec 55%,#cfcfcf 100%);
+  border:.05rem solid #bdbdbd;
+  box-shadow:inset .06rem .08rem .12rem rgba(255,255,255,.75),0 .05rem .12rem rgba(0,0,0,.3);
+}
+.reversi-guide{
+  display:block;
+  width:24%;
+  aspect-ratio:1/1;
+  border-radius:50%;
+  background:rgba(255,255,255,.38);
+  box-shadow:0 0 .16rem rgba(255,255,255,.28);
+  pointer-events:none;
+}
+@media(max-width:22.5rem){
+  .reversi-board{width:min(100%,17.5rem);padding:.22rem}
+}

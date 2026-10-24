@@ -451,8 +451,19 @@ function setupReversi(room){
  const board=Array.isArray(rs.board)?rs.board:Array(64).fill(''),valid=new Set(Array.isArray(rs.validMoves)?rs.validMoves.map(Number):[]);
  reversiBoard.innerHTML='';
  board.forEach((mark,index)=>{
-   const button=document.createElement('button');button.className='reversi-cell'+(valid.has(index+1)?' valid':'');button.dataset.cell=String(index+1);
-   button.textContent=mark==='B'?'●':(mark==='W'?'○':'');button.disabled=!rs.isCurrent||!valid.has(index+1);
+   const button=document.createElement('button');
+   button.className='reversi-cell'+(valid.has(index+1)?' valid':'');
+   button.dataset.cell=String(index+1);
+   button.disabled=!rs.isCurrent||!valid.has(index+1);
+   if(mark==='B'||mark==='W'){
+     const disc=document.createElement('span');
+     disc.className='reversi-disc '+(mark==='B'?'black':'white');
+     button.appendChild(disc);
+   }else if(valid.has(index+1)){
+     const guide=document.createElement('span');
+     guide.className='reversi-guide';
+     button.appendChild(guide);
+   }
    button.onclick=()=>runOnce('reversi-move',async()=>{const res=await FlecityBridge.call('partySubmitReversi',{token:rs.token,cell:index+1});if(!res.ok){status('REVERSI: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
    reversiBoard.appendChild(button);
  });

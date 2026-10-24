@@ -8,7 +8,8 @@ Flecity Games LOOP v1.0.0
 ・LB Phone用カスタムアプリ「LOOP」
 ・一人用ミニゲーム 15種
 ・ランキング / Daily Challenge / 実績 / 途中保存
-・LOOPはLB PhoneのApp Storeから各プレイヤーが無料でダウンロードする方式です。\n・今回の提出版では PARTY アプリは非表示にしています。
+・LOOPはLB PhoneのApp Storeから各プレイヤーが無料でダウンロードする方式です。
+・今回の提出版ではPARTYアプリは非表示にしています。
 
 ■ 前提
 以下のリソースが稼働している環境を前提としています。
@@ -56,7 +57,7 @@ DROP TABLE / TRUNCATE TABLE は実行しません。
 [FlecityGames] LB Phone callbacks registered .../...
 [FlecityGames] startup preflight READY_FOR_LIVE_TEST
 
-ゲーム内LB Phoneに「LOOP」が表示され、起動できれば基本導入は完了です。
+LB PhoneのApp Storeに「LOOP」が表示され、無料でダウンロード後に起動できれば基本導入は完了です。
 
 ■ 確認用コマンド
 必要な場合のみ、サーバーコンソールから以下をご利用いただけます。

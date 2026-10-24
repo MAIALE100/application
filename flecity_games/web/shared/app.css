@@ -1236,11 +1236,16 @@ body.reduced-motion .connect4-cell.connect4-winning{animation:none;transform:sca
   .reversi-board{width:min(100%,17.5rem);padding:.22rem}
 }
 
-/* MINI SHOGI */
+/* SHOGI */
 #miniShogiPanel{max-width:100%;min-width:0;overflow:hidden}
-.mini-shogi-board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:.0625rem;width:min(100%,18rem);aspect-ratio:1/1;margin:.55rem auto;padding:.25rem;box-sizing:border-box;background:#7d542f;border:.08rem solid #a97846;border-radius:.65rem}
-.mini-shogi-cell{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;padding:0;margin:0;border:0;border-radius:.06rem;background:#d5a45d;box-shadow:inset 0 0 0 .0625rem rgba(84,51,20,.5);appearance:none}
-.mini-shogi-cell:disabled{opacity:1}.mini-shogi-cell.selected{box-shadow:inset 0 0 0 .14rem #ffe29a}.mini-shogi-cell.legal{background:#e2b76f}
-.mini-shogi-piece{display:flex;align-items:center;justify-content:center;width:72%;height:78%;font-size:clamp(.9rem,4vw,1.35rem);font-weight:900;border-radius:.18rem .18rem .28rem .28rem;clip-path:polygon(18% 0,82% 0,100% 22%,92% 100%,8% 100%,0 22%);background:#f0c47b;color:#2b1b0f;border:.05rem solid #7e542b;box-shadow:0 .06rem .12rem rgba(0,0,0,.3)}
-.mini-shogi-piece.white{transform:rotate(180deg);background:#cf9b57}.mini-shogi-guide{width:24%;aspect-ratio:1/1;border-radius:50%;background:rgba(255,255,255,.5);box-shadow:0 0 .15rem rgba(255,255,255,.35)}
-@media(max-width:22.5rem){.mini-shogi-board{width:min(100%,16.5rem)}}
+.mini-shogi-board{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));gap:.035rem;width:min(100%,19rem);aspect-ratio:1/1;margin:.45rem auto;padding:.2rem;box-sizing:border-box;background:#76502f;border:.08rem solid #a97846;border-radius:.55rem}
+.mini-shogi-cell{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;padding:0;margin:0;border:0;border-radius:.035rem;background:#d7a75f;box-shadow:inset 0 0 0 .045rem rgba(84,51,20,.52);appearance:none}
+.mini-shogi-cell:disabled{opacity:1}.mini-shogi-cell.selected{box-shadow:inset 0 0 0 .13rem #fff0a8}.mini-shogi-cell.legal{background:#e7bd76}
+.mini-shogi-piece{display:flex;align-items:center;justify-content:center;width:84%;height:88%;font-size:clamp(.58rem,2.8vw,.86rem);font-weight:900;line-height:1;border-radius:.08rem .08rem .15rem .15rem;clip-path:polygon(18% 0,82% 0,100% 22%,92% 100%,8% 100%,0 22%);background:#f0c47b;color:#2b1b0f;border:.04rem solid #7e542b;box-shadow:0 .04rem .08rem rgba(0,0,0,.28);user-select:none}
+.mini-shogi-piece.white{transform:rotate(180deg);background:#cf9b57}.mini-shogi-piece.promoted{color:#9f1717}
+.mini-shogi-guide{width:24%;aspect-ratio:1/1;border-radius:50%;background:rgba(255,255,255,.58);box-shadow:0 0 .12rem rgba(255,255,255,.4)}
+.mini-shogi-hands{display:flex;align-items:center;flex-wrap:wrap;gap:.28rem;min-height:2.25rem;padding:.35rem .42rem;margin:.2rem 0;border-radius:.55rem;background:#15181e;border:.0625rem solid #303641}
+.mini-shogi-hand-label{font-size:.67rem;font-weight:800;opacity:.68;margin-right:.12rem}
+.mini-shogi-hand-piece{min-height:1.85rem;padding:.28rem .48rem;border-radius:.42rem;background:#d7a75f;color:#2b1b0f;border:.05rem solid #8a6032;font-size:.75rem;font-weight:900}
+.mini-shogi-hand-piece.selected{outline:.12rem solid #fff0a8}.mini-shogi-hand-piece:disabled{opacity:.65}.mini-shogi-hand-empty{font-size:.7rem}
+@media(max-width:22.5rem){.mini-shogi-board{width:min(100%,17.4rem)}.mini-shogi-piece{font-size:clamp(.52rem,2.65vw,.78rem)}.mini-shogi-hand-piece{padding:.24rem .4rem;font-size:.7rem}}

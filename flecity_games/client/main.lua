@@ -221,6 +221,7 @@ local callbackMap={
     partySubmitReversi='flecity_games:party:submitReversi',
     partySubmitGomoku='flecity_games:party:submitGomoku',
     partySubmitConnect4='flecity_games:party:submitConnect4',
+    partySubmitMiniShogi='flecity_games:party:submitMiniShogi',
     partySubmitTicTac='flecity_games:party:submitTicTac',
     partySubmitWordWolfVote='flecity_games:party:submitWordWolfVote',
     partySubmitLiarVote='flecity_games:party:submitLiarVote',

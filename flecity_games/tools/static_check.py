@@ -710,8 +710,6 @@ if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "ded
     fail("PARTY deduction discussion/voting phase separation is missing")
 if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=activeCount(room)" not in party_lua or "submissionProgress" not in party_js:
     fail("PARTY aggregate waiting-progress UI is missing")
-if "rotation.ticTac" not in party_lua:
-    fail("PARTY TIC-TAC first-player rotation is missing")
 if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
@@ -794,7 +792,9 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "mini_shogi", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+if "SubmitMiniShogi" not in party_lua or "miniShogiChooseAiMove" not in party_lua or "partySubmitMiniShogi" not in party_js:
+    fail("PARTY MINI SHOGI solo-AI wiring is missing")
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
@@ -803,7 +803,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='mini_shogi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
     fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
@@ -945,8 +945,6 @@ if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "ded
     fail("PARTY deduction discussion/voting phase separation is missing")
 if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=activeCount(room)" not in party_lua or "submissionProgress" not in party_js:
     fail("PARTY aggregate waiting-progress UI is missing")
-if "rotation.ticTac" not in party_lua:
-    fail("PARTY TIC-TAC first-player rotation is missing")
 if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
@@ -1029,7 +1027,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "mini_shogi", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
@@ -1038,7 +1036,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='mini_shogi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
     fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
@@ -1174,8 +1172,6 @@ if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "ded
     fail("PARTY deduction discussion/voting phase separation is missing")
 if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=activeCount(room)" not in party_lua or "submissionProgress" not in party_js:
     fail("PARTY aggregate waiting-progress UI is missing")
-if "rotation.ticTac" not in party_lua:
-    fail("PARTY TIC-TAC first-player rotation is missing")
 if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
     fail("PARTY MINORITY unanimous-choice handling is missing")
 if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
@@ -1258,7 +1254,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "mini_shogi", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
@@ -1267,7 +1263,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='tic_tac'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='mini_shogi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
     fail("PARTY solo/duo board-game player caps are incorrect")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))

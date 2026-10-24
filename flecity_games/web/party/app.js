@@ -11,7 +11,7 @@ const votePanel=document.getElementById('votePanel'),votePrompt=document.getElem
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
 const gomokuPanel=document.getElementById('gomokuPanel'),gomokuStatus=document.getElementById('gomokuStatus'),gomokuBoard=document.getElementById('gomokuBoard'),gomokuMeta=document.getElementById('gomokuMeta');
 const connect4Panel=document.getElementById('connect4Panel'),connect4Status=document.getElementById('connect4Status'),connect4Columns=document.getElementById('connect4Columns'),connect4Board=document.getElementById('connect4Board'),connect4Meta=document.getElementById('connect4Meta');
-const ticTacPanel=document.getElementById('ticTacPanel'),ticTacStatus=document.getElementById('ticTacStatus'),ticTacBoard=document.getElementById('ticTacBoard'),ticTacMeta=document.getElementById('ticTacMeta');
+const miniShogiPanel=document.getElementById('miniShogiPanel'),miniShogiStatus=document.getElementById('miniShogiStatus'),miniShogiBoard=document.getElementById('miniShogiBoard'),miniShogiMeta=document.getElementById('miniShogiMeta');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
@@ -28,7 +28,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null;
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0;
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -121,7 +121,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');codeBreakPanel.classList.add('hidden');reversiPanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');gomokuPanel.classList.add('hidden');connect4Panel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');codeBreakPanel.classList.add('hidden');reversiPanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');gomokuPanel.classList.add('hidden');connect4Panel.classList.add('hidden');miniShogiPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
@@ -290,6 +290,10 @@ function renderResults(room){
      const label=e.choice==='A'?options[0]:(e.choice==='B'?options[1]:'未回答');
      appendResultRow(e.name,label+(winning&&e.choice===winning?' ✓':''));
    });
+ }else if(rs.gameId==='mini_shogi'){
+   const result=rs.results||{};
+   appendResultBanner(result.winnerName?('WINNER · '+String(result.winnerName)):'結果',result.winnerName?'good':'warn');
+   appendResultRow('手数',String(Number(result.moves||0)));
  }else if(rs.gameId==='tic_tac'){
    const result=rs.results||{};
    const banner=document.createElement('div');banner.className='status '+(result.draw?'warn':'good');
@@ -585,22 +589,49 @@ function setupMajority(room){
  ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary choice-button';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.gameId,rs.token,choice);majorityChoices.appendChild(b);});
 }
 
-function setupTicTac(room){
- const rs=room.roundState;hideRoundGames();ticTacPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
- if(rs.complete){renderResults(room);return;}
- const board=Array.isArray(rs.board)?rs.board:[];
+function setupMiniShogi(room){
+ const rs=room.roundState;hideRoundGames();miniShogiPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){miniShogiSelected=0;renderResults(room);return;}
+ const board=Array.isArray(rs.board)?rs.board:Array(25).fill('');
+ const legal=Array.isArray(rs.legalMoves)?rs.legalMoves:[];
+ const pieceText={K:'王',G:'金',S:'銀',B:'角',R:'飛',P:'歩'};
+ const destinationSet=new Set(legal.filter(m=>Number(m.from)===Number(miniShogiSelected)).map(m=>Number(m.to)));
+ miniShogiBoard.innerHTML='';
+ board.forEach((piece,index)=>{
+   const cell=index+1;
+   const button=document.createElement('button');
+   button.className='mini-shogi-cell'+(cell===miniShogiSelected?' selected':'')+(destinationSet.has(cell)?' legal':'');
+   const text=String(piece||'');
+   const side=text.slice(0,1),kind=text.slice(1,2);
+   if(kind){
+     const pieceEl=document.createElement('span');
+     pieceEl.className='mini-shogi-piece '+(side==='B'?'black':'white');
+     pieceEl.textContent=pieceText[kind]||kind;
+     button.appendChild(pieceEl);
+   }else if(destinationSet.has(cell)){
+     const guide=document.createElement('span');guide.className='mini-shogi-guide';button.appendChild(guide);
+   }
+   button.disabled=!rs.isCurrent;
+   button.onclick=async()=>{
+     if(!rs.isCurrent)return;
+     if(miniShogiSelected&&destinationSet.has(cell)){
+       const from=miniShogiSelected;miniShogiSelected=0;
+       miniShogiBoard.querySelectorAll('button').forEach(b=>b.disabled=true);
+       const res=await FlecityBridge.call('partySubmitMiniShogi',{token:rs.token,from,to:cell});
+       if(!res.ok){status('MINI SHOGI操作失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       renderRoom(res.room);return;
+     }
+     if(side===String(rs.side||'')){
+       miniShogiSelected=cell;setupMiniShogi(room);
+     }else{
+       miniShogiSelected=0;setupMiniShogi(room);
+     }
+   };
+   miniShogiBoard.appendChild(button);
+ });
  const current=room.players.find(p=>p.memberId===rs.currentMemberId);
- ticTacStatus.textContent=rs.isCurrent?'あなたの番です':(current?current.name+' の番です':'相手の番です');
- ticTacMeta.textContent='あなたは '+String(rs.symbol||'?')+' · 3つ揃えたら勝ち';
- ticTacBoard.innerHTML='';
- for(let i=0;i<9;i++){
-   const button=document.createElement('button');button.className='tic-tac-cell';
-   const value=String(board[i]||'');button.textContent=value;
-   button.disabled=!rs.isCurrent||value!=='';
-   button.setAttribute('aria-label','マス '+(i+1)+(value?' '+value:''));
-   button.onclick=()=>submitTicTac(rs.token,i+1);
-   ticTacBoard.appendChild(button);
- }
+ miniShogiStatus.textContent=rs.isCurrent?'あなたの手番':(rs.currentMemberId==='AI'?'AIの手番':(current?current.name+' の手番':'相手の手番'));
+ miniShogiMeta.textContent='あなたは '+(rs.side==='B'?'先手':'後手')+' · 王を取れば勝ち';
 }
 function deductionPhaseLoop(token){
  if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
@@ -818,6 +849,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='gomoku')setupGomoku(room);
    else if(rs&&rs.gameId==='connect4')setupConnect4(room);
    else if(rs&&(rs.gameId==='majority'||rs.gameId==='minority'))setupMajority(room);
+   else if(rs&&rs.gameId==='mini_shogi')setupMiniShogi(room);
    else if(rs&&rs.gameId==='tic_tac')setupTicTac(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);
    else if(rs&&rs.gameId==='draw')setupDraw(room);

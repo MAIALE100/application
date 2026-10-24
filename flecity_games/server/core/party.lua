@@ -230,6 +230,50 @@ local function partyGame(id)
     return game
 end
 
+local premiumRotationCache={weekKey=nil,set=nil,ids=nil,nextRotationAt=nil}
+local premiumRotationCount=5
+local function premiumWeekKey(now)
+    local epoch=tonumber(now) or os.time()
+    local jst=epoch+(9*60*60)
+    return math.floor((jst-(4*24*60*60))/(7*24*60*60))
+end
+local function premiumScore(gameId,weekKey)
+    local hash=(tonumber(weekKey) or 0)%2147483647
+    local text=tostring(gameId or '')
+    for i=1,#text do hash=((hash*131)+string.byte(text,i)+(i*17))%2147483647 end
+    return hash
+end
+local function weeklyPremiumRotation(now)
+    local weekKey=premiumWeekKey(now)
+    if premiumRotationCache.weekKey==weekKey and premiumRotationCache.set then return premiumRotationCache end
+    local candidates={}
+    for _,game in ipairs(FlecityGamesRegistry.List('party',true)) do
+        if game.id~='word_wolf' then
+            candidates[#candidates+1]={id=game.id,score=premiumScore(game.id,weekKey)}
+        end
+    end
+    table.sort(candidates,function(a,b)
+        if a.score~=b.score then return a.score<b.score end
+        return tostring(a.id)<tostring(b.id)
+    end)
+    local selected={} local ids={}
+    for i=1,math.min(premiumRotationCount,#candidates) do
+        local id=candidates[i].id
+        selected[id]=true ids[#ids+1]=id
+    end
+    local nextJst=((weekKey+1)*(7*24*60*60))+(4*24*60*60)
+    premiumRotationCache={
+        weekKey=weekKey,
+        set=selected,
+        ids=ids,
+        nextRotationAt=nextJst-(9*60*60)
+    }
+    return premiumRotationCache
+end
+local function isWeeklyPremiumGame(gameId)
+    return weeklyPremiumRotation().set[tostring(gameId or '')]==true
+end
+
 local function makeInternalId() return ('room:%d:%06d:%06d'):format(os.time(),GetGameTimer()%1000000,math.random(0,999999)) end
 local function makeMemberId(room)
     for _=1,50 do
@@ -1011,7 +1055,7 @@ function FlecityGamesParty.GetConfig(source)
             description=game.description,
             minPlayers=game.minPlayers,
             maxPlayers=game.maxPlayers,
-            premium=game.premium==true
+            premium=isWeeklyPremiumGame(game.id)
         }
     end
     return {
@@ -1022,6 +1066,11 @@ function FlecityGamesParty.GetConfig(source)
             maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
             version=GetResourceMetadata(GetCurrentResourceName(),'version',0) or 'unknown',
             games=games,
+            premiumRotation={
+                gameIds=weeklyPremiumRotation().ids,
+                nextRotationAt=weeklyPremiumRotation().nextRotationAt,
+                weekKey=weeklyPremiumRotation().weekKey
+            },
             plus=source and FlecityGamesPartyPlus.GetConfigFor(source,true) or nil
         }
     }
@@ -1146,7 +1195,7 @@ function FlecityGamesParty.SelectGame(source,data)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(type(data)=='table' and data.gameId or nil)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
-    if game.premium==true then
+    if isWeeklyPremiumGame(game.id) then
         local allowed=FlecityGamesPartyPlus.HasAccess(source,id,true)
         if not allowed then return {ok=false,error='PARTY_PLUS_REQUIRED'} end
     end
@@ -1195,7 +1244,7 @@ function FlecityGamesParty.StartRound(source)
     if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
     local game=partyGame(room.selectedGame)
     if not game then return {ok=false,error='GAME_UNAVAILABLE'} end
-    if game.premium==true then
+    if isWeeklyPremiumGame(game.id) then
         local allowed=FlecityGamesPartyPlus.HasAccess(source,id,true)
         if not allowed then return {ok=false,error='PARTY_PLUS_REQUIRED'} end
     end

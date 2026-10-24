@@ -84,8 +84,8 @@ local function validateRuntimeConfig()
     local nodeIds = {}
     local nodeCoords = {}
     for index, node in ipairs(Config.MiningNodes) do
-        if type(node) ~= 'table' or node.id == nil then
-            return false, ('mining node #%d has no id'):format(index)
+        if type(node) ~= 'table' or type(node.id) ~= 'number' or node.id % 1 ~= 0 or node.id < 1 then
+            return false, ('mining node #%d has invalid id (must be a positive numeric integer)'):format(index)
         end
         if nodeIds[node.id] then
             return false, ('duplicate mining node id: %s'):format(tostring(node.id))

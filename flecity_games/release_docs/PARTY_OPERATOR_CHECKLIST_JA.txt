@@ -163,3 +163,5 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 ・guess中の未回答者がPARTY/Phoneを閉じた時、残るapp-open参加者だけで回答進捗が再計算されること。
 ・閉じた参加者が待ち人数に残らず、再openしても完了済みRoundが巻き戻らないこと。
 ・game_party_status と端末表示を照合すること。
+
+[ ] LIVE TEST REQUIRED: LB Phone小画面・7〜10人Roomで参加者一覧だけが内部スクロールし、ROOM CODE / Ready / ゲーム選択 / 開始ボタンが操作しやすいこと。長い名前でも横崩れしないこと。

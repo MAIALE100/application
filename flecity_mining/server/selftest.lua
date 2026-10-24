@@ -43,13 +43,16 @@ local function runSelfTest()
         and type(drill.animName) == 'string' and drill.animName ~= ''
     add(results, drillOk, 'drill visuals', drillOk and tostring(drill.model) or 'invalid')
 
-    local interiorOk = not Config.MineInterior
-        or (type(Config.MineInterior) == 'table'
-            and Config.MineInterior.enabled ~= true
-            or (type(Config.MineInterior.ipl) == 'string'
+    local interiorOk = true
+    if Config.MineInterior ~= nil then
+        interiorOk = type(Config.MineInterior) == 'table'
+        if interiorOk and Config.MineInterior.enabled == true then
+            interiorOk = type(Config.MineInterior.ipl) == 'string'
                 and Config.MineInterior.ipl ~= ''
-                and isVector(Config.MineInterior.anchor)))
-    add(results, interiorOk, 'mine interior', Config.MineInterior and tostring(Config.MineInterior.ipl) or 'none')
+                and isVector(Config.MineInterior.anchor)
+        end
+    end
+    add(results, interiorOk, 'mine interior', type(Config.MineInterior) == 'table' and tostring(Config.MineInterior.ipl) or 'none')
 
     local nodeIds = {}
     local nodeCoords = {}

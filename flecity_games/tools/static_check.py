@@ -235,6 +235,8 @@ if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
 if "guessedMember.appOpen~=false" not in party_lua:
     fail("DRAW progress must exclude app-closed guessers")
+if party_lua.count("if not m.disconnected and m.appOpen~=false then") < 4:
+    fail("PARTY quick/choice result scoring must exclude app-closed players")
 if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
 if "startSessionWithRetry" not in play_js:

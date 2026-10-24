@@ -70,9 +70,9 @@ PARTY+（7日 / 50,000、加入HostのRoom全員が利用可）:
 
 PARTY+は限定品・シーズン・月替わり更新を前提にしない恒常プラン。
 出題バンクはNG WORD 120題 / FAKE ANSWER 124問 / BOMB 180題を同梱し、MEMORY CHAINはserver生成のため固定問題追加を不要とする。FALL BATTLEはserver-authoritative verifierで配置履歴を検証する。
-課金はcitizenid（CSN）単位で保持し、銀行から50,000を減算。7日経過後は次回利用時に自動更新を試行する。
+課金はcitizenid（CSN）単位で保持し、プレイヤーのbankから50,000を減算。7日経過後は次回利用時に自動更新を試行する。
 自動更新停止後も期限までは利用できる。加入購入は誤タップ防止の2段確認。
-現時点の50,000は経済sink。会社口座等への売上振替が必要な場合は、成功時event `flecity_games:server:partyPlusCharged` へ運営環境の口座処理を接続する。
+PARTY+売上はWEAZEL企業口座（account: `weazel`）へ入金する。企業口座providerは `auto` で、Renewed-Bankingを優先し、qb-bankingにも対応する。企業口座への入金に失敗した場合は購読を成立させずプレイヤーへ返金し、DB保存失敗時は企業口座入金の取り消し＋プレイヤー返金を試行する。
 
 既存サーバー機能:
 - CreateRoom / JoinRoom / GetRoom

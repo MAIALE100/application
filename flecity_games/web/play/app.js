@@ -27,7 +27,7 @@ const simonEl=document.getElementById('simonGame'),simonBoard=document.getElemen
 let bootstrapData=null,saves={},appSettings={sound:true,reducedMotion:false,favorites:[]},audioCtx=null,libraryFilter='all';
 let tapState='idle',tapShownAt=0,tapStartedAt=0,tapRunStartedAt=0,tapRoundStartedAt=0,tapTimer=null,tapSession=null,tapDaily=false;
 let stopState='idle',stopSession=null,stopStartedAt=0,stopRunStartedAt=0,stopRaf=null,stopDaily=false;
-let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,fallSoftClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,sortLastTapAt=0,sortLastTapIndex=-1,slideGame=null,slideClock=null,slideLastTapAt=0,slideLastTapIndex=-1,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
+let block=null,blockDrag=null,blockSuppressClick=false,merge=null,fallGame=null,fallGravityClock=null,fallSoftClock=null,mines=null,minesClock=null,mineSuppressClickUntil=0,mineLastTapAt=0,mineLastTapIndex=-1,stackGame=null,stackRaf=null,nonogram=null,nonogramClock=null,nonogramSuppressClickUntil=0,memory=null,memoryClock=null,memoryFlipTimer=null,sortGame=null,sortClock=null,sortLastTapAt=0,sortLastTapIndex=-1,slideGame=null,slideClock=null,slideLastTapAt=0,slideLastTapIndex=-1,colorMatch=null,colorMatchClock=null,numberRush=null,numberRushClock=null,highLow=null,highLowClock=null,simon=null,simonTimer=null,simonDaily=false,mergePointer=null,fallPointer=null;
 
 const SHAPES=[
  [[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1]],[[0,0],[0,1],[0,2]],
@@ -1804,7 +1804,7 @@ function renderMines(){
    const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
    b.onpointerdown=()=>{if(b.disabled)return;clearHold();holdTimer=setTimeout(()=>{holdTimer=null;mineSuppressClickUntil=performance.now()+650;void flagMineDirect(i);},420);};
    b.onpointerup=clearHold;b.onpointercancel=clearHold;b.onpointerleave=clearHold;
-   b.onclick=()=>{clearHold();if(performance.now()<mineSuppressClickUntil)return;void touchMine(i);};
+   b.onclick=()=>{clearHold();const now=performance.now();if(now<mineSuppressClickUntil)return;if(mineLastTapIndex===i&&now-mineLastTapAt<120)return;mineLastTapIndex=i;mineLastTapAt=now;void touchMine(i);};
    minesBoard.appendChild(b);
  }
  minesMode.textContent='モード: '+(mines.mode==='flag'?'旗':'開く');

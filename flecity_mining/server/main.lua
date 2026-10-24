@@ -359,7 +359,12 @@ local function beginAction(src, actionType, durationMs, targetCoords, data, labe
         type = actionType,
         token = token,
         startedAt = start,
-        minFinishAt = start + math.max(500, durationMs - 650),
+        -- The server approval is sent before the client starts its timer, so a
+        -- legitimate finish request cannot arrive before the full configured
+        -- duration has elapsed on the server. Do not grant an early-completion
+        -- grace window here: an injected client could otherwise shave time off
+        -- every mining action.
+        minFinishAt = start + durationMs,
         expiresAt = start + durationMs + 15000,
         target = targetCoords,
         data = data or {},

@@ -1,6 +1,11 @@
 local runtimeResource=GetCurrentResourceName()
-local runtimeBuild=(LoadResourceFile(runtimeResource,'dev-build.txt') or 'packaged'):gsub('%s+','')
-SaveResourceFile(runtimeResource,'runtime-active.txt',('build=%s\nstarted=%s\n'):format(runtimeBuild,os.date('!%Y-%m-%dT%H:%M:%SZ')),-1)
+local runtimeBuildFile=LoadResourceFile(runtimeResource,'dev-build.txt')
+if runtimeBuildFile then
+    local runtimeBuild=runtimeBuildFile:gsub('%s+','')
+    if runtimeBuild~='' then
+        SaveResourceFile(runtimeResource,'runtime-active.txt',('build=%s\nstarted=%s\n'):format(runtimeBuild,os.date('!%Y-%m-%dT%H:%M:%SZ')),-1)
+    end
+end
 
 math.randomseed(os.time()+GetGameTimer())
 
@@ -113,7 +118,11 @@ local function startupDiagnostics()
     local partyDefinitions=#FlecityGamesRegistry.List('party',false)
     local partyEnabled=#FlecityGamesRegistry.List('party',true)
     check(('PLAY registry %d/%d'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
-    check(('PARTY registry %d/%d'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    if partyAppEnabled then
+        check(('PARTY registry %d/%d'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    else
+        check('PARTY app disabled',FlecityGamesConfig.Apps.Party.enabled==false)
+    end
 
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES
@@ -136,8 +145,10 @@ local function startupDiagnostics()
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do
         check('PLAY '..name,ok==true)
     end
-    for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do
-        check('PARTY '..name,ok==true)
+    if partyAppEnabled then
+        for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do
+            check('PARTY '..name,ok==true)
+        end
     end
 
     if #failures==0 then
@@ -229,7 +240,11 @@ RegisterCommand('game_selftest',function(source)
     local partyDefinitions=#FlecityGamesRegistry.List('party',false)
     local partyEnabled=#FlecityGamesRegistry.List('party',true)
     check(('registry PLAY %d/%d enabled'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
-    check(('registry PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    if partyAppEnabled then
+        check(('registry PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    else
+        check('PARTY app disabled',FlecityGamesConfig.Apps.Party.enabled==false)
+    end
 
     for _,tableName in ipairs(requiredTables) do
         local exists=tonumber(MySQL.scalar.await([[SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?]],{tableName}) or 0)>0
@@ -247,8 +262,10 @@ RegisterCommand('game_selftest',function(source)
     local play=FlecityGamesPlay.DebugSelftest()
     for name,ok in pairs(play) do check('PLAY '..name,ok==true) end
 
-    local party=FlecityGamesParty.DebugSelftest()
-    for name,ok in pairs(party) do check('PARTY '..name,ok==true) end
+    if partyAppEnabled then
+        local party=FlecityGamesParty.DebugSelftest()
+        for name,ok in pairs(party) do check('PARTY '..name,ok==true) end
+    end
 
     local roomCount,memberTotal=FlecityGamesParty.DebugCounts()
     print(('%s rooms=%d members=%d'):format(prefix,roomCount,memberTotal))
@@ -303,11 +320,17 @@ RegisterCommand('game_preflight',function(source)
     local partyDefinitions=#FlecityGamesRegistry.List('party',false)
     local partyEnabled=#FlecityGamesRegistry.List('party',true)
     check(('PLAY %d/%d enabled'):format(playEnabled,playDefinitions),playDefinitions>0 and playEnabled==playDefinitions)
-    check(('PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    if partyAppEnabled then
+        check(('PARTY %d/%d enabled'):format(partyEnabled,partyDefinitions),partyDefinitions>0 and partyEnabled==partyDefinitions)
+    else
+        check('PARTY app disabled',FlecityGamesConfig.Apps.Party.enabled==false)
+    end
 
     for name,ok in pairs(FlecityGamesText.DebugSelftest()) do check('TEXT '..name,ok==true) end
     for name,ok in pairs(FlecityGamesPlay.DebugSelftest()) do check('PLAY '..name,ok==true) end
-    for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
+    if partyAppEnabled then
+        for name,ok in pairs(FlecityGamesParty.DebugSelftest()) do check('PARTY '..name,ok==true) end
+    end
 
     print(prefix..' player-specific identity/settings check SKIPPED from server console')
 

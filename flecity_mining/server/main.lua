@@ -152,9 +152,22 @@ local function isPlayerAlive(src)
     if not ped or ped == 0 then return false end
 
     local ok, health = pcall(GetEntityHealth, ped)
-    if not ok or not health then return false end
+    if not ok or not health or health <= 0 then return false end
 
-    return health > 0
+    -- QBox can keep a downed/last-stand character's ped health above zero.
+    -- Treat framework death-state metadata as authoritative as well so a
+    -- client cannot mine, process or sell while incapacitated.
+    local pd = getPlayerData(src)
+    if not pd then return false end
+
+    local metadata = pd.metadata
+    if type(metadata) == 'table' then
+        if metadata.isdead == true or metadata.inlaststand == true then
+            return false
+        end
+    end
+
+    return true
 end
 
 local function allowRequest(src, key, windowMs)

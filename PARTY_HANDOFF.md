@@ -577,3 +577,8 @@ LOOP完成版には不要な変更を入れない。
 - NG WORD guess phaseの `submittedCount / expectedSubmissions` と完了判定をapp-open参加者基準へ統一。
 - 未回答者がPARTY/Phoneを閉じた後、サーバーは残存回答者だけで完了判定し、UI進捗にも閉じた参加者を残さない。
 - 実機複数クライアント確認は未実施。TESTING.md / PARTY_OPERATOR_CHECKLIST_JA.txtへ確認手順を追加。
+
+## 2026-10-24 7〜10人Roomの小画面UI
+- PARTY専用HTML内だけで参加者一覧に最大高さと内部スクロールを追加し、7〜10人時にRoom操作が画面下へ押し流され続ける問題を抑制。
+- 低い/狭い画面では一覧高さを10.5remへ縮小し、参加者行の文字も僅かに圧縮。共有CSSやLOOP UIには変更なし。
+- LB Phone実機で7〜10人、長い表示名、縦スクロール/内部スクロールの操作性を確認するまでは未検証扱い。

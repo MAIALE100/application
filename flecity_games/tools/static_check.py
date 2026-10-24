@@ -145,26 +145,20 @@ if "partyUpdate" not in party_js or "partyDrawStroke" not in party_js:
     fail("PARTY direct-push UI wiring is missing")
 if "partySubscribePlus" not in party_js or "partyCancelPlus" not in party_js or 'id="partyPlusCard"' not in party_html:
     fail("PARTY+ subscription UI is missing")
+if "local function weeklyPremiumRotation" not in party_lua or "isWeeklyPremiumGame(game.id)" not in party_lua or "premiumRotationCount=5" not in party_lua:
+    fail("PARTY+ weekly premium rotation wiring is missing")
+if "game.id~='word_wolf'" not in party_lua:
+    fail("PARTY+ weekly rotation must keep WORD WOLF free")
 if "partySubmitNgWordClue" not in party_js or "partySubmitNgWordGuess" not in party_js or 'id="ngWordPanel"' not in party_html:
     fail("PARTY+ NG WORD client flow is missing")
-if not re.search(r"id='ng_word'[^\n]*premium=true", registry):
-    fail("PARTY+ NG WORD registry metadata is missing")
 if "partySubmitFakeAnswer" not in party_js or "partySubmitFakeVote" not in party_js or 'id="fakeAnswerPanel"' not in party_html:
     fail("PARTY+ FAKE ANSWER client flow is missing")
-if not re.search(r"id='fake_answer'[^\n]*premium=true", registry):
-    fail("PARTY+ FAKE ANSWER registry metadata is missing")
 if "partySubmitBombPass" not in party_js or 'id="bombPanel"' not in party_html:
     fail("PARTY+ BOMB client flow is missing")
-if not re.search(r"id='bomb'[^\n]*premium=true", registry):
-    fail("PARTY+ BOMB registry metadata is missing")
 if "partySubmitMemoryChain" not in party_js or 'id="memoryChainPanel"' not in party_html:
     fail("PARTY+ MEMORY CHAIN client flow is missing")
-if not re.search(r"id='memory_chain'[^\n]*premium=true", registry):
-    fail("PARTY+ MEMORY CHAIN registry metadata is missing")
 if "partySubmitFallBattle" not in party_fall_js or 'id="fallBattlePanel"' not in party_html:
     fail("PARTY+ FALL BATTLE client flow is missing")
-if not re.search(r"id='fall_battle'[^\n]*premium=true", registry):
-    fail("PARTY+ FALL BATTLE registry metadata is missing")
 if "'server/core/party_fall.lua'" not in fx or "FlecityGamesPartyFall.Validate" not in party_fall_lua:
     fail("PARTY+ FALL BATTLE server verifier is missing")
 if "FlecityGamesPartyFall.DebugSelftest" not in party_fall_lua:

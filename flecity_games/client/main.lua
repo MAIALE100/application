@@ -211,6 +211,7 @@ local callbackMap={
     partySetReady='flecity_games:party:setReady',
     partySelectGame='flecity_games:party:selectGame',
     partySetMastermindOptions='flecity_games:party:setMastermindOptions',
+    partySetShogiOptions='flecity_games:party:setShogiOptions',
     partyStartRound='flecity_games:party:startRound',
     partySubmitReaction='flecity_games:party:submitReaction',
     partySubmitStopBattle='flecity_games:party:submitStopBattle',

@@ -25,6 +25,9 @@ local function validateRuntimeConfig()
         if type(product) ~= 'table' or not product.id or tostring(product.id) == '' then
             return false, ('product #%d has no id'):format(index)
         end
+        if product.label == nil or tostring(product.label) == '' then
+            return false, ('product %s has no label'):format(tostring(product.id))
+        end
         if ids[product.id] then
             return false, ('duplicate product id: %s'):format(tostring(product.id))
         end

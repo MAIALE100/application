@@ -181,8 +181,10 @@ if "elseif rs.gameId=='memory_chain' then" not in party_lua or "maybeResolveMemo
     fail("PARTY+ MEMORY CHAIN disconnect reconciliation is missing")
 if "m.appOpen~=false and playerId~=rs.explainerIdentifier" not in party_lua or "rs.gameId=='memory_chain'" not in party_lua:
     fail("PARTY+ app-close wait-count hardening is missing")
-if not re.search(r"local function memoryAliveIdentifiers\(room\).*?not m\.disconnected and m\.appOpen~=false and not eliminated\[id\]", party_lua, re.S):
+if not re.search(r"local function memoryAliveIdentifiers\(room\).*?not m\.disconnected and m\.appOpen~=false and not \(rs\.eliminated and rs\.eliminated\[id\]\)", party_lua, re.S):
     fail("PARTY+ MEMORY CHAIN alive-set must exclude app-closed members")
+if len(re.findall(r"not m\.disconnected and m\.appOpen~=false and not \(rs\.eliminated and rs\.eliminated\[playerId\]\)", party_lua)) < 2:
+    fail("PARTY+ MEMORY CHAIN snapshot progress must exclude app-closed members")
 if "not m.disconnected and m.appOpen~=false then scoreById[id]=" not in party_lua or "not voter.disconnected and voter.appOpen~=false and choice" not in party_lua:
     fail("PARTY+ FAKE ANSWER scoring must exclude app-closed players and votes")
 if "PARTY+ app/phone close実機確認" not in testing or "PARTY+ app/phone close実機確認" not in party_submission_checklist:

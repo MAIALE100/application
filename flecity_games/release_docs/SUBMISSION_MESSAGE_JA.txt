@@ -1,0 +1,44 @@
+お疲れ様です。
+
+以前、LB Phone向け追加アプリについてご確認いただいた件ですが、
+一人用ミニゲームアプリ「LOOP v1.0.0」が提出可能な状態になりましたので、
+導入をご相談させていただきたく、データをお送りいたします。
+
+今回のデータは独立resource「flecity_games」として作成しており、
+LB Phone本体・Qbox本体・既存アプリのファイル変更は不要な構成です。
+
+LOOPはLB Phone App Storeから各プレイヤーが無料でダウンロードする方式で、
+defaultApp=false / game=true / price=0 としています。
+現在開発中の複数人用「PARTY」は、今回の提出版では無効化しております。
+
+DBについてはoxmysqlを使用し、必要な専用テーブルのみ起動時に自動作成・不足項目を補完します。
+既存テーブルのDROP / TRUNCATE等は行いません。
+
+こちらのテスト環境では、
+・game_selftest：failures=0
+・game_preflight：READY_FOR_LIVE_TEST / failures=0
+・game_healthcheck：不正データ、期限切れsession等すべて0
+・LB Phone App Storeへの表示
+・LOOPの起動
+・実ゲームのスコア反映
+・途中保存 / 再開
+まで確認済みです。
+
+ZIP内に、
+「導入方法_運営様向け.txt」
+「運営確認用メモ.txt」
+「提出前確認結果.txt」
+を同梱しております。
+
+基本的な導入作業は、
+resources配下への「flecity_games」配置と
+server.cfgへの「ensure flecity_games」追加のみです。
+既にサーバー稼働中の場合も、通常はサーバー全体の再起動は必要ありません。
+
+お手数をおかけして申し訳ございませんが、
+ご確認のうえ、導入可否をご判断いただけますと幸いです。
+
+もし本番環境側で調整が必要な箇所がございましたら、
+こちらで修正いたしますのでお知らせください。
+
+よろしくお願いいたします。

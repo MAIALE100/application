@@ -462,6 +462,96 @@ local function connect4Winner(board)
     return nil,nil
 end
 
+local function reversiAiMove(board,mark)
+    local moves=reversiValidMoves(board,mark)
+    if #moves<1 then return nil end
+    local corners={[1]=true,[8]=true,[57]=true,[64]=true}
+    local edges={}
+    for i=1,8 do edges[i]=true edges[56+i]=true edges[((i-1)*8)+1]=true edges[i*8]=true end
+    local best,bestScore=nil,-100000
+    for _,cell in ipairs(moves) do
+        local flips=#reversiFlips(board,cell,mark)
+        local score=flips*10+(corners[cell] and 1000 or 0)+(edges[cell] and 35 or 0)
+        local row=math.floor((cell-1)/8)+1 local col=((cell-1)%8)+1
+        if (row==2 or row==7) and (col==2 or col==7) then score=score-120 end
+        if score>bestScore then bestScore=score best=cell end
+    end
+    return best
+end
+
+local function gomokuWouldWin(board,cell,mark)
+    if (board[cell] or '')~='' then return false end
+    board[cell]=mark
+    local won=gomokuWinner(board,11)==mark
+    board[cell]=''
+    return won
+end
+
+local function gomokuAiMove(board,aiMark,humanMark)
+    local empties={}
+    for cell=1,121 do if (board[cell] or '')=='' then empties[#empties+1]=cell end end
+    for _,cell in ipairs(empties) do if gomokuWouldWin(board,cell,aiMark) then return cell end end
+    for _,cell in ipairs(empties) do if gomokuWouldWin(board,cell,humanMark) then return cell end end
+    local best,bestScore=nil,-100000
+    for _,cell in ipairs(empties) do
+        local row=math.floor((cell-1)/11)+1 local col=((cell-1)%11)+1
+        local score=40-(math.abs(row-6)+math.abs(col-6))*2
+        for dr=-1,1 do for dc=-1,1 do
+            if not (dr==0 and dc==0) then
+                local r=row+dr local c=col+dc
+                if r>=1 and r<=11 and c>=1 and c<=11 then
+                    local near=board[((r-1)*11)+c]
+                    if near==aiMark then score=score+8 elseif near==humanMark then score=score+6 end
+                end
+            end
+        end end
+        if score>bestScore then bestScore=score best=cell end
+    end
+    return best
+end
+
+local function connect4DropCell(board,col)
+    for row=6,1,-1 do
+        local cell=((row-1)*7)+col
+        if (board[cell] or '')=='' then return cell end
+    end
+    return nil
+end
+
+local function connect4WouldWin(board,col,mark)
+    local cell=connect4DropCell(board,col)
+    if not cell then return false end
+    board[cell]=mark
+    local winner=connect4Winner(board)
+    board[cell]=''
+    return winner==mark
+end
+
+local function connect4AiColumn(board,aiMark,humanMark)
+    local priority={4,3,5,2,6,1,7}
+    for _,col in ipairs(priority) do if connect4WouldWin(board,col,aiMark) then return col end end
+    for _,col in ipairs(priority) do if connect4WouldWin(board,col,humanMark) then return col end end
+    for _,col in ipairs(priority) do if connect4DropCell(board,col) then return col end end
+    return nil
+end
+
+local function ticTacAiCell(board,aiMark,humanMark)
+    local function wouldWin(cell,mark)
+        if (board[cell] or '')~='' then return false end
+        board[cell]=mark
+        local won=ticTacWinner(board)==mark
+        board[cell]=''
+        return won
+    end
+    for cell=1,9 do if wouldWin(cell,aiMark) then return cell end end
+    for cell=1,9 do if wouldWin(cell,humanMark) then return cell end end
+    if (board[5] or '')=='' then return 5 end
+    for _,cell in ipairs({1,3,7,9}) do if (board[cell] or '')=='' then return cell end end
+    for _,cell in ipairs({2,4,6,8}) do if (board[cell] or '')=='' then return cell end end
+    return nil
+end
+
+
 local function pickRoomPrompt(room,key,pool)
     if type(pool)~='table' or #pool<1 then return nil end
     room.promptIndexes=room.promptIndexes or {}
@@ -677,6 +767,7 @@ local function publicRoundState(room,viewerId)
         if aiLast then out.aiLastExact=aiLast.exact out.aiLastMisplaced=aiLast.misplaced end
     end
     if rs.gameId=='reversi' then
+        out.aiEnabled=rs.aiEnabled==true
         out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil
         out.validMoves=out.isCurrent and reversiValidMoves(rs.board or {},out.mark) or {}
         out.blackCount,out.whiteCount=reversiCounts(rs.board or {}) out.lastPassMemberId=memberPublicId(room,rs.lastPassIdentifier)
@@ -688,10 +779,12 @@ local function publicRoundState(room,viewerId)
     end
     if rs.gameId=='majority' or rs.gameId=='minority' then out.prompt=rs.prompt out.options=rs.options end
     if rs.gameId=='gomoku' or rs.gameId=='connect4' then
+        out.aiEnabled=rs.aiEnabled==true
         out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil out.moves=tonumber(rs.moves) or 0
         if rs.gameId=='connect4' then out.fullColumns={} for col=1,7 do if (rs.board[col] or '')~='' then out.fullColumns[#out.fullColumns+1]=col end end end
     end
     if rs.gameId=='tic_tac' then
+        out.aiEnabled=rs.aiEnabled==true
         out.board=rs.board or {}
         out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
         out.isCurrent=viewerId==rs.currentIdentifier
@@ -1149,10 +1242,18 @@ function FlecityGamesParty.StartRound(source)
         rs.turnNumber=1
     end
     if game.id=='reversi' then
-        local ids=connectedIdentifiers(room) room.rotation=room.rotation or {} room.rotation.reversi=((tonumber(room.rotation.reversi) or 0)%#ids)+1
-        local order=rotatedIdentifiers(ids,room.rotation.reversi) rs.board={} for i=1,64 do rs.board[i]='' end
+        local ids=connectedIdentifiers(room) room.rotation=room.rotation or {}
+        rs.aiEnabled=#ids==1
+        rs.board={} for i=1,64 do rs.board[i]='' end
         rs.board[28]='W' rs.board[29]='B' rs.board[36]='B' rs.board[37]='W'
-        rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.marks={[order[1]]='B',[order[2]]='W'} rs.lastPassIdentifier=nil rs.moves=0
+        if rs.aiEnabled then
+            rs.turnOrder={ids[1],'AI'} rs.currentIdentifier=ids[1] rs.marks={[ids[1]]='B',AI='W'}
+        else
+            room.rotation.reversi=((tonumber(room.rotation.reversi) or 0)%#ids)+1
+            local order=rotatedIdentifiers(ids,room.rotation.reversi)
+            rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.marks={[order[1]]='B',[order[2]]='W'}
+        end
+        rs.lastPassIdentifier=nil rs.moves=0
     end
     if game.id=='reaction' then rs.revealAfterMs=math.random(1500,4000) end
     if game.id=='vote' then rs.prompt=pickRoomPrompt(room,'vote',votePrompts) end
@@ -1165,19 +1266,31 @@ function FlecityGamesParty.StartRound(source)
     end
     if game.id=='gomoku' or game.id=='connect4' then
         local ids=connectedIdentifiers(room) room.rotation=room.rotation or {} local key=game.id
-        room.rotation[key]=((tonumber(room.rotation[key]) or 0)%#ids)+1 local order=rotatedIdentifiers(ids,room.rotation[key])
+        rs.aiEnabled=#ids==1
         rs.board={} local total=game.id=='gomoku' and 121 or 42 for i=1,total do rs.board[i]='' end
-        rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.marks={[order[1]]=game.id=='gomoku' and 'X' or 'R',[order[2]]=game.id=='gomoku' and 'O' or 'Y'} rs.moves=0
+        if rs.aiEnabled then
+            rs.turnOrder={ids[1],'AI'} rs.currentIdentifier=ids[1]
+            rs.marks={[ids[1]]=game.id=='gomoku' and 'X' or 'R',AI=game.id=='gomoku' and 'O' or 'Y'}
+        else
+            room.rotation[key]=((tonumber(room.rotation[key]) or 0)%#ids)+1
+            local order=rotatedIdentifiers(ids,room.rotation[key])
+            rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1]
+            rs.marks={[order[1]]=game.id=='gomoku' and 'X' or 'R',[order[2]]=game.id=='gomoku' and 'O' or 'Y'}
+        end
+        rs.moves=0
     end
     if game.id=='tic_tac' then
         local ids=connectedIdentifiers(room)
         room.rotation=room.rotation or {draw=0,telephone=0,ticTac=0}
-        room.rotation.ticTac=((tonumber(room.rotation.ticTac) or 0)%#ids)+1
-        local order=rotatedIdentifiers(ids,room.rotation.ticTac)
+        rs.aiEnabled=#ids==1
         rs.board={'','','','','','','','',''}
-        rs.turnOrder={order[1],order[2]}
-        rs.currentIdentifier=order[1]
-        rs.symbols={[order[1]]='X',[order[2]]='O'}
+        if rs.aiEnabled then
+            rs.turnOrder={ids[1],'AI'} rs.currentIdentifier=ids[1] rs.symbols={[ids[1]]='X',AI='O'}
+        else
+            room.rotation.ticTac=((tonumber(room.rotation.ticTac) or 0)%#ids)+1
+            local order=rotatedIdentifiers(ids,room.rotation.ticTac)
+            rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.symbols={[order[1]]='X',[order[2]]='O'}
+        end
     end
     if game.id=='word_wolf' then
         local pair=pickRoomPrompt(room,'word_wolf',wordWolfPairs)
@@ -1605,12 +1718,76 @@ local function finishReversi(room,reason,winnerIdentifier)
     local rs=room.roundState if not rs or rs.gameId~='reversi' or rs.complete then return end
     local black,white=reversiCounts(rs.board or {})
     if not winnerIdentifier and black~=white then local winningMark=black>white and 'B' or 'W' for id,mark in pairs(rs.marks or {}) do if mark==winningMark then winnerIdentifier=id break end end end
-    rs.complete=true rs.results={board=rs.board,blackCount=black,whiteCount=white,draw=winnerIdentifier==nil and black==white,winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,reason=reason}
+    rs.complete=true rs.results={board=rs.board,blackCount=black,whiteCount=white,draw=winnerIdentifier==nil and black==white,winnerMemberId=winnerIdentifier and (winnerIdentifier=='AI' and 'AI' or memberPublicId(room,winnerIdentifier)) or nil,winnerName=winnerIdentifier and (winnerIdentifier=='AI' and 'AI' or memberName(room,winnerIdentifier)) or nil,reason=reason}
 end
 local function finishReversiForfeit(room,loserIdentifier,reason)
     local rs=room.roundState if not rs or rs.gameId~='reversi' or rs.complete then return end
     local winner=nil for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end finishReversi(room,reason or 'FORFEIT',winner)
 end
+local function runReversiAi(room)
+    local rs=room.roundState
+    while rs and rs.aiEnabled and not rs.complete and rs.currentIdentifier=='AI' do
+        local mark=rs.marks.AI
+        local move=reversiAiMove(rs.board,mark)
+        if not move then
+            local humanId=rs.turnOrder[1]
+            local humanMark=rs.marks[humanId]
+            if #reversiValidMoves(rs.board,humanMark)>0 then
+                rs.currentIdentifier=humanId rs.lastPassIdentifier='AI'
+                return
+            end
+            finishReversi(room,'BOARD_COMPLETE',nil)
+            return
+        end
+        local flips=reversiFlips(rs.board,move,mark)
+        rs.board[move]=mark for _,flip in ipairs(flips) do rs.board[flip]=mark end
+        rs.moves=(tonumber(rs.moves) or 0)+1
+        local humanId=rs.turnOrder[1] local humanMark=rs.marks[humanId]
+        local humanMoves=reversiValidMoves(rs.board,humanMark)
+        local aiMoves=reversiValidMoves(rs.board,mark)
+        if #humanMoves>0 then rs.currentIdentifier=humanId rs.lastPassIdentifier=nil return
+        elseif #aiMoves>0 then rs.currentIdentifier='AI' rs.lastPassIdentifier=humanId
+        else finishReversi(room,'BOARD_COMPLETE',nil) return end
+    end
+end
+
+local function runGomokuAi(room)
+    local rs=room.roundState if not rs or not rs.aiEnabled or rs.complete or rs.currentIdentifier~='AI' then return end
+    local humanId=rs.turnOrder[1] local aiMark=rs.marks.AI local humanMark=rs.marks[humanId]
+    local cell=gomokuAiMove(rs.board,aiMark,humanMark)
+    if not cell then finishSimpleBoardGame(room,'BOARD_FULL',nil) return end
+    rs.board[cell]=aiMark rs.moves=(tonumber(rs.moves) or 0)+1
+    local winner=gomokuWinner(rs.board,11)
+    if winner then finishSimpleBoardGame(room,'FIVE_IN_ROW','AI')
+    elseif rs.moves>=121 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
+    else rs.currentIdentifier=humanId end
+end
+
+local function runConnect4Ai(room)
+    local rs=room.roundState if not rs or not rs.aiEnabled or rs.complete or rs.currentIdentifier~='AI' then return end
+    local humanId=rs.turnOrder[1] local aiMark=rs.marks.AI local humanMark=rs.marks[humanId]
+    local col=connect4AiColumn(rs.board,aiMark,humanMark)
+    if not col then finishSimpleBoardGame(room,'BOARD_FULL',nil) return end
+    local cell=connect4DropCell(rs.board,col)
+    rs.board[cell]=aiMark rs.moves=(tonumber(rs.moves) or 0)+1
+    local winner,winningCells=connect4Winner(rs.board)
+    if winner then finishSimpleBoardGame(room,'FOUR_IN_ROW','AI',winningCells)
+    elseif rs.moves>=42 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
+    else rs.currentIdentifier=humanId end
+end
+
+local function runTicTacAi(room)
+    local rs=room.roundState if not rs or not rs.aiEnabled or rs.complete or rs.currentIdentifier~='AI' then return end
+    local humanId=rs.turnOrder[1] local aiMark=rs.symbols.AI local humanMark=rs.symbols[humanId]
+    local cell=ticTacAiCell(rs.board,aiMark,humanMark)
+    if not cell then rs.complete=true rs.results={board=rs.board,draw=true} return end
+    rs.board[cell]=aiMark
+    local winner=ticTacWinner(rs.board)
+    if winner then rs.complete=true rs.results={board=rs.board,winnerMemberId='AI',winnerName='AI',winnerSymbol=winner,draw=false}
+    elseif ticTacFull(rs.board) then rs.complete=true rs.results={board=rs.board,draw=true}
+    else rs.currentIdentifier=humanId end
+end
+
 function FlecityGamesParty.SubmitReversi(source,data)
     if not FlecityGamesRateLimit.Allow(source,'reversi_move',180) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id) if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
@@ -1623,9 +1800,11 @@ function FlecityGamesParty.SubmitReversi(source,data)
     rs.board[cell]=mark for _,flip in ipairs(flips) do rs.board[flip]=mark end rs.moves=(tonumber(rs.moves) or 0)+1 rs.submissions[id]=(rs.submissions[id] or 0)+1
     local first,second=rs.turnOrder[1],rs.turnOrder[2] local nextId=id==first and second or first local nextMark=rs.marks[nextId]
     local currentMoves=reversiValidMoves(rs.board,mark) local nextMoves=reversiValidMoves(rs.board,nextMark)
-    if #nextMoves>0 then rs.currentIdentifier=nextId rs.lastPassIdentifier=nil setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
-    elseif #currentMoves>0 then rs.currentIdentifier=id rs.lastPassIdentifier=nextId setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
+    if #nextMoves>0 then rs.currentIdentifier=nextId rs.lastPassIdentifier=nil
+    elseif #currentMoves>0 then rs.currentIdentifier=id rs.lastPassIdentifier=nextId
     else finishReversi(room,'BOARD_COMPLETE',nil) end
+    if rs.aiEnabled and not rs.complete and rs.currentIdentifier=='AI' then runReversiAi(room) end
+    if not rs.complete and rs.currentIdentifier~='AI' then setRoundDeadline(rs,roundTimeoutSeconds('reversi')) end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
@@ -1636,8 +1815,8 @@ local function finishSimpleBoardGame(room,reason,winnerIdentifier,winningCells)
         board=rs.board,
         moves=tonumber(rs.moves) or 0,
         draw=winnerIdentifier==nil,
-        winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,
-        winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,
+        winnerMemberId=winnerIdentifier and (winnerIdentifier=='AI' and 'AI' or memberPublicId(room,winnerIdentifier)) or nil,
+        winnerName=winnerIdentifier and (winnerIdentifier=='AI' and 'AI' or memberName(room,winnerIdentifier)) or nil,
         winningCells=winningCells or {},
         reason=reason
     }
@@ -1658,7 +1837,11 @@ function FlecityGamesParty.SubmitGomoku(source,data)
     local winner=gomokuWinner(rs.board,11)
     if winner then finishSimpleBoardGame(room,'FIVE_IN_ROW',identifierForMark(rs,winner))
     elseif rs.moves>=121 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
-    else local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first setRoundDeadline(rs,roundTimeoutSeconds('gomoku')) end
+    else
+        local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first
+        if rs.aiEnabled and rs.currentIdentifier=='AI' then runGomokuAi(room) end
+        if not rs.complete and rs.currentIdentifier~='AI' then setRoundDeadline(rs,roundTimeoutSeconds('gomoku')) end
+    end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 function FlecityGamesParty.SubmitConnect4(source,data)
@@ -1672,7 +1855,11 @@ function FlecityGamesParty.SubmitConnect4(source,data)
     local winner,winningCells=connect4Winner(rs.board)
     if winner then finishSimpleBoardGame(room,'FOUR_IN_ROW',identifierForMark(rs,winner),winningCells)
     elseif rs.moves>=42 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
-    else local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first setRoundDeadline(rs,roundTimeoutSeconds('connect4')) end
+    else
+        local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first
+        if rs.aiEnabled and rs.currentIdentifier=='AI' then runConnect4Ai(room) end
+        if not rs.complete and rs.currentIdentifier~='AI' then setRoundDeadline(rs,roundTimeoutSeconds('connect4')) end
+    end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
@@ -1714,7 +1901,8 @@ function FlecityGamesParty.SubmitTicTac(source,data)
     else
         local first,second=rs.turnOrder[1],rs.turnOrder[2]
         rs.currentIdentifier=id==first and second or first
-        setRoundDeadline(rs,roundTimeoutSeconds('tic_tac'))
+        if rs.aiEnabled and rs.currentIdentifier=='AI' then runTicTacAi(room) end
+        if not rs.complete and rs.currentIdentifier~='AI' then setRoundDeadline(rs,roundTimeoutSeconds('tic_tac')) end
     end
 
     notifyRoom(room,source)

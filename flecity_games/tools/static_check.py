@@ -766,7 +766,7 @@ if "function drawableStroke(points)" not in party_js or "const sendPoints=drawab
     fail("PARTY drawing must preserve single-tap dots")
 if party_js.count("e.key==='Enter'&&!e.isComposing") < 2:
     fail("PARTY Japanese IME Enter guards are missing")
-if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
+if "maybeFinishCodeBreak(room,true)" not in party_lua or "finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
     fail("PARTY result-screen accidental-return guard is missing")
@@ -809,7 +809,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='reaction'[^\n]*maxPlayers=10", registry) or not re.search(r"id='stop_battle'[^\n]*maxPlayers=10", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=10", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
     fail("PARTY quick simultaneous games must support 10-player rooms")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
@@ -1001,7 +1001,7 @@ if "function drawableStroke(points)" not in party_js or "const sendPoints=drawab
     fail("PARTY drawing must preserve single-tap dots")
 if party_js.count("e.key==='Enter'&&!e.isComposing") < 2:
     fail("PARTY Japanese IME Enter guards are missing")
-if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
+if "maybeFinishCodeBreak(room,true)" not in party_lua or "finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
     fail("PARTY result-screen accidental-return guard is missing")
@@ -1044,7 +1044,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='reaction'[^\n]*maxPlayers=10", registry) or not re.search(r"id='stop_battle'[^\n]*maxPlayers=10", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=10", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
     fail("PARTY quick simultaneous games must support 10-player rooms")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
@@ -1230,7 +1230,7 @@ if "function drawableStroke(points)" not in party_js or "const sendPoints=drawab
     fail("PARTY drawing must preserve single-tap dots")
 if party_js.count("e.key==='Enter'&&!e.isComposing") < 2:
     fail("PARTY Japanese IME Enter guards are missing")
-if "maybeFinishReaction(room,true)" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
+if "maybeFinishCodeBreak(room,true)" not in party_lua or "finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
     fail("PARTY timeout partial-result finalization is missing")
 if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
     fail("PARTY result-screen accidental-return guard is missing")
@@ -1273,7 +1273,7 @@ if play_order != expected_play_order:
     fail(f"PLAY registry order mismatch: {play_order}")
 if party_order != expected_party_order:
     fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='reaction'[^\n]*maxPlayers=10", registry) or not re.search(r"id='stop_battle'[^\n]*maxPlayers=10", registry):
+if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=10", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=2[^\n]*maxPlayers=2", registry):
     fail("PARTY quick simultaneous games must support 10-player rooms")
 
 server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))

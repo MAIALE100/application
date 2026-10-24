@@ -2546,8 +2546,13 @@ function FlecityGamesPlay.DebugSelftest()
     end
     local memoryReplay=replayMemory(12345,memoryPairs)
     local colorRounds=generateColorMatch(12345,20)
-    local colorHistory={} for _,round in ipairs(colorRounds) do colorHistory[#colorHistory+1]=round.ink end
+    local colorHistory={}
+    for i,round in ipairs(colorRounds) do colorHistory[i]=round.ink end
     local colorReplay=replayColorMatch(12345,colorHistory,20)
+    local colorReplayOk=colorReplay~=nil
+        and colorReplay.complete==true
+        and tonumber(colorReplay.rounds)==20
+        and tonumber(colorReplay.misses)==0
     local numberRushHistory=perfectNumberRushHistory(12345,25) or {}
     local numberRushReplay=replayNumberRush(12345,numberRushHistory,25)
     local rangeRushRounds=generateRangeRushRounds(12345,30)
@@ -2670,7 +2675,7 @@ function FlecityGamesPlay.DebugSelftest()
         slideReplaySolve=slide and slideReplay and slideReplay.complete==true and slideReplay.moves==#slideSolution,
         slideValidateTime=slide and validateScore(slide,60000)==60000 or false,
         memoryPreviewConfigured=memory and tonumber(challengeFor(memory,12345).previewMs)==1200 or false,
-        colorMatchReplay=colorMatch and colorReplay and colorReplay.complete==true and colorReplay.rounds==20 and colorReplay.misses==0 or false,
+        colorMatchReplay=colorMatch~=nil and colorReplayOk,
         colorMatchValidateTime=colorMatch and validateScore(colorMatch,8000)==8000 or false,
         numberRushReplay=numberRush and numberRushReplay and numberRushReplay.complete==true and numberRushReplay.misses==0 and numberRushReplay.taps==25 or false,
         numberRushValidateTime=numberRush and validateScore(numberRush,10000)==10000 or false,

@@ -22,11 +22,11 @@ local function validateRuntimeConfig()
     local ids = {}
     local totalWeight = 0
     for index, product in ipairs(Config.RefinedProducts) do
-        if type(product) ~= 'table' or not product.id or tostring(product.id) == '' then
-            return false, ('product #%d has no id'):format(index)
+        if type(product) ~= 'table' or type(product.id) ~= 'string' or product.id == '' then
+            return false, ('product #%d has invalid id (must be a non-empty string)'):format(index)
         end
-        if product.label == nil or tostring(product.label) == '' then
-            return false, ('product %s has no label'):format(tostring(product.id))
+        if type(product.label) ~= 'string' or product.label == '' then
+            return false, ('product %s has invalid label (must be a non-empty string)'):format(product.id)
         end
         if ids[product.id] then
             return false, ('duplicate product id: %s'):format(tostring(product.id))

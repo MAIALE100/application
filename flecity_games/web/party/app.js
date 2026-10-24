@@ -310,11 +310,51 @@ function renderResults(room){
    appendResultRow('NG',Array.isArray(result.forbiddenWords)?result.forbiddenWords.join(' / '):'---');
    (result.entries||[]).forEach(e=>appendResultRow(e.name,e.guess?(e.guess+(e.correct?' ✓':'')):'未回答'));
  }else if(rs.gameId==='fall_battle'){
-   const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
-   const winners=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
-   appendResultBanner(winners.length?'WINNER · '+winners.join(' / '):'有効記録なし',winners.length?'good':'warn');
+   const result=rs.results||{},entries=Array.isArray(result.entries)?result.entries:[],winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
+   const winners=entries.filter(e=>winnerIds.includes(e.memberId));
+   const selfId=room.selfMemberId;
+   const selfIndex=entries.findIndex(e=>e.memberId===selfId);
+
+   const hero=document.createElement('div');
+   hero.className='fall-result-hero'+(winners.some(e=>e.memberId===selfId)?' is-self-winner':'');
+   const eyebrow=document.createElement('div');eyebrow.className='fall-result-eyebrow';eyebrow.textContent=winners.length?'FALL BATTLE RESULT':'RESULT';
+   const title=document.createElement('div');title.className='fall-result-title';
+   title.textContent=winners.length===1?'1st · '+winners[0].name:(winners.length>1?'TIE · '+winners.map(e=>e.name).join(' / '):'有効記録なし');
+   const sub=document.createElement('div');sub.className='fall-result-sub';
+   if(winners.length===1){
+     const w=winners[0];
+     sub.textContent=Number(w.score||0).toLocaleString('ja-JP')+' pt · '+Number(w.lines||0)+' LINES';
+   }else if(winners.length>1){
+     sub.textContent='同スコアで首位';
+   }else{
+     sub.textContent='記録を確定できませんでした';
+   }
+   hero.append(eyebrow,title,sub);resultsEl.appendChild(hero);
+
+   if(selfIndex>=0){
+     const mine=document.createElement('div');mine.className='fall-result-self';
+     const mineRank=document.createElement('strong');mineRank.textContent='あなたの順位 · #'+(selfIndex+1);
+     const mineScore=document.createElement('span');mineScore.textContent=Number(entries[selfIndex].score||0).toLocaleString('ja-JP')+' pt · '+Number(entries[selfIndex].lines||0)+' LINES';
+     mine.append(mineRank,mineScore);resultsEl.appendChild(mine);
+   }
+
    if(result.timedOut===true)appendResultBanner('90秒終了 · 送信済みの記録で確定しました。','warn');
-   (result.entries||[]).forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.forfeited?'DNF · アプリを閉じました':(e.timedOut?'未送信':(Number(e.score||0)+' pt · '+Number(e.lines||0)+' LINES'))));
+
+   const board=document.createElement('div');board.className='fall-result-board';
+   entries.forEach((e,index)=>{
+     const row=document.createElement('div');
+     row.className='fall-result-rank'+(e.memberId===selfId?' is-self':'')+(winnerIds.includes(e.memberId)?' is-winner':'');
+     const rank=document.createElement('div');rank.className='fall-result-place';rank.textContent='#'+(index+1);
+     const who=document.createElement('div');who.className='fall-result-player';
+     const name=document.createElement('strong');name.textContent=e.name;
+     const tag=document.createElement('span');tag.textContent=e.memberId===selfId?'YOU':(winnerIds.includes(e.memberId)?'WINNER':'');
+     if(!tag.textContent)tag.classList.add('hidden');
+     who.append(name,tag);
+     const stat=document.createElement('div');stat.className='fall-result-stat';
+     stat.textContent=e.forfeited?'DNF':(e.timedOut?'未送信':(Number(e.score||0).toLocaleString('ja-JP')+' pt · '+Number(e.lines||0)+' L'));
+     row.append(rank,who,stat);board.appendChild(row);
+   });
+   resultsEl.appendChild(board);
  }else if(rs.gameId==='draw'){
    const reveal=document.createElement('div');reveal.className=rs.results.aborted||rs.results.timedOut?'status warn':'status good';reveal.textContent=rs.results.aborted?'描き手が退出したため終了しました。':(rs.results.timedOut?'時間切れ · 正解: ':'正解: ')+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
    const fastest=(rs.results.entries||[])[0];

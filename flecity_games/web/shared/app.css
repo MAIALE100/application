@@ -1070,3 +1070,28 @@ body.game-active .app-status:not(.hidden){position:fixed;top:max(3.75rem,calc(en
 #players.dense{gap:.375rem}
 #players.dense .player{padding:.4375rem .5625rem;font-size:.78rem;line-height:1.25}
 #results .player>span:first-child{min-width:0;overflow-wrap:anywhere}
+
+
+/* FALL BATTLE result ceremony */
+.fall-result-hero{position:relative;overflow:hidden;padding:1rem .9rem .95rem;border:.0625rem solid #3b4654;border-radius:.95rem;background:radial-gradient(circle at 50% 0,rgba(255,225,121,.16),transparent 55%),linear-gradient(145deg,#1a2028,#12171d);text-align:center;box-shadow:0 .75rem 1.5rem rgba(0,0,0,.2);animation:fall-result-pop .32s ease both}
+.fall-result-hero::after{content:"";position:absolute;inset:auto 12% 0;height:.125rem;background:linear-gradient(90deg,transparent,rgba(255,225,121,.9),transparent)}
+.fall-result-hero.is-self-winner{border-color:#7f7141;box-shadow:0 0 0 .0625rem rgba(255,225,121,.12),0 .9rem 1.7rem rgba(0,0,0,.26)}
+.fall-result-eyebrow{font-size:.64rem;font-weight:900;letter-spacing:.16em;color:#c9d1dc}
+.fall-result-title{margin:.25rem 0 .2rem;font-size:1.45rem;line-height:1.08;font-weight:950;letter-spacing:-.03em;overflow-wrap:anywhere}
+.fall-result-sub{font-size:.78rem;color:#d3dae4}
+.fall-result-self{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.62rem .72rem;border-radius:.72rem;background:#151d25;border:.0625rem solid #33404d;font-size:.76rem}
+.fall-result-self strong{font-size:.8rem}.fall-result-self span{text-align:right;color:#d7dee8}
+.fall-result-board{display:flex;flex-direction:column;gap:.42rem}
+.fall-result-rank{display:grid;grid-template-columns:2.2rem minmax(0,1fr) auto;align-items:center;gap:.55rem;padding:.6rem .65rem;border-radius:.72rem;background:#121820;border:.0625rem solid #293541;animation:fall-rank-in .28s ease both}
+.fall-result-rank:nth-child(2){animation-delay:.04s}.fall-result-rank:nth-child(3){animation-delay:.08s}.fall-result-rank:nth-child(4){animation-delay:.12s}.fall-result-rank:nth-child(n+5){animation-delay:.16s}
+.fall-result-rank.is-winner{background:linear-gradient(145deg,rgba(255,225,121,.11),#151a20);border-color:#6d6038}
+.fall-result-rank.is-self{box-shadow:inset .1875rem 0 0 #8ed9bd}
+.fall-result-place{font-size:1rem;font-weight:950;font-variant-numeric:tabular-nums}
+.fall-result-player{display:flex;align-items:center;gap:.4rem;min-width:0}
+.fall-result-player strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem}
+.fall-result-player span{flex:0 0 auto;padding:.12rem .3rem;border-radius:99rem;background:#25313d;border:.0625rem solid #3a4857;font-size:.55rem;font-weight:900;letter-spacing:.06em}
+.fall-result-stat{white-space:nowrap;text-align:right;font-size:.7rem;color:#d6dde7;font-variant-numeric:tabular-nums}
+@keyframes fall-result-pop{0%{opacity:0;transform:scale(.94) translateY(.35rem)}75%{transform:scale(1.015)}100%{opacity:1;transform:none}}
+@keyframes fall-rank-in{0%{opacity:0;transform:translateY(.4rem)}100%{opacity:1;transform:none}}
+@media(max-width:22.5rem){.fall-result-rank{grid-template-columns:2rem minmax(0,1fr);gap:.45rem}.fall-result-stat{grid-column:2;text-align:left}.fall-result-title{font-size:1.28rem}.fall-result-self{align-items:flex-start;flex-direction:column;gap:.25rem}.fall-result-self span{text-align:left}}
+body.reduced-motion .fall-result-hero,body.reduced-motion .fall-result-rank{animation:none!important}

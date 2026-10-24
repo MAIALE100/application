@@ -519,7 +519,7 @@ local function miniShogiDropAllowed(board,side,kind,to)
     if kind=='P' and miniShogiHasUnpromotedPawnOnFile(board,side,col) then return false end
     return true
 end
-local function miniShogiAllMoves(board,hands,side)
+local function miniShogiAllMoves(board,hands,side,skipPawnMateRule)
     local out={}
     for from=1,81 do
         local piece=board[from]
@@ -535,7 +535,14 @@ local function miniShogiAllMoves(board,hands,side)
                     local action={type='move',side=side,from=from,to=to,promote=promote}
                     local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
                     miniShogiApplyAction(b,h,action)
-                    if not miniShogiInCheck(b,side) then out[#out+1]=action end
+                    if not miniShogiInCheck(b,side) then
+                        local illegalPawnMate=false
+                        if kind=='P' and not skipPawnMateRule then
+                            local opponent=side=='B' and 'W' or 'B'
+                            if miniShogiInCheck(b,opponent) and #miniShogiAllMoves(b,h,opponent,true)==0 then illegalPawnMate=true end
+                        end
+                        if not illegalPawnMate then out[#out+1]=action end
+                    end
                 end
             end
         end

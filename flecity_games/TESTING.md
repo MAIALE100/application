@@ -810,3 +810,8 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - close済み参加者がaliveCountや待機人数へ残らず、表示上の分母とserver側の進行判定が一致すること。
 - `game_party_status` と残存端末表示を照合し、再open後も完了済みstage/roundを巻き戻さないこと。
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+### MAJORITY / MINORITY app-close result aggregation (LIVE TEST REQUIRED)
+- 3人以上で全員回答後の結果確定直前に、回答済み1人がPARTY/Phoneをcloseする。
+- closeした参加者の回答が最終count/entriesから除外され、残存app-open参加者だけで勝敗が確定することを確認する。
+- reopen後も完了済みroundのcount/勝敗が巻き戻らないことを確認する。

@@ -158,3 +158,8 @@ LIVE TEST REQUIRED: PARTY App/Phone close role handling
 - DRAW: 未回答者がcloseしたら、その端末を待たず残りapp-open回答者だけで完了判定されること。
 - WORD WOLF / LIAR: Wolf/Liar本人がcloseしたらSECRET_PLAYER_LEFTで即中断し、秘密役不在の結果確定へ進まないこと。
 - closeした参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。
+
+【NG WORD close progress（実機未検証）】
+・guess中の未回答者がPARTY/Phoneを閉じた時、残るapp-open参加者だけで回答進捗が再計算されること。
+・閉じた参加者が待ち人数に残らず、再openしても完了済みRoundが巻き戻らないこと。
+・game_party_status と端末表示を照合すること。

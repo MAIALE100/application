@@ -1030,7 +1030,7 @@ local function maybeFinishReaction(room,force)
     if not rs or rs.gameId~='reaction' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             local s=rs.submissions[id]
             entries[#entries+1]={memberId=m.memberId,name=m.name,reactionMs=s and s.reactionMs or nil,flying=s and s.flying==true or false,timedOut=s==nil}
         end
@@ -1076,7 +1076,7 @@ local function maybeFinishStopBattle(room,force)
     if not rs or rs.gameId~='stop_battle' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
     local entries={}
     for id,m in pairs(room.members) do
-        if not m.disconnected then
+        if not m.disconnected and m.appOpen~=false then
             local s=rs.submissions[id]
             entries[#entries+1]={memberId=m.memberId,name=m.name,score=s and s.score or 0,distancePct=s and s.distancePct or 100,markerPct=s and s.markerPct or nil,timedOut=s==nil}
         end

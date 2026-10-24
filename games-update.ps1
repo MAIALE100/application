@@ -409,6 +409,27 @@ try {
     if ($clientMainText -notmatch 'RemoveCustomApp\(app\.identifier\)' -or $clientMainText -notmatch 'APP_ALREADY_EXISTS') { throw 'LB Phone custom app re-registration check failed.' }
     if ($registryText -notmatch "order=10,id='quick_tap'" -or $registryText -notmatch "order=55,id='fall'" -or $registryText -notmatch "order=80,id='memory'" -or $registryText -notmatch "order=87,id='slide'" -or $registryText -notmatch "order=90,id='color_match'" -or $registryText -notmatch "order=120,id='simon'" -or $registryText -notmatch "order=10,id='reaction'" -or $registryText -notmatch "order=80,id='telephone'") { throw 'Game registry order check failed.' }
 
+    $requiredPartyIds=@('reaction','stop_battle','vote','majority','minority','tic_tac','word_wolf','liar','draw','telephone','ng_word','fake_answer','bomb','memory_chain','fall_battle')
+    foreach($partyId in $requiredPartyIds){
+        if($registryText -notmatch ("id='" + [regex]::Escape($partyId) + "'[^\r\n]*app='party'[^\r\n]*enabled=true")){
+            throw ("PARTY staged build is missing enabled game: {0}" -f $partyId)
+        }
+    }
+    if($registryText -notmatch "id='ng_word'[^\r\n]*premium=true" -or $registryText -notmatch "id='fall_battle'[^\r\n]*premium=true"){
+        throw 'PARTY+ premium registry validation failed.'
+    }
+    $partyPlusPath=Join-Path $DestinationForValidation 'server\core\party_plus.lua'
+    $partyFallPath=Join-Path $DestinationForValidation 'server\core\party_fall.lua'
+    $serverMainPath=Join-Path $DestinationForValidation 'server\main.lua'
+    foreach($required in @($partyPlusPath,$partyFallPath,$serverMainPath)){
+        if(-not (Test-Path $required)){ throw "PARTY+ staged file missing: $required" }
+    }
+    $partyPlusText=Get-Content $partyPlusPath -Raw
+    $serverMainText=Get-Content $serverMainPath -Raw
+    if($partyPlusText -notmatch 'RevenueAccount' -or $partyPlusText -notmatch 'depositRevenue' -or $serverMainText -notmatch "RegisterCommand\('game_party_status'"){
+        throw 'PARTY+ / live diagnostic staged validation failed.'
+    }
+
     $version = 'unknown'
     if ($manifestText -match "(?m)^version\s+'([^']+)'") { $version = $Matches[1] }
     $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()

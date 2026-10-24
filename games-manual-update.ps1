@@ -23,7 +23,7 @@ try {
     $old=$ErrorActionPreference
     try {
         $ErrorActionPreference='Continue'
-        $fetch=& git -C $MainRepo fetch --prune origin $Branch 2>&1
+        $fetch=& git -C $MainRepo fetch --prune origin 2>&1
         $fetchCode=$LASTEXITCODE
     } finally {
         $ErrorActionPreference=$old
@@ -51,7 +51,7 @@ try {
     }
 
     $commands=@(
-        @('fetch','--prune','origin',$Branch),
+        @('fetch','--prune','origin'),
         @('reset','--hard',"origin/$Branch"),
         @('clean','-fd')
     )
@@ -69,6 +69,13 @@ try {
             throw ('git {0} failed: {1}' -f ($args -join ' '),(($out|Out-String).Trim()))
         }
     }
+
+    $worktreeHead=(& git -C $Worktree rev-parse HEAD).Trim().ToLowerInvariant()
+    $remoteHead=(& git -C $Worktree rev-parse "origin/$Branch").Trim().ToLowerInvariant()
+    if($worktreeHead -ne $remoteHead){
+        throw "Manual worktree is stale after fetch/reset: HEAD=$worktreeHead origin/$Branch=$remoteHead"
+    }
+    Write-Host ("Prepared PARTY source: {0}" -f $worktreeHead.Substring(0,12)) -ForegroundColor Green
 
     $Updater=Join-Path $Worktree 'games-update.ps1'
     if(-not (Test-Path -LiteralPath $Updater)){

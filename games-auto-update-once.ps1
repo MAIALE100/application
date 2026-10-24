@@ -110,7 +110,7 @@ try {
     }
 
     Log ("Deploying or activating stable build {0}." -f $remote2.Substring(0,7))
-    Invoke-GitCli @('fetch','--prune','origin',$Branch) | Out-Null
+    Invoke-GitCli @('fetch','--prune','origin') | Out-Null
     $fetched=(Invoke-GitCli @('rev-parse',"origin/$Branch")).Trim().ToLowerInvariant()
 
     if($fetched -ne $remote2){

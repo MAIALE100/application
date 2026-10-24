@@ -47,7 +47,7 @@ try {
         throw "Git repository was not found: $SourceRepo"
     }
 
-    Run-Git $SourceRepo @('fetch','--prune','origin',$Branch) | Out-Null
+    Run-Git $SourceRepo @('fetch','--prune','origin') | Out-Null
 
     if (Test-Path $AutoRoot) {
         if (-not (Test-Path (Join-Path $AutoRoot '.git'))) {
@@ -69,7 +69,7 @@ try {
         }
     }
 
-    Run-Git $AutoRoot @('fetch','--prune','origin',$Branch) | Out-Null
+    Run-Git $AutoRoot @('fetch','--prune','origin') | Out-Null
     Run-Git $AutoRoot @('reset','--hard',"origin/$Branch") | Out-Null
     Run-Git $AutoRoot @('clean','-fd') | Out-Null
 

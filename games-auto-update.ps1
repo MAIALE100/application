@@ -138,7 +138,7 @@ try {
 
                         $selfHashBefore = if (Test-Path $WatcherPath) { (Get-FileHash $WatcherPath -Algorithm SHA256).Hash } else { '' }
 
-                        Invoke-Git @('fetch','--prune','origin',$Branch) | Out-Null
+                        Invoke-Git @('fetch','--prune','origin') | Out-Null
                         $fetchedSha = (Invoke-Git @('rev-parse',"origin/$Branch")).Trim().ToLowerInvariant()
 
                         if ($fetchedSha -ne $remoteSha) {

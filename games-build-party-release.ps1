@@ -15,7 +15,7 @@ $OutputDir = Join-Path $OutputRepo 'dist'
 $PartyVersion = '1.0.0'
 $ResourceVersion = '1.1.0'
 $ZipName = "flecity-games-party-$PartyVersion.zip"
-$SubmissionMessageName = 'PARTY_運営提出文.txt'
+$SubmissionMessageName = 'PARTY_operator_message.txt'
 
 function Step([string]$Message) {
     Write-Host ''
@@ -63,6 +63,10 @@ function Is-ExcludedReleasePath([string]$RelativePath) {
 function Write-Utf8NoBom([string]$Path, [string]$Text) {
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path,$Text,$encoding)
+}
+
+function Decode-Utf8Base64([string]$Value) {
+    return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Value))
 }
 
 function Require-File([string]$Path, [string]$Label) {
@@ -158,10 +162,15 @@ try {
 
     Step 'Adding operator submission documents'
     $docsSource = Join-Path $sourceResource 'release_docs'
+    $installName = 'PARTY_' + (Decode-Utf8Base64 '5bCO5YWl5pa55rOVX+mBi+WWtuanmOWQkeOBkS50eHQ=')
+    $checkName = 'PARTY_' + (Decode-Utf8Base64 '6YGL5Za256K66KqN55So44Oh44OiLnR4dA==')
+    $qaName = 'PARTY_' + (Decode-Utf8Base64 '5o+Q5Ye65YmN56K66KqN57WQ5p6cLnR4dA==')
+    $submissionMessageName = 'PARTY_' + (Decode-Utf8Base64 '6YGL5Za25o+Q5Ye65paHLnR4dA==')
+
     $docs = @(
-        @('PARTY_INSTALL_JA.txt','PARTY_導入方法_運営様向け.txt'),
-        @('PARTY_OPERATOR_CHECKLIST_JA.txt','PARTY_運営確認用メモ.txt'),
-        @('PARTY_QA_RESULT_JA.txt','PARTY_提出前確認結果.txt')
+        @('PARTY_INSTALL_JA.txt',$installName),
+        @('PARTY_OPERATOR_CHECKLIST_JA.txt',$checkName),
+        @('PARTY_QA_RESULT_JA.txt',$qaName)
     )
     foreach ($pair in $docs) {
         $src = Join-Path $docsSource $pair[0]
@@ -200,9 +209,9 @@ try {
         'web\party\app.js',
         'web\party\icon.svg',
         'sql\001_initial.sql',
-        'PARTY_導入方法_運営様向け.txt',
-        'PARTY_運営確認用メモ.txt',
-        'PARTY_提出前確認結果.txt',
+        $installName,
+        $checkName,
+        $qaName,
         'BUILD_INFO.txt'
     )) {
         Require-File (Join-Path $stageResource $relative) $relative
@@ -277,7 +286,7 @@ try {
 
     $targetZip = Join-Path $OutputDir $ZipName
     $targetChecksum = $targetZip + '.sha256'
-    $targetMessage = Join-Path $OutputDir $SubmissionMessageName
+    $targetMessage = Join-Path $OutputDir $submissionMessageName
 
     foreach ($path in @($targetZip,$targetChecksum,$targetMessage)) {
         if (Test-Path -LiteralPath $path) {

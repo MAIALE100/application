@@ -11,7 +11,7 @@ const votePanel=document.getElementById('votePanel'),votePrompt=document.getElem
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
 const gomokuPanel=document.getElementById('gomokuPanel'),gomokuStatus=document.getElementById('gomokuStatus'),gomokuBoard=document.getElementById('gomokuBoard'),gomokuMeta=document.getElementById('gomokuMeta');
 const connect4Panel=document.getElementById('connect4Panel'),connect4Status=document.getElementById('connect4Status'),connect4Columns=document.getElementById('connect4Columns'),connect4Board=document.getElementById('connect4Board'),connect4Meta=document.getElementById('connect4Meta');
-const miniShogiPanel=document.getElementById('miniShogiPanel'),miniShogiStatus=document.getElementById('miniShogiStatus'),miniShogiBoard=document.getElementById('miniShogiBoard'),miniShogiMeta=document.getElementById('miniShogiMeta');
+const miniShogiPanel=document.getElementById('miniShogiPanel'),miniShogiStatus=document.getElementById('miniShogiStatus'),miniShogiHandsTop=document.getElementById('miniShogiHandsTop'),miniShogiBoard=document.getElementById('miniShogiBoard'),miniShogiHandsBottom=document.getElementById('miniShogiHandsBottom'),miniShogiMeta=document.getElementById('miniShogiMeta');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
 const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
@@ -28,7 +28,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0;
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='';
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -68,7 +68,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;resultHoldRaf=null;resultLobbyUnlockAt=0;
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
- drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';
+ drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
 }
 function deadlineLoop(token){
@@ -305,8 +305,8 @@ function renderResults(room){
    const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'少数派を見破りました！':'少数派を見破れませんでした'))+' · 多数派: '+rs.results.majorityTopic+' / 少数派: '+rs.results.wolfTopic;resultsEl.appendChild(reveal);
    rs.results.entries.forEach(e=>{const wolf=e.memberId===rs.results.wolfMemberId?' ← 少数派':'';appendResultRow(e.name+wolf,e.votes+'票');});
  }else if(rs.gameId==='liar'){
-   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'LIARを見破りました！':'LIARを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
-   rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← LIAR':'';appendResultRow(e.name+liar,e.votes+'票');});
+   const reveal=document.createElement('div');reveal.className=rs.results.caught?'status good':'status warn';reveal.textContent=(Number(rs.results.totalVotes||0)===0?'有効票なし':(rs.results.caught?'ウソつきを見破りました！':'ウソつきを見破れませんでした'))+' · 質問: '+String(rs.results.prompt||'');resultsEl.appendChild(reveal);
+   rs.results.entries.forEach(e=>{const liar=e.memberId===rs.results.liarMemberId?' ← ウソつき':'';appendResultRow(e.name+liar,e.votes+'票');});
  }else if(rs.gameId==='memory_chain'){
    const result=rs.results||{},winnerIds=Array.isArray(result.winnerMemberIds)?result.winnerMemberIds:[];
    const winners=(result.entries||[]).filter(e=>winnerIds.includes(e.memberId)).map(e=>e.name);
@@ -468,7 +468,7 @@ function setupReversi(room){
      guide.className='reversi-guide';
      button.appendChild(guide);
    }
-   button.onclick=()=>runOnce('reversi-move',async()=>{const res=await FlecityBridge.call('partySubmitReversi',{token:rs.token,cell:index+1});if(!res.ok){status('REVERSI: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+   button.onclick=()=>runOnce('reversi-move',async()=>{const res=await FlecityBridge.call('partySubmitReversi',{token:rs.token,cell:index+1});if(!res.ok){status('リバーシ: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
    reversiBoard.appendChild(button);
  });
  reversiStatus.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='B'?'●':'○'):'相手の手番';
@@ -522,7 +522,7 @@ function setupGomoku(room){
  const rs=room.roundState;hideRoundGames();gomokuPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
  const board=Array.isArray(rs.board)?rs.board:Array(121).fill('');gomokuBoard.innerHTML='';
- board.forEach((mark,index)=>{const b=document.createElement('button');b.className='gomoku-cell';b.textContent=mark==='X'?'●':(mark==='O'?'○':'');b.disabled=!rs.isCurrent||mark!=='';b.onclick=()=>runOnce('gomoku-move',async()=>{const res=await FlecityBridge.call('partySubmitGomoku',{token:rs.token,cell:index+1});if(!res.ok){status('GOMOKU: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});gomokuBoard.appendChild(b);});
+ board.forEach((mark,index)=>{const b=document.createElement('button');b.className='gomoku-cell';b.textContent=mark==='X'?'●':(mark==='O'?'○':'');b.disabled=!rs.isCurrent||mark!=='';b.onclick=()=>runOnce('gomoku-move',async()=>{const res=await FlecityBridge.call('partySubmitGomoku',{token:rs.token,cell:index+1});if(!res.ok){status('五目並べ: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});gomokuBoard.appendChild(b);});
  gomokuStatus.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'●':'○'):'相手の手番';
  gomokuMeta.textContent='11×11 · 先に5つ · '+Number(rs.moves||0)+'手';
 }
@@ -538,7 +538,7 @@ function setupConnect4(room){
      b.disabled=locked||!rs.isCurrent||(Array.isArray(rs.fullColumns)&&rs.fullColumns.includes(col));
      b.onclick=()=>runOnce('connect4-move',async()=>{
        const res=await FlecityBridge.call('partySubmitConnect4',{token:rs.token,column:col});
-       if(!res.ok){status('CONNECT 4: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       if(!res.ok){status('四目ならべ: '+FlecityErrors.text(res.error),'error');await refresh();return;}
        renderRoom(res.room);
      });
      connect4Columns.appendChild(b);
@@ -591,22 +591,48 @@ function setupMajority(room){
 
 function setupMiniShogi(room){
  const rs=room.roundState;hideRoundGames();miniShogiPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
- if(rs.complete){miniShogiSelected=0;renderResults(room);return;}
- const board=Array.isArray(rs.board)?rs.board:Array(25).fill('');
+ if(rs.complete){miniShogiSelected=0;miniShogiDropKind='';renderResults(room);return;}
+ const board=Array.isArray(rs.board)?rs.board:Array(81).fill('');
  const legal=Array.isArray(rs.legalMoves)?rs.legalMoves:[];
- const pieceText={K:'王',G:'金',S:'銀',B:'角',R:'飛',P:'歩'};
- const destinationSet=new Set(legal.filter(m=>Number(m.from)===Number(miniShogiSelected)).map(m=>Number(m.to)));
+ const pieceText={K:'王',G:'金',S:'銀',N:'桂',L:'香',B:'角',R:'飛',P:'歩'};
+ const promotedText={R:'龍',B:'馬',S:'全',N:'圭',L:'杏',P:'と'};
+ const selectedMoves=miniShogiDropKind
+   ?legal.filter(m=>m.type==='drop'&&String(m.kind||'')===miniShogiDropKind)
+   :legal.filter(m=>m.type!=='drop'&&Number(m.from)===Number(miniShogiSelected));
+ const destinationSet=new Set(selectedMoves.map(m=>Number(m.to)));
+
+ const hands=rs.hands&&typeof rs.hands==='object'?rs.hands:{B:{},W:{}};
+ const ownSide=String(rs.side||'B'),oppSide=ownSide==='B'?'W':'B';
+ const renderHands=(target,side,label,interactive)=>{
+   target.innerHTML='';
+   const title=document.createElement('span');title.className='mini-shogi-hand-label';title.textContent=label;target.appendChild(title);
+   ['R','B','G','S','N','L','P'].forEach(kind=>{
+     const count=Math.max(0,Number(hands[side]&&hands[side][kind]||0));
+     if(count<1)return;
+     const btn=document.createElement('button');btn.className='mini-shogi-hand-piece'+(miniShogiDropKind===kind?' selected':'');
+     btn.textContent=(pieceText[kind]||kind)+(count>1?'×'+count:'');
+     btn.disabled=!interactive||!rs.isCurrent;
+     btn.onclick=()=>{miniShogiSelected=0;miniShogiDropKind=miniShogiDropKind===kind?'':kind;setupMiniShogi(room);};
+     target.appendChild(btn);
+   });
+   if(target.children.length===1){
+     const empty=document.createElement('span');empty.className='muted mini-shogi-hand-empty';empty.textContent='なし';target.appendChild(empty);
+   }
+ };
+ renderHands(miniShogiHandsTop,oppSide,'相手の持ち駒',false);
+ renderHands(miniShogiHandsBottom,ownSide,'自分の持ち駒',true);
+
  miniShogiBoard.innerHTML='';
  board.forEach((piece,index)=>{
    const cell=index+1;
    const button=document.createElement('button');
    button.className='mini-shogi-cell'+(cell===miniShogiSelected?' selected':'')+(destinationSet.has(cell)?' legal':'');
    const text=String(piece||'');
-   const side=text.slice(0,1),kind=text.slice(1,2);
+   const side=text.slice(0,1),kind=text.slice(1,2),promoted=text.slice(2,3)==='+';
    if(kind){
      const pieceEl=document.createElement('span');
-     pieceEl.className='mini-shogi-piece '+(side==='B'?'black':'white');
-     pieceEl.textContent=pieceText[kind]||kind;
+     pieceEl.className='mini-shogi-piece '+(side==='B'?'black':'white')+(promoted?' promoted':'');
+     pieceEl.textContent=promoted?(promotedText[kind]||pieceText[kind]||kind):(pieceText[kind]||kind);
      button.appendChild(pieceEl);
    }else if(destinationSet.has(cell)){
      const guide=document.createElement('span');guide.className='mini-shogi-guide';button.appendChild(guide);
@@ -614,25 +640,40 @@ function setupMiniShogi(room){
    button.disabled=!rs.isCurrent;
    button.onclick=async()=>{
      if(!rs.isCurrent)return;
-     if(miniShogiSelected&&destinationSet.has(cell)){
-       const from=miniShogiSelected;miniShogiSelected=0;
+     if(destinationSet.has(cell)){
+       const choices=selectedMoves.filter(m=>Number(m.to)===cell);
+       let payload;
+       if(miniShogiDropKind){
+         payload={token:rs.token,type:'drop',kind:miniShogiDropKind,to:cell};
+       }else{
+         const canPromote=choices.some(m=>m.promote===true);
+         const canStay=choices.some(m=>m.promote!==true);
+         let promote=canPromote&&!canStay;
+         if(canPromote&&canStay)promote=window.confirm('この駒を成りますか？');
+         payload={token:rs.token,type:'move',from:miniShogiSelected,to:cell,promote};
+       }
+       miniShogiSelected=0;miniShogiDropKind='';
        miniShogiBoard.querySelectorAll('button').forEach(b=>b.disabled=true);
-       const res=await FlecityBridge.call('partySubmitMiniShogi',{token:rs.token,from,to:cell});
-       if(!res.ok){status('MINI SHOGI操作失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       const res=await FlecityBridge.call('partySubmitMiniShogi',payload);
+       if(!res.ok){status('将棋の操作に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
        renderRoom(res.room);return;
      }
-     if(side===String(rs.side||'')){
-       miniShogiSelected=cell;setupMiniShogi(room);
+     if(side===ownSide){
+       miniShogiDropKind='';
+       miniShogiSelected=cell===miniShogiSelected?0:cell;
+       setupMiniShogi(room);
      }else{
-       miniShogiSelected=0;setupMiniShogi(room);
+       miniShogiSelected=0;miniShogiDropKind='';setupMiniShogi(room);
      }
    };
    miniShogiBoard.appendChild(button);
  });
  const current=room.players.find(p=>p.memberId===rs.currentMemberId);
- miniShogiStatus.textContent=rs.isCurrent?'あなたの手番':(rs.currentMemberId==='AI'?'AIの手番':(current?current.name+' の手番':'相手の手番'));
- miniShogiMeta.textContent='あなたは '+(rs.side==='B'?'先手':'後手')+' · 王を取れば勝ち';
+ const checkText=rs.inCheck?' · 王手':'';
+ miniShogiStatus.textContent=(rs.isCurrent?'あなたの手番':(rs.currentMemberId==='AI'?'AIの手番':(current?current.name+' の手番':'相手の手番')))+checkText;
+ miniShogiMeta.textContent='あなたは '+(ownSide==='B'?'先手':'後手')+' · '+Number(rs.moves||0)+'手 · 持ち駒は盤下から打てます';
 }
+
 function deductionPhaseLoop(token){
  if(appSuspended||!currentRoom||!currentRoom.roundState||currentRoom.roundState.token!==token)return;
  const rs=currentRoom.roundState;
@@ -650,10 +691,10 @@ function deductionPhaseLoop(token){
 function setupDeduction(room){
  const rs=room.roundState;hideRoundGames();deductionPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);deductionChoices.innerHTML='';
  if(rs.gameId==='word_wolf'){
-   deductionGame.textContent='WORD WOLF';deductionSecret.textContent='あなたのお題: '+String(rs.secretTopic||'---');
+   deductionGame.textContent='ワードウルフ';deductionSecret.textContent='あなたのお題: '+String(rs.secretTopic||'---');
    deductionHint.textContent='まず全員でお題について話し、投票タイムになったら少数派だと思う人を選びます。';
  }else{
-   deductionGame.textContent='LIAR';deductionSecret.textContent='質問: '+String(rs.prompt||'---');
+   deductionGame.textContent='ウソつき探し';deductionSecret.textContent='質問: '+String(rs.prompt||'---');
    deductionHint.textContent=rs.role==='LIAR'?'あなたはLIARです。質問には自然な嘘で答え、見破られないようにしてください。':'あなたはTRUTHです。質問には正直に答え、LIARを探してください。';
  }
  if(rs.complete){renderResults(room);return;}

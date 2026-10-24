@@ -11,6 +11,10 @@ local configReady = false
 local configError = nil
 
 local function validateRuntimeConfig()
+    if Config.MoneyType ~= 'cash' and Config.MoneyType ~= 'bank' and Config.MoneyType ~= 'crypto' then
+        return false, 'invalid MoneyType'
+    end
+
     if type(Config.RefinedProducts) ~= 'table' or #Config.RefinedProducts == 0 then
         return false, 'refined products are empty'
     end

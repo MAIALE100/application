@@ -1,5 +1,5 @@
 param(
-    [string]$Branch = 'games/platform-core'
+    [string]$Branch = 'release/loop-v1.0.0'
 )
 
 $ErrorActionPreference = 'Stop'

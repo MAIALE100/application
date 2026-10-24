@@ -1135,7 +1135,10 @@ function FlecityGamesParty.StartRound(source)
         rs.height=18
     end
 
-    if game.id=='telephone' then
+    if game.id=='code_break' then
+        rs.deadlineTick=nil
+        rs.deadlineDurationSec=nil
+    elseif game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
     elseif game.id=='ng_word' then
         setRoundDeadline(rs,45)

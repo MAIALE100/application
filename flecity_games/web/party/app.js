@@ -413,8 +413,8 @@ function setupCodeBreak(room){
  if(codeBreakToken!==rs.token){codeBreakToken=rs.token;codeBreakGuess=[];}
  codeBreakTitle.textContent=rs.solved?'解読成功！':(rs.aiEnabled?'AIより先に解読':'秘密コードを解読');
  if(rs.solved)codeBreakHint.textContent='結果を確定しています。';
- else if(rs.aiEnabled)codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · AI '+Number(rs.aiAttempts||0)+'手目'+(rs.aiLastExact!=null?' · AI '+Number(rs.aiLastExact)+' HIT / '+Number(rs.aiLastMisplaced||0)+' BLOW':'');
- else codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · HIT=位置一致 / BLOW=記号一致';
+ else if(rs.aiEnabled)codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手 · AI '+Number(rs.aiAttempts||0)+'手目';
+ else codeBreakHint.textContent='残り '+Number(rs.attemptsLeft||0)+'手';
  codeBreakSubmit.disabled=rs.solved===true||codeBreakGuess.length!==4;
  codeBreakBack.disabled=rs.solved===true||codeBreakGuess.length===0;
  [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=rs.solved===true||codeBreakGuess.length>=4);
@@ -431,8 +431,7 @@ function setupCodeBreak(room){
      for(let i=0;i<Number(h.exact||0);i++){const p=document.createElement('i');p.className='mastermind-pin hit';score.appendChild(p);}
      for(let i=0;i<Number(h.misplaced||0);i++){const p=document.createElement('i');p.className='mastermind-pin blow';score.appendChild(p);}
      for(let i=Number(h.exact||0)+Number(h.misplaced||0);i<4;i++){const p=document.createElement('i');p.className='mastermind-pin empty';score.appendChild(p);}
-     const label=document.createElement('span');label.className='mastermind-feedback-text';label.textContent=Number(h.exact||0)+' HIT / '+Number(h.misplaced||0)+' BLOW';
-     feedbackWrap.append(score,label);row.append(turn,guess,feedbackWrap);target.appendChild(row);
+     feedbackWrap.append(score);row.append(turn,guess,feedbackWrap);target.appendChild(row);
    });
  };
  renderMastermindHistory(codeBreakHistory,rs.history);

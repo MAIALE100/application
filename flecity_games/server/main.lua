@@ -1,3 +1,7 @@
+local runtimeResource=GetCurrentResourceName()
+local runtimeBuild=(LoadResourceFile(runtimeResource,'dev-build.txt') or 'packaged'):gsub('%s+','')
+SaveResourceFile(runtimeResource,'runtime-active.txt',('build=%s\nstarted=%s\n'):format(runtimeBuild,os.date('!%Y-%m-%dT%H:%M:%SZ')),-1)
+
 math.randomseed(os.time()+GetGameTimer())
 
 local callbacks={

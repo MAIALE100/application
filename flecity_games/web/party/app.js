@@ -245,7 +245,7 @@ function renderResults(room){
  if(rs.gameId==='code_break'){
    const result=rs.results||{},entries=Array.isArray(result.entries)?result.entries:[];
    const winners=entries.filter(e=>e.winner===true).map(e=>e.name);
-   appendResultBanner(winners.length?'MASTERMIND · '+winners.join(' / '):'時間切れ · 正解者なし',winners.length?'good':'warn');
+   appendResultBanner(winners.length?('WINNER · '+winners[0]):'終了 · 正解者なし',winners.length?'good':'warn');
    appendResultRow('秘密コード',(Array.isArray(result.secret)?result.secret:[]).map(v=>['','RED','BLUE','GREEN','YELLOW','PURPLE','ORANGE'][Number(v)]||'?').join(' · '));
    entries.forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.solved?Number(e.attempts||0)+'手で解読':'未解読'));
  }else if(rs.gameId==='reversi'){

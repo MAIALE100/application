@@ -1475,9 +1475,11 @@ local function mastermindCanFinish(room,rs,force)
     return limited and usedTurns>=maxTurns
 end
 
-local function maybeFinishCodeBreak(room,force)
+local function maybeFinishCodeBreak(room,force,winnerIdentifier,winnerIsAi)
     local rs=room.roundState
-    if not rs or rs.gameId~='code_break' or rs.complete or not mastermindCanFinish(room,rs,force) then return end
+    if not rs or rs.gameId~='code_break' or rs.complete then return end
+    if not force and not winnerIdentifier and not winnerIsAi and not mastermindCanFinish(room,rs,false) then return end
+
     local entries={}
     for id,m in pairs(room.members or {}) do entries[#entries+1]=mastermindEntry(room,rs,id,m) end
     if rs.aiEnabled then
@@ -1489,22 +1491,33 @@ local function maybeFinishCodeBreak(room,force)
         end
         entries[#entries+1]={memberId='AI',name='AI',solved=solved~=nil,attempts=#history,bestExact=bestExact,bestMisplaced=bestMisplaced,ai=true}
     end
-    table.sort(entries,function(a,b)
-        if a.solved~=b.solved then return a.solved end
-        if a.solved and b.solved and a.attempts~=b.attempts then return a.attempts<b.attempts end
-        if not a.solved and not b.solved then
-            if a.bestExact~=b.bestExact then return a.bestExact>b.bestExact end
-            if a.bestMisplaced~=b.bestMisplaced then return a.bestMisplaced>b.bestMisplaced end
+
+    if winnerIdentifier or winnerIsAi then
+        for _,entry in ipairs(entries) do
+            entry.winner=(winnerIsAi and entry.ai==true) or (winnerIdentifier and entry.memberId==memberPublicId(room,winnerIdentifier))
         end
-        return tostring(a.name)<tostring(b.name)
-    end)
-    local best=entries[1]
-    for index,entry in ipairs(entries) do
-        entry.place=index
-        entry.winner=best and best.solved and entry.solved and entry.attempts==best.attempts or false
+        table.sort(entries,function(a,b)
+            if a.winner~=b.winner then return a.winner end
+            if a.solved~=b.solved then return a.solved end
+            return tostring(a.name)<tostring(b.name)
+        end)
+    else
+        table.sort(entries,function(a,b)
+            if a.solved~=b.solved then return a.solved end
+            if a.solved and b.solved and a.attempts~=b.attempts then return a.attempts<b.attempts end
+            if not a.solved and not b.solved then
+                if a.bestExact~=b.bestExact then return a.bestExact>b.bestExact end
+                if a.bestMisplaced~=b.bestMisplaced then return a.bestMisplaced>b.bestMisplaced end
+            end
+            return tostring(a.name)<tostring(b.name)
+        end)
+        local best=entries[1]
+        for _,entry in ipairs(entries) do entry.winner=best and best.solved and entry.solved and entry.attempts==best.attempts or false end
     end
+
+    for index,entry in ipairs(entries) do entry.place=index end
     rs.complete=true
-    rs.results={entries=entries,secret=rs.secret,timedOut=force==true,aiEnabled=rs.aiEnabled==true}
+    rs.results={entries=entries,secret=rs.secret,timedOut=force==true,aiEnabled=rs.aiEnabled==true,firstSolvedWins=true}
 end
 
 function FlecityGamesParty.SubmitCodeBreak(source,data)
@@ -1535,12 +1548,22 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
     if exact==4 and not (rs.solved and rs.solved[id]) then
         rs.solved=rs.solved or {}
         rs.solved[id]={attempts=#history}
+        maybeFinishCodeBreak(room,false,id,false)
+        notifyRoom(room,source)
+        return {ok=true,room=snapshot(room,id)}
     end
 
     if rs.aiEnabled then
         if not rs.aiSolved and (rs.turnLimit==false or ((tonumber(rs.turnNumber) or 1)-1)<(tonumber(rs.maxAttempts) or 8)) then
             rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
-            if rs.turnLimit==false or ((tonumber(rs.turnNumber) or 1)-1)<=(tonumber(rs.maxAttempts) or 8) then codeBreakAiTurn(rs) end
+            if rs.turnLimit==false or ((tonumber(rs.turnNumber) or 1)-1)<=(tonumber(rs.maxAttempts) or 8) then
+                codeBreakAiTurn(rs)
+                if rs.aiSolved then
+                    maybeFinishCodeBreak(room,false,nil,true)
+                    notifyRoom(room,source)
+                    return {ok=true,room=snapshot(room,id)}
+                end
+            end
         else
             rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
         end
@@ -1553,7 +1576,7 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
         end
     end
 
-    maybeFinishCodeBreak(room,false)
+    maybeFinishCodeBreak(room,false,nil,false)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end

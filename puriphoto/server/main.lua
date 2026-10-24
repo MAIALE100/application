@@ -79,6 +79,8 @@ local CREATE_PROJECTS_SQL = [[
         source_url TEXT NOT NULL,
         finished_url TEXT NOT NULL,
         edit_data LONGTEXT NOT NULL,
+        manual_location VARCHAR(255) NULL,
+        memo VARCHAR(500) NULL,
         location_label VARCHAR(255) NULL,
         location_street VARCHAR(128) NULL,
         location_zone VARCHAR(128) NULL,
@@ -119,22 +121,34 @@ MySQL.ready(function()
             return
         end
 
-        MySQL.query(CREATE_MY_SPOTS_SQL, {}, function(spotResult)
-            if spotResult == nil then
-                print("[puriphoto] selftest FAIL (my spots schema query returned nil)")
+        MySQL.query([[
+            ALTER TABLE puriphoto_projects
+                ADD COLUMN IF NOT EXISTS manual_location VARCHAR(255) NULL AFTER edit_data,
+                ADD COLUMN IF NOT EXISTS memo VARCHAR(500) NULL AFTER manual_location
+        ]], {}, function(migrationResult)
+            if migrationResult == nil then
+                print("[puriphoto] selftest FAIL (album memo migration returned nil)")
                 return
             end
 
-            local qbxState = GetResourceState("qbx_core")
-            local spotCount = #(Config.PhotoSpots or {})
-            print("[puriphoto] album schema ready")
-            print("[puriphoto] my spots schema ready")
+            MySQL.query(CREATE_MY_SPOTS_SQL, {}, function(spotResult)
+                if spotResult == nil then
+                    print("[puriphoto] selftest FAIL (my spots schema query returned nil)")
+                    return
+                end
 
-            if qbxState == "started" then
-                print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, my_spots=ready, photo_spots=%d)"):format(spotCount))
-            else
-                print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, my_spots=ready, photo_spots=%d)"):format(qbxState, spotCount))
-            end
+                local qbxState = GetResourceState("qbx_core")
+                local spotCount = #(Config.PhotoSpots or {})
+                print("[puriphoto] album schema ready")
+                print("[puriphoto] album memo fields ready")
+                print("[puriphoto] my spots schema ready")
+
+                if qbxState == "started" then
+                    print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, memo=ready, my_spots=ready, photo_spots=%d)"):format(spotCount))
+                else
+                    print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, memo=ready, my_spots=ready, photo_spots=%d)"):format(qbxState, spotCount))
+                end
+            end)
         end)
     end)
 end)
@@ -153,7 +167,7 @@ RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
 
     local limit = math.max(1, math.min(200, tonumber(Config.AlbumLimit) or 100))
     local sql = ([[
-        SELECT id, source_url, finished_url,
+        SELECT id, source_url, finished_url, manual_location, memo,
                location_label, location_street, location_zone,
                location_x, location_y, location_z,
                created_at, updated_at
@@ -171,6 +185,8 @@ RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
             id = row.id,
             sourceUrl = row.source_url,
             finishedUrl = row.finished_url,
+            manualLocation = row.manual_location or "",
+            memo = row.memo or "",
             location = row.location_x and {
                 label = row.location_label or "",
                 street = row.location_street or "",
@@ -204,7 +220,7 @@ RegisterNetEvent("puriphoto:server:getProject", function(requestId, payload)
     end
 
     local rows = MySQL.query.await([[
-        SELECT id, source_url, finished_url, edit_data,
+        SELECT id, source_url, finished_url, edit_data, manual_location, memo,
                location_label, location_street, location_zone,
                location_x, location_y, location_z,
                created_at, updated_at
@@ -229,6 +245,8 @@ RegisterNetEvent("puriphoto:server:getProject", function(requestId, payload)
             sourceUrl = row.source_url,
             finishedUrl = row.finished_url,
             editData = row.edit_data,
+            manualLocation = row.manual_location or "",
+            memo = row.memo or "",
             location = row.location_x and {
                 label = row.location_label or "",
                 street = row.location_street or "",
@@ -267,6 +285,8 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
     local finishedUrl = validHttpUrl(payload.finishedUrl)
     local maxProjectBytes = tonumber(Config.ProjectDataMaxBytes) or 2000000
     local editData = type(payload.editData) == "string" and payload.editData or nil
+    local manualLocation = safeString(payload.manualLocation or "", 255) or ""
+    local memo = safeString(payload.memo or "", 500) or ""
     local location = normalizeLocation(payload.location)
 
     if editData and #editData > maxProjectBytes then
@@ -305,6 +325,7 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
             MySQL.update.await([[
                 UPDATE puriphoto_projects
                 SET source_url = ?, finished_url = ?, edit_data = ?,
+                    manual_location = ?, memo = ?,
                     location_label = ?, location_street = ?, location_zone = ?,
                     location_x = ?, location_y = ?, location_z = ?
                 WHERE id = ? AND citizenid = ?
@@ -312,6 +333,8 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
                 sourceUrl,
                 finishedUrl,
                 editData,
+                manualLocation,
+                memo,
                 location and location.label or nil,
                 location and location.street or nil,
                 location and location.zone or nil,
@@ -333,15 +356,18 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
     local insertedId = MySQL.insert.await([[
         INSERT INTO puriphoto_projects (
             citizenid, source_url, finished_url, edit_data,
+            manual_location, memo,
             location_label, location_street, location_zone,
             location_x, location_y, location_z
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
         citizenid,
         sourceUrl,
         finishedUrl,
         editData,
+        manualLocation,
+        memo,
         location and location.label or nil,
         location and location.street or nil,
         location and location.zone or nil,
@@ -370,6 +396,41 @@ RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
     sendResponse(source, requestId, {
         ok = true,
         id = insertedId
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:updateProjectMeta", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local projectId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not projectId or projectId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local manualLocation = safeString(payload.manualLocation or "", 255) or ""
+    local memo = safeString(payload.memo or "", 500) or ""
+
+    local affected = MySQL.update.await([[
+        UPDATE puriphoto_projects
+        SET manual_location = ?, memo = ?
+        WHERE id = ? AND citizenid = ?
+    ]], {
+        manualLocation,
+        memo,
+        projectId,
+        citizenid
+    })
+
+    sendResponse(source, requestId, {
+        ok = true,
+        updated = affected and affected > 0 or false,
+        manualLocation = manualLocation,
+        memo = memo
     })
 end)
 

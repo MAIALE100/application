@@ -390,7 +390,8 @@ local function codeBreakAiGuess(history,difficulty,allowDuplicates)
 end
 
 local function codeBreakAiTurn(rs)
-    if not rs or not rs.aiEnabled or rs.aiSolved or #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8) then return end
+    if not rs or not rs.aiEnabled or rs.aiSolved then return end
+    if rs.turnLimit~=false and #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8) then return end
     rs.aiHistory=rs.aiHistory or {}
     local guess=codeBreakAiGuess(rs.aiHistory,rs.aiDifficulty,rs.allowDuplicates)
     local exact,misplaced=codeBreakScore(rs.secret,guess)
@@ -614,14 +615,19 @@ local function publicRoundState(room,viewerId)
     end
     if rs.gameId=='code_break' then
         local history=rs.codeBreakHistory and rs.codeBreakHistory[viewerId] or {}
-        out.history=history out.maxAttempts=tonumber(rs.maxAttempts) or 8 out.attemptsLeft=math.max(0,out.maxAttempts-#history) out.solved=rs.solved and rs.solved[viewerId]~=nil or false
+        out.history=history out.solved=rs.solved and rs.solved[viewerId]~=nil or false
         out.aiEnabled=rs.aiEnabled==true
         out.aiDifficulty=rs.aiDifficulty or 'normal'
         out.allowDuplicates=rs.allowDuplicates~=false
+        out.turnLimit=rs.turnLimit~=false
+        out.maxAttempts=rs.maxAttempts
+        out.firstTurn=rs.firstTurn or 'random'
+        out.aiStarts=rs.aiStarts==true
         out.aiAttempts=#(rs.aiHistory or {})
         out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
         out.isCurrent=rs.aiEnabled or viewerId==rs.currentIdentifier
         out.turnNumber=tonumber(rs.turnNumber) or 1
+        if rs.turnLimit~=false then out.attemptsLeft=math.max(0,(tonumber(rs.maxAttempts) or 8)-#history) else out.attemptsLeft=nil end
         out.aiHistory={}
         for _,attempt in ipairs(rs.aiHistory or {}) do
             out.aiHistory[#out.aiHistory+1]={
@@ -794,7 +800,7 @@ local function snapshot(room,viewerId)
     local selfMember=room.members[viewerId]
     return {
         code=room.code,revision=tonumber(room.revision) or 0,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
-        mastermindOptions=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true},
+        mastermindOptions=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -906,7 +912,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -1042,7 +1048,10 @@ function FlecityGamesParty.SetMastermindOptions(source,data)
     local difficulty=tostring(type(data)=='table' and data.aiDifficulty or 'normal')
     if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' then difficulty='normal' end
     local allowDuplicates=not (type(data)=='table' and data.allowDuplicates==false)
-    room.mastermindOptions={aiDifficulty=difficulty,allowDuplicates=allowDuplicates}
+    local turnLimit=not (type(data)=='table' and data.turnLimit==false)
+    local firstTurn=tostring(type(data)=='table' and data.firstTurn or 'random')
+    if firstTurn~='host' and firstTurn~='opponent' and firstTurn~='random' then firstTurn='random' end
+    room.mastermindOptions={aiDifficulty=difficulty,allowDuplicates=allowDuplicates,turnLimit=turnLimit,firstTurn=firstTurn}
     for _,m in pairs(room.members) do m.ready=false end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -1072,16 +1081,34 @@ function FlecityGamesParty.StartRound(source)
     room.roundState=rs
 
     if game.id=='code_break' then
-        local options=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true}
+        local options=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'}
         rs.allowDuplicates=options.allowDuplicates~=false
         rs.aiDifficulty=tostring(options.aiDifficulty or 'normal')
-        rs.secret=newCodeBreakSecret(rs.allowDuplicates) rs.maxAttempts=8 rs.codeBreakHistory={} rs.solved={}
+        rs.turnLimit=options.turnLimit~=false
+        rs.maxAttempts=rs.turnLimit and 8 or nil
+        rs.firstTurn=tostring(options.firstTurn or 'random')
+        rs.secret=newCodeBreakSecret(rs.allowDuplicates) rs.codeBreakHistory={} rs.solved={}
         rs.aiEnabled=connectedCount(room)==1
         rs.aiHistory={}
         rs.aiSolved=nil
         local ids=connectedIdentifiers(room)
-        rs.turnOrder=ids
-        rs.currentIdentifier=ids[1]
+        if rs.aiEnabled then
+            rs.turnOrder=ids
+            rs.currentIdentifier=ids[1]
+            local aiStarts=rs.firstTurn=='opponent' or (rs.firstTurn=='random' and math.random(0,1)==1)
+            rs.aiStarts=aiStarts
+            if aiStarts then codeBreakAiTurn(rs) end
+        else
+            local hostId=room.hostIdentifier
+            local otherId=nil
+            for _,playerId in ipairs(ids) do if playerId~=hostId then otherId=playerId break end end
+            local firstId=hostId
+            if rs.firstTurn=='opponent' then firstId=otherId or hostId
+            elseif rs.firstTurn=='random' and math.random(0,1)==1 then firstId=otherId or hostId end
+            local secondId=firstId==hostId and otherId or hostId
+            rs.turnOrder={firstId,secondId}
+            rs.currentIdentifier=firstId
+        end
         rs.turnNumber=1
     end
     if game.id=='reversi' then
@@ -1394,7 +1421,9 @@ end
 
 local function mastermindCanFinish(room,rs,force)
     if force then return true end
-    local maxAttempts=tonumber(rs.maxAttempts) or 8
+    local limited=rs.turnLimit~=false
+    local maxAttempts=limited and (tonumber(rs.maxAttempts) or 8) or nil
+
     if rs.aiEnabled then
         local humanId=rs.turnOrder and rs.turnOrder[1]
         local humanHistory=humanId and rs.codeBreakHistory and rs.codeBreakHistory[humanId] or {}
@@ -1402,11 +1431,15 @@ local function mastermindCanFinish(room,rs,force)
         local aiHistory=rs.aiHistory or {}
         local aiSolved=rs.aiSolved
         if humanSolved or aiSolved then
-            local target=math.min(humanSolved and #humanHistory or maxAttempts,aiSolved and #aiHistory or maxAttempts)
+            local target
+            if humanSolved and aiSolved then target=math.min(#humanHistory,#aiHistory)
+            elseif humanSolved then target=#humanHistory
+            else target=#aiHistory end
             if #humanHistory>=target and #aiHistory>=target then return true end
         end
-        return #humanHistory>=maxAttempts and #aiHistory>=maxAttempts
+        return limited and #humanHistory>=maxAttempts and #aiHistory>=maxAttempts
     end
+
     local ids=rs.turnOrder or {}
     if #ids<2 then return false end
     local a,b=ids[1],ids[2]
@@ -1415,10 +1448,13 @@ local function mastermindCanFinish(room,rs,force)
     local sa=rs.solved and rs.solved[a] or nil
     local sb=rs.solved and rs.solved[b] or nil
     if sa or sb then
-        local target=math.min(sa and #ha or maxAttempts,sb and #hb or maxAttempts)
+        local target
+        if sa and sb then target=math.min(#ha,#hb)
+        elseif sa then target=#ha
+        else target=#hb end
         if #ha>=target and #hb>=target then return true end
     end
-    return #ha>=maxAttempts and #hb>=maxAttempts
+    return limited and #ha>=maxAttempts and #hb>=maxAttempts
 end
 
 local function maybeFinishCodeBreak(room,force)
@@ -1465,7 +1501,7 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
 
     rs.codeBreakHistory=rs.codeBreakHistory or {}
     local history=rs.codeBreakHistory[id] or {}
-    if #history>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ALREADY_SUBMITTED'} end
+    if rs.turnLimit~=false and #history>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ALREADY_SUBMITTED'} end
 
     local guess={} local seen={}
     for i=1,4 do
@@ -1484,7 +1520,7 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
     end
 
     if rs.aiEnabled then
-        if not rs.aiSolved and #(rs.aiHistory or {})<(tonumber(rs.maxAttempts) or 8) then codeBreakAiTurn(rs) end
+        if not rs.aiSolved and (rs.turnLimit==false or #(rs.aiHistory or {})<(tonumber(rs.maxAttempts) or 8)) then codeBreakAiTurn(rs) end
         rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
     else
         local ids=rs.turnOrder or {}

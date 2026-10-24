@@ -1131,3 +1131,6 @@ body.reduced-motion .fall-result-hero,body.reduced-motion .fall-result-rank{anim
 
 .code-break-history{overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .mastermind-board{touch-action:pan-y}
+
+.mastermind-pin.blow{background:#171717;border-color:#f0d6a8;box-shadow:0 0 0 .04rem rgba(255,218,160,.35),inset 0 0 0 .04rem rgba(255,255,255,.12)}
+.mastermind-pin.hit{background:#fff;border-color:#2b2b2b;box-shadow:0 0 0 .04rem rgba(0,0,0,.35),0 0 .18rem rgba(255,255,255,.55)}

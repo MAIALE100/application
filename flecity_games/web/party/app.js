@@ -1,7 +1,7 @@
 const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
 const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline');
-const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
+const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
@@ -415,8 +415,8 @@ function setupCodeBreak(room){
  const canPlay=rs.aiEnabled||rs.isCurrent===true;
  codeBreakTitle.textContent=rs.solved?'解読成功！':(canPlay?'あなたの手番':'相手の手番');
  if(rs.solved)codeBreakHint.textContent='相手の同じ手数まで結果を待っています。';
- else if(rs.aiEnabled)codeBreakHint.textContent='ターン '+Number(rs.turnNumber||1)+' · 残り '+Number(rs.attemptsLeft||0)+'手 · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
- else codeBreakHint.textContent=(canPlay?'推理してください':'相手の推理を待っています')+' · 残り '+Number(rs.attemptsLeft||0)+'手 · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ else if(rs.aiEnabled)codeBreakHint.textContent='ターン '+Number(rs.turnNumber||1)+' · '+(rs.turnLimit===false?'無制限':'残り '+Number(rs.attemptsLeft||0)+'手')+' · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ else codeBreakHint.textContent=(canPlay?'推理してください':'相手の推理を待っています')+' · '+(rs.turnLimit===false?'無制限':'残り '+Number(rs.attemptsLeft||0)+'手')+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
  codeBreakSubmit.disabled=!canPlay||rs.solved===true||codeBreakGuess.length!==4;
  codeBreakBack.disabled=!canPlay||rs.solved===true||codeBreakGuess.length===0;
  [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=!canPlay||rs.solved===true||codeBreakGuess.length>=4);
@@ -734,12 +734,16 @@ function renderRoom(room,timing){
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
    gameEl.value=room.selectedGame||'code_break';gameEl.disabled=!room.isHost;renderGameInfo(gameEl.value);
-   const mmOptions=room.mastermindOptions||{aiDifficulty:'normal',allowDuplicates:true};
+   const mmOptions=room.mastermindOptions||{aiDifficulty:'normal',allowDuplicates:true,turnLimit:true,firstTurn:'random'};
    mastermindLobbyOptions.classList.toggle('hidden',room.selectedGame!=='code_break');
    mastermindAiDifficulty.value=String(mmOptions.aiDifficulty||'normal');
    mastermindDuplicates.value=mmOptions.allowDuplicates===false?'no':'yes';
+   mastermindTurnLimit.value=mmOptions.turnLimit===false?'no':'yes';
+   mastermindFirstTurn.value=String(mmOptions.firstTurn||'random');
    mastermindAiDifficulty.disabled=!room.isHost;
    mastermindDuplicates.disabled=!room.isHost;
+   mastermindTurnLimit.disabled=!room.isHost;
+   mastermindFirstTurn.disabled=!room.isHost;
    mastermindOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'AI強さは1人プレイ時に使用します。':'2人対戦ではAI強さは使用しません。';
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
@@ -874,12 +878,14 @@ readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await Flec
 gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
- const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no'});
+ const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no',turnLimit:mastermindTurnLimit.value!=='no',firstTurn:mastermindFirstTurn.value});
  if(!res.ok){status('MASTERMIND設定変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
  renderRoom(res.room);
 }
 mastermindAiDifficulty.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
 mastermindDuplicates.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
+mastermindTurnLimit.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
+mastermindFirstTurn.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
 
 startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
 partyPlusSubscribe.onclick=()=>{

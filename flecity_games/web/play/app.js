@@ -3049,7 +3049,7 @@ async function startSimon(){
    simonStart.disabled=false;setStatus('SIMONの初期状態を取得できませんでした。','error');return;
  }
  simonDaily=session.daily===true;
- simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,lastInputAt:0,startedAt:performance.now(),daily:session.daily===true};
+ simon={sessionToken:session.sessionToken,maxRounds,sequence,round:1,cleared:0,inputIndex:0,roundInputs:[],accepting:false,submitting:false,finished:false,lastInputAt:0,lastInputIndex:-1,startedAt:performance.now(),daily:session.daily===true};
  simonStart.classList.add('hidden');simonNew.classList.remove('hidden');renderSimon();setStatus((simon.daily?'デイリーSIMON開始。':'SIMON開始。')+'未来のラウンドはSERVERから順番に配信します。','good');
  await playSimonSequence();
 }
@@ -3084,8 +3084,8 @@ async function pressSimon(index){
  const game=simon;if(!game||game.finished||!game.accepting||game.submitting)return;
  const now=performance.now();
  // Ignore touch/click bounce so one physical tap cannot consume two identical sequence steps.
- if(now-(Number(game.lastInputAt)||0)<90)return;
- game.lastInputAt=now;
+ if(index===game.lastInputIndex&&now-(Number(game.lastInputAt)||0)<90)return;
+ game.lastInputAt=now;game.lastInputIndex=index;
  // Lock input synchronously so rapid taps cannot enqueue multiple moves before render catches up.
  game.accepting=false;game.submitting=true;simonPads.forEach(p=>p.disabled=true);
  game.roundInputs.push(index);

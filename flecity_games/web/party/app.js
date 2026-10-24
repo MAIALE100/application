@@ -245,7 +245,7 @@ function renderResults(room){
    const result=rs.results||{},entries=Array.isArray(result.entries)?result.entries:[];
    const winners=entries.filter(e=>e.winner===true).map(e=>e.name);
    appendResultBanner(winners.length?'MASTERMIND · '+winners.join(' / '):'時間切れ · 正解者なし',winners.length?'good':'warn');
-   appendResultRow('秘密コード',(Array.isArray(result.secret)?result.secret:[]).map(v=>['','●','◆','▲','■','★','⬢'][Number(v)]||'?').join(' '));
+   appendResultRow('秘密コード',(Array.isArray(result.secret)?result.secret:[]).map(v=>['','RED','BLUE','GREEN','YELLOW','PURPLE','ORANGE'][Number(v)]||'?').join(' · '));
    entries.forEach((e,index)=>appendResultRow('#'+(index+1)+' '+e.name,e.solved?(Number(e.solveMs||0)/1000).toFixed(2)+'秒 · '+Number(e.attempts||0)+'手':'未解読 · BEST '+Number(e.bestExact||0)+' HIT / '+Number(e.bestMisplaced||0)+' BLOW'));
  }else if(rs.gameId==='reversi'){
    const result=rs.results||{};
@@ -400,8 +400,13 @@ function beginRoundToken(rs){
  window.scrollTo({top:0,behavior:appSettings.reducedMotion?'auto':'smooth'});
  return true;
 }
-function codeBreakSymbols(values){return (Array.isArray(values)?values:[]).map(v=>['','●','◆','▲','■','★','⬢'][Number(v)]||'·').join(' ');}
-function renderCodeBreakGuess(){const padded=codeBreakGuess.concat(Array(Math.max(0,4-codeBreakGuess.length)).fill(0));codeBreakCurrent.textContent=codeBreakSymbols(padded);}
+function codeBreakPeg(value){
+ const peg=document.createElement('i');peg.className='mastermind-guess-peg'+(Number(value)>0?' peg-'+Number(value):' empty');return peg;
+}
+function codeBreakSymbolText(values){return (Array.isArray(values)?values:[]).map(v=>['','●','●','●','●','●','●'][Number(v)]||'·').join(' ');}
+function renderCodeBreakGuess(){
+ codeBreakCurrent.innerHTML='';const padded=codeBreakGuess.concat(Array(Math.max(0,4-codeBreakGuess.length)).fill(0));padded.forEach(v=>codeBreakCurrent.appendChild(codeBreakPeg(v)));
+}
 function setupCodeBreak(room){
  const rs=room.roundState;hideRoundGames();codeBreakPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
@@ -417,9 +422,12 @@ function setupCodeBreak(room){
  const history=Array.isArray(rs.history)?rs.history:[];
  history.slice().reverse().forEach((h,reverseIndex)=>{
    const row=document.createElement('div');row.className='code-break-row';
-   const turn=document.createElement('small');turn.textContent='#'+(history.length-reverseIndex);
-   const guess=document.createElement('strong');guess.textContent=codeBreakSymbols(h.guess);
-   const score=document.createElement('span');score.textContent=Number(h.exact||0)+' HIT · '+Number(h.misplaced||0)+' BLOW';
+   const turn=document.createElement('small');turn.textContent=String(history.length-reverseIndex).padStart(2,'0');
+   const guess=document.createElement('div');guess.className='mastermind-row-pegs';(Array.isArray(h.guess)?h.guess:[]).forEach(v=>guess.appendChild(codeBreakPeg(v)));
+   const score=document.createElement('div');score.className='mastermind-feedback';
+   for(let i=0;i<Number(h.exact||0);i++){const p=document.createElement('i');p.className='mastermind-pin hit';score.appendChild(p);}
+   for(let i=0;i<Number(h.misplaced||0);i++){const p=document.createElement('i');p.className='mastermind-pin blow';score.appendChild(p);}
+   for(let i=Number(h.exact||0)+Number(h.misplaced||0);i<4;i++){const p=document.createElement('i');p.className='mastermind-pin empty';score.appendChild(p);}
    row.append(turn,guess,score);codeBreakHistory.appendChild(row);
  });
 }

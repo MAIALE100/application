@@ -983,7 +983,9 @@ local function allReady(room,game)
             if m.appOpen==false or m.ready~=true then return false end
         end
     end
-    return count>=math.max(FlecityGamesConfig.Party.MinPlayers,game.minPlayers or 2) and count<=(game.maxPlayers or FlecityGamesConfig.Party.MaxPlayers)
+    local minimum=math.max(1,tonumber(game and game.minPlayers) or tonumber(FlecityGamesConfig.Party.MinPlayers) or 2)
+    local maximum=math.max(minimum,tonumber(game and game.maxPlayers) or tonumber(FlecityGamesConfig.Party.MaxPlayers) or 10)
+    return count>=minimum and count<=maximum
 end
 
 function FlecityGamesParty.StartRound(source)

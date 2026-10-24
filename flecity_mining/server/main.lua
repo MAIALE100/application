@@ -363,12 +363,16 @@ local function chooseProduct()
         return Config.RefinedProducts[1]
     end
 
-    local roll = math.random(1, totalWeight)
+    -- Weights are ratios, not necessarily integers. Using
+    -- math.random(1, totalWeight) can fail when an operator configures a
+    -- decimal weight (for example 12.5). A unit random roll supports both
+    -- integer and fractional ratios without changing their probabilities.
+    local roll = math.random() * totalWeight
     local cursor = 0
 
     for _, product in ipairs(Config.RefinedProducts) do
         cursor = cursor + math.max(0, tonumber(product.weight) or 0)
-        if roll <= cursor then
+        if roll < cursor then
             return product
         end
     end

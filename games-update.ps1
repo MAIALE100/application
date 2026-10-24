@@ -522,13 +522,261 @@ try {
     Step 'Checking server.cfg'
     if (Test-Path $ServerCfg) {
         $cfg = Get-Content $ServerCfg -Raw
-        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*$') {
+        if ($cfg -notmatch '(?m)^\s*add_ace\s+resource\.flecity_dev_safety\s+command\.refresh\s+allow\s*
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        $autoNeedsInstall=-not (Test-Path $autoInstalled)
+        $autoNeedsBranchRepair=$false
+        if(Test-Path $autoInstalled){
+            try {
+                $autoMarker=Get-Content -LiteralPath $autoInstalled -Raw -ErrorAction Stop
+                $expectedBranchLine='branch=' + $Branch
+                $autoNeedsBranchRepair=-not (($autoMarker -split '[\r\n]+') -contains $expectedBranchLine)
+            }
+            catch {
+                $autoNeedsBranchRepair=$true
+            }
+        }
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoDisabled) -and ($autoNeedsInstall -or $autoNeedsBranchRepair)) {
+            if($autoNeedsBranchRepair){ Step 'Repairing automatic update branch' } else { Step 'Enabling background automatic updates' }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            elseif($autoNeedsBranchRepair) {
+                Write-Host ("Automatic updates now follow {0}." -f $Branch) -ForegroundColor Green
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+) {
+            $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper permissions' + [Environment]::NewLine + 'add_ace resource.flecity_dev_safety command.refresh allow'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added ACE: resource.flecity_dev_safety -> command.refresh' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*add_ace\s+resource\.flecity_dev_safety\s+command\.restart\s+allow\s*
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        $autoNeedsInstall=-not (Test-Path $autoInstalled)
+        $autoNeedsBranchRepair=$false
+        if(Test-Path $autoInstalled){
+            try {
+                $autoMarker=Get-Content -LiteralPath $autoInstalled -Raw -ErrorAction Stop
+                $expectedBranchLine='branch=' + $Branch
+                $autoNeedsBranchRepair=-not (($autoMarker -split '[\r\n]+') -contains $expectedBranchLine)
+            }
+            catch {
+                $autoNeedsBranchRepair=$true
+            }
+        }
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoDisabled) -and ($autoNeedsInstall -or $autoNeedsBranchRepair)) {
+            if($autoNeedsBranchRepair){ Step 'Repairing automatic update branch' } else { Step 'Enabling background automatic updates' }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            elseif($autoNeedsBranchRepair) {
+                Write-Host ("Automatic updates now follow {0}." -f $Branch) -ForegroundColor Green
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+) {
+            $addition = [Environment]::NewLine + 'add_ace resource.flecity_dev_safety command.restart allow'
+            Add-Content -Path $ServerCfg -Value $addition
+            Write-Host 'Added ACE: resource.flecity_dev_safety -> command.restart' -ForegroundColor Yellow
+            $cfg += $addition
+        }
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_dev_safety\s*
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        $autoNeedsInstall=-not (Test-Path $autoInstalled)
+        $autoNeedsBranchRepair=$false
+        if(Test-Path $autoInstalled){
+            try {
+                $autoMarker=Get-Content -LiteralPath $autoInstalled -Raw -ErrorAction Stop
+                $expectedBranchLine='branch=' + $Branch
+                $autoNeedsBranchRepair=-not (($autoMarker -split '[\r\n]+') -contains $expectedBranchLine)
+            }
+            catch {
+                $autoNeedsBranchRepair=$true
+            }
+        }
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoDisabled) -and ($autoNeedsInstall -or $autoNeedsBranchRepair)) {
+            if($autoNeedsBranchRepair){ Step 'Repairing automatic update branch' } else { Step 'Enabling background automatic updates' }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            elseif($autoNeedsBranchRepair) {
+                Write-Host ("Automatic updates now follow {0}." -f $Branch) -ForegroundColor Green
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+) {
             $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity development helper' + [Environment]::NewLine + 'ensure flecity_dev_safety'
             Add-Content -Path $ServerCfg -Value $addition
             Write-Host 'Added: ensure flecity_dev_safety' -ForegroundColor Yellow
             $cfg += $addition
         }
-        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*$') {
+        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_games\s*
+    if (-not $NoGitSync) {
+        $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
+        $autoInstalled = Join-Path $autoStateDir 'installed.flag'
+        $autoDisabled = Join-Path $autoStateDir 'disabled.flag'
+        $autoInstaller = Join-Path $RepoRoot 'games-auto-update-install.ps1'
+
+        $autoNeedsInstall=-not (Test-Path $autoInstalled)
+        $autoNeedsBranchRepair=$false
+        if(Test-Path $autoInstalled){
+            try {
+                $autoMarker=Get-Content -LiteralPath $autoInstalled -Raw -ErrorAction Stop
+                $expectedBranchLine='branch=' + $Branch
+                $autoNeedsBranchRepair=-not (($autoMarker -split '[\r\n]+') -contains $expectedBranchLine)
+            }
+            catch {
+                $autoNeedsBranchRepair=$true
+            }
+        }
+
+        if ((Test-Path $autoInstaller) -and -not (Test-Path $autoDisabled) -and ($autoNeedsInstall -or $autoNeedsBranchRepair)) {
+            if($autoNeedsBranchRepair){ Step 'Repairing automatic update branch' } else { Step 'Enabling background automatic updates' }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $autoInstaller -ServerBase $ServerBase -SkipInitialDeploy
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'Automatic update setup did not complete. Manual updates still work normally.' -ForegroundColor Yellow
+            }
+            elseif($autoNeedsBranchRepair) {
+                Write-Host ("Automatic updates now follow {0}." -f $Branch) -ForegroundColor Green
+            }
+            else {
+                Write-Host 'Automatic updates are now enabled. Future Flecity Games updates require no manual update command.' -ForegroundColor Green
+            }
+        }
+    }
+
+    Step 'Update complete'
+    Write-Host "Source : $Source"
+    Write-Host "Target : $Destination"
+    Write-Host ''
+    if ($ReloadActivated) {
+        Write-Host ("Verified runtime activated: version={0} commit={1}" -f $version,$commit) -ForegroundColor Green
+        Write-Host 'No full FiveM server restart is needed.' -ForegroundColor Green
+    } elseif ($ReloadNeedsBootstrap) {
+        Write-Host 'ONE-TIME HELPER ACTIVATION: run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart flecity_dev_safety' -ForegroundColor White
+        Write-Host 'A pending Flecity Games reload is already queued; do NOT restart flecity_games manually.' -ForegroundColor Yellow
+        Write-Host 'After this one-time helper restart, future games-update.cmd runs can activate PARTY development builds automatically.' -ForegroundColor Green
+    } else {
+        Write-Host 'Verified files deployed. External reload acknowledgement was not required.' -ForegroundColor Green
+    }
+    Write-Host ''
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+) {
             $addition = [Environment]::NewLine + [Environment]::NewLine + '# Flecity Games test resource' + [Environment]::NewLine + 'ensure flecity_games'
             Add-Content -Path $ServerCfg -Value $addition
             Write-Host 'Added: ensure flecity_games' -ForegroundColor Yellow

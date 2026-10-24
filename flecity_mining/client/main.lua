@@ -14,6 +14,7 @@ local routeBlip = nil
 local activeMineProp = nil
 local activeMineSound = nil
 local activeMineTarget = nil
+local cancelCurrentAction = false
 
 local function clearRoute()
     if routeBlip and DoesBlipExist(routeBlip) then
@@ -306,6 +307,7 @@ local function runApprovedAction(data)
 
     busy = true
     currentActionToken = token
+    cancelCurrentAction = false
 
     local ped = PlayerPedId()
     local usedDrill = false
@@ -341,7 +343,7 @@ local function runApprovedAction(data)
         local remaining = math.max(0, duration - (GetGameTimer() - started))
         drawScreenText(('%s... %.1f秒'):format(label, remaining / 1000))
 
-        if IsEntityDead(ped) then
+        if IsEntityDead(ped) or cancelCurrentAction then
             cancelled = true
             break
         end
@@ -353,6 +355,7 @@ local function runApprovedAction(data)
 
     busy = false
     currentActionToken = nil
+    cancelCurrentAction = false
 
     if cancelled then
         TriggerServerEvent('flecity_mining:server:cancelAction', token)
@@ -376,6 +379,16 @@ RegisterNetEvent('flecity_mining:client:state', function(newState)
     state.refinedCount = tonumber(newState.refinedCount) or 0
     state.nodeCooldowns = type(newState.nodeCooldowns) == 'table' and newState.nodeCooldowns or {}
     state.cooldownSyncedAt = GetGameTimer()
+
+    -- The server is authoritative for shift ownership. Character switches,
+    -- framework state loss, or an operator-side session reset can make the
+    -- session inactive while a client presentation is still running. Abort
+    -- locally instead of leaving the player frozen with a drill until the
+    -- original timer expires.
+    if not state.active and busy then
+        cancelCurrentAction = true
+    end
+
     updateGuidanceRoute()
 end)
 
@@ -562,6 +575,7 @@ end, false)
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
 
+    cancelCurrentAction = true
     clearRoute()
     stopDrillPresentation()
 

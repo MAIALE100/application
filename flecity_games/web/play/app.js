@@ -3189,7 +3189,7 @@ async function openMemory(daily=false){
  const session=await startSessionWithRetry({gameId:'memory',daily:daily===true});
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('MEMORYを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const previewMs=Math.max(0,Number(session.challenge&&session.challenge.previewMs)||1200);
- memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,streak:0,maxStreak:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs};
+ memory={sessionToken:session.sessionToken,seed:Number(session.seed)||1,deck:memoryDeckFromSeed(session.seed),revealed:[],matched:new Set(),history:[],moves:0,streak:0,maxStreak:0,playStartedAt:null,finished:false,busy:false,previewing:true,daily:session.daily===true,previewMs,lastTapIndex:-1,lastTapAt:0};
  setStatus((previewMs/1000).toFixed(1)+'秒だけカードを覚えてください。','good');
  renderMemory();memoryClock=setInterval(updateMemoryTime,200);
  memoryFlipTimer=setTimeout(()=>{
@@ -3200,6 +3200,10 @@ async function openMemory(daily=false){
 }
 async function flipMemory(index){
  if(!memory||memory.previewing||memory.finished||memory.busy||memory.matched.has(index)||memory.revealed.includes(index))return;
+ // Ignore only same-card tap bounce; keep rapid taps on different cards responsive.
+ const tapAt=performance.now();
+ if(memory.lastTapIndex===index&&tapAt-memory.lastTapAt<120)return;
+ memory.lastTapIndex=index;memory.lastTapAt=tapAt;
  memory.revealed.push(index);
  if(memory.revealed.length<2){renderMemory();return;}
  // Lock input synchronously on the second card so queued rapid taps cannot leak into the next turn.

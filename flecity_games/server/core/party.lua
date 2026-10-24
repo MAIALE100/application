@@ -1263,7 +1263,7 @@ function FlecityGamesParty.SubmitVote(source,data)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.submissions[id] then return {ok=false,error='ALREADY_SUBMITTED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
-    if not targetId or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
+    if not targetId or not room.members[targetId] or room.members[targetId].disconnected or room.members[targetId].appOpen==false then return {ok=false,error='INVALID_TARGET'} end
     if targetId==id then return {ok=false,error='SELF_VOTE_NOT_ALLOWED'} end
     rs.submissions[id]=targetId maybeFinishVote(room)
     notifyRoom(room,source)
@@ -1305,7 +1305,7 @@ function FlecityGamesParty.SubmitWordWolfVote(source,data)
     if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
     if tonumber(rs.voteUnlockTick) and GetGameTimer()<tonumber(rs.voteUnlockTick) then return {ok=false,error='VOTING_LOCKED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
-    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
+    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected or room.members[targetId].appOpen==false then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishWordWolf(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
@@ -1343,7 +1343,7 @@ function FlecityGamesParty.SubmitLiarVote(source,data)
     if rs.complete or rs.submissions[id] then return {ok=false,error=rs.complete and 'ROUND_COMPLETE' or 'ALREADY_SUBMITTED'} end
     if tonumber(rs.voteUnlockTick) and GetGameTimer()<tonumber(rs.voteUnlockTick) then return {ok=false,error='VOTING_LOCKED'} end
     local targetId=memberIdToIdentifier(room,tostring(data.targetMemberId or ''))
-    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected then return {ok=false,error='INVALID_TARGET'} end
+    if not targetId or targetId==id or not room.members[targetId] or room.members[targetId].disconnected or room.members[targetId].appOpen==false then return {ok=false,error='INVALID_TARGET'} end
     rs.submissions[id]=targetId maybeFinishLiar(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}

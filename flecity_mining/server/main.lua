@@ -803,7 +803,7 @@ RegisterCommand('mining_economy', function(src)
     local totalWeight, expectedPerRaw, expectedFullLoad = economySnapshot()
 
     local lines = {
-        ('Mining economy | weight=%d | expected/raw=$%.1f | expected/full-load=$%.1f'):format(
+        ('Mining economy | weight=%.2f | expected/raw=$%.1f | expected/full-load=$%.1f'):format(
             totalWeight,
             expectedPerRaw,
             expectedFullLoad

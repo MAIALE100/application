@@ -559,6 +559,14 @@ const App = () => {
     const hasDecorations = () =>
         selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
 
+    const hasUnsavedChanges = () => {
+        const current = JSON.stringify(makeSnapshot())
+        const baseline = lastSavedSnapshot
+            ? JSON.stringify(lastSavedSnapshot)
+            : JSON.stringify({ frame: 'none', stamps: [], captions: [], strokes: [] } satisfies EditorSnapshot)
+        return current !== baseline
+    }
+
     const handleBack = () => {
         if (saveLock.current) return
         if (page !== 'main') {
@@ -575,7 +583,7 @@ const App = () => {
             return
         }
         if (photoUrl) {
-            if (hasDecorations()) setConfirmExit(true)
+            if (hasUnsavedChanges()) setConfirmExit(true)
             else resetPhotoSession()
         }
     }
@@ -1274,6 +1282,9 @@ const App = () => {
             <main className="app">
                 <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
                     <header className="app-header">
+                        {page === 'main' && (isEditing || photoUrl) && (
+                            <button type="button" className="app-back-button" onClick={handleBack} disabled={isSaving}>← 戻る</button>
+                        )}
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>
                     </header>
@@ -1748,9 +1759,17 @@ const App = () => {
                                     {photoUrl ? '撮り直す' : '写真を撮る'}
                                 </button>
                                 {!photoUrl && (
-                                    <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
-                                        ギャラリーから選ぶ
-                                    </button>
+                                    <>
+                                        <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
+                                            ギャラリーから選ぶ
+                                        </button>
+                                        <button type="button" className="capture-button secondary-button" onClick={openAlbum}>
+                                            マイアルバム
+                                        </button>
+                                        <button type="button" className="capture-button secondary-button" onClick={openPhotoSpots}>
+                                            おすすめ撮影スポット
+                                        </button>
+                                    </>
                                 )}
                                 {photoUrl && (
                                     <>
@@ -1758,14 +1777,24 @@ const App = () => {
                                             別の写真を選ぶ
                                         </button>
                                         <button type="button" className="capture-button" onClick={() => {
+                                            if (savedPhotoUrl && lastSavedSnapshot) {
+                                                resumeLastSavedEdit()
+                                                return
+                                            }
                                             const editingUrl = sourcePhotoUrl || photoUrl
                                             setPhotoUrl(editingUrl)
                                             setToolsCollapsed(false)
                                             setIsEditing(true)
                                         }}>
-                                            編集する
+                                            {savedPhotoUrl && lastSavedSnapshot ? '再編集する' : hasDecorations() ? '編集を再開' : '編集する'}
                                         </button>
-                                        <button type="button" className="capture-button menu-return-button" onClick={resetPhotoSession}>
+                                        {captureLocation && (
+                                            <div className="capture-location-note">
+                                                <span>撮影場所</span>
+                                                <strong>{captureLocation.label}</strong>
+                                            </div>
+                                        )}
+                                        <button type="button" className="capture-button menu-return-button" onClick={handleBack}>
                                             最初のメニューに戻る
                                         </button>
                                     </>
@@ -1775,12 +1804,10 @@ const App = () => {
                     {isEditing && (
                         <div className="editor-final-actions">
                             <button type="button" className="capture-button secondary-button" onClick={() => {
-                                const dirty = selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
-                                if (dirty) setConfirmExit(true)
-                                else {
-                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setIsEditing(false)
-                                }
+                                cancelTransientInteractions()
+                                setPhotoUrl(sourcePhotoUrl || photoUrl)
+                                setIsEditing(false)
+                                setError(null)
                             }} disabled={isSaving}>
                                 写真確認に戻る
                             </button>
@@ -1790,18 +1817,82 @@ const App = () => {
                         </div>
                     )}
                 </div>
+
+                {page === 'album' && (
+                    <section className="feature-page" aria-label="マイアルバム">
+                        <div className="feature-page-header">
+                            <button type="button" className="feature-back-button" onClick={handleBack}>← 戻る</button>
+                            <div>
+                                <p>あとから見返して、また編集。</p>
+                                <h2>マイアルバム</h2>
+                            </div>
+                        </div>
+                        {albumMessage && <p className="feature-message" role="status">{albumMessage}</p>}
+                        {albumLoading ? (
+                            <div className="feature-empty">アルバムを読み込んでいます…</div>
+                        ) : albumProjects.length === 0 ? (
+                            <div className="feature-empty">
+                                <strong>まだ作品がありません</strong>
+                                <span>完成写真を保存すると、ここに作品が残ります。</span>
+                            </div>
+                        ) : (
+                            <div className="album-grid">
+                                {albumProjects.map((project) => (
+                                    <article key={project.id} className="album-card">
+                                        <img src={project.finishedUrl} alt="PuriPhoto作品" loading="lazy" />
+                                        <div className="album-card-body">
+                                            <strong>{formatAlbumDate(project.updatedAt)}</strong>
+                                            <span>{project.location?.label || '撮影場所：記録なし'}</span>
+                                            <div className="album-card-actions">
+                                                <button type="button" onClick={() => restoreAlbumProject(project)}>再編集</button>
+                                                <button type="button" className="danger-subtle" onClick={() => deleteAlbumProject(project.id)}>削除</button>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
+                {page === 'spots' && (
+                    <section className="feature-page" aria-label="おすすめ撮影スポット">
+                        <div className="feature-page-header">
+                            <button type="button" className="feature-back-button" onClick={handleBack}>← 戻る</button>
+                            <div>
+                                <p>次の一枚を探しに行こう。</p>
+                                <h2>おすすめ撮影スポット</h2>
+                            </div>
+                        </div>
+                        {spotNotice && <p className="feature-message" role="status">{spotNotice}</p>}
+                        {spotsLoading ? (
+                            <div className="feature-empty">撮影スポットを読み込んでいます…</div>
+                        ) : (
+                            <div className="spot-list">
+                                {photoSpots.map((spot) => (
+                                    <article key={spot.id} className="spot-card">
+                                        <div>
+                                            <span className="spot-category">{spot.category}</span>
+                                            <strong>{spot.name}</strong>
+                                            <p>{spot.description}</p>
+                                        </div>
+                                        <button type="button" onClick={() => setPhotoSpotWaypoint(spot)}>GPSに設定</button>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
                 {confirmExit && (
                     <div className="confirm-overlay" role="dialog" aria-modal="true">
                         <div className="confirm-card">
-                            <strong>編集内容を破棄しますか？</strong>
-                            <p>保存していない装飾は失われます。</p>
+                            <strong>最初のメニューに戻りますか？</strong>
+                            <p>保存していない編集内容は失われます。</p>
                             <div>
-                                <button type="button" onClick={() => setConfirmExit(false)}>編集を続ける</button>
+                                <button type="button" onClick={() => setConfirmExit(false)}>写真確認に戻る</button>
                                 <button type="button" className="danger-confirm" onClick={() => {
-                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setIsEditing(false)
-                                    resetEditorState()
-                                }}>破棄して戻る</button>
+                                    setConfirmExit(false)
+                                    resetPhotoSession()
+                                }}>破棄してメニューへ</button>
                             </div>
                         </div>
                     </div>

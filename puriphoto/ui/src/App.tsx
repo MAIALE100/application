@@ -17,7 +17,7 @@ type DrawTool = 'pen' | 'eraser'
 type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
 type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: CaptionInstance[]; strokes: DrawStroke[] }
 type CaptureLocation = { label: string; street: string; zone: string; x: number; y: number; z: number }
-type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData?: string; location: CaptureLocation | null; createdAt: string; updatedAt: string }
+type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData?: string; manualLocation: string; memo: string; location: CaptureLocation | null; createdAt: unknown; updatedAt: unknown }
 type PhotoSpot = { id: string; name: string; category: string; description: string; coords: { x: number; y: number; z: number } }
 type MySpot = { id: number; name: string; label: string; street: string; zone: string; x: number; y: number; z: number; createdAt: unknown }
 type AlbumResponse = { ok: boolean; projects?: AlbumProject[]; error?: string }
@@ -204,10 +204,16 @@ const App = () => {
     const [page, setPage] = useState<'main' | 'album' | 'spots'>('main')
     const [captureLocation, setCaptureLocation] = useState<CaptureLocation | null>(null)
     const [currentProjectId, setCurrentProjectId] = useState<number | null>(null)
+    const [manualLocation, setManualLocation] = useState('')
+    const [photoMemo, setPhotoMemo] = useState('')
     const [lastSavedSnapshot, setLastSavedSnapshot] = useState<EditorSnapshot | null>(null)
     const [albumProjects, setAlbumProjects] = useState<AlbumProject[]>([])
     const [albumLoading, setAlbumLoading] = useState(false)
     const [albumMessage, setAlbumMessage] = useState<string | null>(null)
+    const [albumMetaEditingId, setAlbumMetaEditingId] = useState<number | null>(null)
+    const [albumMetaLocation, setAlbumMetaLocation] = useState('')
+    const [albumMetaMemo, setAlbumMetaMemo] = useState('')
+    const [albumMetaSaving, setAlbumMetaSaving] = useState(false)
     const [photoSpots, setPhotoSpots] = useState<PhotoSpot[]>([])
     const [spotsLoading, setSpotsLoading] = useState(false)
     const [spotNotice, setSpotNotice] = useState<string | null>(null)
@@ -401,6 +407,8 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setCaptureLocation(location)
                     setCurrentProjectId(null)
+                    setManualLocation('')
+                    setPhotoMemo('')
                     setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
@@ -429,6 +437,8 @@ const App = () => {
         setSavedPhotoUrl(null)
         setCaptureLocation(null)
         setCurrentProjectId(null)
+        setManualLocation('')
+        setPhotoMemo('')
         setLastSavedSnapshot(null)
         setIsEditing(false)
         resetEditorState()
@@ -469,6 +479,8 @@ const App = () => {
                     setSavedPhotoUrl(null)
                     setCaptureLocation(null)
                     setCurrentProjectId(null)
+                    setManualLocation('')
+                    setPhotoMemo('')
                     setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
@@ -629,6 +641,8 @@ const App = () => {
             setSavedPhotoUrl(loadedProject.finishedUrl)
             setCaptureLocation(loadedProject.location)
             setCurrentProjectId(loadedProject.id)
+            setManualLocation(loadedProject.manualLocation || '')
+            setPhotoMemo(loadedProject.memo || '')
             setLastSavedSnapshot(snapshot)
             setPhotoAspectRatio(null)
             applySnapshot(snapshot)
@@ -647,6 +661,58 @@ const App = () => {
         setToolsCollapsed(false)
         setIsEditing(true)
         setError(null)
+    }
+
+    const beginAlbumMetaEdit = (project: AlbumProject) => {
+        setAlbumMetaEditingId(project.id)
+        setAlbumMetaLocation(project.manualLocation || '')
+        setAlbumMetaMemo(project.memo || '')
+        setAlbumMessage(null)
+    }
+
+    const cancelAlbumMetaEdit = () => {
+        if (albumMetaSaving) return
+        setAlbumMetaEditingId(null)
+        setAlbumMetaLocation('')
+        setAlbumMetaMemo('')
+    }
+
+    const saveAlbumMeta = async (projectId: number) => {
+        if (albumMetaSaving) return
+        setAlbumMetaSaving(true)
+        setAlbumMessage(null)
+        const nextLocation = albumMetaLocation.trim().slice(0, 255)
+        const nextMemo = albumMetaMemo.trim().slice(0, 500)
+
+        try {
+            const result = await nuiRequest<SimpleResponse & { manualLocation?: string; memo?: string }>('puriphotoUpdateProjectMeta', {
+                id: projectId,
+                manualLocation: nextLocation,
+                memo: nextMemo
+            })
+            if (!result.ok) throw new Error(result.error || 'metadata_update_failed')
+
+            setAlbumProjects((current) => current.map((project) =>
+                project.id === projectId
+                    ? { ...project, manualLocation: result.manualLocation ?? nextLocation, memo: result.memo ?? nextMemo, updatedAt: new Date().toISOString() }
+                    : project
+            ))
+
+            if (currentProjectId === projectId) {
+                setManualLocation(result.manualLocation ?? nextLocation)
+                setPhotoMemo(result.memo ?? nextMemo)
+            }
+
+            setAlbumMetaEditingId(null)
+            setAlbumMetaLocation('')
+            setAlbumMetaMemo('')
+            setAlbumMessage('撮影場所メモと自由メモを保存しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to update album memo:', cause)
+            setAlbumMessage('メモを保存できませんでした。')
+        } finally {
+            setAlbumMetaSaving(false)
+        }
     }
 
     const deleteAlbumProject = async (projectId: number) => {
@@ -1078,6 +1144,8 @@ const App = () => {
         const exportAspectRatio = photoAspectRatio
         const exportSnapshot = makeSnapshot()
         const exportLocation = captureLocation
+        const exportManualLocation = manualLocation.trim().slice(0, 255)
+        const exportMemo = photoMemo.trim().slice(0, 500)
         const exportProjectId = currentProjectId
 
         try {
@@ -1355,6 +1423,8 @@ const App = () => {
                     sourceUrl: exportSourceUrl,
                     finishedUrl: uploadedUrl,
                     editData,
+                    manualLocation: exportManualLocation,
+                    memo: exportMemo,
                     location: exportLocation
                 })
                 if (!projectResult.ok || !projectResult.id) {
@@ -1909,12 +1979,32 @@ const App = () => {
                                         }}>
                                             {savedPhotoUrl && lastSavedSnapshot ? (hasUnsavedChanges() ? '編集を再開' : '再編集する') : hasDecorations() ? '編集を再開' : '編集する'}
                                         </button>
-                                        {captureLocation && (
+                                        <div className="photo-meta-editor">
                                             <div className="capture-location-note">
-                                                <span>撮影場所</span>
-                                                <strong>{captureLocation.label}</strong>
+                                                <span>自動記録された撮影場所</span>
+                                                <strong>{captureLocation?.label || '自動記録なし（ギャラリーから選んだ写真など）'}</strong>
                                             </div>
-                                        )}
+                                            <label>
+                                                <span>撮影場所メモ</span>
+                                                <input
+                                                    type="text"
+                                                    maxLength={255}
+                                                    value={manualLocation}
+                                                    onChange={(event) => setManualLocation(event.target.value)}
+                                                    placeholder="例：Weazel前 / 思い出の海岸"
+                                                />
+                                            </label>
+                                            <label>
+                                                <span>自由メモ</span>
+                                                <textarea
+                                                    maxLength={500}
+                                                    rows={3}
+                                                    value={photoMemo}
+                                                    onChange={(event) => setPhotoMemo(event.target.value)}
+                                                    placeholder="この写真について残しておきたいこと"
+                                                />
+                                            </label>
+                                        </div>
                                         <button type="button" className="capture-button menu-return-button" onClick={handleBack}>
                                             最初のメニューに戻る
                                         </button>
@@ -1963,11 +2053,54 @@ const App = () => {
                                         <img src={project.finishedUrl} alt="PuriPhoto作品" loading="lazy" />
                                         <div className="album-card-body">
                                             <strong>最終編集 {formatAlbumDate(project.updatedAt)}</strong>
-                                            <span>{project.location?.label ? `撮影場所：${project.location.label}` : '撮影場所：記録なし'}</span>
-                                            <div className="album-card-actions">
-                                                <button type="button" onClick={() => restoreAlbumProject(project)}>再編集</button>
-                                                <button type="button" className="danger-subtle" onClick={() => deleteAlbumProject(project.id)}>削除</button>
-                                            </div>
+                                            <span>
+                                                {project.manualLocation?.trim()
+                                                    ? `撮影場所：${project.manualLocation}`
+                                                    : project.location?.label
+                                                        ? `撮影場所：${project.location.label}`
+                                                        : '撮影場所：未入力'}
+                                            </span>
+                                            {project.location?.label && project.manualLocation?.trim() && (
+                                                <small className="album-auto-location">自動記録：{project.location.label}</small>
+                                            )}
+                                            {project.memo?.trim() && <p className="album-memo">{project.memo}</p>}
+
+                                            {albumMetaEditingId === project.id ? (
+                                                <div className="album-meta-editor">
+                                                    <label>
+                                                        <span>撮影場所メモ</span>
+                                                        <input
+                                                            type="text"
+                                                            maxLength={255}
+                                                            value={albumMetaLocation}
+                                                            onChange={(event) => setAlbumMetaLocation(event.target.value)}
+                                                            placeholder="撮影場所を自由に入力"
+                                                        />
+                                                    </label>
+                                                    <label>
+                                                        <span>自由メモ</span>
+                                                        <textarea
+                                                            rows={3}
+                                                            maxLength={500}
+                                                            value={albumMetaMemo}
+                                                            onChange={(event) => setAlbumMetaMemo(event.target.value)}
+                                                            placeholder="写真についてのメモ"
+                                                        />
+                                                    </label>
+                                                    <div className="album-meta-actions">
+                                                        <button type="button" disabled={albumMetaSaving} onClick={() => saveAlbumMeta(project.id)}>
+                                                            {albumMetaSaving ? '保存中…' : 'メモを保存'}
+                                                        </button>
+                                                        <button type="button" className="secondary-meta-button" disabled={albumMetaSaving} onClick={cancelAlbumMetaEdit}>キャンセル</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="album-card-actions album-card-actions-three">
+                                                    <button type="button" onClick={() => restoreAlbumProject(project)}>再編集</button>
+                                                    <button type="button" className="secondary-meta-button" onClick={() => beginAlbumMetaEdit(project)}>メモ編集</button>
+                                                    <button type="button" className="danger-subtle" onClick={() => deleteAlbumProject(project.id)}>削除</button>
+                                                </div>
+                                            )}
                                         </div>
                                     </article>
                                 ))}

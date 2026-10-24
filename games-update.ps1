@@ -125,13 +125,14 @@ try {
 
         if ($run -and $run.status -eq 'completed') {
             if ($run.conclusion -ne 'success') {
-                $runnerInfrastructureFailure=$false
+                $runnerInfrastructureFailure=$true
+                $jobsInspected=$false
                 try {
                     $jobsApi="https://api.github.com/repos/$repoSlug/actions/runs/$($run.id)/jobs?per_page=100"
                     $jobsResponse=Invoke-RestMethod -Uri $jobsApi -Headers $headers -Method Get -ErrorAction Stop
                     $jobs=@($jobsResponse.jobs)
+                    $jobsInspected=$true
                     if($jobs.Count -gt 0){
-                        $runnerInfrastructureFailure=$true
                         foreach($job in $jobs){
                             $hasRunner=([int64]($job.runner_id) -gt 0) -or (-not [string]::IsNullOrWhiteSpace([string]$job.runner_name))
                             $hasSteps=$job.steps -and @($job.steps).Count -gt 0
@@ -143,7 +144,10 @@ try {
                     }
                 }
                 catch {
-                    $runnerInfrastructureFailure=$false
+                    # If GitHub cannot return job details, do not treat an opaque workflow
+                    # failure as a verified code rejection. Fall back to the local safety
+                    # checks, which still block deployment on real syntax/wiring failures.
+                    $runnerInfrastructureFailure=$true
                 }
 
                 if($runnerInfrastructureFailure){

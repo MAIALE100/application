@@ -389,11 +389,14 @@ RegisterCommand('game_party_status',function(source)
     local prefix='[FlecityGames PARTY]'
     local plus=FlecityGamesPartyPlus.DebugRevenueStatus()
     local renewedVersion=GetResourceMetadata('Renewed-Banking','version',0) or 'unknown'
-    print(('%s plus enabled=%s price=%d duration_days=%d money=%s revenue=%s provider=%s resolved=%s renewed=%s renewed_version=%s qb_banking=%s')
+    local dbBalance=plus.renewedDbBalance~=nil and tostring(math.floor(plus.renewedDbBalance)) or 'n/a'
+    print(('%s plus enabled=%s price=%d duration_days=%d money=%s revenue=%s provider=%s resolved=%s renewed=%s renewed_version=%s renewed_cache=%s renewed_db=%s renewed_db_balance=%s db_query=%s qb_banking=%s')
         :format(prefix,tostring(plus.enabled==true),tonumber(plus.price) or 0,
             tonumber(plus.durationDays) or 0,tostring(plus.moneyType or 'bank'),
             tostring(plus.revenueAccount or 'weazel'),tostring(plus.revenueProvider or 'auto'),
-            tostring(plus.resolvedProvider or 'none'),tostring(plus.renewedState),tostring(renewedVersion),tostring(plus.qbBankingState)))
+            tostring(plus.resolvedProvider or 'none'),tostring(plus.renewedState),tostring(renewedVersion),
+            tostring(plus.renewedCache==true),tostring(plus.renewedDb==true),dbBalance,
+            tostring(plus.renewedDbQueryOk==true),tostring(plus.qbBankingState)))
     local summaries=FlecityGamesParty.DebugRoomSummaries()
     if #summaries==0 then
         print(prefix..' no active rooms')

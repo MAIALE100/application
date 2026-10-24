@@ -100,29 +100,6 @@ local function societyProvider(preferred)
     return nil
 end
 
-local function ensureRenewedSocietyAccount(account)
-    local okExisting,existing=pcall(function()
-        return exports['Renewed-Banking']:GetJobAccount(account)
-    end)
-    if okExisting and existing then return true,false end
-
-    local partyPlus=FlecityGamesConfig.PartyPlus or {}
-    if partyPlus.RevenueAutoCreate~=true then return false,false end
-
-    local label=tostring(partyPlus.RevenueAccountLabel or account)
-    local okCreated,created=pcall(function()
-        return exports['Renewed-Banking']:CreateJobAccount({name=account,label=label},0)
-    end)
-    if okCreated and created then
-        print(('[FlecityGames] Renewed-Banking account created id=%s label=%s'):format(account,label))
-        return true,true
-    end
-
-    print(('[FlecityGames] Renewed-Banking account unavailable id=%s get_export=%s create_export=%s')
-        :format(account,tostring(okExisting),tostring(okCreated)))
-    return false,false
-end
-
 function FlecityGamesFramework.AddSocietyMoney(accountName,amount,provider)
     local account=tostring(accountName or ''):gsub('^%s+',''):gsub('%s+$','')
     local value=math.floor(tonumber(amount) or 0)
@@ -131,8 +108,6 @@ function FlecityGamesFramework.AddSocietyMoney(accountName,amount,provider)
     if not selected then return false,nil end
 
     if selected=='renewed-banking' then
-        local accountReady=ensureRenewedSocietyAccount(account)
-        if not accountReady then return false,selected end
         local ok,result=pcall(function()
             return exports['Renewed-Banking']:addAccountMoney(account,value)
         end)

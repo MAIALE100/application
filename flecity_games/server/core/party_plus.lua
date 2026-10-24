@@ -228,6 +228,7 @@ end
 
 function FlecityGamesPartyPlus.DebugRevenueStatus()
     local provider=revenueProvider()
+    local account=revenueAccount()
     local renewedState=GetResourceState('Renewed-Banking')
     local qbBankingState=GetResourceState('qb-banking')
     local resolvedProvider='none'
@@ -239,16 +240,39 @@ function FlecityGamesPartyPlus.DebugRevenueStatus()
     elseif provider=='qb-banking' and qbBankingState=='started' then
         resolvedProvider='qb-banking'
     end
+
+    local renewedCache=false
+    if renewedState=='started' then
+        local ok,cached=pcall(function()
+            return exports['Renewed-Banking']:GetJobAccount(account)
+        end)
+        renewedCache=ok and cached~=nil
+    end
+
+    local dbAccount=false
+    local dbBalance=nil
+    local okDb,row=pcall(function()
+        return MySQL.single.await('SELECT id, amount FROM bank_accounts_new WHERE id=? LIMIT 1',{account})
+    end)
+    if okDb and row then
+        dbAccount=true
+        dbBalance=tonumber(row.amount)
+    end
+
     return {
         enabled=planEnabled(),
         price=price(),
         durationDays=math.floor(durationSeconds()/86400),
         moneyType=moneyType(),
-        revenueAccount=revenueAccount(),
+        revenueAccount=account,
         revenueProvider=provider,
         resolvedProvider=resolvedProvider,
         renewedState=renewedState,
-        qbBankingState=qbBankingState
+        qbBankingState=qbBankingState,
+        renewedCache=renewedCache,
+        renewedDb=dbAccount,
+        renewedDbBalance=dbBalance,
+        renewedDbQueryOk=okDb
     }
 end
 

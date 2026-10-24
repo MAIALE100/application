@@ -71,7 +71,7 @@ FlecityGamesConfig = {
         AutoRenewDefault = true,
         RevenueAccount = 'weazel',
         RevenueAccountLabel = 'WEAZEL',
-        RevenueAutoCreate = true,
+        RevenueAutoCreate = false,
         RevenueProvider = 'auto'
     },
 

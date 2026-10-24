@@ -1881,8 +1881,10 @@ function FlecityGamesPlay.QuickRound(source,data)
         return {ok=false,error='EXPIRED_SESSION'}
     end
     local state=session.quick
-    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
+    if state.lastStep==step and state.lastResult then return state.lastResult end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     local expectedStep=state.hits+state.falseStarts+1
     if step~=expectedStep then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     local actionMs=math.floor(tonumber(data.actionMs) or -1)
@@ -1892,6 +1894,8 @@ function FlecityGamesPlay.QuickRound(source,data)
     local result=applyQuickTap(state,actionMs)
     if not result then return {ok=false,error='INVALID_TIMING'} end
     result.ok=true
+    state.lastStep=step
+    state.lastResult=result
     return result
 end
 
@@ -1908,8 +1912,10 @@ function FlecityGamesPlay.StopRound(source,data)
         return {ok=false,error='EXPIRED_SESSION'}
     end
     local state=session.stop
-    if not state or state.ended then return {ok=false,error='ROUND_COMPLETE'} end
+    if not state then return {ok=false,error='ROUND_COMPLETE'} end
     local step=math.floor(tonumber(data.step) or -1)
+    if state.lastStep==step and state.lastResult then return state.lastResult end
+    if state.ended then return {ok=false,error='ROUND_COMPLETE'} end
     if step~=state.cleared+1 then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     local actionMs=math.floor(tonumber(data.actionMs) or -1)
     local serverRoundElapsed=math.max(0,GetGameTimer()-(tonumber(state.roundStartedTick) or GetGameTimer()))
@@ -1918,6 +1924,8 @@ function FlecityGamesPlay.StopRound(source,data)
     local result=applyStopRound(state,actionMs)
     if not result then return {ok=false,error='INVALID_TIMING'} end
     result.ok=true
+    state.lastStep=step
+    state.lastResult=result
     return result
 end
 

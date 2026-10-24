@@ -1125,7 +1125,7 @@
     font-weight: 700;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 26.25rem) {
     .album-grid {
         grid-template-columns: 1fr;
     }

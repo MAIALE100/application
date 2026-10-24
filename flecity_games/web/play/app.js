@@ -64,13 +64,16 @@ function setStatus(text,type){
  clearTimeout(statusTimer);statusTimer=null;
  const inGame=document.body.classList.contains('game-active');
  if(type==='good'&&!/(ready|準備完了)/i.test(String(text)))tone();
- if(inGame){statusEl.textContent='';statusEl.className='status app-status hidden';return;}
  statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
  if(type==='good'){
    const linger=/NEW BEST|実績解除/.test(String(text))?3600:1800;
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),linger);
  }else if(type==='warn'){
    statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),2600);
+ }else if(type==='error'&&inGame){
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),3200);
+ }else if(inGame){
+   statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
  }
 }
 let confirmResolver=null;

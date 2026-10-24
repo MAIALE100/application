@@ -855,7 +855,7 @@ body.reduced-motion .sort-board.sort-undo,body.reduced-motion .slide-board.slide
 
 
 /* PLAY gameplay layout stability v15 */
-body.game-active .app-status{display:none!important}
+body.game-active .app-status.hidden{display:none!important}
 body.game-active .card.stack>.row{flex-wrap:wrap}
 body.game-active .card.stack>.row>button{min-width:8rem;flex:1 1 8rem}
 

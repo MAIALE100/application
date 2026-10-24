@@ -96,3 +96,5 @@ Flecity PARTY 実機オペレーターチェックリスト
 - 残るapp-open参加者の投票だけで再集計され、必要なら即結果確定すること。
 - closed参加者はRoom所属を維持し、再open後の次Roundには通常参加できること。
 - FiveM＋LB Phone複数クライアントで確認するまでPASS扱いしない。
+
+[ ] LIVE TEST REQUIRED: LB Phone小画面・7〜10人Roomで参加者一覧だけが内部スクロールし、ROOM CODE / Ready / ゲーム選択 / 開始ボタンが操作しやすいこと。長い名前でも横崩れしないこと。

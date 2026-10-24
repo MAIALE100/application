@@ -484,8 +484,8 @@ if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" no
     fail("PLAY transition cleanup guard is missing")
 if "LB Phone status-bar clearance & runtime badge v11" not in play_css:
     fail("PLAY LB Phone status-bar clearance CSS is missing")
-if "if(inGame){statusEl.textContent='';statusEl.className='status app-status hidden';return;}" not in play_js or "body.game-active .app-status{display:none!important}" not in play_css:
-    fail("PLAY shared status bar must stay hidden during gameplay")
+if "const inGame=document.body.classList.contains('game-active')" not in play_js or "body.game-active .app-status.hidden{display:none!important}" not in play_css:
+    fail("PLAY in-game status toast visibility guard is missing")
 if "stackCameraTarget" not in play_js or "cameraOffset" not in play_js or 'data-camera="follow"' not in play_css:
     fail("TOWER follow camera is missing")
 if "dropStackBlock" not in play_js or "stackArena.onclick" not in play_js or 'aria-label="TOWER: タップでDROP"' not in play_html:

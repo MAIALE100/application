@@ -44,7 +44,9 @@ local function validateRuntimeConfig()
     if totalWeight <= 0 then return false, 'total product weight is zero' end
 
     local capacity = tonumber(Config.MaxRawOre)
-    if not capacity or capacity < 1 or capacity % 1 ~= 0 then return false, 'invalid MaxRawOre' end
+    if not capacity or capacity < 1 or capacity % 1 ~= 0 or capacity > 1000 then
+        return false, 'invalid MaxRawOre (must be an integer from 1 to 1000)'
+    end
 
     local cooldown = tonumber(Config.NodeCooldownMs)
     if not cooldown or cooldown < 0 then return false, 'invalid NodeCooldownMs' end

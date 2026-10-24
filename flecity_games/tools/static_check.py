@@ -227,6 +227,8 @@ if "if(!phonePushRegistered)handlePartyMessage(event.data)" not in party_js:
     fail("PARTY raw push fallback must be gated when onNuiEvent is active")
 if "lastRoomRevision" not in party_js:
     fail("PARTY stale snapshot revision guard is missing")
+if "guessedMember.appOpen~=false" not in party_lua:
+    fail("DRAW progress must exclude app-closed guessers")
 if "saveWithRetry" not in play_js:
     fail("PLAY autosave retry helper is missing")
 if "startSessionWithRetry" not in play_js:

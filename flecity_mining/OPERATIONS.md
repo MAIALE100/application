@@ -51,6 +51,23 @@ weightの合計は100でなくても問題ありません。
 
 Flecity側のMLOやマップ差分がある場合は、基本的にこのファイルのみ修正してください。
 
+### 4. 坑道採掘地点
+`config/locations.lua`
+
+各nodeは以下の2座標で構成します。
+
+```lua
+{ id = 1, coords = vector3(...), target = vector3(...), label = '坑道壁 A' }
+```
+
+- `coords`: プレイヤーが立つ位置
+- `target`: ドリルを当てる岩壁位置
+
+テスト中は `/mine_devpos` と `/mine_devwall` で座標を採取できます。
+v0.3初期値は実機調整前なので、本番投入前に全nodeを現地確認してください。
+
+ドリルprop・animation・音・粉塵は `config/gameplay.lua` の `Config.DrillVisuals` で設定します。
+
 ## 基本的に触らなくてよい場所
 
 - `client/main.lua`

@@ -331,6 +331,25 @@ local function runApprovedAction(data)
     while GetGameTimer() - started < duration do
         Wait(0)
 
+        -- Do not allow a completed-looking drill/process/sale after the player
+        -- has been displaced by another resource/admin action. The server also
+        -- validates distance at finishAction; cancelling here keeps the UX in
+        -- sync and immediately releases the freeze/presentation.
+        local expectedCoords = nil
+        if actionType == 'mine' then
+            local node = findNode(data.nodeId)
+            expectedCoords = node and node.coords or nil
+        elseif actionType == 'process' then
+            expectedCoords = Config.Processor.coords
+        elseif actionType == 'sell' then
+            expectedCoords = Config.Foreman.coords
+        end
+
+        if expectedCoords and #(GetEntityCoords(ped) - expectedCoords) > (Config.ServerDistanceTolerance or 4.5) then
+            cancelled = true
+            break
+        end
+
         DisableControlAction(0, 21, true)
         DisableControlAction(0, 22, true)
         DisableControlAction(0, 23, true)

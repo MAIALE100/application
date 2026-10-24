@@ -127,15 +127,25 @@ try {
     $configPath = Join-Path $stageResource 'config\shared.lua'
     Require-File $configPath 'config/shared.lua'
     $config = Get-Content -LiteralPath $configPath -Raw
-    $partyMatch = [regex]::Match($config,'(?s)(\s{8}Party\s*=\s*\{.*?\n\s{8}\})(?=\n\s{4}\},)')
-    if (-not $partyMatch.Success) { throw 'Party app config block not found.' }
-    $partyBlock = $partyMatch.Value
+    $partyStart = $config.IndexOf('        Party = {')
+    if ($partyStart -lt 0) { throw 'Party app config block start not found.' }
+
+    $nextSection = $config.IndexOf('    Play = {',$partyStart)
+    if ($nextSection -lt 0) { throw 'Play config section after Party app block not found.' }
+
+    $partyRegion = $config.Substring($partyStart,$nextSection-$partyStart)
+    $partyClose = $partyRegion.LastIndexOf('        }')
+    if ($partyClose -lt 0) { throw 'Party app config block end not found.' }
+
+    $partyBlockLength = $partyClose + ('        }').Length
+    $partyBlock = $partyRegion.Substring(0,$partyBlockLength)
     if ($partyBlock -notmatch 'enabled\s*=\s*true' -or $partyBlock -notmatch 'defaultApp\s*=\s*true') {
         throw 'Party app config flags were not found.'
     }
+
     $partyBlock = [regex]::Replace($partyBlock,'enabled\s*=\s*true','enabled = false',1)
     $partyBlock = [regex]::Replace($partyBlock,'defaultApp\s*=\s*true','defaultApp = false',1)
-    $config = $config.Substring(0,$partyMatch.Index) + $partyBlock + $config.Substring($partyMatch.Index + $partyMatch.Length)
+    $config = $config.Substring(0,$partyStart) + $partyBlock + $config.Substring($partyStart+$partyBlockLength)
     Write-Utf8NoBom -Path $configPath -Text $config
 
     $serverMainPath = Join-Path $stageResource 'server\main.lua'

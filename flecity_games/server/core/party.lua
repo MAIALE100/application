@@ -616,15 +616,13 @@ local function miniShogiMoveOrderScore(board,hands,move,side)
 end
 local function miniShogiOrderedMoves(board,hands,side,limit)
     local moves=miniShogiAllMoves(board,hands,side)
-    table.sort(moves,function(a,b)
-        return miniShogiMoveOrderScore(board,hands,a,side)>miniShogiMoveOrderScore(board,hands,b,side)
-    end)
-    if limit and #moves>limit then
-        local trimmed={}
-        for i=1,limit do trimmed[i]=moves[i] end
-        return trimmed
-    end
-    return moves
+    local ranked={}
+    for _,move in ipairs(moves) do ranked[#ranked+1]={move=move,score=miniShogiMoveOrderScore(board,hands,move,side)} end
+    table.sort(ranked,function(a,b) return a.score>b.score end)
+    local count=limit and math.min(#ranked,limit) or #ranked
+    local ordered={}
+    for i=1,count do ordered[i]=ranked[i].move end
+    return ordered
 end
 local function miniShogiChooseAiMove(rs)
     local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',22)

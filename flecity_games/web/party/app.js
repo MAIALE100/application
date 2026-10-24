@@ -4,7 +4,7 @@ const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getEl
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
-const codeBreakPanel=document.getElementById('codeBreakPanel'),codeBreakTitle=document.getElementById('codeBreakTitle'),codeBreakHint=document.getElementById('codeBreakHint'),codeBreakCurrent=document.getElementById('codeBreakCurrent'),codeBreakPalette=document.getElementById('codeBreakPalette'),codeBreakBack=document.getElementById('codeBreakBack'),codeBreakSubmit=document.getElementById('codeBreakSubmit'),codeBreakHistory=document.getElementById('codeBreakHistory');
+const codeBreakPanel=document.getElementById('codeBreakPanel'),codeBreakTitle=document.getElementById('codeBreakTitle'),codeBreakHint=document.getElementById('codeBreakHint'),codeBreakCurrent=document.getElementById('codeBreakCurrent'),codeBreakPalette=document.getElementById('codeBreakPalette'),codeBreakBack=document.getElementById('codeBreakBack'),codeBreakSubmit=document.getElementById('codeBreakSubmit'),codeBreakHistory=document.getElementById('codeBreakHistory'),codeBreakAiSection=document.getElementById('codeBreakAiSection'),codeBreakAiHistory=document.getElementById('codeBreakAiHistory');
 const reversiPanel=document.getElementById('reversiPanel'),reversiStatus=document.getElementById('reversiStatus'),reversiBoard=document.getElementById('reversiBoard'),reversiMeta=document.getElementById('reversiMeta');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
@@ -419,17 +419,26 @@ function setupCodeBreak(room){
  codeBreakBack.disabled=rs.solved===true||codeBreakGuess.length===0;
  [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=rs.solved===true||codeBreakGuess.length>=4);
  renderCodeBreakGuess();codeBreakHistory.innerHTML='';
- const history=Array.isArray(rs.history)?rs.history:[];
- history.slice().reverse().forEach((h,reverseIndex)=>{
-   const row=document.createElement('div');row.className='code-break-row';
-   const turn=document.createElement('small');turn.textContent=String(history.length-reverseIndex).padStart(2,'0');
-   const guess=document.createElement('div');guess.className='mastermind-row-pegs';(Array.isArray(h.guess)?h.guess:[]).forEach(v=>guess.appendChild(codeBreakPeg(v)));
-   const score=document.createElement('div');score.className='mastermind-feedback';
-   for(let i=0;i<Number(h.exact||0);i++){const p=document.createElement('i');p.className='mastermind-pin hit';score.appendChild(p);}
-   for(let i=0;i<Number(h.misplaced||0);i++){const p=document.createElement('i');p.className='mastermind-pin blow';score.appendChild(p);}
-   for(let i=Number(h.exact||0)+Number(h.misplaced||0);i<4;i++){const p=document.createElement('i');p.className='mastermind-pin empty';score.appendChild(p);}
-   row.append(turn,guess,score);codeBreakHistory.appendChild(row);
- });
+ const renderMastermindHistory=(target,items)=>{
+   target.innerHTML='';
+   const history=Array.isArray(items)?items:[];
+   history.slice().reverse().forEach((h,reverseIndex)=>{
+     const row=document.createElement('div');row.className='code-break-row';
+     const turn=document.createElement('small');turn.textContent=String(history.length-reverseIndex).padStart(2,'0');
+     const guess=document.createElement('div');guess.className='mastermind-row-pegs';(Array.isArray(h.guess)?h.guess:[]).forEach(v=>guess.appendChild(codeBreakPeg(v)));
+     const feedbackWrap=document.createElement('div');feedbackWrap.className='mastermind-feedback-wrap';
+     const score=document.createElement('div');score.className='mastermind-feedback';
+     for(let i=0;i<Number(h.exact||0);i++){const p=document.createElement('i');p.className='mastermind-pin hit';score.appendChild(p);}
+     for(let i=0;i<Number(h.misplaced||0);i++){const p=document.createElement('i');p.className='mastermind-pin blow';score.appendChild(p);}
+     for(let i=Number(h.exact||0)+Number(h.misplaced||0);i<4;i++){const p=document.createElement('i');p.className='mastermind-pin empty';score.appendChild(p);}
+     const label=document.createElement('span');label.className='mastermind-feedback-text';label.textContent=Number(h.exact||0)+' HIT / '+Number(h.misplaced||0)+' BLOW';
+     feedbackWrap.append(score,label);row.append(turn,guess,feedbackWrap);target.appendChild(row);
+   });
+ };
+ renderMastermindHistory(codeBreakHistory,rs.history);
+ codeBreakAiSection.classList.toggle('hidden',!rs.aiEnabled);
+ if(rs.aiEnabled)renderMastermindHistory(codeBreakAiHistory,rs.aiHistory);
+ else codeBreakAiHistory.innerHTML='';
 }
 function setupReversi(room){
  const rs=room.roundState;hideRoundGames();reversiPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);

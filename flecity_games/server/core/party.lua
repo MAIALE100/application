@@ -586,6 +586,14 @@ local function publicRoundState(room,viewerId)
         out.history=history out.maxAttempts=tonumber(rs.maxAttempts) or 8 out.attemptsLeft=math.max(0,out.maxAttempts-#history) out.solved=rs.solved and rs.solved[viewerId]~=nil or false
         out.aiEnabled=rs.aiEnabled==true
         out.aiAttempts=#(rs.aiHistory or {})
+        out.aiHistory={}
+        for _,attempt in ipairs(rs.aiHistory or {}) do
+            out.aiHistory[#out.aiHistory+1]={
+                guess=attempt.guess,
+                exact=attempt.exact,
+                misplaced=attempt.misplaced
+            }
+        end
         local aiLast=rs.aiHistory and rs.aiHistory[#rs.aiHistory] or nil
         if aiLast then out.aiLastExact=aiLast.exact out.aiLastMisplaced=aiLast.misplaced end
     end

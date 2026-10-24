@@ -247,11 +247,13 @@ try {
     if (Test-Path -LiteralPath $targetZip) { Remove-Item -LiteralPath $targetZip -Force }
     if (Test-Path -LiteralPath $targetChecksum) { Remove-Item -LiteralPath $targetChecksum -Force }
 
+    $zipEncoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.Compression.ZipFile]::CreateFromDirectory(
         $stageRoot,
         $targetZip,
         [System.IO.Compression.CompressionLevel]::Optimal,
-        $false
+        $false,
+        $zipEncoding
     )
 
     $hash = (Get-FileHash -LiteralPath $targetZip -Algorithm SHA256).Hash.ToLowerInvariant()

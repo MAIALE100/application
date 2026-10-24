@@ -487,6 +487,14 @@ RegisterNetEvent('flecity_mining:server:startShift', function()
         return
     end
 
+    -- Keep shift creation subject to the same authoritative life-state check
+    -- as mining/processing/selling. A dead or incapacitated player should not
+    -- be able to create a session by calling the server event directly.
+    if not isPlayerAlive(src) then
+        notify(src, '行動不能な状態では鉱山作業を開始できません。')
+        return
+    end
+
     if sessions[src] then
         local existing = getOwnedSession(src, true)
         if existing and existing.active then

@@ -8,6 +8,8 @@ const codeBreakPanel=document.getElementById('codeBreakPanel'),codeBreakTitle=do
 const reversiPanel=document.getElementById('reversiPanel'),reversiStatus=document.getElementById('reversiStatus'),reversiBoard=document.getElementById('reversiBoard'),reversiMeta=document.getElementById('reversiMeta');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
+const gomokuPanel=document.getElementById('gomokuPanel'),gomokuStatus=document.getElementById('gomokuStatus'),gomokuBoard=document.getElementById('gomokuBoard'),gomokuMeta=document.getElementById('gomokuMeta');
+const connect4Panel=document.getElementById('connect4Panel'),connect4Status=document.getElementById('connect4Status'),connect4Columns=document.getElementById('connect4Columns'),connect4Board=document.getElementById('connect4Board'),connect4Meta=document.getElementById('connect4Meta');
 const ticTacPanel=document.getElementById('ticTacPanel'),ticTacStatus=document.getElementById('ticTacStatus'),ticTacBoard=document.getElementById('ticTacBoard'),ticTacMeta=document.getElementById('ticTacMeta');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
@@ -118,7 +120,7 @@ function resumePartyUi(){
  else scheduleBootstrap(0);
 }
 function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');codeBreakPanel.classList.add('hidden');reversiPanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
+ reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');codeBreakPanel.classList.add('hidden');reversiPanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');gomokuPanel.classList.add('hidden');connect4Panel.classList.add('hidden');ticTacPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
@@ -268,6 +270,12 @@ function renderResults(room){
    if(Number(rs.results.totalVotes||0)===0){const summary=document.createElement('div');summary.className='status warn';summary.textContent='有効票なし';resultsEl.appendChild(summary);}
    else if(winnerNames.length){const summary=document.createElement('div');summary.className='status good';summary.textContent=(winnerNames.length>1?'同票: ':'最多票: ')+winnerNames.join(' / ');resultsEl.appendChild(summary);}
    rs.results.entries.forEach(e=>appendResultRow(e.name,e.votes+'票'));
+ }else if(rs.gameId==='gomoku'||rs.gameId==='connect4'){
+   const result=rs.results||{};
+   appendResultBanner(result.draw?'DRAW':('WINNER · '+String(result.winnerName||'Player')),result.draw?'warn':'good');
+   appendResultRow('手数',String(Number(result.moves||0)));
+   if(result.reason==='TURN_TIMEOUT')appendResultBanner('手番時間切れ','warn');
+   else if(result.reason==='APP_CLOSED'||result.reason==='PLAYER_LEFT')appendResultBanner('相手退出により決着','warn');
  }else if(rs.gameId==='majority'||rs.gameId==='minority'){
    const options=rs.results.options||rs.options||['A','B'],counts=rs.results.counts||{A:0,B:0};
    const summary=document.createElement('div');summary.className='status '+(rs.results.winningChoice?'good':'warn');
@@ -470,6 +478,23 @@ function setupVote(room){
  room.players.filter(p=>!p.disconnected&&p.appOpen!==false&&p.memberId!==room.selfMemberId).forEach(p=>{
    const b=document.createElement('button');b.className='secondary';b.textContent=p.name;b.onclick=()=>submitVote(rs.token,p.memberId);voteChoices.appendChild(b);
  });
+}
+function setupGomoku(room){
+ const rs=room.roundState;hideRoundGames();gomokuPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ const board=Array.isArray(rs.board)?rs.board:Array(121).fill('');gomokuBoard.innerHTML='';
+ board.forEach((mark,index)=>{const b=document.createElement('button');b.className='gomoku-cell';b.textContent=mark==='X'?'●':(mark==='O'?'○':'');b.disabled=!rs.isCurrent||mark!=='';b.onclick=()=>runOnce('gomoku-move',async()=>{const res=await FlecityBridge.call('partySubmitGomoku',{token:rs.token,cell:index+1});if(!res.ok){status('GOMOKU: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});gomokuBoard.appendChild(b);});
+ gomokuStatus.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'●':'○'):'相手の手番';
+ gomokuMeta.textContent='11×11 · 先に5つ · '+Number(rs.moves||0)+'手';
+}
+function setupConnect4(room){
+ const rs=room.roundState;hideRoundGames();connect4Panel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ if(rs.complete){renderResults(room);return;}
+ const board=Array.isArray(rs.board)?rs.board:Array(42).fill('');connect4Columns.innerHTML='';connect4Board.innerHTML='';
+ for(let col=1;col<=7;col++){const b=document.createElement('button');b.className='secondary';b.textContent='▼';b.disabled=!rs.isCurrent||(Array.isArray(rs.fullColumns)&&rs.fullColumns.includes(col));b.onclick=()=>runOnce('connect4-move',async()=>{const res=await FlecityBridge.call('partySubmitConnect4',{token:rs.token,column:col});if(!res.ok){status('CONNECT 4: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});connect4Columns.appendChild(b);}
+ board.forEach(mark=>{const c=document.createElement('div');c.className='connect4-cell';c.textContent=mark==='R'?'●':(mark==='Y'?'○':'');connect4Board.appendChild(c);});
+ connect4Status.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='R'?'●':'○'):'相手の手番';
+ connect4Meta.textContent='7×6 · 4つ並べる · '+Number(rs.moves||0)+'手';
 }
 function setupMajority(room){
  const rs=room.roundState,isMinority=rs.gameId==='minority';hideRoundGames();majorityPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
@@ -701,6 +726,8 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='reaction')setupReaction(room);
    else if(rs&&rs.gameId==='stop_battle')setupStopBattle(room);
    else if(rs&&rs.gameId==='vote')setupVote(room);
+   else if(rs&&rs.gameId==='gomoku')setupGomoku(room);
+   else if(rs&&rs.gameId==='connect4')setupConnect4(room);
    else if(rs&&(rs.gameId==='majority'||rs.gameId==='minority'))setupMajority(room);
    else if(rs&&rs.gameId==='tic_tac')setupTicTac(room);
    else if(rs&&(rs.gameId==='word_wolf'||rs.gameId==='liar'))setupDeduction(room);

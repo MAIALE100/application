@@ -287,7 +287,7 @@ end
 
 local function roundTimeoutSeconds(gameId)
     local limits={
-        code_break=120,reversi=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
+        code_break=120,reversi=60,gomoku=60,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
         tic_tac=45,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90
@@ -350,6 +350,28 @@ local function reversiValidMoves(board,mark)
 end
 local function reversiCounts(board)
     local black,white=0,0 for i=1,64 do if board[i]=='B' then black=black+1 elseif board[i]=='W' then white=white+1 end end return black,white
+end
+
+local function gomokuWinner(board,size)
+    size=tonumber(size) or 11
+    local dirs={{1,0},{0,1},{1,1},{1,-1}}
+    for row=1,size do for col=1,size do
+        local mark=board[((row-1)*size)+col]
+        if mark and mark~='' then
+            for _,dir in ipairs(dirs) do
+                local count=1
+                for step=1,4 do local r=row+(dir[1]*step) local c=col+(dir[2]*step) if r<1 or r>size or c<1 or c>size or board[((r-1)*size)+c]~=mark then break end count=count+1 end
+                if count>=5 then return mark end
+            end
+        end
+    end end
+    return nil
+end
+local function connect4Winner(board)
+    local function at(r,c) if r<1 or r>6 or c<1 or c>7 then return nil end return board[((r-1)*7)+c] end
+    local dirs={{1,0},{0,1},{1,1},{1,-1}}
+    for r=1,6 do for c=1,7 do local mark=at(r,c) if mark and mark~='' then for _,dir in ipairs(dirs) do local count=1 for step=1,3 do if at(r+dir[1]*step,c+dir[2]*step)~=mark then break end count=count+1 end if count>=4 then return mark end end end end end
+    return nil
 end
 
 local function pickRoomPrompt(room,key,pool)
@@ -538,6 +560,10 @@ local function publicRoundState(room,viewerId)
         out.targetPct=rs.targetPct out.periodMs=rs.periodMs out.phaseMs=rs.phaseMs out.motionStartTick=rs.motionStartTick
     end
     if rs.gameId=='majority' or rs.gameId=='minority' then out.prompt=rs.prompt out.options=rs.options end
+    if rs.gameId=='gomoku' or rs.gameId=='connect4' then
+        out.board=rs.board or {} out.currentMemberId=memberPublicId(room,rs.currentIdentifier) out.isCurrent=viewerId==rs.currentIdentifier out.mark=rs.marks and rs.marks[viewerId] or nil out.moves=tonumber(rs.moves) or 0
+        if rs.gameId=='connect4' then out.fullColumns={} for col=1,7 do if (rs.board[col] or '')~='' then out.fullColumns[#out.fullColumns+1]=col end end end
+    end
     if rs.gameId=='tic_tac' then
         out.board=rs.board or {}
         out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
@@ -959,6 +985,12 @@ function FlecityGamesParty.StartRound(source)
         local prompt=pickRoomPrompt(room,game.id,majorityPrompts)
         rs.prompt=prompt.question rs.options={prompt.options[1],prompt.options[2]}
     end
+    if game.id=='gomoku' or game.id=='connect4' then
+        local ids=connectedIdentifiers(room) room.rotation=room.rotation or {} local key=game.id
+        room.rotation[key]=((tonumber(room.rotation[key]) or 0)%#ids)+1 local order=rotatedIdentifiers(ids,room.rotation[key])
+        rs.board={} local total=game.id=='gomoku' and 121 or 42 for i=1,total do rs.board[i]='' end
+        rs.turnOrder={order[1],order[2]} rs.currentIdentifier=order[1] rs.marks={[order[1]]=game.id=='gomoku' and 'X' or 'R',[order[2]]=game.id=='gomoku' and 'O' or 'Y'} rs.moves=0
+    end
     if game.id=='tic_tac' then
         local ids=connectedIdentifiers(room)
         room.rotation=room.rotation or {draw=0,telephone=0,ticTac=0}
@@ -1295,6 +1327,44 @@ function FlecityGamesParty.SubmitReversi(source,data)
     if #nextMoves>0 then rs.currentIdentifier=nextId rs.lastPassIdentifier=nil setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
     elseif #currentMoves>0 then rs.currentIdentifier=id rs.lastPassIdentifier=nextId setRoundDeadline(rs,roundTimeoutSeconds('reversi'))
     else finishReversi(room,'BOARD_COMPLETE',nil) end
+    notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
+end
+
+local function finishSimpleBoardGame(room,reason,winnerIdentifier)
+    local rs=room.roundState if not rs or (rs.gameId~='gomoku' and rs.gameId~='connect4') or rs.complete then return end
+    rs.complete=true rs.results={board=rs.board,moves=tonumber(rs.moves) or 0,draw=winnerIdentifier==nil,winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or nil,winnerName=winnerIdentifier and memberName(room,winnerIdentifier) or nil,reason=reason}
+end
+local function finishSimpleBoardForfeit(room,loserIdentifier,reason)
+    local rs=room.roundState if not rs or rs.complete then return end local winner=nil for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end finishSimpleBoardGame(room,reason or 'FORFEIT',winner)
+end
+local function identifierForMark(rs,mark)
+    for id,value in pairs(rs.marks or {}) do if value==mark then return id end end return nil
+end
+function FlecityGamesParty.SubmitGomoku(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'gomoku_move',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id) if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='gomoku' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+    local cell=math.floor(tonumber(data.cell) or 0) if cell<1 or cell>121 or (rs.board[cell] or '')~='' then return {ok=false,error='INVALID_CHOICE'} end
+    local mark=rs.marks[id] rs.board[cell]=mark rs.moves=(tonumber(rs.moves) or 0)+1
+    local winner=gomokuWinner(rs.board,11)
+    if winner then finishSimpleBoardGame(room,'FIVE_IN_ROW',identifierForMark(rs,winner))
+    elseif rs.moves>=121 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
+    else local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first setRoundDeadline(rs,roundTimeoutSeconds('gomoku')) end
+    notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
+end
+function FlecityGamesParty.SubmitConnect4(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'connect4_move',180) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id) if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='connect4' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
+    local col=math.floor(tonumber(data.column) or 0) if col<1 or col>7 then return {ok=false,error='INVALID_CHOICE'} end
+    local cell=nil for row=6,1,-1 do local index=((row-1)*7)+col if (rs.board[index] or '')=='' then cell=index break end end if not cell then return {ok=false,error='INVALID_CHOICE'} end
+    local mark=rs.marks[id] rs.board[cell]=mark rs.moves=(tonumber(rs.moves) or 0)+1
+    local winner=connect4Winner(rs.board)
+    if winner then finishSimpleBoardGame(room,'FOUR_IN_ROW',identifierForMark(rs,winner))
+    elseif rs.moves>=42 then finishSimpleBoardGame(room,'BOARD_FULL',nil)
+    else local first,second=rs.turnOrder[1],rs.turnOrder[2] rs.currentIdentifier=id==first and second or first setRoundDeadline(rs,roundTimeoutSeconds('connect4')) end
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
@@ -2213,6 +2283,10 @@ reconcileRound=function(room)
         if rs.gameId=='telephone' then
             advanceTelephone(room,false)
             if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+        elseif rs.gameId=='gomoku' or rs.gameId=='connect4' then
+            finishSimpleBoardForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
+        elseif rs.gameId=='gomoku' or rs.gameId=='connect4' then
+            for _,playerId in ipairs(rs.turnOrder or {}) do if playerId==id then finishSimpleBoardForfeit(room,id,'APP_CLOSED') changed=true break end end
         elseif rs.gameId=='reversi' then
             finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='code_break' then maybeFinishCodeBreak(room,true)
@@ -2263,7 +2337,10 @@ reconcileRound=function(room)
         if not explainer or explainer.disconnected or explainer.appOpen==false then abortRound(room,'EXPLAINER_LEFT') return true end
     end
 
-    if rs.gameId=='code_break' then maybeFinishCodeBreak(room)
+    if rs.gameId=='gomoku' or rs.gameId=='connect4' then
+        local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
+        if not current or current.disconnected or current.appOpen==false then finishSimpleBoardForfeit(room,rs.currentIdentifier,'PLAYER_LEFT') end
+    elseif rs.gameId=='code_break' then maybeFinishCodeBreak(room)
     elseif rs.gameId=='reversi' then
         local current=rs.currentIdentifier and room.members[rs.currentIdentifier] or nil
         if not current or current.disconnected or current.appOpen==false then finishReversiForfeit(room,rs.currentIdentifier,'PLAYER_LEFT') end

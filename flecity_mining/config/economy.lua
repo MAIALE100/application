@@ -21,8 +21,8 @@ Config.Economy = {
     --   1個あたりのNPC買取価格
     --
     -- 初期値の期待売価:
-    --   1原石あたり 約 $254.5
-    --   原石12個なら平均 約 $3,054
+    --   1原石あたり 約 $267.5
+    --   原石12個なら平均 約 $3,210
     products = {
         { id = 'iron',   label = '鉄', weight = 50, value = 180 },
         { id = 'copper', label = '銅', weight = 30, value = 240 },

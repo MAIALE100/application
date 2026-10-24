@@ -800,7 +800,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
@@ -1035,7 +1035,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
@@ -1264,7 +1264,7 @@ for marker in (
         fail(f"PARTY selftest missing: {marker}")
 
 expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["reaction", "stop_battle", "vote", "majority", "minority", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
+expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "tic_tac", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
 ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
 normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
 play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]

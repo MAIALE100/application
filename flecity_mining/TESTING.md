@@ -97,12 +97,14 @@
 ```
 mining_selftest
 mining_healthcheck
+mining_configcheck
 mining_economy
 ```
 
 確認ポイント:
 
-- selftest が PASS
+- selftest が PASS（容量・採掘量・作業時間・クールダウン・距離許容値・座標・鉱石設定を含む）
+- configcheck が `Mining config: PASS`
 - qbx_core が started
 - 鉄/銅/銀/金の確率と単価が表示される
 - 原石1個と満載時の期待売価が表示される

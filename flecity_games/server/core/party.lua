@@ -332,7 +332,7 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         code_break=120,reversi=60,gomoku=60,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,mini_shogi=90,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
+        tic_tac=45,mini_shogi=120,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90
 end
@@ -363,43 +363,66 @@ local function ticTacFull(board)
     return true
 end
 
-local miniShogiValues={K=1000,R=60,B=50,G=40,S=30,P=10}
-local function miniShogiCell(row,col) return ((row-1)*5)+col end
+local miniShogiValues={K=10000,R=900,B=800,G=600,S=500,N=350,L=300,P=100}
+local function miniShogiCell(row,col) return ((row-1)*9)+col end
 local function miniShogiRowCol(cell)
     local n=math.floor(tonumber(cell) or 0)
-    return math.floor((n-1)/5)+1,((n-1)%5)+1
+    return math.floor((n-1)/9)+1,((n-1)%9)+1
 end
-local function miniShogiInBounds(row,col) return row>=1 and row<=5 and col>=1 and col<=5 end
+local function miniShogiInBounds(row,col) return row>=1 and row<=9 and col>=1 and col<=9 end
 local function miniShogiSide(piece) return type(piece)=='string' and piece:sub(1,1) or '' end
 local function miniShogiKind(piece) return type(piece)=='string' and piece:sub(2,2) or '' end
+local function miniShogiPromoted(piece) return type(piece)=='string' and piece:sub(3,3)=='+' end
+local function miniShogiPiece(side,kind,promoted) return tostring(side or '')..tostring(kind or '')..(promoted and '+' or '') end
+local function miniShogiCopyBoard(board)
+    local out={} for i=1,81 do out[i]=board and board[i] or '' end return out
+end
+local function miniShogiCopyHands(hands)
+    local out={B={},W={}}
+    for _,side in ipairs({'B','W'}) do
+        for _,kind in ipairs({'R','B','G','S','N','L','P'}) do
+            out[side][kind]=math.max(0,math.floor(tonumber(hands and hands[side] and hands[side][kind]) or 0))
+        end
+    end
+    return out
+end
+local function miniShogiInitialHands() return {B={R=0,B=0,G=0,S=0,N=0,L=0,P=0},W={R=0,B=0,G=0,S=0,N=0,L=0,P=0}} end
 local function miniShogiInitialBoard()
-    local board={} for i=1,25 do board[i]='' end
-    board[1]='WR' board[2]='WB' board[3]='WS' board[4]='WG' board[5]='WK'
-    board[6]='WP'
-    board[20]='BP'
-    board[21]='BK' board[22]='BG' board[23]='BS' board[24]='BB' board[25]='BR'
+    local board={} for i=1,81 do board[i]='' end
+    local back={'L','N','S','G','K','G','S','N','L'}
+    for col=1,9 do
+        board[miniShogiCell(1,col)]='W'..back[col]
+        board[miniShogiCell(3,col)]='WP'
+        board[miniShogiCell(7,col)]='BP'
+        board[miniShogiCell(9,col)]='B'..back[col]
+    end
+    board[miniShogiCell(2,2)]='WR' board[miniShogiCell(2,8)]='WB'
+    board[miniShogiCell(8,2)]='BB' board[miniShogiCell(8,8)]='BR'
     return board
 end
-local function miniShogiStepMoves(board,cell,side,deltas)
+local function miniShogiStepMoves(board,cell,side,deltas,allowKingTarget)
     local out={} local row,col=miniShogiRowCol(cell)
     for _,d in ipairs(deltas) do
         local r=row+d[1] local c=col+d[2]
         if miniShogiInBounds(r,c) then
             local to=miniShogiCell(r,c) local target=board[to]
-            if target=='' or miniShogiSide(target)~=side then out[#out+1]={from=cell,to=to} end
+            if target=='' or miniShogiSide(target)~=side then
+                if allowKingTarget or miniShogiKind(target)~='K' then out[#out+1]=to end
+            end
         end
     end
     return out
 end
-local function miniShogiSlideMoves(board,cell,side,deltas)
+local function miniShogiSlideMoves(board,cell,side,deltas,allowKingTarget)
     local out={} local row,col=miniShogiRowCol(cell)
     for _,d in ipairs(deltas) do
         local r=row+d[1] local c=col+d[2]
         while miniShogiInBounds(r,c) do
             local to=miniShogiCell(r,c) local target=board[to]
-            if target=='' then out[#out+1]={from=cell,to=to}
+            if target=='' then
+                out[#out+1]=to
             else
-                if miniShogiSide(target)~=side then out[#out+1]={from=cell,to=to} end
+                if miniShogiSide(target)~=side and (allowKingTarget or miniShogiKind(target)~='K') then out[#out+1]=to end
                 break
             end
             r=r+d[1] c=c+d[2]
@@ -407,60 +430,148 @@ local function miniShogiSlideMoves(board,cell,side,deltas)
     end
     return out
 end
-local function miniShogiMovesForPiece(board,cell)
+local function miniShogiRawDestinations(board,cell,allowKingTarget)
     local piece=board[cell]
     if not piece or piece=='' then return {} end
-    local side=miniShogiSide(piece) local kind=miniShogiKind(piece)
+    local side=miniShogiSide(piece) local kind=miniShogiKind(piece) local promoted=miniShogiPromoted(piece)
     local forward=side=='B' and -1 or 1
+    local gold={{forward,-1},{forward,0},{forward,1},{0,-1},{0,1},{-forward,0}}
     if kind=='K' then
-        return miniShogiStepMoves(board,cell,side,{{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}})
-    elseif kind=='G' then
-        return miniShogiStepMoves(board,cell,side,{{forward,-1},{forward,0},{forward,1},{0,-1},{0,1},{-forward,0}})
+        return miniShogiStepMoves(board,cell,side,{{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}},allowKingTarget)
+    elseif kind=='G' or (promoted and (kind=='S' or kind=='N' or kind=='L' or kind=='P')) then
+        return miniShogiStepMoves(board,cell,side,gold,allowKingTarget)
     elseif kind=='S' then
-        return miniShogiStepMoves(board,cell,side,{{forward,-1},{forward,0},{forward,1},{-forward,-1},{-forward,1}})
-    elseif kind=='B' then
-        return miniShogiSlideMoves(board,cell,side,{{-1,-1},{-1,1},{1,-1},{1,1}})
-    elseif kind=='R' then
-        return miniShogiSlideMoves(board,cell,side,{{-1,0},{1,0},{0,-1},{0,1}})
+        return miniShogiStepMoves(board,cell,side,{{forward,-1},{forward,0},{forward,1},{-forward,-1},{-forward,1}},allowKingTarget)
+    elseif kind=='N' then
+        return miniShogiStepMoves(board,cell,side,{{forward*2,-1},{forward*2,1}},allowKingTarget)
+    elseif kind=='L' then
+        return miniShogiSlideMoves(board,cell,side,{{forward,0}},allowKingTarget)
     elseif kind=='P' then
-        return miniShogiStepMoves(board,cell,side,{{forward,0}})
+        return miniShogiStepMoves(board,cell,side,{{forward,0}},allowKingTarget)
+    elseif kind=='B' then
+        local out=miniShogiSlideMoves(board,cell,side,{{-1,-1},{-1,1},{1,-1},{1,1}},allowKingTarget)
+        if promoted then
+            for _,to in ipairs(miniShogiStepMoves(board,cell,side,{{-1,0},{1,0},{0,-1},{0,1}},allowKingTarget)) do out[#out+1]=to end
+        end
+        return out
+    elseif kind=='R' then
+        local out=miniShogiSlideMoves(board,cell,side,{{-1,0},{1,0},{0,-1},{0,1}},allowKingTarget)
+        if promoted then
+            for _,to in ipairs(miniShogiStepMoves(board,cell,side,{{-1,-1},{-1,1},{1,-1},{1,1}},allowKingTarget)) do out[#out+1]=to end
+        end
+        return out
     end
     return {}
 end
-local function miniShogiAllMoves(board,side)
+local function miniShogiFindKing(board,side)
+    for cell=1,81 do if board[cell]==side..'K' then return cell end end
+    return nil
+end
+local function miniShogiSquareAttacked(board,cell,bySide)
+    for from=1,81 do
+        if miniShogiSide(board[from])==bySide then
+            for _,to in ipairs(miniShogiRawDestinations(board,from,true)) do if to==cell then return true end end
+        end
+    end
+    return false
+end
+local function miniShogiInCheck(board,side)
+    local king=miniShogiFindKing(board,side)
+    if not king then return true end
+    return miniShogiSquareAttacked(board,king,side=='B' and 'W' or 'B')
+end
+local function miniShogiPromotionZone(side,row) return side=='B' and row<=3 or side=='W' and row>=7 end
+local function miniShogiCanPromote(kind) return kind=='R' or kind=='B' or kind=='S' or kind=='N' or kind=='L' or kind=='P' end
+local function miniShogiPromotionMandatory(side,kind,toRow)
+    if kind=='P' or kind=='L' then return side=='B' and toRow==1 or side=='W' and toRow==9 end
+    if kind=='N' then return side=='B' and toRow<=2 or side=='W' and toRow>=8 end
+    return false
+end
+local function miniShogiApplyAction(board,hands,action)
+    if action.type=='drop' then
+        local side=action.side local kind=action.kind
+        board[action.to]=side..kind
+        hands[side][kind]=math.max(0,(tonumber(hands[side][kind]) or 0)-1)
+        return ''
+    end
+    local piece=board[action.from] local captured=board[action.to]
+    local side=miniShogiSide(piece) local kind=miniShogiKind(piece)
+    board[action.from]=''
+    board[action.to]=miniShogiPiece(side,kind,miniShogiPromoted(piece) or action.promote==true)
+    if captured and captured~='' and miniShogiKind(captured)~='K' then
+        local capturedKind=miniShogiKind(captured)
+        hands[side][capturedKind]=(tonumber(hands[side][capturedKind]) or 0)+1
+    end
+    return captured
+end
+local function miniShogiHasUnpromotedPawnOnFile(board,side,col)
+    for row=1,9 do
+        local piece=board[miniShogiCell(row,col)]
+        if piece==side..'P' then return true end
+    end
+    return false
+end
+local function miniShogiDropAllowed(board,side,kind,to)
+    if (board[to] or '')~='' then return false end
+    local row,col=miniShogiRowCol(to)
+    if (kind=='P' or kind=='L') and ((side=='B' and row==1) or (side=='W' and row==9)) then return false end
+    if kind=='N' and ((side=='B' and row<=2) or (side=='W' and row>=8)) then return false end
+    if kind=='P' and miniShogiHasUnpromotedPawnOnFile(board,side,col) then return false end
+    return true
+end
+local function miniShogiAllMoves(board,hands,side)
     local out={}
-    for cell=1,25 do
-        if miniShogiSide(board[cell])==side then
-            for _,move in ipairs(miniShogiMovesForPiece(board,cell)) do out[#out+1]=move end
+    for from=1,81 do
+        local piece=board[from]
+        if miniShogiSide(piece)==side then
+            local kind=miniShogiKind(piece) local promoted=miniShogiPromoted(piece)
+            local fromRow=miniShogiRowCol(from)
+            for _,to in ipairs(miniShogiRawDestinations(board,from,false)) do
+                local toRow=miniShogiRowCol(to)
+                local canPromote=not promoted and miniShogiCanPromote(kind) and (miniShogiPromotionZone(side,fromRow) or miniShogiPromotionZone(side,toRow))
+                local mandatory=canPromote and miniShogiPromotionMandatory(side,kind,toRow)
+                local choices=mandatory and {true} or (canPromote and {false,true} or {false})
+                for _,promote in ipairs(choices) do
+                    local action={type='move',side=side,from=from,to=to,promote=promote}
+                    local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
+                    miniShogiApplyAction(b,h,action)
+                    if not miniShogiInCheck(b,side) then out[#out+1]=action end
+                end
+            end
+        end
+    end
+    for _,kind in ipairs({'R','B','G','S','N','L','P'}) do
+        if tonumber(hands and hands[side] and hands[side][kind]) and tonumber(hands[side][kind])>0 then
+            for to=1,81 do
+                if miniShogiDropAllowed(board,side,kind,to) then
+                    local action={type='drop',side=side,kind=kind,to=to}
+                    local b=miniShogiCopyBoard(board) local h=miniShogiCopyHands(hands)
+                    miniShogiApplyAction(b,h,action)
+                    if not miniShogiInCheck(b,side) then out[#out+1]=action end
+                end
+            end
         end
     end
     return out
 end
-local function miniShogiApplyMove(board,from,to)
-    local piece=board[from] local captured=board[to]
-    board[to]=piece board[from]=''
-    local row=miniShogiRowCol(to)
-    local side=miniShogiSide(piece) local kind=miniShogiKind(piece)
-    if (kind=='P' or kind=='S') and ((side=='B' and row==1) or (side=='W' and row==5)) then
-        board[to]=side..'G'
-    end
-    return captured
-end
 local function miniShogiChooseAiMove(rs)
-    local moves=miniShogiAllMoves(rs.board,'W')
+    local moves=miniShogiAllMoves(rs.board,rs.hands,'W')
     if #moves<1 then return nil end
     local bestScore=-999999 local best={}
     for _,move in ipairs(moves) do
-        local target=rs.board[move.to] local score=0
-        if target~='' then
-            local kind=miniShogiKind(target)
-            score=score+(miniShogiValues[kind] or 0)
-            if kind=='K' then score=score+10000 end
+        local score=0
+        if move.type=='move' then
+            local target=rs.board[move.to]
+            if target~='' then score=score+(miniShogiValues[miniShogiKind(target)] or 0) end
+            if move.promote then score=score+180 end
+        else
+            score=score+35
         end
         local row,col=miniShogiRowCol(move.to)
-        score=score+(3-math.abs(3-row))+(3-math.abs(3-col))
-        local piece=rs.board[move.from]
-        if miniShogiKind(piece)=='P' and row==5 then score=score+25 end
+        score=score+(5-math.abs(5-row))+(5-math.abs(5-col))
+        local b=miniShogiCopyBoard(rs.board) local h=miniShogiCopyHands(rs.hands)
+        miniShogiApplyAction(b,h,move)
+        if miniShogiInCheck(b,'B') then score=score+120 end
         if score>bestScore then bestScore=score best={move}
         elseif score==bestScore then best[#best+1]=move end
     end
@@ -933,14 +1044,17 @@ local function publicRoundState(room,viewerId)
     end
     if rs.gameId=='mini_shogi' then
         out.board=rs.board or {}
+        out.hands=rs.hands or miniShogiInitialHands()
         out.aiEnabled=rs.aiEnabled==true
         out.currentMemberId=rs.currentIdentifier=='AI' and 'AI' or memberPublicId(room,rs.currentIdentifier)
         out.isCurrent=viewerId==rs.currentIdentifier
         out.side=rs.sides and rs.sides[viewerId] or nil
+        local currentSide=rs.sides and rs.sides[rs.currentIdentifier] or (rs.currentIdentifier=='AI' and 'W' or nil)
+        out.inCheck=currentSide and miniShogiInCheck(rs.board or {},currentSide) or false
         out.legalMoves={}
         if out.isCurrent and out.side then
-            for _,move in ipairs(miniShogiAllMoves(rs.board or {},out.side)) do
-                out.legalMoves[#out.legalMoves+1]={from=move.from,to=move.to}
+            for _,move in ipairs(miniShogiAllMoves(rs.board or {},rs.hands or miniShogiInitialHands(),out.side)) do
+                out.legalMoves[#out.legalMoves+1]={type=move.type,from=move.from,to=move.to,promote=move.promote==true,kind=move.kind}
             end
         end
     end
@@ -1448,6 +1562,7 @@ function FlecityGamesParty.StartRound(source)
     if game.id=='mini_shogi' then
         local ids=connectedIdentifiers(room)
         rs.board=miniShogiInitialBoard()
+        rs.hands=miniShogiInitialHands()
         rs.aiEnabled=#ids==1
         if rs.aiEnabled then
             rs.turnOrder={ids[1],'AI'}
@@ -2054,6 +2169,7 @@ local function finishMiniShogi(room,reason,winnerIdentifier,winnerIsAi)
     rs.complete=true
     rs.results={
         board=rs.board,
+        hands=rs.hands,
         moves=tonumber(rs.moves) or 0,
         winnerMemberId=winnerIdentifier and memberPublicId(room,winnerIdentifier) or (winnerIsAi and 'AI' or nil),
         winnerName=winnerIsAi and 'AI' or (winnerIdentifier and memberName(room,winnerIdentifier) or nil),
@@ -2072,15 +2188,30 @@ local function finishMiniShogiForfeit(room,loserIdentifier,reason)
     for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end
     finishMiniShogi(room,reason,winner,false)
 end
+local function miniShogiResolveAfterMove(room,moverIdentifier,moverSide)
+    local rs=room.roundState
+    if not rs or rs.complete then return end
+    local opponentSide=moverSide=='B' and 'W' or 'B'
+    local opponentIdentifier=rs.aiEnabled and opponentSide=='W' and 'AI' or nil
+    if not opponentIdentifier then
+        for id,side in pairs(rs.sides or {}) do if side==opponentSide then opponentIdentifier=id break end end
+    end
+    local legal=miniShogiAllMoves(rs.board,rs.hands,opponentSide)
+    if #legal<1 then
+        finishMiniShogi(room,miniShogiInCheck(rs.board,opponentSide) and 'CHECKMATE' or 'NO_LEGAL_MOVE',moverIdentifier,moverIdentifier=='AI')
+        return
+    end
+    rs.currentIdentifier=opponentIdentifier
+end
 local function miniShogiRunAi(room)
     local rs=room.roundState
     if not rs or rs.complete or not rs.aiEnabled then return end
     local move=miniShogiChooseAiMove(rs)
-    if not move then finishMiniShogi(room,'NO_LEGAL_MOVE',rs.turnOrder[1],false) return end
-    local captured=miniShogiApplyMove(rs.board,move.from,move.to)
+    if not move then finishMiniShogi(room,'CHECKMATE',rs.turnOrder[1],false) return end
+    miniShogiApplyAction(rs.board,rs.hands,move)
     rs.moves=(tonumber(rs.moves) or 0)+1
-    if miniShogiKind(captured)=='K' then finishMiniShogi(room,'KING_CAPTURED',nil,true) return end
-    rs.currentIdentifier=rs.turnOrder[1]
+    miniShogiResolveAfterMove(room,'AI','W')
+    if not rs.complete then setRoundDeadline(rs,roundTimeoutSeconds('mini_shogi')) end
 end
 function FlecityGamesParty.SubmitMiniShogi(source,data)
     if not FlecityGamesRateLimit.Allow(source,'mini_shogi_move',180) then return {ok=false,error='RATE_LIMIT'} end
@@ -2091,27 +2222,30 @@ function FlecityGamesParty.SubmitMiniShogi(source,data)
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.currentIdentifier~=id then return {ok=false,error='NOT_YOUR_TURN'} end
-    local from=math.floor(tonumber(data.from) or 0) local to=math.floor(tonumber(data.to) or 0)
     local side=rs.sides and rs.sides[id] or nil
-    if side==nil or miniShogiSide(rs.board[from])~=side then return {ok=false,error='INVALID_CHOICE'} end
-    local legal=false
-    for _,move in ipairs(miniShogiMovesForPiece(rs.board,from)) do if move.to==to then legal=true break end end
-    if not legal then return {ok=false,error='INVALID_CHOICE'} end
-    local captured=miniShogiApplyMove(rs.board,from,to)
+    if not side then return {ok=false,error='INVALID_CHOICE'} end
+
+    local requestedType=tostring(data.type or (data.kind and 'drop' or 'move'))
+    local from=math.floor(tonumber(data.from) or 0)
+    local to=math.floor(tonumber(data.to) or 0)
+    local kind=tostring(data.kind or ''):sub(1,1)
+    local promote=data.promote==true
+    if to<1 or to>81 then return {ok=false,error='INVALID_CHOICE'} end
+
+    local chosen=nil
+    for _,move in ipairs(miniShogiAllMoves(rs.board,rs.hands,side)) do
+        if requestedType=='drop' and move.type=='drop' and move.to==to and move.kind==kind then chosen=move break end
+        if requestedType~='drop' and move.type=='move' and move.from==from and move.to==to and move.promote==promote then chosen=move break end
+    end
+    if not chosen then return {ok=false,error='INVALID_CHOICE'} end
+
+    miniShogiApplyAction(rs.board,rs.hands,chosen)
     rs.moves=(tonumber(rs.moves) or 0)+1
-    if miniShogiKind(captured)=='K' then
-        finishMiniShogi(room,'KING_CAPTURED',id,false)
-    elseif rs.aiEnabled then
-        rs.currentIdentifier='AI'
+    miniShogiResolveAfterMove(room,id,side)
+    if not rs.complete and rs.aiEnabled and rs.currentIdentifier=='AI' then
         miniShogiRunAi(room)
-    else
-        local first,second=rs.turnOrder[1],rs.turnOrder[2]
-        rs.currentIdentifier=id==first and second or first
-        if #miniShogiAllMoves(rs.board,rs.sides[rs.currentIdentifier])<1 then
-            finishMiniShogi(room,'NO_LEGAL_MOVE',id,false)
-        elseif not rs.complete then
-            setRoundDeadline(rs,roundTimeoutSeconds('mini_shogi'))
-        end
+    elseif not rs.complete then
+        setRoundDeadline(rs,roundTimeoutSeconds('mini_shogi'))
     end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}

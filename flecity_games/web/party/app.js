@@ -5,7 +5,7 @@ const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),m
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
-const codeBreakPanel=document.getElementById('codeBreakPanel'),codeBreakTitle=document.getElementById('codeBreakTitle'),codeBreakHint=document.getElementById('codeBreakHint'),codeBreakCurrent=document.getElementById('codeBreakCurrent'),codeBreakPalette=document.getElementById('codeBreakPalette'),codeBreakBack=document.getElementById('codeBreakBack'),codeBreakSubmit=document.getElementById('codeBreakSubmit'),codeBreakHistory=document.getElementById('codeBreakHistory'),codeBreakAiSection=document.getElementById('codeBreakAiSection'),codeBreakAiHistory=document.getElementById('codeBreakAiHistory');
+const codeBreakPanel=document.getElementById('codeBreakPanel'),codeBreakTitle=document.getElementById('codeBreakTitle'),codeBreakHint=document.getElementById('codeBreakHint'),codeBreakCurrent=document.getElementById('codeBreakCurrent'),codeBreakPalette=document.getElementById('codeBreakPalette'),codeBreakBack=document.getElementById('codeBreakBack'),codeBreakSubmit=document.getElementById('codeBreakSubmit'),codeBreakHistory=document.getElementById('codeBreakHistory'),codeBreakOpponentSection=document.getElementById('codeBreakOpponentSection'),codeBreakOpponentHistory=document.getElementById('codeBreakOpponentHistory'),codeBreakAiSection=document.getElementById('codeBreakAiSection'),codeBreakAiHistory=document.getElementById('codeBreakAiHistory');
 const reversiPanel=document.getElementById('reversiPanel'),reversiStatus=document.getElementById('reversiStatus'),reversiBoard=document.getElementById('reversiBoard'),reversiMeta=document.getElementById('reversiMeta');
 const votePanel=document.getElementById('votePanel'),votePrompt=document.getElementById('votePrompt'),voteChoices=document.getElementById('voteChoices');
 const majorityPanel=document.getElementById('majorityPanel'),majorityGameLabel=document.getElementById('majorityGameLabel'),majorityPrompt=document.getElementById('majorityPrompt'),majorityChoices=document.getElementById('majorityChoices');
@@ -415,8 +415,8 @@ function setupCodeBreak(room){
  const canPlay=rs.aiEnabled||rs.isCurrent===true;
  codeBreakTitle.textContent=rs.solved?'解読成功！':(canPlay?'あなたの手番':'相手の手番');
  if(rs.solved)codeBreakHint.textContent='相手の同じ手数まで結果を待っています。';
- else if(rs.aiEnabled)codeBreakHint.textContent='ターン '+Number(rs.turnNumber||1)+' · '+(rs.turnLimit===false?'無制限':'残り '+Number(rs.attemptsLeft||0)+'手')+' · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
- else codeBreakHint.textContent=(canPlay?'推理してください':'相手の推理を待っています')+' · '+(rs.turnLimit===false?'無制限':'残り '+Number(rs.attemptsLeft||0)+'手')+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ else if(rs.aiEnabled)codeBreakHint.textContent=(rs.turnLimit===false?'無制限':'合計8ターン · 残り '+Number(rs.attemptsLeft||0))+' · AI '+String(rs.aiDifficulty||'normal').toUpperCase()+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
+ else codeBreakHint.textContent=(canPlay?'あなたの手番':'相手の手番')+' · '+(rs.turnLimit===false?'無制限':'合計8ターン · 残り '+Number(rs.attemptsLeft||0))+' · 同色'+(rs.allowDuplicates===false?'なし':'あり');
  codeBreakSubmit.disabled=!canPlay||rs.solved===true||codeBreakGuess.length!==4;
  codeBreakBack.disabled=!canPlay||rs.solved===true||codeBreakGuess.length===0;
  [...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=!canPlay||rs.solved===true||codeBreakGuess.length>=4);
@@ -438,6 +438,9 @@ function setupCodeBreak(room){
    requestAnimationFrame(()=>{target.scrollTop=target.scrollHeight;});
  };
  renderMastermindHistory(codeBreakHistory,rs.history);
+ codeBreakOpponentSection.classList.toggle('hidden',rs.aiEnabled||!Array.isArray(rs.opponentHistory));
+ if(!rs.aiEnabled)renderMastermindHistory(codeBreakOpponentHistory,rs.opponentHistory);
+ else codeBreakOpponentHistory.innerHTML='';
  codeBreakAiSection.classList.toggle('hidden',!rs.aiEnabled);
  if(rs.aiEnabled)renderMastermindHistory(codeBreakAiHistory,rs.aiHistory);
  else codeBreakAiHistory.innerHTML='';

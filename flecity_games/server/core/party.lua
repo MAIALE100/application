@@ -391,7 +391,7 @@ end
 
 local function codeBreakAiTurn(rs)
     if not rs or not rs.aiEnabled or rs.aiSolved then return end
-    if rs.turnLimit~=false and #(rs.aiHistory or {})>=(tonumber(rs.maxAttempts) or 8) then return end
+    if rs.turnLimit~=false and ((tonumber(rs.turnNumber) or 1)-1)>=(tonumber(rs.maxAttempts) or 8) then return end
     rs.aiHistory=rs.aiHistory or {}
     local guess=codeBreakAiGuess(rs.aiHistory,rs.aiDifficulty,rs.allowDuplicates)
     local exact,misplaced=codeBreakScore(rs.secret,guess)
@@ -627,7 +627,9 @@ local function publicRoundState(room,viewerId)
         out.currentMemberId=memberPublicId(room,rs.currentIdentifier)
         out.isCurrent=rs.aiEnabled or viewerId==rs.currentIdentifier
         out.turnNumber=tonumber(rs.turnNumber) or 1
-        if rs.turnLimit~=false then out.attemptsLeft=math.max(0,(tonumber(rs.maxAttempts) or 8)-#history) else out.attemptsLeft=nil end
+        local usedTurns=math.max(0,(tonumber(rs.turnNumber) or 1)-1)
+        out.usedTurns=usedTurns
+        if rs.turnLimit~=false then out.attemptsLeft=math.max(0,(tonumber(rs.maxAttempts) or 8)-usedTurns) else out.attemptsLeft=nil end
         out.aiHistory={}
         for _,attempt in ipairs(rs.aiHistory or {}) do
             out.aiHistory[#out.aiHistory+1]={
@@ -635,6 +637,21 @@ local function publicRoundState(room,viewerId)
                 exact=attempt.exact,
                 misplaced=attempt.misplaced
             }
+        end
+        out.opponentHistory={}
+        if not rs.aiEnabled then
+            for otherId,_ in pairs(room.members or {}) do
+                if otherId~=viewerId then
+                    for _,attempt in ipairs((rs.codeBreakHistory and rs.codeBreakHistory[otherId]) or {}) do
+                        out.opponentHistory[#out.opponentHistory+1]={
+                            guess=attempt.guess,
+                            exact=attempt.exact,
+                            misplaced=attempt.misplaced
+                        }
+                    end
+                    break
+                end
+            end
         end
         local aiLast=rs.aiHistory and rs.aiHistory[#rs.aiHistory] or nil
         if aiLast then out.aiLastExact=aiLast.exact out.aiLastMisplaced=aiLast.misplaced end
@@ -1422,13 +1439,14 @@ end
 local function mastermindCanFinish(room,rs,force)
     if force then return true end
     local limited=rs.turnLimit~=false
-    local maxAttempts=limited and (tonumber(rs.maxAttempts) or 8) or nil
+    local maxTurns=limited and (tonumber(rs.maxAttempts) or 8) or nil
+    local usedTurns=math.max(0,(tonumber(rs.turnNumber) or 1)-1)
 
     if rs.aiEnabled then
         local humanId=rs.turnOrder and rs.turnOrder[1]
         local humanHistory=humanId and rs.codeBreakHistory and rs.codeBreakHistory[humanId] or {}
-        local humanSolved=humanId and rs.solved and rs.solved[humanId] or nil
         local aiHistory=rs.aiHistory or {}
+        local humanSolved=humanId and rs.solved and rs.solved[humanId] or nil
         local aiSolved=rs.aiSolved
         if humanSolved or aiSolved then
             local target
@@ -1437,7 +1455,7 @@ local function mastermindCanFinish(room,rs,force)
             else target=#aiHistory end
             if #humanHistory>=target and #aiHistory>=target then return true end
         end
-        return limited and #humanHistory>=maxAttempts and #aiHistory>=maxAttempts
+        return limited and usedTurns>=maxTurns
     end
 
     local ids=rs.turnOrder or {}
@@ -1454,7 +1472,7 @@ local function mastermindCanFinish(room,rs,force)
         else target=#hb end
         if #ha>=target and #hb>=target then return true end
     end
-    return limited and #ha>=maxAttempts and #hb>=maxAttempts
+    return limited and usedTurns>=maxTurns
 end
 
 local function maybeFinishCodeBreak(room,force)
@@ -1501,7 +1519,7 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
 
     rs.codeBreakHistory=rs.codeBreakHistory or {}
     local history=rs.codeBreakHistory[id] or {}
-    if rs.turnLimit~=false and #history>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ALREADY_SUBMITTED'} end
+    if rs.turnLimit~=false and ((tonumber(rs.turnNumber) or 1)-1)>=(tonumber(rs.maxAttempts) or 8) then return {ok=false,error='ROUND_COMPLETE'} end
 
     local guess={} local seen={}
     for i=1,4 do
@@ -1520,8 +1538,12 @@ function FlecityGamesParty.SubmitCodeBreak(source,data)
     end
 
     if rs.aiEnabled then
-        if not rs.aiSolved and (rs.turnLimit==false or #(rs.aiHistory or {})<(tonumber(rs.maxAttempts) or 8)) then codeBreakAiTurn(rs) end
-        rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
+        if not rs.aiSolved and (rs.turnLimit==false or ((tonumber(rs.turnNumber) or 1)-1)<(tonumber(rs.maxAttempts) or 8)) then
+            rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
+            if rs.turnLimit==false or ((tonumber(rs.turnNumber) or 1)-1)<=(tonumber(rs.maxAttempts) or 8) then codeBreakAiTurn(rs) end
+        else
+            rs.turnNumber=(tonumber(rs.turnNumber) or 1)+1
+        end
     else
         local ids=rs.turnOrder or {}
         if #ids>=2 then

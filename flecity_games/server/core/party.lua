@@ -1724,6 +1724,7 @@ local function finishReversiForfeit(room,loserIdentifier,reason)
     local rs=room.roundState if not rs or rs.gameId~='reversi' or rs.complete then return end
     local winner=nil for _,id in ipairs(rs.turnOrder or {}) do if id~=loserIdentifier then winner=id break end end finishReversi(room,reason or 'FORFEIT',winner)
 end
+local finishSimpleBoardGame
 local function runReversiAi(room)
     local rs=room.roundState
     while rs and rs.aiEnabled and not rs.complete and rs.currentIdentifier=='AI' do
@@ -1808,7 +1809,7 @@ function FlecityGamesParty.SubmitReversi(source,data)
     notifyRoom(room,source) return {ok=true,room=snapshot(room,id)}
 end
 
-local function finishSimpleBoardGame(room,reason,winnerIdentifier,winningCells)
+finishSimpleBoardGame=function(room,reason,winnerIdentifier,winningCells)
     local rs=room.roundState if not rs or (rs.gameId~='gomoku' and rs.gameId~='connect4') or rs.complete then return end
     rs.complete=true
     rs.results={

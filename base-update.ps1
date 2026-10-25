@@ -54,14 +54,18 @@ try {
         throw "Safety check failed: server/main.lua is missing."
     }
     $ServerMainText = Get-Content -LiteralPath $ServerMain -Raw
-    if (($ServerMainText | Select-String -SimpleMatch "local supportSessions = {}" -AllMatches).Matches.Count -ne 1) {
-        throw "Safety check failed: server/main.lua contains duplicated or missing support bootstrap."
+    $SupportBootstrapCount = [regex]::Matches($ServerMainText, [regex]::Escape("local supportSessions = {}")).Count
+    $SelftestCount = [regex]::Matches($ServerMainText, [regex]::Escape("RegisterCommand('base_selftest'")).Count
+    $PlayerDroppedCount = [regex]::Matches($ServerMainText, [regex]::Escape("AddEventHandler('playerDropped'")).Count
+
+    if ($SupportBootstrapCount -ne 1) {
+        throw "Safety check failed: server/main.lua support bootstrap count is $SupportBootstrapCount (expected 1)."
     }
-    if (($ServerMainText | Select-String -SimpleMatch "RegisterCommand('base_selftest'" -AllMatches).Matches.Count -ne 1) {
-        throw "Safety check failed: server/main.lua contains duplicated or missing selftest registration."
+    if ($SelftestCount -ne 1) {
+        throw "Safety check failed: server/main.lua selftest registration count is $SelftestCount (expected 1)."
     }
-    if (($ServerMainText | Select-String -SimpleMatch "AddEventHandler('playerDropped'" -AllMatches).Matches.Count -ne 1) {
-        throw "Safety check failed: server/main.lua contains duplicated or missing disconnect cleanup."
+    if ($PlayerDroppedCount -ne 1) {
+        throw "Safety check failed: server/main.lua disconnect cleanup count is $PlayerDroppedCount (expected 1)."
     }
 
     $LuaCompiler = Get-Command luac5.4 -ErrorAction SilentlyContinue

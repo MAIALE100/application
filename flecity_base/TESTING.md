@@ -80,6 +80,19 @@ These checks can be completed by one tester on the test server.
 - Save calculator result directly to the ledger.
 - Calculator remains after `restart flecity_base`.
 
+## Large-list usability
+
+- Memo shows total / matched / displayed counts.
+- Memo supports updated-newest, updated-oldest, and title sorting.
+- Stock supports text search plus category and low-stock filters.
+- Stock supports name, low-stock priority, quantity, and recently-updated sorting.
+- Task search matches title, details, assignee, and creator.
+- Task supports due-date, priority, recently-updated, and title sorting.
+- Accounting supports newest, oldest, amount-high, and amount-low sorting.
+- Lists initially render 40-50 rows and use "さらに表示" for the rest.
+- Switching to another BASE resets search/filter state so previous conditions do not hide the new BASE's data.
+- Ledger browsing can retrieve up to 300 recent entries while still rendering 50 at a time.
+
 ## Invalid input / destructive safety
 
 - Accounting rejects 0, negative, fractional, and values above 1,000,000,000.

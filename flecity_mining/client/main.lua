@@ -80,19 +80,27 @@ end
 
 local function isInsideMine()
     local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
     local expectedId = Config.MineInterior and tonumber(Config.MineInterior.interiorId) or nil
+
     if expectedId and expectedId > 0 and GetInteriorFromEntity(ped) == expectedId then
         return true
     end
 
-    -- Fallback for map variants where the interior id differs: once the ped is
-    -- well past the stock door and close to the known mine network, treat it
-    -- as inside for GPS guidance only.
+    -- Narrow fallback only. The old 180m radius also classified nearby exterior
+    -- terrain as "inside", which could re-request the mine IPL after leaving.
     local access = Config.MineAccess
     if access and access.inside then
-        local inside = vector3(access.inside.x, access.inside.y, access.inside.z)
-        return #(GetEntityCoords(ped) - inside) < 180.0
-            and #(GetEntityCoords(ped) - Config.Foreman.coords) > 12.0
+        local insideAccess = vector3(access.inside.x, access.inside.y, access.inside.z)
+        if #(coords - insideAccess) <= 18.0 then
+            return true
+        end
+    end
+
+    for _, node in ipairs(Config.MiningNodes or {}) do
+        if node.coords and #(coords - node.coords) <= 35.0 then
+            return true
+        end
     end
 
     return false
@@ -1010,6 +1018,26 @@ RegisterCommand('mine_escape', function()
         transitionMineAccess(Config.MineAccess.outside)
         notify('鉱山入口へ退避しました。')
     end
+end, false)
+
+RegisterCommand('mine_mapreset', function()
+    if Config.DevTools ~= true then return end
+
+    local ped = PlayerPedId()
+    if isInsideMine() then
+        notify('坑道内ではマップ復旧を実行できません。先に坑道から出てください。')
+        return
+    end
+
+    cleanupLegacyMineIpls()
+    releaseMineInteriorIpl()
+    NewLoadSceneStop()
+    ClearFocus()
+
+    local coords = GetEntityCoords(ped)
+    RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+
+    notify('鉱山周辺のIPL競合を解除しました。数秒で外側地形が再読込されます。')
 end, false)
 
 RegisterCommand('mine_devpos', function()

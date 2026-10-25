@@ -863,6 +863,73 @@ RegisterCommand('mine_drilltest', function()
     end)
 end, false)
 
+RegisterCommand('mine_motiontest', function(_, args)
+    if Config.DevTools ~= true then return end
+    if busy then
+        notify('作業中はモーションテストできません。')
+        return
+    end
+
+    local key = string.lower(tostring(args and args[1] or 'drill'))
+    local scenarios = {
+        drill = 'WORLD_HUMAN_CONST_DRILL',
+        hammer = 'WORLD_HUMAN_HAMMERING',
+        weld = 'WORLD_HUMAN_WELDING',
+    }
+
+    local scenario = scenarios[key]
+    if not scenario then
+        notify('使い方: /mine_motiontest drill | hammer | weld')
+        return
+    end
+
+    CreateThread(function()
+        busy = true
+
+        local ped = PlayerPedId()
+        local pedCoords = GetEntityCoords(ped)
+        local wallTarget = findNearestWallTarget(ped, pedCoords)
+
+        if wallTarget then
+            SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
+        end
+
+        ClearPedTasksImmediately(ped)
+        SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
+        TaskStartScenarioInPlace(ped, scenario, 0, true)
+
+        notify(('モーションテスト %s: 約5秒間確認してください。'):format(key))
+        Wait(5000)
+
+        local cleanupCoords = GetEntityCoords(ped)
+        ClearPedTasksImmediately(ped)
+
+        local extraProps = {
+            'prop_tool_jackham',
+            'prop_tool_drill',
+            'prop_tool_hammer',
+            'prop_weld_torch',
+        }
+
+        for _, modelName in ipairs(extraProps) do
+            local object = GetClosestObjectOfType(
+                cleanupCoords.x, cleanupCoords.y, cleanupCoords.z,
+                4.0,
+                GetHashKey(modelName),
+                false, false, false
+            )
+            if object and object ~= 0 and DoesEntityExist(object) then
+                SetEntityAsMissionEntity(object, true, true)
+                DeleteObject(object)
+                if DoesEntityExist(object) then DeleteEntity(object) end
+            end
+        end
+
+        FreezeEntityPosition(ped, false)
+        busy = false
+    end)
+end, false)
+
 RegisterCommand('mine_status', function()
     TriggerServerEvent('flecity_mining:server:requestState')
     Wait(100)

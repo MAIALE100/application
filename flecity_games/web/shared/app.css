@@ -1111,10 +1111,10 @@ body.reduced-motion .fall-result-hero,body.reduced-motion .fall-result-rank{anim
 @media(max-width:22.5rem){.mastermind-board{padding:.6rem}.mastermind-row-pegs{gap:.24rem}.mastermind-row-pegs .mastermind-guess-peg{width:.95rem;height:.95rem}.code-break-palette{gap:.38rem}}
 
 /* PARTY board games v2 */
-.gomoku-board{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:.06rem;width:min(100%,20rem);aspect-ratio:1;margin:.55rem auto;padding:.25rem;border-radius:.7rem;background:#866b3e;border:.0625rem solid #a98b55}.gomoku-cell{min-width:0;min-height:0;padding:0;border-radius:.12rem;background:#c8a86b;border:.04rem solid rgba(70,50,25,.28);font-size:clamp(.62rem,3vw,1rem);line-height:1;color:#f4f4f4}.gomoku-cell:disabled{opacity:1}.gomoku-cell:not(:disabled){box-shadow:inset 0 0 0 .08rem rgba(255,255,255,.1)}
+.gomoku-board{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));grid-template-rows:repeat(11,minmax(0,1fr));gap:.055rem;width:min(100%,22rem);aspect-ratio:1/1;margin:.42rem auto .35rem;padding:.22rem;box-sizing:border-box;border-radius:.7rem;background:#866b3e;border:.0625rem solid #a98b55;overflow:hidden}.gomoku-cell{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0!important;min-height:0!important;max-width:none;padding:0;margin:0;aspect-ratio:1/1;border-radius:.1rem;background:#c8a86b;border:.04rem solid rgba(70,50,25,.28);font-size:clamp(.7rem,3.15vw,1.05rem);line-height:1;color:#f4f4f4}.gomoku-cell:disabled{opacity:1}.gomoku-cell:not(:disabled){box-shadow:inset 0 0 0 .08rem rgba(255,255,255,.1)}
 .connect4-columns{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.12rem;width:min(100%,20rem);margin:.35rem auto .2rem}.connect4-columns button{min-width:0;padding:.3rem .1rem}
 .connect4-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));gap:.15rem;width:min(100%,20rem);aspect-ratio:7/6;margin:0 auto .55rem;padding:.35rem;border-radius:.7rem;background:#233f71;border:.0625rem solid #365b9b}.connect4-cell{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#111820;border:.0625rem solid rgba(255,255,255,.08);font-size:clamp(1rem,5vw,1.55rem)}
-@media(max-width:22.5rem){.gomoku-board,.connect4-board,.connect4-columns{width:min(100%,17.5rem)}}
+@media(max-width:22.5rem){.gomoku-board{width:min(100%,20.8rem)}.connect4-board,.connect4-columns{width:min(100%,17.5rem)}}
 
 .mastermind-history-label{margin:.5rem .15rem .15rem;font-size:.56rem;font-weight:900;letter-spacing:.14em;color:#f0d8ba}
 .mastermind-history-label.ai{color:#cbd8ff}
@@ -1408,3 +1408,7 @@ body.party-app:not(.party-round) #status.app-status.hidden{
   visibility:hidden;
   pointer-events:none;
 }
+
+body.party-round #gomokuPanel{margin-top:.18rem}
+body.party-round #gomokuPanel>h2{margin:.08rem 0 .3rem}
+body.party-round #gomokuMeta{margin-top:.12rem}

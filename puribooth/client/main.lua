@@ -1098,7 +1098,23 @@ CreateThread(function()
                         false
                     )
 
+                    local boothPos = GetEntityCoords(placementObject)
                     local camPos = previewBooth.camera.coords
+
+                    -- Make the shooting side unmistakable while placing.
+                    DrawLine(
+                        boothPos.x,
+                        boothPos.y,
+                        boothPos.z + 0.7,
+                        pc.x,
+                        pc.y,
+                        pc.z + 0.18,
+                        255,
+                        95,
+                        180,
+                        230
+                    )
+
                     DrawLine(
                         camPos.x,
                         camPos.y,
@@ -1107,17 +1123,38 @@ CreateThread(function()
                         pc.y,
                         pc.z + 0.5,
                         255,
+                        255,
+                        255,
+                        210
+                    )
+
+                    DrawMarker(
+                        28,
+                        pc.x,
+                        pc.y,
+                        pc.z + 0.10,
+                        0.0, 0.0, 0.0,
+                        0.0, 0.0, 0.0,
+                        0.32, 0.32, 0.32,
+                        255,
                         95,
                         180,
-                        180
+                        210,
+                        false,
+                        false,
+                        2,
+                        false,
+                        nil,
+                        nil,
+                        false
                     )
                 end
 
                 drawText2d(
-                    "PLACEMENT  ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
+                    "PINK AREA = PHOTO ZONE   ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
                     0.5,
                     0.80,
-                    0.38
+                    0.36
                 )
 
                 drawText2d(

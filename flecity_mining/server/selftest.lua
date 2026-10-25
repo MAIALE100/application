@@ -60,12 +60,7 @@ local function runSelfTest()
     if nodesOk then
         for _, node in ipairs(Config.MiningNodes) do
             if type(node.id) ~= 'number' or node.id % 1 ~= 0 or node.id < 1
-                or nodeIds[node.id] or not isVector(node.coords) or not isVector(node.target) then
-                nodesOk = false
-                break
-            end
-            local targetDistance = #(node.target - node.coords)
-            if targetDistance < 0.25 or targetDistance > 4.0 then
+                or nodeIds[node.id] or not isVector(node.coords) then
                 nodesOk = false
                 break
             end

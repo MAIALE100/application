@@ -83,13 +83,29 @@ local function validateRuntimeConfig()
     if Config.MineInterior ~= nil then
         if type(Config.MineInterior) ~= 'table' then return false, 'invalid MineInterior config' end
         if Config.MineInterior.enabled == true then
-            if type(Config.MineInterior.ipl) ~= 'string' or Config.MineInterior.ipl == '' then
-                return false, 'invalid MineInterior IPL'
-            end
             if type(Config.MineInterior.anchor) ~= 'vector3' then
                 return false, 'invalid MineInterior anchor'
             end
+            if type(Config.MineInterior.ipls) ~= 'table' or #Config.MineInterior.ipls == 0 then
+                return false, 'invalid MineInterior IPL list'
+            end
+            for index, ipl in ipairs(Config.MineInterior.ipls) do
+                if type(ipl) ~= 'string' or ipl == '' then
+                    return false, ('invalid MineInterior IPL #%d'):format(index)
+                end
+            end
         end
+    end
+
+    if type(Config.MineAccess) ~= 'table'
+        or type(Config.MineAccess.outside) ~= 'vector4'
+        or type(Config.MineAccess.inside) ~= 'vector4' then
+        return false, 'invalid MineAccess coordinates'
+    end
+    if type(Config.MineAccess.interactDistance) ~= 'number'
+        or Config.MineAccess.interactDistance <= 0
+        or Config.MineAccess.interactDistance > 5.0 then
+        return false, 'invalid MineAccess interactDistance'
     end
 
     local drill = Config.DrillVisuals

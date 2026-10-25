@@ -56,11 +56,11 @@ Config.Geometry = {
 
     cameraForward = 1.28,
     cameraRight = 0.0,
-    cameraZ = 1.09,
+    cameraZ = 1.65,
 
     pointForward = 3.20,
     pointRight = 0.0,
-    pointZ = 0.49,
+    pointZ = 1.35,
     fov = 68.0
 }
 

@@ -46,3 +46,8 @@ Expected result: all checks PASS.
 - WEAZEL SUPPORT: server-wide maintenance access that must be explicitly switched ON by an eligible WEAZEL owner/maintainer.
 
 See `ACCESS.md` for server configuration and privacy/audit behavior.
+
+
+## Large-list behavior
+
+Memo, stock, task, and ledger pages support search/filter/sort controls and incremental list rendering so the phone UI does not render hundreds of cards at once.

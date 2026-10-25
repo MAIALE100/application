@@ -444,10 +444,10 @@ local function startDrillPresentation(ped, node)
                     'ent_dst_rocks',
                     presentationTarget.x, presentationTarget.y, presentationTarget.z,
                     0.0, 0.0, GetEntityHeading(ped) - 180.0,
-                    0.55,
+                    math.max(0.05, tonumber(cfg.dustScale) or 0.20),
                     false, false, false
                 )
-                Wait(math.max(250, tonumber(cfg.dustIntervalMs) or 550))
+                Wait(math.max(250, tonumber(cfg.dustIntervalMs) or 700))
             end
 
             if drillPresentationGeneration == presentationGeneration then

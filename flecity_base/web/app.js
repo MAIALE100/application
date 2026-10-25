@@ -177,6 +177,14 @@ function personLabel(name,citizenid){
   return n||c||"不明";
 }
 
+function workspaceTypeLabel(type){
+  return state.boot?.templates?.[String(type||"")]?.label || String(type||"カスタム");
+}
+
+function emptyState(title,text,action=null,label="追加"){
+  return `<div class="empty empty-guide"><strong>${esc(title)}</strong><span>${esc(text)}</span>${action?`<button class="primary" data-action="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+}
+
 function dateMs(value){
   const d=dateValue(value);
   return d?d.getTime():0;
@@ -288,7 +296,7 @@ async function openWorkspace(id){
   state.members=data.members || [];
   workspacePills();
   const accessNote=state.workspace.access_mode==="admin"?" ・ ADMIN ACCESS":state.workspace.access_mode==="weazel_support"?" ・ WEAZEL SUPPORT":"";
-  status(`${state.workspace.name} ・ ${state.members.length}人${accessNote}`);
+  status(`${state.workspace.name} ・ ${workspaceTypeLabel(state.workspace.workspace_type)} ・ ${roleLabel(state.workspace.role)} ・ ${state.members.length}人${accessNote}`);
   await loadTab();
 }
 
@@ -363,7 +371,7 @@ function renderMemo(){
           <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
         </div>`:""}
       </article>`;
-    }).join(""):`<div class="empty">条件に合うメモはありません。</div>`}
+    }).join(""):(state.notes.length===0?emptyState("まだメモがありません","共有したい情報を最初のメモとして追加できます。",canManage()?"new-note":null,"＋ メモを追加"):`<div class="empty">条件に合うメモはありません。</div>`)}
     ${moreButton("memoMore",visible.length,rows.length)}
   `;
   bindContent();
@@ -485,7 +493,7 @@ function renderStock(){
           <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
         </div>
       </article>`;
-    }).join(""):`<div class="empty">条件に合う在庫はありません。</div>`}
+    }).join(""):(state.stock.length===0?emptyState("まだ在庫品目がありません","管理したい品目を登録すると数量と履歴を共有できます。",canManage()?"new-stock":null,"＋ 在庫品目を追加"):`<div class="empty">条件に合う在庫はありません。</div>`)}
     ${moreButton("stockMore",visible.length,rows.length)}
     ${state.stockRecent.length?`<div class="section-title">最近の入出庫</div>${state.stockRecent.slice(0,6).map(h=>`
       <article class="card compact-card">
@@ -643,7 +651,7 @@ function renderTasks(){
           <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>`:""}
         </div>
       </article>`;
-    }).join(""):`<div class="empty">条件に合うタスクはありません。</div>`}
+    }).join(""):(state.tasks.length===0?emptyState("まだタスクがありません","やることを登録して担当・期限・進捗を共有できます。",canManage()?"new-task":null,"＋ タスクを追加"):`<div class="empty">条件に合うタスクはありません。</div>`)}
     ${moreButton("taskMore",visible.length,rows.length)}
   `;
   bindContent();
@@ -742,7 +750,7 @@ function renderMoney(){
         </div>
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
         ${!e.voided_at&&canManage()?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
-      </article>`).join(""):'<div class="empty">条件に合う会計記録はありません。</div>'}
+      </article>`).join(""):(entries.length===0?emptyState("まだ会計記録がありません","最初の収入または支出を記録すると残高集計が始まります。","new-money","＋ 会計を記録"):'<div class="empty">条件に合う会計記録はありません。</div>')}
     ${moreButton("moneyMore",visible.length,rows.length)}
   `;
   bindContent();
@@ -1136,6 +1144,19 @@ function renderMembers(){
 
   $("#content").innerHTML=`
     <div class="row between"><h2>メンバー</h2>${manager&&Number(state.workspace.is_personal)!==1?'<button class="primary" data-action="invite">＋ 招待</button>':""}</div>
+
+    <article class="card workspace-info">
+      <div class="row between">
+        <div><div class="card-title">${esc(state.workspace.icon||"📁")} ${esc(state.workspace.name)}</div><div class="muted">BASE情報</div></div>
+        <span class="badge ${state.workspace.role==="owner"?"high":state.workspace.role==="manager"?"good":""}">${roleLabel(state.workspace.role)}</span>
+      </div>
+      <div class="workspace-info-grid">
+        <div><span>種類</span><strong>${esc(workspaceTypeLabel(state.workspace.workspace_type))}</strong></div>
+        <div><span>メンバー</span><strong>${state.members.length.toLocaleString("ja-JP")}人</strong></div>
+        <div><span>作成</span><strong>${esc(fmtDateTime(state.workspace.created_at,"--"))}</strong></div>
+        <div><span>BASE</span><strong>v${esc(state.boot?.appVersion||"unknown")}</strong></div>
+      </div>
+    </article>
 
     ${isAdmin?`<article class="card access-card">
       <div class="row between"><div><div class="card-title">ADMIN ACCESS</div><div class="muted">運営管理権限で全BASEを常時表示しています。</div></div><span class="badge high">ALWAYS ON</span></div>

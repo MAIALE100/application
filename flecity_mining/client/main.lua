@@ -15,6 +15,7 @@ local activeMineProp = nil
 local activeMineSound = nil
 local activeMineTarget = nil
 local cancelCurrentAction = false
+local drillPresentationGeneration = 0
 
 local function clearRoute()
     if routeBlip and DoesBlipExist(routeBlip) then
@@ -203,6 +204,12 @@ local function headingTo(fromCoords, toCoords)
 end
 
 local function stopDrillPresentation()
+    -- Invalidate any dust worker belonging to the presentation being stopped.
+    -- A cancelled action can be followed by a new action before the old worker
+    -- wakes from Wait(); without a generation guard the old worker could keep
+    -- emitting dust against the new drill prop/target.
+    drillPresentationGeneration = drillPresentationGeneration + 1
+
     if activeMineSound then
         StopSound(activeMineSound)
         ReleaseSoundId(activeMineSound)
@@ -260,6 +267,10 @@ local function startDrillPresentation(ped, node)
 
     activeMineProp = prop
     activeMineTarget = node.target
+    drillPresentationGeneration = drillPresentationGeneration + 1
+    local presentationGeneration = drillPresentationGeneration
+    local presentationProp = prop
+    local presentationTarget = node.target
 
     if cfg.sound == true then
         local soundId = GetSoundId()
@@ -272,11 +283,13 @@ local function startDrillPresentation(ped, node)
             local ptfxOk = requestPtfxWithTimeout('core', timeoutMs)
             if not ptfxOk then return end
 
-            while busy and activeMineTarget and activeMineProp and DoesEntityExist(activeMineProp) do
+            while busy
+                and drillPresentationGeneration == presentationGeneration
+                and DoesEntityExist(presentationProp) do
                 UseParticleFxAssetNextCall('core')
                 StartParticleFxNonLoopedAtCoord(
                     'ent_dst_rocks',
-                    activeMineTarget.x, activeMineTarget.y, activeMineTarget.z,
+                    presentationTarget.x, presentationTarget.y, presentationTarget.z,
                     0.0, 0.0, GetEntityHeading(ped) - 180.0,
                     0.55,
                     false, false, false
@@ -284,7 +297,11 @@ local function startDrillPresentation(ped, node)
                 Wait(math.max(250, tonumber(cfg.dustIntervalMs) or 550))
             end
 
-            RemoveNamedPtfxAsset('core')
+            -- Do not unload the shared PTFX asset from an obsolete worker if a
+            -- newer drill presentation has already started and may be using it.
+            if drillPresentationGeneration == presentationGeneration then
+                RemoveNamedPtfxAsset('core')
+            end
         end)
     end
 

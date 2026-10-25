@@ -16,6 +16,7 @@ local activeMineSound = nil
 local activeMineTarget = nil
 local cancelCurrentAction = false
 local drillPresentationGeneration = 0
+local mineAccessCooldownUntil = 0
 
 local function clearRoute()
     if routeBlip and DoesBlipExist(routeBlip) then
@@ -78,11 +79,33 @@ local function findNode(nodeId)
     return nil
 end
 
+local function isInsideMine()
+    local ped = PlayerPedId()
+    local expectedId = Config.MineInterior and tonumber(Config.MineInterior.interiorId) or nil
+    if expectedId and expectedId > 0 and GetInteriorFromEntity(ped) == expectedId then
+        return true
+    end
+
+    -- Fallback for map variants where the interior id differs: once the ped is
+    -- well past the stock door and close to the known mine network, treat it
+    -- as inside for GPS guidance only.
+    local access = Config.MineAccess
+    if access and access.inside then
+        local inside = vector3(access.inside.x, access.inside.y, access.inside.z)
+        return #(GetEntityCoords(ped) - inside) < 180.0
+            and #(GetEntityCoords(ped) - Config.Foreman.coords) > 12.0
+    end
+
+    return false
+end
+
 local function updateGuidanceRoute()
     if not state.active then
         clearRoute()
         return
     end
+
+    local inside = isInsideMine()
 
     if (state.refinedCount or 0) > 0 and (state.rawOre or 0) <= 0 then
         setRoute(Config.Foreman.coords, '鉱山受付 / 買取')
@@ -90,7 +113,18 @@ local function updateGuidanceRoute()
     end
 
     if (state.rawOre or 0) >= (state.maxRawOre or Config.MaxRawOre) then
-        setRoute(Config.Processor.coords, '選鉱設備')
+        if inside and Config.MineAccess and Config.MineAccess.inside then
+            local p = Config.MineAccess.inside
+            setRoute(vector3(p.x, p.y, p.z), '坑道出口')
+        else
+            setRoute(Config.Processor.coords, '選鉱設備')
+        end
+        return
+    end
+
+    if not inside and Config.MineAccess and Config.MineAccess.outside then
+        local p = Config.MineAccess.outside
+        setRoute(vector3(p.x, p.y, p.z), '坑道入口')
         return
     end
 
@@ -164,6 +198,80 @@ local function createBlip()
     BeginTextCommandSetBlipName('STRING')
     AddTextComponentString(Config.Blip.label)
     EndTextCommandSetBlipName(blip)
+end
+
+local function requestMineIpls()
+    local interior = Config.MineInterior
+    if not interior or interior.enabled ~= true or type(interior.ipls) ~= 'table' then return end
+
+    for _, ipl in ipairs(interior.ipls) do
+        if type(ipl) == 'string' and ipl ~= '' then
+            RequestIpl(ipl)
+        end
+    end
+
+    if type(interior.anchor) == 'vector3' then
+        RequestCollisionAtCoord(interior.anchor.x, interior.anchor.y, interior.anchor.z)
+    end
+end
+
+local function transitionMineAccess(target)
+    if not target then return false end
+    if GetGameTimer() < mineAccessCooldownUntil then return false end
+
+    local ped = PlayerPedId()
+    if busy or IsEntityDead(ped) then return false end
+
+    mineAccessCooldownUntil = GetGameTimer() + math.max(
+        1000,
+        tonumber(Config.MineAccess and Config.MineAccess.transitionCooldownMs) or 1800
+    )
+
+    requestMineIpls()
+
+    DoScreenFadeOut(250)
+    local fadeDeadline = GetGameTimer() + 1000
+    while not IsScreenFadedOut() and GetGameTimer() < fadeDeadline do
+        Wait(0)
+    end
+
+    local destination = vector3(target.x, target.y, target.z)
+    FreezeEntityPosition(ped, true)
+    SetFocusPosAndVel(destination.x, destination.y, destination.z, 0.0, 0.0, 0.0)
+    RequestCollisionAtCoord(destination.x, destination.y, destination.z)
+
+    NewLoadSceneStartSphere(destination.x, destination.y, destination.z, 45.0, 0)
+    local loadDeadline = GetGameTimer() + 3500
+    while GetGameTimer() < loadDeadline do
+        RequestCollisionAtCoord(destination.x, destination.y, destination.z)
+        if IsNewLoadSceneLoaded() then break end
+        Wait(50)
+    end
+
+    local interiorId = GetInteriorAtCoords(destination.x, destination.y, destination.z)
+    if interiorId and interiorId ~= 0 then
+        PinInteriorInMemory(interiorId)
+        RefreshInterior(interiorId)
+    end
+
+    SetEntityCoordsNoOffset(ped, destination.x, destination.y, destination.z + 0.05, false, false, false)
+    SetEntityHeading(ped, tonumber(target.w) or GetEntityHeading(ped))
+
+    local collisionDeadline = GetGameTimer() + 2500
+    while GetGameTimer() < collisionDeadline do
+        RequestCollisionAtCoord(destination.x, destination.y, destination.z)
+        if HasCollisionLoadedAroundEntity(ped) then break end
+        Wait(50)
+    end
+
+    NewLoadSceneStop()
+    ClearFocus()
+    FreezeEntityPosition(ped, false)
+
+    updateGuidanceRoute()
+
+    DoScreenFadeIn(250)
+    return true
 end
 
 local function requestModelWithTimeout(model, timeoutMs)
@@ -519,10 +627,7 @@ RegisterNetEvent('flecity_mining:client:actionApproved', function(data)
 end)
 
 CreateThread(function()
-    if Config.MineInterior and Config.MineInterior.enabled == true and Config.MineInterior.ipl then
-        RequestIpl(Config.MineInterior.ipl)
-    end
-
+    requestMineIpls()
     createBlip()
 
     -- Preload presentation assets in parallel with the initial state sync so
@@ -566,21 +671,56 @@ CreateThread(function()
                     if not busy and IsControlJustReleased(0, 38) then
                         TriggerServerEvent('flecity_mining:server:beginSell')
                     end
-                else
+                elseif (state.rawOre or 0) <= 0 and Config.MineAccess and Config.MineAccess.inside then
                     draw3DText(
                         Config.Foreman.coords + vector3(0.0, 0.0, 1.0),
-                        '[E] 作業状況を確認  [G] 鉱山作業を終了'
+                        '[E] 坑道へ入る  [G] 鉱山作業を終了'
                     )
                     if not busy and IsControlJustReleased(0, 38) then
-                        showStatus()
+                        transitionMineAccess(Config.MineAccess.inside)
                     elseif not busy and IsControlJustReleased(0, 47) then
                         TriggerServerEvent('flecity_mining:server:endShift')
+                    end
+                else
+                    draw3DText(Config.Foreman.coords + vector3(0.0, 0.0, 1.0), '[E] 作業状況を確認')
+                    if not busy and IsControlJustReleased(0, 38) then
+                        showStatus()
                     end
                 end
             end
         end
 
         if state.active then
+            local access = Config.MineAccess
+            if access and access.inside then
+                local insideAccess = vector3(access.inside.x, access.inside.y, access.inside.z)
+                local accessDistance = #(coords - insideAccess)
+                local accessMarker = Config.Markers.access or Config.Markers.mine
+
+                if accessDistance <= (tonumber(access.markerDistance) or 8.0) then
+                    waitMs = 0
+
+                    if accessMarker and accessMarker.enabled ~= false then
+                        DrawMarker(
+                            accessMarker.type or 1,
+                            insideAccess.x, insideAccess.y, insideAccess.z - 0.9,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            accessMarker.scale.x, accessMarker.scale.y, accessMarker.scale.z,
+                            80, 150, 220, 120,
+                            false, false, 2, false, nil, nil, false
+                        )
+                    end
+
+                    if accessDistance <= (tonumber(access.interactDistance) or Config.InteractDistance)
+                        and GetGameTimer() >= mineAccessCooldownUntil then
+                        draw3DText(insideAccess + vector3(0.0, 0.0, 0.8), '[E] 坑道から出る')
+                        if not busy and IsControlJustReleased(0, 38) then
+                            transitionMineAccess(access.outside)
+                        end
+                    end
+                end
+            end
+
             local processorDistance = #(coords - Config.Processor.coords)
             local processorMarker = Config.Markers.processor
             if processorDistance <= (processorMarker.visibleDistance or Config.DrawDistance) then
@@ -675,13 +815,10 @@ RegisterCommand('mine_escape', function()
         Wait(100)
     end
 
-    local ped = PlayerPedId()
-    local safe = Config.Foreman.coords + vector3(0.0, 0.0, 0.75)
-    RequestCollisionAtCoord(safe.x, safe.y, safe.z)
-    SetEntityCoordsNoOffset(ped, safe.x, safe.y, safe.z, false, false, false)
-    FreezeEntityPosition(ped, false)
-    ClearPedTasksImmediately(ped)
-    notify('鉱山入口へ退避しました。')
+    if Config.MineAccess and Config.MineAccess.outside then
+        transitionMineAccess(Config.MineAccess.outside)
+        notify('鉱山入口へ退避しました。')
+    end
 end, false)
 
 RegisterCommand('mine_devpos', function()
@@ -726,13 +863,9 @@ AddEventHandler('onResourceStop', function(resource)
     end
     RemoveNamedPtfxAsset('core')
 
-    -- This resource explicitly requests the mine IPL at startup. Release that
-    -- request on stop so repeated development restarts do not leave the
-    -- interior pinned by flecity_mining after the resource is gone.
-    if Config.MineInterior and Config.MineInterior.enabled == true
-        and type(Config.MineInterior.ipl) == 'string' and Config.MineInterior.ipl ~= '' then
-        RemoveIpl(Config.MineInterior.ipl)
-    end
+    -- Do not RemoveIpl here. These map IPLs can be shared with another map/
+    -- interior resource; unloading them during a development restart could
+    -- break other resources that expect the mine to remain available.
 
     local ped = PlayerPedId()
     ClearPedTasksImmediately(ped)

@@ -55,9 +55,20 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
     end
 
     local price = math.max(0, math.floor(tonumber(Config.Price) or 0))
+    local paidWith = nil
+
     if price > 0 then
-        local paid = exports.qbx_core:RemoveMoney(source, Config.MoneyType or "cash", price, "puribooth-session")
-        if not paid then
+        for _, moneyType in ipairs(Config.PaymentMethods or { "cash", "bank" }) do
+            if moneyType == "cash" or moneyType == "bank" then
+                local paid = exports.qbx_core:RemoveMoney(source, moneyType, price, "puribooth-session")
+                if paid then
+                    paidWith = moneyType
+                    break
+                end
+            end
+        end
+
+        if not paidWith then
             notify(source, "error", ("料金 $%s を支払えませんでした。"):format(price))
             return
         end
@@ -66,7 +77,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
     sessions[boothId] = {
         owner = source,
         paid = price,
-        moneyType = Config.MoneyType or "cash",
+        moneyType = paidWith or "cash",
         capturing = false,
         expiresAt = os.time() + math.max(30, tonumber(Config.SessionTimeoutSeconds) or 120)
     }
@@ -109,6 +120,13 @@ RegisterNetEvent("puribooth:server:announceCountdown", function(boothId, shotInd
 
     shotIndex = math.max(1, math.min(tonumber(Config.ShotCount) or 4, math.floor(tonumber(shotIndex) or 1)))
     TriggerClientEvent("puribooth:client:countdown", -1, boothId, shotIndex)
+end)
+
+RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
+    local source = source
+    local session = sessions[boothId]
+    if not session or session.owner ~= source or not session.capturing then return end
+    releaseSession(boothId)
 end)
 
 RegisterNetEvent("puribooth:server:finishSession", function(boothId)

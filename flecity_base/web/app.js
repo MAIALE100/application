@@ -66,6 +66,7 @@ function modal(title, html, onSave){
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=html;
   const save=$("#modalSave");
+  save.style.display="";
   save.onclick=async (ev)=>{
     ev.preventDefault();
     save.disabled=true;
@@ -76,6 +77,14 @@ function modal(title, html, onSave){
       save.disabled=false;
     }
   };
+  d.showModal();
+}
+
+function viewModal(title, html){
+  const d=$("#modal");
+  $("#modalTitle").textContent=title;
+  $("#modalBody").innerHTML=html;
+  $("#modalSave").style.display="none";
   d.showModal();
 }
 
@@ -194,6 +203,7 @@ function renderStock(){
         <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="1">＋1</button>
         <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
         <button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
+        <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
       </div>
     </article>`;
   }).join(""):`<div class="empty">在庫品目はまだありません。</div>`);
@@ -220,6 +230,17 @@ function customStock(item){
 function configStock(item){
   modal("在庫設定",field("name","品名",item.name)+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number")}${field("unit","単位",item.unit)}</div>`,
     async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+}
+
+async function stockHistory(item){
+  const d=await api("stockHistory",{workspaceId:selectedWorkspaceId(),id:Number(item.id)});
+  const rows=d.history||[];
+  viewModal(item.name+" の履歴",rows.length?rows.map(h=>`
+    <article class="card">
+      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge">${esc(h.actor_citizenid)}</span></div>
+      <div class="muted">${esc(h.created_at||"")} ・ ${num(h.before_quantity).toLocaleString()} → ${num(h.after_quantity).toLocaleString()}</div>
+      ${h.note?`<pre class="note-body">${esc(h.note)}</pre>`:""}
+    </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');
 }
 
 function renderTasks(){
@@ -280,7 +301,7 @@ function renderMoney(){
     ${(state.money.entries||[]).length?(state.money.entries||[]).map(e=>`
       <article class="card">
         <div class="row between">
-          <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(e.created_at||"")}</div></div>
+          <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(e.created_at||"")} ・ ${esc(e.actor_citizenid||"")}</div></div>
           <span class="badge ${e.voided_at?"warn":e.entry_type==="income"?"good":"high"}">${e.voided_at?"取消済":e.entry_type==="income"?"収入":"支出"}</span>
         </div>
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
@@ -332,6 +353,7 @@ function bindContent(){
       else if(a==="stock-adjust") await adjustStock(state.stock.find(x=>Number(x.id)===id),Number(b.dataset.delta));
       else if(a==="stock-custom") customStock(state.stock.find(x=>Number(x.id)===id));
       else if(a==="stock-config") configStock(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="stock-history") await stockHistory(state.stock.find(x=>Number(x.id)===id));
       else if(a==="new-task") taskModal();
       else if(a==="task-edit") taskModal(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));

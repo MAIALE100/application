@@ -12,8 +12,9 @@ Config.DrawDistance = 18.0
 Config.InteractDistance = 2.2
 Config.ServerDistanceTolerance = 4.5
 
--- 原石バッグ容量
-Config.MaxRawOre = 12
+-- 原石は無制限に所持できます。
+-- 選鉱だけはサーバー負荷対策として1回あたりの処理上限を設けます。
+Config.ProcessingBatchSize = 100
 
 -- 同一採掘ポイントを再度掘れるまでの時間
 Config.NodeCooldownMs = 30000
@@ -35,12 +36,12 @@ Config.DrillVisuals = {
     enabled = true,
     model = 'hei_prop_heist_drill',
     animDict = 'anim@heists@fleeca_bank@drilling',
-    -- FiveM実運用例で使われているFleecaドリル姿勢。
-    animName = 'drill_left',
-    animFlags = 49,
+    -- QBCore/FiveMで広く使われているFleecaドリル姿勢。
+    animName = 'drill_straight_idle',
+    animFlags = 1,
     propBone = 57005,
-    propOffset = vector3(0.15, 0.0, -0.05),
-    propRotation = vector3(0.0, 90.0, 90.0),
+    propOffset = vector3(0.14, 0.0, -0.01),
+    propRotation = vector3(90.0, -90.0, 180.0),
     sound = true,
     dust = true,
     dustIntervalMs = 550,

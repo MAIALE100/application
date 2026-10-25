@@ -13,7 +13,7 @@ FlecityBaseConfig.App = {
     size = 25600,
     price = 0,
     ui = 'web/index.html',
-    icon = 'web/icon.webp',
+    icon = 'web/icon.svg',
     fixBlur = true
 }
 

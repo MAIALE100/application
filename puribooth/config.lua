@@ -31,6 +31,23 @@ Config.DefaultModel = "ch_prop_arcade_claw_01a"
 
 -- Geometry is relative to the booth heading, so admins can place a booth
 -- anywhere and the capture zone/camera follow its rotation automatically.
+Config.ThemeSurfaces = {
+    background = {
+        forward = 4.70,
+        right = 0.0,
+        bottomZ = 0.0,
+        width = 5.2,
+        height = 3.0
+    },
+    floor = {
+        forward = 3.20,
+        right = 0.0,
+        z = 0.035,
+        width = 4.6,
+        depth = 3.8
+    }
+}
+
 Config.Geometry = {
     captureForward = 3.20,
     captureRight = 0.0,

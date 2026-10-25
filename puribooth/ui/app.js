@@ -956,13 +956,21 @@
         const button = event.currentTarget
         button.disabled = true
         button.textContent = '書き出し中…'
+        const previousSelection = state.selectedDecoration
+
         try {
+            state.selectedDecoration = null
+            updateHistoryButtons()
             render()
+
             const image = canvas.toDataURL('image/jpeg', .92)
             const result = await post('puriboothFinish', { boothId: state.boothId, image })
             if (!result.ok) throw new Error(result.error || 'finish_failed')
             app.classList.add('hidden')
         } catch (error) {
+            state.selectedDecoration = previousSelection
+            updateHistoryButtons()
+            render()
             console.error('[puribooth] finish failed', error)
             toolStatus.textContent = '保存に失敗しました。もう一度お試しください。'
         } finally {

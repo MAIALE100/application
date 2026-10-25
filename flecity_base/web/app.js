@@ -16,6 +16,10 @@ const state = {
   taskFilter: "all",
   showCompleted: false,
   calculators: [],
+  moneyQuery: "",
+  moneyType: "all",
+  moneyCategory: "all",
+  showVoidedMoney: false,
   money: { entries: [], summary: { income: 0, expense: 0, balance: 0 } }
 };
 
@@ -237,6 +241,7 @@ function renderMemo(){
         </div>
         <pre class="note-body">${esc(n.body)}</pre>
         ${canManage()?`<div class="actions">
+          <button class="small" data-action="pin-note" data-id="${n.id}" data-pinned="${Number(n.pinned)===1?"0":"1"}">${Number(n.pinned)===1?"ピン解除":"ピン留め"}</button>
           <button class="small" data-action="edit-note" data-id="${n.id}">編集</button>
           <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
         </div>`:""}
@@ -317,7 +322,8 @@ function renderStock(){
         </div>
         <div class="actions">
           <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
-          ${canManage()?`<button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>`:""}
+          ${canManage()?`<button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
+          <button class="danger small" data-action="stock-delete" data-id="${i.id}">削除</button>`:""}
           <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
         </div>
       </article>`;
@@ -354,6 +360,17 @@ function customStock(item){
 function configStock(item){
   modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number")}${field("unit","単位",item.unit)}</div>`,
     async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+}
+
+function deleteStock(item){
+  modal("在庫品目を削除",
+    `<article class="card"><div class="card-title">${esc(item.name)}</div><div class="muted">この品目と入出庫履歴を削除します。この操作は取り消せません。</div></article>`+
+    field("confirm","確認のため品名を入力"),
+    async fd=>{
+      await api("stockDelete",{workspaceId:selectedWorkspaceId(),id:Number(item.id),confirmName:fd.get("confirm")});
+      await loadTab();
+      return true;
+    });
 }
 
 async function stockHistory(item){
@@ -413,7 +430,7 @@ function renderTasks(){
         </div>
         ${t.details?`<pre class="note-body">${esc(t.details)}</pre>`:""}
         <div class="actions">
-          ${canManage()||t.assignee_citizenid===myCid?`<button class="small" data-action="task-next" data-id="${t.id}">状態を進める</button>`:""}
+          ${canManage()||t.assignee_citizenid===myCid?`<button class="small" data-action="task-next" data-id="${t.id}">${t.status==="todo"?"開始":t.status==="doing"?"完了":"再開"}</button>`:""}
           ${canManage()?`<button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
           <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>`:""}
         </div>
@@ -454,6 +471,17 @@ async function nextTask(task){
 
 function renderMoney(){
   const s=state.money.summary||{};
+  const entries=state.money.entries||[];
+  const categories=[...new Set(entries.map(e=>String(e.category||"other")).filter(Boolean))].sort();
+  const query=state.moneyQuery.trim().toLowerCase();
+  const rows=entries.filter(e=>{
+    if(!state.showVoidedMoney&&e.voided_at) return false;
+    if(state.moneyType!=="all"&&e.entry_type!==state.moneyType) return false;
+    if(state.moneyCategory!=="all"&&String(e.category||"other")!==state.moneyCategory) return false;
+    if(!query) return true;
+    return [e.category,e.note,e.actor_citizenid,e.amount].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+
   $("#content").innerHTML=`
     <div class="row between"><h2>会計</h2><span class="row"><button class="secondary" data-action="money-calc">計算</button><button class="primary" data-action="new-money">＋ 記録</button></span></div>
     <div class="metric-grid">
@@ -461,16 +489,43 @@ function renderMoney(){
       <div class="metric"><span>収入</span><strong>${yen(s.income)}</strong></div>
       <div class="metric"><span>支出</span><strong>${yen(s.expense)}</strong></div>
     </div>
-    ${(state.money.entries||[]).length?(state.money.entries||[]).map(e=>`
-      <article class="card">
+    <div class="toolbar">
+      <input id="moneySearch" class="search-input" placeholder="会計を検索" value="${esc(state.moneyQuery)}">
+      <select id="moneyTypeFilter" class="compact-select">
+        <option value="all">収支すべて</option>
+        <option value="income" ${state.moneyType==="income"?"selected":""}>収入</option>
+        <option value="expense" ${state.moneyType==="expense"?"selected":""}>支出</option>
+      </select>
+      <select id="moneyCategoryFilter" class="compact-select">
+        <option value="all">カテゴリすべて</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.moneyCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+      <button id="toggleVoidedMoney" class="filter-chip ${state.showVoidedMoney?"active":""}">${state.showVoidedMoney?"取消済も表示":"取消済を隠す"}</button>
+    </div>
+    ${rows.length?rows.map(e=>`
+      <article class="card ${e.voided_at?"voided":""}">
         <div class="row between">
           <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(e.created_at||"")} ・ ${esc(e.actor_citizenid||"")}</div></div>
           <span class="badge ${e.voided_at?"warn":e.entry_type==="income"?"good":"high"}">${e.voided_at?"取消済":e.entry_type==="income"?"収入":"支出"}</span>
         </div>
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
         ${!e.voided_at&&canManage()?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
-      </article>`).join(""):'<div class="empty">会計記録はまだありません。</div>'}`;
+      </article>`).join(""):'<div class="empty">条件に合う会計記録はありません。</div>'}
+  `;
   bindContent();
+  $("#moneySearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.moneyQuery=e.target.value;
+    renderMoney();
+    const input=$("#moneySearch");
+    if(input){
+      input.focus();
+      input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));
+    }
+  };
+  $("#moneyTypeFilter").onchange=e=>{state.moneyType=e.target.value;renderMoney();};
+  $("#moneyCategoryFilter").onchange=e=>{state.moneyCategory=e.target.value;renderMoney();};
+  $("#toggleVoidedMoney").onclick=()=>{state.showVoidedMoney=!state.showVoidedMoney;renderMoney();};
 }
 
 function newMoney(){
@@ -859,7 +914,7 @@ function renderMembers(){
       </div>`:manager&&m.role==="member"?`<div class="actions"><button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button></div>`:""}
     </article>`).join("")}
 
-    ${Number(state.workspace.is_personal)!==1&&owner?`<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="rename-workspace">名前変更</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>`:""}
+    ${Number(state.workspace.is_personal)!==1&&owner?`<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="workspace-settings">設定</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>`:""}
     ${Number(state.workspace.is_personal)!==1&&!hasGlobalAccess()&&state.workspace.role!=="owner"?'<button class="danger" data-action="leave-workspace">このBASEから退出</button>':""}
   `;
   bindContent();
@@ -885,12 +940,31 @@ async function toggleSupport(enabled){
   else if(state.boot.workspaces[0]) await openWorkspace(Number(state.boot.workspaces[0].id));
 }
 
+function workspaceSettings(){
+  const type=String(state.workspace.workspace_type||"custom");
+  modal("BASE設定",
+    field("name","BASE名",state.workspace.name)+field("icon","アイコン",state.workspace.icon||"📁")+
+    `<div class="field"><label>種類</label><select name="type">
+      <option value="business" ${type==="business"?"selected":""}>企業</option>
+      <option value="crew" ${type==="crew"?"selected":""}>クルー</option>
+      <option value="team" ${type==="team"?"selected":""}>チーム</option>
+      <option value="project" ${type==="project"?"selected":""}>プロジェクト</option>
+      <option value="custom" ${type==="custom"?"selected":""}>カスタム</option>
+    </select></div>`,
+    async fd=>{
+      await api("workspaceSettings",{
+        workspaceId:selectedWorkspaceId(),
+        name:fd.get("name"),
+        icon:fd.get("icon"),
+        workspaceType:fd.get("type")
+      });
+      await bootstrap(selectedWorkspaceId());
+      return true;
+    });
+}
+
 function renameWorkspace(){
-  modal("BASE名を変更",field("name","BASE名",state.workspace.name),async fd=>{
-    await api("workspaceRename",{workspaceId:selectedWorkspaceId(),name:fd.get("name")});
-    await bootstrap(selectedWorkspaceId());
-    return true;
-  });
+  workspaceSettings();
 }
 
 function deleteWorkspace(){
@@ -920,12 +994,14 @@ function bindContent(){
     try{
       if(a==="new-note") noteModal();
       else if(a==="edit-note") noteModal(state.notes.find(x=>Number(x.id)===id));
+      else if(a==="pin-note"){await api("notePin",{workspaceId:selectedWorkspaceId(),id,pinned:b.dataset.pinned==="1"});await loadTab();}
       else if(a==="delete-note"){await api("noteDelete",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
       else if(a==="new-stock") newStock();
       else if(a==="stock-adjust") await adjustStock(state.stock.find(x=>Number(x.id)===id),Number(b.dataset.delta));
       else if(a==="stock-custom") customStock(state.stock.find(x=>Number(x.id)===id));
       else if(a==="stock-config") configStock(state.stock.find(x=>Number(x.id)===id));
       else if(a==="stock-history") await stockHistory(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="stock-delete") deleteStock(state.stock.find(x=>Number(x.id)===id));
       else if(a==="new-task") taskModal();
       else if(a==="task-edit") taskModal(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));
@@ -940,6 +1016,7 @@ function bindContent(){
       else if(a==="set-role") await setMemberRole(b.dataset.cid,b.dataset.role);
       else if(a==="toggle-support") await toggleSupport(b.dataset.enabled==="1");
       else if(a==="rename-workspace") renameWorkspace();
+      else if(a==="workspace-settings") workspaceSettings();
       else if(a==="delete-workspace") deleteWorkspace();
       else if(a==="leave-workspace"){await api("workspaceLeave",{workspaceId:selectedWorkspaceId()});state.workspace=null;await bootstrap();}
     }catch{}

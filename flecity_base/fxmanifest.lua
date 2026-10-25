@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Flecity'
 description 'BASE - shared workspace app for LB Phone'
-version '0.9.2-dev'
+version '0.9.3-dev'
 
 shared_script 'config.lua'
 

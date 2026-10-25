@@ -80,6 +80,16 @@ These checks can be completed by one tester on the test server.
 - Save calculator result directly to the ledger.
 - Calculator remains after `restart flecity_base`.
 
+## Workspace icon picker
+
+- New BASE creation shows categorized icon choices instead of a plain icon text field.
+- BASE settings uses the same icon picker.
+- 96 icon choices are available across work/business, team/crew, project, and other categories.
+- Selecting an icon updates the preview immediately.
+- The selected icon is saved and shown in the workspace pill and BASE information.
+- Existing custom icons that are not in the predefined list remain selectable and are not overwritten.
+- The icon list scrolls inside the modal without pushing the save/cancel actions off-screen.
+
 ## Guided first-use UI
 
 - Empty memo, stock, task, and accounting pages explain what to create first.

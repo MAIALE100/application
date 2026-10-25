@@ -1351,7 +1351,7 @@ body.party-round.party-shogi #miniShogiMeta{
   --party-round-top-clearance:max(4.85rem,calc(env(safe-area-inset-top,0rem) + 1.95rem));
 }
 
-body.party-room:not(.party-round){
+body.party-app:not(.party-round){
   padding-top:var(--party-lobby-top-clearance)!important;
 }
 
@@ -1386,4 +1386,8 @@ body.party-round .app-status{
   body.party-round.party-shogi #miniShogiPanel{
     margin-top:.65rem!important;
   }
+}
+
+body.party-app:not(.party-room) .app-status:not(.hidden){
+  margin-top:0;
 }

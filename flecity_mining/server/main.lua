@@ -109,9 +109,9 @@ local function validateRuntimeConfig()
     local drill = Config.DrillVisuals
     if type(drill) ~= 'table'
         or type(drill.model) ~= 'string' or drill.model == ''
-        or type(drill.animDict) ~= 'string' or drill.animDict == ''
-        or type(drill.startAnimName) ~= 'string' or drill.startAnimName == ''
-        or type(drill.idleAnimName) ~= 'string' or drill.idleAnimName == '' then
+        or drill.mode ~= 'scenario'
+        or type(drill.scenario) ~= 'string' or drill.scenario == ''
+        or type(drill.cleanupProps) ~= 'table' or #drill.cleanupProps == 0 then
         return false, 'invalid DrillVisuals config'
     end
 

@@ -201,11 +201,11 @@ RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
     CreateThread(function()
         Wait(500)
         exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
-            event = "boothImportAvailable"
+            action = "boothImportAvailable"
         })
         Wait(700)
         exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
-            event = "boothImportAvailable"
+            action = "boothImportAvailable"
         })
     end)
 end)

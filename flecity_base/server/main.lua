@@ -518,7 +518,7 @@ handlers.notesList = function(source, data)
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local rows = MySQL.query.await([[
-        SELECT id, author_citizenid, title, body, category, tags, pinned, created_at, updated_at
+        SELECT id, author_citizenid, author_name, title, body, category, tags, pinned, created_at, updated_at
         FROM flecity_base_notes
         WHERE workspace_id=? AND deleted_at IS NULL
         ORDER BY pinned DESC, updated_at DESC LIMIT 300
@@ -541,9 +541,10 @@ handlers.noteCreate = function(source, data)
     if category == '' then category = 'general' end
     if title == '' then return {ok=false, error='TITLE_REQUIRED'} end
     local id = MySQL.insert.await([[
-        INSERT INTO flecity_base_notes (workspace_id, author_citizenid, title, body, category, tags, pinned)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, ctx.citizenid, title, body, category, tags, data.pinned == true and 1 or 0})
+        INSERT INTO flecity_base_notes
+        (workspace_id, author_citizenid, author_name, title, body, category, tags, pinned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, ctx.citizenid, ctx.name, title, body, category, tags, data.pinned == true and 1 or 0})
     return {ok=id ~= nil, id=tonumber(id)}
 end
 
@@ -601,12 +602,12 @@ handlers.stockList = function(source, data)
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local items = MySQL.query.await([[
-        SELECT id, name, category, quantity, minimum_quantity, unit, created_by, created_at, updated_at
+        SELECT id, name, category, quantity, minimum_quantity, unit, created_by, created_by_name, created_at, updated_at
         FROM flecity_base_stock_items
         WHERE workspace_id=? ORDER BY category ASC, name ASC
     ]], {workspace.id}) or {}
     local recent = MySQL.query.await([[
-        SELECT m.id, m.item_id, i.name AS item_name, i.unit, m.actor_citizenid,
+        SELECT m.id, m.item_id, i.name AS item_name, i.unit, m.actor_citizenid, m.actor_name,
                m.delta, m.before_quantity, m.after_quantity, m.note, m.created_at
         FROM flecity_base_stock_movements m
         JOIN flecity_base_stock_items i ON i.id=m.item_id
@@ -630,7 +631,7 @@ handlers.stockHistory = function(source, data)
     ) or 0) > 0
     if not exists then return {ok=false, error='ITEM_NOT_FOUND'} end
     local rows = MySQL.query.await([[
-        SELECT id, actor_citizenid, delta, before_quantity, after_quantity, note, created_at
+        SELECT id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note, created_at
         FROM flecity_base_stock_movements
         WHERE workspace_id=? AND item_id=?
         ORDER BY created_at DESC, id DESC
@@ -657,15 +658,15 @@ handlers.stockCreate = function(source, data)
     if unit == '' then unit = '個' end
     local id = MySQL.insert.await([[
         INSERT INTO flecity_base_stock_items
-        (workspace_id, name, category, quantity, minimum_quantity, unit, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, name, category, quantity, minimum, unit, ctx.citizenid})
+        (workspace_id, name, category, quantity, minimum_quantity, unit, created_by, created_by_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, name, category, quantity, minimum, unit, ctx.citizenid, ctx.name})
     if id and quantity ~= 0 then
         MySQL.insert.await([[
             INSERT INTO flecity_base_stock_movements
-            (workspace_id, item_id, actor_citizenid, delta, before_quantity, after_quantity, note)
-            VALUES (?, ?, ?, ?, 0, ?, '初期在庫')
-        ]], {workspace.id, id, ctx.citizenid, quantity, quantity})
+            (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
+            VALUES (?, ?, ?, ?, ?, 0, ?, '初期在庫')
+        ]], {workspace.id, id, ctx.citizenid, ctx.name, quantity, quantity})
     end
     return {ok=id ~= nil, id=tonumber(id)}
 end
@@ -694,9 +695,9 @@ handlers.stockAdjust = function(source, data)
     if (tonumber(changed) or 0) == 0 then return {ok=false, error='STOCK_CHANGED_RETRY'} end
     MySQL.insert.await([[
         INSERT INTO flecity_base_stock_movements
-        (workspace_id, item_id, actor_citizenid, delta, before_quantity, after_quantity, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, item.id, ctx.citizenid, actual, before, after, clean(data.note, L.shortText)})
+        (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, item.id, ctx.citizenid, ctx.name, actual, before, after, clean(data.note, L.shortText)})
     return {ok=true, quantity=after, delta=actual}
 end
 
@@ -761,7 +762,7 @@ handlers.tasksList = function(source, data)
     if not workspace then return accessErr end
     local tasks = MySQL.query.await([[
         SELECT t.id, t.title, t.details, t.status, t.priority, t.assignee_citizenid,
-               t.due_at, t.created_by, t.created_at, t.updated_at, t.completed_at,
+               t.due_at, t.created_by, t.created_by_name, t.created_at, t.updated_at, t.completed_at,
                m.display_name AS assignee_name
         FROM flecity_base_tasks t
         LEFT JOIN flecity_base_members m
@@ -793,9 +794,9 @@ handlers.taskCreate = function(source, data)
     if dueAt == '' then dueAt = nil end
     local id = MySQL.insert.await([[
         INSERT INTO flecity_base_tasks
-        (workspace_id, title, details, status, priority, assignee_citizenid, due_at, created_by)
-        VALUES (?, ?, ?, 'todo', ?, ?, ?, ?)
-    ]], {workspace.id, title, details, priority, checked, dueAt, ctx.citizenid})
+        (workspace_id, title, details, status, priority, assignee_citizenid, due_at, created_by, created_by_name)
+        VALUES (?, ?, ?, 'todo', ?, ?, ?, ?, ?)
+    ]], {workspace.id, title, details, priority, checked, dueAt, ctx.citizenid, ctx.name})
     return {ok=id ~= nil, id=tonumber(id)}
 end
 
@@ -1041,7 +1042,7 @@ handlers.moneyList = function(source, data)
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local entries = MySQL.query.await([[
-        SELECT id, entry_type, amount, category, note, actor_citizenid, created_at, voided_at, voided_by
+        SELECT id, entry_type, amount, category, note, actor_citizenid, actor_name, created_at, voided_at, voided_by
         FROM flecity_base_ledger
         WHERE workspace_id=?
         ORDER BY created_at DESC, id DESC LIMIT ?
@@ -1070,9 +1071,9 @@ handlers.moneyAdd = function(source, data)
     if category == '' then category = 'other' end
     local id = MySQL.insert.await([[
         INSERT INTO flecity_base_ledger
-        (workspace_id, entry_type, amount, category, note, actor_citizenid)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, entryType, amount, category, clean(data.note, L.shortText), ctx.citizenid})
+        (workspace_id, entry_type, amount, category, note, actor_citizenid, actor_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, entryType, amount, category, clean(data.note, L.shortText), ctx.citizenid, ctx.name})
     return {ok=id ~= nil, id=tonumber(id)}
 end
 

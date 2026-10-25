@@ -965,7 +965,8 @@ function renderRoom(room,timing){
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
    const activeGame=selectedGameConfig(room);
-   roundHudGame.textContent=String(activeGame&&activeGame.name||room.selectedGame||'ゲーム');
+   const roundName=rs&&rs.gameId==='draw'?'お絵かき当て':(rs&&rs.gameId==='telephone'?'お絵かき伝言':String(activeGame&&activeGame.name||room.selectedGame||'ゲーム'));
+   roundHudGame.textContent=roundName;
    lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));
    startDeadlineLoop(rs);
    if(rs&&rs.gameId==='code_break')setupCodeBreak(room);

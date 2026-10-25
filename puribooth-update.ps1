@@ -1,5 +1,6 @@
 param(
-    [string]$ServerBase = "D:\FiveM_Test_Server\txData\Qbox_D233FD.base"
+    [string]$ServerBase = "D:\FiveM_Test_Server\txData\Qbox_D233FD.base",
+    [switch]$BoothOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,32 +41,35 @@ Invoke-Step "Removing duplicate PuriPhoto resource" {
     }
 }
 
-Invoke-Step "Checking Node.js" {
-    $npm = Get-Command npm -ErrorAction SilentlyContinue
-    if (-not $npm) { throw "npm was not found. Install Node.js or add npm to PATH." }
-    node --version
-    npm --version
-}
-
-Invoke-Step "Building PuriPhoto UI" {
-    Push-Location (Join-Path $PuriSource "ui")
-    try {
-        # PuriPhoto inherited an older template lock file that can temporarily
-        # drift from package.json. Prefer npm ci when possible, but repair the
-        # local lock/dependencies automatically instead of stopping the deploy.
-        npm ci --no-audit --no-fund
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "npm ci could not use the current lock file. Repairing dependencies with npm install."
-            npm install --no-audit --no-fund
-            if ($LASTEXITCODE -ne 0) { throw "npm dependency install failed" }
+if (-not $BoothOnly) {
+    Invoke-Step "Checking Node.js" {
+        $npm = Get-Command npm -ErrorAction SilentlyContinue
+        if (-not $npm) { throw "npm was not found. Install Node.js or add npm to PATH." }
+        node --version
+        npm --version
+    }
+    
+    Invoke-Step "Building PuriPhoto UI" {
+        Push-Location (Join-Path $PuriSource "ui")
+        try {
+            # PuriPhoto inherited an older template lock file that can temporarily
+            # drift from package.json. Prefer npm ci when possible, but repair the
+            # local lock/dependencies automatically instead of stopping the deploy.
+            npm ci --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "npm ci could not use the current lock file. Repairing dependencies with npm install."
+                npm install --no-audit --no-fund
+                if ($LASTEXITCODE -ne 0) { throw "npm dependency install failed" }
+            }
+    
+            npm run build
+            if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
         }
-
-        npm run build
-        if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
+        finally {
+            Pop-Location
+        }
     }
-    finally {
-        Pop-Location
-    }
+    
 }
 
 Invoke-Step "Validating booth JavaScript" {
@@ -86,10 +90,12 @@ Invoke-Step "Checking screenshot-basic" {
     }
 }
 
-Invoke-Step "Deploying PuriPhoto" {
-    [System.IO.Directory]::CreateDirectory($PuriTarget) | Out-Null
-    robocopy $PuriSource $PuriTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
-    if ($LASTEXITCODE -gt 7) { throw "PuriPhoto deploy failed (robocopy=$LASTEXITCODE)" }
+if (-not $BoothOnly) {
+    Invoke-Step "Deploying PuriPhoto" {
+        [System.IO.Directory]::CreateDirectory($PuriTarget) | Out-Null
+        robocopy $PuriSource $PuriTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
+        if ($LASTEXITCODE -gt 7) { throw "PuriPhoto deploy failed (robocopy=$LASTEXITCODE)" }
+    }
 }
 
 Invoke-Step "Deploying PuriBooth" {
@@ -118,8 +124,8 @@ Write-Host ""
 Write-Host "PuriBooth development build deployed." -ForegroundColor Green
 Write-Host "Run these in txAdmin:" -ForegroundColor Yellow
 Write-Host "    refresh"
-Write-Host "    restart puriphoto"
-Write-Host "    ensure puribooth"
+if (-not $BoothOnly) { Write-Host "    restart puriphoto" }
+Write-Host "    restart puribooth"
 Write-Host "    puribooth_selftest"
 Write-Host ""
 Write-Host "Admin placement commands:" -ForegroundColor Yellow

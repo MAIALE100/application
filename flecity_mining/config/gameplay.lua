@@ -31,7 +31,7 @@ Config.RawYield = {
 }
 
 -- 壁面ドリル演出。
--- FiveM標準のFleecaドリルprop/animationを使うため、追加assetは不要です。
+-- GTA V標準の建設ドリルscenarioを使うため、追加assetは不要です。
 Config.DrillVisuals = {
     enabled = true,
     mode = 'scenario',
@@ -48,7 +48,8 @@ Config.DrillVisuals = {
 
     sound = true,
     dust = true,
-    dustIntervalMs = 550,
+    dustIntervalMs = 700,
+    dustScale = 0.20,
     loadTimeoutMs = 3000,
 }
 

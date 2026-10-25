@@ -23,6 +23,26 @@ try {
         throw "Update script was not found: $UpdateScript"
     }
 
+    Step 'Checking PowerShell syntax'
+
+    $tokens = $null
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile(
+        $UpdateScript,
+        [ref]$tokens,
+        [ref]$parseErrors
+    )
+
+    if ($parseErrors -and $parseErrors.Count -gt 0) {
+        $details = ($parseErrors | ForEach-Object {
+            'line {0}: {1}' -f $_.Extent.StartLineNumber, $_.Message
+        }) -join '; '
+
+        throw ("mining-update.ps1 syntax check failed: " + $details)
+    }
+
+    Write-Host 'PowerShell syntax: PASS' -ForegroundColor Green
+
     Step 'Updating and deploying mining build'
 
     $args = @(

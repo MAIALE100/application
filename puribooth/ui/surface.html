@@ -33,28 +33,40 @@ background-size:110px 110px}
 <script>
 (() => {
     const surface = document.getElementById('surface')
-    const params = new URLSearchParams(location.search)
-    const preset = (params.get('preset') || 'pink').toLowerCase()
-    const raw = params.get('url') || ''
+    const allowed = new Set(['pink','white','black','y2k','hearts','none'])
 
     const safeUrl = value => {
         try {
-            const u = new URL(value)
+            if (!value) return ''
+            const u = new URL(String(value))
             return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : ''
         } catch {
             return ''
         }
     }
 
-    const imageUrl = safeUrl(raw)
-    if (imageUrl) {
-        surface.style.backgroundImage = `url("${imageUrl.replace(/"/g, '%22')}")`
-        surface.style.backgroundColor = '#fff'
-        return
+    const apply = payload => {
+        const presetRaw = String(payload?.preset || 'pink').toLowerCase()
+        const preset = allowed.has(presetRaw) ? presetRaw : 'pink'
+        const imageUrl = safeUrl(payload?.url)
+
+        surface.className = preset
+        surface.style.backgroundImage = ''
+
+        if (imageUrl) {
+            surface.className = ''
+            surface.style.backgroundImage = `url("${imageUrl.replace(/"/g, '%22')}")`
+            surface.style.backgroundColor = '#fff'
+        }
     }
 
-    const allowed = new Set(['pink','white','black','y2k','hearts','none'])
-    surface.className = allowed.has(preset) ? preset : 'pink'
+    window.addEventListener('message', event => {
+        const data = event.data
+        if (!data || data.action !== 'setSurface') return
+        apply(data)
+    })
+
+    apply({ preset: 'pink', url: '' })
 })()
 </script>
 </body>

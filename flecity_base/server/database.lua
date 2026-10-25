@@ -47,6 +47,7 @@ local schema = {
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     workspace_id BIGINT UNSIGNED NOT NULL,
     author_citizenid VARCHAR(64) NOT NULL,
+    author_name VARCHAR(120) NOT NULL DEFAULT '',
     title VARCHAR(120) NOT NULL,
     body TEXT NOT NULL,
     category VARCHAR(64) NOT NULL DEFAULT 'general',
@@ -70,6 +71,7 @@ local schema = {
     minimum_quantity INT NOT NULL DEFAULT 0,
     unit VARCHAR(32) NOT NULL DEFAULT '個',
     created_by VARCHAR(64) NOT NULL,
+    created_by_name VARCHAR(120) NOT NULL DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -83,6 +85,7 @@ local schema = {
     workspace_id BIGINT UNSIGNED NOT NULL,
     item_id BIGINT UNSIGNED NOT NULL,
     actor_citizenid VARCHAR(64) NOT NULL,
+    actor_name VARCHAR(120) NOT NULL DEFAULT '',
     delta INT NOT NULL,
     before_quantity INT NOT NULL,
     after_quantity INT NOT NULL,
@@ -107,6 +110,7 @@ local schema = {
     assignee_citizenid VARCHAR(64) NULL,
     due_at DATETIME NULL,
     created_by VARCHAR(64) NOT NULL,
+    created_by_name VARCHAR(120) NOT NULL DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at DATETIME NULL,
@@ -125,6 +129,7 @@ local schema = {
     category VARCHAR(64) NOT NULL DEFAULT 'other',
     note VARCHAR(180) NULL,
     actor_citizenid VARCHAR(64) NOT NULL,
+    actor_name VARCHAR(120) NOT NULL DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     voided_at DATETIME NULL,
     voided_by VARCHAR(64) NULL,
@@ -183,6 +188,31 @@ local columnMigrations = {
         tableName = 'flecity_base_stock_items',
         columnName = 'category',
         sql = "ALTER TABLE flecity_base_stock_items ADD COLUMN category VARCHAR(64) NOT NULL DEFAULT 'general' AFTER name"
+    },
+    {
+        tableName = 'flecity_base_notes',
+        columnName = 'author_name',
+        sql = "ALTER TABLE flecity_base_notes ADD COLUMN author_name VARCHAR(120) NOT NULL DEFAULT '' AFTER author_citizenid"
+    },
+    {
+        tableName = 'flecity_base_stock_items',
+        columnName = 'created_by_name',
+        sql = "ALTER TABLE flecity_base_stock_items ADD COLUMN created_by_name VARCHAR(120) NOT NULL DEFAULT '' AFTER created_by"
+    },
+    {
+        tableName = 'flecity_base_stock_movements',
+        columnName = 'actor_name',
+        sql = "ALTER TABLE flecity_base_stock_movements ADD COLUMN actor_name VARCHAR(120) NOT NULL DEFAULT '' AFTER actor_citizenid"
+    },
+    {
+        tableName = 'flecity_base_tasks',
+        columnName = 'created_by_name',
+        sql = "ALTER TABLE flecity_base_tasks ADD COLUMN created_by_name VARCHAR(120) NOT NULL DEFAULT '' AFTER created_by"
+    },
+    {
+        tableName = 'flecity_base_ledger',
+        columnName = 'actor_name',
+        sql = "ALTER TABLE flecity_base_ledger ADD COLUMN actor_name VARCHAR(120) NOT NULL DEFAULT '' AFTER actor_citizenid"
     }
 }
 
@@ -204,6 +234,41 @@ function FlecityBaseDatabase.Ensure()
                 print(('[BASE] database migration added %s.%s'):format(migration.tableName, migration.columnName))
             end
         end
+        MySQL.query.await([[
+            UPDATE flecity_base_notes n
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=n.workspace_id AND m.citizenid=n.author_citizenid
+            SET n.author_name=COALESCE(NULLIF(m.display_name,''), n.author_citizenid)
+            WHERE n.author_name=''
+        ]])
+        MySQL.query.await([[
+            UPDATE flecity_base_stock_items i
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=i.workspace_id AND m.citizenid=i.created_by
+            SET i.created_by_name=COALESCE(NULLIF(m.display_name,''), i.created_by)
+            WHERE i.created_by_name=''
+        ]])
+        MySQL.query.await([[
+            UPDATE flecity_base_stock_movements sm
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=sm.workspace_id AND m.citizenid=sm.actor_citizenid
+            SET sm.actor_name=COALESCE(NULLIF(m.display_name,''), sm.actor_citizenid)
+            WHERE sm.actor_name=''
+        ]])
+        MySQL.query.await([[
+            UPDATE flecity_base_tasks t
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=t.workspace_id AND m.citizenid=t.created_by
+            SET t.created_by_name=COALESCE(NULLIF(m.display_name,''), t.created_by)
+            WHERE t.created_by_name=''
+        ]])
+        MySQL.query.await([[
+            UPDATE flecity_base_ledger l
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=l.workspace_id AND m.citizenid=l.actor_citizenid
+            SET l.actor_name=COALESCE(NULLIF(m.display_name,''), l.actor_citizenid)
+            WHERE l.actor_name=''
+        ]])
     end)
     if not ok then
         print(('[BASE] database bootstrap failed: %s'):format(tostring(err)))

@@ -4,14 +4,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Step([string]$Message){
+function Step([string]$Message) {
     Write-Host ''
     Write-Host ('==> ' + $Message) -ForegroundColor Cyan
 }
 
-function Find-LBPhoneConfig([string]$Base){
+function Find-LBPhoneConfig([string]$Base) {
     $resources = Join-Path $Base 'resources'
-    if(-not (Test-Path -LiteralPath $resources)){
+    if (-not (Test-Path -LiteralPath $resources)) {
         throw "FiveM resources folder not found: $resources"
     }
 
@@ -20,16 +20,20 @@ function Find-LBPhoneConfig([string]$Base){
         (Join-Path $resources 'lb-phone\config\config.lua')
     )
 
-    foreach($candidate in $candidates){
-        if(Test-Path -LiteralPath $candidate){ return $candidate }
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
     }
 
     $resourceDirs = Get-ChildItem -LiteralPath $resources -Directory -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -eq 'lb-phone' }
 
-    foreach($dir in $resourceDirs){
+    foreach ($dir in $resourceDirs) {
         $candidate = Join-Path $dir.FullName 'config\config.lua'
-        if(Test-Path -LiteralPath $candidate){ return $candidate }
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
     }
 
     throw "lb-phone config.lua was not found under: $resources"
@@ -37,6 +41,7 @@ function Find-LBPhoneConfig([string]$Base){
 
 try {
     Step 'Checking LB Phone external gallery settings'
+
     $configPath = Find-LBPhoneConfig $ServerBase
     Write-Host ("LB Phone config: {0}" -f $configPath) -ForegroundColor DarkGray
 
@@ -44,111 +49,124 @@ try {
     $updated = $original
     $changed = $false
 
+    # 1) Enable external gallery imports.
     $allowPattern = '(?s)(Config\.AllowExternal\s*=\s*\{)(.*?)(\r?\n\})'
-    $allowMatch = [regex]::Match($updated,$allowPattern)
-    if(-not $allowMatch.Success){
+    $allowMatch = [regex]::Match($updated, $allowPattern)
+    if (-not $allowMatch.Success) {
         throw 'Config.AllowExternal block was not found. No changes were written.'
     }
 
     $allowBody = $allowMatch.Groups[2].Value
-    if($allowBody -match '(?m)^\s*Gallery\s*=\s*false\s*,?'){
-        $newBody = [regex]::Replace(
+    if ($allowBody -match '(?m)^\s*Gallery\s*=\s*false\s*,?') {
+        $newAllowBody = [regex]::Replace(
             $allowBody,
             '(?m)^(\s*Gallery\s*=\s*)false(\s*,?)',
             '$1true$2',
             1
         )
-        $updated = $updated.Substring(0,$allowMatch.Groups[2].Index) + $newBody + $updated.Substring($allowMatch.Groups[2].Index + $allowMatch.Groups[2].Length)
+
+        $updated =
+            $updated.Substring(0, $allowMatch.Groups[2].Index) +
+            $newAllowBody +
+            $updated.Substring($allowMatch.Groups[2].Index + $allowMatch.Groups[2].Length)
+
         $changed = $true
         Write-Host 'External Gallery imports: ENABLED' -ForegroundColor Green
-    } elseif($allowBody -match '(?m)^\s*Gallery\s*=\s*true\s*,?'){
+    }
+    elseif ($allowBody -match '(?m)^\s*Gallery\s*=\s*true\s*,?') {
         Write-Host 'External Gallery imports: already enabled' -ForegroundColor Green
-    } else {
+    }
+    else {
         throw 'Config.AllowExternal.Gallery was not found. No changes were written.'
     }
 
-    $domainPattern = '(?s)(Config\.ExternalWhitelistedDomains\s*=\s*\{)(.*?)(\r?\n\})'
-    $domainMatch = [regex]::Match($updated,$domainPattern)
-    if(-not $domainMatch.Success){
+    # 2) Add gifyu.com to the whitelist.
+    $whitelistPattern = '(?s)(Config\.ExternalWhitelistedDomains\s*=\s*\{)(.*?)(\r?\n\})'
+    $whitelistMatch = [regex]::Match($updated, $whitelistPattern)
+    if (-not $whitelistMatch.Success) {
         throw 'Config.ExternalWhitelistedDomains block was not found. No changes were written.'
     }
 
-    $domainBody = $domainMatch.Groups[2].Value
-    if($domainBody -notmatch '["'']gifyu\.com["'']'){
-        $insertion = [Environment]::NewLine + '    "gifyu.com",'
-        $newBody = $domainBody + $insertion
-        $updated = $updated.Substring(0,$domainMatch.Groups[2].Index) + $newBody + $updated.Substring($domainMatch.Groups[2].Index + $domainMatch.Groups[2].Length)
+    $whitelistBody = $whitelistMatch.Groups[2].Value
+    if ($whitelistBody -notmatch '"gifyu\.com"') {
+        $newWhitelistBody = $whitelistBody + [Environment]::NewLine + '    "gifyu.com",'
+
+        $updated =
+            $updated.Substring(0, $whitelistMatch.Groups[2].Index) +
+            $newWhitelistBody +
+            $updated.Substring($whitelistMatch.Groups[2].Index + $whitelistMatch.Groups[2].Length)
+
         $changed = $true
-        Write-Host 'External image domain: added gifyu.com (includes subdomains)' -ForegroundColor Green
-    } else {
-        Write-Host 'External image domain: gifyu.com already allowed' -ForegroundColor Green
+        Write-Host 'External image whitelist: added gifyu.com' -ForegroundColor Green
+    }
+    else {
+        Write-Host 'External image whitelist: gifyu.com already allowed' -ForegroundColor Green
     }
 
+    # 3) Remove gifyu.com from the blacklist if present.
     $blacklistPattern = '(?s)(Config\.ExternalBlacklistedDomains\s*=\s*\{)(.*?)(\r?\n\})'
-    $blacklistMatch = [regex]::Match($updated,$blacklistPattern)
-    if($blacklistMatch.Success){
+    $blacklistMatch = [regex]::Match($updated, $blacklistPattern)
+
+    if ($blacklistMatch.Success) {
         $blacklistBody = $blacklistMatch.Groups[2].Value
-        if($blacklistBody -match '["'']gifyu\.com["'']'){
+
+        if ($blacklistBody -match '"gifyu\.com"') {
             $newBlacklistBody = [regex]::Replace(
                 $blacklistBody,
-                '(?m)^\s*["'']gifyu\.com["'']\s*,?\s*
-        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-        $backup = "$configPath.gifyu-backup-$stamp"
-        Copy-Item -LiteralPath $configPath -Destination $backup -Force
-
-        [IO.File]::WriteAllText($configPath,$updated,[Text.UTF8Encoding]::new($false))
-
-        $verify = [IO.File]::ReadAllText($configPath)
-        $galleryOk = $verify -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
-        $domainOk = $verify -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?["'']gifyu\.com["'']'
-        $blacklistOk = -not ($verify -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?["'']gifyu\.com["''].*?\}')
-
-        if(-not ($galleryOk -and $domainOk -and $blacklistOk)){
-            Copy-Item -LiteralPath $backup -Destination $configPath -Force
-            throw "Verification failed. Original config restored from: $backup"
-        }
-
-        Write-Host ''
-        Write-Host 'LB Phone Gifyu support updated successfully.' -ForegroundColor Green
-        Write-Host ("Backup: {0}" -f $backup) -ForegroundColor DarkGray
-        Write-Host 'Run this once in txAdmin:' -ForegroundColor Yellow
-        Write-Host '    restart lb-phone' -ForegroundColor White
-    } else {
-        Write-Host ''
-        Write-Host 'LB Phone Gifyu support is already configured.' -ForegroundColor Green
-    }
-
-    exit 0
-}
-catch {
-    Write-Host ''
-    Write-Host ('LB PHONE GIFYU FIX FAILED: ' + $_.Exception.Message) -ForegroundColor Red
-    Write-Host 'No automatic restart was attempted.' -ForegroundColor Yellow
-    exit 1
-}
-,
+                '(?m)^\s*"gifyu\.com"\s*,?\s*\r?\n?',
                 ''
             )
-            $updated = $updated.Substring(0,$blacklistMatch.Groups[2].Index) + $newBlacklistBody + $updated.Substring($blacklistMatch.Groups[2].Index + $blacklistMatch.Groups[2].Length)
+
+            $updated =
+                $updated.Substring(0, $blacklistMatch.Groups[2].Index) +
+                $newBlacklistBody +
+                $updated.Substring($blacklistMatch.Groups[2].Index + $blacklistMatch.Groups[2].Length)
+
             $changed = $true
             Write-Host 'External image blacklist: removed gifyu.com' -ForegroundColor Green
         }
+        else {
+            Write-Host 'External image blacklist: gifyu.com is not blocked' -ForegroundColor Green
+        }
+    }
+    else {
+        Write-Host 'External image blacklist: block not present; nothing to remove' -ForegroundColor DarkGray
     }
 
-    if($changed){
+    # 4) Verify the generated config in memory before touching the file.
+    $galleryOk = $updated -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
+    $whitelistOk = $updated -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+    $blacklistStillContainsGifyu =
+        $updated -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+
+    if (-not $galleryOk) {
+        throw 'Verification failed: Gallery external imports are not enabled.'
+    }
+    if (-not $whitelistOk) {
+        throw 'Verification failed: gifyu.com is not present in the whitelist.'
+    }
+    if ($blacklistStillContainsGifyu) {
+        throw 'Verification failed: gifyu.com is still present in the blacklist.'
+    }
+
+    if ($changed) {
         $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
         $backup = "$configPath.gifyu-backup-$stamp"
+
         Copy-Item -LiteralPath $configPath -Destination $backup -Force
+        [IO.File]::WriteAllText($configPath, $updated, [Text.UTF8Encoding]::new($false))
 
-        [IO.File]::WriteAllText($configPath,$updated,[Text.UTF8Encoding]::new($false))
+        $written = [IO.File]::ReadAllText($configPath)
+        $writtenGalleryOk =
+            $written -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
+        $writtenWhitelistOk =
+            $written -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+        $writtenBlacklistBad =
+            $written -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
 
-        $verify = [IO.File]::ReadAllText($configPath)
-        $galleryOk = $verify -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
-        $domainOk = $verify -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?["'']gifyu\.com["'']'
-
-        if(-not ($galleryOk -and $domainOk)){
+        if (-not $writtenGalleryOk -or -not $writtenWhitelistOk -or $writtenBlacklistBad) {
             Copy-Item -LiteralPath $backup -Destination $configPath -Force
-            throw "Verification failed. Original config restored from: $backup"
+            throw "Written config verification failed. Original config restored from: $backup"
         }
 
         Write-Host ''
@@ -156,7 +174,8 @@ catch {
         Write-Host ("Backup: {0}" -f $backup) -ForegroundColor DarkGray
         Write-Host 'Run this once in txAdmin:' -ForegroundColor Yellow
         Write-Host '    restart lb-phone' -ForegroundColor White
-    } else {
+    }
+    else {
         Write-Host ''
         Write-Host 'LB Phone Gifyu support is already configured.' -ForegroundColor Green
     }

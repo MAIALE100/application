@@ -1771,3 +1771,94 @@ body.party-app .drawing-mode-card.selected:disabled{
   .drawing-mode-grid{grid-template-columns:1fr}
   body.party-app .drawing-mode-card{min-height:4.55rem}
 }
+
+
+/* LINK game-surface palette: keep gameplay surfaces neutral, never orange */
+body.party-app .mastermind-board{
+  background:linear-gradient(145deg,#536b7d,#405566);
+  border-color:#71889a;
+  box-shadow:inset 0 0 0 .12rem rgba(255,255,255,.05),0 .35rem .8rem rgba(64,83,98,.16);
+}
+body.party-app .mastermind-board::before{border-color:rgba(226,240,248,.16)}
+body.party-app .mastermind-secret{border-bottom-color:rgba(226,240,248,.18)}
+body.party-app .mastermind-secret>span,
+body.party-app .mastermind-current-label,
+body.party-app .mastermind-history-label{color:#e7f0f5}
+body.party-app .code-break-current{background:rgba(34,54,68,.38);border-color:rgba(225,239,247,.14)}
+body.party-app .code-break-row{background:rgba(30,48,62,.3);border-color:rgba(226,240,248,.1)}
+
+body.party-app .mini-shogi-board{
+  background:#8a7d63;
+  border-color:#a99a7e;
+}
+body.party-app .mini-shogi-cell,
+body.party-app .mini-shogi-cell:disabled{
+  background:#d8caa8!important;
+  color:#2d2a24!important;
+  border:0!important;
+  box-shadow:inset 0 0 0 .045rem rgba(78,71,57,.42)!important;
+  filter:none!important;
+}
+body.party-app .mini-shogi-cell.legal{
+  background:#c8d9dd!important;
+}
+body.party-app .mini-shogi-cell.selected{
+  background:#bfd0d6!important;
+  box-shadow:inset 0 0 0 .13rem #5f8797!important;
+}
+body.party-app .mini-shogi-piece{
+  background:#eadfbe;
+  color:#2b2924;
+  border-color:#8d8168;
+}
+body.party-app .mini-shogi-piece.white{background:#d7c9a6}
+body.party-app .mini-shogi-piece.promoted{color:#9b3f42}
+body.party-app .mini-shogi-hand-piece,
+body.party-app .mini-shogi-hand-piece:disabled{
+  background:#d8caa8!important;
+  color:#2d2a24!important;
+  border-color:#9f9275!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+
+body.party-app .gomoku-board{
+  background:#8e8777;
+  border-color:#aaa18e;
+}
+body.party-app .gomoku-cell,
+body.party-app .gomoku-cell:disabled{
+  background:#d5cfbf!important;
+  border-color:rgba(82,78,68,.28)!important;
+  color:#222!important;
+  box-shadow:inset 0 0 0 .04rem rgba(93,88,75,.26)!important;
+  filter:none!important;
+}
+body.party-app .gomoku-cell.black-stone{color:#171717!important}
+body.party-app .gomoku-cell.white-stone{color:#fff!important}
+
+body.party-app .reversi-cell,
+body.party-app .reversi-cell:disabled{
+  background:#3b7751!important;
+  border:0!important;
+  box-shadow:inset 0 0 0 .0625rem rgba(11,45,25,.48)!important;
+  filter:none!important;
+}
+
+body.party-app .connect4-board{
+  background:#4d6f8f;
+  border-color:#6f8eaa;
+}
+body.party-app .connect4-cell{
+  background:#d9e2e8;
+  border-color:#b5c5d0;
+}
+body.party-app .connect4-columns button{
+  background:linear-gradient(180deg,#5aa9dc,#3f8fc5)!important;
+  color:#fff!important;
+}
+
+body.party-app .code-break-palette .peg{
+  border-color:rgba(255,255,255,.3)!important;
+  box-shadow:inset 0 .1rem .14rem rgba(255,255,255,.18),0 .14rem .28rem rgba(52,69,82,.18)!important;
+}

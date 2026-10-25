@@ -105,6 +105,135 @@
         refreshThemeStatus()
     }
 
+    const drawThemePreset = (ctx2d, preset, width, height) => {
+        const name = String(preset || 'pink').toLowerCase()
+
+        if (name === 'none') {
+            ctx2d.clearRect(0, 0, width, height)
+            return
+        }
+
+        if (name === 'white') {
+            const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+            gradient.addColorStop(0, '#ffffff')
+            gradient.addColorStop(1, '#eee9f0')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+            return
+        }
+
+        if (name === 'black') {
+            const gradient = ctx2d.createRadialGradient(
+                width * .5, height * .2, 20,
+                width * .5, height * .5, width * .8
+            )
+            gradient.addColorStop(0, '#4b2440')
+            gradient.addColorStop(.45, '#21151f')
+            gradient.addColorStop(1, '#0f0d11')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+            return
+        }
+
+        if (name === 'y2k') {
+            const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+            gradient.addColorStop(0, '#ff73c6')
+            gradient.addColorStop(.34, '#79e8ff')
+            gradient.addColorStop(.67, '#b79aff')
+            gradient.addColorStop(1, '#fff37c')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+
+            ctx2d.fillStyle = 'rgba(255,255,255,.88)'
+            for (let i = 0; i < 28; i++) {
+                const x = ((i * 197) % width)
+                const y = ((i * 313) % height)
+                const radius = 3 + (i % 4) * 2
+                ctx2d.beginPath()
+                ctx2d.arc(x, y, radius, 0, Math.PI * 2)
+                ctx2d.fill()
+            }
+            return
+        }
+
+        if (name === 'hearts') {
+            ctx2d.fillStyle = '#ffd7ea'
+            ctx2d.fillRect(0, 0, width, height)
+            ctx2d.fillStyle = '#ff69aa'
+            ctx2d.font = '72px sans-serif'
+            ctx2d.textAlign = 'center'
+            ctx2d.textBaseline = 'middle'
+            for (let y = 70; y < height; y += 160) {
+                for (let x = 70; x < width; x += 160) {
+                    ctx2d.fillText('♥', x + ((y / 160) % 2) * 50, y)
+                }
+            }
+            return
+        }
+
+        const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+        gradient.addColorStop(0, '#ffd3e9')
+        gradient.addColorStop(.48, '#ff9dcc')
+        gradient.addColorStop(1, '#f7d6ff')
+        ctx2d.fillStyle = gradient
+        ctx2d.fillRect(0, 0, width, height)
+
+        ctx2d.fillStyle = 'rgba(255,255,255,.88)'
+        for (const [x, y, r] of [
+            [.18, .22, 24], [.76, .68, 18], [.53, .38, 12], [.34, .82, 14]
+        ]) {
+            ctx2d.beginPath()
+            ctx2d.arc(width * x, height * y, r, 0, Math.PI * 2)
+            ctx2d.fill()
+        }
+    }
+
+    const renderThemeSurface = async (preset, rawUrl) => {
+        const safe = safeHttpUrl(rawUrl)
+        if (safe === null) throw new Error('invalid_url')
+
+        if (!safe && String(preset || '').toLowerCase() === 'none') {
+            return { enabled: false, image: '' }
+        }
+
+        const surfaceCanvas = document.createElement('canvas')
+        surfaceCanvas.width = 1024
+        surfaceCanvas.height = 1024
+        const surfaceCtx = surfaceCanvas.getContext('2d')
+
+        if (safe) {
+            const image = await loadImage(safe)
+            const srcRatio = image.width / image.height
+            const dstRatio = 1
+            let sx = 0, sy = 0, sw = image.width, sh = image.height
+
+            if (srcRatio > dstRatio) {
+                sw = image.height
+                sx = (image.width - sw) / 2
+            } else {
+                sh = image.width
+                sy = (image.height - sh) / 2
+            }
+
+            surfaceCtx.drawImage(
+                image,
+                sx, sy, sw, sh,
+                0, 0, 1024, 1024
+            )
+        } else {
+            drawThemePreset(surfaceCtx, preset, 1024, 1024)
+        }
+
+        try {
+            return {
+                enabled: true,
+                image: surfaceCanvas.toDataURL('image/jpeg', .9)
+            }
+        } catch {
+            throw new Error('image_host_blocks_conversion')
+        }
+    }
+
     const loadImage = (src) => new Promise((resolve, reject) => {
         const image = new Image()
         image.crossOrigin = 'anonymous'
@@ -476,18 +605,23 @@
         button.disabled = true
 
         try {
-            const bgUrl = safeHttpUrl(backgroundUrl.value) || ''
-            const floorImageUrl = safeHttpUrl(floorUrl.value) || ''
+            themeStatus.classList.remove('error')
+            themeStatus.textContent = '背景・床をゲーム用テクスチャに変換中…'
+
+            const [backgroundSurface, floorSurface] = await Promise.all([
+                renderThemeSurface(
+                    state.theme.backgroundPreset,
+                    backgroundUrl.value
+                ),
+                renderThemeSurface(
+                    state.theme.floorPreset,
+                    floorUrl.value
+                )
+            ])
 
             const result = await post('puriboothThemeConfirm', {
-                background: {
-                    preset: state.theme.backgroundPreset,
-                    url: bgUrl
-                },
-                floor: {
-                    preset: state.theme.floorPreset,
-                    url: floorImageUrl
-                }
+                background: backgroundSurface,
+                floor: floorSurface
             })
 
             if (!result.ok) throw new Error(result.error || 'theme_failed')
@@ -495,7 +629,10 @@
         } catch (error) {
             console.error('[puribooth] theme confirm failed', error)
             themeStatus.classList.add('error')
-            themeStatus.textContent = '背景・床の設定に失敗しました'
+            themeStatus.textContent =
+                error?.message === 'image_host_blocks_conversion'
+                    ? 'この画像サイトはゲーム用変換を許可していません。別の画像URLをお試しください。'
+                    : '背景・床の設定に失敗しました'
         } finally {
             button.disabled = false
         }

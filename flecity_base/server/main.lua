@@ -1139,3 +1139,8 @@ AddEventHandler('onResourceStart', function(resource)
         end)
     end
 end)
+
+
+AddEventHandler('flecity_base:framework:playerUnloaded', function(_, citizenid)
+    if citizenid then supportSessions[tostring(citizenid)] = nil end
+end)

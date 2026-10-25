@@ -16,6 +16,7 @@ local function integer(value, minValue, maxValue)
 end
 
 local supportSessions = {}
+local supportSourceCitizen = {}
 
 local function aceAllowed(source, ace)
     ace = tostring(ace or '')
@@ -457,6 +458,11 @@ handlers.supportToggle = function(source, data)
     data = type(data) == 'table' and data or {}
     local enabled = data.enabled == true
     supportSessions[ctx.citizenid] = enabled
+    if enabled then
+        supportSourceCitizen[tonumber(source)] = ctx.citizenid
+    else
+        supportSourceCitizen[tonumber(source)] = nil
+    end
 
     local auditCtx = sourceContext(source)
     if not enabled then
@@ -1141,6 +1147,13 @@ AddEventHandler('onResourceStart', function(resource)
 end)
 
 
-AddEventHandler('flecity_base:framework:playerUnloaded', function(_, citizenid)
-    if citizenid then supportSessions[tostring(citizenid)] = nil end
+
+
+AddEventHandler('playerDropped', function()
+    local src = tonumber(source)
+    local citizenid = src and supportSourceCitizen[src] or nil
+    if citizenid then
+        supportSessions[tostring(citizenid)] = nil
+        supportSourceCitizen[src] = nil
+    end
 end)

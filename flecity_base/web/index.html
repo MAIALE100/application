@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>BASE</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">FLECITY WORKSPACE</div>
+        <h1>BASE</h1>
+      </div>
+      <button id="refreshBtn" class="icon-button" aria-label="更新">↻</button>
+    </header>
+
+    <section id="workspaceStrip" class="workspace-strip"></section>
+
+    <nav class="tabs" id="tabs">
+      <button data-tab="memo" class="active">メモ</button>
+      <button data-tab="stock">在庫</button>
+      <button data-tab="tasks">タスク</button>
+      <button data-tab="money">会計</button>
+      <button data-tab="members">メンバー</button>
+    </nav>
+
+    <section id="status" class="status">読み込み中…</section>
+    <section id="content" class="content"></section>
+
+    <button id="newWorkspaceBtn" class="floating">＋ BASE</button>
+  </main>
+
+  <dialog id="modal">
+    <form method="dialog" id="modalForm">
+      <header class="modal-head">
+        <h2 id="modalTitle">入力</h2>
+        <button value="cancel" class="icon-button">×</button>
+      </header>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button value="cancel" class="secondary">キャンセル</button>
+        <button id="modalSave" value="default" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

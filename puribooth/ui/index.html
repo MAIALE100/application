@@ -141,6 +141,11 @@
                     <button data-stamp="🫶">🫶</button><button data-stamp="👑">👑</button>
                     <button data-stamp="🌸">🌸</button><button data-stamp="💎">💎</button>
                     <button data-stamp="😎">😎</button><button data-stamp="🥳">🥳</button>
+                    <button data-stamp="💖">💖</button><button data-stamp="💕">💕</button>
+                    <button data-stamp="🪽">🪽</button><button data-stamp="🌈">🌈</button>
+                    <button data-stamp="🍒">🍒</button><button data-stamp="🦋">🦋</button>
+                    <button data-stamp="💫">💫</button><button data-stamp="🎧">🎧</button>
+                    <button data-stamp="🐾">🐾</button><button data-stamp="🔥">🔥</button>
                 </div>
                 <label class="range-row"><span>スタンプサイズ</span><input id="stampSize" type="range" min="40" max="180" value="92" /></label>
             </section>
@@ -166,6 +171,12 @@
                 <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="36" value="10" /></label>
                 <button id="clearDrawButton" class="wide">落書きだけ消す</button>
             </section>
+
+            <div class="history-actions">
+                <button id="undoButton" disabled>↶ 装飾を戻す</button>
+                <button id="redoButton" disabled>↷ やり直す</button>
+                <button id="deleteSelectedButton" disabled>選択を削除</button>
+            </div>
 
             <div class="tool-status" id="toolStatus">編集できます</div>
         </aside>

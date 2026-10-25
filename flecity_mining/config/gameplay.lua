@@ -35,11 +35,29 @@ Config.DrillVisuals = {
     enabled = true,
     model = 'hei_prop_heist_drill',
     animDict = 'anim@heists@fleeca_bank@drilling',
-    animName = 'drill_straight_fail',
+    -- FiveM実運用例で使われているFleecaドリル姿勢。
+    animName = 'drill_left',
+    animFlags = 49,
+    propBone = 57005,
+    propOffset = vector3(0.15, 0.0, -0.05),
+    propRotation = vector3(0.0, 90.0, 90.0),
     sound = true,
     dust = true,
     dustIntervalMs = 550,
-    loadTimeoutMs = 2500,
+    loadTimeoutMs = 3000,
+}
+
+-- 廃坑は元々かなり暗いため、採掘地点付近だけ弱い作業灯を描画します。
+-- マップ/MLOそのものは変更しません。
+Config.MineLighting = {
+    enabled = true,
+    drawDistance = 35.0,
+    range = 8.0,
+    intensity = 1.35,
+    red = 255,
+    green = 210,
+    blue = 160,
+    height = 1.65,
 }
 
 -- テスト中だけ使う座標採取コマンド。

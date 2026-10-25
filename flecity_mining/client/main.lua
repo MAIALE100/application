@@ -297,6 +297,24 @@ local scenarios = {
     sell = 'WORLD_HUMAN_CLIPBOARD',
 }
 
+local function preloadDrillPresentation()
+    local cfg = Config.DrillVisuals or {}
+    if cfg.enabled ~= true then return end
+
+    -- Warm the assets before the first approved action. Without this, the
+    -- server action clock starts while a cold client may still spend several
+    -- seconds loading the drill model/animation/PTFX, making the first mining
+    -- interaction noticeably longer than Config.MiningDurationMs.
+    local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 2500)
+    local model = requestModelWithTimeout(cfg.model or 'hei_prop_heist_drill', timeoutMs)
+    if model then SetModelAsNoLongerNeeded(model) end
+    requestAnimWithTimeout(cfg.animDict or 'anim@heists@fleeca_bank@drilling', timeoutMs)
+
+    if cfg.dust == true then
+        requestPtfxWithTimeout('core', timeoutMs)
+    end
+end
+
 local function runApprovedAction(data)
     if busy then return end
 
@@ -432,6 +450,13 @@ CreateThread(function()
     end
 
     createBlip()
+
+    -- Preload presentation assets in parallel with the initial state sync so
+    -- the first wall-drill action has the same perceived duration as later
+    -- actions. Failure is harmless: startDrillPresentation still retries and
+    -- falls back to the native drill scenario.
+    CreateThread(preloadDrillPresentation)
+
     Wait(1000)
     TriggerServerEvent('flecity_mining:server:requestState')
 

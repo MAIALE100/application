@@ -80,9 +80,23 @@ These checks can be completed by one tester on the test server.
 - Save calculator result directly to the ledger.
 - Calculator remains after `restart flecity_base`.
 
+## Invalid input / destructive safety
+
+- Accounting rejects 0, negative, fractional, and values above 1,000,000,000.
+- Stock rejects negative initial quantity, fractional quantity, and values above 1,000,000.
+- Stock adjustment rejects zero, fractional deltas, below-zero results, and results above 1,000,000.
+- Invalid task dates such as 2026-02-30 are rejected.
+- Long text fields stop at their configured UI limit without breaking Japanese UTF-8 text.
+- Rapidly clicking the same action does not create duplicate modal submissions.
+- Memo deletion requires a confirmation dialog.
+- Task deletion requires a confirmation dialog.
+- Accounting void requires a confirmation dialog and remains as an audit record.
+- Stock deletion requires exact item-name confirmation.
+- BASE deletion requires exact BASE-name confirmation.
+
 ## Safety / persistence
 
-- Run `base_selftest` after an update.
+- Run `base_selftest` after an update and confirm all 6 checks pass, including `validators`.
 - Restart only `flecity_base` and confirm existing data remains.
 - Create several BASE workspaces and switch between them.
 - Refresh the app repeatedly and confirm no duplicate MY SPACE is created.

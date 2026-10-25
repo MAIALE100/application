@@ -200,56 +200,6 @@ local function createBlip()
     EndTextCommandSetBlipName(blip)
 end
 
-local function cleanupLegacyMineIpls()
-    local interior = Config.MineInterior
-    if not interior or type(interior.legacyConflictIpls) ~= 'table' then return end
-
-    for _, ipl in ipairs(interior.legacyConflictIpls) do
-        if type(ipl) == 'string' and ipl ~= '' and IsIplActive(ipl) then
-            RemoveIpl(ipl)
-        end
-    end
-end
-
-local function requestMineIpls()
-    local interior = Config.MineInterior
-    if not interior or interior.enabled ~= true then return end
-
-    cleanupLegacyMineIpls()
-
-    if type(interior.baseIpl) == 'string' and interior.baseIpl ~= '' then
-        RequestIpl(interior.baseIpl)
-    end
-
-    if type(interior.interiorIpl) == 'string' and interior.interiorIpl ~= '' then
-        RequestIpl(interior.interiorIpl)
-    end
-
-    if type(interior.anchor) == 'vector3' then
-        RequestCollisionAtCoord(interior.anchor.x, interior.anchor.y, interior.anchor.z)
-    end
-end
-
-local function releaseMineInteriorIpl()
-    local interior = Config.MineInterior
-    if not interior or interior.enabled ~= true then return end
-
-    cleanupLegacyMineIpls()
-
-    if type(interior.interiorIpl) == 'string'
-        and interior.interiorIpl ~= ''
-        and IsIplActive(interior.interiorIpl) then
-        RemoveIpl(interior.interiorIpl)
-    end
-
-    -- Re-request the normal exterior base after removing the mine interior.
-    -- This helps the local world return from an accidentally forced LOD state
-    -- without requiring a full FiveM reconnect.
-    if type(interior.baseIpl) == 'string' and interior.baseIpl ~= '' then
-        RequestIpl(interior.baseIpl)
-    end
-end
-
 local function transitionMineAccess(target)
     if not target then return false end
     if GetGameTimer() < mineAccessCooldownUntil then return false end
@@ -261,18 +211,6 @@ local function transitionMineAccess(target)
         1000,
         tonumber(Config.MineAccess and Config.MineAccess.transitionCooldownMs) or 1800
     )
-
-    local access = Config.MineAccess
-    local targetIsInside = access and access.inside
-        and math.abs(target.x - access.inside.x) < 0.1
-        and math.abs(target.y - access.inside.y) < 0.1
-        and math.abs(target.z - access.inside.z) < 0.1
-
-    if targetIsInside then
-        requestMineIpls()
-    else
-        cleanupLegacyMineIpls()
-    end
 
     -- Keep mine access deliberately simple. The previous v0.3.3 path used
     -- NewLoadScene/InteriorReady waits and could strand the client on a black
@@ -302,10 +240,7 @@ local function transitionMineAccess(target)
     ClearFocus()
     NewLoadSceneStop()
 
-    if not targetIsInside then
-        releaseMineInteriorIpl()
-        RequestCollisionAtCoord(destination.x, destination.y, destination.z)
-    end
+    RequestCollisionAtCoord(destination.x, destination.y, destination.z)
 
     updateGuidanceRoute()
 
@@ -682,12 +617,6 @@ CreateThread(function()
         DoScreenFadeIn(500)
     end
 
-    cleanupLegacyMineIpls()
-    if isInsideMine() then
-        requestMineIpls()
-    else
-        releaseMineInteriorIpl()
-    end
     createBlip()
 
     -- Preload presentation assets in parallel with the initial state sync so
@@ -1024,20 +953,12 @@ RegisterCommand('mine_mapreset', function()
     if Config.DevTools ~= true then return end
 
     local ped = PlayerPedId()
-    if isInsideMine() then
-        notify('坑道内ではマップ復旧を実行できません。先に坑道から出てください。')
-        return
-    end
-
-    cleanupLegacyMineIpls()
-    releaseMineInteriorIpl()
     NewLoadSceneStop()
     ClearFocus()
-
     local coords = GetEntityCoords(ped)
     RequestCollisionAtCoord(coords.x, coords.y, coords.z)
 
-    notify('鉱山周辺のIPL競合を解除しました。数秒で外側地形が再読込されます。')
+    notify('v0.3.14以降は鉱山resourceからIPLを操作しません。旧版で崩れた地形は一度再接続すると初期化されます。')
 end, false)
 
 RegisterCommand('mine_devpos', function()
@@ -1081,11 +1002,6 @@ AddEventHandler('onResourceStop', function(resource)
         RemoveAnimDict(cfg.animDict)
     end
     RemoveNamedPtfxAsset('core')
-
-    cleanupLegacyMineIpls()
-    if not isInsideMine() then
-        releaseMineInteriorIpl()
-    end
 
     NewLoadSceneStop()
     ClearFocus()

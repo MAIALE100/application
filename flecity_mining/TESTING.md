@@ -439,3 +439,23 @@ v0.3.3で坑道入場時に黒画面＋右下loadingが終了しないケース�
 4. 8.5秒完了後も移動可能
 5. resource restart後も移動可能
 6. 万一client処理が途中で失敗しても永久Freezeされない
+
+
+## v0.3.8 ドリルシーケンス
+
+v0.3.7で拘束は解消したが、ドリルpropを持ったまま見た目のモーションが出ない状態を確認。
+
+変更:
+
+- ドリルanimationを `drill_straight_start` → `drill_straight_idle` の2段階へ変更
+- start animation後にpropを装着し、約1秒後にidleへ遷移
+- idle animationが消えた場合は作業中に自動再生
+- 単体確認コマンド `/mine_drilltest` を追加
+
+確認:
+
+1. 坑道内で `/mine_drilltest` を実行
+2. 腕/上半身がドリルを持ち上げる開始モーションをする
+3. その後ドリル姿勢で約5秒維持される
+4. 5秒後にpropとanimationが消え、通常操作へ戻る
+5. 実採掘でも同じシーケンスが出る

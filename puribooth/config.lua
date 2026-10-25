@@ -13,6 +13,7 @@ Config.Debug = false
 -- Placement/removal is restricted to Qbox's admin ACE.
 Config.AdminAce = "group.admin"
 Config.AdminRemoveDistance = 6.0
+Config.AllowFirstAdminClaim = true
 
 -- Temporary stock model. This can later be replaced with the final streamed
 -- Flecity PURI cabinet without changing the placement database.

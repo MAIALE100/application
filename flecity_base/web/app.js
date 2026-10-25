@@ -133,6 +133,13 @@ function roleLabel(role){
   return "MEMBER";
 }
 
+function personLabel(name,citizenid){
+  const n=String(name||"").trim();
+  const c=String(citizenid||"").trim();
+  if(n&&c&&n!==c) return n+" ("+c+")";
+  return n||c||"不明";
+}
+
 function modal(title, html, onSave){
   const d=$("#modal");
   $("#modalTitle").textContent=title;
@@ -261,7 +268,7 @@ function renderMemo(){
             <div class="row"><span class="badge">${esc(n.category||"general")}</span>${tags.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</div>
             <div class="muted">${esc(fmtDateTime(n.updated_at))}</div>
           </div>
-          <span class="badge">${esc(n.author_citizenid)}</span>
+          <span class="badge">${esc(personLabel(n.author_name,n.author_citizenid))}</span>
         </div>
         <pre class="note-body">${esc(n.body)}</pre>
         ${canManage()?`<div class="actions">
@@ -335,6 +342,7 @@ function renderStock(){
             <div class="card-title">${esc(i.name)}</div>
             <div class="row"><span class="badge">${esc(i.category||"general")}</span>${low?'<span class="badge warn">在庫不足</span>':'<span class="badge good">在庫OK</span>'}</div>
             <div class="muted">最低在庫 ${num(i.minimum_quantity).toLocaleString()} ${esc(i.unit)}</div>
+            <div class="muted">登録: ${esc(personLabel(i.created_by_name,i.created_by))}</div>
           </div>
           <div class="stock-count">${num(i.quantity).toLocaleString()} <small>${esc(i.unit)}</small></div>
         </div>
@@ -355,7 +363,7 @@ function renderStock(){
     ${state.stockRecent.length?`<div class="section-title">最近の入出庫</div>${state.stockRecent.slice(0,6).map(h=>`
       <article class="card compact-card">
         <div class="row between"><strong>${esc(h.item_name)}</strong><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()} ${esc(h.unit||"")}</strong></div>
-        <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${esc(h.actor_citizenid||"")}${h.note?" ・ "+esc(h.note):""}</div>
+        <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${esc(personLabel(h.actor_name,h.actor_citizenid))}${h.note?" ・ "+esc(h.note):""}</div>
       </article>`).join("")}`:""}
   `;
   bindContent();
@@ -402,7 +410,7 @@ async function stockHistory(item){
   const rows=d.history||[];
   viewModal(item.name+" の履歴",rows.length?rows.map(h=>`
     <article class="card">
-      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge">${esc(h.actor_citizenid)}</span></div>
+      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge">${esc(personLabel(h.actor_name,h.actor_citizenid))}</span></div>
       <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${num(h.before_quantity).toLocaleString()} → ${num(h.after_quantity).toLocaleString()}</div>
       ${h.note?`<pre class="note-body">${esc(h.note)}</pre>`:""}
     </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');
@@ -445,6 +453,7 @@ function renderTasks(){
           <div>
             <div class="card-title">${esc(t.title)}</div>
             <div class="muted">${esc(t.assignee_name||"担当なし")} ・ ${t.due_at?"期限 "+esc(fmtDateTime(t.due_at)):"期限なし"}</div>
+            <div class="muted">作成: ${esc(personLabel(t.created_by_name,t.created_by))}</div>
           </div>
           <div class="row">
             ${overdue?'<span class="badge high">期限切れ</span>':""}
@@ -503,7 +512,7 @@ function renderMoney(){
     if(state.moneyType!=="all"&&e.entry_type!==state.moneyType) return false;
     if(state.moneyCategory!=="all"&&String(e.category||"other")!==state.moneyCategory) return false;
     if(!query) return true;
-    return [e.category,e.note,e.actor_citizenid,e.amount].some(v=>String(v||"").toLowerCase().includes(query));
+    return [e.category,e.note,e.actor_name,e.actor_citizenid,e.amount].some(v=>String(v||"").toLowerCase().includes(query));
   });
 
   $("#content").innerHTML=`
@@ -529,7 +538,7 @@ function renderMoney(){
     ${rows.length?rows.map(e=>`
       <article class="card ${e.voided_at?"voided":""}">
         <div class="row between">
-          <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(fmtDateTime(e.created_at))} ・ ${esc(e.actor_citizenid||"")}</div></div>
+          <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(fmtDateTime(e.created_at))}<br>記録: ${esc(personLabel(e.actor_name,e.actor_citizenid))}</div></div>
           <span class="badge ${e.voided_at?"warn":e.entry_type==="income"?"good":"high"}">${e.voided_at?"取消済":e.entry_type==="income"?"収入":"支出"}</span>
         </div>
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}

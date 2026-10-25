@@ -133,39 +133,17 @@ local function destroyBoothCamera(cam)
 end
 
 local function captureFrame(callback)
-    if GetResourceState("screenshot-basic") == "started" then
-        exports["screenshot-basic"]:requestScreenshot({
-            encoding = "jpg",
-            quality = Config.ScreenshotQuality or 0.92
-        }, function(data)
-            callback(type(data) == "string" and data or nil)
-        end)
+    if GetResourceState("screenshot-basic") ~= "started" then
+        callback(nil)
         return
     end
 
-    -- Fallback: LB Phone can still return a usable hosted URL, but it will use
-    -- the phone camera UI rather than the fixed booth render.
-    if GetResourceState("lb-phone") == "started" then
-        CreateThread(function()
-            local ok, url = pcall(function()
-                return exports["lb-phone"]:SetCameraComponent({
-                    default = { type = "Landscape", camera = "rear" },
-                    permissions = {
-                        toggleFlash = false,
-                        flipCamera = false,
-                        takePhoto = true,
-                        takeVideo = false,
-                        takeLandscapePhoto = true
-                    },
-                    saveToGallery = false
-                })
-            end)
-            callback(ok and type(url) == "string" and url or nil)
-        end)
-        return
-    end
-
-    callback(nil)
+    exports["screenshot-basic"]:requestScreenshot({
+        encoding = "jpg",
+        quality = Config.ScreenshotQuality or 0.92
+    }, function(data)
+        callback(type(data) == "string" and data or nil)
+    end)
 end
 
 local function openEditor(boothId, shots)
@@ -229,6 +207,9 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
         for shotIndex = 1, math.max(1, tonumber(Config.ShotCount) or 4) do
             TriggerServerEvent("puribooth:server:announceCountdown", boothId, shotIndex)
             Wait(math.max(1, tonumber(Config.CountdownSeconds) or 3) * 1000)
+            -- Countdown/SMILE text is intentionally cleared before screenshot-basic
+            -- captures the rendered game view.
+            Wait(550)
 
             local finished = false
             local frame = nil
@@ -262,6 +243,10 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
             return
         end
 
+        -- The physical booth becomes available immediately after the photos are
+        -- taken. The payer can spend as long as needed in the editor without
+        -- blocking the next group.
+        TriggerServerEvent("puribooth:server:captureComplete", boothId)
         openEditor(boothId, shots)
     end)
 end)

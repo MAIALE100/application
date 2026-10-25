@@ -109,7 +109,7 @@ local function makeAppData(app)
         identifier=app.identifier,name=app.name,description=app.description,developer=app.developer,
         defaultApp=app.defaultApp,game=app.game,size=app.size,price=app.price,
         images=app.images,ui=RESOURCE..'/'..app.ui..'?cb='..uiCacheBust,
-        icon=('https://cfx-nui-%s/%s'):format(RESOURCE,app.icon),fixBlur=true
+        icon=(('https://cfx-nui-%s/%s?cb=%s'):format(RESOURCE,app.icon,uiCacheBust)),fixBlur=true
     }
     if app.identifier==FlecityGamesConfig.Apps.Play.identifier then
         data.onOpen=playOnOpen

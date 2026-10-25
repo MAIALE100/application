@@ -29,7 +29,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='',miniShogiPromotionOverlay=null;
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='',miniShogiPromotionOverlay=null,gomokuRenderToken='',gomokuCells=[];
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -69,7 +69,7 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;resultHoldRaf=null;resultLobbyUnlockAt=0;
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
- drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';
+ drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';gomokuRenderToken='';gomokuCells=[];
  if(miniShogiPromotionOverlay){miniShogiPromotionOverlay.remove();miniShogiPromotionOverlay=null;}
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
 }
@@ -122,9 +122,10 @@ function resumePartyUi(){
  if(currentRoom){roomPushEnabled=true;refresh();beginPolling();}
  else scheduleBootstrap(0);
 }
-function hideRoundGames(){
- reactionPanel.classList.add('hidden');stopBattlePanel.classList.add('hidden');codeBreakPanel.classList.add('hidden');reversiPanel.classList.add('hidden');votePanel.classList.add('hidden');majorityPanel.classList.add('hidden');gomokuPanel.classList.add('hidden');connect4Panel.classList.add('hidden');miniShogiPanel.classList.add('hidden');deductionPanel.classList.add('hidden');drawPanel.classList.add('hidden');telephonePanel.classList.add('hidden');ngWordPanel.classList.add('hidden');fakeAnswerPanel.classList.add('hidden');bombPanel.classList.add('hidden');memoryChainPanel.classList.add('hidden');
- if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
+function hideRoundGames(exceptPanel){
+ const panels=[reactionPanel,stopBattlePanel,codeBreakPanel,reversiPanel,votePanel,majorityPanel,gomokuPanel,connect4Panel,miniShogiPanel,deductionPanel,drawPanel,telephonePanel,ngWordPanel,fakeAnswerPanel,bombPanel,memoryChainPanel];
+ panels.forEach(panel=>{if(panel&&panel!==exceptPanel)panel.classList.add('hidden');});
+ if(!exceptPanel&&globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
@@ -522,12 +523,47 @@ function setupVote(room){
  });
 }
 function setupGomoku(room){
- const rs=room.roundState;hideRoundGames();gomokuPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
+ const rs=room.roundState;hideRoundGames(gomokuPanel);gomokuPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){renderResults(room);return;}
- const board=Array.isArray(rs.board)?rs.board:Array(121).fill('');gomokuBoard.innerHTML='';
- board.forEach((mark,index)=>{const b=document.createElement('button');b.className='gomoku-cell';b.textContent=mark==='X'?'●':(mark==='O'?'○':'');b.disabled=!rs.isCurrent||mark!=='';b.onclick=()=>runOnce('gomoku-move',async()=>{const res=await FlecityBridge.call('partySubmitGomoku',{token:rs.token,cell:index+1});if(!res.ok){status('五目並べ: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});gomokuBoard.appendChild(b);});
- gomokuStatus.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'●':'○'):'相手の手番';
- gomokuMeta.textContent='11×11 · 先に5つ · '+Number(rs.moves||0)+'手';
+ const board=Array.isArray(rs.board)?rs.board:Array(121).fill('');
+ const token=String(rs.token||'');
+
+ if(gomokuRenderToken!==token||gomokuCells.length!==121||gomokuBoard.children.length!==121){
+   gomokuRenderToken=token;
+   gomokuCells=[];
+   gomokuBoard.replaceChildren();
+   const fragment=document.createDocumentFragment();
+   for(let index=0;index<121;index++){
+     const b=document.createElement('button');
+     b.className='gomoku-cell';
+     b.dataset.cell=String(index+1);
+     b.onclick=()=>runOnce('gomoku-move',async()=>{
+       const active=currentRoom&&currentRoom.roundState;
+       if(!active||active.gameId!=='gomoku'||active.complete||!active.isCurrent)return;
+       const activeBoard=Array.isArray(active.board)?active.board:[];
+       if(String(activeBoard[index]||'')!=='')return;
+       const res=await FlecityBridge.call('partySubmitGomoku',{token:active.token,cell:index+1});
+       if(!res.ok){status('五目並べ: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       renderRoom(res.room);
+     });
+     gomokuCells.push(b);
+     fragment.appendChild(b);
+   }
+   gomokuBoard.appendChild(fragment);
+ }
+
+ for(let index=0;index<121;index++){
+   const b=gomokuCells[index];
+   const mark=String(board[index]||'');
+   const text=mark==='X'?'●':(mark==='O'?'○':'');
+   if(b.textContent!==text)b.textContent=text;
+   const disabled=!rs.isCurrent||mark!=='';
+   if(b.disabled!==disabled)b.disabled=disabled;
+ }
+ const statusText=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'●':'○'):'相手の手番';
+ if(gomokuStatus.textContent!==statusText)gomokuStatus.textContent=statusText;
+ const metaText='11×11 · 先に5つ · '+Number(rs.moves||0)+'手';
+ if(gomokuMeta.textContent!==metaText)gomokuMeta.textContent=metaText;
 }
 function setupConnect4(room){
  const rs=room.roundState;hideRoundGames();connect4Panel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);

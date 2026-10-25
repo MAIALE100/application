@@ -511,3 +511,25 @@ Fleeca銀行用ドリルanimationは実機Pedでpropだけ表示され、身体�
 3. 坑道へ入ると内部が正常表示される
 4. 坑道から出ると外側地形が正常表示される
 5. 入退場を3回以上繰り返してもLOD崩れが再発しない
+
+
+## v0.3.14 IPL操作完全撤去
+
+v0.3.13でも外側地形の低LOD/灰色化が継続したため、Great Chaparral周辺のIPLをresource側で管理する方針を廃止。
+
+変更:
+
+- flecity_mining内の `RequestIpl` / `RemoveIpl` を完全撤去
+- 坑道入退場は座標テレポート + collision wait のみ
+- `MineInterior.manageIpls = false` を設定・selftestで強制
+- `/mine_mapreset` はIPL操作を行わない安全なcollision refreshのみ
+- 旧版でクライアントstreaming stateが崩れている場合は一度再接続して初期化
+
+確認:
+
+1. v0.3.14反映後にFiveMクライアントを一度再接続
+2. 外側Great Chaparralの地形が正常表示される
+3. 坑道へ入れる
+4. 坑道内の壁/レール/床が正常表示される
+5. 坑道から出ても外側が崩れない
+6. 入退場を3回以上繰り返しても外側が正常

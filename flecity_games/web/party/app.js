@@ -1,6 +1,6 @@
 const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
-const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline'),roundHudGame=document.getElementById('roundHudGame'),roundHudMeta=document.getElementById('roundHudMeta'),roundLeave=document.getElementById('roundLeave');
+const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline'),roundHudGame=document.getElementById('roundHudGame'),roundLeave=document.getElementById('roundLeave');
 const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
 const shogiLobbyOptions=document.getElementById('shogiLobbyOptions'),shogiAiDifficulty=document.getElementById('shogiAiDifficulty'),shogiOptionsNote=document.getElementById('shogiOptionsNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
@@ -911,7 +911,6 @@ function renderRoom(room,timing){
    const rs=room.roundState;
    const activeGame=selectedGameConfig(room);
    roundHudGame.textContent=String(activeGame&&activeGame.name||room.selectedGame||'ゲーム');
-   roundHudMeta.textContent='ROOM '+String(room.code||'----')+' · '+(Number(room.connectedCount)||0)+'人';
    lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));
    startDeadlineLoop(rs);
    if(rs&&rs.gameId==='code_break')setupCodeBreak(room);

@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Flecity'
 description 'Flecity Games - PLAY and PARTY LB Phone game platform'
-version '0.73.5-test'
+version '0.73.6-test'
 
 shared_scripts {
     'config/shared.lua',

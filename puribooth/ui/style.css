@@ -411,3 +411,14 @@ input[type="color"] {
     background: #ffe0eb;
     color: #a51f5d;
 }
+
+
+.theme-mini-preview.mint {
+    background: linear-gradient(135deg,#d8fff1,#98e9d1 50%,#d8f7ff);
+}
+.theme-mini-preview.lavender {
+    background: linear-gradient(135deg,#f1ddff,#c8b1ff 48%,#ffdff5);
+}
+.theme-mini-preview.sky {
+    background: linear-gradient(135deg,#dff7ff,#9bdcff 52%,#f8fbff);
+}

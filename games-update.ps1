@@ -560,10 +560,25 @@ try {
     Step 'Checking LB Phone Gifyu gallery support'
     $gifyuFix = Join-Path $RepoRoot 'lbphone-gifyu-fix.ps1'
     if (Test-Path -LiteralPath $gifyuFix) {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gifyuFix -ServerBase $ServerBase
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host 'LB Phone Gifyu configuration could not be updated automatically. Flecity Games deployment will continue.' -ForegroundColor Yellow
-            Write-Host 'You can retry later with: .\lbphone-gifyu-fix.cmd' -ForegroundColor Yellow
+        $gifyuTokens = $null
+        $gifyuParseErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseFile(
+            $gifyuFix,
+            [ref]$gifyuTokens,
+            [ref]$gifyuParseErrors
+        )
+
+        if ($gifyuParseErrors -and $gifyuParseErrors.Count -gt 0) {
+            $gifyuSummary = ($gifyuParseErrors | ForEach-Object { $_.Message }) -join '; '
+            Write-Host ('LB Phone Gifyu helper syntax check failed: ' + $gifyuSummary) -ForegroundColor Yellow
+            Write-Host 'Flecity Games deployment will continue without modifying LB Phone.' -ForegroundColor Yellow
+        }
+        else {
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gifyuFix -ServerBase $ServerBase
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'LB Phone Gifyu configuration could not be updated automatically. Flecity Games deployment will continue.' -ForegroundColor Yellow
+                Write-Host 'You can retry later with: .\lbphone-gifyu-fix.cmd' -ForegroundColor Yellow
+            }
         }
     } else {
         Write-Host "Gifyu configuration helper not found: $gifyuFix" -ForegroundColor Yellow

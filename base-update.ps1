@@ -21,8 +21,29 @@ try {
     Run-Git worktree add --detach $Temp "origin/$Branch"
 
     $Source = Join-Path $Temp "flecity_base"
-    if (-not (Test-Path (Join-Path $Source "fxmanifest.lua"))) {
+    $Manifest = Join-Path $Source "fxmanifest.lua"
+    if (-not (Test-Path -LiteralPath $Manifest)) {
         throw "BASE source validation failed."
+    }
+
+    $ManifestText = Get-Content -LiteralPath $Manifest -Raw
+    if ($ManifestText -notmatch "(?m)^\s*fx_version\s+'cerulean'\s*$") {
+        throw "Safety check failed: fx_version must remain 'cerulean'."
+    }
+    if ($ManifestText -notmatch "(?m)^\s*version\s+'[0-9]+\.[0-9]+\.[0-9]+-dev'\s*$") {
+        throw "Safety check failed: BASE version metadata is missing or malformed."
+    }
+
+    $Framework = Join-Path $Source "server\framework.lua"
+    if (-not (Test-Path -LiteralPath $Framework)) {
+        throw "Safety check failed: server/framework.lua is missing."
+    }
+    $FrameworkText = Get-Content -LiteralPath $Framework -Raw
+    if ($FrameworkText -notmatch "FlecityBaseFramework\s*=\s*FlecityBaseFramework\s+or\s+\{\}") {
+        throw "Safety check failed: FlecityBaseFramework bootstrap is missing."
+    }
+    if ($FrameworkText -notmatch "function\s+FlecityBaseFramework\.GetIdentifier") {
+        throw "Safety check failed: FlecityBaseFramework.GetIdentifier is missing."
     }
 
     $Css = Join-Path $Source "web\app.css"

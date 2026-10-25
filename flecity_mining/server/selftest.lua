@@ -40,7 +40,8 @@ local function runSelfTest()
     local drillOk = type(drill) == 'table'
         and type(drill.model) == 'string' and drill.model ~= ''
         and type(drill.animDict) == 'string' and drill.animDict ~= ''
-        and type(drill.animName) == 'string' and drill.animName ~= ''
+        and type(drill.startAnimName) == 'string' and drill.startAnimName ~= ''
+        and type(drill.idleAnimName) == 'string' and drill.idleAnimName ~= ''
     add(results, drillOk, 'drill visuals', drillOk and tostring(drill.model) or 'invalid')
 
     local interiorOk = true

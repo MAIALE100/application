@@ -2,29 +2,37 @@
 
 BASE is a shared workspace application for Flecity's LB Phone.
 
-## v0.1 development scope
+It is designed for businesses, crews, teams, projects, informal groups, and personal use without requiring a QBox job or gang registration.
+
+## Current feature set
 
 - Automatic personal `MY SPACE`
-- User-created workspaces for businesses, crews, teams, projects, and custom groups
-- Role model: OWNER / MANAGER / MEMBER
-- Invite, accept, decline, leave, remove member
-- Shared memo
-- Inventory ledger with change history
-- Task management
-- Accounting ledger with non-destructive voids
-- User-defined calculators saved per workspace (1-8 inputs, formulas, rounding, money/number output)
-- QBox citizenid identity
-- oxmysql persistence
-- LB Phone custom app registration
-- Console self-test
+- User-created BASE workspaces
+- OWNER / MANAGER / MEMBER role model
+- ADMIN and opt-in WEAZEL SUPPORT maintenance access
+- Invite / accept / decline / leave / remove member
+- Shared memo with pinning, category, tags, search, and sorting
+- Inventory ledger with creator/operator attribution and movement history
+- Task management with assignee, due date, priority, filters, search, and sorting
+- Accounting ledger with creator attribution, summaries, search, filters, sorting, and non-destructive voids
+- User-defined calculators saved per workspace
+- Incremental list rendering for large datasets
+- Automatic database creation and migrations
+- Console self-test including validation checks
+- Clean operator submission packaging
 
-## Design rules
+## Design boundaries
 
-BASE is not tied to a QBox job or gang. A legal company, informal crew, racing team, media team, or other group can use the same workspace model.
+BASE intentionally does not move real bank/society money and does not synchronize ox_inventory.
 
-v0.1 does **not** move real bank money and does **not** synchronize ox_inventory. Accounting and stock are ledgers only. This keeps the initial release low-risk and portable for server operators.
+Accounting and stock are internal ledgers. This keeps the resource portable and reduces the risk of affecting server economy or inventory data.
 
-Future modules can add custom roles/permissions, payroll/time tracking, reusable templates, and optional job/gang/society integrations.
+## Runtime
+
+- QBox
+- oxmysql
+- LB Phone
+- citizenid identity
 
 ## Test command
 
@@ -36,18 +44,20 @@ base_selftest
 
 Expected result: all checks PASS.
 
-
 ## Access model
 
 - OWNER: workspace creator and full workspace administrator.
 - MANAGER: delegated day-to-day management.
 - MEMBER: normal shared-workspace user.
 - ADMIN: server-wide always-on maintenance access through ACE.
-- WEAZEL SUPPORT: server-wide maintenance access that must be explicitly switched ON by an eligible WEAZEL owner/maintainer.
+- WEAZEL SUPPORT: server-wide maintenance access that must be explicitly switched ON by an eligible maintainer.
 
-See `ACCESS.md` for server configuration and privacy/audit behavior.
+See `ACCESS.md` for configuration and audit behavior.
 
+## Operator installation
+
+See `OPERATOR_GUIDE.md`.
 
 ## Large-list behavior
 
-Memo, stock, task, and ledger pages support search/filter/sort controls and incremental list rendering so the phone UI does not render hundreds of cards at once.
+Memo, stock, task, and ledger pages support search/filter/sort controls and incremental rendering so the phone UI does not create hundreds of cards at once.

@@ -17,8 +17,8 @@ local function runSelfTest()
 
     add(results, GetResourceState('qbx_core') == 'started', 'qbx_core', GetResourceState('qbx_core'))
     add(results, Config.MoneyType == 'cash' or Config.MoneyType == 'bank' or Config.MoneyType == 'crypto', 'money type', tostring(Config.MoneyType))
-    local capacity = Config.MaxRawOre
-    add(results, type(capacity) == 'number' and capacity >= 1 and capacity % 1 == 0 and capacity <= 1000, 'raw capacity', tostring(Config.MaxRawOre))
+    local batchSize = Config.ProcessingBatchSize
+    add(results, type(batchSize) == 'number' and batchSize >= 1 and batchSize % 1 == 0 and batchSize <= 1000, 'processing batch', tostring(Config.ProcessingBatchSize))
     add(results, type(Config.Economy) == 'table', 'economy config', type(Config.Economy))
     add(results, Config.Economy and Config.MoneyType == Config.Economy.moneyType, 'economy money alias', tostring(Config.MoneyType))
     add(results, type(Config.MiningDurationMs) == 'number' and Config.MiningDurationMs >= 1000, 'mining duration', tostring(Config.MiningDurationMs))

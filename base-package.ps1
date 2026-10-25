@@ -80,7 +80,8 @@ try {
     $PackagedConfig = Join-Path $StageResource "config.lua"
     $ConfigText = Get-Content -LiteralPath $PackagedConfig -Raw
     $ConfigText = $ConfigText -replace "(?m)^FlecityBaseConfig\.Debug\s*=\s*true\s*$", "FlecityBaseConfig.Debug = false"
-    Set-Content -LiteralPath $PackagedConfig -Value $ConfigText -Encoding UTF8
+    $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($PackagedConfig, $ConfigText, $Utf8NoBom)
 
     if (Test-Path -LiteralPath (Join-Path $StageResource "INSTALL.md")) {
         throw "Development INSTALL.md must not be included in submission package."

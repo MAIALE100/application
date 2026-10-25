@@ -112,9 +112,10 @@ try {
     Step 'DEV bridge needs one-time bootstrap'
 
     $bootstrap = @(
-        'add_ace resource.flecity_mining_devbridge command.restart allow',
+        'add_ace resource.flecity_mining_devbridge command.stop allow',
+        'add_ace resource.flecity_mining_devbridge command.start allow',
         'refresh',
-        'ensure flecity_mining_devbridge'
+        'restart flecity_mining_devbridge'
     )
 
     try {
@@ -137,12 +138,14 @@ try {
 
     Write-Host ''
     Write-Host 'This is required only once for the currently running test server:' -ForegroundColor Yellow
-    Write-Host '    add_ace resource.flecity_mining_devbridge command.restart allow' -ForegroundColor White
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.stop allow' -ForegroundColor White
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.start allow' -ForegroundColor White
     Write-Host '    refresh' -ForegroundColor White
-    Write-Host '    ensure flecity_mining_devbridge' -ForegroundColor White
+    Write-Host '    restart flecity_mining_devbridge' -ForegroundColor White
     Write-Host ''
     Write-Host 'The reload request is already waiting. Once the bridge starts, it will automatically:' -ForegroundColor Cyan
-    Write-Host '    restart flecity_mining' -ForegroundColor White
+    Write-Host '    stop flecity_mining' -ForegroundColor White
+    Write-Host '    start flecity_mining' -ForegroundColor White
     Write-Host '    mining_selftest' -ForegroundColor White
     Write-Host '    mining_healthcheck' -ForegroundColor White
     Write-Host '    mining_configcheck' -ForegroundColor White

@@ -89,13 +89,22 @@ try {
         $status = if ($parts.Length -ge 2) { $parts[1] } else { 'UNKNOWN' }
         $detail = if ($parts.Length -ge 3) { $parts[2] } else { '' }
 
-        if ($status -eq 'PASS') {
+        if ($status -eq 'PASS' -and $detail -eq 'resource-restarted-and-verification-issued') {
             $completed = $true
+            break
         }
-        else {
+
+        if ($status -eq 'FAIL') {
             $failed = $true
+            break
         }
-        break
+
+        # An older bridge can report PASS even when restart was denied.
+        # Treat any other PASS detail as stale and fall through to bootstrap.
+        if ($status -eq 'PASS') {
+            $detail = 'stale-dev-bridge'
+            break
+        }
     }
 
     if ($completed) {
@@ -109,7 +118,7 @@ try {
         throw ("DEV bridge reported failure: " + $detail)
     }
 
-    Step 'DEV bridge needs one-time bootstrap'
+    Step 'DEV bridge needs one-time bootstrap or upgrade'
 
     $bootstrap = @(
         'add_ace resource.flecity_mining_devbridge command.stop allow',

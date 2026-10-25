@@ -341,6 +341,28 @@ handlers.stockList = function(source, data)
     return {ok=true, items=items}
 end
 
+handlers.stockHistory = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    local itemId = integer(data.id, 1)
+    local exists = tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM flecity_base_stock_items WHERE id=? AND workspace_id=?',
+        {itemId, workspace.id}
+    ) or 0) > 0
+    if not exists then return {ok=false, error='ITEM_NOT_FOUND'} end
+    local rows = MySQL.query.await([[
+        SELECT id, actor_citizenid, delta, before_quantity, after_quantity, note, created_at
+        FROM flecity_base_stock_movements
+        WHERE workspace_id=? AND item_id=?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 100
+    ]], {workspace.id, itemId}) or {}
+    return {ok=true, history=rows}
+end
+
 handlers.stockCreate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -581,6 +603,7 @@ local callbacks = {
     ['flecity_base:noteUpdate'] = handlers.noteUpdate,
     ['flecity_base:noteDelete'] = handlers.noteDelete,
     ['flecity_base:stockList'] = handlers.stockList,
+    ['flecity_base:stockHistory'] = handlers.stockHistory,
     ['flecity_base:stockCreate'] = handlers.stockCreate,
     ['flecity_base:stockAdjust'] = handlers.stockAdjust,
     ['flecity_base:stockConfigure'] = handlers.stockConfigure,

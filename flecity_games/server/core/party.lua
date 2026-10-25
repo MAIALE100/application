@@ -621,10 +621,25 @@ local function miniShogiMoveOrderScore(board,hands,move,side)
     if miniShogiInCheck(b,side) then score=score-50000 end
     return score
 end
-local function miniShogiOrderedMoves(board,hands,side,limit)
+local function miniShogiQuickOrderScore(board,move)
+    local score=0
+    if move.type=='move' then
+        local target=board[move.to]
+        if target and target~='' then score=score+(miniShogiValues[miniShogiKind(target)] or 0)*12 end
+        if move.promote then score=score+2200 end
+    else
+        score=score+(miniShogiValues[move.kind] or 0)*2
+    end
+    local row,col=miniShogiRowCol(move.to)
+    return score+((5-math.abs(5-row))+(5-math.abs(5-col)))*8
+end
+local function miniShogiOrderedMoves(board,hands,side,limit,fullOrder)
     local moves=miniShogiAllMoves(board,hands,side)
     local ranked={}
-    for _,move in ipairs(moves) do ranked[#ranked+1]={move=move,score=miniShogiMoveOrderScore(board,hands,move,side)} end
+    for _,move in ipairs(moves) do
+        local score=fullOrder and miniShogiMoveOrderScore(board,hands,move,side) or miniShogiQuickOrderScore(board,move)
+        ranked[#ranked+1]={move=move,score=score}
+    end
     table.sort(ranked,function(a,b) return a.score>b.score end)
     local count=limit and math.min(#ranked,limit) or #ranked
     local ordered={}
@@ -632,13 +647,13 @@ local function miniShogiOrderedMoves(board,hands,side,limit)
     return ordered
 end
 local function miniShogiSearch(board,hands,side,depth,alpha,beta,limits,ply)
+    if depth<=0 then return miniShogiEvaluate(board,hands) end
     local limit=limits and limits[math.min(ply or 1,#limits)] or nil
-    local moves=miniShogiOrderedMoves(board,hands,side,limit)
+    local moves=miniShogiOrderedMoves(board,hands,side,limit,false)
     if #moves<1 then
         if side=='W' then return -10000000+(ply or 0) end
         return 10000000-(ply or 0)
     end
-    if depth<=0 then return miniShogiEvaluate(board,hands) end
 
     if side=='W' then
         local best=-math.huge
@@ -670,13 +685,13 @@ local function miniShogiChooseAiMove(rs)
     if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' and difficulty~='oni' then difficulty='hard' end
 
     local config={
-        easy={root=12,depth=0,limits={8}},
-        normal={root=18,depth=1,limits={12}},
-        hard={root=22,depth=2,limits={16,8}},
-        oni={root=20,depth=3,limits={12,8,5}}
+        easy={root=10,depth=0,limits={6}},
+        normal={root=14,depth=1,limits={9}},
+        hard={root=16,depth=2,limits={10,5}},
+        oni={root=14,depth=3,limits={8,5,3}}
     }
     local cfg=config[difficulty] or config.hard
-    local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',cfg.root)
+    local rootMoves=miniShogiOrderedMoves(rs.board,rs.hands,'W',cfg.root,true)
     if #rootMoves<1 then return nil end
 
     if difficulty=='easy' then

@@ -37,12 +37,12 @@ try {
     $Parent = Split-Path -Parent $Target
     New-Item -ItemType Directory -Path $Parent -Force | Out-Null
 
-    if (Test-Path $Target) {
-        Remove-Item $Target -Recurse -Force
+    if (Test-Path -LiteralPath $Target) {
+        Remove-Item -LiteralPath $Target -Recurse -Force
     }
-    Copy-Item $Source $Target -Recurse -Force
+    Copy-Item -LiteralPath $Source -Destination $Target -Recurse -Force
 
-    if (-not (Test-Path (Join-Path $Target "fxmanifest.lua"))) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Target "fxmanifest.lua"))) {
         throw "Deployment validation failed."
     }
 

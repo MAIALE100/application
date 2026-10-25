@@ -7,6 +7,7 @@ It is designed for businesses, crews, teams, projects, informal groups, and pers
 ## Current feature set
 
 - Automatic personal `MY SPACE`
+- Overview dashboard for shortages, tasks, balance, and recent activity
 - User-created BASE workspaces with a categorized workspace icon picker
 - OWNER / MANAGER / MEMBER role model
 - ADMIN and opt-in WEAZEL SUPPORT maintenance access

@@ -167,11 +167,12 @@ function personLabel(name,citizenid){
   return n||c||"不明";
 }
 
-function modal(title, html, onSave){
+function modal(title, html, onSave, saveLabel="保存"){
   const d=$("#modal");
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=html;
   const save=$("#modalSave");
+  save.textContent=saveLabel;
   save.style.display="";
   save.onclick=async (ev)=>{
     ev.preventDefault();
@@ -192,6 +193,7 @@ function viewModal(title, html){
   const d=$("#modal");
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=html;
+  $("#modalSave").textContent="保存";
   $("#modalSave").style.display="none";
   if(!d.open) d.showModal();
 }
@@ -356,6 +358,30 @@ function confirmNoteDelete(note){
     });
 }
 
+function deleteNote(note){
+  if(!note) return;
+  modal("メモを削除",
+    `<article class="card"><div class="card-title">${esc(note.title)}</div><div class="muted">このメモを削除します。削除後は一覧から表示されなくなります。</div></article>`,
+    async ()=>{
+      await api("noteDelete",{workspaceId:selectedWorkspaceId(),id:Number(note.id)});
+      await loadTab();
+      return true;
+    },
+    "削除");
+}
+
+function deleteTask(task){
+  if(!task) return;
+  modal("タスクを削除",
+    `<article class="card"><div class="card-title">${esc(task.title)}</div><div class="muted">このタスクを削除します。この操作は取り消せません。</div></article>`,
+    async ()=>{
+      await api("taskDelete",{workspaceId:selectedWorkspaceId(),id:Number(task.id)});
+      await loadTab();
+      return true;
+    },
+    "削除");
+}
+
 function renderStock(){
   const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort();
   const rows=state.stock.filter(i=>{
@@ -445,7 +471,8 @@ function deleteStock(item){
       await api("stockDelete",{workspaceId:selectedWorkspaceId(),id:Number(item.id),confirmName:fd.get("confirm")});
       await loadTab();
       return true;
-    });
+    },
+    "削除");
 }
 
 async function stockHistory(item){
@@ -1062,7 +1089,8 @@ function deleteWorkspace(){
       state.workspace=null;
       await bootstrap();
       return true;
-    });
+    },
+    "削除");
 }
 
 function newWorkspace(){

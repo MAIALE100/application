@@ -29,30 +29,57 @@ local function runVerification()
     ExecuteCommand('mining_economy')
 end
 
+local function waitForState(expected, timeoutMs)
+    local deadline = GetGameTimer() + timeoutMs
+
+    while GetGameTimer() < deadline do
+        if GetResourceState(TARGET) == expected then
+            return true
+        end
+        Wait(100)
+    end
+
+    return GetResourceState(TARGET) == expected
+end
+
 local function handleRequest(token)
     if processing then return end
     processing = true
 
     print(('[%s] Reload request received: %s'):format(RESOURCE, token))
 
-    ExecuteCommand(('restart %s'):format(TARGET))
+    ExecuteCommand(('stop %s'):format(TARGET))
 
-    local deadline = GetGameTimer() + 12000
-    while GetGameTimer() < deadline do
-        Wait(250)
-        if GetResourceState(TARGET) == 'started' then
-            Wait(500)
-            runVerification()
-            writeResult(token, 'PASS', 'resource-started-and-verification-issued')
-            print(('[%s] Reload complete: %s'):format(RESOURCE, token))
-            processing = false
-            return
-        end
+    if not waitForState('stopped', 6000) then
+        local state = GetResourceState(TARGET)
+        writeResult(token, 'FAIL', ('stop-failed-state=%s'):format(tostring(state)))
+        print(('[%s] Reload failed during stop: %s state=%s'):format(
+            RESOURCE,
+            token,
+            tostring(state)
+        ))
+        processing = false
+        return
     end
 
-    local state = GetResourceState(TARGET)
-    writeResult(token, 'FAIL', ('resource-state=%s'):format(tostring(state)))
-    print(('[%s] Reload failed: %s state=%s'):format(RESOURCE, token, tostring(state)))
+    ExecuteCommand(('start %s'):format(TARGET))
+
+    if not waitForState('started', 10000) then
+        local state = GetResourceState(TARGET)
+        writeResult(token, 'FAIL', ('start-failed-state=%s'):format(tostring(state)))
+        print(('[%s] Reload failed during start: %s state=%s'):format(
+            RESOURCE,
+            token,
+            tostring(state)
+        ))
+        processing = false
+        return
+    end
+
+    Wait(500)
+    runVerification()
+    writeResult(token, 'PASS', 'resource-restarted-and-verification-issued')
+    print(('[%s] Reload complete: %s'):format(RESOURCE, token))
     processing = false
 end
 

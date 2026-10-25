@@ -1416,19 +1416,19 @@ body.party-round #gomokuMeta{margin-top:.12rem}
 
 /* LINK bright game-app theme */
 body.party-app{
-  color:#25344a;
+  color:#31475c;
   background:
     radial-gradient(circle at 10% 6%,rgba(82,193,255,.28),transparent 24rem),
     radial-gradient(circle at 92% 12%,rgba(255,210,72,.28),transparent 22rem),
-    linear-gradient(180deg,#dff4ff 0%,#edf9ff 48%,#f7fbff 100%)!important;
+    linear-gradient(180deg,#d8e9f3 0%,#e4eef4 48%,#edf3f6 100%)!important;
   background-attachment:fixed;
 }
 
 body.party-app .wrap{color:#25344a}
 
 body.party-app .card{
-  background:#ffffff;
-  border-color:#cfe0ee;
+  background:#eef3f6;
+  border-color:#bdceda;
   box-shadow:0 .5rem 1.2rem rgba(63,101,135,.14),0 .08rem .18rem rgba(54,88,117,.08);
 }
 
@@ -1445,8 +1445,8 @@ body.party-app .muted{
 
 body.party-app input,
 body.party-app select{
-  background:#f7fbff;
-  color:#26384d;
+  background:#e8eff4;
+  color:#31475c;
   border-color:#bfd2e2;
   box-shadow:inset 0 .06rem .12rem rgba(82,111,136,.06);
 }
@@ -1483,8 +1483,8 @@ body.party-app button:disabled{
 }
 
 body.party-app .party-plus-card{
-  background:linear-gradient(135deg,#fff8c9,#fff2a8);
-  border-color:#e9cf67;
+  background:linear-gradient(135deg,#f5edc9,#efe2a8);
+  border-color:#d8bd67;
   box-shadow:0 .45rem 1rem rgba(181,151,55,.15);
 }
 
@@ -1498,8 +1498,8 @@ body.party-app .party-plus-body .muted{color:#756534}
 body.party-app .party-plus-card .good{color:#168b63}
 
 body.party-app .party-entry{
-  background:#ffffff;
-  border-color:#c7dfef;
+  background:#eef3f6;
+  border-color:#bfd2df;
 }
 
 body.party-app .party-primary{
@@ -1509,8 +1509,8 @@ body.party-app .party-primary{
 }
 
 body.party-app .room-hero{
-  background:linear-gradient(145deg,#ffffff,#f5fbff);
-  border-color:#c8dfef;
+  background:linear-gradient(145deg,#edf3f7,#e5edf3);
+  border-color:#bfd1dc;
 }
 
 body.party-app .room-code{color:#284f77}
@@ -1520,8 +1520,8 @@ body.party-app .player,
 body.party-app .game-info,
 body.party-app .mastermind-lobby-options,
 body.party-app .status.compact-status{
-  background:#f3f9fd;
-  color:#2d4158;
+  background:#e6eef4;
+  color:#354b60;
   border-color:#c9dce9;
 }
 
@@ -1530,14 +1530,14 @@ body.party-app .player{
 }
 
 body.party-app #lobbyPanel{
-  background:#ffffff;
+  background:#eef3f6;
   border-color:#c9dfef;
 }
 
 body.party-app .mastermind-lobby-options label>span{color:#4a6179}
 
 body.party-app .lobby-actions{
-  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(244,250,255,.98) 35%);
+  background:linear-gradient(180deg,rgba(232,239,244,.78),rgba(224,234,240,.98) 35%);
   box-shadow:0 -.45rem 1rem rgba(80,116,146,.1);
 }
 
@@ -1551,7 +1551,7 @@ body.party-app #start:not(:disabled){
 }
 
 body.party-app .settings-card{
-  background:#ffffff;
+  background:#eef3f6;
   border-color:#cfdfeb;
 }
 
@@ -1562,7 +1562,7 @@ body.party-app .settings-card .settings-body{
 body.party-app .settings-card summary{color:#31465d}
 
 body.party-app .round-hud{
-  background:#ffffff;
+  background:#eef3f6;
   color:#2c4056;
   border-color:#c6dceb;
   box-shadow:0 .3rem .75rem rgba(66,103,133,.12);
@@ -1614,7 +1614,7 @@ body.party-app .confirm-overlay{
 }
 
 body.party-app .confirm-card{
-  background:#ffffff;
+  background:#eef3f6;
   color:#293d53;
   border-color:#c8dae7;
   box-shadow:0 1rem 2.8rem rgba(64,95,120,.2);
@@ -1638,7 +1638,7 @@ body.party-app #ngWordPanel,
 body.party-app #fakeAnswerPanel,
 body.party-app #bombPanel,
 body.party-app #memoryChainPanel{
-  color:#2b4056;
+  color:#344b60;
 }
 
 body.party-app .gomoku-board,
@@ -1649,7 +1649,7 @@ body.party-app .connect4-board{
 }
 
 body.party-app .mini-shogi-hands{
-  background:#f7fbff;
+  background:#e8eff4;
   border-color:#c8d9e6;
   color:#30465d;
 }
@@ -1658,7 +1658,7 @@ body.party-app #miniShogiMeta,
 body.party-app #gomokuMeta,
 body.party-app #reversiMeta,
 body.party-app #connect4Meta{
-  background:#f1f8fd;
+  background:#e6eef3;
   color:#354c63;
   border-color:#c8dbe8;
 }

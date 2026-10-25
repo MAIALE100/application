@@ -27,25 +27,15 @@ local activeTheme = nil
 local poseReadyForNextShot = false
 local poseAdvanceRequested = false
 local poseShotIndex = 0
+local captureCancelledByUser = false
 
 local themeRuntimeNonce = ("%d_%d"):format(GetGameTimer(), PlayerId())
+local themeTextureGeneration = 0
 local themeTextures = {
-    background = {
-        txd = nil,
-        texture = nil,
-        txdName = "puribooth_bg_txd_" .. themeRuntimeNonce,
-        txnName = "surface"
-    },
-    floor = {
-        txd = nil,
-        texture = nil,
-        txdName = "puribooth_floor_txd_" .. themeRuntimeNonce,
-        txnName = "surface"
-    }
+    background = nil,
+    floor = nil
 }
 
-local BLANK_TEXTURE_DATA =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLqWQAAAABJRU5ErkJggg=="
 
 
 local function notify(kind, message)
@@ -167,54 +157,41 @@ local function validThemeImage(value)
     return nil
 end
 
-local function ensureThemeTexture(kind, image)
-    local slot = themeTextures[kind]
-    if not slot then return false end
+local function createThemeTexture(kind, image)
+    themeTextureGeneration = themeTextureGeneration + 1
 
+    local slot = {
+        txdName = ("puribooth_%s_txd_%s_%d")
+            :format(kind, themeRuntimeNonce, themeTextureGeneration),
+        txnName = "surface"
+    }
+
+    slot.txd = CreateRuntimeTxd(slot.txdName)
     if not slot.txd then
-        slot.txd = CreateRuntimeTxd(slot.txdName)
-    end
-
-    if not slot.texture then
-        slot.texture = CreateRuntimeTextureFromImage(
-            slot.txd,
-            slot.txnName,
-            image
-        )
-
-        if not slot.texture then
-            print(("[puribooth] runtime image texture create failed: %s")
-                :format(kind))
-            return false
-        end
-
-        return true
-    end
-
-    local ok = SetRuntimeTextureImage(slot.texture, image)
-    if not ok then
-        print(("[puribooth] runtime image texture update failed: %s")
-            :format(kind))
+        print(("[puribooth] runtime txd create failed: %s"):format(kind))
         return false
     end
 
+    slot.texture = CreateRuntimeTextureFromImage(
+        slot.txd,
+        slot.txnName,
+        image
+    )
+
+    if not slot.texture then
+        print(("[puribooth] runtime image texture create failed: %s"):format(kind))
+        return false
+    end
+
+    themeTextures[kind] = slot
     return true
 end
 
 local function clearTheme()
     activeTheme = nil
+    themeTextures.background = nil
+    themeTextures.floor = nil
     SendNUIMessage({ action = "resetTheme" })
-
-    for _, slot in pairs(themeTextures) do
-        if slot.texture then
-            pcall(function()
-                SetRuntimeTextureImage(
-                    slot.texture,
-                    BLANK_TEXTURE_DATA
-                )
-            end)
-        end
-    end
 end
 
 local function drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, txd, txn)
@@ -1153,6 +1130,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
     CreateThread(function()
         ownedSession.phase = "capturing"
         captureInProgress = true
+        captureCancelledByUser = false
 
         if not previewCam
             or not DoesCamExist(previewCam)
@@ -1199,16 +1177,25 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
                 shotIndex
             )
 
-            Wait(
-                math.max(
-                    1,
-                    tonumber(Config.CountdownSeconds) or 3
-                ) * 1000
-            )
+            local countdownDeadline =
+                GetGameTimer()
+                + (
+                    math.max(
+                        1,
+                        tonumber(Config.CountdownSeconds) or 3
+                    ) * 1000
+                )
+                + 550
 
-            -- Let the countdown/SMILE overlay disappear before screenshot-basic
-            -- captures the fixed scripted-camera render.
-            Wait(550)
+            while captureInProgress and GetGameTimer() < countdownDeadline do
+                Wait(0)
+            end
+
+            if not captureInProgress then
+                break
+            end
+
+            -- Countdown/SMILE overlay has now finished.
 
             local finished = false
             local frame = nil
@@ -1245,6 +1232,17 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
         captureInProgress = false
         destroyPreviewCamera(true)
         clearTheme()
+
+        if captureCancelledByUser then
+            TriggerServerEvent(
+                "puribooth:server:cancelSession",
+                boothId
+            )
+
+            notify("inform", "撮影を中止しました。")
+            ownedSession = nil
+            return
+        end
 
         if failed or #shots == 0 then
             TriggerServerEvent(
@@ -1291,12 +1289,12 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
         return
     end
 
-    if backgroundEnabled and not ensureThemeTexture("background", backgroundImage) then
+    if backgroundEnabled and not createThemeTexture("background", backgroundImage) then
         cb({ ok = false, error = "background_texture_failed" })
         return
     end
 
-    if floorEnabled and not ensureThemeTexture("floor", floorImage) then
+    if floorEnabled and not createThemeTexture("floor", floorImage) then
         cb({ ok = false, error = "floor_texture_failed" })
         return
     end
@@ -1666,14 +1664,23 @@ CreateThread(function()
                     sessionMarker(booth)
 
                     drawText2d(
-                        "STEP 1/2   [E] CAMERA PREVIEW",
+                        "STEP 1/2   [E] CAMERA PREVIEW   [BACKSPACE] CANCEL",
                         0.5,
                         0.82,
-                        0.46
+                        0.42
                     )
 
                     if IsControlJustReleased(0, 38) then
                         enterCameraPreview(ownedSession.boothId)
+                    elseif IsControlJustReleased(0, 177) then
+                        TriggerServerEvent(
+                            "puribooth:server:cancelSession",
+                            ownedSession.boothId
+                        )
+
+                        clearTheme()
+                        ownedSession = nil
+                        notify("inform", "撮影を中止しました。")
                     end
                 elseif phase == "preview" then
                     wait = 0
@@ -1710,16 +1717,20 @@ CreateThread(function()
             HideHelpTextThisFrame()
             ThefeedHideThisFrame()
 
-            if poseReadyForNextShot then
+            if IsControlJustReleased(0, 177) then
+                captureCancelledByUser = true
+                captureInProgress = false
+                countdownDisplay = nil
+            elseif poseReadyForNextShot then
                 drawText2d(
-                    ("PHOTO %d/%d   POSE READY   [E] COUNTDOWN")
+                    ("PHOTO %d/%d   POSE READY   [E] COUNTDOWN   [BACKSPACE] CANCEL")
                         :format(
                             poseShotIndex,
                             tonumber(Config.ShotCount) or 4
                         ),
                     0.5,
                     0.82,
-                    0.42
+                    0.36
                 )
 
                 if IsControlJustReleased(0, 38) then

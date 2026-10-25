@@ -480,3 +480,34 @@ Fleeca銀行用ドリルanimationは実機Pedでpropだけ表示され、身体�
 3. 5秒後に工具propが地面へ残らない
 4. 実採掘でも同じscenarioが出る
 5. G中断・完了後に移動可能
+
+
+## v0.3.13 外側地形IPL復旧
+
+実機で坑道退出後、Great Chaparral周辺の外側地形が灰色の低LOD形状へ崩れる状態を確認。
+
+原因:
+
+- `cs6_08_critical_*`
+- `cs6_08_long_*`
+- `cs6_08a_strm_0`
+
+を通常 exterior と同時に強制 RequestIpl していた。
+また、旧 inside 判定が入口から180m以内をinside扱いしており、外側でもmine IPLを再読込する可能性があった。
+
+変更:
+
+- 常時mine IPLロードを廃止
+- 入坑時だけ `cs6_08` + `cs6_08_interior_cs6_08_mine_int` をRequestIpl
+- 退出時にmine interior IPLを解除
+- 旧バージョンが残したcritical/long/alternate IPLをcleanup
+- inside fallbackをinside access 18m / mining node 35mへ縮小
+- DEV用 `/mine_mapreset` を追加
+
+確認:
+
+1. 外側でresource restart後、灰色のLOD地形が解消する
+2. 必要なら外側で `/mine_mapreset` を実行し、地形が再読込される
+3. 坑道へ入ると内部が正常表示される
+4. 坑道から出ると外側地形が正常表示される
+5. 入退場を3回以上繰り返してもLOD崩れが再発しない

@@ -183,8 +183,8 @@ RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
     pendingBoothImport = {
         image = image,
         location = {
-            label = tostring(metadata.label or "Legion Square PURI"),
-            street = tostring(metadata.street or "Legion Square"),
+            label = tostring(metadata.label or "Street PURI"),
+            street = tostring(metadata.street or ""),
             zone = tostring(metadata.zone or ""),
             x = coords.x,
             y = coords.y,

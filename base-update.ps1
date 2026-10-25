@@ -17,13 +17,13 @@ try {
     Write-Host "==> Fetching latest BASE build"
     Run-Git fetch --prune origin $Branch
 
-    if (Test-Path $Temp) { Remove-Item $Temp -Recurse -Force }
+    if (Test-Path -LiteralPath $Temp) { Remove-Item -LiteralPath $Temp -Recurse -Force }
     Run-Git worktree add --detach $Temp "origin/$Branch"
 
     $Source = Join-Path $Temp "flecity_base"
     $Manifest = Join-Path $Source "fxmanifest.lua"
     if (-not (Test-Path -LiteralPath $Manifest)) {
-        throw "BASE source validation failed."
+        throw "BASE source validation failed: fxmanifest.lua is missing."
     }
 
     $ManifestText = Get-Content -LiteralPath $Manifest -Raw
@@ -42,52 +42,26 @@ try {
     if ($FrameworkText -notmatch "FlecityBaseFramework\s*=\s*FlecityBaseFramework\s+or\s+\{\}") {
         throw "Safety check failed: FlecityBaseFramework bootstrap is missing."
     }
-    if ($FrameworkText -notmatch "function\s+FlecityBaseFramework\.GetIdentifier") {
-        throw "Safety check failed: FlecityBaseFramework.GetIdentifier is missing."
+    if (($FrameworkText | Select-String -Pattern "function\s+FlecityBaseFramework\.GetIdentifier" -AllMatches).Matches.Count -ne 1) {
+        throw "Safety check failed: FlecityBaseFramework.GetIdentifier must exist exactly once."
     }
     if (($FrameworkText | Select-String -Pattern "function\s+FlecityBaseFramework\.GetJob" -AllMatches).Matches.Count -ne 1) {
         throw "Safety check failed: FlecityBaseFramework.GetJob must exist exactly once."
     }
-    if ($FrameworkText -notmatch ":gsub\('%s\+\    $Css = Join-Path $Source "web\app.css"
-    if (Test-Path $Css) {
-        $CssText = Get-Content $Css -Raw
-        if ($CssText -match '(?<![A-Za-z])\d+(?:\.\d+)?px') {
-            throw "Safety check found px units while LB Phone fixBlur is enabled."
+
+    $LuaCompiler = Get-Command luac5.4 -ErrorAction SilentlyContinue
+    if (-not $LuaCompiler) { $LuaCompiler = Get-Command luac -ErrorAction SilentlyContinue }
+    if ($LuaCompiler) {
+        Write-Host "==> Checking Lua syntax"
+        Get-ChildItem -LiteralPath $Source -Recurse -Filter *.lua | ForEach-Object {
+            & $LuaCompiler.Source -p $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Lua syntax check failed: $($_.FullName)" }
         }
-    }
-
-    Write-Host "==> Deploying BASE to test server"
-    $Parent = Split-Path -Parent $Target
-    New-Item -ItemType Directory -Path $Parent -Force | Out-Null
-
-    if (Test-Path -LiteralPath $Target) {
-        Remove-Item -LiteralPath $Target -Recurse -Force
-    }
-    Copy-Item -LiteralPath $Source -Destination $Target -Recurse -Force
-
-    if (-not (Test-Path -LiteralPath (Join-Path $Target "fxmanifest.lua"))) {
-        throw "Deployment validation failed."
-    }
-
-    Write-Host ""
-    Write-Host "BASE update complete."
-    Write-Host "txAdmin console:"
-    Write-Host "    restart flecity_base"
-    Write-Host ""
-}
-finally {
-    if (Test-Path $Temp) {
-        & git -C $RepoRoot worktree remove --force $Temp 2>$null
-        if (Test-Path $Temp) { Remove-Item $Temp -Recurse -Force }
-    }
-}
-,\s*''\)") {
-        throw "Safety check failed: character-name trim expression is malformed."
     }
 
     $Css = Join-Path $Source "web\app.css"
-    if (Test-Path $Css) {
-        $CssText = Get-Content $Css -Raw
+    if (Test-Path -LiteralPath $Css) {
+        $CssText = Get-Content -LiteralPath $Css -Raw
         if ($CssText -match '(?<![A-Za-z])\d+(?:\.\d+)?px') {
             throw "Safety check found px units while LB Phone fixBlur is enabled."
         }
@@ -113,8 +87,8 @@ finally {
     Write-Host ""
 }
 finally {
-    if (Test-Path $Temp) {
+    if (Test-Path -LiteralPath $Temp) {
         & git -C $RepoRoot worktree remove --force $Temp 2>$null
-        if (Test-Path $Temp) { Remove-Item $Temp -Recurse -Force }
+        if (Test-Path -LiteralPath $Temp) { Remove-Item -LiteralPath $Temp -Recurse -Force }
     }
 }

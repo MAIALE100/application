@@ -504,7 +504,12 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
 
     session.capturing = true
     session.captureStartedAt = os.time()
-    session.expiresAt = os.time() + 90
+    session.expiresAt =
+        os.time()
+        + math.max(
+            120,
+            tonumber(Config.CaptureTimeoutSeconds) or 600
+        )
 
     broadcastState(boothId)
     TriggerClientEvent("puribooth:client:captureOwner", source, boothId)
@@ -637,6 +642,27 @@ CreateThread(function()
         local now = os.time()
         for boothId, session in pairs(sessions) do
             if session.expiresAt <= now then
+                if session.paid and session.paid > 0 and GetPlayerName(session.owner) then
+                    pcall(function()
+                        exports.qbx_core:AddMoney(
+                            session.owner,
+                            session.moneyType or "cash",
+                            session.paid,
+                            session.capturing
+                                and "puribooth-capture-timeout-refund"
+                                or "puribooth-setup-timeout-refund"
+                        )
+                    end)
+
+                    notify(
+                        session.owner,
+                        "error",
+                        session.capturing
+                            and "撮影セッションがタイムアウトしたため料金を返金しました。"
+                            or "撮影準備時間が終了したため料金を返金しました。"
+                    )
+                end
+
                 releaseSession(boothId)
             end
         end

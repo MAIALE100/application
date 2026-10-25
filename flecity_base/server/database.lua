@@ -151,6 +151,20 @@ local schema = {
     KEY idx_base_calculator_workspace (workspace_id, updated_at),
     CONSTRAINT fk_base_calculator_workspace FOREIGN KEY (workspace_id)
         REFERENCES flecity_base_workspaces(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci]],
+
+[[CREATE TABLE IF NOT EXISTS flecity_base_access_audit (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    actor_citizenid VARCHAR(64) NOT NULL,
+    actor_name VARCHAR(120) NOT NULL,
+    access_type VARCHAR(24) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    workspace_id BIGINT UNSIGNED NULL,
+    workspace_name VARCHAR(120) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_base_access_actor (actor_citizenid, created_at),
+    KEY idx_base_access_workspace (workspace_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci]]
 }
 
@@ -208,7 +222,8 @@ function FlecityBaseDatabase.Selftest()
         'flecity_base_stock_movements',
         'flecity_base_tasks',
         'flecity_base_ledger',
-        'flecity_base_calculators'
+        'flecity_base_calculators',
+        'flecity_base_access_audit'
     }
     local failures = {}
     for _, name in ipairs(required) do

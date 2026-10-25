@@ -631,6 +631,20 @@ AddEventHandler('onResourceStop', function(resource)
     clearRoute()
     stopDrillPresentation()
 
+    local cfg = Config.DrillVisuals or {}
+    if type(cfg.animDict) == 'string' and cfg.animDict ~= '' then
+        RemoveAnimDict(cfg.animDict)
+    end
+    RemoveNamedPtfxAsset('core')
+
+    -- This resource explicitly requests the mine IPL at startup. Release that
+    -- request on stop so repeated development restarts do not leave the
+    -- interior pinned by flecity_mining after the resource is gone.
+    if Config.MineInterior and Config.MineInterior.enabled == true
+        and type(Config.MineInterior.ipl) == 'string' and Config.MineInterior.ipl ~= '' then
+        RemoveIpl(Config.MineInterior.ipl)
+    end
+
     local ped = PlayerPedId()
     ClearPedTasksImmediately(ped)
     FreezeEntityPosition(ped, false)

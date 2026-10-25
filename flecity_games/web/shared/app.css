@@ -1391,3 +1391,20 @@ body.party-round .app-status{
 body.party-app:not(.party-room) .app-status:not(.hidden){
   margin-top:0;
 }
+
+
+/* PARTY stable status slot: prevent entry/lobby vertical jumping */
+body.party-app:not(.party-round) #status.app-status{
+  display:block!important;
+  visibility:visible;
+  min-height:2.625rem;
+  height:2.625rem;
+  margin:0 0 .75rem;
+  padding:.625rem .75rem;
+  overflow:hidden;
+}
+body.party-app:not(.party-round) #status.app-status.hidden{
+  display:block!important;
+  visibility:hidden;
+  pointer-events:none;
+}

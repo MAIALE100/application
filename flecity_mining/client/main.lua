@@ -360,7 +360,15 @@ local function runApprovedAction(data)
         DisableControlAction(0, 75, true)
 
         local remaining = math.max(0, duration - (GetGameTimer() - started))
-        drawScreenText(('%s... %.1f秒'):format(label, remaining / 1000))
+        drawScreenText(('%s... %.1f秒  [G] 中断'):format(label, remaining / 1000))
+
+        -- G is intentionally handled inside the approved-action loop rather
+        -- than the ambient interaction loop. This makes manual cancellation
+        -- work while the player is frozen and keeps the server token cleanup
+        -- on the same path as death/session/displacement cancellation.
+        if IsControlJustReleased(0, 47) then
+            cancelCurrentAction = true
+        end
 
         if IsEntityDead(ped) or cancelCurrentAction then
             cancelled = true

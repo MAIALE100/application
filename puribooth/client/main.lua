@@ -28,20 +28,22 @@ local poseReadyForNextShot = false
 local poseAdvanceRequested = false
 local poseShotIndex = 0
 
+local themeRuntimeNonce = ("%d_%d"):format(GetGameTimer(), PlayerId())
 local themeDui = {
     background = {
         dui = nil,
         txd = nil,
-        txdName = "puribooth_bg_txd",
+        txdName = "puribooth_bg_txd_" .. themeRuntimeNonce,
         txnName = "surface"
     },
     floor = {
         dui = nil,
         txd = nil,
-        txdName = "puribooth_floor_txd",
+        txdName = "puribooth_floor_txd_" .. themeRuntimeNonce,
         txnName = "surface"
     }
 }
+
 
 local function notify(kind, message)
     if GetResourceState("ox_lib") == "started" and lib and lib.notify then
@@ -182,17 +184,9 @@ local function validThemeUrl(value)
     return nil
 end
 
-local function themeSurfaceUrl(spec)
-    local resource = GetCurrentResourceName()
-    local preset = validThemePreset(spec and spec.preset)
-    local imageUrl = validThemeUrl(spec and spec.url) or ""
-
-    return ("https://cfx-nui-%s/ui/surface.html?preset=%s&url=%s")
-        :format(
-            resource,
-            encodeQueryValue(preset),
-            encodeQueryValue(imageUrl)
-        )
+local function themeSurfaceUrl()
+    return ("https://cfx-nui-%s/ui/surface.html")
+        :format(GetCurrentResourceName())
 end
 
 local function ensureThemeDui(kind)
@@ -201,7 +195,7 @@ local function ensureThemeDui(kind)
 
     if not slot.dui then
         slot.dui = CreateDui(
-            themeSurfaceUrl({ preset = "pink", url = "" }),
+            themeSurfaceUrl(),
             1024,
             1024
         )
@@ -233,7 +227,11 @@ local function applyThemeSurface(kind, spec)
     local slot = ensureThemeDui(kind)
     if not slot then return end
 
-    SetDuiUrl(slot.dui, themeSurfaceUrl(spec))
+    SendDuiMessage(slot.dui, json.encode({
+        action = "setSurface",
+        preset = validThemePreset(spec and spec.preset),
+        url = validThemeUrl(spec and spec.url) or ""
+    }))
 end
 
 local function clearTheme()
@@ -242,7 +240,11 @@ local function clearTheme()
 
     for _, slot in pairs(themeDui) do
         if slot.dui then
-            SetDuiUrl(slot.dui, "about:blank")
+            SendDuiMessage(slot.dui, json.encode({
+                action = "setSurface",
+                preset = "none",
+                url = ""
+            }))
         end
     end
 end
@@ -1278,9 +1280,8 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
     applyThemeSurface("background", activeTheme.background)
     applyThemeSurface("floor", activeTheme.floor)
 
-    -- Chromium has to paint the new page before the world-space runtime
-    -- texture can display it. This is a short local wait, not persistence.
-    Wait(250)
+    -- Allow the DUI page one render beat to apply the new surface message.
+    Wait(100)
 
     ownedSession.phase = "gathering"
     SetNuiFocus(false, false)

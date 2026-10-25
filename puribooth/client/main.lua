@@ -13,6 +13,14 @@ local cameraPreviewActive = false
 local previewCam = nil
 local previewBoothId = nil
 
+local placementMode = false
+local placementObject = nil
+local placementOrigin = nil
+local placementReferenceHeading = 0.0
+local placementHeading = 0.0
+local placementPosition = nil
+local placementHeightOffset = 0.0
+
 local function notify(kind, message)
     if GetResourceState("ox_lib") == "started" and lib and lib.notify then
         lib.notify({
@@ -174,6 +182,186 @@ local function spawnBooth(boothId, booth)
     SetModelAsNoLongerNeeded(model)
 end
 
+
+local function cleanupPlacement()
+    if placementObject and DoesEntityExist(placementObject) then
+        DeleteEntity(placementObject)
+    end
+
+    placementMode = false
+    placementObject = nil
+    placementOrigin = nil
+    placementPosition = nil
+    placementHeightOffset = 0.0
+end
+
+local function startPlacementPreview()
+    if placementMode then
+        notify("inform", "すでに配置モードです。")
+        return
+    end
+
+    if editorOpen or ownedSession or captureInProgress then
+        notify("error", "撮影中・編集中は配置できません。")
+        return
+    end
+
+    local model = requestModel(Config.DefaultModel)
+    if not model then
+        notify("error", "プリクラ台モデルを読み込めませんでした。")
+        return
+    end
+
+    local ped = PlayerPedId()
+    local origin = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    local preview = Config.PlacementPreview or {}
+    local distance = tonumber(preview.initialDistance) or 2.0
+    local forwardX, forwardY = getBasis(heading)
+
+    local x = origin.x + forwardX * distance
+    local y = origin.y + forwardY * distance
+    local z = origin.z + 0.5
+
+    local object = CreateObjectNoOffset(
+        model,
+        x,
+        y,
+        z,
+        false,
+        false,
+        false
+    )
+
+    SetEntityHeading(object, heading)
+    PlaceObjectOnGroundProperly(object)
+
+    local grounded = GetEntityCoords(object)
+
+    SetEntityCollision(object, false, false)
+    FreezeEntityPosition(object, true)
+    SetEntityInvincible(object, true)
+    SetEntityAlpha(
+        object,
+        math.max(40, math.min(220, tonumber(preview.alpha) or 145)),
+        false
+    )
+    SetEntityAsMissionEntity(object, true, true)
+
+    placementMode = true
+    placementObject = object
+    placementOrigin = origin
+    placementReferenceHeading = heading
+    placementHeading = heading
+    placementPosition = vector3(grounded.x, grounded.y, grounded.z)
+    placementHeightOffset = 0.0
+
+    SetModelAsNoLongerNeeded(model)
+
+    notify(
+        "inform",
+        "半透明プレビューを表示しました。矢印キーで移動、Q/Eで回転、PageUp/PageDownで高さ調整、Enterで設置です。"
+    )
+end
+
+local function snapPlacementToGround()
+    if not placementObject or not DoesEntityExist(placementObject) then
+        return
+    end
+
+    local pos = GetEntityCoords(placementObject)
+
+    SetEntityCoordsNoOffset(
+        placementObject,
+        pos.x,
+        pos.y,
+        pos.z + 1.5,
+        false,
+        false,
+        false
+    )
+
+    PlaceObjectOnGroundProperly(placementObject)
+
+    local grounded = GetEntityCoords(placementObject)
+    placementPosition = vector3(
+        grounded.x,
+        grounded.y,
+        grounded.z + placementHeightOffset
+    )
+
+    SetEntityCoordsNoOffset(
+        placementObject,
+        placementPosition.x,
+        placementPosition.y,
+        placementPosition.z,
+        false,
+        false,
+        false
+    )
+end
+
+local function movePlacement(dx, dy)
+    if not placementPosition or not placementOrigin then return end
+
+    local preview = Config.PlacementPreview or {}
+    local maxOffset = tonumber(preview.maxHorizontalOffset) or 6.0
+
+    local nextX = placementPosition.x + dx
+    local nextY = placementPosition.y + dy
+
+    local fromOrigin = vector2(
+        nextX - placementOrigin.x,
+        nextY - placementOrigin.y
+    )
+
+    if #fromOrigin > maxOffset then
+        return
+    end
+
+    placementPosition = vector3(
+        nextX,
+        nextY,
+        placementPosition.z
+    )
+
+    SetEntityCoordsNoOffset(
+        placementObject,
+        nextX,
+        nextY,
+        placementPosition.z,
+        false,
+        false,
+        false
+    )
+
+    snapPlacementToGround()
+end
+
+local function confirmPlacement()
+    if not placementMode
+        or not placementObject
+        or not DoesEntityExist(placementObject) then
+        return
+    end
+
+    local coords = GetEntityCoords(placementObject)
+    local heading = placementHeading
+
+    cleanupPlacement()
+
+    TriggerServerEvent("puribooth:server:adminPlace", {
+        x = coords.x,
+        y = coords.y,
+        z = coords.z,
+        heading = heading
+    })
+end
+
+RegisterNetEvent("puribooth:client:adminPlaceHere", function()
+    startPlacementPreview()
+end)
+
 local function startSession(boothId)
     if editorOpen or ownedSession then
         notify("error", "すでにプリクラ撮影を準備中です。")
@@ -207,6 +395,7 @@ local function registerInteraction(boothId, booth)
                     return not sharedSessions[boothId]
                         and not editorOpen
                         and not ownedSession
+                        and not placementMode
                 end,
                 onSelect = function()
                     startSession(boothId)
@@ -251,18 +440,6 @@ RegisterNetEvent("puribooth:client:removeBooth", function(boothId)
     sharedSessions[boothId] = nil
 end)
 
-RegisterNetEvent("puribooth:client:adminPlaceHere", function()
-    local ped = PlayerPedId()
-    local coords = GetEntityCoords(ped)
-    local heading = GetEntityHeading(ped)
-
-    TriggerServerEvent("puribooth:server:adminPlace", {
-        x = coords.x,
-        y = coords.y,
-        z = coords.z,
-        heading = heading
-    })
-end)
 
 local function drawText2d(text, x, y, scale)
     SetTextFont(4)
@@ -727,7 +904,8 @@ CreateThread(function()
             if GetResourceState("ox_target") ~= "started"
                 and not state
                 and not ownedSession
-                and not editorOpen then
+                and not editorOpen
+                and not placementMode then
 
                 local bc = vector3(
                     booth.coords.x,
@@ -750,6 +928,204 @@ CreateThread(function()
                         startSession(boothId)
                     end
                 end
+            end
+        end
+
+        if placementMode
+            and placementObject
+            and DoesEntityExist(placementObject) then
+
+            wait = 0
+
+            local preview = Config.PlacementPreview or {}
+            local fast = IsControlPressed(0, 21)
+            local speedMultiplier = fast and 4.0 or 1.0
+            local moveStep = (tonumber(preview.moveStep) or 0.035) * speedMultiplier
+            local rotateStep = (tonumber(preview.rotateStep) or 1.0) * speedMultiplier
+            local heightStep = (tonumber(preview.heightStep) or 0.02) * speedMultiplier
+
+            DisableControlAction(0, 172, true)
+            DisableControlAction(0, 173, true)
+            DisableControlAction(0, 174, true)
+            DisableControlAction(0, 175, true)
+            DisableControlAction(0, 44, true)
+            DisableControlAction(0, 38, true)
+            DisableControlAction(0, 10, true)
+            DisableControlAction(0, 11, true)
+            DisableControlAction(0, 191, true)
+            DisableControlAction(0, 177, true)
+
+            local forwardX, forwardY, rightX, rightY =
+                getBasis(placementReferenceHeading)
+
+            if IsDisabledControlPressed(0, 172) then
+                movePlacement(
+                    forwardX * moveStep,
+                    forwardY * moveStep
+                )
+            end
+
+            if IsDisabledControlPressed(0, 173) then
+                movePlacement(
+                    -forwardX * moveStep,
+                    -forwardY * moveStep
+                )
+            end
+
+            if IsDisabledControlPressed(0, 174) then
+                movePlacement(
+                    -rightX * moveStep,
+                    -rightY * moveStep
+                )
+            end
+
+            if IsDisabledControlPressed(0, 175) then
+                movePlacement(
+                    rightX * moveStep,
+                    rightY * moveStep
+                )
+            end
+
+            if IsDisabledControlPressed(0, 44) then
+                placementHeading =
+                    (placementHeading + rotateStep) % 360.0
+                SetEntityHeading(
+                    placementObject,
+                    placementHeading
+                )
+            end
+
+            if IsDisabledControlPressed(0, 38) then
+                placementHeading =
+                    (placementHeading - rotateStep) % 360.0
+                SetEntityHeading(
+                    placementObject,
+                    placementHeading
+                )
+            end
+
+            if IsDisabledControlPressed(0, 10) then
+                placementHeightOffset =
+                    placementHeightOffset + heightStep
+
+                placementPosition = vector3(
+                    placementPosition.x,
+                    placementPosition.y,
+                    placementPosition.z + heightStep
+                )
+
+                SetEntityCoordsNoOffset(
+                    placementObject,
+                    placementPosition.x,
+                    placementPosition.y,
+                    placementPosition.z,
+                    false,
+                    false,
+                    false
+                )
+            end
+
+            if IsDisabledControlPressed(0, 11) then
+                placementHeightOffset =
+                    placementHeightOffset - heightStep
+
+                placementPosition = vector3(
+                    placementPosition.x,
+                    placementPosition.y,
+                    placementPosition.z - heightStep
+                )
+
+                SetEntityCoordsNoOffset(
+                    placementObject,
+                    placementPosition.x,
+                    placementPosition.y,
+                    placementPosition.z,
+                    false,
+                    false,
+                    false
+                )
+            end
+
+            if IsDisabledControlJustReleased(0, 191) then
+                confirmPlacement()
+            elseif IsDisabledControlJustReleased(0, 177) then
+                cleanupPlacement()
+                notify("inform", "プリクラ台の配置をキャンセルしました。")
+            end
+
+            if placementMode
+                and placementObject
+                and DoesEntityExist(placementObject) then
+
+                local pos = GetEntityCoords(placementObject)
+
+                local previewBooth = prepareBooth({
+                    id = "placement-preview",
+                    label = "Placement Preview",
+                    model = Config.DefaultModel,
+                    coords = {
+                        x = pos.x,
+                        y = pos.y,
+                        z = pos.z
+                    },
+                    heading = placementHeading
+                }, "placement-preview")
+
+                if previewBooth then
+                    local pc = previewBooth.captureCenter
+                    local ps = previewBooth.captureSize
+
+                    DrawMarker(
+                        1,
+                        pc.x,
+                        pc.y,
+                        pc.z - 1.02,
+                        0.0, 0.0, 0.0,
+                        0.0, 0.0, 0.0,
+                        ps.x,
+                        ps.y,
+                        0.20,
+                        255,
+                        95,
+                        180,
+                        100,
+                        false,
+                        false,
+                        2,
+                        false,
+                        nil,
+                        nil,
+                        false
+                    )
+
+                    local camPos = previewBooth.camera.coords
+                    DrawLine(
+                        camPos.x,
+                        camPos.y,
+                        camPos.z,
+                        pc.x,
+                        pc.y,
+                        pc.z + 0.5,
+                        255,
+                        95,
+                        180,
+                        180
+                    )
+                end
+
+                drawText2d(
+                    "PLACEMENT  ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
+                    0.5,
+                    0.80,
+                    0.38
+                )
+
+                drawText2d(
+                    "[SHIFT] FAST   [ENTER] PLACE   [BACKSPACE] CANCEL",
+                    0.5,
+                    0.84,
+                    0.40
+                )
             end
         end
 
@@ -831,6 +1207,7 @@ AddEventHandler("onResourceStop", function(resource)
 
     SetNuiFocus(false, false)
     destroyPreviewCamera(false)
+    cleanupPlacement()
 
     for boothId in pairs(spawnedObjects) do
         removeSpawnedBooth(boothId)

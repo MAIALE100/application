@@ -20,6 +20,8 @@ local placementReferenceHeading = 0.0
 local placementHeading = 0.0
 local placementPosition = nil
 local placementHeightOffset = 0.0
+local placementCameraPreviewActive = false
+local placementCamera = nil
 
 local function notify(kind, message)
     if GetResourceState("ox_lib") == "started" and lib and lib.notify then
@@ -183,7 +185,21 @@ local function spawnBooth(boothId, booth)
 end
 
 
+local function stopPlacementCameraPreview()
+    if placementCamera and DoesCamExist(placementCamera) then
+        RenderScriptCams(false, true, 200, true, true)
+        DestroyCam(placementCamera, false)
+    elseif placementCameraPreviewActive then
+        RenderScriptCams(false, true, 200, true, true)
+    end
+
+    placementCamera = nil
+    placementCameraPreviewActive = false
+end
+
 local function cleanupPlacement()
+    stopPlacementCameraPreview()
+
     if placementObject and DoesEntityExist(placementObject) then
         DeleteEntity(placementObject)
     end
@@ -356,6 +372,142 @@ local function confirmPlacement()
         z = coords.z,
         heading = heading
     })
+end
+
+local function buildPlacementBooth()
+    if not placementObject or not DoesEntityExist(placementObject) then
+        return nil
+    end
+
+    local pos = GetEntityCoords(placementObject)
+
+    return prepareBooth({
+        id = "placement-preview",
+        label = "Placement Preview",
+        model = Config.DefaultModel,
+        coords = {
+            x = pos.x,
+            y = pos.y,
+            z = pos.z
+        },
+        heading = placementHeading
+    }, "placement-preview")
+end
+
+local function togglePlacementCameraPreview()
+    if not placementMode then return end
+
+    if placementCameraPreviewActive then
+        stopPlacementCameraPreview()
+        return
+    end
+
+    local booth = buildPlacementBooth()
+    if not booth then return end
+
+    local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
+    local cc = booth.camera.coords
+    local pp = booth.camera.pointAt
+
+    SetCamCoord(cam, cc.x, cc.y, cc.z)
+    PointCamAtCoord(cam, pp.x, pp.y, pp.z)
+    SetCamFov(cam, booth.camera.fov or 68.0)
+    SetCamActive(cam, true)
+    RenderScriptCams(true, true, 200, true, true)
+
+    placementCamera = cam
+    placementCameraPreviewActive = true
+end
+
+local function drawPlacementZone(booth)
+    if not booth then return end
+
+    local center = booth.captureCenter
+    local size = booth.captureSize
+    local halfRight = (size.x or 3.4) * 0.5
+    local halfForward = (size.y or 2.6) * 0.5
+    local forwardX, forwardY, rightX, rightY = getBasis(booth.heading)
+    local z = center.z + 0.035
+
+    local function corner(rightOffset, forwardOffset)
+        return vector3(
+            center.x + rightX * rightOffset + forwardX * forwardOffset,
+            center.y + rightY * rightOffset + forwardY * forwardOffset,
+            z
+        )
+    end
+
+    local a = corner(-halfRight, -halfForward)
+    local b = corner( halfRight, -halfForward)
+    local c1 = corner( halfRight,  halfForward)
+    local d = corner(-halfRight,  halfForward)
+
+    DrawLine(a.x, a.y, a.z, b.x, b.y, b.z, 255, 95, 180, 235)
+    DrawLine(b.x, b.y, b.z, c1.x, c1.y, c1.z, 255, 95, 180, 235)
+    DrawLine(c1.x, c1.y, c1.z, d.x, d.y, d.z, 255, 95, 180, 235)
+    DrawLine(d.x, d.y, d.z, a.x, a.y, a.z, 255, 95, 180, 235)
+
+    DrawLine(
+        a.x, a.y, a.z,
+        c1.x, c1.y, c1.z,
+        255, 95, 180, 90
+    )
+    DrawLine(
+        b.x, b.y, b.z,
+        d.x, d.y, d.z,
+        255, 95, 180, 90
+    )
+
+    for _, p in ipairs({ a, b, c1, d }) do
+        DrawMarker(
+            28,
+            p.x, p.y, p.z + 0.08,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.16, 0.16, 0.16,
+            255, 95, 180, 230,
+            false, false, 2, false, nil, nil, false
+        )
+    end
+
+    DrawMarker(
+        28,
+        center.x, center.y, z + 0.10,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.25, 0.25, 0.25,
+        255, 255, 255, 220,
+        false, false, 2, false, nil, nil, false
+    )
+
+    local boothPos = GetEntityCoords(placementObject)
+    local camPos = booth.camera.coords
+
+    DrawLine(
+        boothPos.x,
+        boothPos.y,
+        boothPos.z + 0.7,
+        center.x,
+        center.y,
+        z + 0.15,
+        255,
+        95,
+        180,
+        230
+    )
+
+    DrawLine(
+        camPos.x,
+        camPos.y,
+        camPos.z,
+        center.x,
+        center.y,
+        center.z + 0.5,
+        255,
+        255,
+        255,
+        210
+    )
 end
 
 RegisterNetEvent("puribooth:client:adminPlaceHere", function()
@@ -954,6 +1106,7 @@ CreateThread(function()
             DisableControlAction(0, 11, true)
             DisableControlAction(0, 191, true)
             DisableControlAction(0, 177, true)
+            DisableControlAction(0, 26, true)
 
             local forwardX, forwardY, rightX, rightY =
                 getBasis(placementReferenceHeading)
@@ -1046,123 +1199,48 @@ CreateThread(function()
                 )
             end
 
-            if IsDisabledControlJustReleased(0, 191) then
+            if IsDisabledControlJustReleased(0, 26) then
+                togglePlacementCameraPreview()
+            elseif IsDisabledControlJustReleased(0, 191) then
                 confirmPlacement()
             elseif IsDisabledControlJustReleased(0, 177) then
-                cleanupPlacement()
-                notify("inform", "プリクラ台の配置をキャンセルしました。")
+                if placementCameraPreviewActive then
+                    stopPlacementCameraPreview()
+                else
+                    cleanupPlacement()
+                    notify("inform", "プリクラ台の配置をキャンセルしました。")
+                end
             end
 
             if placementMode
                 and placementObject
                 and DoesEntityExist(placementObject) then
 
-                local pos = GetEntityCoords(placementObject)
+                local previewBooth = buildPlacementBooth()
+                drawPlacementZone(previewBooth)
 
-                local previewBooth = prepareBooth({
-                    id = "placement-preview",
-                    label = "Placement Preview",
-                    model = Config.DefaultModel,
-                    coords = {
-                        x = pos.x,
-                        y = pos.y,
-                        z = pos.z
-                    },
-                    heading = placementHeading
-                }, "placement-preview")
-
-                if previewBooth then
-                    local pc = previewBooth.captureCenter
-                    local ps = previewBooth.captureSize
-
-                    DrawMarker(
-                        1,
-                        pc.x,
-                        pc.y,
-                        pc.z - 1.02,
-                        0.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0,
-                        ps.x,
-                        ps.y,
-                        0.20,
-                        255,
-                        95,
-                        180,
-                        100,
-                        false,
-                        false,
-                        2,
-                        false,
-                        nil,
-                        nil,
-                        false
+                if placementCameraPreviewActive then
+                    drawText2d(
+                        "CAMERA PREVIEW   [C] BACK   [BACKSPACE] BACK",
+                        0.5,
+                        0.82,
+                        0.42
+                    )
+                else
+                    drawText2d(
+                        "PINK BOX = PHOTO ZONE   ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
+                        0.5,
+                        0.80,
+                        0.34
                     )
 
-                    local boothPos = GetEntityCoords(placementObject)
-                    local camPos = previewBooth.camera.coords
-
-                    -- Make the shooting side unmistakable while placing.
-                    DrawLine(
-                        boothPos.x,
-                        boothPos.y,
-                        boothPos.z + 0.7,
-                        pc.x,
-                        pc.y,
-                        pc.z + 0.18,
-                        255,
-                        95,
-                        180,
-                        230
-                    )
-
-                    DrawLine(
-                        camPos.x,
-                        camPos.y,
-                        camPos.z,
-                        pc.x,
-                        pc.y,
-                        pc.z + 0.5,
-                        255,
-                        255,
-                        255,
-                        210
-                    )
-
-                    DrawMarker(
-                        28,
-                        pc.x,
-                        pc.y,
-                        pc.z + 0.10,
-                        0.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0,
-                        0.32, 0.32, 0.32,
-                        255,
-                        95,
-                        180,
-                        210,
-                        false,
-                        false,
-                        2,
-                        false,
-                        nil,
-                        nil,
-                        false
+                    drawText2d(
+                        "[C] CAMERA   [SHIFT] FAST   [ENTER] PLACE   [BACKSPACE] CANCEL",
+                        0.5,
+                        0.84,
+                        0.38
                     )
                 end
-
-                drawText2d(
-                    "PINK AREA = PHOTO ZONE   ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
-                    0.5,
-                    0.80,
-                    0.36
-                )
-
-                drawText2d(
-                    "[SHIFT] FAST   [ENTER] PLACE   [BACKSPACE] CANCEL",
-                    0.5,
-                    0.84,
-                    0.40
-                )
             end
         end
 

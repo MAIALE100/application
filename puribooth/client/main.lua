@@ -8,6 +8,7 @@ local editorOpen = false
 local editorBooth = nil
 
 local countdownDisplay = nil
+local countdownGeneration = 0
 local captureInProgress = false
 local cameraPreviewActive = false
 local previewCam = nil
@@ -1044,6 +1045,11 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
     boothId = tostring(boothId)
     sharedSessions[boothId] = state or nil
 
+    if not state then
+        countdownGeneration = countdownGeneration + 1
+        countdownDisplay = nil
+    end
+
     if not ownedSession or ownedSession.boothId ~= boothId or state then
         return
     end
@@ -1095,6 +1101,9 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
         return
     end
 
+    countdownGeneration = countdownGeneration + 1
+    local myGeneration = countdownGeneration
+
     CreateThread(function()
         local seconds = math.max(
             1,
@@ -1102,6 +1111,10 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
         )
 
         for n = seconds, 1, -1 do
+            if myGeneration ~= countdownGeneration then
+                return
+            end
+
             countdownDisplay =
                 ("PHOTO %d/%d   %d")
                 :format(
@@ -1110,12 +1123,28 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
                     n
                 )
 
-            Wait(1000)
+            local untilTime = GetGameTimer() + 1000
+            while myGeneration == countdownGeneration
+                and GetGameTimer() < untilTime do
+                Wait(0)
+            end
+        end
+
+        if myGeneration ~= countdownGeneration then
+            return
         end
 
         countdownDisplay = "SMILE!"
-        Wait(450)
-        countdownDisplay = nil
+
+        local smileUntil = GetGameTimer() + 450
+        while myGeneration == countdownGeneration
+            and GetGameTimer() < smileUntil do
+            Wait(0)
+        end
+
+        if myGeneration == countdownGeneration then
+            countdownDisplay = nil
+        end
     end)
 end)
 
@@ -1734,6 +1763,7 @@ CreateThread(function()
             if IsControlJustReleased(0, 177) then
                 captureCancelledByUser = true
                 captureInProgress = false
+                countdownGeneration = countdownGeneration + 1
                 countdownDisplay = nil
             elseif poseReadyForNextShot then
                 drawText2d(

@@ -92,6 +92,7 @@ try {
     Step 'DEV bridge needs one-time bootstrap'
 
     $bootstrap = @(
+        'add_ace resource.flecity_mining_devbridge command.restart allow',
         'refresh',
         'ensure flecity_mining_devbridge'
     )
@@ -116,6 +117,7 @@ try {
 
     Write-Host ''
     Write-Host 'This is required only once for the currently running test server:' -ForegroundColor Yellow
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.restart allow' -ForegroundColor White
     Write-Host '    refresh' -ForegroundColor White
     Write-Host '    ensure flecity_mining_devbridge' -ForegroundColor White
     Write-Host ''

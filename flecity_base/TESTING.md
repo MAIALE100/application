@@ -53,6 +53,21 @@
 - OWNER can void an entry without deleting its audit record.
 - MEMBER cannot void entries.
 
+## Custom calculators
+
+- OWNER can create a calculator for the current BASE.
+- Create 1 to 8 input fields with custom labels, units, and default values.
+- Formula variables use `v1` through `v8`.
+- Supported operators: `+`, `-`, `*`, `/`, `%`, and parentheses.
+- Test unary minus and decimal values.
+- Division by zero shows an error instead of Infinity/NaN.
+- Unknown variables are rejected by the server.
+- Test rounding modes: floor, round, ceil, none.
+- Test result formats: money and number with a custom unit.
+- MEMBER can use saved calculators but cannot create/edit/delete them.
+- OWNER can edit and delete saved calculators.
+- Calculators remain after restarting `flecity_base`.
+
 ## Multi-user checks
 
 - Two users changing the same stock item should never silently overwrite each other.

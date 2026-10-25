@@ -1083,6 +1083,26 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
     end
 end)
 
+local function reopenThemeSelection()
+    if not ownedSession then return end
+
+    local phase = ownedSession.phase
+    if phase ~= "gathering" and phase ~= "preview" then
+        return
+    end
+
+    destroyPreviewCamera(true)
+    clearTheme()
+    ownedSession.phase = "theme"
+    SetNuiFocus(true, true)
+    SendNUIMessage({ action = "openTheme" })
+
+    notify(
+        "inform",
+        "背景と床を選び直せます。追加料金はかかりません。"
+    )
+end
+
 RegisterNetEvent("puribooth:client:sessionOpened", function(boothId, expiresAt)
     boothId = tostring(boothId)
 
@@ -1722,7 +1742,7 @@ CreateThread(function()
                     sessionMarker(booth)
 
                     drawText2d(
-                        "STEP 1/2   [E] CAMERA PREVIEW   [BACKSPACE] CANCEL",
+                        "STEP 1/2   [E] CAMERA   [R] THEME   [BACKSPACE] CANCEL",
                         0.5,
                         0.82,
                         0.42
@@ -1730,6 +1750,8 @@ CreateThread(function()
 
                     if IsControlJustReleased(0, 38) then
                         enterCameraPreview(ownedSession.boothId)
+                    elseif IsControlJustReleased(0, 45) then
+                        reopenThemeSelection()
                     elseif IsControlJustReleased(0, 177) then
                         TriggerServerEvent(
                             "puribooth:server:cancelSession",
@@ -1744,7 +1766,7 @@ CreateThread(function()
                     wait = 0
 
                     drawText2d(
-                        "STEP 2/2   [E] START   [BACKSPACE] BACK",
+                        "STEP 2/2   [E] START   [R] THEME   [BACKSPACE] BACK",
                         0.5,
                         0.82,
                         0.44
@@ -1757,6 +1779,8 @@ CreateThread(function()
                             "puribooth:server:beginCapture",
                             ownedSession.boothId
                         )
+                    elseif IsControlJustReleased(0, 45) then
+                        reopenThemeSelection()
                     elseif IsControlJustReleased(0, 177) then
                         leaveCameraPreview()
                     end

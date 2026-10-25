@@ -27,11 +27,13 @@ local activeTheme = nil
 local themeDui = {
     background = {
         dui = nil,
+        txd = nil,
         txdName = "puribooth_bg_txd",
         txnName = "surface"
     },
     floor = {
         dui = nil,
+        txd = nil,
         txdName = "puribooth_floor_txd",
         txnName = "surface"
     }
@@ -201,9 +203,9 @@ local function ensureThemeDui(kind)
         )
 
         local handle = GetDuiHandle(slot.dui)
-        CreateRuntimeTxd(slot.txdName)
+        slot.txd = CreateRuntimeTxd(slot.txdName)
         CreateRuntimeTextureFromDuiHandle(
-            slot.txdName,
+            slot.txd,
             slot.txnName,
             handle
         )
@@ -285,7 +287,10 @@ local function renderThemeSurfaces(booth)
 
     local backgroundSpec = activeTheme.background
     if backgroundSpec
-        and validThemePreset(backgroundSpec.preset) ~= "none" then
+        and (
+            validThemePreset(backgroundSpec.preset) ~= "none"
+            or (validThemeUrl(backgroundSpec.url) or "") ~= ""
+        ) then
 
         local bg = surfaces.background or {}
         local center = offsetFromBooth(
@@ -334,7 +339,10 @@ local function renderThemeSurfaces(booth)
 
     local floorSpec = activeTheme.floor
     if floorSpec
-        and validThemePreset(floorSpec.preset) ~= "none" then
+        and (
+            validThemePreset(floorSpec.preset) ~= "none"
+            or (validThemeUrl(floorSpec.url) or "") ~= ""
+        ) then
 
         local floor = surfaces.floor or {}
         local center = offsetFromBooth(
@@ -1649,6 +1657,7 @@ AddEventHandler("onResourceStop", function(resource)
         if slot.dui then
             DestroyDui(slot.dui)
             slot.dui = nil
+            slot.txd = nil
         end
     end
 

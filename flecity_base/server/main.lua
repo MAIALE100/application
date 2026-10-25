@@ -302,7 +302,7 @@ handlers.notesList = function(source, data)
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local rows = MySQL.query.await([[
-        SELECT id, author_citizenid, title, body, pinned, created_at, updated_at
+        SELECT id, author_citizenid, title, body, category, tags, pinned, created_at, updated_at
         FROM flecity_base_notes
         WHERE workspace_id=? AND deleted_at IS NULL
         ORDER BY pinned DESC, updated_at DESC LIMIT 300
@@ -320,11 +320,14 @@ handlers.noteCreate = function(source, data)
     if count >= L.notesPerWorkspace then return {ok=false, error='NOTE_LIMIT'} end
     local title = clean(data.title, L.title)
     local body = clean(data.body, L.noteBody)
+    local category = clean(data.category or 'general', 64)
+    local tags = clean(data.tags, 255)
+    if category == '' then category = 'general' end
     if title == '' then return {ok=false, error='TITLE_REQUIRED'} end
     local id = MySQL.insert.await([[
-        INSERT INTO flecity_base_notes (workspace_id, author_citizenid, title, body, pinned)
-        VALUES (?, ?, ?, ?, ?)
-    ]], {workspace.id, ctx.citizenid, title, body, data.pinned == true and 1 or 0})
+        INSERT INTO flecity_base_notes (workspace_id, author_citizenid, title, body, category, tags, pinned)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, ctx.citizenid, title, body, category, tags, data.pinned == true and 1 or 0})
     return {ok=id ~= nil, id=tonumber(id)}
 end
 
@@ -336,11 +339,15 @@ handlers.noteUpdate = function(source, data)
     if not workspace then return accessErr end
     local title = clean(data.title, L.title)
     local body = clean(data.body, L.noteBody)
+    local category = clean(data.category or 'general', 64)
+    local tags = clean(data.tags, 255)
+    if category == '' then category = 'general' end
     if title == '' then return {ok=false, error='TITLE_REQUIRED'} end
     local changed = MySQL.update.await([[
-        UPDATE flecity_base_notes SET title=?, body=?, pinned=?, updated_at=NOW()
+        UPDATE flecity_base_notes
+        SET title=?, body=?, category=?, tags=?, pinned=?, updated_at=NOW()
         WHERE id=? AND workspace_id=? AND deleted_at IS NULL
-    ]], {title, body, data.pinned == true and 1 or 0, integer(data.id, 1), workspace.id})
+    ]], {title, body, category, tags, data.pinned == true and 1 or 0, integer(data.id, 1), workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -364,11 +371,20 @@ handlers.stockList = function(source, data)
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local items = MySQL.query.await([[
-        SELECT id, name, quantity, minimum_quantity, unit, created_by, created_at, updated_at
+        SELECT id, name, category, quantity, minimum_quantity, unit, created_by, created_at, updated_at
         FROM flecity_base_stock_items
-        WHERE workspace_id=? ORDER BY name ASC
+        WHERE workspace_id=? ORDER BY category ASC, name ASC
     ]], {workspace.id}) or {}
-    return {ok=true, items=items}
+    local recent = MySQL.query.await([[
+        SELECT m.id, m.item_id, i.name AS item_name, i.unit, m.actor_citizenid,
+               m.delta, m.before_quantity, m.after_quantity, m.note, m.created_at
+        FROM flecity_base_stock_movements m
+        JOIN flecity_base_stock_items i ON i.id=m.item_id
+        WHERE m.workspace_id=?
+        ORDER BY m.created_at DESC, m.id DESC
+        LIMIT 12
+    ]], {workspace.id}) or {}
+    return {ok=true, items=items, recent=recent}
 end
 
 handlers.stockHistory = function(source, data)
@@ -403,15 +419,17 @@ handlers.stockCreate = function(source, data)
     if count >= L.stockItemsPerWorkspace then return {ok=false, error='STOCK_LIMIT'} end
     local name = clean(data.name, L.title)
     if name == '' then return {ok=false, error='NAME_REQUIRED'} end
+    local category = clean(data.category or 'general', 64)
+    if category == '' then category = 'general' end
     local quantity = integer(data.quantity, 0, L.stockQuantity)
     local minimum = integer(data.minimumQuantity, 0, L.stockQuantity)
     local unit = clean(data.unit or '個', 32)
     if unit == '' then unit = '個' end
     local id = MySQL.insert.await([[
         INSERT INTO flecity_base_stock_items
-        (workspace_id, name, quantity, minimum_quantity, unit, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, name, quantity, minimum, unit, ctx.citizenid})
+        (workspace_id, name, category, quantity, minimum_quantity, unit, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ]], {workspace.id, name, category, quantity, minimum, unit, ctx.citizenid})
     if id and quantity ~= 0 then
         MySQL.insert.await([[
             INSERT INTO flecity_base_stock_movements
@@ -460,12 +478,15 @@ handlers.stockConfigure = function(source, data)
     if not workspace then return accessErr end
     local name = clean(data.name, L.title)
     if name == '' then return {ok=false, error='NAME_REQUIRED'} end
+    local category = clean(data.category or 'general', 64)
+    if category == '' then category = 'general' end
     local minimum = integer(data.minimumQuantity, 0, L.stockQuantity)
     local unit = clean(data.unit or '個', 32)
     local changed = MySQL.update.await([[
-        UPDATE flecity_base_stock_items SET name=?, minimum_quantity=?, unit=?, updated_at=NOW()
+        UPDATE flecity_base_stock_items
+        SET name=?, category=?, minimum_quantity=?, unit=?, updated_at=NOW()
         WHERE id=? AND workspace_id=?
-    ]], {name, minimum, unit ~= '' and unit or '個', integer(data.id, 1), workspace.id})
+    ]], {name, category, minimum, unit ~= '' and unit or '個', integer(data.id, 1), workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
 end
 

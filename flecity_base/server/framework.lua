@@ -45,7 +45,37 @@ function FlecityBaseFramework.GetCharacterName(source)
     local pd = getPlayerData(source)
     if not pd then return ('Player %s'):format(tostring(source)) end
     local c = pd.charinfo or {}
-    local name = ((c.firstname or '') .. ' ' .. (c.lastname or '')):gsub('^%s+', ''):gsub('%s+, '')
+    local name = ((c.firstname or '') .. ' ' .. (c.lastname or '')):gsub('^%s+', ''):gsub('%s+
+    return name ~= '' and name or ('Player %s'):format(tostring(source))
+end
+
+function FlecityBaseFramework.GetJob(source)
+    local pd = getPlayerData(source)
+    local job = pd and pd.job
+    if type(job) ~= 'table' then return nil end
+    local gradeLevel = nil
+    if type(job.grade) == 'table' then
+        gradeLevel = tonumber(job.grade.level or job.grade.grade)
+    else
+        gradeLevel = tonumber(job.grade)
+    end
+    return {
+        name = tostring(job.name or ''),
+        label = tostring(job.label or ''),
+        isboss = job.isboss == true,
+        grade = gradeLevel or 0
+    }
+end
+
+
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
+    if GetResourceState('qbx_core') ~= 'started' then return end
+    local src = tonumber(source)
+    if not src then return end
+    local citizenid = FlecityBaseFramework.GetIdentifier(src)
+    TriggerEvent('flecity_base:framework:playerUnloaded', src, citizenid)
+end)
+, '')
     return name ~= '' and name or ('Player %s'):format(tostring(source))
 end
 

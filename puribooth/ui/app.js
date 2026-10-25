@@ -1,5 +1,11 @@
 (() => {
     const app = document.getElementById('app')
+    const themeSetup = document.getElementById('themeSetup')
+    const themeStatus = document.getElementById('themeStatus')
+    const backgroundUrl = document.getElementById('backgroundUrl')
+    const floorUrl = document.getElementById('floorUrl')
+    const backgroundPreview = document.getElementById('backgroundPreview')
+    const floorPreview = document.getElementById('floorPreview')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
     const boothLabel = document.getElementById('boothLabel')
@@ -26,7 +32,11 @@
         armedText: false,
         drawing: false,
         drawEnabled: false,
-        activeStroke: null
+        activeStroke: null,
+        theme: {
+            backgroundPreset: 'pink',
+            floorPreset: 'pink'
+        }
     }
 
     const parentResource = () => typeof GetParentResourceName === 'function' ? GetParentResourceName() : 'puribooth'
@@ -38,6 +48,61 @@
             body: JSON.stringify(data)
         })
         return response.json()
+    }
+
+    const safeHttpUrl = value => {
+        const text = String(value || '').trim()
+        if (!text) return ''
+        try {
+            const parsed = new URL(text)
+            return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null
+        } catch {
+            return null
+        }
+    }
+
+    const applyThemePreview = (target, preset, rawUrl) => {
+        const safe = safeHttpUrl(rawUrl)
+        target.className = `theme-mini-preview ${preset || 'pink'}`
+        target.style.backgroundImage = ''
+        if (safe) {
+            target.style.backgroundImage = `url("${safe.replace(/"/g, '%22')}")`
+            target.className = 'theme-mini-preview custom'
+        }
+    }
+
+    const refreshThemeStatus = () => {
+        const bgUrl = safeHttpUrl(backgroundUrl.value)
+        const floorImageUrl = safeHttpUrl(floorUrl.value)
+
+        if (bgUrl === null || floorImageUrl === null) {
+            themeStatus.textContent = 'URLは http:// または https:// の画像アドレスだけ使用できます'
+            themeStatus.classList.add('error')
+            return false
+        }
+
+        themeStatus.classList.remove('error')
+        themeStatus.textContent =
+            `背景: ${bgUrl ? 'CUSTOM URL' : state.theme.backgroundPreset.toUpperCase()} / 床: ${floorImageUrl ? 'CUSTOM URL' : state.theme.floorPreset.toUpperCase()}`
+
+        applyThemePreview(backgroundPreview, state.theme.backgroundPreset, backgroundUrl.value)
+        applyThemePreview(floorPreview, state.theme.floorPreset, floorUrl.value)
+        return true
+    }
+
+    const resetThemeSetup = () => {
+        state.theme.backgroundPreset = 'pink'
+        state.theme.floorPreset = 'pink'
+        backgroundUrl.value = ''
+        floorUrl.value = ''
+
+        document.querySelectorAll('[data-theme-target]').forEach(group => {
+            group.querySelectorAll('[data-theme-value]').forEach(button => {
+                button.classList.toggle('active', button.dataset.themeValue === 'pink')
+            })
+        })
+
+        refreshThemeStatus()
     }
 
     const loadImage = (src) => new Promise((resolve, reject) => {
@@ -377,6 +442,70 @@
     canvas.addEventListener('pointerup', finishStroke)
     canvas.addEventListener('pointercancel', finishStroke)
 
+    document.querySelectorAll('[data-theme-target]').forEach(group => {
+        const target = group.dataset.themeTarget
+
+        group.querySelectorAll('[data-theme-value]').forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.dataset.themeValue || 'pink'
+
+                group.querySelectorAll('[data-theme-value]').forEach(item => {
+                    item.classList.toggle('active', item === button)
+                })
+
+                if (target === 'background') {
+                    state.theme.backgroundPreset = value
+                    backgroundUrl.value = ''
+                } else {
+                    state.theme.floorPreset = value
+                    floorUrl.value = ''
+                }
+
+                refreshThemeStatus()
+            })
+        })
+    })
+
+    backgroundUrl.addEventListener('input', refreshThemeStatus)
+    floorUrl.addEventListener('input', refreshThemeStatus)
+
+    document.getElementById('themeConfirmButton').addEventListener('click', async event => {
+        if (!refreshThemeStatus()) return
+
+        const button = event.currentTarget
+        button.disabled = true
+
+        try {
+            const bgUrl = safeHttpUrl(backgroundUrl.value) || ''
+            const floorImageUrl = safeHttpUrl(floorUrl.value) || ''
+
+            const result = await post('puriboothThemeConfirm', {
+                background: {
+                    preset: state.theme.backgroundPreset,
+                    url: bgUrl
+                },
+                floor: {
+                    preset: state.theme.floorPreset,
+                    url: floorImageUrl
+                }
+            })
+
+            if (!result.ok) throw new Error(result.error || 'theme_failed')
+            themeSetup.classList.add('hidden')
+        } catch (error) {
+            console.error('[puribooth] theme confirm failed', error)
+            themeStatus.classList.add('error')
+            themeStatus.textContent = '背景・床の設定に失敗しました'
+        } finally {
+            button.disabled = false
+        }
+    })
+
+    document.getElementById('themeCancelButton').addEventListener('click', async () => {
+        await post('puriboothThemeCancel')
+        themeSetup.classList.add('hidden')
+    })
+
     document.getElementById('resetButton').addEventListener('click', resetDecorations)
 
     document.getElementById('cancelButton').addEventListener('click', async () => {
@@ -405,11 +534,29 @@
 
     window.addEventListener('message', async event => {
         const data = event.data
-        if (!data || data.action !== 'open') {
-            if (data?.action === 'close') app.classList.add('hidden')
+        if (!data) return
+
+        if (data.action === 'openTheme') {
+            app.classList.add('hidden')
+            resetThemeSetup()
+            themeSetup.classList.remove('hidden')
             return
         }
 
+        if (data.action === 'closeTheme') {
+            themeSetup.classList.add('hidden')
+            return
+        }
+
+        if (data.action === 'close') {
+            app.classList.add('hidden')
+            themeSetup.classList.add('hidden')
+            return
+        }
+
+        if (data.action !== 'open') return
+
+        themeSetup.classList.add('hidden')
         state.boothId = data.boothId
         state.shots = Array.isArray(data.shots) ? data.shots.slice(0, 4) : []
         boothLabel.textContent = data.label || 'PURI'

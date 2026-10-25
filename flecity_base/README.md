@@ -1,6 +1,6 @@
-# グループ帳
+# BASE
 
-グループ帳 is a shared workspace application for Flecity's LB Phone. The internal resource name remains `flecity_base`.
+BASE is a shared workspace application for Flecity's LB Phone.
 
 It is designed for businesses, crews, teams, projects, informal groups, and personal use without requiring a QBox job or gang registration.
 

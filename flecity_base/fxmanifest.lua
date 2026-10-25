@@ -3,8 +3,8 @@ game 'gta5'
 lua54 'yes'
 
 author 'Flecity'
-description 'BASE - shared workspace app for LB Phone'
-version '0.9.0-dev'
+description 'グループ帳 - shared workspace app for LB Phone'
+version '0.9.1-dev'
 
 shared_script 'config.lua'
 

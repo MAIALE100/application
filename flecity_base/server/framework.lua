@@ -66,3 +66,12 @@ function FlecityBaseFramework.GetJob(source)
         grade = gradeLevel or 0
     }
 end
+
+
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(source)
+    if GetResourceState('qbx_core') ~= 'started' then return end
+    local src = tonumber(source)
+    if not src then return end
+    local citizenid = FlecityBaseFramework.GetIdentifier(src)
+    TriggerEvent('flecity_base:framework:playerUnloaded', src, citizenid)
+end)

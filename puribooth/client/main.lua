@@ -255,7 +255,7 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
     local boothId = ownedSession and ownedSession.boothId or (type(data) == "table" and data.boothId)
     local image = type(data) == "table" and data.image or nil
 
-    if type(image) ~= "string" or #image < 100 then
+    if type(image) ~= "string" or #image < 100 or #image > (12 * 1024 * 1024) then
         cb({ ok = false, error = "invalid_image" })
         return
     end

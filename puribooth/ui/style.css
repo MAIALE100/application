@@ -383,10 +383,10 @@ input[type="color"] {
 
 .history-actions {
     position: sticky;
-    bottom: 5.4vh;
+    bottom: 9.5vh;
     z-index: 2;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: .35vw;
     margin-top: 1.4vh;
     padding-top: .8vh;
@@ -407,7 +407,32 @@ input[type="color"] {
     transform: none;
 }
 
-.history-actions #deleteSelectedButton:not(:disabled) {
+.selection-actions {
+    position: sticky;
+    bottom: 5.4vh;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35vw;
+    padding-top: .45vh;
+    background: rgba(255,255,255,.96);
+}
+
+.selection-actions button {
+    min-height: 3.6vh;
+    padding: .5vh .35vw;
+    background: #f2eaf0;
+    color: #5e4658;
+    font-size: 1.02vh;
+}
+
+.selection-actions button:disabled {
+    opacity: .42;
+    cursor: default;
+    transform: none;
+}
+
+.selection-actions #deleteSelectedButton:not(:disabled) {
     background: #ffe0eb;
     color: #a51f5d;
 }

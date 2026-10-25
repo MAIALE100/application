@@ -1270,17 +1270,17 @@ body.reduced-motion .connect4-cell.connect4-winning{animation:none;transform:sca
 #start:not(:disabled){box-shadow:0 .45rem 1rem rgba(0,0,0,.22)}
 #ready:not(:disabled){border:.0625rem solid #394250}
 
-.round-hud{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.55rem .65rem;border-radius:.75rem;background:#10151c;border:.0625rem solid #2a3440}
+.round-hud{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.62rem .7rem;border-radius:.78rem;background:#10151c;border:.0625rem solid #2a3440}
 .round-hud>div{min-width:0}
-.round-hud-game{font-size:.92rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.round-hud-meta{margin-top:.12rem;font-size:.66rem;letter-spacing:.08em;opacity:.58;font-variant-numeric:tabular-nums}
-.round-hud button{min-height:2.25rem;padding:.38rem .65rem;font-size:.72rem}
+.round-hud-game{font-size:.96rem;font-weight:900;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.round-hud-meta{margin-top:.18rem;font-size:.69rem;line-height:1.2;letter-spacing:.06em;opacity:.68;font-variant-numeric:tabular-nums}
+.round-hud button{min-height:2.35rem;padding:.4rem .7rem;font-size:.74rem}
 
 body.party-round .app-header,
 body.party-round #partyPlusCard,
 body.party-round .room-hero,
 body.party-round .global-settings{display:none!important}
-body.party-round{padding-top:max(2.85rem,env(safe-area-inset-top,0rem));padding-left:.65rem;padding-right:.65rem}
+body.party-round{padding-top:max(3.65rem,calc(env(safe-area-inset-top,0rem) + .8rem));padding-left:.65rem;padding-right:.65rem}
 body.party-round #room{display:block}
 body.party-round #roundPanel{padding:.65rem;margin-bottom:.5rem;border-color:#2d3642;box-shadow:none}
 body.party-round #roundPanel>.round-hud{margin-bottom:.2rem}
@@ -1293,7 +1293,7 @@ body.party-round #connect4Panel{margin-top:.05rem}
  .party-plus-card summary{padding:.7rem .78rem}
  .party-plus-body{padding:0 .78rem .75rem}
  .lobby-actions{bottom:.15rem}
- body.party-round{padding-left:.45rem;padding-right:.45rem}
+ body.party-round{padding-top:max(3.55rem,calc(env(safe-area-inset-top,0rem) + .75rem));padding-left:.45rem;padding-right:.45rem}
  body.party-round #roundPanel{padding:.55rem}
  .round-hud{padding:.5rem .55rem}
 }

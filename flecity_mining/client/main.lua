@@ -394,40 +394,27 @@ local function startDrillPresentation(ped, node)
     SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
 
     local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
-    local animName = cfg.animName or 'drill_straight_idle'
-    local animFlags = tonumber(cfg.animFlags) or 1
+    local startAnim = cfg.startAnimName or 'drill_straight_start'
+    local idleAnim = cfg.idleAnimName or 'drill_straight_idle'
+    local startAnimMs = math.max(350, tonumber(cfg.startAnimMs) or 1050)
+    local idleFlags = tonumber(cfg.idleAnimFlags) or 1
 
-    -- Start the animation before attaching the drill. Freezing the ped before
-    -- TaskPlayAnim caused some clients to hold the prop while remaining static.
+    -- Use the actual Fleeca drilling sequence instead of starting directly on
+    -- the near-static idle frame. This gives a visible "raise/apply drill"
+    -- motion before the looping drilling posture.
     TaskPlayAnim(
         ped,
         animDict,
-        animName,
-        8.0, -8.0, -1, animFlags, 0.0,
+        startAnim,
+        8.0, -8.0, startAnimMs, 0, 0.0,
         false, false, false
     )
 
     Wait(120)
-    if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
-        ClearPedTasks(ped)
-        TaskPlayAnim(
-            ped,
-            animDict,
-            'drill_straight_idle',
-            8.0, -8.0, -1, 1, 0.0,
-            false, false, false
-        )
-        Wait(120)
-    end
-
-    if not IsEntityPlayingAnim(ped, animDict, 'drill_straight_idle', 3)
-        and not IsEntityPlayingAnim(ped, animDict, animName, 3) then
-        SetModelAsNoLongerNeeded(model)
-        return false
-    end
 
     local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
     if not prop or prop == 0 then
+        ClearPedTasks(ped)
         SetModelAsNoLongerNeeded(model)
         return false
     end
@@ -442,6 +429,35 @@ local function startDrillPresentation(ped, node)
         rotation.x, rotation.y, rotation.z,
         true, true, false, true, 1, true
     )
+
+    Wait(math.max(150, startAnimMs - 120))
+
+    TaskPlayAnim(
+        ped,
+        animDict,
+        idleAnim,
+        8.0, -8.0, -1, idleFlags, 0.0,
+        false, false, false
+    )
+
+    Wait(120)
+    if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
+        ClearPedTasks(ped)
+        TaskPlayAnim(
+            ped,
+            animDict,
+            idleAnim,
+            8.0, -8.0, -1, idleFlags, 0.0,
+            false, false, false
+        )
+        Wait(120)
+    end
+
+    if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
+        DeleteEntity(prop)
+        SetModelAsNoLongerNeeded(model)
+        return false
+    end
 
     activeMineProp = prop
     activeMineTarget = wallTarget
@@ -574,13 +590,13 @@ local function runApprovedAction(data)
         if actionType == 'mine' and usedDrill then
             local cfg = Config.DrillVisuals or {}
             local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
-            local animName = cfg.animName or 'drill_straight_idle'
-            if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+            local idleAnim = cfg.idleAnimName or 'drill_straight_idle'
+            if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
                 TaskPlayAnim(
                     ped,
                     animDict,
-                    'drill_straight_idle',
-                    8.0, -8.0, -1, tonumber(cfg.animFlags) or 1, 0.0,
+                    idleAnim,
+                    8.0, -8.0, -1, tonumber(cfg.idleAnimFlags) or 1, 0.0,
                     false, false, false
                 )
             end

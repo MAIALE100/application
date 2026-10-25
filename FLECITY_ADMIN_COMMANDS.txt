@@ -71,9 +71,13 @@ puribooth_selftest
 PowerShell:
 git -C D:\FiveM_Dev\_puriphoto_booth fetch origin puriphoto/booth-dev
 git -C D:\FiveM_Dev\_puriphoto_booth reset --hard origin/puriphoto/booth-dev
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\FiveM_Dev\_puriphoto_booth\puribooth-update.ps1
+
+PuriBoothだけの変更だと分かっている時だけ:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\FiveM_Dev\_puriphoto_booth\puribooth-update.ps1 -BoothOnly
 
 その後 txAdmin:
+restart puriphoto
 restart puribooth
 
 [注意]

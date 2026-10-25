@@ -33,19 +33,29 @@ Config.DefaultModel = "ch_prop_arcade_claw_01a"
 -- anywhere and the capture zone/camera follow its rotation automatically.
 Config.ThemeSurfaces = {
     background = {
-        forward = 4.70,
+        forward = 4.72,
         right = 0.0,
-        bottomZ = 0.0,
-        width = 5.2,
-        height = 3.0
+        bottomZ = -0.08,
+        width = 8.4,
+        height = 4.8
     },
     floor = {
-        forward = 3.20,
+        forward = 3.00,
         right = 0.0,
-        z = 0.035,
-        width = 4.6,
-        depth = 3.8
+        z = 0.025,
+        width = 8.4,
+        depth = 4.15
     }
+}
+
+Config.PhotoLighting = {
+    enabled = true,
+    range = 7.0,
+    intensity = 2.2,
+    color = { r = 255, g = 238, b = 244 },
+    sideOffset = 1.25,
+    forwardOffset = 0.45,
+    heightOffset = 0.55
 }
 
 Config.Geometry = {

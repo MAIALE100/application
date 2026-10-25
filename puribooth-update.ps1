@@ -60,13 +60,13 @@ Invoke-Step "Checking screenshot-basic" {
 }
 
 Invoke-Step "Deploying PuriPhoto" {
-    New-Item -ItemType Directory -Force -Path $PuriTarget | Out-Null
+    [System.IO.Directory]::CreateDirectory($PuriTarget) | Out-Null
     robocopy $PuriSource $PuriTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
     if ($LASTEXITCODE -gt 7) { throw "PuriPhoto deploy failed (robocopy=$LASTEXITCODE)" }
 }
 
 Invoke-Step "Deploying PuriBooth" {
-    New-Item -ItemType Directory -Force -Path $BoothTarget | Out-Null
+    [System.IO.Directory]::CreateDirectory($BoothTarget) | Out-Null
     robocopy $BoothSource $BoothTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
     if ($LASTEXITCODE -gt 7) { throw "PuriBooth deploy failed (robocopy=$LASTEXITCODE)" }
 }

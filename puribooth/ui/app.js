@@ -548,6 +548,12 @@
             return
         }
 
+        if (data.action === 'resetTheme') {
+            resetThemeSetup()
+            themeSetup.classList.add('hidden')
+            return
+        }
+
         if (data.action === 'close') {
             app.classList.add('hidden')
             themeSetup.classList.add('hidden')

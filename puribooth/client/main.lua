@@ -23,6 +23,20 @@ local placementHeightOffset = 0.0
 local placementCameraPreviewActive = false
 local placementCamera = nil
 
+local activeTheme = nil
+local themeDui = {
+    background = {
+        dui = nil,
+        txdName = "puribooth_bg_txd",
+        txnName = "surface"
+    },
+    floor = {
+        dui = nil,
+        txdName = "puribooth_floor_txd",
+        txnName = "surface"
+    }
+}
+
 local function notify(kind, message)
     if GetResourceState("ox_lib") == "started" and lib and lib.notify then
         lib.notify({
@@ -127,6 +141,237 @@ local function prepareBooth(raw, fallbackId)
     }
 
     return booth
+end
+
+
+local function encodeQueryValue(value)
+    return tostring(value or ""):gsub("([^%w%-_%.~])", function(char)
+        return string.format("%%%02X", string.byte(char))
+    end)
+end
+
+local function validThemePreset(value)
+    local preset = tostring(value or "pink"):lower()
+    local allowed = {
+        pink = true,
+        white = true,
+        black = true,
+        y2k = true,
+        hearts = true,
+        none = true
+    }
+
+    return allowed[preset] and preset or "pink"
+end
+
+local function validThemeUrl(value)
+    if value == nil or value == "" then return "" end
+    if type(value) ~= "string" or #value > 2048 then return nil end
+
+    local lower = value:lower()
+    if lower:sub(1, 8) == "https://" or lower:sub(1, 7) == "http://" then
+        return value
+    end
+
+    return nil
+end
+
+local function themeSurfaceUrl(spec)
+    local resource = GetCurrentResourceName()
+    local preset = validThemePreset(spec and spec.preset)
+    local imageUrl = validThemeUrl(spec and spec.url) or ""
+
+    return ("https://cfx-nui-%s/ui/surface.html?preset=%s&url=%s")
+        :format(
+            resource,
+            encodeQueryValue(preset),
+            encodeQueryValue(imageUrl)
+        )
+end
+
+local function ensureThemeDui(kind)
+    local slot = themeDui[kind]
+    if not slot then return nil end
+
+    if not slot.dui then
+        slot.dui = CreateDui(
+            themeSurfaceUrl({ preset = "pink", url = "" }),
+            1024,
+            1024
+        )
+
+        local handle = GetDuiHandle(slot.dui)
+        CreateRuntimeTxd(slot.txdName)
+        CreateRuntimeTextureFromDuiHandle(
+            slot.txdName,
+            slot.txnName,
+            handle
+        )
+    end
+
+    return slot
+end
+
+local function applyThemeSurface(kind, spec)
+    local slot = ensureThemeDui(kind)
+    if not slot then return end
+
+    SetDuiUrl(slot.dui, themeSurfaceUrl(spec))
+end
+
+local function clearTheme()
+    activeTheme = nil
+
+    for _, slot in pairs(themeDui) do
+        if slot.dui then
+            SetDuiUrl(slot.dui, "about:blank")
+        end
+    end
+end
+
+local function drawTexturedQuad(a, b, c1, d, txd, txn)
+    -- Front side.
+    DrawSpritePoly(
+        a.x, a.y, a.z,
+        b.x, b.y, b.z,
+        c1.x, c1.y, c1.z,
+        255, 255, 255, 255,
+        txd, txn,
+        0.0, 1.0, 1.0,
+        0.0, 0.0, 1.0,
+        1.0, 1.0, 1.0
+    )
+
+    DrawSpritePoly(
+        b.x, b.y, b.z,
+        d.x, d.y, d.z,
+        c1.x, c1.y, c1.z,
+        255, 255, 255, 255,
+        txd, txn,
+        0.0, 0.0, 1.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0
+    )
+
+    -- Reverse side so the surface remains visible regardless of winding.
+    DrawSpritePoly(
+        c1.x, c1.y, c1.z,
+        b.x, b.y, b.z,
+        a.x, a.y, a.z,
+        255, 255, 255, 255,
+        txd, txn,
+        1.0, 1.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 1.0
+    )
+
+    DrawSpritePoly(
+        c1.x, c1.y, c1.z,
+        d.x, d.y, d.z,
+        b.x, b.y, b.z,
+        255, 255, 255, 255,
+        txd, txn,
+        1.0, 1.0, 1.0,
+        1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0
+    )
+end
+
+local function renderThemeSurfaces(booth)
+    if not booth or not activeTheme then return end
+
+    local surfaces = Config.ThemeSurfaces or {}
+    local forwardX, forwardY, rightX, rightY = getBasis(booth.heading)
+
+    local backgroundSpec = activeTheme.background
+    if backgroundSpec
+        and validThemePreset(backgroundSpec.preset) ~= "none" then
+
+        local bg = surfaces.background or {}
+        local center = offsetFromBooth(
+            booth,
+            tonumber(bg.right) or 0.0,
+            tonumber(bg.forward) or 4.70,
+            tonumber(bg.bottomZ) or 0.0
+        )
+
+        local halfWidth = (tonumber(bg.width) or 5.2) * 0.5
+        local height = tonumber(bg.height) or 3.0
+
+        local bottomLeft = vector3(
+            center.x - rightX * halfWidth,
+            center.y - rightY * halfWidth,
+            center.z
+        )
+        local topLeft = vector3(
+            bottomLeft.x,
+            bottomLeft.y,
+            center.z + height
+        )
+        local bottomRight = vector3(
+            center.x + rightX * halfWidth,
+            center.y + rightY * halfWidth,
+            center.z
+        )
+        local topRight = vector3(
+            bottomRight.x,
+            bottomRight.y,
+            center.z + height
+        )
+
+        local slot = themeDui.background
+        if slot and slot.dui then
+            drawTexturedQuad(
+                bottomLeft,
+                topLeft,
+                bottomRight,
+                topRight,
+                slot.txdName,
+                slot.txnName
+            )
+        end
+    end
+
+    local floorSpec = activeTheme.floor
+    if floorSpec
+        and validThemePreset(floorSpec.preset) ~= "none" then
+
+        local floor = surfaces.floor or {}
+        local center = offsetFromBooth(
+            booth,
+            tonumber(floor.right) or 0.0,
+            tonumber(floor.forward) or 3.20,
+            tonumber(floor.z) or 0.035
+        )
+
+        local halfWidth = (tonumber(floor.width) or 4.6) * 0.5
+        local halfDepth = (tonumber(floor.depth) or 3.8) * 0.5
+
+        local function floorCorner(rightOffset, forwardOffset)
+            return vector3(
+                center.x + rightX * rightOffset + forwardX * forwardOffset,
+                center.y + rightY * rightOffset + forwardY * forwardOffset,
+                center.z
+            )
+        end
+
+        local backLeft = floorCorner(-halfWidth, -halfDepth)
+        local frontLeft = floorCorner(-halfWidth, halfDepth)
+        local backRight = floorCorner(halfWidth, -halfDepth)
+        local frontRight = floorCorner(halfWidth, halfDepth)
+
+        local slot = themeDui.floor
+        if slot and slot.dui then
+            drawTexturedQuad(
+                backLeft,
+                frontLeft,
+                backRight,
+                frontRight,
+                slot.txdName,
+                slot.txnName
+            )
+        end
+    end
 end
 
 local function removeInteraction(boothId)
@@ -779,11 +1024,15 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
 
     local phase = ownedSession.phase
 
-    if phase == "gathering"
+    if phase == "theme"
+        or phase == "gathering"
         or phase == "preview"
         or phase == "starting" then
 
+        SetNuiFocus(false, false)
+        SendNUIMessage({ action = "closeTheme" })
         destroyPreviewCamera(true)
+        clearTheme()
         ownedSession = nil
     end
 end)
@@ -791,15 +1040,20 @@ end)
 RegisterNetEvent("puribooth:client:sessionOpened", function(boothId, expiresAt)
     boothId = tostring(boothId)
 
+    clearTheme()
+
     ownedSession = {
         boothId = boothId,
         expiresAt = expiresAt,
-        phase = "gathering"
+        phase = "theme"
     }
+
+    SetNuiFocus(true, true)
+    SendNUIMessage({ action = "openTheme" })
 
     notify(
         "inform",
-        "撮影範囲に集まったらEで画角確認。画角確認後、もう一度Eで撮影開始です。"
+        "最初に撮影背景と床を選んでください。設定はこの撮影だけに使われます。"
     )
 end)
 
@@ -919,6 +1173,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
 
         captureInProgress = false
         destroyPreviewCamera(true)
+        clearTheme()
 
         if failed or #shots == 0 then
             TriggerServerEvent(
@@ -939,6 +1194,65 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
         ownedSession.phase = "editing"
         openEditor(boothId, shots)
     end)
+end)
+
+RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
+    if not ownedSession or ownedSession.phase ~= "theme" then
+        cb({ ok = false, error = "no_session" })
+        return
+    end
+
+    local background = type(data) == "table" and data.background or {}
+    local floor = type(data) == "table" and data.floor or {}
+
+    local backgroundUrl = validThemeUrl(background and background.url)
+    local floorUrl = validThemeUrl(floor and floor.url)
+
+    if backgroundUrl == nil or floorUrl == nil then
+        cb({ ok = false, error = "invalid_url" })
+        return
+    end
+
+    activeTheme = {
+        background = {
+            preset = validThemePreset(background and background.preset),
+            url = backgroundUrl
+        },
+        floor = {
+            preset = validThemePreset(floor and floor.preset),
+            url = floorUrl
+        }
+    }
+
+    applyThemeSurface("background", activeTheme.background)
+    applyThemeSurface("floor", activeTheme.floor)
+
+    ownedSession.phase = "gathering"
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = "closeTheme" })
+
+    notify(
+        "inform",
+        "背景と床を反映しました。Eで撮影画角を確認できます。"
+    )
+
+    cb({ ok = true })
+end)
+
+RegisterNUICallback("puriboothThemeCancel", function(_, cb)
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = "closeTheme" })
+
+    if ownedSession then
+        TriggerServerEvent(
+            "puribooth:server:finishSession",
+            ownedSession.boothId
+        )
+    end
+
+    clearTheme()
+    ownedSession = nil
+    cb({ ok = true })
 end)
 
 RegisterNUICallback("puriboothFinish", function(data, cb)
@@ -1018,6 +1332,7 @@ RegisterNUICallback("puriboothCancel", function(_, cb)
     end
 
     destroyPreviewCamera(true)
+    clearTheme()
 
     ownedSession = nil
     editorBooth = nil
@@ -1247,6 +1562,11 @@ CreateThread(function()
         if ownedSession and not editorOpen then
             local booth = dynamicBooths[ownedSession.boothId]
 
+            if booth and activeTheme then
+                wait = 0
+                renderThemeSurfaces(booth)
+            end
+
             if booth then
                 local phase = ownedSession.phase or "gathering"
 
@@ -1323,6 +1643,14 @@ AddEventHandler("onResourceStop", function(resource)
     SetNuiFocus(false, false)
     destroyPreviewCamera(false)
     cleanupPlacement()
+    clearTheme()
+
+    for _, slot in pairs(themeDui) do
+        if slot.dui then
+            DestroyDui(slot.dui)
+            slot.dui = nil
+        end
+    end
 
     for boothId in pairs(spawnedObjects) do
         removeSpawnedBooth(boothId)

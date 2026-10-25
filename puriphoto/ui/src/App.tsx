@@ -403,7 +403,7 @@ const App = () => {
             setSavedPhotoUrl(null)
             setCaptureLocation(imported.location || null)
             setCurrentProjectId(null)
-            setManualLocation('Legion Square PURI')
+            setManualLocation(imported.location?.label || 'Street PURI')
             setPhotoMemo('')
             setLastSavedSnapshot(null)
             resetEditorState()

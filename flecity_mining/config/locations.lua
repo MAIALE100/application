@@ -3,20 +3,37 @@
 
 Config = Config or {}
 
--- v0.3 cave test:
--- Great Chaparral Abandoned Mine.
--- The first hand-placed interior test coordinates caused a client to end up
--- below the world. These nodes now use coordinates already used by an
--- established FiveM mining resource at this same mine.
 Config.SiteName = 'Great Chaparral Abandoned Mine'
 
--- Do not force-load/unload the mine IPL from this job resource.
--- Flecity/FiveM map resources may already manage this interior. The job only
--- uses world coordinates and leaves map streaming ownership to the server.
+-- Great Chaparral mine IPL group.
+-- Loading only the mine interior IPL produced broken/under-world behavior on
+-- the test server, so the complete local IPL set is requested together.
 Config.MineInterior = {
-    enabled = false,
-    ipl = 'cs6_08_interior_cs6_08_mine_int',
+    enabled = true,
     anchor = vector3(-596.33, 2089.04, 131.41),
+    interiorId = 202241,
+    ipls = {
+        'cs6_08',
+        'cs6_08a_strm_0',
+        'cs6_08_critical_0',
+        'cs6_08_critical_1',
+        'cs6_08_critical_2',
+        'cs6_08_critical_3',
+        'cs6_08_critical_4',
+        'cs6_08_interior_cs6_08_mine_int',
+        'cs6_08_long_0',
+        'cs6_08_long_1',
+    },
+}
+
+-- The stock mine door can remain visibly shut depending on map state.
+-- Access therefore uses a short fade + safe teleport between two known points.
+Config.MineAccess = {
+    outside = vector4(-596.33, 2089.04, 131.41, 180.0),
+    inside = vector4(-590.29, 2059.35, 129.82, 180.0),
+    interactDistance = 2.2,
+    markerDistance = 8.0,
+    transitionCooldownMs = 1800,
 }
 
 Config.Foreman = {
@@ -29,18 +46,15 @@ Config.Processor = {
     label = '選鉱設備',
 }
 
--- coords = safe interaction position inside the mine.
--- A wall target is intentionally NOT hard-coded. At action start the client
--- raycasts horizontally around the player and selects the nearest rock/wall.
--- This avoids bad target coordinates and makes minor map/MLO differences much
--- easier to tolerate.
+-- The first proven interior point is reserved for the mine entrance/exit.
+-- Mining nodes use additional coordinates already used by a live FiveM mine.
 Config.MiningNodes = {
-    { id = 1, coords = vector3(-590.29, 2059.35, 129.82), label = '坑道壁 A' },
-    { id = 2, coords = vector3(-579.39, 2031.15, 127.49), label = '坑道壁 B' },
-    { id = 3, coords = vector3(-562.47, 2011.81, 126.38), label = '坑道壁 C' },
-    { id = 4, coords = vector3(-554.71, 1998.90, 125.85), label = '坑道壁 D' },
-    { id = 5, coords = vector3(-547.26, 1986.08, 126.15), label = '坑道壁 E' },
-    { id = 6, coords = vector3(-540.63, 1965.22, 125.81), label = '坑道壁 F' },
+    { id = 1, coords = vector3(-579.39, 2031.15, 127.49), label = '坑道壁 A' },
+    { id = 2, coords = vector3(-562.47, 2011.81, 126.38), label = '坑道壁 B' },
+    { id = 3, coords = vector3(-554.71, 1998.90, 125.85), label = '坑道壁 C' },
+    { id = 4, coords = vector3(-547.26, 1986.08, 126.15), label = '坑道壁 D' },
+    { id = 5, coords = vector3(-540.63, 1965.22, 125.81), label = '坑道壁 E' },
+    { id = 6, coords = vector3(-532.15, 1979.34, 126.12), label = '坑道壁 F' },
 }
 
 Config.Blip = {
@@ -56,4 +70,5 @@ Config.Markers = {
     foreman = { enabled = true, type = 1, scale = vector3(1.10, 1.10, 0.28), visibleDistance = 18.0 },
     processor = { enabled = true, type = 1, scale = vector3(1.10, 1.10, 0.28), visibleDistance = 18.0 },
     mine = { enabled = true, type = 2, scale = vector3(0.20, 0.20, 0.20), visibleDistance = 4.0 },
+    access = { enabled = true, type = 1, scale = vector3(0.75, 0.75, 0.18) },
 }

@@ -616,12 +616,46 @@ function calculatorUse(calc){
       const result=roundedResult(raw,calc.rounding);
       const el=$("#calculatorResult");
       el.style.display="";
-      el.innerHTML=`<div class="muted">${esc(calc.result_label||"結果")}</div><div class="stock-count">${esc(formatCalculatorResult(calc,result))}</div>`;
+      el.innerHTML=`<div class="muted">${esc(calc.result_label||"結果")}</div>
+        <div class="stock-count">${esc(formatCalculatorResult(calc,result))}</div>
+        ${calc.result_format==="money"?'<div class="actions"><button id="recordCalculatorResult" class="secondary small" type="button">会計に記録</button></div>':""}`;
+      if(calc.result_format==="money"){
+        $("#recordCalculatorResult").onclick=()=>recordCalculatorResult(calc,result);
+      }
       status("");
     }catch(e){
       status(e.message||"計算できませんでした。",true);
     }
   };
+}
+
+function recordCalculatorResult(calc,result){
+  const amount=Math.abs(Math.round(Number(result)||0));
+  modal("計算結果を会計に記録",
+    `<article class="card">
+      <div class="muted">${esc(calc.name)}</div>
+      <div class="stock-count">${yen(amount)}</div>
+    </article>
+    <div class="split">
+      <div class="field"><label>区分</label><select name="type">
+        <option value="expense">支出</option>
+        <option value="income">収入</option>
+      </select></div>
+      ${field("amount","金額",amount,"number","min=\"1\"")}
+    </div>
+    ${field("category","カテゴリ","calculation")}
+    ${field("note","内容","計算: "+calc.name)}`,
+    async fd=>{
+      await api("moneyAdd",{
+        workspaceId:selectedWorkspaceId(),
+        entryType:fd.get("type"),
+        amount:Number(fd.get("amount")),
+        category:fd.get("category"),
+        note:fd.get("note")
+      });
+      await loadTab();
+      return true;
+    });
 }
 
 function calculatorDelete(calc){

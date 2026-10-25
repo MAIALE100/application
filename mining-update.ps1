@@ -129,6 +129,7 @@ try {
     Write-Host '    mining-test.cmd' -ForegroundColor White
     Write-Host ''
     Write-Host 'First-time bridge bootstrap on an already-running server only:' -ForegroundColor Yellow
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.restart allow' -ForegroundColor White
     Write-Host '    refresh' -ForegroundColor White
     Write-Host '    ensure flecity_mining_devbridge' -ForegroundColor White
     Write-Host ''

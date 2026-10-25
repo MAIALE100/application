@@ -293,7 +293,7 @@ async function nextTask(task){
 function renderMoney(){
   const s=state.money.summary||{};
   $("#content").innerHTML=`
-    <div class="row between"><h2>会計</h2><button class="primary" data-action="new-money">＋ 記録</button></div>
+    <div class="row between"><h2>会計</h2><span class="row"><button class="secondary" data-action="money-calc">計算</button><button class="primary" data-action="new-money">＋ 記録</button></span></div>
     <div class="metric-grid">
       <div class="metric"><span>残高</span><strong>${yen(s.balance)}</strong></div>
       <div class="metric"><span>収入</span><strong>${yen(s.income)}</strong></div>
@@ -316,6 +316,60 @@ function newMoney(){
     `<div class="split"><div class="field"><label>区分</label><select name="type"><option value="income">収入</option><option value="expense">支出</option></select></div>${field("amount","金額","0","number","min=\"1\"")}</div>`+
     field("category","カテゴリ","other")+field("note","内容"),
     async fd=>{await api("moneyAdd",{workspaceId:selectedWorkspaceId(),entryType:fd.get("type"),amount:Number(fd.get("amount")),category:fd.get("category"),note:fd.get("note")});await loadTab();return true;});
+}
+
+function moneyCalculator(){
+  viewModal("給与・分配計算",`
+    <article class="card">
+      <div class="card-title">給与計算</div>
+      <div class="split">
+        <div class="field"><label>勤務時間</label><input id="payHours" type="number" min="0" value="0"></div>
+        <div class="field"><label>勤務分</label><input id="payMinutes" type="number" min="0" max="59" value="0"></div>
+      </div>
+      <div class="split">
+        <div class="field"><label>時給</label><input id="payRate" type="number" min="0" value="0"></div>
+        <div class="field"><label>ボーナス</label><input id="payBonus" type="number" min="0" value="0"></div>
+      </div>
+      <button id="calcPayroll" class="primary" type="button">給与を計算</button>
+      <div id="payResult" class="card" style="margin-top:.7rem;display:none"></div>
+    </article>
+
+    <article class="card">
+      <div class="card-title">分配計算</div>
+      <div class="split">
+        <div class="field"><label>分配総額</label><input id="splitTotal" type="number" min="0" value="0"></div>
+        <div class="field"><label>人数</label><input id="splitPeople" type="number" min="1" value="${Math.max(1,state.members.length)}"></div>
+      </div>
+      <button id="calcSplit" class="primary" type="button">分配額を計算</button>
+      <div id="splitResult" class="card" style="margin-top:.7rem;display:none"></div>
+    </article>
+  `);
+
+  $("#calcPayroll").onclick=()=>{
+    const hours=Math.max(0,Number($("#payHours").value||0));
+    const minutes=Math.min(59,Math.max(0,Number($("#payMinutes").value||0)));
+    const rate=Math.max(0,Number($("#payRate").value||0));
+    const bonus=Math.max(0,Number($("#payBonus").value||0));
+    const base=Math.floor(rate*(hours+(minutes/60)));
+    const total=base+Math.floor(bonus);
+    const el=$("#payResult");
+    el.style.display="";
+    el.innerHTML=`<div class="row between"><span>基本給</span><strong>${yen(base)}</strong></div>
+      <div class="row between"><span>ボーナス</span><strong>${yen(Math.floor(bonus))}</strong></div>
+      <div class="row between"><span>支給額</span><strong>${yen(total)}</strong></div>`;
+  };
+
+  $("#calcSplit").onclick=()=>{
+    const total=Math.max(0,Math.floor(Number($("#splitTotal").value||0)));
+    const people=Math.max(1,Math.floor(Number($("#splitPeople").value||1)));
+    const each=Math.floor(total/people);
+    const remainder=total-(each*people);
+    const el=$("#splitResult");
+    el.style.display="";
+    el.innerHTML=`<div class="row between"><span>1人あたり</span><strong>${yen(each)}</strong></div>
+      <div class="row between"><span>人数</span><strong>${people.toLocaleString("ja-JP")}人</strong></div>
+      <div class="row between"><span>端数</span><strong>${yen(remainder)}</strong></div>`;
+  };
 }
 
 function renderMembers(){
@@ -381,6 +435,7 @@ function bindContent(){
       else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="task-delete"){await api("taskDelete",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
       else if(a==="new-money") newMoney();
+      else if(a==="money-calc") moneyCalculator();
       else if(a==="void-money"){await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
       else if(a==="invite") inviteMember();
       else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}

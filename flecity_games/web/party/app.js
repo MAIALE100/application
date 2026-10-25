@@ -555,12 +555,14 @@ function setupGomoku(room){
  for(let index=0;index<121;index++){
    const b=gomokuCells[index];
    const mark=String(board[index]||'');
-   const text=mark==='X'?'●':(mark==='O'?'○':'');
+   const text=mark===''?'':'●';
    if(b.textContent!==text)b.textContent=text;
+   b.classList.toggle('black-stone',mark==='X');
+   b.classList.toggle('white-stone',mark==='O');
    const disabled=!rs.isCurrent||mark!=='';
    if(b.disabled!==disabled)b.disabled=disabled;
  }
- const statusText=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'●':'○'):'相手の手番';
+ const statusText=rs.isCurrent?'あなたの手番 · '+(rs.mark==='X'?'黒':'白'):'相手の手番';
  if(gomokuStatus.textContent!==statusText)gomokuStatus.textContent=statusText;
  const metaText='11×11 · 先に5つ · '+Number(rs.moves||0)+'手';
  if(gomokuMeta.textContent!==metaText)gomokuMeta.textContent=metaText;

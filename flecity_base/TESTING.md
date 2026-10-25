@@ -79,6 +79,22 @@
 - OWNER can edit and delete saved calculators.
 - Calculators remain after restarting `flecity_base`.
 
+## Roles and global access
+
+- Workspace creator is OWNER.
+- OWNER can promote MEMBER -> MANAGER and demote MANAGER -> MEMBER.
+- MANAGER can invite and remove ordinary MEMBER accounts.
+- MANAGER cannot promote/demote roles, remove another MANAGER, rename the BASE, or delete the BASE.
+- MEMBER cannot create/edit/delete managed memo content, create/configure stock items, create/delete tasks, edit calculator definitions, or void ledger entries.
+- MEMBER can adjust stock quantities, use calculators, add ledger entries, and progress a task assigned to their own citizenid.
+- ADMIN with ACE `flecity.base.admin` sees every BASE at all times and has full management access.
+- Eligible WEAZEL owner/maintainer sees only normal memberships while SUPPORT is OFF.
+- Turning WEAZEL SUPPORT ON exposes all BASE workspaces and enables maintenance access.
+- Turning SUPPORT OFF immediately returns to membership-only visibility.
+- Character unload/reconnect resets WEAZEL SUPPORT to OFF.
+- ADMIN / WEAZEL non-member workspace opens are written to `flecity_base_access_audit`.
+- WEAZEL SUPPORT ON/OFF changes are written to `flecity_base_access_audit`.
+
 ## Multi-user checks
 
 - Two users changing the same stock item should never silently overwrite each other.

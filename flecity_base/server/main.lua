@@ -13,7 +13,13 @@ local function utf8Truncate(value, maxChars)
 end
 
 local function clean(value, maxLen)
-    local s = tostring(value or ''):gsub('[%z\1-\8\11\12\14-\31]', ''):gsub('^%s+', ''):gsub('%s+
+    local s = tostring(value or '')
+        :gsub('[%z\1-\8\11\12\14-\31]', '')
+        :gsub('^%s+', '')
+        :gsub('%s+$', '')
+    return utf8Truncate(s, maxLen)
+end
+
 local function integer(value, minValue, maxValue)
     local n = math.floor(tonumber(value) or 0)
     if minValue and n < minValue then n = minValue end
@@ -24,7 +30,7 @@ end
 local function strictInteger(value, minValue, maxValue)
     local n = tonumber(value)
     if not n or n ~= n or n == math.huge or n == -math.huge then return nil end
-    n = math.floor(n)
+    if n % 1 ~= 0 then return nil end
     if minValue and n < minValue then return nil end
     if maxValue and n > maxValue then return nil end
     return n
@@ -41,8 +47,21 @@ end
 local function normalizeDateTime(value)
     local raw = clean(value, 32)
     if raw == '' then return nil end
+
     raw = raw:gsub('T', ' ')
-    local y, mo, d, h, mi, sec = raw:match('^(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):?(%d*)
+    local y, mo, d, h, mi, sec = raw:match('^(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):?(%d*)$')
+    if not y then return false end
+
+    y, mo, d, h, mi = tonumber(y), tonumber(mo), tonumber(d), tonumber(h), tonumber(mi)
+    sec = sec ~= '' and tonumber(sec) or 0
+    if not y or not mo or not d or not h or not mi or not sec then return false end
+    if y < 2000 or y > 2100 or mo < 1 or mo > 12 then return false end
+    if d < 1 or d > daysInMonth(y, mo) then return false end
+    if h < 0 or h > 23 or mi < 0 or mi > 59 or sec < 0 or sec > 59 then return false end
+
+    return ('%04d-%02d-%02d %02d:%02d:%02d'):format(y, mo, d, h, mi, sec)
+end
+
 local supportSessions = {}
 local supportSourceCitizen = {}
 

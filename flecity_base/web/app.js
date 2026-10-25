@@ -185,6 +185,44 @@ function emptyState(title,text,action=null,label="追加"){
   return `<div class="empty empty-guide"><strong>${esc(title)}</strong><span>${esc(text)}</span>${action?`<button class="primary" data-action="${esc(action)}">${esc(label)}</button>`:""}</div>`;
 }
 
+const WORKSPACE_ICONS = [
+  {label:"仕事・店舗",icons:["📁","🏢","🏪","🏦","🏭","🏨","🍔","☕","🍕","🍜","🍸","🛒","🔧","🛠️","🚗","⛽","🚕","🚚","⚕️","🚑","📰","📸","🎬","🎙️"]},
+  {label:"チーム・クルー",icons:["👥","🤝","🛡️","⚡","🔥","💀","🐺","🦅","🦊","🐍","🦁","🐉","🏁","🎯","🎮","♠️","♣️","♦️","♥️","🥷","👑","💎","🔱","⚔️"]},
+  {label:"企画・プロジェクト",icons:["📌","✅","📋","🗂️","🧰","💡","🔬","🧪","💻","📱","🎨","🎵","🏆","💰","📦","🔑","🌐","🚀","⭐","🌟","🗓️","📊","📝","🔔"]},
+  {label:"その他",icons:["🏠","🌴","🌊","⛰️","🌙","☀️","❄️","🌸","🍀","🎲","🎉","🎁","🧭","🗺️","📍","🔒","🔓","❤️","🖤","🤍","💚","💜","🧡","💙"]}
+];
+
+function workspaceIconPicker(selected="📁"){
+  const current=String(selected||"📁");
+  const known=WORKSPACE_ICONS.some(group=>group.icons.includes(current));
+  return `<div class="field icon-picker-field">
+    <label>アイコン</label>
+    <input type="hidden" name="icon" id="workspaceIconValue" value="${esc(current)}">
+    <div class="icon-picker-preview"><span id="workspaceIconPreview">${esc(current)}</span><small>タップして選択</small></div>
+    <div class="icon-picker">
+      ${!known?`<div class="icon-group"><div class="icon-group-label">現在のアイコン</div><div class="icon-grid"><button type="button" class="workspace-icon-option selected" data-icon="${esc(current)}" title="現在のアイコン">${esc(current)}</button></div></div>`:""}
+      ${WORKSPACE_ICONS.map(group=>`<div class="icon-group">
+        <div class="icon-group-label">${esc(group.label)}</div>
+        <div class="icon-grid">${group.icons.map(icon=>`<button type="button" class="workspace-icon-option ${icon===current?"selected":""}" data-icon="${esc(icon)}" title="${esc(icon)}">${esc(icon)}</button>`).join("")}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function bindWorkspaceIconPicker(){
+  const hidden=$("#workspaceIconValue");
+  const preview=$("#workspaceIconPreview");
+  if(!hidden||!preview) return;
+  document.querySelectorAll(".workspace-icon-option").forEach(button=>{
+    button.onclick=()=>{
+      const icon=button.dataset.icon||"📁";
+      hidden.value=icon;
+      preview.textContent=icon;
+      document.querySelectorAll(".workspace-icon-option").forEach(x=>x.classList.toggle("selected",x===button));
+    };
+  });
+}
+
 function dateMs(value){
   const d=dateValue(value);
   return d?d.getTime():0;
@@ -1211,7 +1249,7 @@ async function toggleSupport(enabled){
 function workspaceSettings(){
   const type=String(state.workspace.workspace_type||"custom");
   modal("BASE設定",
-    field("name","BASE名",state.workspace.name)+field("icon","アイコン",state.workspace.icon||"📁")+
+    field("name","BASE名",state.workspace.name)+workspaceIconPicker(state.workspace.icon||"📁")+
     `<div class="field"><label>種類</label><select name="type">
       <option value="business" ${type==="business"?"selected":""}>企業</option>
       <option value="crew" ${type==="crew"?"selected":""}>クルー</option>
@@ -1229,6 +1267,7 @@ function workspaceSettings(){
       await bootstrap(selectedWorkspaceId());
       return true;
     });
+  bindWorkspaceIconPicker();
 }
 
 function renameWorkspace(){
@@ -1250,11 +1289,12 @@ function deleteWorkspace(){
 
 function newWorkspace(){
   modal("新しいBASE",
-    field("name","BASE名")+field("icon","アイコン","📁")+
+    field("name","BASE名")+workspaceIconPicker("📁")+
     `<div class="field"><label>テンプレート</label><select name="type">
       <option value="business">企業</option><option value="crew">クルー</option><option value="team">チーム</option><option value="project">プロジェクト</option><option value="custom">カスタム</option>
     </select></div>`,
     async fd=>{const d=await api("workspaceCreate",{name:fd.get("name"),icon:fd.get("icon"),workspaceType:fd.get("type"),templateKey:fd.get("type")});await bootstrap(d.workspaceId);return true;});
+  bindWorkspaceIconPicker();
 }
 
 function bindContent(){

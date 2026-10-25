@@ -4,7 +4,8 @@ const state = {
   boot: null,
   workspace: null,
   members: [],
-  tab: "memo",
+  tab: "overview",
+  overview: { metrics:{notes:0,stock:0,lowStock:0,openTasks:0,overdueTasks:0,balance:0}, recentNotes:[], recentTasks:[], recentStock:[], recentMoney:[] },
   notes: [],
   memoQuery: "",
   memoCategory: "all",
@@ -341,7 +342,11 @@ async function openWorkspace(id){
 async function loadTab(){
   if(!state.workspace) return;
   const id=selectedWorkspaceId();
-  if(state.tab==="memo"){
+  if(state.tab==="overview"){
+    const d=await api("workspaceOverview",{workspaceId:id});
+    state.overview=d;
+    renderOverview();
+  }else if(state.tab==="memo"){
     const d=await api("notesList",{workspaceId:id}); state.notes=d.notes||[]; renderMemo();
   }else if(state.tab==="stock"){
     const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; state.stockRecent=d.recent||[]; renderStock();
@@ -356,6 +361,106 @@ async function loadTab(){
 
 function topAction(label, action){
   return `<div class="row between"><h2>${esc(label)}</h2><button class="primary" data-action="${action}">＋ 追加</button></div>`;
+}
+
+function renderOverview(){
+  const d=state.overview||{};
+  const m=d.metrics||{};
+  const recentNotes=d.recentNotes||[];
+  const recentTasks=d.recentTasks||[];
+  const recentStock=d.recentStock||[];
+  const recentMoney=d.recentMoney||[];
+  const activityCount=recentNotes.length+recentTasks.length+recentStock.length+recentMoney.length;
+
+  const taskStatus={todo:"未着手",doing:"進行中",done:"完了"};
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>概要</h2><span class="badge">${esc(workspaceTypeLabel(state.workspace.workspace_type))}</span></div>
+
+    <div class="overview-grid">
+      <button class="overview-stat" data-go-tab="memo">
+        <span>共有メモ</span>
+        <strong>${num(m.notes).toLocaleString("ja-JP")}</strong>
+        <small>件</small>
+      </button>
+      <button class="overview-stat ${num(m.lowStock)>0?"attention":""}" data-go-tab="stock" data-overview-filter="low">
+        <span>在庫不足</span>
+        <strong>${num(m.lowStock).toLocaleString("ja-JP")}</strong>
+        <small>全 ${num(m.stock).toLocaleString("ja-JP")}品目</small>
+      </button>
+      <button class="overview-stat ${num(m.overdueTasks)>0?"danger-stat":""}" data-go-tab="tasks" data-overview-filter="overdue">
+        <span>未完了タスク</span>
+        <strong>${num(m.openTasks).toLocaleString("ja-JP")}</strong>
+        <small>期限切れ ${num(m.overdueTasks).toLocaleString("ja-JP")}</small>
+      </button>
+      <button class="overview-stat" data-go-tab="money">
+        <span>会計残高</span>
+        <strong>${yen(m.balance)}</strong>
+        <small>有効な記録から集計</small>
+      </button>
+    </div>
+
+    <article class="card overview-actions">
+      <div class="card-title">クイック追加</div>
+      <div class="actions">
+        ${canManage()?'<button class="secondary small" data-action="new-note">＋ メモ</button>':""}
+        ${canManage()?'<button class="secondary small" data-action="new-stock">＋ 在庫</button>':""}
+        ${canManage()?'<button class="secondary small" data-action="new-task">＋ タスク</button>':""}
+        <button class="secondary small" data-action="new-money">＋ 会計</button>
+      </div>
+    </article>
+
+    <div class="section-title">最近の動き</div>
+
+    ${recentNotes.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>メモ</strong><button class="overview-link" data-go-tab="memo">すべて見る</button></div>
+      ${recentNotes.map(n=>`<button class="overview-row" data-go-tab="memo">
+        <span><b>${Number(n.pinned)===1?"📌 ":""}${esc(n.title)}</b><small>${esc(n.category||"general")} ・ ${esc(personLabel(n.author_name,n.author_citizenid))}</small></span>
+        <time>${esc(fmtDateTime(n.updated_at))}</time>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${recentTasks.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>タスク</strong><button class="overview-link" data-go-tab="tasks">すべて見る</button></div>
+      ${recentTasks.map(t=>{
+        const overdue=t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<Date.now();
+        return `<button class="overview-row" data-go-tab="tasks" ${overdue?'data-overview-filter="overdue"':""}>
+          <span><b>${esc(t.title)}</b><small>${esc(taskStatus[t.status]||t.status)}${t.due_at?" ・ "+esc(fmtDateTime(t.due_at)):" ・ 期限なし"}</small></span>
+          <span class="badge ${overdue?"high":t.status==="done"?"good":""}">${overdue?"期限切れ":esc(taskStatus[t.status]||t.status)}</span>
+        </button>`;
+      }).join("")}
+    </article>`:""}
+
+    ${recentStock.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>在庫</strong><button class="overview-link" data-go-tab="stock">すべて見る</button></div>
+      ${recentStock.map(x=>`<button class="overview-row" data-go-tab="stock">
+        <span><b>${esc(x.item_name)}</b><small>${esc(personLabel(x.actor_name,x.actor_citizenid))}${x.note?" ・ "+esc(x.note):""}</small></span>
+        <span class="overview-value">${num(x.delta)>0?"+":""}${num(x.delta).toLocaleString("ja-JP")} ${esc(x.unit||"")}</span>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${recentMoney.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>会計</strong><button class="overview-link" data-go-tab="money">すべて見る</button></div>
+      ${recentMoney.map(x=>`<button class="overview-row" data-go-tab="money">
+        <span><b>${x.entry_type==="income"?"収入":"支出"} ・ ${esc(x.category||"other")}</b><small>${esc(personLabel(x.actor_name,x.actor_citizenid))} ・ ${esc(fmtDateTime(x.created_at))}</small></span>
+        <span class="overview-value ${x.entry_type==="expense"?"expense":""}">${x.entry_type==="income"?"+":"−"}${yen(x.amount)}</span>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${activityCount===0?emptyState("まだ活動記録がありません","メモ・在庫・タスク・会計を使い始めると、ここに最近の動きが表示されます。"): ""}
+  `;
+
+  bindContent();
+  document.querySelectorAll("[data-go-tab]").forEach(button=>{
+    button.onclick=()=>{
+      const tab=button.dataset.goTab;
+      if(tab==="stock"&&button.dataset.overviewFilter==="low") state.stockFilter="low";
+      if(tab==="tasks"&&button.dataset.overviewFilter==="overdue") state.taskFilter="overdue";
+      state.tab=tab;
+      tabButtons();
+      loadTab();
+    };
+  });
 }
 
 function renderMemo(){

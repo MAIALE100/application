@@ -38,6 +38,17 @@
 - Custom adjustments accept notes.
 - History shows actor CSN, timestamp, before/after quantity, delta, and note.
 
+## Usability filters
+
+- Memo search matches title, body, category, and comma-separated tags.
+- Memo category filter works with existing and newly created notes.
+- Stock category filter and low-stock-only filter work together.
+- Quick stock buttons -10, -1, +1, +10 create normal audit history.
+- Recent stock movements show the latest cross-item activity.
+- Task filters support all, assigned to me, and overdue.
+- Completed tasks are hidden by default and can be shown.
+- Overdue tasks are visibly highlighted.
+
 ## Tasks
 
 - Create tasks with priority, assignee, due time, and details.

@@ -130,7 +130,7 @@ end
 local function membership(workspaceId, citizenid)
     return MySQL.single.await([[
         SELECT w.id, w.owner_citizenid, w.name, w.icon, w.workspace_type, w.template_key,
-               w.is_personal, m.role
+               w.is_personal, w.created_at, w.updated_at, m.role
         FROM flecity_base_workspaces w
         JOIN flecity_base_members m ON m.workspace_id=w.id
         WHERE w.id=? AND m.citizenid=?
@@ -150,7 +150,7 @@ local function workspaceAccess(ctx, workspaceId)
     if not ctx.globalMode then return nil end
 
     row = MySQL.single.await([[
-        SELECT id, owner_citizenid, name, icon, workspace_type, template_key, is_personal
+        SELECT id, owner_citizenid, name, icon, workspace_type, template_key, is_personal, created_at, updated_at
         FROM flecity_base_workspaces WHERE id=? LIMIT 1
     ]], {id})
     if not row then return nil end
@@ -276,7 +276,8 @@ handlers.bootstrap = function(source)
         },
         workspaces = listWorkspaces(ctx),
         invites = listInvites(ctx),
-        templates = C.WorkspaceTemplates
+        templates = C.WorkspaceTemplates,
+        appVersion = GetResourceMetadata(RESOURCE, 'version', 0) or 'unknown'
     }
 end
 

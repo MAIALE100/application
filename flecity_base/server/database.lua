@@ -12,8 +12,7 @@ local schema = {
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_base_workspace_owner (owner_citizenid),
-    UNIQUE KEY uq_base_personal (owner_citizenid, is_personal)
+    KEY idx_base_workspace_owner (owner_citizenid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci]],
 
 [[CREATE TABLE IF NOT EXISTS flecity_base_members (

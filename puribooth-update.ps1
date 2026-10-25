@@ -13,6 +13,8 @@ $BoothTarget = Join-Path $Resources "[lb-phone]\puribooth"
 $ServerCfg = Join-Path $ServerBase "server.cfg"
 $DuplicatePuriTarget = Join-Path $Resources "[weazel]\puriphoto"
 $DisabledDuplicates = Join-Path $ServerBase "_disabled_duplicates"
+$AdminCommandsSource = Join-Path $Root "FLECITY_ADMIN_COMMANDS.txt"
+$AdminCommandsTarget = Join-Path (Split-Path $Root -Parent) "FLECITY_ADMIN_COMMANDS.txt"
 
 function Invoke-Step([string]$Label, [scriptblock]$Action) {
     Write-Host ""
@@ -120,6 +122,16 @@ Invoke-Step "Checking server.cfg" {
     }
 }
 
+Invoke-Step "Updating Flecity admin command cheat sheet" {
+    if (Test-Path -LiteralPath $AdminCommandsSource) {
+        Copy-Item -LiteralPath $AdminCommandsSource -Destination $AdminCommandsTarget -Force
+        Write-Host "Updated: $AdminCommandsTarget" -ForegroundColor Green
+    }
+    else {
+        Write-Warning "Admin command cheat sheet was not found: $AdminCommandsSource"
+    }
+}
+
 Write-Host ""
 Write-Host "PuriBooth development build deployed." -ForegroundColor Green
 Write-Host "Run these in txAdmin:" -ForegroundColor Yellow
@@ -129,7 +141,8 @@ Write-Host "    restart puribooth"
 Write-Host "    puribooth_selftest"
 Write-Host ""
 Write-Host "Admin placement commands:" -ForegroundColor Yellow
-Write-Host "    /puribooth claimadmin # first player only; bootstrap PuriBooth admin"`nWrite-Host "    /puribooth place   # open translucent placement preview"
+Write-Host "    /puribooth claimadmin # first player only; bootstrap PuriBooth admin"
+Write-Host "    /puribooth place   # open translucent placement preview"
 Write-Host "      Arrows=move  Q/E=rotate  PgUp/PgDn=height  C=camera preview  Shift=fast"
 Write-Host "      Enter=place  Backspace=cancel"
 Write-Host "    /puribooth remove  # remove the nearest booth"

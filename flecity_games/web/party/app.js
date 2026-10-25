@@ -125,7 +125,7 @@ function resumePartyUi(){
 function hideRoundGames(exceptPanel){
  const panels=[reactionPanel,stopBattlePanel,codeBreakPanel,reversiPanel,votePanel,majorityPanel,gomokuPanel,connect4Panel,miniShogiPanel,deductionPanel,drawPanel,telephonePanel,ngWordPanel,fakeAnswerPanel,bombPanel,memoryChainPanel];
  panels.forEach(panel=>{if(panel&&panel!==exceptPanel)panel.classList.add('hidden');});
- if(!exceptPanel&&globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
+ if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;

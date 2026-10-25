@@ -336,15 +336,19 @@
     const updateHistoryButtons = () => {
         const undo = document.getElementById('undoButton')
         const redo = document.getElementById('redoButton')
+        const rotateLeft = document.getElementById('rotateLeftButton')
         const shrink = document.getElementById('shrinkSelectedButton')
         const grow = document.getElementById('growSelectedButton')
+        const rotateRight = document.getElementById('rotateRightButton')
         const del = document.getElementById('deleteSelectedButton')
         const hasSelection = Boolean(state.selectedDecoration)
 
         if (undo) undo.disabled = state.history.length === 0
         if (redo) redo.disabled = state.future.length === 0
+        if (rotateLeft) rotateLeft.disabled = !hasSelection
         if (shrink) shrink.disabled = !hasSelection
         if (grow) grow.disabled = !hasSelection
+        if (rotateRight) rotateRight.disabled = !hasSelection
         if (del) del.disabled = !hasSelection
     }
 
@@ -510,17 +514,25 @@
         ctx.textBaseline = 'middle'
 
         state.stickers.forEach(item => {
+            ctx.save()
+            ctx.translate(item.x, item.y)
+            ctx.rotate((Number(item.rotation) || 0) * Math.PI / 180)
             ctx.font = `${item.size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`
-            ctx.fillText(item.value, item.x, item.y)
+            ctx.fillText(item.value, 0, 0)
+            ctx.restore()
         })
 
         state.texts.forEach(item => {
+            ctx.save()
+            ctx.translate(item.x, item.y)
+            ctx.rotate((Number(item.rotation) || 0) * Math.PI / 180)
             ctx.font = `900 ${item.size}px "Noto Sans JP",sans-serif`
             ctx.lineWidth = Math.max(4, item.size * .09)
             ctx.strokeStyle = '#fff'
-            ctx.strokeText(item.value, item.x, item.y)
+            ctx.strokeText(item.value, 0, 0)
             ctx.fillStyle = item.color
-            ctx.fillText(item.value, item.x, item.y)
+            ctx.fillText(item.value, 0, 0)
+            ctx.restore()
         })
         ctx.restore()
 
@@ -549,11 +561,14 @@
             ctx.shadowColor = '#ff4fa3'
             ctx.shadowBlur = 8
 
+            ctx.translate(selected.x, selected.y)
+            ctx.rotate((Number(selected.rotation) || 0) * Math.PI / 180)
+
             if (state.selectedDecoration.type === 'sticker') {
                 const radius = selected.size * .68
                 ctx.strokeRect(
-                    selected.x - radius,
-                    selected.y - radius,
+                    -radius,
+                    -radius,
                     radius * 2,
                     radius * 2
                 )
@@ -562,8 +577,8 @@
                 const width = Math.max(selected.size, ctx.measureText(selected.value).width) + 28
                 const height = selected.size * 1.5
                 ctx.strokeRect(
-                    selected.x - width / 2,
-                    selected.y - height / 2,
+                    -width / 2,
+                    -height / 2,
                     width,
                     height
                 )
@@ -753,7 +768,8 @@
                 value: state.armedStamp,
                 x: point.x,
                 y: point.y,
-                size: Number(document.getElementById('stampSize').value)
+                size: Number(document.getElementById('stampSize').value),
+                rotation: 0
             })
             state.armedStamp = null
             state.selectedDecoration = {
@@ -776,7 +792,8 @@
                     x: point.x,
                     y: point.y,
                     size: Number(document.getElementById('textSize').value),
-                    color: document.getElementById('textColor').value
+                    color: document.getElementById('textColor').value,
+                    rotation: 0
                 })
                 state.armedText = false
                 state.selectedDecoration = {
@@ -933,6 +950,29 @@
 
     document.getElementById('undoButton').addEventListener('click', undoDecoration)
     document.getElementById('redoButton').addEventListener('click', redoDecoration)
+    const rotateSelectedDecoration = degrees => {
+        const item = selectedDecorationItem()
+        if (!item) return
+
+        pushDecorationHistory()
+        item.rotation =
+            ((Number(item.rotation) || 0) + degrees + 360) % 360
+
+        toolStatus.textContent = degrees < 0
+            ? '選択した装飾を左へ回転しました'
+            : '選択した装飾を右へ回転しました'
+        updateHistoryButtons()
+        render()
+    }
+
+    document.getElementById('rotateLeftButton').addEventListener('click', () => {
+        rotateSelectedDecoration(-15)
+    })
+
+    document.getElementById('rotateRightButton').addEventListener('click', () => {
+        rotateSelectedDecoration(15)
+    })
+
     const resizeSelectedDecoration = factor => {
         const item = selectedDecorationItem()
         if (!item) return

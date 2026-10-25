@@ -15,14 +15,68 @@ local function integer(value, minValue, maxValue)
     return n
 end
 
+local supportSessions = {}
+
+local function aceAllowed(source, ace)
+    ace = tostring(ace or '')
+    return ace ~= '' and IsPlayerAceAllowed(tonumber(source), ace) == true
+end
+
+local function isAdminSource(source)
+    local access = C.Access or {}
+    return aceAllowed(source, access.adminAce)
+end
+
+local function isWeazelSupportEligible(source)
+    local access = C.Access or {}
+    if aceAllowed(source, access.weazelSupportAce) then return true end
+
+    local job = FlecityBaseFramework.GetJob(source)
+    if not job or tostring(job.name or '') ~= tostring(access.weazelJob or 'weazel') then
+        return false
+    end
+
+    if access.weazelRequireBoss == false then return true end
+    if job.isboss == true then return true end
+    return tonumber(job.grade or 0) >= tonumber(access.weazelMinimumGrade or 99)
+end
+
 local function sourceContext(source)
     local citizenid = FlecityBaseFramework.GetIdentifier(source)
     if not citizenid then return nil, {ok=false, error='PLAYER_NOT_READY'} end
+
+    local admin = isAdminSource(source)
+    local supportEligible = isWeazelSupportEligible(source)
+    local supportActive = supportEligible and supportSessions[citizenid] == true or false
+    local globalMode = admin and 'admin' or (supportActive and 'weazel_support' or nil)
+
     return {
         source = source,
         citizenid = citizenid,
-        name = FlecityBaseFramework.GetCharacterName(source)
+        name = FlecityBaseFramework.GetCharacterName(source),
+        isAdmin = admin,
+        supportEligible = supportEligible,
+        supportActive = supportActive,
+        globalMode = globalMode
     }
+end
+
+local function auditAccess(ctx, action, workspace)
+    if not ctx or not ctx.globalMode then return end
+    pcall(function()
+        MySQL.insert.await([[
+            INSERT INTO flecity_base_access_audit
+            (actor_citizenid, actor_name, access_type, action, workspace_id, workspace_name)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ]], {
+            ctx.citizenid,
+            ctx.name,
+            ctx.globalMode,
+            tostring(action or 'access'),
+            workspace and tonumber(workspace.id) or nil,
+            workspace and tostring(workspace.name or '') or nil
+        })
+    end)
 end
 
 local function membership(workspaceId, citizenid)
@@ -36,15 +90,54 @@ local function membership(workspaceId, citizenid)
     ]], {workspaceId, citizenid})
 end
 
+local function workspaceAccess(ctx, workspaceId)
+    local id = integer(workspaceId, 1)
+    local row = membership(id, ctx.citizenid)
+    if row then
+        row.access_mode = 'member'
+        row.global_access = 0
+        return row
+    end
+
+    if not ctx.globalMode then return nil end
+
+    row = MySQL.single.await([[
+        SELECT id, owner_citizenid, name, icon, workspace_type, template_key, is_personal
+        FROM flecity_base_workspaces WHERE id=? LIMIT 1
+    ]], {id})
+    if not row then return nil end
+
+    row.role = ctx.globalMode
+    row.access_mode = ctx.globalMode
+    row.global_access = 1
+    return row
+end
+
 local function requireMember(ctx, workspaceId)
-    local row = membership(integer(workspaceId, 1), ctx.citizenid)
+    local row = workspaceAccess(ctx, workspaceId)
     if not row then return nil, {ok=false, error='NOT_A_MEMBER'} end
+    return row
+end
+
+local function hasManagerPower(row)
+    return row and (
+        tonumber(row.global_access) == 1 or
+        row.role == 'owner' or
+        row.role == 'manager'
+    )
+end
+
+local function requireManager(ctx, workspaceId)
+    local row, err = requireMember(ctx, workspaceId)
+    if not row then return nil, err end
+    if not hasManagerPower(row) then return nil, {ok=false, error='MANAGER_REQUIRED'} end
     return row
 end
 
 local function requireOwner(ctx, workspaceId)
     local row, err = requireMember(ctx, workspaceId)
     if not row then return nil, err end
+    if tonumber(row.global_access) == 1 then return row end
     if row.role ~= 'owner' or row.owner_citizenid ~= ctx.citizenid then
         return nil, {ok=false, error='OWNER_REQUIRED'}
     end
@@ -82,9 +175,22 @@ local function ensurePersonalWorkspace(ctx)
 end
 
 local function listWorkspaces(ctx)
+    if ctx.globalMode then
+        return MySQL.query.await([[
+            SELECT w.id, w.name, w.icon, w.workspace_type, w.template_key, w.is_personal,
+                   w.owner_citizenid, COALESCE(m.role, ?) AS role,
+                   CASE WHEN m.role IS NULL THEN ? ELSE 'member' END AS access_mode,
+                   (SELECT COUNT(*) FROM flecity_base_members mm WHERE mm.workspace_id=w.id) AS member_count
+            FROM flecity_base_workspaces w
+            LEFT JOIN flecity_base_members m
+              ON m.workspace_id=w.id AND m.citizenid=?
+            ORDER BY w.is_personal DESC, w.updated_at DESC, w.id DESC
+        ]], {ctx.globalMode, ctx.globalMode, ctx.citizenid}) or {}
+    end
+
     return MySQL.query.await([[
         SELECT w.id, w.name, w.icon, w.workspace_type, w.template_key, w.is_personal,
-               w.owner_citizenid, m.role,
+               w.owner_citizenid, m.role, 'member' AS access_mode,
                (SELECT COUNT(*) FROM flecity_base_members mm WHERE mm.workspace_id=w.id) AS member_count
         FROM flecity_base_members m
         JOIN flecity_base_workspaces w ON w.id=m.workspace_id
@@ -114,6 +220,12 @@ handlers.bootstrap = function(source)
     return {
         ok = true,
         user = { citizenid=ctx.citizenid, name=ctx.name },
+        access = {
+            admin = ctx.isAdmin == true,
+            supportEligible = ctx.supportEligible == true,
+            supportActive = ctx.supportActive == true,
+            globalMode = ctx.globalMode
+        },
         workspaces = listWorkspaces(ctx),
         invites = listInvites(ctx),
         templates = C.WorkspaceTemplates

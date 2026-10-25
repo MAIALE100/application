@@ -363,6 +363,29 @@ local function stopDrillPresentation()
     activeMineTarget = nil
 end
 
+local function cleanupScenarioDrillProps(coords)
+    local cfg = Config.DrillVisuals or {}
+    local props = type(cfg.cleanupProps) == 'table' and cfg.cleanupProps or {
+        'prop_tool_jackham',
+        'prop_tool_drill',
+    }
+
+    for _, modelName in ipairs(props) do
+        local hash = GetHashKey(modelName)
+        local object = GetClosestObjectOfType(
+            coords.x, coords.y, coords.z,
+            4.0,
+            hash,
+            false, false, false
+        )
+        if object and object ~= 0 and DoesEntityExist(object) then
+            SetEntityAsMissionEntity(object, true, true)
+            DeleteObject(object)
+            if DoesEntityExist(object) then DeleteEntity(object) end
+        end
+    end
+end
+
 local function startDrillPresentation(ped, node)
     local cfg = Config.DrillVisuals or {}
     if cfg.enabled ~= true or not node then
@@ -372,114 +395,50 @@ local function startDrillPresentation(ped, node)
     local pedCoords = GetEntityCoords(ped)
     local wallTarget = findNearestWallTarget(ped, pedCoords)
 
-    -- Do not fail the whole mining action just because a custom map has no
-    -- raycastable rock close enough. The fallback target keeps the animation
-    -- usable while the server still validates the safe interaction node.
     if not wallTarget then
         local forward = GetEntityForwardVector(ped)
         wallTarget = pedCoords + (forward * 1.25) + vector3(0.0, 0.0, 0.9)
     end
 
-    local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 2500)
-    local model = requestModelWithTimeout(cfg.model or 'hei_prop_heist_drill', timeoutMs)
-    local animOk = requestAnimWithTimeout(cfg.animDict or 'anim@heists@fleeca_bank@drilling', timeoutMs)
-
-    if not model or not animOk then
-        if model then SetModelAsNoLongerNeeded(model) end
-        return false
-    end
-
-    ClearPedTasks(ped)
+    ClearPedTasksImmediately(ped)
     SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
     SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
 
-    local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
-    local startAnim = cfg.startAnimName or 'drill_straight_start'
-    local idleAnim = cfg.idleAnimName or 'drill_straight_idle'
-    local startAnimMs = math.max(350, tonumber(cfg.startAnimMs) or 1050)
-    local idleFlags = tonumber(cfg.idleAnimFlags) or 1
+    local scenario = cfg.scenario or 'WORLD_HUMAN_CONST_DRILL'
+    TaskStartScenarioInPlace(ped, scenario, 0, true)
 
-    -- Use the actual Fleeca drilling sequence instead of starting directly on
-    -- the near-static idle frame. This gives a visible "raise/apply drill"
-    -- motion before the looping drilling posture.
-    TaskPlayAnim(
-        ped,
-        animDict,
-        startAnim,
-        8.0, -8.0, startAnimMs, 0, 0.0,
-        false, false, false
-    )
+    -- Give GTA a moment to create the scenario task/prop.
+    Wait(250)
 
-    Wait(120)
-
-    local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
-    if not prop or prop == 0 then
-        ClearPedTasks(ped)
-        SetModelAsNoLongerNeeded(model)
-        return false
-    end
-
-    local offset = cfg.propOffset or vector3(0.14, 0.0, -0.01)
-    local rotation = cfg.propRotation or vector3(90.0, -90.0, 180.0)
-    AttachEntityToEntity(
-        prop,
-        ped,
-        GetPedBoneIndex(ped, tonumber(cfg.propBone) or 57005),
-        offset.x, offset.y, offset.z,
-        rotation.x, rotation.y, rotation.z,
-        true, true, false, true, 1, true
-    )
-
-    Wait(math.max(150, startAnimMs - 120))
-
-    TaskPlayAnim(
-        ped,
-        animDict,
-        idleAnim,
-        8.0, -8.0, -1, idleFlags, 0.0,
-        false, false, false
-    )
-
-    Wait(120)
-    if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
-        ClearPedTasks(ped)
-        TaskPlayAnim(
-            ped,
-            animDict,
-            idleAnim,
-            8.0, -8.0, -1, idleFlags, 0.0,
-            false, false, false
-        )
-        Wait(120)
-    end
-
-    if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
-        DeleteEntity(prop)
-        SetModelAsNoLongerNeeded(model)
-        return false
-    end
-
-    activeMineProp = prop
     activeMineTarget = wallTarget
+    activeMineProp = nil
     drillPresentationGeneration = drillPresentationGeneration + 1
     local presentationGeneration = drillPresentationGeneration
-    local presentationProp = prop
     local presentationTarget = wallTarget
 
     if cfg.sound == true then
         local soundId = GetSoundId()
-        PlaySoundFromEntity(soundId, 'Drill', prop, 'DLC_HEIST_FLEECA_SOUNDSET', true, 0)
+        PlaySoundFromCoord(
+            soundId,
+            'Drill',
+            presentationTarget.x, presentationTarget.y, presentationTarget.z,
+            'DLC_HEIST_FLEECA_SOUNDSET',
+            false,
+            0,
+            false
+        )
         activeMineSound = soundId
     end
 
     if cfg.dust == true then
         CreateThread(function()
+            local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 3000)
             local ptfxOk = requestPtfxWithTimeout('core', timeoutMs)
             if not ptfxOk then return end
 
             while busy
                 and drillPresentationGeneration == presentationGeneration
-                and DoesEntityExist(presentationProp) do
+                and activeMineTarget do
                 UseParticleFxAssetNextCall('core')
                 StartParticleFxNonLoopedAtCoord(
                     'ent_dst_rocks',
@@ -491,15 +450,12 @@ local function startDrillPresentation(ped, node)
                 Wait(math.max(250, tonumber(cfg.dustIntervalMs) or 550))
             end
 
-            -- Do not unload the shared PTFX asset from an obsolete worker if a
-            -- newer drill presentation has already started and may be using it.
             if drillPresentationGeneration == presentationGeneration then
                 RemoveNamedPtfxAsset('core')
             end
         end)
     end
 
-    SetModelAsNoLongerNeeded(model)
     return true
 end
 
@@ -512,17 +468,8 @@ local function preloadDrillPresentation()
     local cfg = Config.DrillVisuals or {}
     if cfg.enabled ~= true then return end
 
-    -- Warm the assets before the first approved action. Without this, the
-    -- server action clock starts while a cold client may still spend several
-    -- seconds loading the drill model/animation/PTFX, making the first mining
-    -- interaction noticeably longer than Config.MiningDurationMs.
-    local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 2500)
-    local model = requestModelWithTimeout(cfg.model or 'hei_prop_heist_drill', timeoutMs)
-    if model then SetModelAsNoLongerNeeded(model) end
-    requestAnimWithTimeout(cfg.animDict or 'anim@heists@fleeca_bank@drilling', timeoutMs)
-
     if cfg.dust == true then
-        requestPtfxWithTimeout('core', timeoutMs)
+        requestPtfxWithTimeout('core', math.max(500, tonumber(cfg.loadTimeoutMs) or 3000))
     end
 end
 
@@ -589,16 +536,9 @@ local function runApprovedAction(data)
 
         if actionType == 'mine' and usedDrill then
             local cfg = Config.DrillVisuals or {}
-            local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
-            local idleAnim = cfg.idleAnimName or 'drill_straight_idle'
-            if not IsEntityPlayingAnim(ped, animDict, idleAnim, 3) then
-                TaskPlayAnim(
-                    ped,
-                    animDict,
-                    idleAnim,
-                    8.0, -8.0, -1, tonumber(cfg.idleAnimFlags) or 1, 0.0,
-                    false, false, false
-                )
+            local scenario = cfg.scenario or 'WORLD_HUMAN_CONST_DRILL'
+            if not IsPedUsingScenario(ped, scenario) then
+                TaskStartScenarioInPlace(ped, scenario, 0, true)
             end
         end
 
@@ -619,8 +559,10 @@ local function runApprovedAction(data)
         end
     end
 
+    local cleanupCoords = GetEntityCoords(ped)
     stopDrillPresentation()
-    ClearPedTasks(ped)
+    ClearPedTasksImmediately(ped)
+    cleanupScenarioDrillProps(cleanupCoords)
     -- Recovery only. Normal actions no longer freeze the ped; keeping this
     -- ensures a previous resource version cannot leave the player stuck.
     FreezeEntityPosition(ped, false)
@@ -912,8 +854,10 @@ RegisterCommand('mine_drilltest', function()
             notify('ドリルテスト失敗: animation/propの開始に失敗しました。')
         end
 
+        local cleanupCoords = GetEntityCoords(ped)
         stopDrillPresentation()
-        ClearPedTasks(ped)
+        ClearPedTasksImmediately(ped)
+        cleanupScenarioDrillProps(cleanupCoords)
         FreezeEntityPosition(ped, false)
         busy = false
     end)
@@ -996,7 +940,9 @@ AddEventHandler('onResourceStop', function(resource)
     ClearFocus()
 
     local ped = PlayerPedId()
+    local cleanupCoords = GetEntityCoords(ped)
     ClearPedTasksImmediately(ped)
+    cleanupScenarioDrillProps(cleanupCoords)
     FreezeEntityPosition(ped, false)
 
     if IsScreenFadedOut() or IsScreenFadingOut() then

@@ -53,7 +53,7 @@ dialog::backdrop{background:#15251f70;backdrop-filter:blur(.35rem)}
 #modalForm{padding:1rem}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem}
 .modal-head h2{margin:0}
-.modal-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+.modal-actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;padding:.7rem 0 .15rem;background:linear-gradient(180deg,#f7faf700,#f7faf7 35%)}
 .field{display:grid;gap:.35rem;margin:.7rem 0}
 .field label{font-size:.73rem;font-weight:800;color:#5d6f67}
 .field input,.field textarea,.field select{width:100%;border:.0625rem solid #d8e1dc;background:white;border-radius:.8rem;padding:.72rem .8rem;color:#283932;outline:none}

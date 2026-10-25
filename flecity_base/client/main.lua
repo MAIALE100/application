@@ -76,6 +76,7 @@ local callbackMap = {
     bootstrap = 'flecity_base:bootstrap',
     workspaceCreate = 'flecity_base:workspaceCreate',
     workspaceGet = 'flecity_base:workspaceGet',
+    workspaceOverview = 'flecity_base:workspaceOverview',
     workspaceRename = 'flecity_base:workspaceRename',
     workspaceSettings = 'flecity_base:workspaceSettings',
     workspaceDelete = 'flecity_base:workspaceDelete',

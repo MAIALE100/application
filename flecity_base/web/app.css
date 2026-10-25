@@ -83,3 +83,6 @@ pre.note-body{white-space:pre-wrap;font:inherit;margin:.7rem 0 0;line-height:1.5
 .card.voided .card-title{text-decoration:line-through}
 
 .person-chip{max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.list-meta{font-size:.72rem;color:#73827b;padding:.05rem .15rem .1rem}
+.load-more{width:100%;justify-content:center}

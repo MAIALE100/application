@@ -1343,3 +1343,47 @@ body.party-round.party-shogi #miniShogiMeta{
     margin-top:.68rem;
   }
 }
+
+
+/* PARTY phone camera / Dynamic Island clearance */
+:root{
+  --party-lobby-top-clearance:max(5.15rem,calc(env(safe-area-inset-top,0rem) + 2.2rem));
+  --party-round-top-clearance:max(4.85rem,calc(env(safe-area-inset-top,0rem) + 1.95rem));
+}
+
+body.party-room:not(.party-round){
+  padding-top:var(--party-lobby-top-clearance)!important;
+}
+
+body.party-round{
+  padding-top:var(--party-round-top-clearance)!important;
+}
+
+body.party-round #roundPanel{
+  margin-top:.28rem!important;
+}
+
+body.party-round.party-shogi #roundPanel{
+  padding-top:.62rem!important;
+}
+
+body.party-round.party-shogi #miniShogiPanel{
+  margin-top:.72rem!important;
+}
+
+body.party-round .app-status{
+  top:calc(var(--party-round-top-clearance) + .3rem)!important;
+}
+
+@media(max-width:22.5rem){
+  :root{
+    --party-lobby-top-clearance:max(4.95rem,calc(env(safe-area-inset-top,0rem) + 2.05rem));
+    --party-round-top-clearance:max(4.65rem,calc(env(safe-area-inset-top,0rem) + 1.8rem));
+  }
+  body.party-round #roundPanel{
+    margin-top:.22rem!important;
+  }
+  body.party-round.party-shogi #miniShogiPanel{
+    margin-top:.65rem!important;
+  }
+}

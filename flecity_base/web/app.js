@@ -268,7 +268,7 @@ function renderMemo(){
             <div class="row"><span class="badge">${esc(n.category||"general")}</span>${tags.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</div>
             <div class="muted">${esc(fmtDateTime(n.updated_at))}</div>
           </div>
-          <span class="badge">${esc(personLabel(n.author_name,n.author_citizenid))}</span>
+          <span class="badge person-chip">${esc(personLabel(n.author_name,n.author_citizenid))}</span>
         </div>
         <pre class="note-body">${esc(n.body)}</pre>
         ${canManage()?`<div class="actions">
@@ -410,7 +410,7 @@ async function stockHistory(item){
   const rows=d.history||[];
   viewModal(item.name+" の履歴",rows.length?rows.map(h=>`
     <article class="card">
-      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge">${esc(personLabel(h.actor_name,h.actor_citizenid))}</span></div>
+      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge person-chip">${esc(personLabel(h.actor_name,h.actor_citizenid))}</span></div>
       <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${num(h.before_quantity).toLocaleString()} → ${num(h.after_quantity).toLocaleString()}</div>
       ${h.note?`<pre class="note-body">${esc(h.note)}</pre>`:""}
     </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');

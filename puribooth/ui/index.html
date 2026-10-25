@@ -7,6 +7,56 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <section id="themeSetup" class="theme-setup hidden">
+        <div class="theme-card">
+            <div class="theme-head">
+                <div>
+                    <p class="eyebrow">FLECITY STREET PURI</p>
+                    <h1>撮影背景・床</h1>
+                </div>
+                <span class="theme-session">SESSION ONLY</span>
+            </div>
+
+            <p class="theme-note">プリセットか画像URLを選択。撮影終了後に設定は破棄され、DBには保存されません。</p>
+
+            <div class="theme-columns">
+                <div class="theme-section">
+                    <h2>背景</h2>
+                    <div class="theme-presets" data-theme-target="background">
+                        <button class="theme-choice active" data-theme-value="pink">PINK</button>
+                        <button class="theme-choice" data-theme-value="white">WHITE</button>
+                        <button class="theme-choice" data-theme-value="y2k">Y2K</button>
+                        <button class="theme-choice" data-theme-value="black">BLACK</button>
+                        <button class="theme-choice" data-theme-value="hearts">HEARTS</button>
+                        <button class="theme-choice" data-theme-value="none">なし</button>
+                    </div>
+                    <input id="backgroundUrl" class="theme-url" maxlength="2048" placeholder="https://... 背景画像URL（任意）" />
+                    <div id="backgroundPreview" class="theme-mini-preview pink"></div>
+                </div>
+
+                <div class="theme-section">
+                    <h2>床</h2>
+                    <div class="theme-presets" data-theme-target="floor">
+                        <button class="theme-choice active" data-theme-value="pink">PINK</button>
+                        <button class="theme-choice" data-theme-value="white">WHITE</button>
+                        <button class="theme-choice" data-theme-value="y2k">Y2K</button>
+                        <button class="theme-choice" data-theme-value="black">BLACK</button>
+                        <button class="theme-choice" data-theme-value="hearts">HEARTS</button>
+                        <button class="theme-choice" data-theme-value="none">なし</button>
+                    </div>
+                    <input id="floorUrl" class="theme-url" maxlength="2048" placeholder="https://... 床画像URL（任意）" />
+                    <div id="floorPreview" class="theme-mini-preview pink"></div>
+                </div>
+            </div>
+
+            <div id="themeStatus" class="theme-status">PINK / PINK</div>
+            <div class="theme-actions">
+                <button id="themeCancelButton" class="ghost">撮影をやめる</button>
+                <button id="themeConfirmButton" class="primary">この背景・床で撮影</button>
+            </div>
+        </div>
+    </section>
+
     <main id="app" class="hidden">
         <section class="preview-panel">
             <header>

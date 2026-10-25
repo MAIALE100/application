@@ -213,7 +213,16 @@ function renderMemo(){
     }).join(""):`<div class="empty">条件に合うメモはありません。</div>`}
   `;
   bindContent();
-  $("#memoSearch").oninput=e=>{state.memoQuery=e.target.value;renderMemo();};
+  $("#memoSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.memoQuery=e.target.value;
+    renderMemo();
+    const input=$("#memoSearch");
+    if(input){
+      input.focus();
+      input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));
+    }
+  };
   $("#memoCategoryFilter").onchange=e=>{state.memoCategory=e.target.value;renderMemo();};
 }
 

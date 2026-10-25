@@ -379,3 +379,35 @@ input[type="color"] {
     .theme-columns { grid-template-columns: 1fr; }
     .theme-mini-preview { height: 11vh; }
 }
+
+
+.history-actions {
+    position: sticky;
+    bottom: 5.4vh;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35vw;
+    margin-top: 1.4vh;
+    padding-top: .8vh;
+    background: rgba(255,255,255,.96);
+}
+
+.history-actions button {
+    min-height: 3.8vh;
+    padding: .55vh .4vw;
+    background: #f2eaf0;
+    color: #5e4658;
+    font-size: 1.05vh;
+}
+
+.history-actions button:disabled {
+    opacity: .42;
+    cursor: default;
+    transform: none;
+}
+
+.history-actions #deleteSelectedButton:not(:disabled) {
+    background: #ffe0eb;
+    color: #a51f5d;
+}

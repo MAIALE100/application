@@ -87,6 +87,16 @@ These checks can be completed by one tester on the test server.
 - Create several BASE workspaces and switch between them.
 - Refresh the app repeatedly and confirm no duplicate MY SPACE is created.
 
+## Creator attribution
+
+- Memo cards show creator name and CSN.
+- Stock items show who registered the item.
+- Stock recent activity and item history show who changed quantity.
+- Tasks show who created the task separately from the assignee.
+- Accounting entries show who recorded the entry.
+- Existing rows are backfilled from current BASE membership where possible.
+- Creator names remain readable after restart.
+
 # Deferred multi-user / production-role tests
 
 These should not block solo development.

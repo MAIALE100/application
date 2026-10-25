@@ -240,8 +240,27 @@ local function transitionMineAccess(target)
     SetFocusPosAndVel(destination.x, destination.y, destination.z, 0.0, 0.0, 0.0)
     RequestCollisionAtCoord(destination.x, destination.y, destination.z)
 
-    NewLoadSceneStartSphere(destination.x, destination.y, destination.z, 45.0, 0)
-    local loadDeadline = GetGameTimer() + 3500
+    -- Wait for requested IPLs before revealing the target area. On the first
+    -- visit the mine can take several seconds to stream and otherwise exposes
+    -- grey terrain/LOD through the cave.
+    local interiorCfg = Config.MineInterior or {}
+    if type(interiorCfg.ipls) == 'table' then
+        local iplDeadline = GetGameTimer() + 8000
+        while GetGameTimer() < iplDeadline do
+            local allActive = true
+            for _, ipl in ipairs(interiorCfg.ipls) do
+                if type(ipl) == 'string' and ipl ~= '' and not IsIplActive(ipl) then
+                    allActive = false
+                    RequestIpl(ipl)
+                end
+            end
+            if allActive then break end
+            Wait(100)
+        end
+    end
+
+    NewLoadSceneStartSphere(destination.x, destination.y, destination.z, 55.0, 0)
+    local loadDeadline = GetGameTimer() + 10000
     while GetGameTimer() < loadDeadline do
         RequestCollisionAtCoord(destination.x, destination.y, destination.z)
         if IsNewLoadSceneLoaded() then break end
@@ -252,17 +271,27 @@ local function transitionMineAccess(target)
     if interiorId and interiorId ~= 0 then
         PinInteriorInMemory(interiorId)
         RefreshInterior(interiorId)
+
+        local interiorDeadline = GetGameTimer() + 5000
+        while GetGameTimer() < interiorDeadline and not IsInteriorReady(interiorId) do
+            RefreshInterior(interiorId)
+            Wait(50)
+        end
     end
 
     SetEntityCoordsNoOffset(ped, destination.x, destination.y, destination.z + 0.05, false, false, false)
     SetEntityHeading(ped, tonumber(target.w) or GetEntityHeading(ped))
 
-    local collisionDeadline = GetGameTimer() + 2500
+    local collisionDeadline = GetGameTimer() + 5000
     while GetGameTimer() < collisionDeadline do
         RequestCollisionAtCoord(destination.x, destination.y, destination.z)
         if HasCollisionLoadedAroundEntity(ped) then break end
         Wait(50)
     end
+
+    -- Give the renderer a short settled frame window after the ped is placed.
+    -- This is intentionally done while the screen is still faded out.
+    Wait(350)
 
     NewLoadSceneStop()
     ClearFocus()
@@ -413,20 +442,22 @@ local function startDrillPresentation(ped, node)
         return false
     end
 
+    local offset = cfg.propOffset or vector3(0.15, 0.0, -0.05)
+    local rotation = cfg.propRotation or vector3(0.0, 90.0, 90.0)
     AttachEntityToEntity(
         prop,
         ped,
-        GetPedBoneIndex(ped, 57005),
-        0.14, 0.0, -0.01,
-        90.0, -90.0, 180.0,
+        GetPedBoneIndex(ped, tonumber(cfg.propBone) or 57005),
+        offset.x, offset.y, offset.z,
+        rotation.x, rotation.y, rotation.z,
         false, false, false, false, 2, true
     )
 
     TaskPlayAnim(
         ped,
         cfg.animDict or 'anim@heists@fleeca_bank@drilling',
-        cfg.animName or 'drill_straight_fail',
-        3.0, 3.0, -1, 1, 0.0,
+        cfg.animName or 'drill_left',
+        3.0, 3.0, -1, tonumber(cfg.animFlags) or 49, 0.0,
         false, false, false
     )
 
@@ -687,6 +718,45 @@ CreateThread(function()
                         showStatus()
                     end
                 end
+            end
+        end
+
+        if state.active and isInsideMine() then
+            local lighting = Config.MineLighting or {}
+            if lighting.enabled == true then
+                local drawDistance = tonumber(lighting.drawDistance) or 35.0
+                local height = tonumber(lighting.height) or 1.65
+                local range = tonumber(lighting.range) or 8.0
+                local intensity = tonumber(lighting.intensity) or 1.35
+                local red = math.floor(tonumber(lighting.red) or 255)
+                local green = math.floor(tonumber(lighting.green) or 210)
+                local blue = math.floor(tonumber(lighting.blue) or 160)
+
+                for _, node in ipairs(Config.MiningNodes) do
+                    if #(coords - node.coords) <= drawDistance then
+                        DrawLightWithRange(
+                            node.coords.x, node.coords.y, node.coords.z + height,
+                            red, green, blue,
+                            range, intensity
+                        )
+                    end
+                end
+
+                if Config.MineAccess and Config.MineAccess.inside then
+                    local accessPos = vector3(
+                        Config.MineAccess.inside.x,
+                        Config.MineAccess.inside.y,
+                        Config.MineAccess.inside.z
+                    )
+                    if #(coords - accessPos) <= drawDistance then
+                        DrawLightWithRange(
+                            accessPos.x, accessPos.y, accessPos.z + height,
+                            red, green, blue,
+                            range, intensity
+                        )
+                    end
+                end
+                waitMs = 0
             end
         end
 

@@ -86,3 +86,12 @@ pre.note-body{white-space:pre-wrap;font:inherit;margin:.7rem 0 0;line-height:1.5
 
 .list-meta{font-size:.72rem;color:#73827b;padding:.05rem .15rem .1rem}
 .load-more{width:100%;justify-content:center}
+
+.empty-guide{display:grid;justify-items:center;gap:.55rem;background:#f6f9f6;border-radius:1.1rem}
+.empty-guide strong{color:#42564d;font-size:.92rem}
+.empty-guide span{max-width:20rem;line-height:1.5}
+.empty-guide .primary{margin-top:.2rem}
+.workspace-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-top:.8rem}
+.workspace-info-grid>div{background:#eef3ef;border-radius:.8rem;padding:.65rem}
+.workspace-info-grid span{display:block;font-size:.64rem;color:#76857e}
+.workspace-info-grid strong{display:block;margin-top:.15rem;font-size:.78rem;color:#354940;overflow:hidden;text-overflow:ellipsis}

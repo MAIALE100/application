@@ -39,9 +39,9 @@ local function runSelfTest()
     local drill = Config.DrillVisuals
     local drillOk = type(drill) == 'table'
         and type(drill.model) == 'string' and drill.model ~= ''
-        and type(drill.animDict) == 'string' and drill.animDict ~= ''
-        and type(drill.startAnimName) == 'string' and drill.startAnimName ~= ''
-        and type(drill.idleAnimName) == 'string' and drill.idleAnimName ~= ''
+        and drill.mode == 'scenario'
+        and type(drill.scenario) == 'string' and drill.scenario ~= ''
+        and type(drill.cleanupProps) == 'table' and #drill.cleanupProps > 0
     add(results, drillOk, 'drill visuals', drillOk and tostring(drill.model) or 'invalid')
 
     local interiorOk = true

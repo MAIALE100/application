@@ -46,6 +46,16 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         return
     end
 
+    if GetResourceState("screenshot-basic") ~= "started" then
+        notify(source, "error", "撮影機能が準備できていません。スタッフへお知らせください。")
+        return
+    end
+
+    if GetResourceState("lb-phone") ~= "started" or GetResourceState("qbx_core") ~= "started" then
+        notify(source, "error", "プリクラ台を利用できません。")
+        return
+    end
+
     local existing = sessions[boothId]
     if existing and existing.expiresAt > os.time() then
         notify(source, "error", "このプリクラ台は使用中です。")
@@ -108,6 +118,7 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
     end
 
     session.capturing = true
+    session.captureStartedAt = os.time()
     session.expiresAt = os.time() + 90
     broadcastState(boothId)
     TriggerClientEvent("puribooth:client:captureOwner", source, boothId)
@@ -139,14 +150,34 @@ end)
 RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
     local source = source
     local session = sessions[boothId]
-    if not session or session.owner ~= source then return end
+    if not session or session.owner ~= source or not session.capturing then return end
 
+    -- A failed client capture is refundable, but only while a real capture
+    -- session is active. Every refund is logged through the Qbox money reason.
     if session.paid and session.paid > 0 then
         exports.qbx_core:AddMoney(source, session.moneyType or "cash", session.paid, "puribooth-technical-refund")
-        notify(source, "error", "撮影を開始できなかったため料金を返金しました。")
+        notify(source, "error", "撮影に失敗したため料金を返金しました。")
     end
 
     releaseSession(boothId)
+end)
+
+AddEventHandler("onResourceStop", function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    if GetResourceState("qbx_core") ~= "started" then return end
+
+    for _, session in pairs(sessions) do
+        if session.paid and session.paid > 0 and GetPlayerName(session.owner) then
+            pcall(function()
+                exports.qbx_core:AddMoney(
+                    session.owner,
+                    session.moneyType or "cash",
+                    session.paid,
+                    "puribooth-resource-restart-refund"
+                )
+            end)
+        end
+    end
 end)
 
 AddEventHandler("playerDropped", function()

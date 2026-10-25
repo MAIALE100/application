@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flecity PURI</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <main id="app" class="hidden">
+        <section class="preview-panel">
+            <header>
+                <div>
+                    <p class="eyebrow">FLECITY STREET PURI</p>
+                    <h1 id="boothLabel">Legion PURI</h1>
+                </div>
+                <div class="shot-count" id="shotCount">4 SHOTS</div>
+            </header>
+
+            <div class="canvas-wrap">
+                <canvas id="canvas" width="1200" height="900"></canvas>
+                <div class="canvas-hint" id="canvasHint">レイアウト・盛り・フレームを選んで編集</div>
+            </div>
+
+            <div class="bottom-actions">
+                <button id="cancelButton" class="ghost">撮影をやめる</button>
+                <button id="resetButton" class="ghost">装飾をリセット</button>
+                <button id="finishButton" class="primary">PuriPhotoへ送る</button>
+            </div>
+        </section>
+
+        <aside class="tools-panel">
+            <nav class="tabs">
+                <button data-tab="layout" class="active">レイアウト</button>
+                <button data-tab="beauty">盛り</button>
+                <button data-tab="frame">フレーム</button>
+                <button data-tab="stamp">スタンプ</button>
+                <button data-tab="text">文字</button>
+                <button data-tab="draw">落書き</button>
+            </nav>
+
+            <section class="tool-page active" data-page="layout">
+                <h2>レイアウト</h2>
+                <p>4枚をどう組み合わせるか選びます。</p>
+                <div class="choice-grid">
+                    <button class="choice active" data-layout="grid">4コマ</button>
+                    <button class="choice" data-layout="strip">4列</button>
+                    <button class="choice" data-layout="hero">メイン＋3枚</button>
+                    <button class="choice" data-layout="single">1枚大きく</button>
+                </div>
+                <label class="range-row">
+                    <span>1枚表示の写真</span>
+                    <input id="singleShot" type="range" min="0" max="3" step="1" value="0" />
+                </label>
+            </section>
+
+            <section class="tool-page" data-page="beauty">
+                <h2>盛り</h2>
+                <p>プリクラらしい明るさ・色味・やわらかさを調整します。</p>
+                <label class="range-row"><span>明るさ</span><input id="brightness" type="range" min="80" max="145" value="112" /></label>
+                <label class="range-row"><span>コントラスト</span><input id="contrast" type="range" min="80" max="135" value="102" /></label>
+                <label class="range-row"><span>鮮やかさ</span><input id="saturation" type="range" min="70" max="150" value="112" /></label>
+                <label class="range-row"><span>やわらかさ</span><input id="softness" type="range" min="0" max="3" step="0.25" value="0.5" /></label>
+                <label class="range-row"><span>あたたかさ</span><input id="warmth" type="range" min="0" max="30" value="8" /></label>
+                <div class="preset-row">
+                    <button data-preset="natural">Natural</button>
+                    <button data-preset="puri">PURI</button>
+                    <button data-preset="y2k">Y2K</button>
+                    <button data-preset="mono">Mono</button>
+                </div>
+            </section>
+
+            <section class="tool-page" data-page="frame">
+                <h2>フレーム</h2>
+                <div class="choice-grid">
+                    <button class="choice active" data-frame="pink">PINK</button>
+                    <button class="choice" data-frame="white">WHITE</button>
+                    <button class="choice" data-frame="black">BLACK</button>
+                    <button class="choice" data-frame="y2k">Y2K</button>
+                    <button class="choice" data-frame="hearts">HEARTS</button>
+                    <button class="choice" data-frame="none">なし</button>
+                </div>
+            </section>
+
+            <section class="tool-page" data-page="stamp">
+                <h2>スタンプ</h2>
+                <p>スタンプを選んで、写真の好きな場所をクリック。</p>
+                <div class="stamp-grid" id="stampGrid">
+                    <button data-stamp="💗">💗</button><button data-stamp="✨">✨</button>
+                    <button data-stamp="🎀">🎀</button><button data-stamp="⭐">⭐</button>
+                    <button data-stamp="🫶">🫶</button><button data-stamp="👑">👑</button>
+                    <button data-stamp="🌸">🌸</button><button data-stamp="💎">💎</button>
+                    <button data-stamp="😎">😎</button><button data-stamp="🥳">🥳</button>
+                </div>
+                <label class="range-row"><span>スタンプサイズ</span><input id="stampSize" type="range" min="40" max="180" value="92" /></label>
+            </section>
+
+            <section class="tool-page" data-page="text">
+                <h2>文字</h2>
+                <p>文字を入力して「配置」を押し、写真をクリック。</p>
+                <input id="textInput" class="text-input" maxlength="32" placeholder="BESTIES / FLECITY / 日付..." />
+                <div class="inline-row">
+                    <input id="textColor" type="color" value="#ff4fa3" />
+                    <button id="armTextButton">配置する</button>
+                </div>
+                <label class="range-row"><span>文字サイズ</span><input id="textSize" type="range" min="34" max="120" value="64" /></label>
+            </section>
+
+            <section class="tool-page" data-page="draw">
+                <h2>落書き</h2>
+                <p>写真の上を直接ドラッグして描けます。</p>
+                <div class="inline-row">
+                    <input id="drawColor" type="color" value="#ff3f9d" />
+                    <button id="drawToggle">ペン ON</button>
+                </div>
+                <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="36" value="10" /></label>
+                <button id="clearDrawButton" class="wide">落書きだけ消す</button>
+            </section>
+
+            <div class="tool-status" id="toolStatus">編集できます</div>
+        </aside>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -5,8 +5,8 @@ FlecityBaseConfig.Framework = 'qbox'
 
 FlecityBaseConfig.App = {
     identifier = 'flecity_base',
-    name = 'BASE',
-    description = 'メモ・在庫・タスク・会計を、個人や仲間と共有。',
+    name = 'グループ帳',
+    description = 'メモ・在庫・タスク・会計を、仲間とまとめて共有。',
     developer = 'Flecity',
     defaultApp = false,
     game = false,

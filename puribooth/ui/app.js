@@ -193,7 +193,7 @@
         }
     }
 
-    const renderThemeSurface = async (preset, rawUrl) => {
+    const renderThemeSurface = async (preset, rawUrl, kind) => {
         const safe = safeHttpUrl(rawUrl)
         if (safe === null) throw new Error('invalid_url')
 
@@ -202,31 +202,39 @@
         }
 
         const surfaceCanvas = document.createElement('canvas')
-        surfaceCanvas.width = 1024
-        surfaceCanvas.height = 1024
+        const isFloor = kind === 'floor'
+        surfaceCanvas.width = 1280
+        surfaceCanvas.height = isFloor ? 640 : 720
         const surfaceCtx = surfaceCanvas.getContext('2d')
+        const targetWidth = surfaceCanvas.width
+        const targetHeight = surfaceCanvas.height
 
         if (safe) {
             const image = await loadImage(safe)
             const srcRatio = image.width / image.height
-            const dstRatio = 1
+            const dstRatio = targetWidth / targetHeight
             let sx = 0, sy = 0, sw = image.width, sh = image.height
 
             if (srcRatio > dstRatio) {
-                sw = image.height
+                sw = image.height * dstRatio
                 sx = (image.width - sw) / 2
             } else {
-                sh = image.width
+                sh = image.width / dstRatio
                 sy = (image.height - sh) / 2
             }
 
             surfaceCtx.drawImage(
                 image,
                 sx, sy, sw, sh,
-                0, 0, 1024, 1024
+                0, 0, targetWidth, targetHeight
             )
         } else {
-            drawThemePreset(surfaceCtx, preset, 1024, 1024)
+            drawThemePreset(
+                surfaceCtx,
+                preset,
+                targetWidth,
+                targetHeight
+            )
         }
 
         try {
@@ -243,7 +251,7 @@
         const image = new Image()
         image.crossOrigin = 'anonymous'
         image.onload = () => resolve(image)
-        image.onerror = reject
+        image.onerror = () => reject(new Error('image_load_failed'))
         image.src = src
     })
 
@@ -826,11 +834,13 @@
             const [backgroundSurface, floorSurface] = await Promise.all([
                 renderThemeSurface(
                     state.theme.backgroundPreset,
-                    backgroundUrl.value
+                    backgroundUrl.value,
+                    'background'
                 ),
                 renderThemeSurface(
                     state.theme.floorPreset,
-                    floorUrl.value
+                    floorUrl.value,
+                    'floor'
                 )
             ])
 
@@ -846,7 +856,8 @@
             themeStatus.classList.add('error')
             themeStatus.textContent =
                 error?.message === 'image_host_blocks_conversion'
-                    ? 'この画像サイトはゲーム用変換を許可していません。別の画像URLをお試しください。'
+                    || error?.message === 'image_load_failed'
+                    ? 'この画像URLはゲーム用変換に対応していません。画像の直リンクか別の画像ホストをお試しください。'
                     : '背景・床の設定に失敗しました'
         } finally {
             button.disabled = false

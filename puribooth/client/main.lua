@@ -1705,13 +1705,13 @@ CreateThread(function()
         if ownedSession and not editorOpen then
             local booth = dynamicBooths[ownedSession.boothId]
 
-            if booth and activeTheme then
+            if booth
+                and activeTheme
+                and (cameraPreviewActive or captureInProgress) then
+
                 wait = 0
                 renderThemeSurfaces(booth)
-
-                if cameraPreviewActive or captureInProgress then
-                    renderPhotoLighting(booth)
-                end
+                renderPhotoLighting(booth)
             end
 
             if booth then

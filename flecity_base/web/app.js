@@ -84,7 +84,7 @@ function modal(title, html, onSave){
       save.disabled=false;
     }
   };
-  d.showModal();
+  if(!d.open) d.showModal();
 }
 
 function viewModal(title, html){
@@ -92,7 +92,7 @@ function viewModal(title, html){
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=html;
   $("#modalSave").style.display="none";
-  d.showModal();
+  if(!d.open) d.showModal();
 }
 
 function field(name,label,value="",type="text",extra=""){
@@ -427,7 +427,7 @@ function roundedResult(value,mode){
 function calculatorFormulaLabel(calc){
   let text=String(calc.formula||"");
   [...(calc.fields||[])].reverse().forEach(f=>{
-    text=text.replace(new RegExp("\\b"+f.key+"\\b","g"),f.label);
+    text=text.replace(new RegExp("\\b"+f.key+"\\b","g"),()=>f.label);
   });
   return text.replace(/\*/g," × ").replace(/\//g," ÷ ");
 }
@@ -594,6 +594,7 @@ function calculatorEditor(calc){
 function calculatorUse(calc){
   const fields=calc.fields||[];
   viewModal(calc.name,`
+    <div class="row between"><button id="calculatorBack" class="secondary small" type="button">← 一覧</button><span></span></div>
     <article class="card">
       <div class="muted">${esc(calculatorFormulaLabel(calc))}</div>
       ${fields.map((f,i)=>`
@@ -606,6 +607,7 @@ function calculatorUse(calc){
     </article>
   `);
 
+  $("#calculatorBack").onclick=()=>moneyCalculator().catch(()=>{});
   $("#runCalculator").onclick=()=>{
     try{
       const values={};

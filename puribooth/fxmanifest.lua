@@ -27,5 +27,6 @@ dependencies {
     "qbx_core",
     "oxmysql",
     "lb-phone",
-    "screenshot-basic"
+    "screenshot-basic",
+    "puriphoto"
 }

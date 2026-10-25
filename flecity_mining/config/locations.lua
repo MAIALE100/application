@@ -6,21 +6,28 @@ Config = Config or {}
 Config.SiteName = 'Great Chaparral Abandoned Mine'
 
 -- Great Chaparral mine IPL group.
--- Loading only the mine interior IPL produced broken/under-world behavior on
--- the test server, so the complete local IPL set is requested together.
+-- Do NOT force the cs6_08 critical/long/alternate streaming variants together.
+-- They overlap the normal exterior and can leave the surrounding terrain on
+-- low-LOD/grey geometry after returning outside.
 Config.MineInterior = {
     enabled = true,
     anchor = vector3(-596.33, 2089.04, 131.41),
     interiorId = 202241,
-    ipls = {
-        'cs6_08',
+
+    -- Safe pair used only when entering the mine.
+    baseIpl = 'cs6_08',
+    interiorIpl = 'cs6_08_interior_cs6_08_mine_int',
+
+    -- v0.3.3-v0.3.12 requested these together. They are explicitly cleaned up
+    -- on the client so an already-running test session can recover without a
+    -- full FiveM restart.
+    legacyConflictIpls = {
         'cs6_08a_strm_0',
         'cs6_08_critical_0',
         'cs6_08_critical_1',
         'cs6_08_critical_2',
         'cs6_08_critical_3',
         'cs6_08_critical_4',
-        'cs6_08_interior_cs6_08_mine_int',
         'cs6_08_long_0',
         'cs6_08_long_1',
     },

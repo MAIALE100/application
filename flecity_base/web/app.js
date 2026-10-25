@@ -6,8 +6,15 @@ const state = {
   members: [],
   tab: "memo",
   notes: [],
+  memoQuery: "",
+  memoCategory: "all",
   stock: [],
+  stockRecent: [],
+  stockFilter: "all",
+  stockCategory: "all",
   tasks: [],
+  taskFilter: "all",
+  showCompleted: false,
   calculators: [],
   money: { entries: [], summary: { income: 0, expense: 0, balance: 0 } }
 };
@@ -154,7 +161,7 @@ async function loadTab(){
   if(state.tab==="memo"){
     const d=await api("notesList",{workspaceId:id}); state.notes=d.notes||[]; renderMemo();
   }else if(state.tab==="stock"){
-    const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; renderStock();
+    const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; state.stockRecent=d.recent||[]; renderStock();
   }else if(state.tab==="tasks"){
     const d=await api("tasksList",{workspaceId:id}); state.tasks=d.tasks||[]; renderTasks();
   }else if(state.tab==="money"){
@@ -169,58 +176,128 @@ function topAction(label, action){
 }
 
 function renderMemo(){
-  const rows=state.notes;
-  $("#content").innerHTML=topAction("共有メモ","new-note") + (rows.length?rows.map(n=>`
-    <article class="card ${Number(n.pinned)===1?"pinned":""}">
-      <div class="card-head">
-        <div><div class="card-title">${Number(n.pinned)===1?"📌 ":""}${esc(n.title)}</div><div class="muted">${esc(n.updated_at||"")}</div></div>
-        <span class="badge">${esc(n.author_citizenid)}</span>
-      </div>
-      <pre class="note-body">${esc(n.body)}</pre>
-      <div class="actions">
-        <button class="small" data-action="edit-note" data-id="${n.id}">編集</button>
-        <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
-      </div>
-    </article>`).join(""):`<div class="empty">共有メモはまだありません。</div>`);
+  const categories=[...new Set(state.notes.map(n=>String(n.category||"general")).filter(Boolean))].sort();
+  const query=state.memoQuery.trim().toLowerCase();
+  const rows=state.notes.filter(n=>{
+    if(state.memoCategory!=="all"&&String(n.category||"general")!==state.memoCategory) return false;
+    if(!query) return true;
+    return [n.title,n.body,n.category,n.tags].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>共有メモ</h2><button class="primary" data-action="new-note">＋ 追加</button></div>
+    <div class="toolbar">
+      <input id="memoSearch" class="search-input" placeholder="メモを検索" value="${esc(state.memoQuery)}">
+      <select id="memoCategoryFilter" class="compact-select">
+        <option value="all">すべてのカテゴリ</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.memoCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+    </div>
+    ${rows.length?rows.map(n=>{
+      const tags=String(n.tags||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
+      return `<article class="card ${Number(n.pinned)===1?"pinned":""}">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${Number(n.pinned)===1?"📌 ":""}${esc(n.title)}</div>
+            <div class="row"><span class="badge">${esc(n.category||"general")}</span>${tags.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</div>
+            <div class="muted">${esc(n.updated_at||"")}</div>
+          </div>
+          <span class="badge">${esc(n.author_citizenid)}</span>
+        </div>
+        <pre class="note-body">${esc(n.body)}</pre>
+        <div class="actions">
+          <button class="small" data-action="edit-note" data-id="${n.id}">編集</button>
+          <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
+        </div>
+      </article>`;
+    }).join(""):`<div class="empty">条件に合うメモはありません。</div>`}
+  `;
   bindContent();
+  $("#memoSearch").oninput=e=>{state.memoQuery=e.target.value;renderMemo();};
+  $("#memoCategoryFilter").onchange=e=>{state.memoCategory=e.target.value;renderMemo();};
 }
 
 function noteModal(note){
   modal(note?"メモを編集":"新しいメモ",
-    field("title","タイトル",note?.title||"")+textarea("body","内容",note?.body||"")+
+    field("title","タイトル",note?.title||"")+
+    `<div class="split">${field("category","カテゴリ",note?.category||"general")}${field("tags","タグ（カンマ区切り）",note?.tags||"")}</div>`+
+    textarea("body","内容",note?.body||"")+
     `<div class="field"><label><input type="checkbox" name="pinned" ${Number(note?.pinned)===1?"checked":""}> ピン留め</label></div>`,
     async fd=>{
-      const payload={workspaceId:selectedWorkspaceId(),title:fd.get("title"),body:fd.get("body"),pinned:fd.get("pinned")==="on"};
+      const payload={
+        workspaceId:selectedWorkspaceId(),
+        title:fd.get("title"),
+        category:fd.get("category"),
+        tags:fd.get("tags"),
+        body:fd.get("body"),
+        pinned:fd.get("pinned")==="on"
+      };
       if(note){payload.id=Number(note.id);await api("noteUpdate",payload);}else await api("noteCreate",payload);
       await loadTab(); return true;
     });
 }
 
 function renderStock(){
-  $("#content").innerHTML=topAction("在庫","new-stock")+(state.stock.length?state.stock.map(i=>{
-    const low=num(i.quantity)<=num(i.minimum_quantity);
-    return `<article class="card">
-      <div class="row between">
-        <div><div class="card-title">${esc(i.name)}</div><div class="muted">最低在庫 ${num(i.minimum_quantity).toLocaleString()} ${esc(i.unit)}</div></div>
-        <div class="stock-count">${num(i.quantity).toLocaleString()} <small>${esc(i.unit)}</small></div>
+  const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort();
+  const rows=state.stock.filter(i=>{
+    if(state.stockFilter==="low"&&num(i.quantity)>num(i.minimum_quantity)) return false;
+    if(state.stockCategory!=="all"&&String(i.category||"general")!==state.stockCategory) return false;
+    return true;
+  });
+  const lowCount=state.stock.filter(i=>num(i.quantity)<=num(i.minimum_quantity)).length;
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>在庫</h2><button class="primary" data-action="new-stock">＋ 追加</button></div>
+    <div class="toolbar">
+      <div class="filter-group">
+        <button class="filter-chip ${state.stockFilter==="all"?"active":""}" data-stock-filter="all">すべて</button>
+        <button class="filter-chip ${state.stockFilter==="low"?"active":""}" data-stock-filter="low">不足 ${lowCount}</button>
       </div>
-      <div class="row">${low?'<span class="badge warn">在庫不足</span>':'<span class="badge good">在庫OK</span>'}</div>
-      <div class="actions">
-        <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="-1">−1</button>
-        <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="1">＋1</button>
-        <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
-        <button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
-        <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
-      </div>
-    </article>`;
-  }).join(""):`<div class="empty">在庫品目はまだありません。</div>`);
+      <select id="stockCategoryFilter" class="compact-select">
+        <option value="all">すべてのカテゴリ</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.stockCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+    </div>
+    ${rows.length?rows.map(i=>{
+      const low=num(i.quantity)<=num(i.minimum_quantity);
+      return `<article class="card">
+        <div class="row between">
+          <div>
+            <div class="card-title">${esc(i.name)}</div>
+            <div class="row"><span class="badge">${esc(i.category||"general")}</span>${low?'<span class="badge warn">在庫不足</span>':'<span class="badge good">在庫OK</span>'}</div>
+            <div class="muted">最低在庫 ${num(i.minimum_quantity).toLocaleString()} ${esc(i.unit)}</div>
+          </div>
+          <div class="stock-count">${num(i.quantity).toLocaleString()} <small>${esc(i.unit)}</small></div>
+        </div>
+        <div class="actions quick-stock">
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="-10">−10</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="-1">−1</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="1">＋1</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="10">＋10</button>
+        </div>
+        <div class="actions">
+          <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
+          <button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
+          <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
+        </div>
+      </article>`;
+    }).join(""):`<div class="empty">条件に合う在庫はありません。</div>`}
+    ${state.stockRecent.length?`<div class="section-title">最近の入出庫</div>${state.stockRecent.slice(0,6).map(h=>`
+      <article class="card compact-card">
+        <div class="row between"><strong>${esc(h.item_name)}</strong><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()} ${esc(h.unit||"")}</strong></div>
+        <div class="muted">${esc(h.created_at||"")} ・ ${esc(h.actor_citizenid||"")}${h.note?" ・ "+esc(h.note):""}</div>
+      </article>`).join("")}`:""}
+  `;
   bindContent();
+  document.querySelectorAll("[data-stock-filter]").forEach(b=>b.onclick=()=>{state.stockFilter=b.dataset.stockFilter;renderStock();});
+  $("#stockCategoryFilter").onchange=e=>{state.stockCategory=e.target.value;renderStock();};
 }
 
 function newStock(){
   modal("在庫品目を追加",
-    field("name","品名")+ `<div class="split">${field("quantity","初期数量","0","number")}${field("minimum","最低在庫","0","number")}</div>`+field("unit","単位","個"),
-    async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+    field("name","品名")+field("category","カテゴリ","general")+
+    `<div class="split">${field("quantity","初期数量","0","number")}${field("minimum","最低在庫","0","number")}</div>`+field("unit","単位","個"),
+    async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),category:fd.get("category"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
 }
 
 async function adjustStock(item,delta,note=""){
@@ -235,8 +312,8 @@ function customStock(item){
 }
 
 function configStock(item){
-  modal("在庫設定",field("name","品名",item.name)+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number")}${field("unit","単位",item.unit)}</div>`,
-    async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number")}${field("unit","単位",item.unit)}</div>`,
+    async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
 }
 
 async function stockHistory(item){
@@ -250,23 +327,62 @@ async function stockHistory(item){
     </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');
 }
 
+function taskDueMs(value){
+  if(!value) return null;
+  const ms=new Date(String(value).replace(" ","T")).getTime();
+  return Number.isFinite(ms)?ms:null;
+}
+
 function renderTasks(){
-  $("#content").innerHTML=topAction("タスク","new-task")+(state.tasks.length?state.tasks.map(t=>{
-    const label={todo:"未着手",doing:"進行中",done:"完了"}[t.status]||t.status;
-    return `<article class="card">
-      <div class="card-head">
-        <div><div class="card-title">${esc(t.title)}</div><div class="muted">${esc(t.assignee_name||"担当なし")} ・ ${esc(t.due_at||"期限なし")}</div></div>
-        <span class="badge ${t.priority==="high"?"high":""}">${esc(label)}</span>
+  const myCid=state.boot?.user?.citizenid||"";
+  const now=Date.now();
+  const overdueCount=state.tasks.filter(t=>t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now).length;
+  const mineCount=state.tasks.filter(t=>t.status!=="done"&&t.assignee_citizenid===myCid).length;
+
+  const rows=state.tasks.filter(t=>{
+    if(!state.showCompleted&&t.status==="done") return false;
+    if(state.taskFilter==="mine"&&t.assignee_citizenid!==myCid) return false;
+    if(state.taskFilter==="overdue"&&!(t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now)) return false;
+    return true;
+  });
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>タスク</h2><button class="primary" data-action="new-task">＋ 追加</button></div>
+    <div class="toolbar">
+      <div class="filter-group">
+        <button class="filter-chip ${state.taskFilter==="all"?"active":""}" data-task-filter="all">すべて</button>
+        <button class="filter-chip ${state.taskFilter==="mine"?"active":""}" data-task-filter="mine">自分 ${mineCount}</button>
+        <button class="filter-chip ${state.taskFilter==="overdue"?"active":""}" data-task-filter="overdue">期限切れ ${overdueCount}</button>
       </div>
-      ${t.details?`<pre class="note-body">${esc(t.details)}</pre>`:""}
-      <div class="actions">
-        <button class="small" data-action="task-next" data-id="${t.id}">状態を進める</button>
-        <button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
-        <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>
-      </div>
-    </article>`;
-  }).join(""):`<div class="empty">タスクはまだありません。</div>`);
+      <button id="toggleCompleted" class="filter-chip ${state.showCompleted?"active":""}">${state.showCompleted?"完了を表示中":"完了を表示"}</button>
+    </div>
+    ${rows.length?rows.map(t=>{
+      const label={todo:"未着手",doing:"進行中",done:"完了"}[t.status]||t.status;
+      const overdue=t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now;
+      return `<article class="card ${overdue?"overdue":""}">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${esc(t.title)}</div>
+            <div class="muted">${esc(t.assignee_name||"担当なし")} ・ ${esc(t.due_at||"期限なし")}</div>
+          </div>
+          <div class="row">
+            ${overdue?'<span class="badge high">期限切れ</span>':""}
+            ${t.priority==="high"?'<span class="badge high">優先度 高</span>':""}
+            <span class="badge">${esc(label)}</span>
+          </div>
+        </div>
+        ${t.details?`<pre class="note-body">${esc(t.details)}</pre>`:""}
+        <div class="actions">
+          <button class="small" data-action="task-next" data-id="${t.id}">状態を進める</button>
+          <button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
+          <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>
+        </div>
+      </article>`;
+    }).join(""):`<div class="empty">条件に合うタスクはありません。</div>`}
+  `;
   bindContent();
+  document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{state.taskFilter=b.dataset.taskFilter;renderTasks();});
+  $("#toggleCompleted").onclick=()=>{state.showCompleted=!state.showCompleted;renderTasks();};
 }
 
 function memberOptions(selected){

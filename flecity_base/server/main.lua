@@ -193,11 +193,13 @@ handlers.workspaceInvite = function(source, data)
         WHERE workspace_id=? AND invitee_citizenid=? AND status='pending'
     ]], {workspace.id, invitee})
 
-    local id = MySQL.insert.await([[
+    local expiryHours = integer(C.InviteExpiryHours, 1, 720)
+    local inviteSql = ([[
         INSERT INTO flecity_base_invites
         (workspace_id, invitee_citizenid, inviter_citizenid, status, expires_at)
-        VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL 72 HOUR))
-    ]], {workspace.id, invitee, ctx.citizenid})
+        VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL %d HOUR))
+    ]]):format(expiryHours)
+    local id = MySQL.insert.await(inviteSql, {workspace.id, invitee, ctx.citizenid})
     return {ok=id ~= nil, inviteId=tonumber(id)}
 end
 

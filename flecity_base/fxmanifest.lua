@@ -1,10 +1,10 @@
-fx_version '0.5.0-dev'
+fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
 author 'Flecity'
 description 'BASE - shared workspace app for LB Phone'
-version '0.4.1-dev'
+version '0.5.0-dev'
 
 shared_script 'config.lua'
 

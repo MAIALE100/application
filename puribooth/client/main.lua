@@ -185,7 +185,7 @@ local function validThemeUrl(value)
 end
 
 local function themeSurfaceUrl()
-    return ("https://cfx-nui-%s/ui/surface.html")
+    return ("nui://%s/ui/surface.html")
         :format(GetCurrentResourceName())
 end
 
@@ -210,6 +210,9 @@ local function ensureThemeDui(kind)
                 :format(kind))
             return nil
         end
+
+        -- Give CEF a short paint window before binding the live texture.
+        Wait(300)
 
         local handle = GetDuiHandle(slot.dui)
         slot.txd = CreateRuntimeTxd(slot.txdName)

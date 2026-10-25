@@ -122,4 +122,7 @@ Write-Host "    restart puriphoto"
 Write-Host "    ensure puribooth"
 Write-Host "    puribooth_selftest"
 Write-Host ""
-Write-Host "Expected location: Legion Square prototype booth around 207.60, -919.66, 30.69"
+Write-Host "Admin placement commands:" -ForegroundColor Yellow
+Write-Host "    /puribooth place   # place at your current position; your heading becomes the shooting direction"
+Write-Host "    /puribooth remove  # remove the nearest booth"
+Write-Host "    /puribooth list    # show booth count"

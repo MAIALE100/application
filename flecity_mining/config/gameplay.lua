@@ -36,9 +36,11 @@ Config.DrillVisuals = {
     enabled = true,
     model = 'hei_prop_heist_drill',
     animDict = 'anim@heists@fleeca_bank@drilling',
-    -- QBCore/FiveMで広く使われているFleecaドリル姿勢。
-    animName = 'drill_straight_idle',
-    animFlags = 1,
+    -- Fleecaドリルは開始モーション -> ループ姿勢の順に再生します。
+    startAnimName = 'drill_straight_start',
+    idleAnimName = 'drill_straight_idle',
+    startAnimMs = 1050,
+    idleAnimFlags = 1,
     propBone = 57005,
     propOffset = vector3(0.14, 0.0, -0.01),
     propRotation = vector3(90.0, -90.0, 180.0),

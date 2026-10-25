@@ -84,8 +84,55 @@ try {
         Write-Host 'External image domain: gifyu.com already allowed' -ForegroundColor Green
     }
 
-    if($updated -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?["'']gifyu\.com["''].*?\}'){
-        throw 'gifyu.com is also blacklisted in ExternalBlacklistedDomains. Remove that blacklist entry before using Gifyu.'
+    $blacklistPattern = '(?s)(Config\.ExternalBlacklistedDomains\s*=\s*\{)(.*?)(\r?\n\})'
+    $blacklistMatch = [regex]::Match($updated,$blacklistPattern)
+    if($blacklistMatch.Success){
+        $blacklistBody = $blacklistMatch.Groups[2].Value
+        if($blacklistBody -match '["'']gifyu\.com["'']'){
+            $newBlacklistBody = [regex]::Replace(
+                $blacklistBody,
+                '(?m)^\s*["'']gifyu\.com["'']\s*,?\s*
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $backup = "$configPath.gifyu-backup-$stamp"
+        Copy-Item -LiteralPath $configPath -Destination $backup -Force
+
+        [IO.File]::WriteAllText($configPath,$updated,[Text.UTF8Encoding]::new($false))
+
+        $verify = [IO.File]::ReadAllText($configPath)
+        $galleryOk = $verify -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
+        $domainOk = $verify -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?["'']gifyu\.com["'']'
+        $blacklistOk = -not ($verify -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?["'']gifyu\.com["''].*?\}')
+
+        if(-not ($galleryOk -and $domainOk -and $blacklistOk)){
+            Copy-Item -LiteralPath $backup -Destination $configPath -Force
+            throw "Verification failed. Original config restored from: $backup"
+        }
+
+        Write-Host ''
+        Write-Host 'LB Phone Gifyu support updated successfully.' -ForegroundColor Green
+        Write-Host ("Backup: {0}" -f $backup) -ForegroundColor DarkGray
+        Write-Host 'Run this once in txAdmin:' -ForegroundColor Yellow
+        Write-Host '    restart lb-phone' -ForegroundColor White
+    } else {
+        Write-Host ''
+        Write-Host 'LB Phone Gifyu support is already configured.' -ForegroundColor Green
+    }
+
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('LB PHONE GIFYU FIX FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host 'No automatic restart was attempted.' -ForegroundColor Yellow
+    exit 1
+}
+,
+                ''
+            )
+            $updated = $updated.Substring(0,$blacklistMatch.Groups[2].Index) + $newBlacklistBody + $updated.Substring($blacklistMatch.Groups[2].Index + $blacklistMatch.Groups[2].Length)
+            $changed = $true
+            Write-Host 'External image blacklist: removed gifyu.com' -ForegroundColor Green
+        }
     }
 
     if($changed){

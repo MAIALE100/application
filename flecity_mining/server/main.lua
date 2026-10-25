@@ -858,6 +858,10 @@ RegisterCommand('mining_economy', function(src)
     end
 
     if src > 0 then
-        notify(src, ('期待値: 原石1個 約$%.1f / 満載 約$%.1f'):format(expectedPerRaw, expectedFullLoad))
+        notify(src, ('期待値: 原石1個 約$%.1f / 1回の選鉱(%d個) 約$%.1f'):format(
+            expectedPerRaw,
+            Config.ProcessingBatchSize,
+            expectedPerBatch
+        ))
     end
 end, false)

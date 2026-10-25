@@ -45,6 +45,45 @@ try {
     if ($FrameworkText -notmatch "function\s+FlecityBaseFramework\.GetIdentifier") {
         throw "Safety check failed: FlecityBaseFramework.GetIdentifier is missing."
     }
+    if (($FrameworkText | Select-String -Pattern "function\s+FlecityBaseFramework\.GetJob" -AllMatches).Matches.Count -ne 1) {
+        throw "Safety check failed: FlecityBaseFramework.GetJob must exist exactly once."
+    }
+    if ($FrameworkText -notmatch ":gsub\('%s\+\    $Css = Join-Path $Source "web\app.css"
+    if (Test-Path $Css) {
+        $CssText = Get-Content $Css -Raw
+        if ($CssText -match '(?<![A-Za-z])\d+(?:\.\d+)?px') {
+            throw "Safety check found px units while LB Phone fixBlur is enabled."
+        }
+    }
+
+    Write-Host "==> Deploying BASE to test server"
+    $Parent = Split-Path -Parent $Target
+    New-Item -ItemType Directory -Path $Parent -Force | Out-Null
+
+    if (Test-Path -LiteralPath $Target) {
+        Remove-Item -LiteralPath $Target -Recurse -Force
+    }
+    Copy-Item -LiteralPath $Source -Destination $Target -Recurse -Force
+
+    if (-not (Test-Path -LiteralPath (Join-Path $Target "fxmanifest.lua"))) {
+        throw "Deployment validation failed."
+    }
+
+    Write-Host ""
+    Write-Host "BASE update complete."
+    Write-Host "txAdmin console:"
+    Write-Host "    restart flecity_base"
+    Write-Host ""
+}
+finally {
+    if (Test-Path $Temp) {
+        & git -C $RepoRoot worktree remove --force $Temp 2>$null
+        if (Test-Path $Temp) { Remove-Item $Temp -Recurse -Force }
+    }
+}
+,\s*''\)") {
+        throw "Safety check failed: character-name trim expression is malformed."
+    }
 
     $Css = Join-Path $Source "web\app.css"
     if (Test-Path $Css) {

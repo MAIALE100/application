@@ -382,6 +382,51 @@ const App = () => {
         }
     }
 
+    const loadBoothImport = async () => {
+        if (saveLock.current) return
+
+        try {
+            const result = await nuiRequest<{
+                ok: boolean
+                import?: {
+                    image: string
+                    location?: CaptureLocation
+                }
+                error?: string
+            }>('puriphotoGetBoothImport')
+
+            if (!result.ok || !result.import?.image) return
+
+            const imported = result.import
+            setPage('main')
+            setPhotoUrl(imported.image)
+            setSourcePhotoUrl(imported.image)
+            setSavedPhotoUrl(null)
+            setCaptureLocation(imported.location || null)
+            setCurrentProjectId(null)
+            setManualLocation('Legion Square PURI')
+            setPhotoMemo('')
+            setLastSavedSnapshot(null)
+            resetEditorState()
+            setPhotoAspectRatio(null)
+            setToolsCollapsed(false)
+            setIsEditing(true)
+            setError(null)
+        } catch (cause) {
+            console.warn('[PuriPhoto] Booth import unavailable:', cause)
+        }
+    }
+
+    useEffect(() => {
+        void loadBoothImport()
+
+        if (typeof useNuiEvent === 'function') {
+            useNuiEvent<{ event?: string }>('boothImportAvailable', () => {
+                void loadBoothImport()
+            })
+        }
+    }, [])
+
     const takePhoto = () => {
         setError(null)
         if (typeof window.useCamera !== 'function') {

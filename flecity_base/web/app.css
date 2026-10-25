@@ -8,8 +8,8 @@
 body{margin:0;background:linear-gradient(160deg,#e8efe8,#dce7e4);min-height:100vh}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
-.app{min-height:100vh;padding:1.1rem 1rem 5.5rem}
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.app{min-height:100vh;padding:3.35rem 1rem 6rem}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:.9rem}
 .eyebrow{font-size:.66rem;letter-spacing:.16em;font-weight:800;color:#6a7d75}
 h1{font-size:2rem;line-height:1;margin:.12rem 0 0;letter-spacing:-.05em}
 h2,h3,p{margin-top:0}
@@ -41,7 +41,7 @@ h2,h3,p{margin-top:0}
 .secondary{background:#e5ebe7;color:#3e554b}
 .danger{background:#f2dddd;color:#873e3e}
 .small{padding:.45rem .65rem;background:#e5ebe7;color:#40544b;font-size:.75rem}
-.floating{position:fixed;right:1rem;bottom:1rem;border:0;border-radius:1rem;background:#213f34;color:white;padding:.8rem 1rem;font-weight:850;box-shadow:0 .7rem 1.8rem #1c3d2f38}
+.floating{position:fixed;right:1rem;bottom:1.5rem;border:0;border-radius:1rem;background:#213f34;color:white;padding:.8rem 1rem;font-weight:850;box-shadow:0 .7rem 1.8rem #1c3d2f38}
 .empty{text-align:center;padding:2.2rem 1rem;color:#7a8983}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
 .metric{background:#eef3ef;border-radius:1rem;padding:.75rem}

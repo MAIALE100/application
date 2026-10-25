@@ -1297,3 +1297,15 @@ body.party-round #connect4Panel{margin-top:.05rem}
  body.party-round #roundPanel{padding:.55rem}
  .round-hud{padding:.5rem .55rem}
 }
+
+body.party-round .app-status{
+ position:fixed;
+ left:50%;
+ top:max(3.15rem,env(safe-area-inset-top,0rem));
+ transform:translateX(-50%);
+ width:min(calc(100% - 1.25rem),28rem);
+ z-index:1200;
+ margin:0;
+ box-shadow:0 .75rem 1.75rem rgba(0,0,0,.28);
+ pointer-events:none;
+}

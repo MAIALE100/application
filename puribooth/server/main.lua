@@ -169,3 +169,39 @@ CreateThread(function()
         end
     end
 end)
+
+
+local function resourceState(name)
+    local state = GetResourceState(name)
+    return state == "started" and "PASS" or ("FAIL(" .. state .. ")")
+end
+
+RegisterCommand("puribooth_selftest", function(source)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local boothCount = 0
+    for _ in pairs(Config.Booths or {}) do boothCount = boothCount + 1 end
+
+    local qbx = resourceState("qbx_core")
+    local phone = resourceState("lb-phone")
+    local screenshot = resourceState("screenshot-basic")
+    local overall = qbx == "PASS" and phone == "PASS" and screenshot == "PASS" and boothCount > 0
+
+    print(("[puribooth] selftest %s (qbx_core=%s, lb-phone=%s, screenshot-basic=%s, booths=%d)")
+        :format(overall and "PASS" or "FAIL", qbx, phone, screenshot, boothCount))
+
+    if screenshot ~= "PASS" then
+        print("[puribooth] screenshot-basic is required for automatic fixed-camera booth photos.")
+    end
+end, false)
+
+CreateThread(function()
+    Wait(1000)
+    local boothCount = 0
+    for _ in pairs(Config.Booths or {}) do boothCount = boothCount + 1 end
+    print(("[puribooth] v0.1.0 ready (booths=%d, price=$%d, shots=%d)")
+        :format(boothCount, tonumber(Config.Price) or 0, tonumber(Config.ShotCount) or 4))
+end)

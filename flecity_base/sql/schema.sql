@@ -127,3 +127,23 @@ CREATE TABLE IF NOT EXISTS flecity_base_ledger (
   CONSTRAINT fk_base_ledger_workspace FOREIGN KEY (workspace_id)
     REFERENCES flecity_base_workspaces(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS flecity_base_calculators (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  fields_json TEXT NOT NULL,
+  formula VARCHAR(512) NOT NULL,
+  result_label VARCHAR(64) NOT NULL DEFAULT '結果',
+  result_format VARCHAR(16) NOT NULL DEFAULT 'money',
+  result_unit VARCHAR(32) NULL,
+  rounding VARCHAR(16) NOT NULL DEFAULT 'floor',
+  created_by VARCHAR(64) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_base_calculator_workspace (workspace_id, updated_at),
+  CONSTRAINT fk_base_calculator_workspace FOREIGN KEY (workspace_id)
+    REFERENCES flecity_base_workspaces(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

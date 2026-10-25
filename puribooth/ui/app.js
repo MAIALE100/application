@@ -37,6 +37,7 @@
         future: [],
         selectedDecoration: null,
         draggingDecoration: false,
+        dragHistoryCaptured: false,
         dragOffset: { x: 0, y: 0 },
         theme: {
             backgroundPreset: 'pink',
@@ -548,6 +549,7 @@
         state.drawEnabled = false
         state.selectedDecoration = null
         state.draggingDecoration = false
+        state.dragHistoryCaptured = false
 
         if (!recordHistory) {
             state.history = []
@@ -739,8 +741,8 @@
 
         if (hit) {
             const item = selectedDecorationItem()
-            pushDecorationHistory()
             state.draggingDecoration = true
+            state.dragHistoryCaptured = false
             state.dragOffset = {
                 x: point.x - item.x,
                 y: point.y - item.y
@@ -766,6 +768,11 @@
         if (state.draggingDecoration && state.selectedDecoration) {
             const item = selectedDecorationItem()
             if (!item) return
+
+            if (!state.dragHistoryCaptured) {
+                pushDecorationHistory()
+                state.dragHistoryCaptured = true
+            }
 
             item.x = Math.max(
                 0,
@@ -912,6 +919,41 @@
         } finally {
             button.disabled = false
             button.textContent = 'PuriPhotoへ送る'
+        }
+    })
+
+    window.addEventListener('keydown', event => {
+        const tag = document.activeElement?.tagName
+        const typing =
+            tag === 'INPUT'
+            || tag === 'TEXTAREA'
+
+        if ((event.ctrlKey || event.metaKey) && !typing) {
+            const key = event.key.toLowerCase()
+
+            if (key === 'z' && !event.shiftKey) {
+                event.preventDefault()
+                undoDecoration()
+                return
+            }
+
+            if (key === 'y' || (key === 'z' && event.shiftKey)) {
+                event.preventDefault()
+                redoDecoration()
+                return
+            }
+        }
+
+        if (event.key === 'Delete' && !typing && state.selectedDecoration) {
+            event.preventDefault()
+            document.getElementById('deleteSelectedButton').click()
+        }
+
+        if (event.key === 'Escape' && !typing) {
+            state.selectedDecoration = null
+            state.draggingDecoration = false
+            updateHistoryButtons()
+            render()
         }
     })
 

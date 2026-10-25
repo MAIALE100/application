@@ -46,13 +46,11 @@ local function validateRuntimeConfig()
 
     if totalWeight <= 0 then return false, 'total product weight is zero' end
 
-    -- These values are used directly in arithmetic/comparisons later. Do not
-    -- accept numeric strings here: tonumber("12") would pass validation but
-    -- Config.MaxRawOre would still be a string at runtime and could crash a
-    -- player action. Operator config must use real Lua numbers.
-    local capacity = Config.MaxRawOre
-    if type(capacity) ~= 'number' or capacity < 1 or capacity % 1 ~= 0 or capacity > 1000 then
-        return false, 'invalid MaxRawOre (must be a numeric integer from 1 to 1000)'
+    -- Raw ore storage is intentionally unlimited. Only processing is batched
+    -- so one request cannot run an unbounded number of loot rolls.
+    local batchSize = Config.ProcessingBatchSize
+    if type(batchSize) ~= 'number' or batchSize < 1 or batchSize % 1 ~= 0 or batchSize > 1000 then
+        return false, 'invalid ProcessingBatchSize (must be a numeric integer from 1 to 1000)'
     end
 
     local cooldown = Config.NodeCooldownMs
@@ -297,7 +295,6 @@ local function publicState(session)
         return {
             active = false,
             rawOre = 0,
-            maxRawOre = Config.MaxRawOre,
             refined = emptyRefined(),
             refinedCount = 0,
             nodeCooldowns = {},
@@ -321,7 +318,6 @@ local function publicState(session)
     return {
         active = session.active == true,
         rawOre = tonumber(session.rawOre) or 0,
-        maxRawOre = Config.MaxRawOre,
         refined = refined,
         refinedCount = refinedCount(session),
         nodeCooldowns = cooldowns,
@@ -456,18 +452,12 @@ local function finishMining(src, session, action)
         return
     end
 
-    if session.rawOre >= Config.MaxRawOre then
-        notify(src, '原石が満載です。選鉱設備へ運んでください。')
-        return
-    end
-
     local yield = math.random(Config.RawYield.min, Config.RawYield.max)
-    yield = math.min(yield, Config.MaxRawOre - session.rawOre)
 
     session.rawOre = session.rawOre + yield
     session.nodeCooldowns[node.id] = nowMs() + Config.NodeCooldownMs
 
-    notify(src, ('原石を %d 個採掘しました。 [%d/%d]'):format(yield, session.rawOre, Config.MaxRawOre))
+    notify(src, ('原石を %d 個採掘しました。 所持: %d個'):format(yield, session.rawOre))
 end
 
 local function finishProcessing(src, session, action)
@@ -616,11 +606,6 @@ RegisterNetEvent('flecity_mining:server:beginMine', function(nodeId)
         return
     end
 
-    if session.rawOre >= Config.MaxRawOre then
-        notify(src, '原石が満載です。選鉱設備へ運んでください。')
-        return
-    end
-
     local node = findNode(nodeId)
     if not node or not isNear(src, node.coords) then
         return
@@ -665,7 +650,7 @@ RegisterNetEvent('flecity_mining:server:beginProcess', function()
         'process',
         Config.ProcessingDurationMs,
         Config.Processor.coords,
-        { amount = session.rawOre },
+        { amount = math.min(session.rawOre, Config.ProcessingBatchSize) },
         '選鉱中'
     )
 end)
@@ -840,19 +825,21 @@ local function economySnapshot()
     end
 
     local expectedPerRaw = totalWeight > 0 and (weightedValue / totalWeight) or 0
-    local expectedFullLoad = expectedPerRaw * math.max(0, tonumber(Config.MaxRawOre) or 0)
+    local batchSize = math.max(1, tonumber(Config.ProcessingBatchSize) or 1)
+    local expectedPerBatch = expectedPerRaw * batchSize
 
-    return totalWeight, expectedPerRaw, expectedFullLoad
+    return totalWeight, expectedPerRaw, expectedPerBatch
 end
 
 RegisterCommand('mining_economy', function(src)
-    local totalWeight, expectedPerRaw, expectedFullLoad = economySnapshot()
+    local totalWeight, expectedPerRaw, expectedPerBatch = economySnapshot()
 
     local lines = {
-        ('Mining economy | weight=%.2f | expected/raw=$%.1f | expected/full-load=$%.1f'):format(
+        ('Mining economy | weight=%.2f | expected/raw=$%.1f | processing-batch=%d | expected/batch=$%.1f'):format(
             totalWeight,
             expectedPerRaw,
-            expectedFullLoad
+            Config.ProcessingBatchSize,
+            expectedPerBatch
         )
     }
 

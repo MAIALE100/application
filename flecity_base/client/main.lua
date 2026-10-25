@@ -86,6 +86,7 @@ local callbackMap = {
     noteUpdate = 'flecity_base:noteUpdate',
     noteDelete = 'flecity_base:noteDelete',
     stockList = 'flecity_base:stockList',
+    stockHistory = 'flecity_base:stockHistory',
     stockCreate = 'flecity_base:stockCreate',
     stockAdjust = 'flecity_base:stockAdjust',
     stockConfigure = 'flecity_base:stockConfigure',

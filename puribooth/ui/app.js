@@ -162,6 +162,55 @@
             return
         }
 
+        if (name === 'mint') {
+            const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+            gradient.addColorStop(0, '#d8fff1')
+            gradient.addColorStop(.5, '#98e9d1')
+            gradient.addColorStop(1, '#d8f7ff')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+            return
+        }
+
+        if (name === 'lavender') {
+            const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+            gradient.addColorStop(0, '#f1ddff')
+            gradient.addColorStop(.48, '#c8b1ff')
+            gradient.addColorStop(1, '#ffdff5')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+            return
+        }
+
+        if (name === 'sky') {
+            const gradient = ctx2d.createLinearGradient(0, 0, width, height)
+            gradient.addColorStop(0, '#dff7ff')
+            gradient.addColorStop(.52, '#9bdcff')
+            gradient.addColorStop(1, '#f8fbff')
+            ctx2d.fillStyle = gradient
+            ctx2d.fillRect(0, 0, width, height)
+
+            ctx2d.fillStyle = 'rgba(255,255,255,.82)'
+            for (const [x, y, rx, ry] of [
+                [.18,.22,.10,.035],
+                [.48,.65,.12,.04],
+                [.78,.30,.09,.03]
+            ]) {
+                ctx2d.beginPath()
+                ctx2d.ellipse(
+                    width * x,
+                    height * y,
+                    width * rx,
+                    height * ry,
+                    0,
+                    0,
+                    Math.PI * 2
+                )
+                ctx2d.fill()
+            }
+            return
+        }
+
         if (name === 'hearts') {
             ctx2d.fillStyle = '#ffd7ea'
             ctx2d.fillRect(0, 0, width, height)

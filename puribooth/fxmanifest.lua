@@ -4,7 +4,7 @@ game "gta5"
 name "puribooth"
 author "Flecity"
 description "Street purikura booth integration for PuriPhoto"
-version "0.3.0"
+version "0.3.1"
 
 shared_script "config.lua"
 

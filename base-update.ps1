@@ -49,6 +49,21 @@ try {
         throw "Safety check failed: FlecityBaseFramework.GetJob must exist exactly once."
     }
 
+    $ServerMain = Join-Path $Source "server\main.lua"
+    if (-not (Test-Path -LiteralPath $ServerMain)) {
+        throw "Safety check failed: server/main.lua is missing."
+    }
+    $ServerMainText = Get-Content -LiteralPath $ServerMain -Raw
+    if (($ServerMainText | Select-String -SimpleMatch "local supportSessions = {}" -AllMatches).Matches.Count -ne 1) {
+        throw "Safety check failed: server/main.lua contains duplicated or missing support bootstrap."
+    }
+    if (($ServerMainText | Select-String -SimpleMatch "RegisterCommand('base_selftest'" -AllMatches).Matches.Count -ne 1) {
+        throw "Safety check failed: server/main.lua contains duplicated or missing selftest registration."
+    }
+    if (($ServerMainText | Select-String -SimpleMatch "AddEventHandler('playerDropped'" -AllMatches).Matches.Count -ne 1) {
+        throw "Safety check failed: server/main.lua contains duplicated or missing disconnect cleanup."
+    }
+
     $LuaCompiler = Get-Command luac5.4 -ErrorAction SilentlyContinue
     if (-not $LuaCompiler) { $LuaCompiler = Get-Command luac -ErrorAction SilentlyContinue }
     if ($LuaCompiler) {
@@ -57,6 +72,14 @@ try {
             & $LuaCompiler.Source -p $_.FullName
             if ($LASTEXITCODE -ne 0) { throw "Lua syntax check failed: $($_.FullName)" }
         }
+    }
+
+    $WebJs = Join-Path $Source "web\app.js"
+    $Node = Get-Command node -ErrorAction SilentlyContinue
+    if ($Node -and (Test-Path -LiteralPath $WebJs)) {
+        Write-Host "==> Checking JavaScript syntax"
+        & $Node.Source --check $WebJs
+        if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: web/app.js" }
     }
 
     $Css = Join-Path $Source "web\app.css"

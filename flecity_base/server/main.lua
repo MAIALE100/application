@@ -279,8 +279,11 @@ handlers.workspaceGet = function(source, data)
     local members = MySQL.query.await([[
         SELECT citizenid, display_name, role, joined_at
         FROM flecity_base_members WHERE workspace_id=?
-        ORDER BY role='owner' DESC, joined_at ASC
+        ORDER BY FIELD(role,'owner','manager','member'), joined_at ASC
     ]], {workspace.id}) or {}
+    if tonumber(workspace.global_access) == 1 then
+        auditAccess(ctx, 'workspace_open', workspace)
+    end
     return {ok=true, workspace=workspace, members=members}
 end
 
@@ -318,7 +321,7 @@ handlers.workspaceInvite = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     if tonumber(workspace.is_personal) == 1 then return {ok=false, error='PERSONAL_WORKSPACE'} end
 
@@ -396,15 +399,83 @@ handlers.workspaceRemoveMember = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+
     local target = clean(data.citizenid, 64)
     if target == '' or target == ctx.citizenid then return {ok=false, error='INVALID_MEMBER'} end
-    local changed = MySQL.update.await([[
-        DELETE FROM flecity_base_members
-        WHERE workspace_id=? AND citizenid=? AND role<>'owner'
+
+    local targetRow = MySQL.single.await([[
+        SELECT citizenid, role FROM flecity_base_members
+        WHERE workspace_id=? AND citizenid=? LIMIT 1
     ]], {workspace.id, target})
+    if not targetRow then return {ok=false, error='MEMBER_NOT_FOUND'} end
+    if targetRow.role == 'owner' then return {ok=false, error='CANNOT_REMOVE_OWNER'} end
+
+    if tonumber(workspace.global_access) ~= 1 and workspace.role == 'manager' and targetRow.role ~= 'member' then
+        return {ok=false, error='OWNER_REQUIRED'}
+    end
+
+    local changed = MySQL.update.await(
+        'DELETE FROM flecity_base_members WHERE workspace_id=? AND citizenid=? AND role<>\'owner\'',
+        {workspace.id, target}
+    )
     return {ok=(tonumber(changed) or 0) > 0}
+end
+
+handlers.workspaceSetRole = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    if tonumber(workspace.is_personal) == 1 then return {ok=false, error='PERSONAL_WORKSPACE'} end
+
+    local target = clean(data.citizenid, 64)
+    local role = clean(data.role, 16):lower()
+    if role ~= 'manager' and role ~= 'member' then return {ok=false, error='INVALID_ROLE'} end
+
+    local targetRow = MySQL.single.await([[
+        SELECT citizenid, role FROM flecity_base_members
+        WHERE workspace_id=? AND citizenid=? LIMIT 1
+    ]], {workspace.id, target})
+    if not targetRow then return {ok=false, error='MEMBER_NOT_FOUND'} end
+    if targetRow.role == 'owner' then return {ok=false, error='CANNOT_CHANGE_OWNER'} end
+
+    local changed = MySQL.update.await(
+        'UPDATE flecity_base_members SET role=? WHERE workspace_id=? AND citizenid=?',
+        {role, workspace.id, target}
+    )
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
+handlers.supportToggle = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    if not ctx.supportEligible then return {ok=false, error='SUPPORT_NOT_ALLOWED'} end
+
+    data = type(data) == 'table' and data or {}
+    local enabled = data.enabled == true
+    supportSessions[ctx.citizenid] = enabled
+
+    local auditCtx = sourceContext(source)
+    if not enabled then
+        auditCtx = auditCtx or ctx
+        auditCtx.globalMode = 'weazel_support'
+    end
+    auditAccess(auditCtx, enabled and 'support_on' or 'support_off', nil)
+
+    local updated = sourceContext(source)
+    return {
+        ok = true,
+        access = {
+            admin = updated and updated.isAdmin == true or false,
+            supportEligible = updated and updated.supportEligible == true or false,
+            supportActive = updated and updated.supportActive == true or false,
+            globalMode = updated and updated.globalMode or nil
+        },
+        workspaces = updated and listWorkspaces(updated) or {}
+    }
 end
 
 handlers.notesList = function(source, data)
@@ -426,7 +497,7 @@ handlers.noteCreate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local count = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_notes WHERE workspace_id=? AND deleted_at IS NULL', {workspace.id}) or 0)
     if count >= L.notesPerWorkspace then return {ok=false, error='NOTE_LIMIT'} end
@@ -447,7 +518,7 @@ handlers.noteUpdate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local title = clean(data.title, L.title)
     local body = clean(data.body, L.noteBody)
@@ -467,7 +538,7 @@ handlers.noteDelete = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local changed = MySQL.update.await([[
         UPDATE flecity_base_notes SET deleted_at=NOW()
@@ -525,7 +596,7 @@ handlers.stockCreate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local count = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_stock_items WHERE workspace_id=?', {workspace.id}) or 0)
     if count >= L.stockItemsPerWorkspace then return {ok=false, error='STOCK_LIMIT'} end
@@ -586,7 +657,7 @@ handlers.stockConfigure = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local name = clean(data.name, L.title)
     if name == '' then return {ok=false, error='NAME_REQUIRED'} end
@@ -635,7 +706,7 @@ handlers.taskCreate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local count = tonumber(MySQL.scalar.await("SELECT COUNT(*) FROM flecity_base_tasks WHERE workspace_id=? AND status<>'done'", {workspace.id}) or 0)
     if count >= L.tasksPerWorkspace then return {ok=false, error='TASK_LIMIT'} end
@@ -663,6 +734,29 @@ handlers.taskUpdate = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
+
+    local taskId = integer(data.id, 1)
+    local existing = MySQL.single.await([[
+        SELECT id, title, details, status, priority, assignee_citizenid, due_at
+        FROM flecity_base_tasks WHERE id=? AND workspace_id=? LIMIT 1
+    ]], {taskId, workspace.id})
+    if not existing then return {ok=false, error='TASK_NOT_FOUND'} end
+
+    if not hasManagerPower(workspace) then
+        if tostring(existing.assignee_citizenid or '') ~= ctx.citizenid then
+            return {ok=false, error='MANAGER_REQUIRED'}
+        end
+        local status = clean(data.status or existing.status, 16):lower()
+        if not validTaskStatus[status] then status = existing.status end
+        local completedAt = status == 'done' and os.date('%Y-%m-%d %H:%M:%S') or nil
+        local changed = MySQL.update.await([[
+            UPDATE flecity_base_tasks
+            SET status=?, completed_at=?, updated_at=NOW()
+            WHERE id=? AND workspace_id=?
+        ]], {status, completedAt, taskId, workspace.id})
+        return {ok=(tonumber(changed) or 0) > 0}
+    end
+
     local title = clean(data.title, L.title)
     if title == '' then return {ok=false, error='TITLE_REQUIRED'} end
     local status = clean(data.status or 'todo', 16):lower()
@@ -682,7 +776,7 @@ handlers.taskUpdate = function(source, data)
         WHERE id=? AND workspace_id=?
     ]], {
         title, clean(data.details, L.taskDetails), status, priority, checked, dueAt,
-        completedAt, integer(data.id, 1), workspace.id
+        completedAt, taskId, workspace.id
     })
     return {ok=(tonumber(changed) or 0) > 0}
 end
@@ -691,7 +785,7 @@ handlers.taskDelete = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local changed = MySQL.update.await('DELETE FROM flecity_base_tasks WHERE id=? AND workspace_id=?', {integer(data.id, 1), workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
@@ -809,7 +903,7 @@ handlers.calculatorCreate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
 
     local count = tonumber(MySQL.scalar.await(
@@ -836,7 +930,7 @@ handlers.calculatorUpdate = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
 
     local payload, payloadErr = normalizeCalculatorPayload(data)
@@ -859,7 +953,7 @@ handlers.calculatorDelete = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
 
     local changed = MySQL.update.await(
@@ -915,7 +1009,7 @@ handlers.moneyVoid = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
     local changed = MySQL.update.await([[
         UPDATE flecity_base_ledger SET voided_at=NOW(), voided_by=?
@@ -935,6 +1029,8 @@ local callbacks = {
     ['flecity_base:inviteDecline'] = handlers.inviteDecline,
     ['flecity_base:workspaceLeave'] = handlers.workspaceLeave,
     ['flecity_base:workspaceRemoveMember'] = handlers.workspaceRemoveMember,
+    ['flecity_base:workspaceSetRole'] = handlers.workspaceSetRole,
+    ['flecity_base:supportToggle'] = handlers.supportToggle,
     ['flecity_base:notesList'] = handlers.notesList,
     ['flecity_base:noteCreate'] = handlers.noteCreate,
     ['flecity_base:noteUpdate'] = handlers.noteUpdate,

@@ -8,17 +8,27 @@ const state = {
   notes: [],
   memoQuery: "",
   memoCategory: "all",
+  memoSort: "updated_desc",
+  memoLimit: 40,
   stock: [],
   stockRecent: [],
   stockFilter: "all",
   stockCategory: "all",
+  stockQuery: "",
+  stockSort: "name",
+  stockLimit: 50,
   tasks: [],
   taskFilter: "all",
+  taskQuery: "",
+  taskSort: "due",
+  taskLimit: 50,
   showCompleted: false,
   calculators: [],
   moneyQuery: "",
   moneyType: "all",
   moneyCategory: "all",
+  moneySort: "newest",
+  moneyLimit: 50,
   showVoidedMoney: false,
   money: { entries: [], summary: { income: 0, expense: 0, balance: 0 } }
 };
@@ -165,6 +175,24 @@ function personLabel(name,citizenid){
   const c=String(citizenid||"").trim();
   if(n&&c&&n!==c) return n+" ("+c+")";
   return n||c||"不明";
+}
+
+function dateMs(value){
+  const d=dateValue(value);
+  return d?d.getTime():0;
+}
+
+function textCompare(a,b){
+  return String(a||"").localeCompare(String(b||""),"ja",{numeric:true,sensitivity:"base"});
+}
+
+function listMeta(total,filtered,shown){
+  return `<div class="list-meta">表示 ${shown.toLocaleString("ja-JP")} / 該当 ${filtered.toLocaleString("ja-JP")} / 全体 ${total.toLocaleString("ja-JP")}</div>`;
+}
+
+function moreButton(id,shown,total){
+  if(shown>=total) return "";
+  return `<button id="${id}" class="secondary load-more" type="button">さらに表示（残り ${(total-shown).toLocaleString("ja-JP")}件）</button>`;
 }
 
 function modal(title, html, onSave, saveLabel="保存"){

@@ -304,6 +304,33 @@ handlers.workspaceRename = function(source, data)
     return {ok=(tonumber(changed) or 0) > 0, name=name}
 end
 
+handlers.workspaceSettings = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    if tonumber(workspace.is_personal) == 1 then return {ok=false, error='PERSONAL_WORKSPACE'} end
+
+    local name = clean(data.name, L.title)
+    if name == '' then return {ok=false, error='NAME_REQUIRED'} end
+
+    local icon = clean(data.icon or '📁', 32)
+    if icon == '' then icon = '📁' end
+
+    local workspaceType = clean(data.workspaceType or workspace.workspace_type or 'custom', 32):lower()
+    if workspaceType == 'personal' or not C.WorkspaceTemplates[workspaceType] then
+        workspaceType = 'custom'
+    end
+
+    local changed = MySQL.update.await([[
+        UPDATE flecity_base_workspaces
+        SET name=?, icon=?, workspace_type=?, template_key=?, updated_at=NOW()
+        WHERE id=?
+    ]], {name, icon, workspaceType, workspaceType, workspace.id})
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
 handlers.workspaceDelete = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -553,6 +580,20 @@ handlers.noteDelete = function(source, data)
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
+handlers.notePin = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    local changed = MySQL.update.await([[
+        UPDATE flecity_base_notes
+        SET pinned=?, updated_at=NOW()
+        WHERE id=? AND workspace_id=? AND deleted_at IS NULL
+    ]], {data.pinned == true and 1 or 0, integer(data.id, 1), workspace.id})
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
 handlers.stockList = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -676,6 +717,30 @@ handlers.stockConfigure = function(source, data)
         SET name=?, category=?, minimum_quantity=?, unit=?, updated_at=NOW()
         WHERE id=? AND workspace_id=?
     ]], {name, category, minimum, unit ~= '' and unit or '個', integer(data.id, 1), workspace.id})
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
+handlers.stockDelete = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local itemId = integer(data.id, 1)
+    local item = MySQL.single.await([[
+        SELECT id, name FROM flecity_base_stock_items
+        WHERE id=? AND workspace_id=? LIMIT 1
+    ]], {itemId, workspace.id})
+    if not item then return {ok=false, error='ITEM_NOT_FOUND'} end
+    if clean(data.confirmName, L.title) ~= tostring(item.name) then
+        return {ok=false, error='DELETE_CONFIRM_MISMATCH'}
+    end
+
+    local changed = MySQL.update.await(
+        'DELETE FROM flecity_base_stock_items WHERE id=? AND workspace_id=?',
+        {itemId, workspace.id}
+    )
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -1029,6 +1094,7 @@ local callbacks = {
     ['flecity_base:workspaceCreate'] = handlers.workspaceCreate,
     ['flecity_base:workspaceGet'] = handlers.workspaceGet,
     ['flecity_base:workspaceRename'] = handlers.workspaceRename,
+    ['flecity_base:workspaceSettings'] = handlers.workspaceSettings,
     ['flecity_base:workspaceDelete'] = handlers.workspaceDelete,
     ['flecity_base:workspaceInvite'] = handlers.workspaceInvite,
     ['flecity_base:inviteAccept'] = handlers.inviteAccept,
@@ -1041,11 +1107,13 @@ local callbacks = {
     ['flecity_base:noteCreate'] = handlers.noteCreate,
     ['flecity_base:noteUpdate'] = handlers.noteUpdate,
     ['flecity_base:noteDelete'] = handlers.noteDelete,
+    ['flecity_base:notePin'] = handlers.notePin,
     ['flecity_base:stockList'] = handlers.stockList,
     ['flecity_base:stockHistory'] = handlers.stockHistory,
     ['flecity_base:stockCreate'] = handlers.stockCreate,
     ['flecity_base:stockAdjust'] = handlers.stockAdjust,
     ['flecity_base:stockConfigure'] = handlers.stockConfigure,
+    ['flecity_base:stockDelete'] = handlers.stockDelete,
     ['flecity_base:tasksList'] = handlers.tasksList,
     ['flecity_base:taskCreate'] = handlers.taskCreate,
     ['flecity_base:taskUpdate'] = handlers.taskUpdate,

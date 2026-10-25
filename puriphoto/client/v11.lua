@@ -167,3 +167,63 @@ RegisterNUICallback("puriphotoSetPhotoSpotWaypoint", function(data, cb)
         ok = true
     })
 end)
+
+
+local pendingBoothImport = nil
+
+RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
+    if type(image) ~= "string" or #image < 100 then
+        return
+    end
+
+    metadata = type(metadata) == "table" and metadata or {}
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+
+    pendingBoothImport = {
+        image = image,
+        location = {
+            label = tostring(metadata.label or "Legion Square PURI"),
+            street = tostring(metadata.street or "Legion Square"),
+            zone = tostring(metadata.zone or ""),
+            x = coords.x,
+            y = coords.y,
+            z = coords.z
+        }
+    }
+
+    if GetResourceState("lb-phone") ~= "started" then
+        return
+    end
+
+    exports["lb-phone"]:OpenApp(Config.Identifier)
+
+    CreateThread(function()
+        Wait(500)
+        exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
+            event = "boothImportAvailable"
+        })
+        Wait(700)
+        exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
+            event = "boothImportAvailable"
+        })
+    end)
+end)
+
+RegisterNUICallback("puriphotoGetBoothImport", function(_, cb)
+    if not pendingBoothImport then
+        cb({
+            ok = false,
+            error = "no_pending_booth_import"
+        })
+        return
+    end
+
+    local payload = pendingBoothImport
+    pendingBoothImport = nil
+
+    cb({
+        ok = true,
+        import = payload
+    })
+end)

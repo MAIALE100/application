@@ -1,6 +1,6 @@
-# BASE operator guide
+# グループ帳 operator guide
 
-BASE is an independent LB Phone resource for Flecity.
+グループ帳 is an independent LB Phone resource for Flecity. The technical resource name is `flecity_base`.
 
 ## Runtime requirements
 

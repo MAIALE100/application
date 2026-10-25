@@ -350,32 +350,9 @@ function noteModal(note){
 function confirmNoteDelete(note){
   if(!note) return;
   modal("メモを削除",
-    `<article class="card"><div class="card-title">${esc(note.title)}</div><div class="muted">このメモを削除します。</div></article>`,
-    async ()=>{
-      await api("noteDelete",{workspaceId:selectedWorkspaceId(),id:Number(note.id)});
-      await loadTab();
-      return true;
-    });
-}
-
-function deleteNote(note){
-  if(!note) return;
-  modal("メモを削除",
     `<article class="card"><div class="card-title">${esc(note.title)}</div><div class="muted">このメモを削除します。削除後は一覧から表示されなくなります。</div></article>`,
     async ()=>{
       await api("noteDelete",{workspaceId:selectedWorkspaceId(),id:Number(note.id)});
-      await loadTab();
-      return true;
-    },
-    "削除");
-}
-
-function deleteTask(task){
-  if(!task) return;
-  modal("タスクを削除",
-    `<article class="card"><div class="card-title">${esc(task.title)}</div><div class="muted">このタスクを削除します。この操作は取り消せません。</div></article>`,
-    async ()=>{
-      await api("taskDelete",{workspaceId:selectedWorkspaceId(),id:Number(task.id)});
       await loadTab();
       return true;
     },
@@ -494,7 +471,8 @@ function confirmTaskDelete(task){
       await api("taskDelete",{workspaceId:selectedWorkspaceId(),id:Number(task.id)});
       await loadTab();
       return true;
-    });
+    },
+    "削除");
 }
 
 function taskDueMs(value){
@@ -639,6 +617,22 @@ function renderMoney(){
   $("#moneyTypeFilter").onchange=e=>{state.moneyType=e.target.value;renderMoney();};
   $("#moneyCategoryFilter").onchange=e=>{state.moneyCategory=e.target.value;renderMoney();};
   $("#toggleVoidedMoney").onclick=()=>{state.showVoidedMoney=!state.showVoidedMoney;renderMoney();};
+}
+
+function confirmMoneyVoid(entry){
+  if(!entry) return;
+  modal("会計記録を取消",
+    `<article class="card">
+      <div class="card-title">${entry.entry_type==="income"?"収入":"支出"} ${yen(entry.amount)}</div>
+      <div class="muted">${esc(entry.category||"other")} ・ ${esc(fmtDateTime(entry.created_at))}</div>
+      <div class="muted">取消後は残高計算から除外され、取消済み記録として残ります。</div>
+    </article>`,
+    async ()=>{
+      await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id:Number(entry.id)});
+      await loadTab();
+      return true;
+    },
+    "取消");
 }
 
 function newMoney(){
@@ -1125,7 +1119,7 @@ function bindContent(){
       else if(a==="task-delete") confirmTaskDelete(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="new-money") newMoney();
       else if(a==="money-calc") await moneyCalculator();
-      else if(a==="void-money"){await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
+      else if(a==="void-money") confirmMoneyVoid((state.money.entries||[]).find(x=>Number(x.id)===id));
       else if(a==="invite") inviteMember();
       else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}
       else if(a==="decline-invite"){await api("inviteDecline",{inviteId:id});await bootstrap(selectedWorkspaceId());}

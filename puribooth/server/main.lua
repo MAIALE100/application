@@ -425,8 +425,15 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         return
     end
 
-    if GetResourceState("lb-phone") ~= "started" or GetResourceState("qbx_core") ~= "started" then
-        notify(source, "error", "プリクラ台を利用できません。")
+    if GetResourceState("lb-phone") ~= "started"
+        or GetResourceState("qbx_core") ~= "started"
+        or GetResourceState("puriphoto") ~= "started" then
+
+        notify(
+            source,
+            "error",
+            "PuriPhoto連携が準備できていないため、現在は課金せず利用を停止しています。"
+        )
         return
     end
 

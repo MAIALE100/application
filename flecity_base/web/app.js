@@ -29,6 +29,7 @@ const errors = {
   INVITE_NOT_FOUND:"招待が見つからないか期限切れです。",
   PERSONAL_WORKSPACE:"MY SPACEではこの操作はできません。",
   OWNER_CANNOT_LEAVE:"オーナーはBASEから退出できません。",
+  DELETE_CONFIRM_MISMATCH:"確認用のBASE名が一致しません。",
   STOCK_CHANGED_RETRY:"在庫が同時に更新されました。もう一度操作してください。",
   INVALID_ASSIGNEE:"担当者がこのBASEのメンバーではありません。",
   BRIDGE_ERROR:"LB Phoneとの通信に失敗しました。",
@@ -325,12 +326,33 @@ function renderMembers(){
     ${state.members.map(m=>`<article class="card"><div class="row between"><div><div class="card-title">${esc(m.display_name)}</div><div class="muted">${esc(m.citizenid)}</div></div><span class="badge">${m.role==="owner"?"OWNER":"MEMBER"}</span></div>
       ${state.workspace.role==="owner"&&m.role!=="owner"?`<div class="actions"><button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button></div>`:""}
     </article>`).join("")}
+    ${Number(state.workspace.is_personal)!==1&&state.workspace.role==="owner"?'<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="rename-workspace">名前変更</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>':""}
     ${Number(state.workspace.is_personal)!==1&&state.workspace.role!=="owner"?'<button class="danger" data-action="leave-workspace">このBASEから退出</button>':""}`;
   bindContent();
 }
 
 function inviteMember(){
   modal("メンバーを招待",field("citizenid","CSN / citizenid"),async fd=>{await api("workspaceInvite",{workspaceId:selectedWorkspaceId(),citizenid:fd.get("citizenid")});status("招待を作成しました。");return true;});
+}
+
+function renameWorkspace(){
+  modal("BASE名を変更",field("name","BASE名",state.workspace.name),async fd=>{
+    await api("workspaceRename",{workspaceId:selectedWorkspaceId(),name:fd.get("name")});
+    await bootstrap(selectedWorkspaceId());
+    return true;
+  });
+}
+
+function deleteWorkspace(){
+  modal("BASEを削除",
+    `<div class="card"><div class="card-title">この操作は取り消せません</div><div class="muted">メモ・在庫履歴・タスク・会計・メンバー情報が削除されます。</div></div>`+
+    field("confirm","確認のためBASE名を入力"),
+    async fd=>{
+      await api("workspaceDelete",{workspaceId:selectedWorkspaceId(),confirmName:fd.get("confirm")});
+      state.workspace=null;
+      await bootstrap();
+      return true;
+    });
 }
 
 function newWorkspace(){
@@ -364,6 +386,8 @@ function bindContent(){
       else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}
       else if(a==="decline-invite"){await api("inviteDecline",{inviteId:id});await bootstrap(selectedWorkspaceId());}
       else if(a==="remove-member"){await api("workspaceRemoveMember",{workspaceId:selectedWorkspaceId(),citizenid:b.dataset.cid});await openWorkspace(selectedWorkspaceId());}
+      else if(a==="rename-workspace") renameWorkspace();
+      else if(a==="delete-workspace") deleteWorkspace();
       else if(a==="leave-workspace"){await api("workspaceLeave",{workspaceId:selectedWorkspaceId()});state.workspace=null;await bootstrap();}
     }catch{}
   });

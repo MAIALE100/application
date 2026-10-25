@@ -54,11 +54,15 @@ async function saveSettings(){
 }
 settingSound.onchange=saveSettings;settingMotion.onchange=saveSettings;
 let statusTimer=null;
+function clearStatus(){
+ clearTimeout(statusTimer);statusTimer=null;
+ statusEl.classList.add('hidden');statusEl.textContent='';
+}
 function status(text,type){
  if(appSuspended)return;
  clearTimeout(statusTimer);statusTimer=null;
  statusEl.classList.remove('hidden');statusEl.textContent=text;statusEl.className='status app-status '+(type||'');
- if(type==='good')statusTimer=setTimeout(()=>statusEl.classList.add('hidden'),1800);
+ if(type!=='error'&&type!=='warn')statusTimer=setTimeout(clearStatus,type==='good'?1800:2200);
 }
 function estimatedServerTick(){return performance.now()+serverOffsetMs;}
 function trianglePosition(elapsedMs,periodMs,phaseMs){
@@ -922,6 +926,7 @@ function renderRoom(room,timing){
  const incomingRevision=Number(room.revision);
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
+ clearStatus();
  currentRoom=room;ready=room.selfReady===true;roomPushEnabled=true;
  document.body.classList.add('party-room');
  document.body.classList.toggle('party-round',room.state!=='lobby');

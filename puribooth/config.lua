@@ -10,26 +10,40 @@ Config.ScreenshotQuality = 0.92
 Config.InteractDistance = 2.2
 Config.Debug = false
 
--- Prototype uses a stock arcade cabinet so the full flow can be tested without
--- streaming a custom model. Replace model/coords later with the final Puri booth.
-Config.Booths = {
-    legion = {
-        label = "Legion PURI",
-        model = "ch_prop_arcade_claw_01a",
-        coords = vector4(207.60, -919.66, 30.69, 229.95),
+-- Placement/removal is restricted to Qbox's admin ACE.
+Config.AdminAce = "group.admin"
+Config.AdminRemoveDistance = 6.0
 
-        -- People can freely stand inside this area. There is intentionally no
-        -- participant limit or invite list.
-        captureCenter = vector3(210.05, -921.72, 30.69),
-        captureSize = vector3(3.4, 2.6, 1.0),
+-- Temporary stock model. This can later be replaced with the final streamed
+-- Flecity PURI cabinet without changing the placement database.
+Config.DefaultModel = "ch_prop_arcade_claw_01a"
 
-        -- Keep the camera physically in front of the temporary cabinet. The
-        -- previous prototype placed it inside the claw machine, so its artwork
-        -- filled every captured frame.
-        camera = {
-            coords = vector3(208.58, -920.48, 31.78),
-            pointAt = vector3(210.05, -921.72, 31.18),
-            fov = 68.0
-        }
-    }
+-- Geometry is relative to the booth heading, so admins can place a booth
+-- anywhere and the capture zone/camera follow its rotation automatically.
+Config.Geometry = {
+    captureForward = 3.20,
+    captureRight = 0.0,
+    captureZ = 0.0,
+    captureSize = { x = 3.4, y = 2.6, z = 1.0 },
+
+    cameraForward = 1.28,
+    cameraRight = 0.0,
+    cameraZ = 1.09,
+
+    pointForward = 3.20,
+    pointRight = 0.0,
+    pointZ = 0.49,
+    fov = 68.0
+}
+
+-- One-time migration: if the booth database is empty, retain the current
+-- Legion prototype so an admin can remove it and place the first real location.
+Config.SeedLegacyBooth = true
+Config.LegacyBooth = {
+    label = "Legion PURI",
+    model = Config.DefaultModel,
+    x = 207.60,
+    y = -919.66,
+    z = 30.69,
+    heading = 229.95
 }

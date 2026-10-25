@@ -389,6 +389,8 @@ local function startDrillPresentation(ped, node)
         return false
     end
 
+    ClearPedTasksImmediately(ped)
+    SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
     SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
 
     local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
@@ -433,6 +435,13 @@ local function startDrillPresentation(ped, node)
             false, false, false
         )
         Wait(100)
+    end
+
+    if not IsEntityPlayingAnim(ped, animDict, 'drill_straight_idle', 3)
+        and not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+        DeleteEntity(prop)
+        SetModelAsNoLongerNeeded(model)
+        return false
     end
 
     activeMineProp = prop
@@ -517,6 +526,8 @@ local function runApprovedAction(data)
     local ped = PlayerPedId()
     local usedDrill = false
 
+    FreezeEntityPosition(ped, true)
+
     if actionType == 'mine' then
         local node = findNode(data.nodeId)
         usedDrill = startDrillPresentation(ped, node)
@@ -528,8 +539,6 @@ local function runApprovedAction(data)
         local scenario = scenarios[actionType]
         if scenario then TaskStartScenarioInPlace(ped, scenario, 0, true) end
     end
-
-    FreezeEntityPosition(ped, true)
 
     local started = GetGameTimer()
     local cancelled = false

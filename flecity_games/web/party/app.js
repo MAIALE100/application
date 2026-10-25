@@ -883,7 +883,7 @@ function renderRoom(room,timing){
      serverOffsetReady=true;
    }
  }
- entryEl.classList.add('hidden');roomEl.classList.remove('hidden');statusEl.classList.add('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
+ entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
    gameEl.value=room.selectedGame||'code_break';gameEl.disabled=!room.isHost;renderGameInfo(gameEl.value);

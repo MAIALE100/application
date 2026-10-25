@@ -10,6 +10,8 @@ $BoothSource = Join-Path $Root "puribooth"
 $PuriTarget = Join-Path $Resources "[lb-phone]\puriphoto"
 $BoothTarget = Join-Path $Resources "[lb-phone]\puribooth"
 $ServerCfg = Join-Path $ServerBase "server.cfg"
+$DuplicatePuriTarget = Join-Path $Resources "[weazel]\puriphoto"
+$DisabledDuplicates = Join-Path $ServerBase "_disabled_duplicates"
 
 function Invoke-Step([string]$Label, [scriptblock]$Action) {
     Write-Host ""
@@ -20,6 +22,23 @@ function Invoke-Step([string]$Label, [scriptblock]$Action) {
 if (-not (Test-Path -LiteralPath $PuriSource)) { throw "PuriPhoto source not found: $PuriSource" }
 if (-not (Test-Path -LiteralPath $BoothSource)) { throw "PuriBooth source not found: $BoothSource" }
 if (-not (Test-Path -LiteralPath $Resources)) { throw "Server resources folder not found: $Resources" }
+
+Invoke-Step "Removing duplicate PuriPhoto resource" {
+    if (Test-Path -LiteralPath $DuplicatePuriTarget) {
+        [System.IO.Directory]::CreateDirectory($DisabledDuplicates) | Out-Null
+
+        $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $backupTarget = Join-Path $DisabledDuplicates ("puriphoto-weazel-" + $stamp)
+
+        Move-Item -LiteralPath $DuplicatePuriTarget -Destination $backupTarget
+        Write-Host "Moved duplicate PuriPhoto outside resources:" -ForegroundColor Green
+        Write-Host "    $DuplicatePuriTarget"
+        Write-Host " -> $backupTarget"
+    }
+    else {
+        Write-Host "Duplicate [weazel] PuriPhoto: not present" -ForegroundColor Green
+    }
+}
 
 Invoke-Step "Checking Node.js" {
     $npm = Get-Command npm -ErrorAction SilentlyContinue

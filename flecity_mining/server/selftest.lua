@@ -44,15 +44,34 @@ local function runSelfTest()
     add(results, drillOk, 'drill visuals', drillOk and tostring(drill.model) or 'invalid')
 
     local interiorOk = true
+    local interiorDetail = 'none'
     if Config.MineInterior ~= nil then
         interiorOk = type(Config.MineInterior) == 'table'
         if interiorOk and Config.MineInterior.enabled == true then
-            interiorOk = type(Config.MineInterior.ipl) == 'string'
-                and Config.MineInterior.ipl ~= ''
-                and isVector(Config.MineInterior.anchor)
+            interiorOk = isVector(Config.MineInterior.anchor)
+                and type(Config.MineInterior.ipls) == 'table'
+                and #Config.MineInterior.ipls > 0
+            if interiorOk then
+                for _, ipl in ipairs(Config.MineInterior.ipls) do
+                    if type(ipl) ~= 'string' or ipl == '' then
+                        interiorOk = false
+                        break
+                    end
+                end
+            end
+            interiorDetail = ('ipls=%s'):format(type(Config.MineInterior.ipls) == 'table' and #Config.MineInterior.ipls or 0)
         end
     end
-    add(results, interiorOk, 'mine interior', type(Config.MineInterior) == 'table' and tostring(Config.MineInterior.ipl) or 'none')
+    add(results, interiorOk, 'mine interior', interiorDetail)
+
+    local access = Config.MineAccess
+    local accessOk = type(access) == 'table'
+        and type(access.outside) == 'vector4'
+        and type(access.inside) == 'vector4'
+        and type(access.interactDistance) == 'number'
+        and access.interactDistance > 0
+        and access.interactDistance <= 5.0
+    add(results, accessOk, 'mine access', accessOk and 'outside/inside OK' or 'invalid')
 
     local nodeIds = {}
     local nodeCoords = {}

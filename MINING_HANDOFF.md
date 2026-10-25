@@ -5,7 +5,7 @@
 - Repository: MAIALE100/application
 - Development branch: jobs/mining-dev
 - Resource: flecity_mining
-- Current version: 0.3.0-dev
+- Current version: 0.3.5-dev
 
 ## Product goal
 
@@ -27,7 +27,7 @@
 運営が触る設定をゲームロジックから分離済み:
 
 - `flecity_mining/config/economy.lua` - 鉱石確率・NPC買取価格・支払方法
-- `flecity_mining/config/gameplay.lua` - 作業時間・容量・採掘量・クールダウン
+- `flecity_mining/config/gameplay.lua` - 作業時間・採掘量・選鉱バッチ・クールダウン
 - `flecity_mining/config/locations.lua` - 全座標・ブリップ・マーカー
 - `flecity_mining/OPERATIONS.md` - 運営向け設定ガイド
 - `mining_economy` - 現在の確率/単価/期待値を表示
@@ -36,12 +36,12 @@
 ## Implemented
 
 - Qbox qbx_core dependency
-- Davis Quartz受付
+- Great Chaparral廃坑受付/入退場
 - 6 mining nodes
 - server-authoritative mining action
 - 8.5 sec mining duration validation
 - per-player node cooldown
-- raw ore capacity 12
+- raw ore storage unlimited; processing batched at 100 per action
 - 10 sec processing
 - weighted iron/copper/silver/gold output
 - 3 sec selling
@@ -50,7 +50,7 @@
 - action tokens
 - distance checks
 - action rate limiting
-- client freeze/scenario animation
+- Fleeca drill prop + verified/retried drill animation + sound/dust
 - resource-stop unfreeze safeguard
 - /mine_status
 - /mine_end
@@ -95,8 +95,8 @@ Do not add a mining level or permanent performance progression without explicit 
 ## v0.3 Cave presentation
 
 - 通常採掘場所をGreat Chaparral Abandoned Mineへ移行
-- 標準IPL `cs6_08_interior_cs6_08_mine_int` をrequest
-- 採掘nodeは `coords`（立ち位置）と `target`（壁面）を分離
+- `cs6_08`系IPL一式をrequestし、閉鎖木戸は安全な入退場transitionで回避
+- 採掘nodeは `coords`（立ち位置）だけ保持し、壁面は360°raycastで自動検出
 - Fleeca drill prop `hei_prop_heist_drill`
 - drilling animation `anim@heists@fleeca_bank@drilling`
 - drill sound + rock dust effect

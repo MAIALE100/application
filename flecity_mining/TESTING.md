@@ -459,3 +459,24 @@ v0.3.7で拘束は解消したが、ドリルpropを持ったまま見た目の�
 3. その後ドリル姿勢で約5秒維持される
 4. 5秒後にpropとanimationが消え、通常操作へ戻る
 5. 実採掘でも同じシーケンスが出る
+
+## v0.3.9 標準ジャックハンマーscenario
+
+Fleeca銀行用ドリルanimationは実機Pedでpropだけ表示され、身体が棒立ちになるため廃止。
+
+変更:
+
+- `WORLD_HUMAN_CONST_DRILL` を採掘モーションに採用
+- GTA V標準scenarioにPed animationと工具prop生成を任せる
+- 壁方向へheadingを合わせてからscenario開始
+- 採掘中にscenarioが止まった場合は自動再開
+- 終了/中断/resource stop時に `prop_tool_jackham` / `prop_tool_drill` をcleanup
+- `/mine_drilltest` も同じscenarioを約5秒再生
+
+確認:
+
+1. `/mine_drilltest` でジャックハンマー動作が始まる
+2. Pedが棒立ちではなく工具を上下させる
+3. 5秒後に工具propが地面へ残らない
+4. 実採掘でも同じscenarioが出る
+5. G中断・完了後に移動可能

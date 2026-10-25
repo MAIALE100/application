@@ -889,6 +889,36 @@ CreateThread(function()
     end
 end)
 
+RegisterCommand('mine_drilltest', function()
+    if Config.DevTools ~= true then return end
+    if busy then
+        notify('作業中はドリルテストできません。')
+        return
+    end
+
+    CreateThread(function()
+        busy = true
+        local ped = PlayerPedId()
+        local ok = startDrillPresentation(ped, {
+            id = -1,
+            coords = GetEntityCoords(ped),
+            label = 'ドリルテスト',
+        })
+
+        if ok then
+            notify('ドリルテスト開始: 約5秒間モーションを確認してください。')
+            Wait(5000)
+        else
+            notify('ドリルテスト失敗: animation/propの開始に失敗しました。')
+        end
+
+        stopDrillPresentation()
+        ClearPedTasks(ped)
+        FreezeEntityPosition(ped, false)
+        busy = false
+    end)
+end, false)
+
 RegisterCommand('mine_status', function()
     TriggerServerEvent('flecity_mining:server:requestState')
     Wait(100)

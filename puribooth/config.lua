@@ -17,12 +17,12 @@ Config.AllowFirstAdminClaim = true
 Config.AdminPlaceMaxDistance = 15.0
 
 Config.PlacementPreview = {
-    initialDistance = 2.0,
+    initialDistance = 2.8,
     moveStep = 0.035,
     rotateStep = 1.0,
     heightStep = 0.02,
     maxHorizontalOffset = 6.0,
-    alpha = 145
+    alpha = 125
 }
 
 -- Temporary stock model. This can later be replaced with the final streamed

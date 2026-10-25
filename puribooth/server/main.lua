@@ -232,7 +232,8 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
     if not ped or ped <= 0 then return end
 
     local playerCoords = GetEntityCoords(ped)
-    if #(playerCoords - vector3(x, y, z)) > 6.0 then
+    local maxPlaceDistance = tonumber(Config.AdminPlaceMaxDistance) or 7.0
+    if #(playerCoords - vector3(x, y, z)) > maxPlaceDistance then
         notify(source, "error", "自分の現在地付近にだけ設置できます。")
         return
     end

@@ -83,6 +83,7 @@ try {
     Write-Host ""
     Write-Host "BASE update complete."
     Write-Host "txAdmin console:"
+    Write-Host "    refresh"
     Write-Host "    restart flecity_base"
     Write-Host ""
 }

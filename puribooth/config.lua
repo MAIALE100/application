@@ -21,13 +21,15 @@ Config.Booths = {
         -- People can freely stand inside this area. There is intentionally no
         -- participant limit or invite list.
         captureCenter = vector3(210.05, -921.72, 30.69),
-        captureSize = vector3(4.6, 3.4, 1.0),
+        captureSize = vector3(3.4, 2.6, 1.0),
 
-        -- Fixed booth camera position. Fine tuning can be done in-game later.
+        -- Keep the camera physically in front of the temporary cabinet. The
+        -- previous prototype placed it inside the claw machine, so its artwork
+        -- filled every captured frame.
         camera = {
-            coords = vector3(207.92, -919.92, 32.05),
-            pointAt = vector3(210.05, -921.72, 31.20),
-            fov = 58.0
+            coords = vector3(208.58, -920.48, 31.78),
+            pointAt = vector3(210.05, -921.72, 31.18),
+            fov = 68.0
         }
     }
 }

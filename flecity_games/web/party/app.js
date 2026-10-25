@@ -128,7 +128,7 @@ function hideRoundGames(){
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
- document.body.classList.remove('party-room','party-round');
+ document.body.classList.remove('party-room','party-round','party-shogi');
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function submissionProgress(rs){
@@ -693,7 +693,8 @@ function setupMiniShogi(room){
  const current=room.players.find(p=>p.memberId===rs.currentMemberId);
  const checkText=rs.inCheck?' · 王手':'';
  miniShogiStatus.textContent=(rs.isCurrent?'あなたの手番':(rs.currentMemberId==='AI'?'AIの手番':(current?current.name+' の手番':'相手の手番')))+checkText;
- miniShogiMeta.textContent='あなたは '+(ownSide==='B'?'先手':'後手')+' · '+Number(rs.moves||0)+'手 · 持ち駒は盤下から打てます';
+ const aiLabel={easy:'やさしい',normal:'ふつう',hard:'つよい',oni:'鬼'}[String(rs.aiDifficulty||'hard')]||'つよい';
+ miniShogiMeta.textContent=(ownSide==='B'?'先手':'後手')+' · '+Number(rs.moves||0)+'手'+(rs.aiEnabled?' · AI '+aiLabel:'')+' · 持ち駒は下から打つ';
 }
 
 function deductionPhaseLoop(token){
@@ -873,6 +874,7 @@ function renderRoom(room,timing){
  currentRoom=room;ready=room.selfReady===true;roomPushEnabled=true;
  document.body.classList.add('party-room');
  document.body.classList.toggle('party-round',room.state!=='lobby');
+ document.body.classList.toggle('party-shogi',room.state!=='lobby'&&room.roundState&&room.roundState.gameId==='mini_shogi');
  if(Number.isFinite(Number(room.serverTick))){
    if(timing&&Number.isFinite(timing.started)&&Number.isFinite(timing.received)){
      const midpoint=(timing.started+timing.received)/2;

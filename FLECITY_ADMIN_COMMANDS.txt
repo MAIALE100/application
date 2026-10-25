@@ -1,0 +1,73 @@
+Flecity 管理・開発コマンド早見表
+================================
+更新日: 2026-10-26
+
+[PuriBooth / プリクラ台]
+
+初回だけ管理権限を取得
+/puribooth claimadmin
+
+プリクラ台を設置
+/puribooth place
+
+設置プレビュー中
+矢印キー        : 前後左右へ移動
+Q / E           : 回転
+PageUp/PageDown : 高さ調整
+Shift           : 高速調整
+C               : 撮影カメラ確認
+Enter           : 設置確定
+Backspace       : 設置キャンセル
+
+近くのプリクラ台を撤去
+/puribooth remove
+
+設置済み台数を確認
+/puribooth list
+
+[利用者の撮影操作]
+
+背景・床選択画面
+「撮影をやめる」 : 撮影開始前キャンセル（返金）
+
+背景選択後
+E               : カメラ確認へ
+Backspace       : 撮影中止（撮影開始前なら返金）
+
+カメラ確認
+E               : 撮影開始
+Backspace       : 一つ前へ戻る
+
+2〜4枚目の POSE READY
+E               : 次のカウントダウン開始
+Backspace       : 残りの撮影を中止（撮影開始後なので返金なし）
+
+[txAdmin / サーバーコンソール]
+
+PuriBoothだけ再起動
+restart puribooth
+
+PuriPhotoだけ再起動
+restart puriphoto
+
+リソース再読込
+refresh
+
+PuriBooth自己診断
+puribooth_selftest
+
+[開発ビルド反映]
+
+PowerShell:
+git -C D:\FiveM_Dev\_puriphoto_booth fetch origin puriphoto/booth-dev
+git -C D:\FiveM_Dev\_puriphoto_booth reset --hard origin/puriphoto/booth-dev
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\FiveM_Dev\_puriphoto_booth\puribooth-update.ps1 -BoothOnly
+
+その後 txAdmin:
+restart puribooth
+
+[注意]
+・通常はサーバー全体を再起動しない。
+・PuriBooth変更は原則 restart puribooth だけで反映する。
+・PuriPhoto側を変更した時だけ restart puriphoto も実行する。
+・[qbx] や [lb-phone] をPowerShellから扱う場合は -LiteralPath を使う。

@@ -8,6 +8,7 @@ const state = {
   notes: [],
   stock: [],
   tasks: [],
+  calculators: [],
   money: { entries: [], summary: { income: 0, expense: 0, balance: 0 } }
 };
 
@@ -32,6 +33,11 @@ const errors = {
   DELETE_CONFIRM_MISMATCH:"確認用のBASE名が一致しません。",
   STOCK_CHANGED_RETRY:"在庫が同時に更新されました。もう一度操作してください。",
   INVALID_ASSIGNEE:"担当者がこのBASEのメンバーではありません。",
+  CALCULATOR_LIMIT:"作成できる計算方法の上限です。",
+  CALCULATOR_FIELDS_REQUIRED:"入力項目を1つ以上作ってください。",
+  FORMULA_REQUIRED:"計算式を入力してください。",
+  INVALID_FORMULA:"計算式を確認してください。",
+  INVALID_FORMULA_VARIABLE:"計算式に存在しない入力項目が使われています。",
   BRIDGE_ERROR:"LB Phoneとの通信に失敗しました。",
   SERVER_ERROR:"サーバー処理でエラーが発生しました。"
 };
@@ -318,58 +324,312 @@ function newMoney(){
     async fd=>{await api("moneyAdd",{workspaceId:selectedWorkspaceId(),entryType:fd.get("type"),amount:Number(fd.get("amount")),category:fd.get("category"),note:fd.get("note")});await loadTab();return true;});
 }
 
-function moneyCalculator(){
-  viewModal("給与・分配計算",`
-    <article class="card">
-      <div class="card-title">給与計算</div>
-      <div class="split">
-        <div class="field"><label>勤務時間</label><input id="payHours" type="number" min="0" value="0"></div>
-        <div class="field"><label>勤務分</label><input id="payMinutes" type="number" min="0" max="59" value="0"></div>
-      </div>
-      <div class="split">
-        <div class="field"><label>時給</label><input id="payRate" type="number" min="0" value="0"></div>
-        <div class="field"><label>ボーナス</label><input id="payBonus" type="number" min="0" value="0"></div>
-      </div>
-      <button id="calcPayroll" class="primary" type="button">給与を計算</button>
-      <div id="payResult" class="card" style="margin-top:.7rem;display:none"></div>
-    </article>
+function tokenizeFormula(expression){
+  const tokens=[];
+  let i=0;
+  const src=String(expression||"");
+  while(i<src.length){
+    const ch=src[i];
+    if(/\s/.test(ch)){i++;continue;}
+    if(/[0-9.]/.test(ch)){
+      const m=src.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+      if(!m) throw new Error("数値の書き方を確認してください。");
+      const value=Number(m[0]);
+      if(!Number.isFinite(value)) throw new Error("数値が大きすぎます。");
+      tokens.push({type:"number",value});
+      i+=m[0].length;
+      continue;
+    }
+    if(/[A-Za-z_]/.test(ch)){
+      const m=src.slice(i).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+      tokens.push({type:"variable",value:m[0]});
+      i+=m[0].length;
+      continue;
+    }
+    if("+-*/%()".includes(ch)){
+      tokens.push({type:ch,value:ch});
+      i++;
+      continue;
+    }
+    throw new Error("使えない記号があります。");
+  }
+  return tokens;
+}
 
+function evaluateFormula(expression,values){
+  const tokens=tokenizeFormula(expression);
+  let index=0;
+  const peek=()=>tokens[index];
+  const take=()=>tokens[index++];
+
+  function primary(){
+    const token=peek();
+    if(!token) throw new Error("計算式が途中で終わっています。");
+    if(token.type==="number"){take();return token.value;}
+    if(token.type==="variable"){
+      take();
+      if(!(token.value in values)) throw new Error(token.value+" の値がありません。");
+      return Number(values[token.value]||0);
+    }
+    if(token.type==="("){
+      take();
+      const value=expressionRule();
+      if(!peek()||peek().type!==")") throw new Error("カッコが閉じられていません。");
+      take();
+      return value;
+    }
+    throw new Error("計算式を確認してください。");
+  }
+
+  function unary(){
+    const token=peek();
+    if(token?.type==="+"){take();return unary();}
+    if(token?.type==="-"){take();return -unary();}
+    return primary();
+  }
+
+  function term(){
+    let value=unary();
+    while(peek()&&["*","/","%"].includes(peek().type)){
+      const op=take().type;
+      const right=unary();
+      if((op==="/"||op==="%")&&right===0) throw new Error("0では割れません。");
+      if(op==="*") value*=right;
+      if(op==="/") value/=right;
+      if(op==="%") value%=right;
+    }
+    return value;
+  }
+
+  function expressionRule(){
+    let value=term();
+    while(peek()&&["+", "-"].includes(peek().type)){
+      const op=take().type;
+      const right=term();
+      value=op==="+"?value+right:value-right;
+    }
+    return value;
+  }
+
+  const result=expressionRule();
+  if(index!==tokens.length) throw new Error("計算式の並びを確認してください。");
+  if(!Number.isFinite(result)) throw new Error("計算結果を出せませんでした。");
+  return result;
+}
+
+function roundedResult(value,mode){
+  if(mode==="floor") return Math.floor(value);
+  if(mode==="ceil") return Math.ceil(value);
+  if(mode==="round") return Math.round(value);
+  return value;
+}
+
+function calculatorFormulaLabel(calc){
+  let text=String(calc.formula||"");
+  [...(calc.fields||[])].reverse().forEach(f=>{
+    text=text.replace(new RegExp("\\b"+f.key+"\\b","g"),f.label);
+  });
+  return text.replace(/\*/g," × ").replace(/\//g," ÷ ");
+}
+
+function formatCalculatorResult(calc,value){
+  const rounded=roundedResult(value,calc.rounding);
+  if(calc.result_format==="money") return yen(rounded);
+  const shown=Number(rounded).toLocaleString("ja-JP",{maximumFractionDigits:4});
+  return shown+(calc.result_unit?" "+calc.result_unit:"");
+}
+
+async function moneyCalculator(){
+  const d=await api("calculatorsList",{workspaceId:selectedWorkspaceId()});
+  state.calculators=d.calculators||[];
+  const canEdit=state.workspace.role==="owner";
+  viewModal("計算方法",`
+    <div class="row between">
+      <div><div class="card-title">カスタム計算</div><div class="muted">BASEごとに計算式を保存できます。</div></div>
+      ${canEdit?'<button id="newCalculator" class="primary" type="button">＋ 作成</button>':""}
+    </div>
+    <div style="display:grid;gap:.7rem;margin-top:.8rem">
+      ${state.calculators.length?state.calculators.map(calc=>`
+        <article class="card">
+          <div class="card-head">
+            <div><div class="card-title">${esc(calc.name)}</div><div class="muted">${esc(calculatorFormulaLabel(calc))}</div></div>
+            <span class="badge">${(calc.fields||[]).length}項目</span>
+          </div>
+          <div class="actions">
+            <button class="primary use-calculator" data-id="${calc.id}" type="button">使う</button>
+            ${canEdit?`<button class="secondary small edit-calculator" data-id="${calc.id}" type="button">編集</button><button class="danger small delete-calculator" data-id="${calc.id}" type="button">削除</button>`:""}
+          </div>
+        </article>`).join(""):'<div class="empty">計算方法はまだありません。<br>OWNERが自由に作成できます。</div>'}
+    </div>
+  `);
+
+  $("#newCalculator")?.addEventListener("click",()=>calculatorEditor());
+  document.querySelectorAll(".use-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorUse(calc);
+  });
+  document.querySelectorAll(".edit-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorEditor(calc);
+  });
+  document.querySelectorAll(".delete-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorDelete(calc);
+  });
+}
+
+function calculatorEditor(calc){
+  const existing=(calc?.fields||[]).map(f=>({
+    label:String(f.label||""),
+    unit:String(f.unit||""),
+    defaultValue:Number(f.defaultValue||0)
+  }));
+  if(!existing.length) existing.push({label:"項目1",unit:"",defaultValue:0},{label:"項目2",unit:"",defaultValue:0});
+  const count=Math.min(8,Math.max(1,existing.length));
+
+  const countOptions=Array.from({length:8},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===count?"selected":""}>${n}</option>`).join("");
+  modal(calc?"計算方法を編集":"計算方法を作成",`
+    ${field("name","計算方法の名前",calc?.name||"")}
+    <div class="split">
+      <div class="field"><label>入力項目数</label><select name="fieldCount" id="calcFieldCount">${countOptions}</select></div>
+      <div class="field"><label>結果の表示</label><select name="resultFormat" id="calcResultFormat">
+        <option value="money" ${!calc||calc.result_format==="money"?"selected":""}>金額 ($)</option>
+        <option value="number" ${calc?.result_format==="number"?"selected":""}>数値</option>
+      </select></div>
+    </div>
+    <div id="calcFields"></div>
+    ${field("resultLabel","結果の名前",calc?.result_label||"結果")}
+    <div id="calcResultUnitWrap">${field("resultUnit","結果の単位",calc?.result_unit||"")}</div>
+    <div class="field"><label>端数処理</label><select name="rounding">
+      <option value="floor" ${!calc||calc.rounding==="floor"?"selected":""}>切り捨て</option>
+      <option value="round" ${calc?.rounding==="round"?"selected":""}>四捨五入</option>
+      <option value="ceil" ${calc?.rounding==="ceil"?"selected":""}>切り上げ</option>
+      <option value="none" ${calc?.rounding==="none"?"selected":""}>処理しない</option>
+    </select></div>
+    <div class="field">
+      <label>計算式</label>
+      <input id="calcFormula" name="formula" value="${esc(calc?.formula||"v1 * v2")}" autocomplete="off">
+      <div class="muted">入力項目は v1、v2…で表します。例: v1 * v2 + v3</div>
+    </div>
+    <div id="calcTokens" class="actions"></div>
+  `,async fd=>{
+    const fieldCount=Math.max(1,Math.min(8,Number(fd.get("fieldCount")||1)));
+    const fields=[];
+    for(let i=1;i<=fieldCount;i++){
+      fields.push({
+        label:String(fd.get("fieldLabel"+i)||"").trim(),
+        unit:String(fd.get("fieldUnit"+i)||"").trim(),
+        defaultValue:Number(fd.get("fieldDefault"+i)||0)
+      });
+    }
+    const payload={
+      workspaceId:selectedWorkspaceId(),
+      name:fd.get("name"),
+      fields,
+      formula:fd.get("formula"),
+      resultLabel:fd.get("resultLabel"),
+      resultFormat:fd.get("resultFormat"),
+      resultUnit:fd.get("resultUnit"),
+      rounding:fd.get("rounding")
+    };
+    if(calc){
+      payload.id=Number(calc.id);
+      await api("calculatorUpdate",payload);
+    }else{
+      await api("calculatorCreate",payload);
+    }
+    setTimeout(()=>moneyCalculator().catch(()=>{}),0);
+    return true;
+  });
+
+  function currentFields(){
+    const rows=[];
+    const current=Math.max(1,Math.min(8,Number($("#calcFieldCount")?.value||count)));
+    for(let i=1;i<=current;i++){
+      rows.push({
+        label:document.querySelector(`[name="fieldLabel${i}"]`)?.value||existing[i-1]?.label||("項目"+i),
+        unit:document.querySelector(`[name="fieldUnit${i}"]`)?.value||existing[i-1]?.unit||"",
+        defaultValue:document.querySelector(`[name="fieldDefault${i}"]`)?.value??existing[i-1]?.defaultValue??0
+      });
+    }
+    return rows;
+  }
+
+  function renderFields(){
+    const n=Math.max(1,Math.min(8,Number($("#calcFieldCount").value||1)));
+    const values=currentFields();
+    $("#calcFields").innerHTML=Array.from({length:n},(_,idx)=>{
+      const i=idx+1, f=values[idx]||existing[idx]||{label:"項目"+i,unit:"",defaultValue:0};
+      return `<article class="card">
+        <div class="row between"><strong>v${i}</strong><span class="badge">入力${i}</span></div>
+        ${field("fieldLabel"+i,"項目名",f.label)}
+        <div class="split">${field("fieldUnit"+i,"単位",f.unit)}${field("fieldDefault"+i,"初期値",f.defaultValue,"number","step=\"any\"")}</div>
+      </article>`;
+    }).join("");
+    $("#calcTokens").innerHTML=[
+      ...Array.from({length:n},(_,idx)=>({label:"v"+(idx+1),value:"v"+(idx+1)})),
+      {label:"＋",value:" + "},{label:"−",value:" - "},{label:"×",value:" * "},{label:"÷",value:" / "},
+      {label:"%",value:" % "},{label:"(",value:"("},{label:")",value:")"}
+    ].map(t=>`<button type="button" class="small calc-token" data-token="${esc(t.value)}">${esc(t.label)}</button>`).join("");
+    document.querySelectorAll(".calc-token").forEach(b=>b.onclick=()=>{
+      const input=$("#calcFormula");
+      const token=b.dataset.token||"";
+      const start=input.selectionStart??input.value.length;
+      const end=input.selectionEnd??input.value.length;
+      input.value=input.value.slice(0,start)+token+input.value.slice(end);
+      input.focus();
+      const pos=start+token.length;
+      input.setSelectionRange(pos,pos);
+    });
+  }
+
+  $("#calcFieldCount").onchange=renderFields;
+  $("#calcResultFormat").onchange=()=>{
+    $("#calcResultUnitWrap").style.display=$("#calcResultFormat").value==="number"?"":"none";
+  };
+  renderFields();
+  $("#calcResultFormat").onchange();
+}
+
+function calculatorUse(calc){
+  const fields=calc.fields||[];
+  viewModal(calc.name,`
     <article class="card">
-      <div class="card-title">分配計算</div>
-      <div class="split">
-        <div class="field"><label>分配総額</label><input id="splitTotal" type="number" min="0" value="0"></div>
-        <div class="field"><label>人数</label><input id="splitPeople" type="number" min="1" value="${Math.max(1,state.members.length)}"></div>
-      </div>
-      <button id="calcSplit" class="primary" type="button">分配額を計算</button>
-      <div id="splitResult" class="card" style="margin-top:.7rem;display:none"></div>
+      <div class="muted">${esc(calculatorFormulaLabel(calc))}</div>
+      ${fields.map((f,i)=>`
+        <div class="field">
+          <label>${esc(f.label)}${f.unit?" ("+esc(f.unit)+")":""}</label>
+          <input class="calc-value" data-key="${esc(f.key||("v"+(i+1)))}" type="number" step="any" value="${esc(f.defaultValue??0)}">
+        </div>`).join("")}
+      <button id="runCalculator" class="primary" type="button">計算する</button>
+      <div id="calculatorResult" class="card" style="margin-top:.7rem;display:none"></div>
     </article>
   `);
 
-  $("#calcPayroll").onclick=()=>{
-    const hours=Math.max(0,Number($("#payHours").value||0));
-    const minutes=Math.min(59,Math.max(0,Number($("#payMinutes").value||0)));
-    const rate=Math.max(0,Number($("#payRate").value||0));
-    const bonus=Math.max(0,Number($("#payBonus").value||0));
-    const base=Math.floor(rate*(hours+(minutes/60)));
-    const total=base+Math.floor(bonus);
-    const el=$("#payResult");
-    el.style.display="";
-    el.innerHTML=`<div class="row between"><span>基本給</span><strong>${yen(base)}</strong></div>
-      <div class="row between"><span>ボーナス</span><strong>${yen(Math.floor(bonus))}</strong></div>
-      <div class="row between"><span>支給額</span><strong>${yen(total)}</strong></div>`;
+  $("#runCalculator").onclick=()=>{
+    try{
+      const values={};
+      document.querySelectorAll(".calc-value").forEach(input=>values[input.dataset.key]=Number(input.value||0));
+      const raw=evaluateFormula(calc.formula,values);
+      const result=roundedResult(raw,calc.rounding);
+      const el=$("#calculatorResult");
+      el.style.display="";
+      el.innerHTML=`<div class="muted">${esc(calc.result_label||"結果")}</div><div class="stock-count">${esc(formatCalculatorResult(calc,result))}</div>`;
+      status("");
+    }catch(e){
+      status(e.message||"計算できませんでした。",true);
+    }
   };
+}
 
-  $("#calcSplit").onclick=()=>{
-    const total=Math.max(0,Math.floor(Number($("#splitTotal").value||0)));
-    const people=Math.max(1,Math.floor(Number($("#splitPeople").value||1)));
-    const each=Math.floor(total/people);
-    const remainder=total-(each*people);
-    const el=$("#splitResult");
-    el.style.display="";
-    el.innerHTML=`<div class="row between"><span>1人あたり</span><strong>${yen(each)}</strong></div>
-      <div class="row between"><span>人数</span><strong>${people.toLocaleString("ja-JP")}人</strong></div>
-      <div class="row between"><span>端数</span><strong>${yen(remainder)}</strong></div>`;
-  };
+function calculatorDelete(calc){
+  modal("計算方法を削除",
+    `<article class="card"><div class="card-title">${esc(calc.name)}</div><div class="muted">この計算方法を削除します。会計記録そのものには影響しません。</div></article>`,
+    async ()=>{
+      await api("calculatorDelete",{workspaceId:selectedWorkspaceId(),id:Number(calc.id)});
+      setTimeout(()=>moneyCalculator().catch(()=>{}),0);
+      return true;
+    });
 }
 
 function renderMembers(){
@@ -435,7 +695,7 @@ function bindContent(){
       else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="task-delete"){await api("taskDelete",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
       else if(a==="new-money") newMoney();
-      else if(a==="money-calc") moneyCalculator();
+      else if(a==="money-calc") await moneyCalculator();
       else if(a==="void-money"){await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
       else if(a==="invite") inviteMember();
       else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}

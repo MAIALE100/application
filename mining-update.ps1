@@ -6,8 +6,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Branch = 'jobs/mining-dev'
+
 $Source = Join-Path $RepoRoot 'flecity_mining'
 $Destination = Join-Path (Join-Path $ServerBase 'resources') 'flecity_mining'
+
+$BridgeSource = Join-Path $RepoRoot 'flecity_mining_devbridge'
+$BridgeDestination = Join-Path (Join-Path $ServerBase 'resources') 'flecity_mining_devbridge'
+
 $ServerCfg = Join-Path $ServerBase 'server.cfg'
 
 function Step([string]$message) {
@@ -19,7 +24,7 @@ function Copy-Resource {
     param([string]$From,[string]$To)
 
     if (-not (Test-Path $From)) {
-        throw "Mining source not found: $From"
+        throw "Resource source not found: $From"
     }
 
     if (Test-Path $To) {
@@ -28,6 +33,21 @@ function Copy-Resource {
 
     New-Item -ItemType Directory -Force -Path $To | Out-Null
     Copy-Item (Join-Path $From '*') $To -Recurse -Force
+}
+
+function Ensure-ServerCfgLine {
+    param([string]$CfgPath,[string]$ResourceName)
+
+    if (-not (Test-Path $CfgPath)) {
+        return
+    }
+
+    $cfg = Get-Content $CfgPath -Raw
+    $pattern = '(?m)^\s*ensure\s+' + [regex]::Escape($ResourceName) + '\s*$'
+    if ($cfg -notmatch $pattern) {
+        Add-Content -Path $CfgPath -Value ("\r\nensure " + $ResourceName)
+        Write-Host ("Added ensure {0} to server.cfg." -f $ResourceName) -ForegroundColor Green
+    }
 }
 
 try {
@@ -63,7 +83,9 @@ try {
         (Join-Path $Source 'config\locations.lua'),
         (Join-Path $Source 'client\main.lua'),
         (Join-Path $Source 'server\main.lua'),
-        (Join-Path $Source 'server\selftest.lua')
+        (Join-Path $Source 'server\selftest.lua'),
+        (Join-Path $BridgeSource 'fxmanifest.lua'),
+        (Join-Path $BridgeSource 'server\main.lua')
     )
 
     foreach ($file in $required) {
@@ -92,28 +114,29 @@ try {
     Step 'Deploying flecity_mining'
     Copy-Resource -From $Source -To $Destination
 
+    Step 'Deploying DEV reload bridge'
+    Copy-Resource -From $BridgeSource -To $BridgeDestination
+
     if (Test-Path $ServerCfg) {
-        $cfg = Get-Content $ServerCfg -Raw
-        if ($cfg -notmatch '(?m)^\s*ensure\s+flecity_mining\s*$') {
-            Add-Content -Path $ServerCfg -Value "`r`nensure flecity_mining"
-            Write-Host 'Added ensure flecity_mining to server.cfg.' -ForegroundColor Green
-        }
+        Ensure-ServerCfgLine -CfgPath $ServerCfg -ResourceName 'flecity_mining_devbridge'
+        Ensure-ServerCfgLine -CfgPath $ServerCfg -ResourceName 'flecity_mining'
     }
     else {
         Write-Host "server.cfg was not found at $ServerCfg; deployment still completed." -ForegroundColor Yellow
     }
 
     Step 'Deployment complete'
-    Write-Host "Resource: $Destination" -ForegroundColor Green
+    Write-Host "Mining resource: $Destination" -ForegroundColor Green
+    Write-Host "DEV bridge:      $BridgeDestination" -ForegroundColor Green
     Write-Host ''
-    Write-Host 'For the currently running server, run this once in txAdmin console:' -ForegroundColor Yellow
-    Write-Host '    ensure flecity_mining' -ForegroundColor White
+    Write-Host 'Recommended for normal testing:' -ForegroundColor Yellow
+    Write-Host '    mining-test.cmd' -ForegroundColor White
     Write-Host ''
-    Write-Host 'Then verify:' -ForegroundColor Yellow
-    Write-Host '    mining_selftest' -ForegroundColor White
-    Write-Host '    mining_healthcheck' -ForegroundColor White
-    Write-Host '    mining_configcheck' -ForegroundColor White
-    Write-Host '    mining_economy' -ForegroundColor White
+    Write-Host 'First-time bridge bootstrap on an already-running server only:' -ForegroundColor Yellow
+    Write-Host '    refresh' -ForegroundColor White
+    Write-Host '    ensure flecity_mining_devbridge' -ForegroundColor White
+    Write-Host ''
+    Write-Host 'After that, mining-test.cmd can deploy, restart, and run diagnostics automatically.' -ForegroundColor Green
 }
 catch {
     Write-Host ''

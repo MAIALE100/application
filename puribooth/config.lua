@@ -3,6 +3,7 @@ Config = {}
 Config.Price = 1000
 Config.PaymentMethods = { "cash", "bank" }
 Config.SessionTimeoutSeconds = 180
+Config.CaptureTimeoutSeconds = 600
 Config.CountdownSeconds = 3
 Config.ShotCount = 4
 Config.ShotIntervalMs = 1800

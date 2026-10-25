@@ -5,7 +5,7 @@
 - Repository: MAIALE100/application
 - Development branch: jobs/mining-dev
 - Resource: flecity_mining
-- Current version: 0.3.5-dev
+- Current version: 0.3.6-dev
 
 ## Product goal
 

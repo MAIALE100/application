@@ -129,6 +129,6 @@ Write-Host "    restart puribooth"
 Write-Host "    puribooth_selftest"
 Write-Host ""
 Write-Host "Admin placement commands:" -ForegroundColor Yellow
-Write-Host "    /puribooth place   # place at your current position; your heading becomes the shooting direction"
+Write-Host "    /puribooth claimadmin # first player only; bootstrap PuriBooth admin"`nWrite-Host "    /puribooth place   # place at your current position; your heading becomes the shooting direction"
 Write-Host "    /puribooth remove  # remove the nearest booth"
 Write-Host "    /puribooth list    # show booth count"

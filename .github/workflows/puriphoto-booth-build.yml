@@ -4,31 +4,19 @@ on:
   push:
     branches:
       - puriphoto/booth-dev
-    paths:
-      - "puriphoto/ui/**"
-      - "puribooth/**"
-      - ".github/workflows/puriphoto-booth-build.yml"
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: puriphoto/booth-dev
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: puriphoto/ui/package-lock.json
 
       - name: Install PuriPhoto UI dependencies
         working-directory: puriphoto/ui
@@ -40,16 +28,3 @@ jobs:
 
       - name: Validate booth JavaScript
         run: node --check puribooth/ui/app.js
-
-      - name: Commit built PuriPhoto UI
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add puriphoto/ui/dist
-          if git diff --cached --quiet; then
-            echo "dist already current"
-            exit 0
-          fi
-          git commit -m "build(puriphoto): refresh booth UI [skip ci]"
-          git push origin HEAD:puriphoto/booth-dev

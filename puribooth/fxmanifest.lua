@@ -20,8 +20,7 @@ ui_page "ui/index.html"
 files {
     "ui/index.html",
     "ui/style.css",
-    "ui/app.js",
-    "ui/surface.html"
+    "ui/app.js"
 }
 
 dependencies {

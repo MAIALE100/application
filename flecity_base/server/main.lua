@@ -564,6 +564,178 @@ handlers.taskDelete = function(source, data)
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
+local validCalculatorRounding = {none=true, round=true, floor=true, ceil=true}
+local validCalculatorFormat = {money=true, number=true}
+
+local function normalizeCalculatorFields(raw)
+    if type(raw) ~= 'table' then return nil, 'CALCULATOR_FIELDS_REQUIRED' end
+    local fields = {}
+    for _, item in ipairs(raw) do
+        if #fields >= L.calculatorFields then break end
+        if type(item) == 'table' then
+            local label = clean(item.label, 64)
+            if label ~= '' then
+                local defaultValue = tonumber(item.defaultValue) or 0
+                if defaultValue > L.moneyAmount then defaultValue = L.moneyAmount end
+                if defaultValue < -L.moneyAmount then defaultValue = -L.moneyAmount end
+                fields[#fields + 1] = {
+                    key = 'v' .. tostring(#fields + 1),
+                    label = label,
+                    unit = clean(item.unit, 32),
+                    defaultValue = defaultValue
+                }
+            end
+        end
+    end
+    if #fields == 0 then return nil, 'CALCULATOR_FIELDS_REQUIRED' end
+    return fields
+end
+
+local function normalizeCalculatorFormula(rawFormula, fieldCount)
+    local formula = clean(rawFormula, L.calculatorFormula)
+    if formula == '' then return nil, 'FORMULA_REQUIRED' end
+    if formula:find('[^%w_%.%+%-%*/%%%(% )]') then
+        return nil, 'INVALID_FORMULA'
+    end
+
+    local allowed = {}
+    for i = 1, fieldCount do allowed['v' .. tostring(i)] = true end
+    for token in formula:gmatch('[%a_][%w_]*') do
+        if not allowed[token] then return nil, 'INVALID_FORMULA_VARIABLE' end
+    end
+
+    local depth = 0
+    for i = 1, #formula do
+        local ch = formula:sub(i, i)
+        if ch == '(' then depth = depth + 1 end
+        if ch == ')' then
+            depth = depth - 1
+            if depth < 0 then return nil, 'INVALID_FORMULA' end
+        end
+    end
+    if depth ~= 0 then return nil, 'INVALID_FORMULA' end
+    return formula
+end
+
+local function normalizeCalculatorPayload(data)
+    local name = clean(data.name, L.title)
+    if name == '' then return nil, 'NAME_REQUIRED' end
+
+    local fields, fieldsErr = normalizeCalculatorFields(data.fields)
+    if not fields then return nil, fieldsErr end
+
+    local formula, formulaErr = normalizeCalculatorFormula(data.formula, #fields)
+    if not formula then return nil, formulaErr end
+
+    local rounding = clean(data.rounding or 'floor', 16):lower()
+    if not validCalculatorRounding[rounding] then rounding = 'floor' end
+
+    local resultFormat = clean(data.resultFormat or 'money', 16):lower()
+    if not validCalculatorFormat[resultFormat] then resultFormat = 'money' end
+
+    local resultLabel = clean(data.resultLabel or '結果', 64)
+    if resultLabel == '' then resultLabel = '結果' end
+
+    return {
+        name = name,
+        fields = fields,
+        fieldsJson = json.encode(fields),
+        formula = formula,
+        resultLabel = resultLabel,
+        resultFormat = resultFormat,
+        resultUnit = clean(data.resultUnit, 32),
+        rounding = rounding
+    }
+end
+
+handlers.calculatorsList = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local rows = MySQL.query.await([[
+        SELECT id, name, fields_json, formula, result_label, result_format, result_unit,
+               rounding, created_by, created_at, updated_at
+        FROM flecity_base_calculators
+        WHERE workspace_id=?
+        ORDER BY updated_at DESC, id DESC
+    ]], {workspace.id}) or {}
+
+    for _, row in ipairs(rows) do
+        local ok, decoded = pcall(json.decode, tostring(row.fields_json or '[]'))
+        row.fields = ok and type(decoded) == 'table' and decoded or {}
+        row.fields_json = nil
+    end
+
+    return {ok=true, calculators=rows}
+end
+
+handlers.calculatorCreate = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local count = tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM flecity_base_calculators WHERE workspace_id=?',
+        {workspace.id}
+    ) or 0)
+    if count >= L.calculatorsPerWorkspace then return {ok=false, error='CALCULATOR_LIMIT'} end
+
+    local payload, payloadErr = normalizeCalculatorPayload(data)
+    if not payload then return {ok=false, error=payloadErr} end
+
+    local id = MySQL.insert.await([[
+        INSERT INTO flecity_base_calculators
+        (workspace_id, name, fields_json, formula, result_label, result_format, result_unit, rounding, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        workspace.id, payload.name, payload.fieldsJson, payload.formula, payload.resultLabel,
+        payload.resultFormat, payload.resultUnit, payload.rounding, ctx.citizenid
+    })
+    return {ok=id ~= nil, id=tonumber(id)}
+end
+
+handlers.calculatorUpdate = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local payload, payloadErr = normalizeCalculatorPayload(data)
+    if not payload then return {ok=false, error=payloadErr} end
+
+    local changed = MySQL.update.await([[
+        UPDATE flecity_base_calculators
+        SET name=?, fields_json=?, formula=?, result_label=?, result_format=?, result_unit=?,
+            rounding=?, updated_at=NOW()
+        WHERE id=? AND workspace_id=?
+    ]], {
+        payload.name, payload.fieldsJson, payload.formula, payload.resultLabel,
+        payload.resultFormat, payload.resultUnit, payload.rounding,
+        integer(data.id, 1), workspace.id
+    })
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
+handlers.calculatorDelete = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local changed = MySQL.update.await(
+        'DELETE FROM flecity_base_calculators WHERE id=? AND workspace_id=?',
+        {integer(data.id, 1), workspace.id}
+    )
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
 handlers.moneyList = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -643,6 +815,10 @@ local callbacks = {
     ['flecity_base:taskCreate'] = handlers.taskCreate,
     ['flecity_base:taskUpdate'] = handlers.taskUpdate,
     ['flecity_base:taskDelete'] = handlers.taskDelete,
+    ['flecity_base:calculatorsList'] = handlers.calculatorsList,
+    ['flecity_base:calculatorCreate'] = handlers.calculatorCreate,
+    ['flecity_base:calculatorUpdate'] = handlers.calculatorUpdate,
+    ['flecity_base:calculatorDelete'] = handlers.calculatorDelete,
     ['flecity_base:moneyList'] = handlers.moneyList,
     ['flecity_base:moneyAdd'] = handlers.moneyAdd,
     ['flecity_base:moneyVoid'] = handlers.moneyVoid

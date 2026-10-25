@@ -1,10 +1,10 @@
-fx_version '0.3.9-dev'
+fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
 author 'Flecity'
 description 'Flecity public solo mining job - beginner-friendly no-level money loop'
-version '0.3.0-dev'
+version '0.3.9-dev'
 
 shared_scripts {
     'config/gameplay.lua',

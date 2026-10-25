@@ -557,6 +557,18 @@ try {
         Write-Host "server.cfg not found: $ServerCfg" -ForegroundColor Yellow
     }
 
+    Step 'Checking LB Phone Gifyu gallery support'
+    $gifyuFix = Join-Path $RepoRoot 'lbphone-gifyu-fix.ps1'
+    if (Test-Path -LiteralPath $gifyuFix) {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gifyuFix -ServerBase $ServerBase
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host 'LB Phone Gifyu configuration could not be updated automatically. Flecity Games deployment will continue.' -ForegroundColor Yellow
+            Write-Host 'You can retry later with: .\lbphone-gifyu-fix.cmd' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "Gifyu configuration helper not found: $gifyuFix" -ForegroundColor Yellow
+    }
+
     if (-not $NoGitSync) {
         $autoStateDir = Join-Path $env:LOCALAPPDATA 'FlecityGamesAutoUpdate'
         $autoInstalled = Join-Path $autoStateDir 'installed.flag'

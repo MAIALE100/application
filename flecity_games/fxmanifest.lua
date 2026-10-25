@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 author 'Flecity'
-description 'Flecity Games - PLAY and PARTY LB Phone game platform'
+description 'Flecity Games - LOOP and LINK LB Phone game platform'
 version '0.74.2-test'
 
 shared_scripts {

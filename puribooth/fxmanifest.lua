@@ -4,12 +4,16 @@ game "gta5"
 name "puribooth"
 author "Flecity"
 description "Street purikura booth integration for PuriPhoto"
-version "0.1.0"
+version "0.2.0"
 
 shared_script "config.lua"
 
+server_scripts {
+    "@oxmysql/lib/MySQL.lua",
+    "server/main.lua"
+}
+
 client_script "client/main.lua"
-server_script "server/main.lua"
 
 ui_page "ui/index.html"
 
@@ -21,5 +25,7 @@ files {
 
 dependencies {
     "qbx_core",
-    "lb-phone"
+    "oxmysql",
+    "lb-phone",
+    "screenshot-basic"
 }

@@ -5,7 +5,7 @@
 - Repository: MAIALE100/application
 - Development branch: jobs/mining-dev
 - Resource: flecity_mining
-- Current version: 0.3.6-dev
+- Current version: 0.3.9-dev
 
 ## Product goal
 
@@ -50,7 +50,7 @@
 - action tokens
 - distance checks
 - action rate limiting
-- Fleeca drill prop + verified/retried drill animation + sound/dust
+- GTA V native construction drill scenario `WORLD_HUMAN_CONST_DRILL`
 - resource-stop unfreeze safeguard
 - /mine_status
 - /mine_end

@@ -563,27 +563,55 @@ function taskDueMs(value){
 function renderTasks(){
   const myCid=state.boot?.user?.citizenid||"";
   const now=Date.now();
+  const query=state.taskQuery.trim().toLowerCase();
   const overdueCount=state.tasks.filter(t=>t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now).length;
   const mineCount=state.tasks.filter(t=>t.status!=="done"&&t.assignee_citizenid===myCid).length;
 
-  const rows=state.tasks.filter(t=>{
+  let rows=state.tasks.filter(t=>{
     if(!state.showCompleted&&t.status==="done") return false;
     if(state.taskFilter==="mine"&&t.assignee_citizenid!==myCid) return false;
     if(state.taskFilter==="overdue"&&!(t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now)) return false;
-    return true;
+    if(!query) return true;
+    return [t.title,t.details,t.assignee_name,t.assignee_citizenid,t.created_by_name,t.created_by].some(v=>String(v||"").toLowerCase().includes(query));
   });
 
+  const priorityRank={high:0,normal:1,low:2};
+  rows=[...rows].sort((a,b)=>{
+    const done=(a.status==="done"?1:0)-(b.status==="done"?1:0);
+    if(done!==0) return done;
+    if(state.taskSort==="priority"){
+      return (priorityRank[a.priority]??9)-(priorityRank[b.priority]??9)
+        || (taskDueMs(a.due_at)??Number.MAX_SAFE_INTEGER)-(taskDueMs(b.due_at)??Number.MAX_SAFE_INTEGER);
+    }
+    if(state.taskSort==="updated") return dateMs(b.updated_at)-dateMs(a.updated_at);
+    if(state.taskSort==="title") return textCompare(a.title,b.title);
+    const ad=taskDueMs(a.due_at),bd=taskDueMs(b.due_at);
+    if(ad===null&&bd!==null) return 1;
+    if(ad!==null&&bd===null) return -1;
+    if(ad!==null&&bd!==null&&ad!==bd) return ad-bd;
+    return (priorityRank[a.priority]??9)-(priorityRank[b.priority]??9);
+  });
+
+  const visible=rows.slice(0,state.taskLimit);
   $("#content").innerHTML=`
     <div class="row between"><h2>タスク</h2>${canManage()?'<button class="primary" data-action="new-task">＋ 追加</button>':""}</div>
     <div class="toolbar">
+      <input id="taskSearch" class="search-input" placeholder="タスクを検索" value="${esc(state.taskQuery)}">
       <div class="filter-group">
         <button class="filter-chip ${state.taskFilter==="all"?"active":""}" data-task-filter="all">すべて</button>
         <button class="filter-chip ${state.taskFilter==="mine"?"active":""}" data-task-filter="mine">自分 ${mineCount}</button>
         <button class="filter-chip ${state.taskFilter==="overdue"?"active":""}" data-task-filter="overdue">期限切れ ${overdueCount}</button>
       </div>
+      <select id="taskSort" class="compact-select">
+        <option value="due" ${state.taskSort==="due"?"selected":""}>期限が近い順</option>
+        <option value="priority" ${state.taskSort==="priority"?"selected":""}>優先度順</option>
+        <option value="updated" ${state.taskSort==="updated"?"selected":""}>最近更新順</option>
+        <option value="title" ${state.taskSort==="title"?"selected":""}>タイトル順</option>
+      </select>
       <button id="toggleCompleted" class="filter-chip ${state.showCompleted?"active":""}">${state.showCompleted?"完了を表示中":"完了を表示"}</button>
     </div>
-    ${rows.length?rows.map(t=>{
+    ${listMeta(state.tasks.length,rows.length,visible.length)}
+    ${visible.length?visible.map(t=>{
       const label={todo:"未着手",doing:"進行中",done:"完了"}[t.status]||t.status;
       const overdue=t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now;
       return `<article class="card ${overdue?"overdue":""}">
@@ -595,7 +623,7 @@ function renderTasks(){
           </div>
           <div class="row">
             ${overdue?'<span class="badge high">期限切れ</span>':""}
-            ${t.priority==="high"?'<span class="badge high">優先度 高</span>':""}
+            ${t.priority==="high"?'<span class="badge high">優先度 高</span>':t.priority==="low"?'<span class="badge">優先度 低</span>':""}
             <span class="badge">${esc(label)}</span>
           </div>
         </div>
@@ -607,10 +635,19 @@ function renderTasks(){
         </div>
       </article>`;
     }).join(""):`<div class="empty">条件に合うタスクはありません。</div>`}
+    ${moreButton("taskMore",visible.length,rows.length)}
   `;
   bindContent();
-  document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{state.taskFilter=b.dataset.taskFilter;renderTasks();});
-  $("#toggleCompleted").onclick=()=>{state.showCompleted=!state.showCompleted;renderTasks();};
+  $("#taskSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.taskQuery=e.target.value;state.taskLimit=50;renderTasks();
+    const input=$("#taskSearch");
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
+  };
+  document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{state.taskFilter=b.dataset.taskFilter;state.taskLimit=50;renderTasks();});
+  $("#taskSort").onchange=e=>{state.taskSort=e.target.value;state.taskLimit=50;renderTasks();};
+  $("#toggleCompleted").onclick=()=>{state.showCompleted=!state.showCompleted;state.taskLimit=50;renderTasks();};
+  $("#taskMore")?.addEventListener("click",()=>{state.taskLimit+=50;renderTasks();});
 }
 
 function memberOptions(selected){
@@ -643,9 +680,9 @@ async function nextTask(task){
 function renderMoney(){
   const s=state.money.summary||{};
   const entries=state.money.entries||[];
-  const categories=[...new Set(entries.map(e=>String(e.category||"other")).filter(Boolean))].sort();
+  const categories=[...new Set(entries.map(e=>String(e.category||"other")).filter(Boolean))].sort(textCompare);
   const query=state.moneyQuery.trim().toLowerCase();
-  const rows=entries.filter(e=>{
+  let rows=entries.filter(e=>{
     if(!state.showVoidedMoney&&e.voided_at) return false;
     if(state.moneyType!=="all"&&e.entry_type!==state.moneyType) return false;
     if(state.moneyCategory!=="all"&&String(e.category||"other")!==state.moneyCategory) return false;
@@ -653,6 +690,14 @@ function renderMoney(){
     return [e.category,e.note,e.actor_name,e.actor_citizenid,e.amount].some(v=>String(v||"").toLowerCase().includes(query));
   });
 
+  rows=[...rows].sort((a,b)=>{
+    if(state.moneySort==="oldest") return dateMs(a.created_at)-dateMs(b.created_at);
+    if(state.moneySort==="amount_desc") return num(b.amount)-num(a.amount)||dateMs(b.created_at)-dateMs(a.created_at);
+    if(state.moneySort==="amount_asc") return num(a.amount)-num(b.amount)||dateMs(b.created_at)-dateMs(a.created_at);
+    return dateMs(b.created_at)-dateMs(a.created_at);
+  });
+
+  const visible=rows.slice(0,state.moneyLimit);
   $("#content").innerHTML=`
     <div class="row between"><h2>会計</h2><span class="row"><button class="secondary" data-action="money-calc">計算</button><button class="primary" data-action="new-money">＋ 記録</button></span></div>
     <div class="metric-grid">
@@ -671,9 +716,16 @@ function renderMoney(){
         <option value="all">カテゴリすべて</option>
         ${categories.map(c=>`<option value="${esc(c)}" ${state.moneyCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
       </select>
+      <select id="moneySort" class="compact-select">
+        <option value="newest" ${state.moneySort==="newest"?"selected":""}>新しい順</option>
+        <option value="oldest" ${state.moneySort==="oldest"?"selected":""}>古い順</option>
+        <option value="amount_desc" ${state.moneySort==="amount_desc"?"selected":""}>金額が大きい順</option>
+        <option value="amount_asc" ${state.moneySort==="amount_asc"?"selected":""}>金額が小さい順</option>
+      </select>
       <button id="toggleVoidedMoney" class="filter-chip ${state.showVoidedMoney?"active":""}">${state.showVoidedMoney?"取消済も表示":"取消済を隠す"}</button>
     </div>
-    ${rows.length?rows.map(e=>`
+    ${listMeta(entries.length,rows.length,visible.length)}
+    ${visible.length?visible.map(e=>`
       <article class="card ${e.voided_at?"voided":""}">
         <div class="row between">
           <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(fmtDateTime(e.created_at))}<br>記録: ${esc(personLabel(e.actor_name,e.actor_citizenid))}</div></div>
@@ -682,21 +734,20 @@ function renderMoney(){
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
         ${!e.voided_at&&canManage()?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
       </article>`).join(""):'<div class="empty">条件に合う会計記録はありません。</div>'}
+    ${moreButton("moneyMore",visible.length,rows.length)}
   `;
   bindContent();
   $("#moneySearch").oninput=e=>{
     const caret=e.target.selectionStart??e.target.value.length;
-    state.moneyQuery=e.target.value;
-    renderMoney();
+    state.moneyQuery=e.target.value;state.moneyLimit=50;renderMoney();
     const input=$("#moneySearch");
-    if(input){
-      input.focus();
-      input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));
-    }
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
   };
-  $("#moneyTypeFilter").onchange=e=>{state.moneyType=e.target.value;renderMoney();};
-  $("#moneyCategoryFilter").onchange=e=>{state.moneyCategory=e.target.value;renderMoney();};
-  $("#toggleVoidedMoney").onclick=()=>{state.showVoidedMoney=!state.showVoidedMoney;renderMoney();};
+  $("#moneyTypeFilter").onchange=e=>{state.moneyType=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#moneyCategoryFilter").onchange=e=>{state.moneyCategory=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#moneySort").onchange=e=>{state.moneySort=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#toggleVoidedMoney").onclick=()=>{state.showVoidedMoney=!state.showVoidedMoney;state.moneyLimit=50;renderMoney();};
+  $("#moneyMore")?.addEventListener("click",()=>{state.moneyLimit+=50;renderMoney();});
 }
 
 function confirmMoneyVoid(entry){

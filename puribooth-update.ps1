@@ -31,8 +31,16 @@ Invoke-Step "Checking Node.js" {
 Invoke-Step "Building PuriPhoto UI" {
     Push-Location (Join-Path $PuriSource "ui")
     try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+        # PuriPhoto inherited an older template lock file that can temporarily
+        # drift from package.json. Prefer npm ci when possible, but repair the
+        # local lock/dependencies automatically instead of stopping the deploy.
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "npm ci could not use the current lock file. Repairing dependencies with npm install."
+            npm install --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw "npm dependency install failed" }
+        }
+
         npm run build
         if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
     }

@@ -203,6 +203,39 @@ local function headingTo(fromCoords, toCoords)
     return GetHeadingFromVector_2d(toCoords.x - fromCoords.x, toCoords.y - fromCoords.y)
 end
 
+local function findNearestWallTarget(ped, originCoords)
+    local origin = originCoords + vector3(0.0, 0.0, 0.9)
+    local nearest = nil
+    local nearestDistance = nil
+
+    -- Sample a full horizontal circle. We only raycast for static world
+    -- collision so floors/ceilings are avoided by keeping the rays level.
+    for degrees = 0, 337.5, 22.5 do
+        local radians = math.rad(degrees)
+        local direction = vector3(math.cos(radians), math.sin(radians), 0.0)
+        local target = origin + (direction * 3.0)
+        local ray = StartShapeTestRay(
+            origin.x, origin.y, origin.z,
+            target.x, target.y, target.z,
+            1,
+            ped,
+            0
+        )
+        local _, hit, endCoords = GetShapeTestResult(ray)
+
+        if hit == 1 then
+            local distance = #(endCoords - origin)
+            if distance >= 0.35 and distance <= 3.0
+                and (not nearestDistance or distance < nearestDistance) then
+                nearest = endCoords
+                nearestDistance = distance
+            end
+        end
+    end
+
+    return nearest, nearestDistance
+end
+
 local function stopDrillPresentation()
     -- Invalidate any dust worker belonging to the presentation being stopped.
     -- A cancelled action can be followed by a new action before the old worker
@@ -226,8 +259,19 @@ end
 
 local function startDrillPresentation(ped, node)
     local cfg = Config.DrillVisuals or {}
-    if cfg.enabled ~= true or not node or type(node.target) ~= 'vector3' then
+    if cfg.enabled ~= true or not node then
         return false
+    end
+
+    local pedCoords = GetEntityCoords(ped)
+    local wallTarget = findNearestWallTarget(ped, pedCoords)
+
+    -- Do not fail the whole mining action just because a custom map has no
+    -- raycastable rock close enough. The fallback target keeps the animation
+    -- usable while the server still validates the safe interaction node.
+    if not wallTarget then
+        local forward = GetEntityForwardVector(ped)
+        wallTarget = pedCoords + (forward * 1.25) + vector3(0.0, 0.0, 0.9)
     end
 
     local timeoutMs = math.max(500, tonumber(cfg.loadTimeoutMs) or 2500)
@@ -239,8 +283,7 @@ local function startDrillPresentation(ped, node)
         return false
     end
 
-    local pedCoords = GetEntityCoords(ped)
-    SetEntityHeading(ped, headingTo(pedCoords, node.target))
+    SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
 
     local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
     if not prop or prop == 0 then
@@ -266,11 +309,11 @@ local function startDrillPresentation(ped, node)
     )
 
     activeMineProp = prop
-    activeMineTarget = node.target
+    activeMineTarget = wallTarget
     drillPresentationGeneration = drillPresentationGeneration + 1
     local presentationGeneration = drillPresentationGeneration
     local presentationProp = prop
-    local presentationTarget = node.target
+    local presentationTarget = wallTarget
 
     if cfg.sound == true then
         local soundId = GetSoundId()
@@ -609,6 +652,22 @@ RegisterCommand('mine_end', function()
         return
     end
     TriggerServerEvent('flecity_mining:server:endShift')
+end, false)
+
+RegisterCommand('mine_escape', function()
+    if Config.DevTools ~= true then return end
+    if busy then
+        cancelCurrentAction = true
+        Wait(100)
+    end
+
+    local ped = PlayerPedId()
+    local safe = Config.Foreman.coords + vector3(0.0, 0.0, 0.75)
+    RequestCollisionAtCoord(safe.x, safe.y, safe.z)
+    SetEntityCoordsNoOffset(ped, safe.x, safe.y, safe.z, false, false, false)
+    FreezeEntityPosition(ped, false)
+    ClearPedTasksImmediately(ped)
+    notify('鉱山入口へ退避しました。')
 end, false)
 
 RegisterCommand('mine_devpos', function()

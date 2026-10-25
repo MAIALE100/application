@@ -336,10 +336,16 @@
     const updateHistoryButtons = () => {
         const undo = document.getElementById('undoButton')
         const redo = document.getElementById('redoButton')
+        const shrink = document.getElementById('shrinkSelectedButton')
+        const grow = document.getElementById('growSelectedButton')
         const del = document.getElementById('deleteSelectedButton')
+        const hasSelection = Boolean(state.selectedDecoration)
+
         if (undo) undo.disabled = state.history.length === 0
         if (redo) redo.disabled = state.future.length === 0
-        if (del) del.disabled = !state.selectedDecoration
+        if (shrink) shrink.disabled = !hasSelection
+        if (grow) grow.disabled = !hasSelection
+        if (del) del.disabled = !hasSelection
     }
 
     const restoreDecorations = snapshot => {
@@ -927,6 +933,30 @@
 
     document.getElementById('undoButton').addEventListener('click', undoDecoration)
     document.getElementById('redoButton').addEventListener('click', redoDecoration)
+    const resizeSelectedDecoration = factor => {
+        const item = selectedDecorationItem()
+        if (!item) return
+
+        pushDecorationHistory()
+        item.size = Math.max(
+            24,
+            Math.min(260, Math.round(item.size * factor))
+        )
+        toolStatus.textContent = factor < 1
+            ? '選択した装飾を小さくしました'
+            : '選択した装飾を大きくしました'
+        updateHistoryButtons()
+        render()
+    }
+
+    document.getElementById('shrinkSelectedButton').addEventListener('click', () => {
+        resizeSelectedDecoration(.86)
+    })
+
+    document.getElementById('growSelectedButton').addEventListener('click', () => {
+        resizeSelectedDecoration(1.16)
+    })
+
     document.getElementById('deleteSelectedButton').addEventListener('click', () => {
         const selected = state.selectedDecoration
         if (!selected) return

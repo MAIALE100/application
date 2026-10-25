@@ -304,14 +304,23 @@ function topAction(label, action){
 }
 
 function renderMemo(){
-  const categories=[...new Set(state.notes.map(n=>String(n.category||"general")).filter(Boolean))].sort();
+  const categories=[...new Set(state.notes.map(n=>String(n.category||"general")).filter(Boolean))].sort(textCompare);
   const query=state.memoQuery.trim().toLowerCase();
-  const rows=state.notes.filter(n=>{
+  let rows=state.notes.filter(n=>{
     if(state.memoCategory!=="all"&&String(n.category||"general")!==state.memoCategory) return false;
     if(!query) return true;
-    return [n.title,n.body,n.category,n.tags].some(v=>String(v||"").toLowerCase().includes(query));
+    return [n.title,n.body,n.category,n.tags,n.author_name,n.author_citizenid].some(v=>String(v||"").toLowerCase().includes(query));
   });
 
+  rows=[...rows].sort((a,b)=>{
+    const pin=num(b.pinned)-num(a.pinned);
+    if(pin!==0) return pin;
+    if(state.memoSort==="updated_asc") return dateMs(a.updated_at)-dateMs(b.updated_at);
+    if(state.memoSort==="title") return textCompare(a.title,b.title);
+    return dateMs(b.updated_at)-dateMs(a.updated_at);
+  });
+
+  const visible=rows.slice(0,state.memoLimit);
   $("#content").innerHTML=`
     <div class="row between"><h2>共有メモ</h2>${canManage()?'<button class="primary" data-action="new-note">＋ 追加</button>':""}</div>
     <div class="toolbar">
@@ -320,8 +329,14 @@ function renderMemo(){
         <option value="all">すべてのカテゴリ</option>
         ${categories.map(c=>`<option value="${esc(c)}" ${state.memoCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
       </select>
+      <select id="memoSort" class="compact-select">
+        <option value="updated_desc" ${state.memoSort==="updated_desc"?"selected":""}>更新が新しい順</option>
+        <option value="updated_asc" ${state.memoSort==="updated_asc"?"selected":""}>更新が古い順</option>
+        <option value="title" ${state.memoSort==="title"?"selected":""}>タイトル順</option>
+      </select>
     </div>
-    ${rows.length?rows.map(n=>{
+    ${listMeta(state.notes.length,rows.length,visible.length)}
+    ${visible.length?visible.map(n=>{
       const tags=String(n.tags||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
       return `<article class="card ${Number(n.pinned)===1?"pinned":""}">
         <div class="card-head">
@@ -340,11 +355,13 @@ function renderMemo(){
         </div>`:""}
       </article>`;
     }).join(""):`<div class="empty">条件に合うメモはありません。</div>`}
+    ${moreButton("memoMore",visible.length,rows.length)}
   `;
   bindContent();
   $("#memoSearch").oninput=e=>{
     const caret=e.target.selectionStart??e.target.value.length;
     state.memoQuery=e.target.value;
+    state.memoLimit=40;
     renderMemo();
     const input=$("#memoSearch");
     if(input){
@@ -352,7 +369,9 @@ function renderMemo(){
       input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));
     }
   };
-  $("#memoCategoryFilter").onchange=e=>{state.memoCategory=e.target.value;renderMemo();};
+  $("#memoCategoryFilter").onchange=e=>{state.memoCategory=e.target.value;state.memoLimit=40;renderMemo();};
+  $("#memoSort").onchange=e=>{state.memoSort=e.target.value;state.memoLimit=40;renderMemo();};
+  $("#memoMore")?.addEventListener("click",()=>{state.memoLimit+=40;renderMemo();});
 }
 
 function noteModal(note){
@@ -388,17 +407,33 @@ function confirmNoteDelete(note){
 }
 
 function renderStock(){
-  const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort();
-  const rows=state.stock.filter(i=>{
+  const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort(textCompare);
+  const query=state.stockQuery.trim().toLowerCase();
+  let rows=state.stock.filter(i=>{
     if(state.stockFilter==="low"&&num(i.quantity)>num(i.minimum_quantity)) return false;
     if(state.stockCategory!=="all"&&String(i.category||"general")!==state.stockCategory) return false;
-    return true;
+    if(!query) return true;
+    return [i.name,i.category,i.unit,i.created_by_name,i.created_by].some(v=>String(v||"").toLowerCase().includes(query));
   });
   const lowCount=state.stock.filter(i=>num(i.quantity)<=num(i.minimum_quantity)).length;
 
+  rows=[...rows].sort((a,b)=>{
+    if(state.stockSort==="qty_asc") return num(a.quantity)-num(b.quantity)||textCompare(a.name,b.name);
+    if(state.stockSort==="qty_desc") return num(b.quantity)-num(a.quantity)||textCompare(a.name,b.name);
+    if(state.stockSort==="low"){
+      const al=num(a.quantity)<=num(a.minimum_quantity)?0:1;
+      const bl=num(b.quantity)<=num(b.minimum_quantity)?0:1;
+      return al-bl||num(a.quantity)-num(b.quantity)||textCompare(a.name,b.name);
+    }
+    if(state.stockSort==="updated") return dateMs(b.updated_at)-dateMs(a.updated_at);
+    return textCompare(a.name,b.name);
+  });
+
+  const visible=rows.slice(0,state.stockLimit);
   $("#content").innerHTML=`
     <div class="row between"><h2>在庫</h2>${canManage()?'<button class="primary" data-action="new-stock">＋ 追加</button>':""}</div>
     <div class="toolbar">
+      <input id="stockSearch" class="search-input" placeholder="在庫を検索" value="${esc(state.stockQuery)}">
       <div class="filter-group">
         <button class="filter-chip ${state.stockFilter==="all"?"active":""}" data-stock-filter="all">すべて</button>
         <button class="filter-chip ${state.stockFilter==="low"?"active":""}" data-stock-filter="low">不足 ${lowCount}</button>
@@ -407,8 +442,16 @@ function renderStock(){
         <option value="all">すべてのカテゴリ</option>
         ${categories.map(c=>`<option value="${esc(c)}" ${state.stockCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
       </select>
+      <select id="stockSort" class="compact-select">
+        <option value="name" ${state.stockSort==="name"?"selected":""}>品名順</option>
+        <option value="low" ${state.stockSort==="low"?"selected":""}>不足優先</option>
+        <option value="qty_asc" ${state.stockSort==="qty_asc"?"selected":""}>数量が少ない順</option>
+        <option value="qty_desc" ${state.stockSort==="qty_desc"?"selected":""}>数量が多い順</option>
+        <option value="updated" ${state.stockSort==="updated"?"selected":""}>最近更新順</option>
+      </select>
     </div>
-    ${rows.length?rows.map(i=>{
+    ${listMeta(state.stock.length,rows.length,visible.length)}
+    ${visible.length?visible.map(i=>{
       const low=num(i.quantity)<=num(i.minimum_quantity);
       return `<article class="card">
         <div class="row between">
@@ -434,6 +477,7 @@ function renderStock(){
         </div>
       </article>`;
     }).join(""):`<div class="empty">条件に合う在庫はありません。</div>`}
+    ${moreButton("stockMore",visible.length,rows.length)}
     ${state.stockRecent.length?`<div class="section-title">最近の入出庫</div>${state.stockRecent.slice(0,6).map(h=>`
       <article class="card compact-card">
         <div class="row between"><strong>${esc(h.item_name)}</strong><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()} ${esc(h.unit||"")}</strong></div>
@@ -441,8 +485,16 @@ function renderStock(){
       </article>`).join("")}`:""}
   `;
   bindContent();
-  document.querySelectorAll("[data-stock-filter]").forEach(b=>b.onclick=()=>{state.stockFilter=b.dataset.stockFilter;renderStock();});
-  $("#stockCategoryFilter").onchange=e=>{state.stockCategory=e.target.value;renderStock();};
+  $("#stockSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.stockQuery=e.target.value;state.stockLimit=50;renderStock();
+    const input=$("#stockSearch");
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
+  };
+  document.querySelectorAll("[data-stock-filter]").forEach(b=>b.onclick=()=>{state.stockFilter=b.dataset.stockFilter;state.stockLimit=50;renderStock();});
+  $("#stockCategoryFilter").onchange=e=>{state.stockCategory=e.target.value;state.stockLimit=50;renderStock();};
+  $("#stockSort").onchange=e=>{state.stockSort=e.target.value;state.stockLimit=50;renderStock();};
+  $("#stockMore")?.addEventListener("click",()=>{state.stockLimit+=50;renderStock();});
 }
 
 function newStock(){

@@ -24,6 +24,10 @@ local placementCameraPreviewActive = false
 local placementCamera = nil
 
 local activeTheme = nil
+local poseReadyForNextShot = false
+local poseAdvanceRequested = false
+local poseShotIndex = 0
+
 local themeDui = {
     background = {
         dui = nil,
@@ -202,6 +206,17 @@ local function ensureThemeDui(kind)
             1024
         )
 
+        local deadline = GetGameTimer() + 5000
+        while not IsDuiAvailable(slot.dui) and GetGameTimer() < deadline do
+            Wait(0)
+        end
+
+        if not IsDuiAvailable(slot.dui) then
+            print(("[puribooth] DUI surface failed to become available: %s")
+                :format(kind))
+            return nil
+        end
+
         local handle = GetDuiHandle(slot.dui)
         slot.txd = CreateRuntimeTxd(slot.txdName)
         CreateRuntimeTextureFromDuiHandle(
@@ -232,51 +247,52 @@ local function clearTheme()
     end
 end
 
-local function drawTexturedQuad(a, b, c1, d, txd, txn)
-    -- Front side.
+local function drawTexturedQuad(bottomLeft, topLeft, bottomRight, topRight, txd, txn)
+    -- Known-good DrawSpritePoly UV layout used by FiveM world-space sprite
+    -- implementations. Two triangles form the quad.
     DrawSpritePoly(
-        a.x, a.y, a.z,
-        b.x, b.y, b.z,
-        c1.x, c1.y, c1.z,
+        bottomRight.x, bottomRight.y, bottomRight.z,
+        topLeft.x, topLeft.y, topLeft.z,
+        bottomLeft.x, bottomLeft.y, bottomLeft.z,
         255, 255, 255, 255,
         txd, txn,
-        0.0, 1.0, 1.0,
-        0.0, 0.0, 1.0,
-        1.0, 1.0, 1.0
-    )
-
-    DrawSpritePoly(
-        b.x, b.y, b.z,
-        d.x, d.y, d.z,
-        c1.x, c1.y, c1.z,
-        255, 255, 255, 255,
-        txd, txn,
-        0.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0
-    )
-
-    -- Reverse side so the surface remains visible regardless of winding.
-    DrawSpritePoly(
-        c1.x, c1.y, c1.z,
-        b.x, b.y, b.z,
-        a.x, a.y, a.z,
-        255, 255, 255, 255,
-        txd, txn,
-        1.0, 1.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 1.0, 1.0
-    )
-
-    DrawSpritePoly(
-        c1.x, c1.y, c1.z,
-        d.x, d.y, d.z,
-        b.x, b.y, b.z,
-        255, 255, 255, 255,
-        txd, txn,
-        1.0, 1.0, 1.0,
-        1.0, 0.0, 1.0,
+        1.0, 0.0, 0.0,
+        0.0, -1.0, 0.0,
         0.0, 0.0, 1.0
+    )
+
+    DrawSpritePoly(
+        topLeft.x, topLeft.y, topLeft.z,
+        bottomRight.x, bottomRight.y, bottomRight.z,
+        topRight.x, topRight.y, topRight.z,
+        255, 255, 255, 255,
+        txd, txn,
+        -1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    )
+
+    -- Reverse winding for the opposite face.
+    DrawSpritePoly(
+        bottomLeft.x, bottomLeft.y, bottomLeft.z,
+        topLeft.x, topLeft.y, topLeft.z,
+        bottomRight.x, bottomRight.y, bottomRight.z,
+        255, 255, 255, 255,
+        txd, txn,
+        0.0, 0.0, 1.0,
+        0.0, -1.0, 0.0,
+        1.0, 0.0, 0.0
+    )
+
+    DrawSpritePoly(
+        topRight.x, topRight.y, topRight.z,
+        bottomRight.x, bottomRight.y, bottomRight.z,
+        topLeft.x, topLeft.y, topLeft.z,
+        255, 255, 255, 255,
+        txd, txn,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0,
+        -1.0, 0.0, 0.0
     )
 end
 
@@ -1129,11 +1145,30 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
 
         local shots = {}
         local failed = false
-
-        for shotIndex = 1, math.max(
+        local shotCount = math.max(
             1,
             tonumber(Config.ShotCount) or 4
-        ) do
+        )
+
+        for shotIndex = 1, shotCount do
+            if shotIndex > 1 then
+                poseShotIndex = shotIndex
+                poseAdvanceRequested = false
+                poseReadyForNextShot = true
+
+                while captureInProgress and not poseAdvanceRequested do
+                    Wait(0)
+                end
+
+                poseReadyForNextShot = false
+                poseAdvanceRequested = false
+
+                if not captureInProgress then
+                    failed = true
+                    break
+                end
+            end
+
             TriggerServerEvent(
                 "puribooth:server:announceCountdown",
                 boothId,
@@ -1180,6 +1215,9 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
             )
         end
 
+        poseReadyForNextShot = false
+        poseAdvanceRequested = false
+        poseShotIndex = 0
         captureInProgress = false
         destroyPreviewCamera(true)
         clearTheme()
@@ -1631,6 +1669,23 @@ CreateThread(function()
             HideHudAndRadarThisFrame()
             HideHelpTextThisFrame()
             ThefeedHideThisFrame()
+
+            if poseReadyForNextShot then
+                drawText2d(
+                    ("PHOTO %d/%d   POSE READY   [E] COUNTDOWN")
+                        :format(
+                            poseShotIndex,
+                            tonumber(Config.ShotCount) or 4
+                        ),
+                    0.5,
+                    0.82,
+                    0.42
+                )
+
+                if IsControlJustReleased(0, 38) then
+                    poseAdvanceRequested = true
+                end
+            end
         end
 
         if countdownDisplay then

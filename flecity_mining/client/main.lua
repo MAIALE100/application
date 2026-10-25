@@ -192,18 +192,53 @@ local function createBlip()
     EndTextCommandSetBlipName(blip)
 end
 
+local function cleanupLegacyMineIpls()
+    local interior = Config.MineInterior
+    if not interior or type(interior.legacyConflictIpls) ~= 'table' then return end
+
+    for _, ipl in ipairs(interior.legacyConflictIpls) do
+        if type(ipl) == 'string' and ipl ~= '' and IsIplActive(ipl) then
+            RemoveIpl(ipl)
+        end
+    end
+end
+
 local function requestMineIpls()
     local interior = Config.MineInterior
-    if not interior or interior.enabled ~= true or type(interior.ipls) ~= 'table' then return end
+    if not interior or interior.enabled ~= true then return end
 
-    for _, ipl in ipairs(interior.ipls) do
-        if type(ipl) == 'string' and ipl ~= '' then
-            RequestIpl(ipl)
-        end
+    cleanupLegacyMineIpls()
+
+    if type(interior.baseIpl) == 'string' and interior.baseIpl ~= '' then
+        RequestIpl(interior.baseIpl)
+    end
+
+    if type(interior.interiorIpl) == 'string' and interior.interiorIpl ~= '' then
+        RequestIpl(interior.interiorIpl)
     end
 
     if type(interior.anchor) == 'vector3' then
         RequestCollisionAtCoord(interior.anchor.x, interior.anchor.y, interior.anchor.z)
+    end
+end
+
+local function releaseMineInteriorIpl()
+    local interior = Config.MineInterior
+    if not interior or interior.enabled ~= true then return end
+
+    cleanupLegacyMineIpls()
+
+    if type(interior.interiorIpl) == 'string'
+        and interior.interiorIpl ~= ''
+        and IsIplActive(interior.interiorIpl) then
+        RemoveIpl(interior.interiorIpl)
+    end
+
+    -- Re-request the normal exterior base after removing the mine interior.
+    -- This helps the local world return from an accidentally forced LOD state
+    -- without requiring a full FiveM reconnect.
+    if type(interior.baseIpl) == 'string' and interior.baseIpl ~= '' then
+        RequestIpl(interior.baseIpl)
     end
 end
 
@@ -219,7 +254,17 @@ local function transitionMineAccess(target)
         tonumber(Config.MineAccess and Config.MineAccess.transitionCooldownMs) or 1800
     )
 
-    requestMineIpls()
+    local access = Config.MineAccess
+    local targetIsInside = access and access.inside
+        and math.abs(target.x - access.inside.x) < 0.1
+        and math.abs(target.y - access.inside.y) < 0.1
+        and math.abs(target.z - access.inside.z) < 0.1
+
+    if targetIsInside then
+        requestMineIpls()
+    else
+        cleanupLegacyMineIpls()
+    end
 
     -- Keep mine access deliberately simple. The previous v0.3.3 path used
     -- NewLoadScene/InteriorReady waits and could strand the client on a black
@@ -248,6 +293,11 @@ local function transitionMineAccess(target)
     FreezeEntityPosition(ped, false)
     ClearFocus()
     NewLoadSceneStop()
+
+    if not targetIsInside then
+        releaseMineInteriorIpl()
+        RequestCollisionAtCoord(destination.x, destination.y, destination.z)
+    end
 
     updateGuidanceRoute()
 
@@ -624,7 +674,12 @@ CreateThread(function()
         DoScreenFadeIn(500)
     end
 
-    requestMineIpls()
+    cleanupLegacyMineIpls()
+    if isInsideMine() then
+        requestMineIpls()
+    else
+        releaseMineInteriorIpl()
+    end
     createBlip()
 
     -- Preload presentation assets in parallel with the initial state sync so
@@ -999,9 +1054,10 @@ AddEventHandler('onResourceStop', function(resource)
     end
     RemoveNamedPtfxAsset('core')
 
-    -- Do not RemoveIpl here. These map IPLs can be shared with another map/
-    -- interior resource; unloading them during a development restart could
-    -- break other resources that expect the mine to remain available.
+    cleanupLegacyMineIpls()
+    if not isInsideMine() then
+        releaseMineInteriorIpl()
+    end
 
     NewLoadSceneStop()
     ClearFocus()

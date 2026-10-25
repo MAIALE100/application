@@ -80,6 +80,18 @@ These checks can be completed by one tester on the test server.
 - Save calculator result directly to the ledger.
 - Calculator remains after `restart flecity_base`.
 
+## Overview dashboard
+
+- BASE opens on the 概要 tab.
+- Overview shows memo count, stock shortage count, open-task count, overdue-task count, and current ledger balance.
+- Tapping 在庫不足 opens the stock tab with the low-stock filter active.
+- Tapping the overdue task card opens tasks with the overdue filter active.
+- Tapping memo or balance cards opens the matching module.
+- Quick-add buttons open memo, stock, task, and accounting forms according to role permissions.
+- Recent memo, task, stock movement, and accounting activity shows up to three rows per module.
+- Empty workspaces show a simple activity-empty state.
+- Switching between BASE workspaces refreshes all overview figures.
+
 ## Workspace icon picker
 
 - New BASE creation shows categorized icon choices instead of a plain icon text field.

@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Flecity'
 description 'Flecity Games - LOOP and LINK LB Phone game platform'
-version '0.74.2-test'
+version '0.75.0-test'
 
 shared_scripts {
     'config/shared.lua',

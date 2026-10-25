@@ -28,6 +28,15 @@ const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<
 const num = (v) => Number(v || 0);
 const yen = (v) => "$" + num(v).toLocaleString("ja-JP");
 
+const UI_LIMITS = {
+  title:120, name:120, category:64, tags:255, unit:32, note:180,
+  citizenid:64, icon:32, resultLabel:64, resultUnit:32,
+  fieldLabel1:64, fieldLabel2:64, fieldLabel3:64, fieldLabel4:64,
+  fieldLabel5:64, fieldLabel6:64, fieldLabel7:64, fieldLabel8:64,
+  fieldUnit1:32, fieldUnit2:32, fieldUnit3:32, fieldUnit4:32,
+  fieldUnit5:32, fieldUnit6:32, fieldUnit7:32, fieldUnit8:32
+};
+
 function dateValue(value){
   if(value===null||value===undefined||value==="") return null;
   if(typeof value==="number"||/^\d{10,13}$/.test(String(value))){
@@ -74,6 +83,16 @@ const errors = {
   DELETE_CONFIRM_MISMATCH:"確認用のBASE名が一致しません。",
   STOCK_CHANGED_RETRY:"在庫が同時に更新されました。もう一度操作してください。",
   INVALID_ASSIGNEE:"担当者がこのBASEのメンバーではありません。",
+  INVALID_STOCK_QUANTITY:"在庫数は0〜1,000,000の整数で入力してください。",
+  INVALID_STOCK_DELTA:"在庫の増減数は-1,000,000〜1,000,000の整数で入力してください。",
+  STOCK_OUT_OF_RANGE:"変更後の在庫数が0〜1,000,000の範囲を超えます。",
+  ZERO_DELTA:"増減数は0以外を入力してください。",
+  NO_CHANGE:"在庫数は変更されませんでした。",
+  INVALID_AMOUNT:"金額は1〜1,000,000,000の整数で入力してください。",
+  INVALID_DUE_AT:"期限の日時を確認してください。",
+  INVALID_PRIORITY:"優先度が不正です。",
+  INVALID_TASK_STATUS:"タスク状態が不正です。",
+  INVALID_CALCULATOR_NUMBER:"計算項目の初期値が範囲外です。",
   CALCULATOR_LIMIT:"作成できる計算方法の上限です。",
   CALCULATOR_FIELDS_REQUIRED:"入力項目を1つ以上作ってください。",
   FORMULA_REQUIRED:"計算式を入力してください。",
@@ -168,11 +187,14 @@ function viewModal(title, html){
 }
 
 function field(name,label,value="",type="text",extra=""){
-  return `<div class="field"><label>${esc(label)}</label><input name="${esc(name)}" type="${esc(type)}" value="${esc(value)}" ${extra}></div>`;
+  const limit=UI_LIMITS[name];
+  const maxAttr=limit&&["text","search"].includes(type)?` maxlength="${limit}"`:"";
+  return `<div class="field"><label>${esc(label)}</label><input name="${esc(name)}" type="${esc(type)}" value="${esc(value)}"${maxAttr} ${extra}></div>`;
 }
 
 function textarea(name,label,value=""){
-  return `<div class="field"><label>${esc(label)}</label><textarea name="${esc(name)}">${esc(value)}</textarea></div>`;
+  const max=name==="body"?8000:name==="details"?4000:180;
+  return `<div class="field"><label>${esc(label)}</label><textarea name="${esc(name)}" maxlength="${max}">${esc(value)}</textarea></div>`;
 }
 
 function workspacePills(){
@@ -313,6 +335,17 @@ function noteModal(note){
     });
 }
 
+function confirmNoteDelete(note){
+  if(!note) return;
+  modal("メモを削除",
+    `<article class="card"><div class="card-title">${esc(note.title)}</div><div class="muted">このメモを削除します。</div></article>`,
+    async ()=>{
+      await api("noteDelete",{workspaceId:selectedWorkspaceId(),id:Number(note.id)});
+      await loadTab();
+      return true;
+    });
+}
+
 function renderStock(){
   const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort();
   const rows=state.stock.filter(i=>{
@@ -374,7 +407,7 @@ function renderStock(){
 function newStock(){
   modal("在庫品目を追加",
     field("name","品名")+field("category","カテゴリ","general")+
-    `<div class="split">${field("quantity","初期数量","0","number")}${field("minimum","最低在庫","0","number")}</div>`+field("unit","単位","個"),
+    `<div class="split">${field("quantity","初期数量","0","number",'min="0" max="1000000" step="1"')}${field("minimum","最低在庫","0","number",'min="0" max="1000000" step="1"')}</div>`+field("unit","単位","個"),
     async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),category:fd.get("category"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
 }
 
@@ -385,12 +418,12 @@ async function adjustStock(item,delta,note=""){
 
 function customStock(item){
   modal(`${item.name} の数量変更`,
-    field("delta","増減数（減らす場合はマイナス）","0","number")+field("note","メモ"),
+    field("delta","増減数（減らす場合はマイナス）","0","number",'min="-1000000" max="1000000" step="1"')+field("note","メモ"),
     async fd=>{await adjustStock(item,Number(fd.get("delta")),fd.get("note"));return true;});
 }
 
 function configStock(item){
-  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number")}${field("unit","単位",item.unit)}</div>`,
+  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number",'min="0" max="1000000" step="1"')}${field("unit","単位",item.unit)}</div>`,
     async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
 }
 
@@ -414,6 +447,17 @@ async function stockHistory(item){
       <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${num(h.before_quantity).toLocaleString()} → ${num(h.after_quantity).toLocaleString()}</div>
       ${h.note?`<pre class="note-body">${esc(h.note)}</pre>`:""}
     </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');
+}
+
+function confirmTaskDelete(task){
+  if(!task) return;
+  modal("タスクを削除",
+    `<article class="card"><div class="card-title">${esc(task.title)}</div><div class="muted">このタスクを削除します。この操作は取り消せません。</div></article>`,
+    async ()=>{
+      await api("taskDelete",{workspaceId:selectedWorkspaceId(),id:Number(task.id)});
+      await loadTab();
+      return true;
+    });
 }
 
 function taskDueMs(value){
@@ -563,7 +607,7 @@ function renderMoney(){
 
 function newMoney(){
   modal("会計を記録",
-    `<div class="split"><div class="field"><label>区分</label><select name="type"><option value="income">収入</option><option value="expense">支出</option></select></div>${field("amount","金額","0","number","min=\"1\"")}</div>`+
+    `<div class="split"><div class="field"><label>区分</label><select name="type"><option value="income">収入</option><option value="expense">支出</option></select></div>${field("amount","金額","0","number",'min="1" max="1000000000" step="1"')}</div>`+
     field("category","カテゴリ","other")+field("note","内容"),
     async fd=>{await api("moneyAdd",{workspaceId:selectedWorkspaceId(),entryType:fd.get("type"),amount:Number(fd.get("amount")),category:fd.get("category"),note:fd.get("note")});await loadTab();return true;});
 }
@@ -885,7 +929,7 @@ function recordCalculatorResult(calc,result){
         <option value="expense">支出</option>
         <option value="income">収入</option>
       </select></div>
-      ${field("amount","金額",amount,"number","min=\"1\"")}
+      ${field("amount","金額",amount,"number",'min="1" max="1000000000" step="1"')}
     </div>
     ${field("category","カテゴリ","calculation")}
     ${field("note","内容","計算: "+calc.name)}`,
@@ -1023,12 +1067,15 @@ function newWorkspace(){
 
 function bindContent(){
   $("#content").querySelectorAll("[data-action]").forEach(b=>b.onclick=async()=>{
+    if(b.dataset.busy==="1") return;
     const a=b.dataset.action,id=Number(b.dataset.id||0);
+    b.dataset.busy="1";
+    b.disabled=true;
     try{
       if(a==="new-note") noteModal();
       else if(a==="edit-note") noteModal(state.notes.find(x=>Number(x.id)===id));
       else if(a==="pin-note"){await api("notePin",{workspaceId:selectedWorkspaceId(),id,pinned:b.dataset.pinned==="1"});await loadTab();}
-      else if(a==="delete-note"){await api("noteDelete",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
+      else if(a==="delete-note") confirmNoteDelete(state.notes.find(x=>Number(x.id)===id));
       else if(a==="new-stock") newStock();
       else if(a==="stock-adjust") await adjustStock(state.stock.find(x=>Number(x.id)===id),Number(b.dataset.delta));
       else if(a==="stock-custom") customStock(state.stock.find(x=>Number(x.id)===id));
@@ -1038,7 +1085,7 @@ function bindContent(){
       else if(a==="new-task") taskModal();
       else if(a==="task-edit") taskModal(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));
-      else if(a==="task-delete"){await api("taskDelete",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
+      else if(a==="task-delete") confirmTaskDelete(state.tasks.find(x=>Number(x.id)===id));
       else if(a==="new-money") newMoney();
       else if(a==="money-calc") await moneyCalculator();
       else if(a==="void-money"){await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id});await loadTab();}
@@ -1053,6 +1100,10 @@ function bindContent(){
       else if(a==="delete-workspace") deleteWorkspace();
       else if(a==="leave-workspace"){await api("workspaceLeave",{workspaceId:selectedWorkspaceId()});state.workspace=null;await bootstrap();}
     }catch{}
+    finally{
+      b.dataset.busy="0";
+      b.disabled=false;
+    }
   });
 }
 

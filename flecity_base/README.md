@@ -6,7 +6,7 @@ BASE is a shared workspace application for Flecity's LB Phone.
 
 - Automatic personal `MY SPACE`
 - User-created workspaces for businesses, crews, teams, projects, and custom groups
-- Minimal membership model: OWNER / MEMBER
+- Role model: OWNER / MANAGER / MEMBER
 - Invite, accept, decline, leave, remove member
 - Shared memo
 - Inventory ledger with change history
@@ -35,3 +35,14 @@ base_selftest
 ```
 
 Expected result: all checks PASS.
+
+
+## Access model
+
+- OWNER: workspace creator and full workspace administrator.
+- MANAGER: delegated day-to-day management.
+- MEMBER: normal shared-workspace user.
+- ADMIN: server-wide always-on maintenance access through ACE.
+- WEAZEL SUPPORT: server-wide maintenance access that must be explicitly switched ON by an eligible WEAZEL owner/maintainer.
+
+See `ACCESS.md` for server configuration and privacy/audit behavior.

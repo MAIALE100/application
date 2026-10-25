@@ -1,0 +1,73 @@
+name: BASE CI
+
+on:
+  push:
+    branches:
+      - base/workspace-dev
+    paths:
+      - "flecity_base/**"
+      - "base-update.cmd"
+      - "base-update.ps1"
+      - ".github/workflows/base-ci.yml"
+  pull_request:
+    paths:
+      - "flecity_base/**"
+      - "base-update.cmd"
+      - "base-update.ps1"
+      - ".github/workflows/base-ci.yml"
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+
+      - name: Check Lua syntax
+        run: |
+          set -e
+          while IFS= read -r -d '' file; do
+            echo "checking $file"
+            luac5.4 -p "$file"
+          done < <(find flecity_base -type f -name '*.lua' -print0)
+
+      - name: Check BASE JavaScript syntax
+        run: node --check flecity_base/web/app.js
+
+      - name: Enforce LB Phone fixBlur CSS safety
+        run: |
+          if grep -nE '[0-9]+([.][0-9]+)?px' flecity_base/web/app.css; then
+            echo "px units are not allowed while fixBlur is enabled."
+            exit 1
+          fi
+
+      - name: Check PowerShell updater syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "base-update.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Validate required BASE files
+        run: |
+          test -f flecity_base/fxmanifest.lua
+          test -f flecity_base/config.lua
+          test -f flecity_base/client/main.lua
+          test -f flecity_base/server/main.lua
+          test -f flecity_base/server/database.lua
+          test -f flecity_base/web/index.html
+          test -f flecity_base/web/app.css
+          test -f flecity_base/web/app.js
+          test -f flecity_base/web/icon.svg

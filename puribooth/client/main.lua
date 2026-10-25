@@ -29,20 +29,23 @@ local poseAdvanceRequested = false
 local poseShotIndex = 0
 
 local themeRuntimeNonce = ("%d_%d"):format(GetGameTimer(), PlayerId())
-local themeDui = {
+local themeTextures = {
     background = {
-        dui = nil,
         txd = nil,
+        texture = nil,
         txdName = "puribooth_bg_txd_" .. themeRuntimeNonce,
         txnName = "surface"
     },
     floor = {
-        dui = nil,
         txd = nil,
+        texture = nil,
         txdName = "puribooth_floor_txd_" .. themeRuntimeNonce,
         txnName = "surface"
     }
 }
+
+local BLANK_TEXTURE_DATA =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLqWQAAAABJRU5ErkJggg=="
 
 
 local function notify(kind, message)
@@ -152,102 +155,64 @@ local function prepareBooth(raw, fallbackId)
 end
 
 
-local function encodeQueryValue(value)
-    return tostring(value or ""):gsub("([^%w%-_%.~])", function(char)
-        return string.format("%%%02X", string.byte(char))
-    end)
-end
+local function validThemeImage(value)
+    if type(value) ~= "string" then return nil end
+    if #value < 32 or #value > (8 * 1024 * 1024) then return nil end
 
-local function validThemePreset(value)
-    local preset = tostring(value or "pink"):lower()
-    local allowed = {
-        pink = true,
-        white = true,
-        black = true,
-        y2k = true,
-        hearts = true,
-        none = true
-    }
-
-    return allowed[preset] and preset or "pink"
-end
-
-local function validThemeUrl(value)
-    if value == nil or value == "" then return "" end
-    if type(value) ~= "string" or #value > 2048 then return nil end
-
-    local lower = value:lower()
-    if lower:sub(1, 8) == "https://" or lower:sub(1, 7) == "http://" then
+    local lower = value:sub(1, 32):lower()
+    if lower:find("^data:image/") then
         return value
     end
 
     return nil
 end
 
-local function themeSurfaceUrl()
-    return ("nui://%s/ui/surface.html")
-        :format(GetCurrentResourceName())
-end
+local function ensureThemeTexture(kind, image)
+    local slot = themeTextures[kind]
+    if not slot then return false end
 
-local function ensureThemeDui(kind)
-    local slot = themeDui[kind]
-    if not slot then return nil end
-
-    if not slot.dui then
-        slot.dui = CreateDui(
-            themeSurfaceUrl(),
-            1024,
-            1024
-        )
-
-        local deadline = GetGameTimer() + 5000
-        while not IsDuiAvailable(slot.dui) and GetGameTimer() < deadline do
-            Wait(0)
-        end
-
-        if not IsDuiAvailable(slot.dui) then
-            print(("[puribooth] DUI surface failed to become available: %s")
-                :format(kind))
-            return nil
-        end
-
-        -- Give CEF a short paint window before binding the live texture.
-        Wait(300)
-
-        local handle = GetDuiHandle(slot.dui)
+    if not slot.txd then
         slot.txd = CreateRuntimeTxd(slot.txdName)
-        CreateRuntimeTextureFromDuiHandle(
-            slot.txd,
-            slot.txnName,
-            handle
-        )
     end
 
-    return slot
-end
+    if not slot.texture then
+        slot.texture = CreateRuntimeTextureFromImage(
+            slot.txd,
+            slot.txnName,
+            image
+        )
 
-local function applyThemeSurface(kind, spec)
-    local slot = ensureThemeDui(kind)
-    if not slot then return end
+        if not slot.texture then
+            print(("[puribooth] runtime image texture create failed: %s")
+                :format(kind))
+            return false
+        end
 
-    SendDuiMessage(slot.dui, json.encode({
-        action = "setSurface",
-        preset = validThemePreset(spec and spec.preset),
-        url = validThemeUrl(spec and spec.url) or ""
-    }))
+        return true
+    end
+
+    local ok = SetRuntimeTextureImage(slot.texture, image)
+    if not ok then
+        print(("[puribooth] runtime image texture update failed: %s")
+            :format(kind))
+        return false
+    end
+
+    return true
 end
 
 local function clearTheme()
     activeTheme = nil
     SendNUIMessage({ action = "resetTheme" })
 
-    for _, slot in pairs(themeDui) do
-        if slot.dui then
-            SendDuiMessage(slot.dui, json.encode({
-                action = "setSurface",
-                preset = "none",
-                url = ""
-            }))
+    for _, slot in pairs(themeTextures) do
+        if slot.texture then
+            pcall(function()
+                SetRuntimeTextureImage(
+                    slot.texture,
+                    BLANK_TEXTURE_DATA
+                )
+            end)
         end
     end
 end
@@ -312,11 +277,7 @@ local function renderThemeSurfaces(booth)
     local forwardX, forwardY, rightX, rightY = getBasis(booth.heading)
 
     local backgroundSpec = activeTheme.background
-    if backgroundSpec
-        and (
-            validThemePreset(backgroundSpec.preset) ~= "none"
-            or (validThemeUrl(backgroundSpec.url) or "") ~= ""
-        ) then
+    if backgroundSpec and backgroundSpec.enabled then
 
         local bg = surfaces.background or {}
         local center = offsetFromBooth(
@@ -350,8 +311,8 @@ local function renderThemeSurfaces(booth)
             center.z + height
         )
 
-        local slot = themeDui.background
-        if slot and slot.dui then
+        local slot = themeTextures.background
+        if slot and slot.texture then
             drawTexturedQuad(
                 topLeft,
                 topRight,
@@ -364,11 +325,7 @@ local function renderThemeSurfaces(booth)
     end
 
     local floorSpec = activeTheme.floor
-    if floorSpec
-        and (
-            validThemePreset(floorSpec.preset) ~= "none"
-            or (validThemeUrl(floorSpec.url) or "") ~= ""
-        ) then
+    if floorSpec and floorSpec.enabled then
 
         local floor = surfaces.floor or {}
         local center = offsetFromBooth(
@@ -394,8 +351,8 @@ local function renderThemeSurfaces(booth)
         local backRight = floorCorner(halfWidth, -halfDepth)
         local frontRight = floorCorner(halfWidth, halfDepth)
 
-        local slot = themeDui.floor
-        if slot and slot.dui then
+        local slot = themeTextures.floor
+        if slot and slot.texture then
             drawTexturedQuad(
                 backLeft,
                 backRight,
@@ -1261,30 +1218,39 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
     local background = type(data) == "table" and data.background or {}
     local floor = type(data) == "table" and data.floor or {}
 
-    local backgroundUrl = validThemeUrl(background and background.url)
-    local floorUrl = validThemeUrl(floor and floor.url)
+    local backgroundEnabled = background and background.enabled == true
+    local floorEnabled = floor and floor.enabled == true
+    local backgroundImage = backgroundEnabled and validThemeImage(background.image) or nil
+    local floorImage = floorEnabled and validThemeImage(floor.image) or nil
 
-    if backgroundUrl == nil or floorUrl == nil then
-        cb({ ok = false, error = "invalid_url" })
+    if backgroundEnabled and not backgroundImage then
+        cb({ ok = false, error = "invalid_background_image" })
+        return
+    end
+
+    if floorEnabled and not floorImage then
+        cb({ ok = false, error = "invalid_floor_image" })
+        return
+    end
+
+    if backgroundEnabled and not ensureThemeTexture("background", backgroundImage) then
+        cb({ ok = false, error = "background_texture_failed" })
+        return
+    end
+
+    if floorEnabled and not ensureThemeTexture("floor", floorImage) then
+        cb({ ok = false, error = "floor_texture_failed" })
         return
     end
 
     activeTheme = {
-        background = {
-            preset = validThemePreset(background and background.preset),
-            url = backgroundUrl
-        },
-        floor = {
-            preset = validThemePreset(floor and floor.preset),
-            url = floorUrl
-        }
+        background = { enabled = backgroundEnabled },
+        floor = { enabled = floorEnabled }
     }
 
-    applyThemeSurface("background", activeTheme.background)
-    applyThemeSurface("floor", activeTheme.floor)
-
-    -- Allow the DUI page one render beat to apply the new surface message.
-    Wait(100)
+    -- Do not retain the large base64 strings after runtime textures are made.
+    backgroundImage = nil
+    floorImage = nil
 
     ownedSession.phase = "gathering"
     SetNuiFocus(false, false)
@@ -1723,14 +1689,6 @@ AddEventHandler("onResourceStop", function(resource)
     destroyPreviewCamera(false)
     cleanupPlacement()
     clearTheme()
-
-    for _, slot in pairs(themeDui) do
-        if slot.dui then
-            DestroyDui(slot.dui)
-            slot.dui = nil
-            slot.txd = nil
-        end
-    end
 
     for boothId in pairs(spawnedObjects) do
         removeSpawnedBooth(boothId)

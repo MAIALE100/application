@@ -80,6 +80,14 @@ These checks can be completed by one tester on the test server.
 - Save calculator result directly to the ledger.
 - Calculator remains after `restart flecity_base`.
 
+## Guided first-use UI
+
+- Empty memo, stock, task, and accounting pages explain what to create first.
+- OWNER/MANAGER empty states expose the correct first-action button.
+- Workspace status shows BASE type, current role, and member count.
+- Members page shows BASE type, member count, creation time, and app version.
+- Switching BASE workspaces updates the context display immediately.
+
 ## Large-list usability
 
 - Memo shows total / matched / displayed counts.
@@ -169,3 +177,13 @@ These should not block solo development.
 - Payroll / time clock
 - Reusable user-created workspace templates
 - Job / gang / society linking
+
+
+## Submission package
+
+- Run `base-package.cmd` from the repository root.
+- The package must contain a single `flecity_base` resource folder.
+- The package must not contain `base-update.*`, development machine paths, `INSTALL.md`, or `TESTING.md`.
+- Packaged `config.lua` uses `FlecityBaseConfig.Debug = false`.
+- `OPERATOR_GUIDE.md` and `ACCESS.md` are included.
+- The package passes Lua/JavaScript/CSS safety checks when the corresponding local tools are available.

@@ -19,12 +19,7 @@ From `D:\FiveM_Dev\application` run:
 Then in txAdmin console:
 
 ```
-ensure flecity_base
-```
-
-For later updates:
-
-```
+refresh
 restart flecity_base
 ```
 
@@ -42,7 +37,7 @@ Set the environment variable `FLECITY_BASE_TARGET` to override that destination.
 
 ## Production submission
 
-Production packaging will be generated separately after live testing. The production package must not contain development updater scripts or machine-specific paths.
+A clean submission candidate can be generated from the repository root with `base-package.cmd`. The ZIP excludes development updater scripts, test-only documentation, and machine-specific paths. The packaged config uses `Debug=false` without changing the development branch.
 
 
 ## Production access configuration

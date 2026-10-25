@@ -14,7 +14,7 @@ Config.Debug = false
 Config.AdminAce = "group.admin"
 Config.AdminRemoveDistance = 6.0
 Config.AllowFirstAdminClaim = true
-Config.AdminPlaceMaxDistance = 7.0
+Config.AdminPlaceMaxDistance = 15.0
 
 Config.PlacementPreview = {
     initialDistance = 2.0,

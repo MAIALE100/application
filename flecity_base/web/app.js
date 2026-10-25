@@ -273,9 +273,18 @@ async function bootstrap(preferredId){
   else status("BASEがありません。");
 }
 
+function resetListViews(){
+  state.memoQuery=""; state.memoCategory="all"; state.memoLimit=40;
+  state.stockQuery=""; state.stockFilter="all"; state.stockCategory="all"; state.stockLimit=50;
+  state.taskQuery=""; state.taskFilter="all"; state.showCompleted=false; state.taskLimit=50;
+  state.moneyQuery=""; state.moneyType="all"; state.moneyCategory="all"; state.showVoidedMoney=false; state.moneyLimit=50;
+}
+
 async function openWorkspace(id){
+  const previousId=selectedWorkspaceId();
   const data=await api("workspaceGet",{workspaceId:id});
   state.workspace=data.workspace;
+  if(previousId!==null&&Number(previousId)!==Number(id)) resetListViews();
   state.members=data.members || [];
   workspacePills();
   const accessNote=state.workspace.access_mode==="admin"?" ・ ADMIN ACCESS":state.workspace.access_mode==="weazel_support"?" ・ WEAZEL SUPPORT":"";

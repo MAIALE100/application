@@ -1315,3 +1315,31 @@ body.party-round.party-shogi #roundPanel{padding-left:.18rem;padding-right:.18re
 body.party-round.party-shogi #miniShogiPanel{overflow:visible}
 body.party-round.party-shogi #miniShogiMeta{margin-top:.16rem;padding:.56rem .62rem;min-height:2.25rem;font-size:.72rem}
 body.party-round.party-shogi #miniShogiStatus{margin-bottom:.24rem}
+
+/* SHOGI vertical centering pass */
+body.party-round.party-shogi #roundPanel{
+  padding-top:.7rem;
+}
+body.party-round.party-shogi #miniShogiPanel{
+  margin-top:.75rem;
+}
+body.party-round.party-shogi #miniShogiStatus{
+  margin:0 0 .38rem;
+}
+body.party-round.party-shogi .mini-shogi-board{
+  margin:.48rem auto .3rem;
+}
+body.party-round.party-shogi .mini-shogi-hands{
+  margin:.12rem 0;
+}
+body.party-round.party-shogi #miniShogiMeta{
+  margin-top:.18rem;
+}
+@media(max-width:22.5rem){
+  body.party-round.party-shogi #roundPanel{
+    padding-top:.62rem;
+  }
+  body.party-round.party-shogi #miniShogiPanel{
+    margin-top:.68rem;
+  }
+}

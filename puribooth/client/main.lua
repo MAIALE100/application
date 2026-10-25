@@ -1437,6 +1437,19 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
         return
     end
 
+    if GetResourceState("puriphoto") ~= "started" then
+        notify(
+            "error",
+            "PuriPhotoが停止中です。編集内容はこの画面に残してあります。起動後にもう一度送信してください。"
+        )
+
+        cb({
+            ok = false,
+            error = "puriphoto_not_started"
+        })
+        return
+    end
+
     SetNuiFocus(false, false)
     editorOpen = false
     SendNUIMessage({ action = "close" })
@@ -1454,28 +1467,16 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
     ownedSession = nil
     editorBooth = nil
 
-    if GetResourceState("puriphoto") == "started" then
-        TriggerEvent(
-            "puriphoto:client:openBoothImport",
-            image,
-            metadata
-        )
+    TriggerEvent(
+        "puriphoto:client:openBoothImport",
+        image,
+        metadata
+    )
 
-        cb({
-            ok = true,
-            handoff = "puriphoto"
-        })
-    else
-        notify(
-            "error",
-            "PuriPhotoが起動していないため画像を渡せませんでした。"
-        )
-
-        cb({
-            ok = false,
-            error = "puriphoto_not_started"
-        })
-    end
+    cb({
+        ok = true,
+        handoff = "puriphoto"
+    })
 end)
 
 RegisterNUICallback("puriboothCancel", function(_, cb)

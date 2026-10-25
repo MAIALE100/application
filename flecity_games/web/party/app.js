@@ -883,7 +883,7 @@ function renderRoom(room,timing){
      serverOffsetReady=true;
    }
  }
- entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
+ entryEl.classList.add('hidden');roomEl.classList.remove('hidden');statusEl.classList.add('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
    gameEl.value=room.selectedGame||'code_break';gameEl.disabled=!room.isHost;renderGameInfo(gameEl.value);
@@ -905,14 +905,14 @@ function renderRoom(room,timing){
    shogiOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'1人プレイ時のAI強さを選べます。':'2人対戦ではAI強さは使用しません。';
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
-   readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';status('ロビー準備完了。','good');
+   readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';
  }else{
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
    const activeGame=selectedGameConfig(room);
    roundHudGame.textContent=String(activeGame&&activeGame.name||room.selectedGame||'ゲーム');
    roundHudMeta.textContent='ROOM '+String(room.code||'----')+' · '+(Number(room.connectedCount)||0)+'人';
-   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));status('ラウンド '+room.round+' / '+String(activeGame&&activeGame.name||room.selectedGame),'good');
+   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));
    startDeadlineLoop(rs);
    if(rs&&rs.gameId==='code_break')setupCodeBreak(room);
    else if(rs&&rs.gameId==='reversi')setupReversi(room);

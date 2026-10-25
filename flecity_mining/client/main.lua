@@ -1,7 +1,6 @@
 local state = {
     active = false,
     rawOre = 0,
-    maxRawOre = Config.MaxRawOre,
     refined = {},
     refinedCount = 0,
     nodeCooldowns = {},
@@ -112,19 +111,13 @@ local function updateGuidanceRoute()
         return
     end
 
-    if (state.rawOre or 0) >= (state.maxRawOre or Config.MaxRawOre) then
-        if inside and Config.MineAccess and Config.MineAccess.inside then
-            local p = Config.MineAccess.inside
-            setRoute(vector3(p.x, p.y, p.z), '坑道出口')
-        else
+    if not inside then
+        if (state.rawOre or 0) > 0 then
             setRoute(Config.Processor.coords, '選鉱設備')
+        elseif Config.MineAccess and Config.MineAccess.outside then
+            local p = Config.MineAccess.outside
+            setRoute(vector3(p.x, p.y, p.z), '坑道入口')
         end
-        return
-    end
-
-    if not inside and Config.MineAccess and Config.MineAccess.outside then
-        local p = Config.MineAccess.outside
-        setRoute(vector3(p.x, p.y, p.z), '坑道入口')
         return
     end
 
@@ -179,9 +172,8 @@ local function refinedSummary()
 end
 
 local function showStatus()
-    notify(('原石 %d/%d | 精製鉱石 %s'):format(
+    notify(('原石 %d個 | 精製鉱石 %s'):format(
         state.rawOre or 0,
-        state.maxRawOre or Config.MaxRawOre,
         refinedSummary()
     ))
 end
@@ -405,24 +397,43 @@ local function startDrillPresentation(ped, node)
         return false
     end
 
-    local offset = cfg.propOffset or vector3(0.15, 0.0, -0.05)
-    local rotation = cfg.propRotation or vector3(0.0, 90.0, 90.0)
+    local offset = cfg.propOffset or vector3(0.14, 0.0, -0.01)
+    local rotation = cfg.propRotation or vector3(90.0, -90.0, 180.0)
     AttachEntityToEntity(
         prop,
         ped,
         GetPedBoneIndex(ped, tonumber(cfg.propBone) or 57005),
         offset.x, offset.y, offset.z,
         rotation.x, rotation.y, rotation.z,
-        false, false, false, false, 2, true
+        true, true, false, true, 1, true
     )
+
+    local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
+    local animName = cfg.animName or 'drill_straight_idle'
+    local animFlags = tonumber(cfg.animFlags) or 1
 
     TaskPlayAnim(
         ped,
-        cfg.animDict or 'anim@heists@fleeca_bank@drilling',
-        cfg.animName or 'drill_left',
-        3.0, 3.0, -1, tonumber(cfg.animFlags) or 49, 0.0,
+        animDict,
+        animName,
+        8.0, -8.0, -1, animFlags, 0.0,
         false, false, false
     )
+
+    -- Some ped states can swallow the first TaskPlayAnim call. Verify and retry
+    -- once so an approved mining action never looks completely unresponsive.
+    Wait(150)
+    if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+        ClearPedSecondaryTask(ped)
+        TaskPlayAnim(
+            ped,
+            animDict,
+            'drill_straight_idle',
+            8.0, -8.0, -1, 1, 0.0,
+            false, false, false
+        )
+        Wait(100)
+    end
 
     activeMineProp = prop
     activeMineTarget = wallTarget
@@ -510,7 +521,8 @@ local function runApprovedAction(data)
         local node = findNode(data.nodeId)
         usedDrill = startDrillPresentation(ped, node)
         if not usedDrill then
-            TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_CONST_DRILL', 0, true)
+            notify('ドリル演出の読み込みに失敗したため簡易採掘へ切り替えました。')
+            TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_HAMMERING', 0, true)
         end
     else
         local scenario = scenarios[actionType]
@@ -595,7 +607,6 @@ RegisterNetEvent('flecity_mining:client:state', function(newState)
 
     state.active = newState.active == true
     state.rawOre = tonumber(newState.rawOre) or 0
-    state.maxRawOre = tonumber(newState.maxRawOre) or Config.MaxRawOre
     state.refined = type(newState.refined) == 'table' and newState.refined or {}
     state.refinedCount = tonumber(newState.refinedCount) or 0
     state.nodeCooldowns = type(newState.nodeCooldowns) == 'table' and newState.nodeCooldowns or {}
@@ -783,9 +794,14 @@ CreateThread(function()
 
                 if processorDistance <= Config.InteractDistance then
                     if state.rawOre > 0 then
+                        local batchSize = math.max(1, tonumber(Config.ProcessingBatchSize) or 100)
+                        local batch = math.min(state.rawOre, batchSize)
+                        local label = state.rawOre > batch
+                            and ('[E] 原石を選鉱 (%d/%d個)'):format(batch, state.rawOre)
+                            or ('[E] 原石を選鉱 (%d個)'):format(state.rawOre)
                         draw3DText(
                             Config.Processor.coords + vector3(0.0, 0.0, 1.0),
-                            ('[E] 原石を選鉱 (%d個)'):format(state.rawOre)
+                            label
                         )
 
                         if not busy and IsControlJustReleased(0, 38) then
@@ -817,17 +833,13 @@ CreateThread(function()
                     end
 
                     if nodeDistance <= Config.InteractDistance then
-                        if state.rawOre < state.maxRawOre then
-                            draw3DText(
-                                node.coords + vector3(0.0, 0.0, 0.75),
-                                ('[E] 壁面をドリル採掘  原石 %d/%d'):format(state.rawOre, state.maxRawOre)
-                            )
+                        draw3DText(
+                            node.coords + vector3(0.0, 0.0, 0.75),
+                            ('[E] 壁面をドリル採掘  原石 %d個'):format(state.rawOre)
+                        )
 
-                            if not busy and IsControlJustReleased(0, 38) then
-                                TriggerServerEvent('flecity_mining:server:beginMine', node.id)
-                            end
-                        else
-                            draw3DText(node.coords + vector3(0.0, 0.0, 0.75), '原石が満載です')
+                        if not busy and IsControlJustReleased(0, 38) then
+                            TriggerServerEvent('flecity_mining:server:beginMine', node.id)
                         end
                     end
                 end

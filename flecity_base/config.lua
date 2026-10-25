@@ -38,6 +38,18 @@ FlecityBaseConfig.Limits = {
 
 FlecityBaseConfig.InviteExpiryHours = 72
 
+FlecityBaseConfig.Access = {
+    adminAce = 'flecity.base.admin',
+    weazelSupportAce = 'flecity.base.weazel_support',
+    weazelJob = 'weazel',
+    weazelRequireBoss = true,
+    -- Optional minimum grade when the server does not expose job.isboss.
+    weazelMinimumGrade = 99,
+    -- Support mode is intentionally session-only and OFF after reconnect/resource restart.
+    supportDefault = false
+}
+
+
 FlecityBaseConfig.WorkspaceTemplates = {
     personal = { label = 'MY SPACE', modules = { memo = true, stock = true, tasks = true, money = true } },
     business = { label = '企業', modules = { memo = true, stock = true, tasks = true, money = true } },

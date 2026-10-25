@@ -108,7 +108,6 @@ local function validateRuntimeConfig()
 
     local drill = Config.DrillVisuals
     if type(drill) ~= 'table'
-        or type(drill.model) ~= 'string' or drill.model == ''
         or drill.mode ~= 'scenario'
         or type(drill.scenario) ~= 'string' or drill.scenario == ''
         or type(drill.cleanupProps) ~= 'table' or #drill.cleanupProps == 0 then

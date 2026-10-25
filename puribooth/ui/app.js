@@ -33,6 +33,11 @@
         drawing: false,
         drawEnabled: false,
         activeStroke: null,
+        history: [],
+        future: [],
+        selectedDecoration: null,
+        draggingDecoration: false,
+        dragOffset: { x: 0, y: 0 },
         theme: {
             backgroundPreset: 'pink',
             floorPreset: 'pink'
@@ -261,6 +266,98 @@
     const photoFilter = () =>
         `brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturation}%) blur(${state.softness}px)`
 
+    const cloneDecorations = () => ({
+        stickers: state.stickers.map(item => ({ ...item })),
+        texts: state.texts.map(item => ({ ...item })),
+        strokes: state.strokes.map(stroke => ({
+            ...stroke,
+            points: stroke.points.map(point => ({ ...point }))
+        }))
+    })
+
+    const updateHistoryButtons = () => {
+        const undo = document.getElementById('undoButton')
+        const redo = document.getElementById('redoButton')
+        const del = document.getElementById('deleteSelectedButton')
+        if (undo) undo.disabled = state.history.length === 0
+        if (redo) redo.disabled = state.future.length === 0
+        if (del) del.disabled = !state.selectedDecoration
+    }
+
+    const restoreDecorations = snapshot => {
+        state.stickers = snapshot.stickers.map(item => ({ ...item }))
+        state.texts = snapshot.texts.map(item => ({ ...item }))
+        state.strokes = snapshot.strokes.map(stroke => ({
+            ...stroke,
+            points: stroke.points.map(point => ({ ...point }))
+        }))
+        state.selectedDecoration = null
+        state.draggingDecoration = false
+        updateHistoryButtons()
+        render()
+    }
+
+    const pushDecorationHistory = () => {
+        state.history.push(cloneDecorations())
+        if (state.history.length > 30) state.history.shift()
+        state.future = []
+        updateHistoryButtons()
+    }
+
+    const undoDecoration = () => {
+        if (!state.history.length) return
+        state.future.push(cloneDecorations())
+        restoreDecorations(state.history.pop())
+        toolStatus.textContent = '装飾を1つ戻しました'
+    }
+
+    const redoDecoration = () => {
+        if (!state.future.length) return
+        state.history.push(cloneDecorations())
+        restoreDecorations(state.future.pop())
+        toolStatus.textContent = '装飾をやり直しました'
+    }
+
+    const decorationHitTest = point => {
+        for (let i = state.texts.length - 1; i >= 0; i--) {
+            const item = state.texts[i]
+            ctx.save()
+            ctx.font = `900 ${item.size}px "Noto Sans JP",sans-serif`
+            const metrics = ctx.measureText(item.value)
+            ctx.restore()
+            const halfW = Math.max(item.size, metrics.width) * .55
+            const halfH = item.size * .7
+            if (
+                point.x >= item.x - halfW
+                && point.x <= item.x + halfW
+                && point.y >= item.y - halfH
+                && point.y <= item.y + halfH
+            ) {
+                return { type: 'text', index: i }
+            }
+        }
+
+        for (let i = state.stickers.length - 1; i >= 0; i--) {
+            const item = state.stickers[i]
+            const radius = item.size * .58
+            const dx = point.x - item.x
+            const dy = point.y - item.y
+            if ((dx * dx + dy * dy) <= radius * radius) {
+                return { type: 'sticker', index: i }
+            }
+        }
+
+        return null
+    }
+
+    const selectedDecorationItem = () => {
+        const selected = state.selectedDecoration
+        if (!selected) return null
+        if (selected.type === 'text') return state.texts[selected.index] || null
+        if (selected.type === 'sticker') return state.stickers[selected.index] || null
+        return null
+    }
+
     const drawPhotos = () => {
         ctx.save()
         ctx.filter = photoFilter()
@@ -378,6 +475,38 @@
             ctx.stroke()
             ctx.restore()
         })
+
+        const selected = selectedDecorationItem()
+        if (selected) {
+            ctx.save()
+            ctx.setLineDash([12, 8])
+            ctx.lineWidth = 4
+            ctx.strokeStyle = '#ffffff'
+            ctx.shadowColor = '#ff4fa3'
+            ctx.shadowBlur = 8
+
+            if (state.selectedDecoration.type === 'sticker') {
+                const radius = selected.size * .68
+                ctx.strokeRect(
+                    selected.x - radius,
+                    selected.y - radius,
+                    radius * 2,
+                    radius * 2
+                )
+            } else {
+                ctx.font = `900 ${selected.size}px "Noto Sans JP",sans-serif`
+                const width = Math.max(selected.size, ctx.measureText(selected.value).width) + 28
+                const height = selected.size * 1.5
+                ctx.strokeRect(
+                    selected.x - width / 2,
+                    selected.y - height / 2,
+                    width,
+                    height
+                )
+            }
+
+            ctx.restore()
+        }
     }
 
     const render = () => {
@@ -391,16 +520,36 @@
         ctx.restore()
     }
 
-    const resetDecorations = () => {
+    const resetDecorations = (recordHistory = true) => {
+        if (
+            recordHistory
+            && (
+                state.stickers.length
+                || state.texts.length
+                || state.strokes.length
+            )
+        ) {
+            pushDecorationHistory()
+        }
+
         state.stickers = []
         state.texts = []
         state.strokes = []
         state.armedStamp = null
         state.armedText = false
         state.drawEnabled = false
+        state.selectedDecoration = null
+        state.draggingDecoration = false
+
+        if (!recordHistory) {
+            state.history = []
+            state.future = []
+        }
+
         document.querySelectorAll('[data-stamp]').forEach(button => button.classList.remove('active'))
         document.getElementById('drawToggle').textContent = 'ペン ON'
-        toolStatus.textContent = '装飾をリセットしました'
+        toolStatus.textContent = recordHistory ? '装飾をリセットしました' : '編集できます'
+        updateHistoryButtons()
         render()
     }
 
@@ -496,7 +645,12 @@
     })
 
     document.getElementById('clearDrawButton').addEventListener('click', () => {
+        if (!state.strokes.length) return
+        pushDecorationHistory()
         state.strokes = []
+        state.selectedDecoration = null
+        updateHistoryButtons()
+        toolStatus.textContent = '落書きを消しました'
         render()
     })
 
@@ -512,6 +666,8 @@
         const point = canvasPoint(event)
 
         if (state.drawEnabled) {
+            pushDecorationHistory()
+            state.selectedDecoration = null
             state.drawing = true
             canvas.setPointerCapture(event.pointerId)
             const stroke = {
@@ -521,11 +677,13 @@
             }
             state.activeStroke = stroke
             state.strokes.push(stroke)
+            updateHistoryButtons()
             render()
             return
         }
 
         if (state.armedStamp) {
+            pushDecorationHistory()
             state.stickers.push({
                 value: state.armedStamp,
                 x: point.x,
@@ -533,8 +691,13 @@
                 size: Number(document.getElementById('stampSize').value)
             })
             state.armedStamp = null
+            state.selectedDecoration = {
+                type: 'sticker',
+                index: state.stickers.length - 1
+            }
             document.querySelectorAll('[data-stamp]').forEach(item => item.classList.remove('active'))
-            toolStatus.textContent = 'スタンプを配置しました'
+            toolStatus.textContent = 'スタンプを配置しました。ドラッグで移動できます'
+            updateHistoryButtons()
             render()
             return
         }
@@ -542,6 +705,7 @@
         if (state.armedText) {
             const value = document.getElementById('textInput').value.trim()
             if (value) {
+                pushDecorationHistory()
                 state.texts.push({
                     value,
                     x: point.x,
@@ -550,23 +714,74 @@
                     color: document.getElementById('textColor').value
                 })
                 state.armedText = false
-                toolStatus.textContent = '文字を配置しました'
+                state.selectedDecoration = {
+                    type: 'text',
+                    index: state.texts.length - 1
+                }
+                toolStatus.textContent = '文字を配置しました。ドラッグで移動できます'
+                updateHistoryButtons()
                 render()
             }
+            return
         }
-    })
 
-    canvas.addEventListener('pointermove', event => {
-        if (!state.drawing || !state.activeStroke) return
-        state.activeStroke.points.push(canvasPoint(event))
+        const hit = decorationHitTest(point)
+        state.selectedDecoration = hit
+        updateHistoryButtons()
+
+        if (hit) {
+            const item = selectedDecorationItem()
+            pushDecorationHistory()
+            state.draggingDecoration = true
+            state.dragOffset = {
+                x: point.x - item.x,
+                y: point.y - item.y
+            }
+            canvas.setPointerCapture(event.pointerId)
+            toolStatus.textContent = '選択中。ドラッグで移動、右の「選択を削除」で消せます'
+        } else {
+            toolStatus.textContent = '編集できます'
+        }
+
         render()
     })
 
+    canvas.addEventListener('pointermove', event => {
+        const point = canvasPoint(event)
+
+        if (state.drawing && state.activeStroke) {
+            state.activeStroke.points.push(point)
+            render()
+            return
+        }
+
+        if (state.draggingDecoration && state.selectedDecoration) {
+            const item = selectedDecorationItem()
+            if (!item) return
+
+            item.x = Math.max(
+                0,
+                Math.min(canvas.width, point.x - state.dragOffset.x)
+            )
+            item.y = Math.max(
+                0,
+                Math.min(canvas.height, point.y - state.dragOffset.y)
+            )
+            render()
+        }
+    })
+
     const finishStroke = event => {
-        if (!state.drawing) return
         state.drawing = false
         state.activeStroke = null
-        if (event.pointerId !== undefined && canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
+        state.draggingDecoration = false
+
+        if (
+            event.pointerId !== undefined
+            && canvas.hasPointerCapture(event.pointerId)
+        ) {
+            canvas.releasePointerCapture(event.pointerId)
+        }
     }
     canvas.addEventListener('pointerup', finishStroke)
     canvas.addEventListener('pointercancel', finishStroke)
@@ -643,7 +858,27 @@
         themeSetup.classList.add('hidden')
     })
 
-    document.getElementById('resetButton').addEventListener('click', resetDecorations)
+    document.getElementById('undoButton').addEventListener('click', undoDecoration)
+    document.getElementById('redoButton').addEventListener('click', redoDecoration)
+    document.getElementById('deleteSelectedButton').addEventListener('click', () => {
+        const selected = state.selectedDecoration
+        if (!selected) return
+
+        pushDecorationHistory()
+
+        if (selected.type === 'sticker') {
+            state.stickers.splice(selected.index, 1)
+        } else if (selected.type === 'text') {
+            state.texts.splice(selected.index, 1)
+        }
+
+        state.selectedDecoration = null
+        updateHistoryButtons()
+        toolStatus.textContent = '選択した装飾を削除しました'
+        render()
+    })
+
+    document.getElementById('resetButton').addEventListener('click', () => resetDecorations(true))
 
     document.getElementById('cancelButton').addEventListener('click', async () => {
         await post('puriboothCancel')
@@ -708,7 +943,7 @@
 
         try {
             state.images = await Promise.all(state.shots.map(loadImage))
-            resetDecorations()
+            resetDecorations(false)
             app.classList.remove('hidden')
             render()
         } catch (error) {

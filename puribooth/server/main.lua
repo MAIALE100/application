@@ -6,12 +6,49 @@ local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
 end
 
+local function getStableIdentifier(source)
+    local identifiers = GetPlayerIdentifiers(source)
+
+    for _, identifier in ipairs(identifiers) do
+        if identifier:sub(1, 8) == "license:" then
+            return identifier
+        end
+    end
+
+    for _, identifier in ipairs(identifiers) do
+        if identifier:sub(1, 6) == "fivem:" then
+            return identifier
+        end
+    end
+
+    return nil
+end
+
+local function isStoredAdmin(source)
+    if not databaseReady then return false end
+
+    local identifier = getStableIdentifier(source)
+    if not identifier then return false end
+
+    local exists = MySQL.scalar.await(
+        "SELECT 1 FROM puribooth_admins WHERE identifier = ? LIMIT 1",
+        { identifier }
+    )
+
+    return exists ~= nil
+end
+
 local function isAdmin(source)
     if source == 0 then return true end
 
     local ace = Config.AdminAce or "group.admin"
-    return IsPlayerAceAllowed(source, ace)
-        or IsPlayerAceAllowed(source, "group.god")
+
+    if IsPlayerAceAllowed(source, ace)
+        or IsPlayerAceAllowed(source, "group.god") then
+        return true
+    end
+
+    return isStoredAdmin(source)
 end
 
 local function boothCount()
@@ -125,6 +162,15 @@ local function loadBooths()
 end
 
 CreateThread(function()
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS puribooth_admins (
+            identifier VARCHAR(96) NOT NULL,
+            player_name VARCHAR(96) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (identifier)
+        )
+    ]])
+
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS puribooth_booths (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -274,9 +320,64 @@ local function removeNearestBooth(source)
     notify(source, "inform", ("プリクラ台 #%s を撤去しました。"):format(nearestId))
 end
 
+local function claimFirstAdmin(source)
+    if not Config.AllowFirstAdminClaim then
+        notify(source, "error", "初回管理者登録は無効です。")
+        return
+    end
+
+    if not databaseReady then
+        notify(source, "error", "プリクラ台データベースを準備中です。")
+        return
+    end
+
+    local adminCount = tonumber(MySQL.scalar.await(
+        "SELECT COUNT(*) FROM puribooth_admins"
+    )) or 0
+
+    if adminCount > 0 then
+        if isAdmin(source) then
+            notify(source, "inform", "すでにPuriBooth管理権限があります。")
+        else
+            notify(source, "error", "初回管理者はすでに登録済みです。")
+        end
+        return
+    end
+
+    local identifier = getStableIdentifier(source)
+    if not identifier then
+        notify(source, "error", "プレイヤー識別子を取得できませんでした。")
+        return
+    end
+
+    local inserted = MySQL.insert.await([[
+        INSERT INTO puribooth_admins
+            (identifier, player_name)
+        VALUES (?, ?)
+    ]], {
+        identifier,
+        GetPlayerName(source) or "unknown"
+    })
+
+    if not inserted then
+        notify(source, "error", "管理者登録に失敗しました。")
+        return
+    end
+
+    notify(source, "inform", "PuriBooth管理者として登録しました。")
+    print(("[puribooth] first admin claimed by source %d"):format(source))
+end
+
 RegisterCommand("puribooth", function(source, args)
     if source == 0 then
         print("[puribooth] player usage: /puribooth place | remove | list")
+        return
+    end
+
+    local action = string.lower(tostring(args[1] or ""))
+
+    if action == "claimadmin" then
+        claimFirstAdmin(source)
         return
     end
 
@@ -284,8 +385,6 @@ RegisterCommand("puribooth", function(source, args)
         notify(source, "error", "このコマンドには管理権限が必要です。")
         return
     end
-
-    local action = string.lower(tostring(args[1] or ""))
 
     if action == "place" then
         TriggerClientEvent("puribooth:client:adminPlaceHere", source)
@@ -302,7 +401,7 @@ RegisterCommand("puribooth", function(source, args)
         return
     end
 
-    notify(source, "inform", "/puribooth place  /puribooth remove  /puribooth list")
+    notify(source, "inform", "/puribooth claimadmin  /puribooth place  /puribooth remove  /puribooth list")
 end, false)
 
 RegisterNetEvent("puribooth:server:startSession", function(boothId)

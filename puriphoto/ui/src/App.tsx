@@ -420,11 +420,14 @@ const App = () => {
     useEffect(() => {
         void loadBoothImport()
 
-        if (typeof useNuiEvent === 'function') {
-            useNuiEvent<{ event?: string }>('boothImportAvailable', () => {
+        const handleBoothImportMessage = (event: MessageEvent<{ action?: string }>) => {
+            if (event.data?.action === 'boothImportAvailable') {
                 void loadBoothImport()
-            })
+            }
         }
+
+        window.addEventListener('message', handleBoothImportMessage)
+        return () => window.removeEventListener('message', handleBoothImportMessage)
     }, [])
 
     const takePhoto = () => {

@@ -1,6 +1,6 @@
 const statusEl=document.getElementById('status'),entryEl=document.getElementById('entry'),roomEl=document.getElementById('room'),roomCodeEl=document.getElementById('roomCode'),playersEl=document.getElementById('players'),readySummary=document.getElementById('readySummary');
 const codeEl=document.getElementById('code'),createBtn=document.getElementById('create'),joinBtn=document.getElementById('join'),leaveBtn=document.getElementById('leave'),readyBtn=document.getElementById('ready'),startBtn=document.getElementById('start'),gameEl=document.getElementById('game'),gameInfo=document.getElementById('gameInfo');
-const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline');
+const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline'),roundHudGame=document.getElementById('roundHudGame'),roundHudMeta=document.getElementById('roundHudMeta'),roundLeave=document.getElementById('roundLeave');
 const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
 const shogiLobbyOptions=document.getElementById('shogiLobbyOptions'),shogiAiDifficulty=document.getElementById('shogiAiDifficulty'),shogiOptionsNote=document.getElementById('shogiOptionsNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
@@ -128,6 +128,7 @@ function hideRoundGames(){
 }
 function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
+ document.body.classList.remove('party-room','party-round');
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
 }
 function submissionProgress(rs){
@@ -870,6 +871,8 @@ function renderRoom(room,timing){
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
  currentRoom=room;ready=room.selfReady===true;roomPushEnabled=true;
+ document.body.classList.add('party-room');
+ document.body.classList.toggle('party-round',room.state!=='lobby');
  if(Number.isFinite(Number(room.serverTick))){
    if(timing&&Number.isFinite(timing.started)&&Number.isFinite(timing.received)){
      const midpoint=(timing.started+timing.received)/2;
@@ -906,7 +909,10 @@ function renderRoom(room,timing){
  }else{
    lobbyPanel.classList.add('hidden');roundPanel.classList.remove('hidden');
    const rs=room.roundState;
-   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));const activeGame=selectedGameConfig(room);status('ラウンド '+room.round+' / '+String(activeGame&&activeGame.name||room.selectedGame),'good');
+   const activeGame=selectedGameConfig(room);
+   roundHudGame.textContent=String(activeGame&&activeGame.name||room.selectedGame||'ゲーム');
+   roundHudMeta.textContent='ROOM '+String(room.code||'----')+' · '+(Number(room.connectedCount)||0)+'人';
+   lobbyBtn.classList.toggle('hidden',!room.isHost||!(rs&&rs.complete));status('ラウンド '+room.round+' / '+String(activeGame&&activeGame.name||room.selectedGame),'good');
    startDeadlineLoop(rs);
    if(rs&&rs.gameId==='code_break')setupCodeBreak(room);
    else if(rs&&rs.gameId==='reversi')setupReversi(room);
@@ -1052,6 +1058,8 @@ async function saveShogiOptions(){
 shogiAiDifficulty.onchange=()=>runOnce('shogi-options',saveShogiOptions);
 
 startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
+roundLeave.onclick=()=>leaveBtn.click();
+
 partyPlusSubscribe.onclick=()=>{
  const plus=partyConfig.plus||{};
  if(!plus.active){

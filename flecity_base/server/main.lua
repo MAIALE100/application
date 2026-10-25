@@ -336,6 +336,79 @@ handlers.workspaceGet = function(source, data)
     return {ok=true, workspace=workspace, members=members}
 end
 
+handlers.workspaceOverview = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+
+    local metrics = MySQL.single.await([[
+        SELECT
+          (SELECT COUNT(*) FROM flecity_base_notes
+             WHERE workspace_id=? AND deleted_at IS NULL) AS notes_count,
+          (SELECT COUNT(*) FROM flecity_base_stock_items
+             WHERE workspace_id=?) AS stock_count,
+          (SELECT COUNT(*) FROM flecity_base_stock_items
+             WHERE workspace_id=? AND quantity<=minimum_quantity) AS low_stock_count,
+          (SELECT COUNT(*) FROM flecity_base_tasks
+             WHERE workspace_id=? AND status<>'done') AS open_tasks_count,
+          (SELECT COUNT(*) FROM flecity_base_tasks
+             WHERE workspace_id=? AND status<>'done' AND due_at IS NOT NULL AND due_at<NOW()) AS overdue_tasks_count,
+          (SELECT COALESCE(SUM(CASE
+              WHEN entry_type='income' AND voided_at IS NULL THEN amount
+              WHEN entry_type='expense' AND voided_at IS NULL THEN -amount
+              ELSE 0 END),0)
+             FROM flecity_base_ledger WHERE workspace_id=?) AS balance
+    ]], {workspace.id, workspace.id, workspace.id, workspace.id, workspace.id, workspace.id}) or {}
+
+    local recentNotes = MySQL.query.await([[
+        SELECT id, title, category, author_citizenid, author_name, pinned, updated_at
+        FROM flecity_base_notes
+        WHERE workspace_id=? AND deleted_at IS NULL
+        ORDER BY updated_at DESC, id DESC LIMIT 3
+    ]], {workspace.id}) or {}
+
+    local recentTasks = MySQL.query.await([[
+        SELECT id, title, status, priority, assignee_citizenid, due_at, updated_at
+        FROM flecity_base_tasks
+        WHERE workspace_id=?
+        ORDER BY updated_at DESC, id DESC LIMIT 3
+    ]], {workspace.id}) or {}
+
+    local recentStock = MySQL.query.await([[
+        SELECT m.id, m.item_id, i.name AS item_name, i.unit, m.actor_citizenid, m.actor_name,
+               m.delta, m.after_quantity, m.note, m.created_at
+        FROM flecity_base_stock_movements m
+        JOIN flecity_base_stock_items i ON i.id=m.item_id
+        WHERE m.workspace_id=?
+        ORDER BY m.created_at DESC, m.id DESC LIMIT 3
+    ]], {workspace.id}) or {}
+
+    local recentMoney = MySQL.query.await([[
+        SELECT id, entry_type, amount, category, note, actor_citizenid, actor_name, created_at, voided_at
+        FROM flecity_base_ledger
+        WHERE workspace_id=?
+        ORDER BY created_at DESC, id DESC LIMIT 3
+    ]], {workspace.id}) or {}
+
+    return {
+        ok = true,
+        metrics = {
+            notes = tonumber(metrics.notes_count) or 0,
+            stock = tonumber(metrics.stock_count) or 0,
+            lowStock = tonumber(metrics.low_stock_count) or 0,
+            openTasks = tonumber(metrics.open_tasks_count) or 0,
+            overdueTasks = tonumber(metrics.overdue_tasks_count) or 0,
+            balance = tonumber(metrics.balance) or 0
+        },
+        recentNotes = recentNotes,
+        recentTasks = recentTasks,
+        recentStock = recentStock,
+        recentMoney = recentMoney
+    }
+end
+
 handlers.workspaceRename = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -1158,6 +1231,7 @@ local callbacks = {
     ['flecity_base:bootstrap'] = handlers.bootstrap,
     ['flecity_base:workspaceCreate'] = handlers.workspaceCreate,
     ['flecity_base:workspaceGet'] = handlers.workspaceGet,
+    ['flecity_base:workspaceOverview'] = handlers.workspaceOverview,
     ['flecity_base:workspaceRename'] = handlers.workspaceRename,
     ['flecity_base:workspaceSettings'] = handlers.workspaceSettings,
     ['flecity_base:workspaceDelete'] = handlers.workspaceDelete,

@@ -1066,6 +1066,20 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
         destroyPreviewCamera(true)
         clearTheme()
         ownedSession = nil
+        return
+    end
+
+    if phase == "capturing" then
+        captureCancelledByUser = true
+        captureInProgress = false
+        countdownGeneration = countdownGeneration + 1
+        countdownDisplay = nil
+        destroyPreviewCamera(true)
+        clearTheme()
+        notify(
+            "error",
+            "撮影セッションが終了しました。必要ならもう一度プリクラ台から開始してください。"
+        )
     end
 end)
 
@@ -1298,12 +1312,13 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
             return
         end
 
+        ownedSession.phase = "editing"
+
         TriggerServerEvent(
             "puribooth:server:captureComplete",
             boothId
         )
 
-        ownedSession.phase = "editing"
         openEditor(boothId, shots)
     end)
 end)

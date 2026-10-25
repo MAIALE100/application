@@ -229,77 +229,40 @@ local function transitionMineAccess(target)
 
     requestMineIpls()
 
-    DoScreenFadeOut(250)
-    local fadeDeadline = GetGameTimer() + 1000
+    -- Keep mine access deliberately simple. The previous v0.3.3 path used
+    -- NewLoadScene/InteriorReady waits and could strand the client on a black
+    -- loading screen. This version always has bounded waits and always fades
+    -- the player back in.
+    DoScreenFadeOut(200)
+    local fadeDeadline = GetGameTimer() + 800
     while not IsScreenFadedOut() and GetGameTimer() < fadeDeadline do
         Wait(0)
     end
 
     local destination = vector3(target.x, target.y, target.z)
     FreezeEntityPosition(ped, true)
-    SetFocusPosAndVel(destination.x, destination.y, destination.z, 0.0, 0.0, 0.0)
+
     RequestCollisionAtCoord(destination.x, destination.y, destination.z)
-
-    -- Wait for requested IPLs before revealing the target area. On the first
-    -- visit the mine can take several seconds to stream and otherwise exposes
-    -- grey terrain/LOD through the cave.
-    local interiorCfg = Config.MineInterior or {}
-    if type(interiorCfg.ipls) == 'table' then
-        local iplDeadline = GetGameTimer() + 8000
-        while GetGameTimer() < iplDeadline do
-            local allActive = true
-            for _, ipl in ipairs(interiorCfg.ipls) do
-                if type(ipl) == 'string' and ipl ~= '' and not IsIplActive(ipl) then
-                    allActive = false
-                    RequestIpl(ipl)
-                end
-            end
-            if allActive then break end
-            Wait(100)
-        end
-    end
-
-    NewLoadSceneStartSphere(destination.x, destination.y, destination.z, 55.0, 0)
-    local loadDeadline = GetGameTimer() + 10000
-    while GetGameTimer() < loadDeadline do
-        RequestCollisionAtCoord(destination.x, destination.y, destination.z)
-        if IsNewLoadSceneLoaded() then break end
-        Wait(50)
-    end
-
-    local interiorId = GetInteriorAtCoords(destination.x, destination.y, destination.z)
-    if interiorId and interiorId ~= 0 then
-        PinInteriorInMemory(interiorId)
-        RefreshInterior(interiorId)
-
-        local interiorDeadline = GetGameTimer() + 5000
-        while GetGameTimer() < interiorDeadline and not IsInteriorReady(interiorId) do
-            RefreshInterior(interiorId)
-            Wait(50)
-        end
-    end
-
     SetEntityCoordsNoOffset(ped, destination.x, destination.y, destination.z + 0.05, false, false, false)
     SetEntityHeading(ped, tonumber(target.w) or GetEntityHeading(ped))
 
-    local collisionDeadline = GetGameTimer() + 5000
+    local collisionDeadline = GetGameTimer() + 2500
     while GetGameTimer() < collisionDeadline do
         RequestCollisionAtCoord(destination.x, destination.y, destination.z)
         if HasCollisionLoadedAroundEntity(ped) then break end
         Wait(50)
     end
 
-    -- Give the renderer a short settled frame window after the ped is placed.
-    -- This is intentionally done while the screen is still faded out.
-    Wait(350)
-
-    NewLoadSceneStop()
-    ClearFocus()
     FreezeEntityPosition(ped, false)
+    ClearFocus()
+    NewLoadSceneStop()
 
     updateGuidanceRoute()
 
-    DoScreenFadeIn(250)
+    if IsScreenFadedOut() or IsScreenFadingOut() then
+        DoScreenFadeIn(250)
+    end
+
     return true
 end
 
@@ -658,6 +621,17 @@ RegisterNetEvent('flecity_mining:client:actionApproved', function(data)
 end)
 
 CreateThread(function()
+    -- Mine access recovery guard. If a previous resource version left the
+    -- client in a loading/faded state, restarting flecity_mining recovers it.
+    Wait(250)
+    NewLoadSceneStop()
+    ClearFocus()
+    local recoveryPed = PlayerPedId()
+    FreezeEntityPosition(recoveryPed, false)
+    if IsScreenFadedOut() or IsScreenFadingOut() then
+        DoScreenFadeIn(500)
+    end
+
     requestMineIpls()
     createBlip()
 
@@ -937,7 +911,14 @@ AddEventHandler('onResourceStop', function(resource)
     -- interior resource; unloading them during a development restart could
     -- break other resources that expect the mine to remain available.
 
+    NewLoadSceneStop()
+    ClearFocus()
+
     local ped = PlayerPedId()
     ClearPedTasksImmediately(ped)
     FreezeEntityPosition(ped, false)
+
+    if IsScreenFadedOut() or IsScreenFadingOut() then
+        DoScreenFadeIn(250)
+    end
 end)

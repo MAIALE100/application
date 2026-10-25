@@ -417,3 +417,25 @@ v0.3.3で坑道入場時に黒画面＋右下loadingが終了しないケース�
 5. ドリルpropが手に表示される
 6. Eを押した直後に `drill_straight_idle` の動きが見える
 7. 採掘中の音・粉塵・G中断が維持される
+
+
+## v0.3.7 ドリル拘束修正
+
+実機で「ドリルpropは出るがアニメが動かず、その場から離れられなくなる」状態を確認。
+
+修正:
+
+- 採掘/選鉱/売却の開始時 `FreezeEntityPosition(true)` を廃止
+- 移動抑止は作業ループ中のControl無効化だけで行う
+- ドリルanimationをprop装着前に開始
+- animationが途中で消えた場合は作業ループ中に自動再生
+- 作業終了時の `FreezeEntityPosition(false)` は旧版からの復旧用としてのみ残す
+
+確認:
+
+1. Eで採掘開始後、ドリルpropが表示される
+2. pedが `drill_straight_idle` で動く
+3. Gで中断すると即座に移動可能になる
+4. 8.5秒完了後も移動可能
+5. resource restart後も移動可能
+6. 万一client処理が途中で失敗しても永久Freezeされない

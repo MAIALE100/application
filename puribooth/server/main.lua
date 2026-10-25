@@ -691,21 +691,24 @@ RegisterCommand("puribooth_selftest", function(source)
     local phone = resourceState("lb-phone")
     local screenshot = resourceState("screenshot-basic")
     local mysql = resourceState("oxmysql")
+    local puriphoto = resourceState("puriphoto")
 
     local overall =
         qbx == "PASS"
         and phone == "PASS"
         and screenshot == "PASS"
         and mysql == "PASS"
+        and puriphoto == "PASS"
         and databaseReady
 
-    print(("[puribooth] selftest %s (qbx_core=%s, oxmysql=%s, lb-phone=%s, screenshot-basic=%s, database=%s, booths=%d)")
+    print(("[puribooth] selftest %s (qbx_core=%s, oxmysql=%s, lb-phone=%s, screenshot-basic=%s, puriphoto=%s, database=%s, booths=%d)")
         :format(
             overall and "PASS" or "FAIL",
             qbx,
             mysql,
             phone,
             screenshot,
+            puriphoto,
             databaseReady and "PASS" or "FAIL",
             boothCount()
         ))

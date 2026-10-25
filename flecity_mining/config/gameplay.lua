@@ -34,16 +34,18 @@ Config.RawYield = {
 -- FiveM標準のFleecaドリルprop/animationを使うため、追加assetは不要です。
 Config.DrillVisuals = {
     enabled = true,
-    model = 'hei_prop_heist_drill',
-    animDict = 'anim@heists@fleeca_bank@drilling',
-    -- Fleecaドリルは開始モーション -> ループ姿勢の順に再生します。
-    startAnimName = 'drill_straight_start',
-    idleAnimName = 'drill_straight_idle',
-    startAnimMs = 1050,
-    idleAnimFlags = 1,
-    propBone = 57005,
-    propOffset = vector3(0.14, 0.0, -0.01),
-    propRotation = vector3(90.0, -90.0, 180.0),
+    mode = 'scenario',
+
+    -- GTA V標準の建設ドリル/ジャックハンマーscenario。
+    -- Ped animationと工具propをGTA側へ任せるため、服装/Ped差分に強い。
+    scenario = 'WORLD_HUMAN_CONST_DRILL',
+
+    -- scenario終了後に残る可能性がある工具propをcleanupします。
+    cleanupProps = {
+        'prop_tool_jackham',
+        'prop_tool_drill',
+    },
+
     sound = true,
     dust = true,
     dustIntervalMs = 550,

@@ -349,7 +349,7 @@ function renderResults(room){
 
    const hero=document.createElement('div');
    hero.className='fall-result-hero'+(winners.some(e=>e.memberId===selfId)?' is-self-winner':'');
-   const eyebrow=document.createElement('div');eyebrow.className='fall-result-eyebrow';eyebrow.textContent=winners.length?'落下バトル 結果':'結果';
+   const eyebrow=document.createElement('div');eyebrow.className='fall-result-eyebrow';eyebrow.textContent=winners.length?'テトリス 結果':'結果';
    const title=document.createElement('div');title.className='fall-result-title';
    title.textContent=winners.length===1?'1st · '+winners[0].name:(winners.length>1?'TIE · '+winners.map(e=>e.name).join(' / '):'有効記録なし');
    const sub=document.createElement('div');sub.className='fall-result-sub';
@@ -579,7 +579,7 @@ function setupConnect4(room){
      b.disabled=locked||!rs.isCurrent||(Array.isArray(rs.fullColumns)&&rs.fullColumns.includes(col));
      b.onclick=()=>runOnce('connect4-move',async()=>{
        const res=await FlecityBridge.call('partySubmitConnect4',{token:rs.token,column:col});
-       if(!res.ok){status('四目ならべ: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+       if(!res.ok){status('コネクトフォー: '+FlecityErrors.text(res.error),'error');await refresh();return;}
        renderRoom(res.room);
      });
      connect4Columns.appendChild(b);
@@ -1080,7 +1080,7 @@ gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value)
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
  const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no',turnLimit:mastermindTurnLimit.value!=='no',firstTurn:mastermindFirstTurn.value});
- if(!res.ok){status('暗号解読の設定変更に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ if(!res.ok){status('ヒット＆ブローの設定変更に失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
  renderRoom(res.room);
 }
 mastermindAiDifficulty.onchange=()=>runOnce('mastermind-options',saveMastermindOptions);
@@ -1133,7 +1133,7 @@ partyPlusCancel.onclick=()=>runOnce('party-plus-cancel',async()=>{
 
 codeBreakPalette.onclick=(event)=>{const button=event.target.closest('button[data-code]');if(!button||button.disabled||codeBreakGuess.length>=4)return;const value=Number(button.dataset.code),rs=currentRoom&&currentRoom.roundState;if(rs&&rs.allowDuplicates===false&&codeBreakGuess.includes(value))return;codeBreakGuess.push(value);renderCodeBreakGuess();codeBreakSubmit.disabled=codeBreakGuess.length!==4;codeBreakBack.disabled=codeBreakGuess.length===0;};
 codeBreakBack.onclick=()=>{if(codeBreakGuess.length){codeBreakGuess.pop();renderCodeBreakGuess();codeBreakSubmit.disabled=codeBreakGuess.length!==4;codeBreakBack.disabled=codeBreakGuess.length===0;[...codeBreakPalette.querySelectorAll('button')].forEach(b=>b.disabled=false);}};
-codeBreakSubmit.onclick=()=>runOnce('code-break-guess',async()=>{const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='code_break'||codeBreakGuess.length!==4)return;const guess=codeBreakGuess.slice();codeBreakSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitCodeBreak',{token:rs.token,guess});if(!res.ok){status('CODE BREAK: '+FlecityErrors.text(res.error),'error');codeBreakSubmit.disabled=false;return;}codeBreakGuess=[];renderRoom(res.room);});
+codeBreakSubmit.onclick=()=>runOnce('code-break-guess',async()=>{const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='code_break'||codeBreakGuess.length!==4)return;const guess=codeBreakGuess.slice();codeBreakSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitCodeBreak',{token:rs.token,guess});if(!res.ok){status('ヒット＆ブロー: '+FlecityErrors.text(res.error),'error');codeBreakSubmit.disabled=false;return;}codeBreakGuess=[];renderRoom(res.room);});
 reactionTap.onclick=async()=>{
  if(!currentRoom||!currentRoom.roundState||reactionState==='submitted')return;
  const rs=currentRoom.roundState,revealTick=Number(rs.startedTick||0)+Number(rs.revealAfterMs||0),serverNow=estimatedServerTick();

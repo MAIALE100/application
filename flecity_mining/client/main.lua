@@ -389,9 +389,42 @@ local function startDrillPresentation(ped, node)
         return false
     end
 
-    ClearPedTasksImmediately(ped)
+    ClearPedTasks(ped)
     SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
     SetEntityHeading(ped, headingTo(pedCoords, wallTarget))
+
+    local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
+    local animName = cfg.animName or 'drill_straight_idle'
+    local animFlags = tonumber(cfg.animFlags) or 1
+
+    -- Start the animation before attaching the drill. Freezing the ped before
+    -- TaskPlayAnim caused some clients to hold the prop while remaining static.
+    TaskPlayAnim(
+        ped,
+        animDict,
+        animName,
+        8.0, -8.0, -1, animFlags, 0.0,
+        false, false, false
+    )
+
+    Wait(120)
+    if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+        ClearPedTasks(ped)
+        TaskPlayAnim(
+            ped,
+            animDict,
+            'drill_straight_idle',
+            8.0, -8.0, -1, 1, 0.0,
+            false, false, false
+        )
+        Wait(120)
+    end
+
+    if not IsEntityPlayingAnim(ped, animDict, 'drill_straight_idle', 3)
+        and not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+        SetModelAsNoLongerNeeded(model)
+        return false
+    end
 
     local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z, false, false, false)
     if not prop or prop == 0 then
@@ -409,40 +442,6 @@ local function startDrillPresentation(ped, node)
         rotation.x, rotation.y, rotation.z,
         true, true, false, true, 1, true
     )
-
-    local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
-    local animName = cfg.animName or 'drill_straight_idle'
-    local animFlags = tonumber(cfg.animFlags) or 1
-
-    TaskPlayAnim(
-        ped,
-        animDict,
-        animName,
-        8.0, -8.0, -1, animFlags, 0.0,
-        false, false, false
-    )
-
-    -- Some ped states can swallow the first TaskPlayAnim call. Verify and retry
-    -- once so an approved mining action never looks completely unresponsive.
-    Wait(150)
-    if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
-        ClearPedSecondaryTask(ped)
-        TaskPlayAnim(
-            ped,
-            animDict,
-            'drill_straight_idle',
-            8.0, -8.0, -1, 1, 0.0,
-            false, false, false
-        )
-        Wait(100)
-    end
-
-    if not IsEntityPlayingAnim(ped, animDict, 'drill_straight_idle', 3)
-        and not IsEntityPlayingAnim(ped, animDict, animName, 3) then
-        DeleteEntity(prop)
-        SetModelAsNoLongerNeeded(model)
-        return false
-    end
 
     activeMineProp = prop
     activeMineTarget = wallTarget
@@ -526,8 +525,6 @@ local function runApprovedAction(data)
     local ped = PlayerPedId()
     local usedDrill = false
 
-    FreezeEntityPosition(ped, true)
-
     if actionType == 'mine' then
         local node = findNode(data.nodeId)
         usedDrill = startDrillPresentation(ped, node)
@@ -574,6 +571,21 @@ local function runApprovedAction(data)
         DisableControlAction(0, 31, true)
         DisableControlAction(0, 75, true)
 
+        if actionType == 'mine' and usedDrill then
+            local cfg = Config.DrillVisuals or {}
+            local animDict = cfg.animDict or 'anim@heists@fleeca_bank@drilling'
+            local animName = cfg.animName or 'drill_straight_idle'
+            if not IsEntityPlayingAnim(ped, animDict, animName, 3) then
+                TaskPlayAnim(
+                    ped,
+                    animDict,
+                    'drill_straight_idle',
+                    8.0, -8.0, -1, tonumber(cfg.animFlags) or 1, 0.0,
+                    false, false, false
+                )
+            end
+        end
+
         local remaining = math.max(0, duration - (GetGameTimer() - started))
         drawScreenText(('%s... %.1f秒  [G] 中断'):format(label, remaining / 1000))
 
@@ -593,6 +605,8 @@ local function runApprovedAction(data)
 
     stopDrillPresentation()
     ClearPedTasks(ped)
+    -- Recovery only. Normal actions no longer freeze the ped; keeping this
+    -- ensures a previous resource version cannot leave the player stuck.
     FreezeEntityPosition(ped, false)
 
     busy = false

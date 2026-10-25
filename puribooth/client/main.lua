@@ -4,6 +4,7 @@ local sharedSessions = {}
 local ownedSession = nil
 local editorOpen = false
 local countdownDisplay = nil
+local captureInProgress = false
 
 local function notify(kind, message)
     if GetResourceState("ox_lib") == "started" and lib and lib.notify then
@@ -197,6 +198,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
     if not booth or not ownedSession or ownedSession.boothId ~= boothId then return end
 
     CreateThread(function()
+        captureInProgress = true
         local cam = createBoothCamera(booth)
         DisplayRadar(false)
         TriggerEvent("lb-phone:toggleHud", true)
@@ -235,8 +237,10 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
         TriggerEvent("lb-phone:toggleHud", false)
         DisplayRadar(true)
         destroyBoothCamera(cam)
+        captureInProgress = false
 
         if failed or #shots == 0 then
+            captureInProgress = false
             TriggerServerEvent("puribooth:server:technicalFailure", boothId)
             notify("error", "写真を取得できませんでした。")
             ownedSession = nil
@@ -336,6 +340,13 @@ CreateThread(function()
                     TriggerServerEvent("puribooth:server:beginCapture", ownedSession.boothId)
                 end
             end
+        end
+
+        if captureInProgress then
+            wait = 0
+            HideHudAndRadarThisFrame()
+            HideHelpTextThisFrame()
+            ThefeedHideThisFrame()
         end
 
         if countdownDisplay then

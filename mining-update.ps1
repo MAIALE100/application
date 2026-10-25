@@ -160,7 +160,8 @@ try {
     Copy-OverlayResource -From $BridgeSource -To $BridgeDestination
 
     if (Test-Path $ServerCfg) {
-        Ensure-ServerCfgLine -CfgPath $ServerCfg -Line 'add_ace resource.flecity_mining_devbridge command.restart allow'
+        Ensure-ServerCfgLine -CfgPath $ServerCfg -Line 'add_ace resource.flecity_mining_devbridge command.stop allow'
+        Ensure-ServerCfgLine -CfgPath $ServerCfg -Line 'add_ace resource.flecity_mining_devbridge command.start allow'
         Ensure-ServerCfgLine -CfgPath $ServerCfg -Line 'ensure flecity_mining_devbridge'
         Ensure-ServerCfgLine -CfgPath $ServerCfg -Line 'ensure flecity_mining'
     }
@@ -176,7 +177,8 @@ try {
     Write-Host '    mining-test.cmd' -ForegroundColor White
     Write-Host ''
     Write-Host 'First-time bootstrap on an already-running server only:' -ForegroundColor Yellow
-    Write-Host '    add_ace resource.flecity_mining_devbridge command.restart allow' -ForegroundColor White
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.stop allow' -ForegroundColor White
+    Write-Host '    add_ace resource.flecity_mining_devbridge command.start allow' -ForegroundColor White
     Write-Host '    refresh' -ForegroundColor White
     Write-Host '    ensure flecity_mining_devbridge' -ForegroundColor White
 }

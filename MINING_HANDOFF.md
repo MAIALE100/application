@@ -108,3 +108,11 @@ Do not add a mining level or permanent performance progression without explicit 
 GitHub ActionsのFlecity Mining Static Checkはこのリポジトリ上で過去runを含め成功履歴がなく、
 job stepが開始される前にfailureになっているため、現時点ではCI成功を実機合格条件にしない。
 FiveM起動時selftest/configcheckと実機smoke testを必須ゲートとする。
+
+## Confirmed live status (2026-10-25)
+
+- IPL management: disabled (MineInterior.manageIpls = false)
+- Exterior terrain after mine exit: PASS
+- Mine interior streaming: PASS
+- Native construction drill scenario: PASS
+- One-click DEV reload bridge: PASS

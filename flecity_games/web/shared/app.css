@@ -1307,3 +1307,6 @@ body.party-round .app-status{
  box-shadow:0 .75rem 1.75rem rgba(0,0,0,.28);
  pointer-events:none;
 }
+
+#miniShogiPanel>h2{margin:.05rem 0 .35rem;font-size:1.02rem;line-height:1.15}
+body.party-round #miniShogiPanel{margin-top:0}

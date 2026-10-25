@@ -538,6 +538,40 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
     releaseSession(boothId)
 end)
 
+RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
+    local source = source
+    boothId = tostring(boothId)
+
+    local session = sessions[boothId]
+    if not session or session.owner ~= source then return end
+
+    local refund = not session.capturing
+
+    if refund and session.paid and session.paid > 0 then
+        exports.qbx_core:AddMoney(
+            source,
+            session.moneyType or "cash",
+            session.paid,
+            "puribooth-user-cancel-refund"
+        )
+
+        notify(
+            source,
+            "inform",
+            ("撮影開始前のキャンセルなので $%s を返金しました。")
+                :format(session.paid)
+        )
+    elseif session.capturing then
+        notify(
+            source,
+            "inform",
+            "撮影開始後のキャンセルのため料金は返金されません。"
+        )
+    end
+
+    releaseSession(boothId)
+end)
+
 RegisterNetEvent("puribooth:server:finishSession", function(boothId)
     local source = source
     boothId = tostring(boothId)

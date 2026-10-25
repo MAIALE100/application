@@ -412,8 +412,8 @@ input[type="color"] {
     bottom: 5.4vh;
     z-index: 2;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: .35vw;
+    grid-template-columns: repeat(5, 1fr);
+    gap: .28vw;
     padding-top: .45vh;
     background: rgba(255,255,255,.96);
 }

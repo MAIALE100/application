@@ -1207,8 +1207,14 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
 
             local deadline = GetGameTimer() + 12000
 
-            while not finished and GetGameTimer() < deadline do
+            while captureInProgress
+                and not finished
+                and GetGameTimer() < deadline do
                 Wait(25)
+            end
+
+            if not captureInProgress then
+                break
             end
 
             if not frame then
@@ -1218,12 +1224,20 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
 
             shots[#shots + 1] = frame
 
-            Wait(
-                math.max(
+            local nextShotAt =
+                GetGameTimer()
+                + math.max(
                     500,
                     tonumber(Config.ShotIntervalMs) or 1800
                 )
-            )
+
+            while captureInProgress and GetGameTimer() < nextShotAt do
+                Wait(0)
+            end
+
+            if not captureInProgress then
+                break
+            end
         end
 
         poseReadyForNextShot = false
@@ -1326,7 +1340,7 @@ RegisterNUICallback("puriboothThemeCancel", function(_, cb)
 
     if ownedSession then
         TriggerServerEvent(
-            "puribooth:server:finishSession",
+            "puribooth:server:cancelSession",
             ownedSession.boothId
         )
     end

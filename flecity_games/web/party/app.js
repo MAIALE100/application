@@ -163,7 +163,7 @@ function renderPartyPlus(){
  }else{
    partyPlusBadge.textContent='未加入';
    partyPlusBadge.className='muted';
-   partyPlusDescription.textContent='加入した人がホストなら、そのルーム全員がPARTY+ゲームを遊べます。限定品や月替わり更新はありません。';
+   partyPlusDescription.textContent='加入した人がホストなら、そのルーム全員がLINK+ゲームを遊べます。限定品や月替わり更新はありません。';
    partyPlusSubscribe.classList.remove('hidden');
    partyPlusCancel.classList.add('hidden');
  }
@@ -177,7 +177,7 @@ function renderGameInfo(gameId){
    const text=document.createElement('span');text.className='muted';text.textContent='ゲーム情報を取得できません。';gameInfo.appendChild(text);return;
  }
  const title=document.createElement('strong'),meta=document.createElement('span'),description=document.createElement('span');
- title.textContent=(game.premium?'PARTY+ · ':'')+String(game.name||game.id);meta.className='game-info-meta';description.className='muted';
+ title.textContent=(game.premium?'LINK+ · ':'')+String(game.name||game.id);meta.className='game-info-meta';description.className='muted';
  const min=Math.max(1,Number(game.minPlayers)||2),max=Math.max(min,Number(game.maxPlayers)||10);
  meta.textContent=(min===max?min+'人':min+'〜'+max+'人');
  description.textContent=String(game.description||'');
@@ -1116,8 +1116,8 @@ partyPlusSubscribe.onclick=()=>{
   partyPlusSubscribe.disabled=true;
   try{
     const res=await FlecityBridge.call('partySubscribePlus',{});
-    if(!res.ok){status('PARTY+加入失敗: '+FlecityErrors.text(res.error),'error');return;}
-    partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('PARTY+が有効になりました。','good');
+    if(!res.ok){status('LINK+加入失敗: '+FlecityErrors.text(res.error),'error');return;}
+    partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('LINK+が有効になりました。','good');
     if(currentRoom)await refresh();
   }finally{partyPlusSubscribe.disabled=false;}
  });
@@ -1127,7 +1127,7 @@ partyPlusCancel.onclick=()=>runOnce('party-plus-cancel',async()=>{
  try{
    const res=await FlecityBridge.call('partyCancelPlus',{});
    if(!res.ok){status('自動更新を停止できません: '+FlecityErrors.text(res.error),'error');return;}
-   partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('期限まではPARTY+を利用できます。','good');
+   partyConfig.plus={...(partyConfig.plus||{}),...(res.status||{})};renderPartyPlus();status('期限まではLINK+を利用できます。','good');
  }finally{partyPlusCancel.disabled=false;}
 });
 
@@ -1379,7 +1379,7 @@ async function bootstrap(){
  if(!res.ok){
    const transient=['PLAYER_NOT_READY','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','CALLBACK_FAILED','NUI_UNAVAILABLE'];
    if(transient.includes(res.error)){
-     status(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'PARTYへ再接続中…','warn');
+     status(res.error==='PLAYER_NOT_READY'?'キャラクター読み込み待ち…':'LINKへ再接続中…','warn');
      scheduleBootstrap(1000);
      return;
    }
@@ -1388,7 +1388,7 @@ async function bootstrap(){
  if(appSuspended||epoch!==lifecycleEpoch)return;
  if(res.ok){renderRoom(res.room,{started:roomRequestStarted,received:roomRequestReceived});beginPolling();if(res.reconnected)status('ルームへ再接続しました。','good');return;}
  showEntry();
- if(res.error==='NOT_IN_ROOM')status('PARTY 準備完了 · v'+String(partyConfig.version||'unknown'),'good');
+ if(res.error==='NOT_IN_ROOM')status('LINK 準備完了 · v'+String(partyConfig.version||'unknown'),'good');
  else status('ルーム復元失敗: '+FlecityErrors.text(res.error),'error');
 }
 bootstrap();

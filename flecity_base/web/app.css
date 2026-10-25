@@ -81,3 +81,5 @@ pre.note-body{white-space:pre-wrap;font:inherit;margin:.7rem 0 0;line-height:1.5
 
 .card.voided{opacity:.68}
 .card.voided .card-title{text-decoration:line-through}
+
+.person-chip{max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

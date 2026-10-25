@@ -29,7 +29,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='';
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='',miniShogiPromotionOverlay=null;
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -70,6 +70,7 @@ function resetRoundRuntime(){
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';
+ if(miniShogiPromotionOverlay){miniShogiPromotionOverlay.remove();miniShogiPromotionOverlay=null;}
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
 }
 function deadlineLoop(token){
@@ -590,6 +591,25 @@ function setupMajority(room){
  ['A','B'].forEach((choice,i)=>{const b=document.createElement('button');b.className='secondary choice-button';b.textContent=options[i]||choice;b.onclick=()=>submitMajority(rs.gameId,rs.token,choice);majorityChoices.appendChild(b);});
 }
 
+function askMiniShogiPromotion(){
+ return new Promise(resolve=>{
+   if(miniShogiPromotionOverlay){miniShogiPromotionOverlay.remove();miniShogiPromotionOverlay=null;}
+   const overlay=document.createElement('div');overlay.className='confirm-overlay shogi-promotion-overlay';
+   const card=document.createElement('div');card.className='confirm-card shogi-promotion-card';
+   const kicker=document.createElement('div');kicker.className='kicker';kicker.textContent='将棋';
+   const title=document.createElement('h2');title.textContent='この駒を成りますか？';
+   const note=document.createElement('p');note.className='muted';note.textContent='成る・成らないを選んでください。';
+   const row=document.createElement('div');row.className='row';
+   const stay=document.createElement('button');stay.className='secondary';stay.textContent='成らない';
+   const promote=document.createElement('button');promote.textContent='成る';
+   const finish=value=>{if(miniShogiPromotionOverlay===overlay)miniShogiPromotionOverlay=null;overlay.remove();resolve(value);};
+   stay.onclick=()=>finish(false);promote.onclick=()=>finish(true);
+   row.appendChild(stay);row.appendChild(promote);
+   card.appendChild(kicker);card.appendChild(title);card.appendChild(note);card.appendChild(row);overlay.appendChild(card);
+   document.body.appendChild(overlay);miniShogiPromotionOverlay=overlay;
+ });
+}
+
 function setupMiniShogi(room){
  const rs=room.roundState;hideRoundGames();miniShogiPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);
  if(rs.complete){miniShogiSelected=0;miniShogiDropKind='';renderResults(room);return;}
@@ -650,7 +670,7 @@ function setupMiniShogi(room){
          const canPromote=choices.some(m=>m.promote===true);
          const canStay=choices.some(m=>m.promote!==true);
          let promote=canPromote&&!canStay;
-         if(canPromote&&canStay)promote=window.confirm('この駒を成りますか？');
+         if(canPromote&&canStay)promote=await askMiniShogiPromotion();
          payload={token:rs.token,type:'move',from:miniShogiSelected,to:cell,promote};
        }
        miniShogiSelected=0;miniShogiDropKind='';

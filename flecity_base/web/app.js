@@ -28,6 +28,12 @@ const errors = {
   PLAYER_NOT_READY:"キャラクター情報を取得できません。",
   NOT_A_MEMBER:"このBASEを開く権限がありません。",
   OWNER_REQUIRED:"オーナーのみ操作できます。",
+  MANAGER_REQUIRED:"管理権限が必要です。",
+  SUPPORT_NOT_ALLOWED:"WEAZEL SUPPORTを使用する権限がありません。",
+  INVALID_ROLE:"役割設定を確認してください。",
+  MEMBER_NOT_FOUND:"メンバーが見つかりません。",
+  CANNOT_REMOVE_OWNER:"OWNERは除名できません。",
+  CANNOT_CHANGE_OWNER:"OWNERの役割は変更できません。",
   WORKSPACE_LIMIT:"作成できるBASE数の上限です。",
   MEMBER_LIMIT:"メンバー数の上限です。",
   TITLE_REQUIRED:"タイトルを入力してください。",
@@ -75,6 +81,30 @@ function selectedWorkspaceId(){
   return state.workspace ? Number(state.workspace.id) : null;
 }
 
+function globalAccessMode(){
+  return state.boot?.access?.globalMode || null;
+}
+
+function hasGlobalAccess(){
+  return Boolean(globalAccessMode());
+}
+
+function canManage(){
+  return hasGlobalAccess() || state.workspace?.role==="owner" || state.workspace?.role==="manager";
+}
+
+function canOwn(){
+  return hasGlobalAccess() || state.workspace?.role==="owner";
+}
+
+function roleLabel(role){
+  if(role==="owner") return "OWNER";
+  if(role==="manager") return "MANAGER";
+  if(role==="admin") return "ADMIN";
+  if(role==="weazel_support") return "WEAZEL";
+  return "MEMBER";
+}
+
 function modal(title, html, onSave){
   const d=$("#modal");
   $("#modalTitle").textContent=title;
@@ -115,7 +145,7 @@ function workspacePills(){
   const rows=state.boot?.workspaces || [];
   root.innerHTML=rows.map(w=>`
     <button class="workspace-pill ${state.workspace && Number(state.workspace.id)===Number(w.id)?"active":""}" data-workspace="${w.id}">
-      ${esc(w.icon || "📁")} ${esc(w.name)}
+      ${esc(w.icon || "📁")} ${esc(w.name)}${w.access_mode&&w.access_mode!=="member"?` <small>${w.access_mode==="admin"?"ADMIN":"SUPPORT"}</small>`:""}
     </button>`).join("");
   root.querySelectorAll("[data-workspace]").forEach(b=>b.onclick=()=>openWorkspace(Number(b.dataset.workspace)));
 }
@@ -151,7 +181,8 @@ async function openWorkspace(id){
   state.workspace=data.workspace;
   state.members=data.members || [];
   workspacePills();
-  status(`${state.workspace.name} ・ ${state.members.length}人`);
+  const accessNote=state.workspace.access_mode==="admin"?" ・ ADMIN ACCESS":state.workspace.access_mode==="weazel_support"?" ・ WEAZEL SUPPORT":"";
+  status(`${state.workspace.name} ・ ${state.members.length}人${accessNote}`);
   await loadTab();
 }
 
@@ -185,7 +216,7 @@ function renderMemo(){
   });
 
   $("#content").innerHTML=`
-    <div class="row between"><h2>共有メモ</h2><button class="primary" data-action="new-note">＋ 追加</button></div>
+    <div class="row between"><h2>共有メモ</h2>${canManage()?'<button class="primary" data-action="new-note">＋ 追加</button>':""}</div>
     <div class="toolbar">
       <input id="memoSearch" class="search-input" placeholder="メモを検索" value="${esc(state.memoQuery)}">
       <select id="memoCategoryFilter" class="compact-select">
@@ -205,10 +236,10 @@ function renderMemo(){
           <span class="badge">${esc(n.author_citizenid)}</span>
         </div>
         <pre class="note-body">${esc(n.body)}</pre>
-        <div class="actions">
+        ${canManage()?`<div class="actions">
           <button class="small" data-action="edit-note" data-id="${n.id}">編集</button>
           <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
-        </div>
+        </div>`:""}
       </article>`;
     }).join(""):`<div class="empty">条件に合うメモはありません。</div>`}
   `;
@@ -256,7 +287,7 @@ function renderStock(){
   const lowCount=state.stock.filter(i=>num(i.quantity)<=num(i.minimum_quantity)).length;
 
   $("#content").innerHTML=`
-    <div class="row between"><h2>在庫</h2><button class="primary" data-action="new-stock">＋ 追加</button></div>
+    <div class="row between"><h2>在庫</h2>${canManage()?'<button class="primary" data-action="new-stock">＋ 追加</button>':""}</div>
     <div class="toolbar">
       <div class="filter-group">
         <button class="filter-chip ${state.stockFilter==="all"?"active":""}" data-stock-filter="all">すべて</button>
@@ -286,7 +317,7 @@ function renderStock(){
         </div>
         <div class="actions">
           <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
-          <button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
+          ${canManage()?`<button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>`:""}
           <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
         </div>
       </article>`;
@@ -356,7 +387,7 @@ function renderTasks(){
   });
 
   $("#content").innerHTML=`
-    <div class="row between"><h2>タスク</h2><button class="primary" data-action="new-task">＋ 追加</button></div>
+    <div class="row between"><h2>タスク</h2>${canManage()?'<button class="primary" data-action="new-task">＋ 追加</button>':""}</div>
     <div class="toolbar">
       <div class="filter-group">
         <button class="filter-chip ${state.taskFilter==="all"?"active":""}" data-task-filter="all">すべて</button>
@@ -382,9 +413,9 @@ function renderTasks(){
         </div>
         ${t.details?`<pre class="note-body">${esc(t.details)}</pre>`:""}
         <div class="actions">
-          <button class="small" data-action="task-next" data-id="${t.id}">状態を進める</button>
-          <button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
-          <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>
+          ${canManage()||t.assignee_citizenid===myCid?`<button class="small" data-action="task-next" data-id="${t.id}">状態を進める</button>`:""}
+          ${canManage()?`<button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
+          <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>`:""}
         </div>
       </article>`;
     }).join(""):`<div class="empty">条件に合うタスクはありません。</div>`}
@@ -437,7 +468,7 @@ function renderMoney(){
           <span class="badge ${e.voided_at?"warn":e.entry_type==="income"?"good":"high"}">${e.voided_at?"取消済":e.entry_type==="income"?"収入":"支出"}</span>
         </div>
         ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
-        ${!e.voided_at&&state.workspace.role==="owner"?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
+        ${!e.voided_at&&canManage()?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
       </article>`).join(""):'<div class="empty">会計記録はまだありません。</div>'}`;
   bindContent();
 }
@@ -567,7 +598,7 @@ function formatCalculatorResult(calc,value){
 async function moneyCalculator(){
   const d=await api("calculatorsList",{workspaceId:selectedWorkspaceId()});
   state.calculators=d.calculators||[];
-  const canEdit=state.workspace.role==="owner";
+  const canEdit=canManage();
   viewModal("計算方法",`
     <div class="row between">
       <div><div class="card-title">カスタム計算</div><div class="muted">BASEごとに計算式を保存できます。</div></div>
@@ -795,19 +826,63 @@ function calculatorDelete(calc){
 
 function renderMembers(){
   const invites=state.boot?.invites||[];
+  const supportEligible=state.boot?.access?.supportEligible===true;
+  const supportActive=state.boot?.access?.supportActive===true;
+  const isAdmin=state.boot?.access?.admin===true;
+  const manager=canManage();
+  const owner=canOwn();
+
   $("#content").innerHTML=`
-    <div class="row between"><h2>メンバー</h2>${state.workspace.role==="owner"&&Number(state.workspace.is_personal)!==1?'<button class="primary" data-action="invite">＋ 招待</button>':""}</div>
+    <div class="row between"><h2>メンバー</h2>${manager&&Number(state.workspace.is_personal)!==1?'<button class="primary" data-action="invite">＋ 招待</button>':""}</div>
+
+    ${isAdmin?`<article class="card access-card">
+      <div class="row between"><div><div class="card-title">ADMIN ACCESS</div><div class="muted">運営管理権限で全BASEを常時表示しています。</div></div><span class="badge high">ALWAYS ON</span></div>
+    </article>`:""}
+
+    ${!isAdmin&&supportEligible?`<article class="card access-card">
+      <div class="row between">
+        <div><div class="card-title">WEAZEL SUPPORT</div><div class="muted">${supportActive?"保守モード中：全BASEへアクセスできます。":"通常モード：所属BASEだけ表示します。"}</div></div>
+        <button class="${supportActive?"danger":"primary"} small" data-action="toggle-support" data-enabled="${supportActive?"0":"1"}">${supportActive?"OFFにする":"ONにする"}</button>
+      </div>
+    </article>`:""}
+
     ${invites.length?`<article class="card"><div class="card-title">届いている招待</div>${invites.map(i=>`<div class="row between"><span>${esc(i.workspace_icon||"📁")} ${esc(i.workspace_name)}</span><span class="row"><button class="small" data-action="accept-invite" data-id="${i.id}">参加</button><button class="danger small" data-action="decline-invite" data-id="${i.id}">辞退</button></span></div>`).join("")}</article>`:""}
-    ${state.members.map(m=>`<article class="card"><div class="row between"><div><div class="card-title">${esc(m.display_name)}</div><div class="muted">${esc(m.citizenid)}</div></div><span class="badge">${m.role==="owner"?"OWNER":"MEMBER"}</span></div>
-      ${state.workspace.role==="owner"&&m.role!=="owner"?`<div class="actions"><button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button></div>`:""}
+
+    ${state.members.map(m=>`<article class="card">
+      <div class="row between">
+        <div><div class="card-title">${esc(m.display_name)}</div><div class="muted">${esc(m.citizenid)}</div></div>
+        <span class="badge ${m.role==="owner"?"high":m.role==="manager"?"good":""}">${roleLabel(m.role)}</span>
+      </div>
+      ${owner&&m.role!=="owner"?`<div class="actions">
+        <button class="secondary small" data-action="set-role" data-cid="${esc(m.citizenid)}" data-role="${m.role==="manager"?"member":"manager"}">${m.role==="manager"?"管理権限を外す":"MANAGERにする"}</button>
+        <button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button>
+      </div>`:manager&&m.role==="member"?`<div class="actions"><button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button></div>`:""}
     </article>`).join("")}
-    ${Number(state.workspace.is_personal)!==1&&state.workspace.role==="owner"?'<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="rename-workspace">名前変更</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>':""}
-    ${Number(state.workspace.is_personal)!==1&&state.workspace.role!=="owner"?'<button class="danger" data-action="leave-workspace">このBASEから退出</button>':""}`;
+
+    ${Number(state.workspace.is_personal)!==1&&owner?`<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="rename-workspace">名前変更</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>`:""}
+    ${Number(state.workspace.is_personal)!==1&&!hasGlobalAccess()&&state.workspace.role!=="owner"?'<button class="danger" data-action="leave-workspace">このBASEから退出</button>':""}
+  `;
   bindContent();
 }
 
 function inviteMember(){
   modal("メンバーを招待",field("citizenid","CSN / citizenid"),async fd=>{await api("workspaceInvite",{workspaceId:selectedWorkspaceId(),citizenid:fd.get("citizenid")});status("招待を作成しました。");return true;});
+}
+
+async function setMemberRole(citizenid,role){
+  await api("workspaceSetRole",{workspaceId:selectedWorkspaceId(),citizenid,role});
+  await openWorkspace(selectedWorkspaceId());
+}
+
+async function toggleSupport(enabled){
+  const preferred=selectedWorkspaceId();
+  const d=await api("supportToggle",{enabled});
+  state.boot.access=d.access;
+  state.boot.workspaces=d.workspaces||[];
+  workspacePills();
+  const stillVisible=preferred&&state.boot.workspaces.some(w=>Number(w.id)===Number(preferred));
+  if(stillVisible) await openWorkspace(preferred);
+  else if(state.boot.workspaces[0]) await openWorkspace(Number(state.boot.workspaces[0].id));
 }
 
 function renameWorkspace(){
@@ -862,6 +937,8 @@ function bindContent(){
       else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}
       else if(a==="decline-invite"){await api("inviteDecline",{inviteId:id});await bootstrap(selectedWorkspaceId());}
       else if(a==="remove-member"){await api("workspaceRemoveMember",{workspaceId:selectedWorkspaceId(),citizenid:b.dataset.cid});await openWorkspace(selectedWorkspaceId());}
+      else if(a==="set-role") await setMemberRole(b.dataset.cid,b.dataset.role);
+      else if(a==="toggle-support") await toggleSupport(b.dataset.enabled==="1");
       else if(a==="rename-workspace") renameWorkspace();
       else if(a==="delete-workspace") deleteWorkspace();
       else if(a==="leave-workspace"){await api("workspaceLeave",{workspaceId:selectedWorkspaceId()});state.workspace=null;await bootstrap();}

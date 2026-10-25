@@ -61,3 +61,16 @@ dialog::backdrop{background:#15251f70;backdrop-filter:blur(.35rem)}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
 pre.note-body{white-space:pre-wrap;font:inherit;margin:.7rem 0 0;line-height:1.5;color:#42524b}
 @media(max-width:22rem){.metric-grid{grid-template-columns:1fr}.split{grid-template-columns:1fr}}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:.55rem;flex-wrap:wrap}
+.search-input,.compact-select{border:.0625rem solid #d8e1dc;background:#f9fbf8;border-radius:.85rem;padding:.62rem .72rem;color:#2f4139;outline:none}
+.search-input{flex:1 1 10rem;min-width:0}
+.compact-select{flex:0 1 auto;max-width:100%}
+.filter-group{display:flex;gap:.35rem;flex-wrap:wrap}
+.filter-chip{border:0;border-radius:99rem;background:#e4ebe6;color:#51635b;padding:.5rem .7rem;font-size:.72rem;font-weight:800}
+.filter-chip.active{background:#315b4b;color:white}
+.section-title{margin-top:.25rem;font-size:.78rem;font-weight:850;color:#5c7067;letter-spacing:.03em}
+.compact-card{padding:.72rem .85rem}
+.card.overdue{border-color:#d9aaa4;background:#fcf7f5}
+.quick-stock{padding:.2rem 0}
+.quick-stock .small{min-width:3rem}

@@ -133,11 +133,22 @@ try {
         Write-Host 'External image blacklist: block not present; nothing to remove' -ForegroundColor DarkGray
     }
 
-    # 4) Verify the generated config in memory before touching the file.
-    $galleryOk = $updated -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
-    $whitelistOk = $updated -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+    # 4) Verify only inside each individual config block.
+    $verifyAllowMatch = [regex]::Match($updated, $allowPattern)
+    $verifyWhitelistMatch = [regex]::Match($updated, $whitelistPattern)
+    $verifyBlacklistMatch = [regex]::Match($updated, $blacklistPattern)
+
+    $galleryOk =
+        $verifyAllowMatch.Success -and
+        ($verifyAllowMatch.Groups[2].Value -match '(?m)^\s*Gallery\s*=\s*true\s*,?')
+
+    $whitelistOk =
+        $verifyWhitelistMatch.Success -and
+        ($verifyWhitelistMatch.Groups[2].Value -match '"gifyu\.com"')
+
     $blacklistStillContainsGifyu =
-        $updated -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+        $verifyBlacklistMatch.Success -and
+        ($verifyBlacklistMatch.Groups[2].Value -match '"gifyu\.com"')
 
     if (-not $galleryOk) {
         throw 'Verification failed: Gallery external imports are not enabled.'
@@ -157,12 +168,19 @@ try {
         [IO.File]::WriteAllText($configPath, $updated, [Text.UTF8Encoding]::new($false))
 
         $written = [IO.File]::ReadAllText($configPath)
+        $writtenAllowMatch = [regex]::Match($written, $allowPattern)
+        $writtenWhitelistMatch = [regex]::Match($written, $whitelistPattern)
+        $writtenBlacklistMatch = [regex]::Match($written, $blacklistPattern)
+
         $writtenGalleryOk =
-            $written -match '(?s)Config\.AllowExternal\s*=\s*\{.*?Gallery\s*=\s*true'
+            $writtenAllowMatch.Success -and
+            ($writtenAllowMatch.Groups[2].Value -match '(?m)^\s*Gallery\s*=\s*true\s*,?')
         $writtenWhitelistOk =
-            $written -match '(?s)Config\.ExternalWhitelistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+            $writtenWhitelistMatch.Success -and
+            ($writtenWhitelistMatch.Groups[2].Value -match '"gifyu\.com"')
         $writtenBlacklistBad =
-            $written -match '(?s)Config\.ExternalBlacklistedDomains\s*=\s*\{.*?"gifyu\.com".*?\}'
+            $writtenBlacklistMatch.Success -and
+            ($writtenBlacklistMatch.Groups[2].Value -match '"gifyu\.com"')
 
         if (-not $writtenGalleryOk -or -not $writtenWhitelistOk -or $writtenBlacklistBad) {
             Copy-Item -LiteralPath $backup -Destination $configPath -Force

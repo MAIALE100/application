@@ -61,6 +61,13 @@ function fmtDateTime(value,fallback=""){
   }).format(d);
 }
 
+function inputDateTime(value){
+  const d=dateValue(value);
+  if(!d) return "";
+  const pad=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+
 const errors = {
   PLAYER_NOT_READY:"キャラクター情報を取得できません。",
   NOT_A_MEMBER:"このBASEを開く権限がありません。",
@@ -73,6 +80,7 @@ const errors = {
   CANNOT_CHANGE_OWNER:"OWNERの役割は変更できません。",
   WORKSPACE_LIMIT:"作成できるBASE数の上限です。",
   MEMBER_LIMIT:"メンバー数の上限です。",
+  INVITE_LIMIT:"保留中の招待数が上限です。",
   TITLE_REQUIRED:"タイトルを入力してください。",
   NAME_REQUIRED:"名前を入力してください。",
   INVALID_INVITEE:"招待先のCSNを確認してください。",
@@ -167,9 +175,11 @@ function modal(title, html, onSave){
   save.style.display="";
   save.onclick=async (ev)=>{
     ev.preventDefault();
+    const form=$("#modalForm");
+    if(!form.reportValidity()) return;
     save.disabled=true;
     try{
-      const ok=await onSave(new FormData($("#modalForm")));
+      const ok=await onSave(new FormData(form));
       if(ok!==false) d.close();
     }finally{
       save.disabled=false;
@@ -461,9 +471,8 @@ function confirmTaskDelete(task){
 }
 
 function taskDueMs(value){
-  if(!value) return null;
-  const ms=new Date(String(value).replace(" ","T")).getTime();
-  return Number.isFinite(ms)?ms:null;
+  const d=dateValue(value);
+  return d?d.getTime():null;
 }
 
 function renderTasks(){
@@ -524,7 +533,7 @@ function memberOptions(selected){
 }
 
 function taskModal(task){
-  const due=task?.due_at?String(task.due_at).replace(" ","T").slice(0,16):"";
+  const due=inputDateTime(task?.due_at);
   modal(task?"タスクを編集":"新しいタスク",
     field("title","タイトル",task?.title||"")+textarea("details","詳細",task?.details||"")+
     `<div class="split"><div class="field"><label>優先度</label><select name="priority">

@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Flecity'
 description 'Flecity public solo mining job - beginner-friendly no-level money loop'
-version '0.3.10-dev'
+version '0.3.11-dev'
 
 shared_scripts {
     'config/gameplay.lua',

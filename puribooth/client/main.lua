@@ -247,52 +247,56 @@ local function clearTheme()
     end
 end
 
-local function drawTexturedQuad(bottomLeft, topLeft, bottomRight, topRight, txd, txn)
-    -- Known-good DrawSpritePoly UV layout used by FiveM world-space sprite
-    -- implementations. Two triangles form the quad.
-    DrawSpritePoly(
-        bottomRight.x, bottomRight.y, bottomRight.z,
-        topLeft.x, topLeft.y, topLeft.z,
-        bottomLeft.x, bottomLeft.y, bottomLeft.z,
-        255, 255, 255, 255,
-        txd, txn,
-        1.0, 0.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, 0.0, 1.0
+local function drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, txd, txn)
+    local function tri(a, b, c1, au, av, bu, bv, cu, cv)
+        DrawTexturedPoly(
+            a.x, a.y, a.z,
+            b.x, b.y, b.z,
+            c1.x, c1.y, c1.z,
+            255, 255, 255, 255,
+            txd, txn,
+            au, av, 1.0,
+            bu, bv, 1.0,
+            cu, cv, 1.0
+        )
+    end
+
+    -- Same winding/UV layout used by working FiveM world-space DUI panels.
+    tri(
+        topLeft,
+        topRight,
+        bottomLeft,
+        0.0, 0.0,
+        1.0, 0.0,
+        0.0, 1.0
     )
 
-    DrawSpritePoly(
-        topLeft.x, topLeft.y, topLeft.z,
-        bottomRight.x, bottomRight.y, bottomRight.z,
-        topRight.x, topRight.y, topRight.z,
-        255, 255, 255, 255,
-        txd, txn,
-        -1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0
+    tri(
+        bottomLeft,
+        topRight,
+        bottomRight,
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0
     )
 
-    -- Reverse winding for the opposite face.
-    DrawSpritePoly(
-        bottomLeft.x, bottomLeft.y, bottomLeft.z,
-        topLeft.x, topLeft.y, topLeft.z,
-        bottomRight.x, bottomRight.y, bottomRight.z,
-        255, 255, 255, 255,
-        txd, txn,
-        0.0, 0.0, 1.0,
-        0.0, -1.0, 0.0,
-        1.0, 0.0, 0.0
+    -- Reverse winding so both sides remain visible.
+    tri(
+        bottomLeft,
+        topRight,
+        topLeft,
+        0.0, 1.0,
+        1.0, 0.0,
+        0.0, 0.0
     )
 
-    DrawSpritePoly(
-        topRight.x, topRight.y, topRight.z,
-        bottomRight.x, bottomRight.y, bottomRight.z,
-        topLeft.x, topLeft.y, topLeft.z,
-        255, 255, 255, 255,
-        txd, txn,
-        0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0,
-        -1.0, 0.0, 0.0
+    tri(
+        bottomRight,
+        topRight,
+        bottomLeft,
+        1.0, 1.0,
+        1.0, 0.0,
+        0.0, 1.0
     )
 end
 
@@ -344,10 +348,10 @@ local function renderThemeSurfaces(booth)
         local slot = themeDui.background
         if slot and slot.dui then
             drawTexturedQuad(
-                bottomLeft,
                 topLeft,
-                bottomRight,
                 topRight,
+                bottomLeft,
+                bottomRight,
                 slot.txdName,
                 slot.txnName
             )
@@ -389,8 +393,8 @@ local function renderThemeSurfaces(booth)
         if slot and slot.dui then
             drawTexturedQuad(
                 backLeft,
-                frontLeft,
                 backRight,
+                frontLeft,
                 frontRight,
                 slot.txdName,
                 slot.txnName
@@ -1273,6 +1277,10 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
 
     applyThemeSurface("background", activeTheme.background)
     applyThemeSurface("floor", activeTheme.floor)
+
+    -- Chromium has to paint the new page before the world-space runtime
+    -- texture can display it. This is a short local wait, not persistence.
+    Wait(250)
 
     ownedSession.phase = "gathering"
     SetNuiFocus(false, false)

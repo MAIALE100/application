@@ -49,25 +49,8 @@ local function runSelfTest()
         interiorOk = type(Config.MineInterior) == 'table'
         if interiorOk and Config.MineInterior.enabled == true then
             interiorOk = isVector(Config.MineInterior.anchor)
-                and type(Config.MineInterior.baseIpl) == 'string'
-                and Config.MineInterior.baseIpl ~= ''
-                and type(Config.MineInterior.interiorIpl) == 'string'
-                and Config.MineInterior.interiorIpl ~= ''
-                and type(Config.MineInterior.legacyConflictIpls) == 'table'
-            if interiorOk then
-                for _, ipl in ipairs(Config.MineInterior.legacyConflictIpls) do
-                    if type(ipl) ~= 'string' or ipl == '' then
-                        interiorOk = false
-                        break
-                    end
-                end
-            end
-            interiorDetail = interiorOk
-                and ('base=%s interior=%s'):format(
-                    Config.MineInterior.baseIpl,
-                    Config.MineInterior.interiorIpl
-                )
-                or 'invalid'
+                and Config.MineInterior.manageIpls == false
+            interiorDetail = interiorOk and 'native-streaming/no-IPL' or 'invalid'
         end
     end
     add(results, interiorOk, 'mine interior', interiorDetail)

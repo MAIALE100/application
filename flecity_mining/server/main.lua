@@ -84,12 +84,18 @@ local function validateRuntimeConfig()
             if type(Config.MineInterior.anchor) ~= 'vector3' then
                 return false, 'invalid MineInterior anchor'
             end
-            if type(Config.MineInterior.ipls) ~= 'table' or #Config.MineInterior.ipls == 0 then
-                return false, 'invalid MineInterior IPL list'
+            if type(Config.MineInterior.baseIpl) ~= 'string' or Config.MineInterior.baseIpl == '' then
+                return false, 'invalid MineInterior base IPL'
             end
-            for index, ipl in ipairs(Config.MineInterior.ipls) do
+            if type(Config.MineInterior.interiorIpl) ~= 'string' or Config.MineInterior.interiorIpl == '' then
+                return false, 'invalid MineInterior interior IPL'
+            end
+            if type(Config.MineInterior.legacyConflictIpls) ~= 'table' then
+                return false, 'invalid MineInterior legacy IPL cleanup list'
+            end
+            for index, ipl in ipairs(Config.MineInterior.legacyConflictIpls) do
                 if type(ipl) ~= 'string' or ipl == '' then
-                    return false, ('invalid MineInterior IPL #%d'):format(index)
+                    return false, ('invalid MineInterior legacy IPL #%d'):format(index)
                 end
             end
         end

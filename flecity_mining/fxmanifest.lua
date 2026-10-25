@@ -1,4 +1,4 @@
-fx_version '0.3.8-dev'
+fx_version '0.3.9-dev'
 game 'gta5'
 lua54 'yes'
 

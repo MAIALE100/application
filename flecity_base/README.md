@@ -12,6 +12,7 @@ BASE is a shared workspace application for Flecity's LB Phone.
 - Inventory ledger with change history
 - Task management
 - Accounting ledger with non-destructive voids
+- User-defined calculators saved per workspace (1-8 inputs, formulas, rounding, money/number output)
 - QBox citizenid identity
 - oxmysql persistence
 - LB Phone custom app registration

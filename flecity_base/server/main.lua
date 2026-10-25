@@ -172,6 +172,36 @@ handlers.workspaceGet = function(source, data)
     return {ok=true, workspace=workspace, members=members}
 end
 
+handlers.workspaceRename = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    if tonumber(workspace.is_personal) == 1 then return {ok=false, error='PERSONAL_WORKSPACE'} end
+    local name = clean(data.name, L.title)
+    if name == '' then return {ok=false, error='NAME_REQUIRED'} end
+    local changed = MySQL.update.await(
+        'UPDATE flecity_base_workspaces SET name=?, updated_at=NOW() WHERE id=?',
+        {name, workspace.id}
+    )
+    return {ok=(tonumber(changed) or 0) > 0, name=name}
+end
+
+handlers.workspaceDelete = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireOwner(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    if tonumber(workspace.is_personal) == 1 then return {ok=false, error='PERSONAL_WORKSPACE'} end
+    if clean(data.confirmName, L.title) ~= tostring(workspace.name) then
+        return {ok=false, error='DELETE_CONFIRM_MISMATCH'}
+    end
+    local changed = MySQL.update.await('DELETE FROM flecity_base_workspaces WHERE id=?', {workspace.id})
+    return {ok=(tonumber(changed) or 0) > 0}
+end
+
 handlers.workspaceInvite = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
@@ -593,6 +623,8 @@ local callbacks = {
     ['flecity_base:bootstrap'] = handlers.bootstrap,
     ['flecity_base:workspaceCreate'] = handlers.workspaceCreate,
     ['flecity_base:workspaceGet'] = handlers.workspaceGet,
+    ['flecity_base:workspaceRename'] = handlers.workspaceRename,
+    ['flecity_base:workspaceDelete'] = handlers.workspaceDelete,
     ['flecity_base:workspaceInvite'] = handlers.workspaceInvite,
     ['flecity_base:inviteAccept'] = handlers.inviteAccept,
     ['flecity_base:inviteDecline'] = handlers.inviteDecline,

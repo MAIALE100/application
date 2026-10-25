@@ -203,6 +203,27 @@ local function headingTo(fromCoords, toCoords)
     return GetHeadingFromVector_2d(toCoords.x - fromCoords.x, toCoords.y - fromCoords.y)
 end
 
+local function raycastWorld(fromCoords, toCoords, ignoredEntity)
+    local handle = StartShapeTestRay(
+        fromCoords.x, fromCoords.y, fromCoords.z,
+        toCoords.x, toCoords.y, toCoords.z,
+        1,
+        ignoredEntity or 0,
+        0
+    )
+
+    for _ = 1, 8 do
+        local status, hit, endCoords = GetShapeTestResult(handle)
+        if status == 2 then
+            return hit == 1, endCoords
+        end
+        if status == 0 then break end
+        Wait(0)
+    end
+
+    return false, nil
+end
+
 local function findNearestWallTarget(ped, originCoords)
     local origin = originCoords + vector3(0.0, 0.0, 0.9)
     local nearest = nil
@@ -214,16 +235,9 @@ local function findNearestWallTarget(ped, originCoords)
         local radians = math.rad(degrees)
         local direction = vector3(math.cos(radians), math.sin(radians), 0.0)
         local target = origin + (direction * 3.0)
-        local ray = StartShapeTestRay(
-            origin.x, origin.y, origin.z,
-            target.x, target.y, target.z,
-            1,
-            ped,
-            0
-        )
-        local _, hit, endCoords = GetShapeTestResult(ray)
+        local hit, endCoords = raycastWorld(origin, target, ped)
 
-        if hit == 1 then
+        if hit and endCoords then
             local distance = #(endCoords - origin)
             if distance >= 0.35 and distance <= 3.0
                 and (not nearestDistance or distance < nearestDistance) then
@@ -688,10 +702,9 @@ RegisterCommand('mine_devwall', function()
     local forward = GetEntityForwardVector(ped)
     local to = from + (forward * 5.0)
 
-    local ray = StartShapeTestRay(from.x, from.y, from.z, to.x, to.y, to.z, 1, ped, 0)
-    local _, hit, endCoords = GetShapeTestResult(ray)
+    local hit, endCoords = raycastWorld(from, to, ped)
 
-    if hit == 1 then
+    if hit and endCoords then
         local text = ('target = vector3(%.2f, %.2f, %.2f)'):format(endCoords.x, endCoords.y, endCoords.z)
         print('[flecity_mining] ' .. text)
         notify(text)

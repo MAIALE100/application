@@ -277,8 +277,7 @@ local function renderPhotoLighting(booth)
     local camera = booth.camera and booth.camera.coords
     if not camera then return end
 
-    local _, _, rightX, rightY = getBasis(booth.heading)
-    local forwardX, forwardY = getBasis(booth.heading)
+    local forwardX, forwardY, rightX, rightY = getBasis(booth.heading)
 
     local sideOffset = tonumber(lighting.sideOffset) or 1.25
     local forwardOffset = tonumber(lighting.forwardOffset) or 0.45

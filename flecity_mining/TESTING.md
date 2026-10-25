@@ -375,3 +375,22 @@ resource再起動時に新規受付が安全停止することを確認します
 5. 壁方向へ向いた状態でドリル姿勢になる
 6. 粉塵とドリル音が継続する
 7. 原石増加・cooldown・GPS導線に回帰がない
+
+
+## v0.3.4 ロード復旧
+
+v0.3.3で坑道入場時に黒画面＋右下loadingが終了しないケースを確認。
+
+修正:
+
+- NewLoadScene/InteriorReadyの長時間待機を入退場処理から撤去
+- 入退場は短いfade + teleport + 最大2.5秒collision waitへ簡素化
+- resource start時にNewLoadSceneStop/ClearFocus/Freeze解除/fade-inを実行
+- resource stop時にも同じcleanupを実行
+
+復旧手順:
+
+1. 最新版を配備
+2. txAdminで `restart flecity_mining`
+3. 黒画面から自動復帰すること
+4. 再度坑道入場し、数秒以内に画面が戻ること

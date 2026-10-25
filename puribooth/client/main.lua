@@ -223,6 +223,7 @@ end
 
 local function clearTheme()
     activeTheme = nil
+    SendNUIMessage({ action = "resetTheme" })
 
     for _, slot in pairs(themeDui) do
         if slot.dui then
@@ -1363,9 +1364,13 @@ CreateThread(function()
             if state
                 and not state.capturing
                 and not (
-                    captureInProgress
-                    and ownedSession
+                    ownedSession
                     and ownedSession.boothId == boothId
+                    and (
+                        ownedSession.phase == "preview"
+                        or ownedSession.phase == "starting"
+                        or captureInProgress
+                    )
                 ) then
 
                 local distance = #(coords - booth.captureCenter)
@@ -1594,7 +1599,6 @@ CreateThread(function()
                     end
                 elseif phase == "preview" then
                     wait = 0
-                    sessionMarker(booth)
 
                     drawText2d(
                         "STEP 2/2   [E] START   [BACKSPACE] BACK",

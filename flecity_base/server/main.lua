@@ -196,8 +196,8 @@ handlers.workspaceInvite = function(source, data)
     local id = MySQL.insert.await([[
         INSERT INTO flecity_base_invites
         (workspace_id, invitee_citizenid, inviter_citizenid, status, expires_at)
-        VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL ? HOUR))
-    ]], {workspace.id, invitee, ctx.citizenid, C.InviteExpiryHours})
+        VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL 72 HOUR))
+    ]], {workspace.id, invitee, ctx.citizenid})
     return {ok=id ~= nil, inviteId=tonumber(id)}
 end
 
@@ -593,6 +593,12 @@ local callbacks = {
 
 local registeredCallbacks = 0
 
+local function callbackCount()
+    local n = 0
+    for _ in pairs(callbacks) do n = n + 1 end
+    return n
+end
+
 local function safeCall(name, fn, source, data)
     local ok, result = pcall(fn, source, data)
     if ok then return result or {ok=false, error='EMPTY_RESPONSE'} end
@@ -619,14 +625,8 @@ local function registerCallbacks()
             print(('[BASE] RegisterCallback(%s) failed: %s'):format(name, tostring(callbackErr)))
         end
     end
-    print(('[BASE] LB Phone callbacks registered %d/%d'):format(registeredCallbacks, #callbacks))
+    print(('[BASE] LB Phone callbacks registered %d/%d'):format(registeredCallbacks, callbackCount()))
     return true
-end
-
-local function callbackCount()
-    local n = 0
-    for _ in pairs(callbacks) do n = n + 1 end
-    return n
 end
 
 RegisterCommand('base_selftest', function(source)

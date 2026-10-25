@@ -14,6 +14,16 @@ Config.Debug = false
 Config.AdminAce = "group.admin"
 Config.AdminRemoveDistance = 6.0
 Config.AllowFirstAdminClaim = true
+Config.AdminPlaceMaxDistance = 7.0
+
+Config.PlacementPreview = {
+    initialDistance = 2.0,
+    moveStep = 0.035,
+    rotateStep = 1.0,
+    heightStep = 0.02,
+    maxHorizontalOffset = 6.0,
+    alpha = 145
+}
 
 -- Temporary stock model. This can later be replaced with the final streamed
 -- Flecity PURI cabinet without changing the placement database.

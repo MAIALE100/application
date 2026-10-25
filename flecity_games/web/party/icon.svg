@@ -1,32 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#10151d"/>
-      <stop offset="1" stop-color="#070a0f"/>
-    </linearGradient>
-    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#57efff"/>
-      <stop offset="1" stop-color="#078bff"/>
-    </linearGradient>
-    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd36a"/>
-      <stop offset="1" stop-color="#ff8b24"/>
-    </linearGradient>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.1" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-
-  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
-  <circle cx="43" cy="31" r="7" fill="url(#cyan)" filter="url(#glow)"/>
-  <circle cx="85" cy="31" r="7" fill="url(#orange)" filter="url(#glow)"/>
-
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11">
-    <ellipse cx="48" cy="60" rx="24" ry="20" transform="rotate(-18 48 60)" stroke="url(#cyan)" filter="url(#glow)"/>
-    <ellipse cx="80" cy="60" rx="24" ry="20" transform="rotate(18 80 60)" stroke="url(#orange)" filter="url(#glow)"/>
+  <rect width="128" height="128" rx="28" fill="#0A0D12"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="15">
+    <ellipse cx="45" cy="64" rx="24" ry="19" transform="rotate(-18 45 64)" stroke="#24D8FF"/>
+    <ellipse cx="83" cy="64" rx="24" ry="19" transform="rotate(18 83 64)" stroke="#FF9A2E"/>
   </g>
-
-  <path d="M54 60h20" stroke="#ffffff" stroke-opacity=".9" stroke-width="6" stroke-linecap="round"/>
-  <text x="64" y="106" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="900" letter-spacing="2">LINK</text>
+  <path d="M54 64H74" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
 </svg>

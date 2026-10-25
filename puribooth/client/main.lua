@@ -270,6 +270,65 @@ local function drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, txd,
     )
 end
 
+local function renderPhotoLighting(booth)
+    local lighting = Config.PhotoLighting or {}
+    if lighting.enabled == false or not booth then return end
+
+    local camera = booth.camera and booth.camera.coords
+    if not camera then return end
+
+    local _, _, rightX, rightY = getBasis(booth.heading)
+    local forwardX, forwardY = getBasis(booth.heading)
+
+    local sideOffset = tonumber(lighting.sideOffset) or 1.25
+    local forwardOffset = tonumber(lighting.forwardOffset) or 0.45
+    local heightOffset = tonumber(lighting.heightOffset) or 0.55
+    local range = tonumber(lighting.range) or 7.0
+    local intensity = tonumber(lighting.intensity) or 2.2
+
+    local color = lighting.color or {}
+    local r = tonumber(color.r) or 255
+    local g = tonumber(color.g) or 238
+    local b = tonumber(color.b) or 244
+
+    local baseX = camera.x + forwardX * forwardOffset
+    local baseY = camera.y + forwardY * forwardOffset
+    local baseZ = camera.z + heightOffset
+
+    DrawLightWithRange(
+        baseX,
+        baseY,
+        baseZ,
+        r,
+        g,
+        b,
+        range,
+        intensity
+    )
+
+    DrawLightWithRange(
+        baseX + rightX * sideOffset,
+        baseY + rightY * sideOffset,
+        baseZ - 0.12,
+        r,
+        g,
+        b,
+        range,
+        intensity * 0.78
+    )
+
+    DrawLightWithRange(
+        baseX - rightX * sideOffset,
+        baseY - rightY * sideOffset,
+        baseZ - 0.12,
+        r,
+        g,
+        b,
+        range,
+        intensity * 0.78
+    )
+end
+
 local function renderThemeSurfaces(booth)
     if not booth or not activeTheme then return end
 
@@ -1594,6 +1653,10 @@ CreateThread(function()
             if booth and activeTheme then
                 wait = 0
                 renderThemeSurfaces(booth)
+
+                if cameraPreviewActive or captureInProgress then
+                    renderPhotoLighting(booth)
+                end
             end
 
             if booth then

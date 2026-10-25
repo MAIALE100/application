@@ -1,0 +1,98 @@
+param(
+    [string]$ServerBase = "D:\FiveM_Test_Server\txData\Qbox_D233FD.base"
+)
+
+$ErrorActionPreference = "Stop"
+$Root = $PSScriptRoot
+$Resources = Join-Path $ServerBase "resources"
+$PuriSource = Join-Path $Root "puriphoto"
+$BoothSource = Join-Path $Root "puribooth"
+$PuriTarget = Join-Path $Resources "[lb-phone]\puriphoto"
+$BoothTarget = Join-Path $Resources "[lb-phone]\puribooth"
+$ServerCfg = Join-Path $ServerBase "server.cfg"
+
+function Invoke-Step([string]$Label, [scriptblock]$Action) {
+    Write-Host ""
+    Write-Host "==> $Label" -ForegroundColor Cyan
+    & $Action
+}
+
+if (-not (Test-Path -LiteralPath $PuriSource)) { throw "PuriPhoto source not found: $PuriSource" }
+if (-not (Test-Path -LiteralPath $BoothSource)) { throw "PuriBooth source not found: $BoothSource" }
+if (-not (Test-Path -LiteralPath $Resources)) { throw "Server resources folder not found: $Resources" }
+
+Invoke-Step "Checking Node.js" {
+    $npm = Get-Command npm -ErrorAction SilentlyContinue
+    if (-not $npm) { throw "npm was not found. Install Node.js or add npm to PATH." }
+    node --version
+    npm --version
+}
+
+Invoke-Step "Building PuriPhoto UI" {
+    Push-Location (Join-Path $PuriSource "ui")
+    try {
+        npm ci
+        if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+Invoke-Step "Validating booth JavaScript" {
+    node --check (Join-Path $BoothSource "ui\app.js")
+    if ($LASTEXITCODE -ne 0) { throw "PuriBooth UI JavaScript syntax check failed" }
+}
+
+Invoke-Step "Checking screenshot-basic" {
+    $screenshot = Get-ChildItem -LiteralPath $Resources -Directory -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -eq "screenshot-basic" } |
+        Select-Object -First 1
+
+    if ($screenshot) {
+        Write-Host "screenshot-basic: FOUND ($($screenshot.FullName))" -ForegroundColor Green
+    }
+    else {
+        Write-Warning "screenshot-basic was not found. The booth can start, but automatic fixed-camera capture will refund instead of taking photos."
+    }
+}
+
+Invoke-Step "Deploying PuriPhoto" {
+    New-Item -ItemType Directory -Force -Path $PuriTarget | Out-Null
+    robocopy $PuriSource $PuriTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
+    if ($LASTEXITCODE -gt 7) { throw "PuriPhoto deploy failed (robocopy=$LASTEXITCODE)" }
+}
+
+Invoke-Step "Deploying PuriBooth" {
+    New-Item -ItemType Directory -Force -Path $BoothTarget | Out-Null
+    robocopy $BoothSource $BoothTarget /MIR /XD node_modules .git /NFL /NDL /NJH /NJS /NP
+    if ($LASTEXITCODE -gt 7) { throw "PuriBooth deploy failed (robocopy=$LASTEXITCODE)" }
+}
+
+Invoke-Step "Checking server.cfg" {
+    if (-not (Test-Path -LiteralPath $ServerCfg)) {
+        Write-Warning "server.cfg was not found; add 'ensure puribooth' manually."
+    }
+    else {
+        $cfg = Get-Content -LiteralPath $ServerCfg -Raw
+        if ($cfg -notmatch '(?im)^\s*ensure\s+puribooth\s*$') {
+            Add-Content -LiteralPath $ServerCfg -Value "`r`n# Flecity street purikura booth`r`nensure puribooth`r`n"
+            Write-Host "Added: ensure puribooth" -ForegroundColor Green
+        }
+        else {
+            Write-Host "ensure puribooth: already present" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "PuriBooth development build deployed." -ForegroundColor Green
+Write-Host "Run these in txAdmin:" -ForegroundColor Yellow
+Write-Host "    refresh"
+Write-Host "    restart puriphoto"
+Write-Host "    ensure puribooth"
+Write-Host "    puribooth_selftest"
+Write-Host ""
+Write-Host "Expected location: Legion Square prototype booth around 207.60, -919.66, 30.69"

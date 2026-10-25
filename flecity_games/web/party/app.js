@@ -3,6 +3,7 @@ const codeEl=document.getElementById('code'),createBtn=document.getElementById('
 const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getElementById('roundPanel'),roundDeadline=document.getElementById('roundDeadline'),roundHudGame=document.getElementById('roundHudGame'),roundLeave=document.getElementById('roundLeave');
 const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
 const shogiLobbyOptions=document.getElementById('shogiLobbyOptions'),shogiAiDifficulty=document.getElementById('shogiAiDifficulty'),shogiOptionsNote=document.getElementById('shogiOptionsNote');
+const drawingLobbyOptions=document.getElementById('drawingLobbyOptions'),drawingModeGuess=document.getElementById('drawingModeGuess'),drawingModeTelephone=document.getElementById('drawingModeTelephone'),drawingModeNote=document.getElementById('drawingModeNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
@@ -183,6 +184,18 @@ function renderGameInfo(gameId){
  description.textContent=String(game.description||'');
  gameInfo.append(title,meta,description);
 }
+function renderDrawingModeOptions(room){
+ const active=room&&room.state==='lobby'&&(room.selectedGame==='draw'||room.selectedGame==='telephone');
+ drawingLobbyOptions.classList.toggle('hidden',!active);
+ if(!active)return;
+ const mode=room.selectedGame==='telephone'?'telephone':'draw';
+ drawingModeGuess.classList.toggle('selected',mode==='draw');
+ drawingModeTelephone.classList.toggle('selected',mode==='telephone');
+ drawingModeGuess.disabled=!room.isHost;
+ drawingModeTelephone.disabled=!room.isHost;
+ drawingModeNote.textContent=room.isHost?'遊びたいモードを選んでください。':'ホストが「'+(mode==='telephone'?'お絵かき伝言':'お絵かき当て')+'」を選択中です。';
+}
+
 function startReadiness(room){
  const game=selectedGameConfig(room);
  const min=Math.max(1,Number(game&&game.minPlayers)||partyConfig.minPlayers||2);
@@ -926,7 +939,8 @@ function renderRoom(room,timing){
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
-   gameEl.value=room.selectedGame||'code_break';gameEl.disabled=!room.isHost;renderGameInfo(gameEl.value);
+   const lobbyGameId=(room.selectedGame==='telephone'?'draw':(room.selectedGame||'code_break'));
+   gameEl.value=lobbyGameId;gameEl.disabled=!room.isHost;renderGameInfo(lobbyGameId);
    const mmOptions=room.mastermindOptions||{aiDifficulty:'normal',allowDuplicates:true,turnLimit:true,firstTurn:'random'};
    mastermindLobbyOptions.classList.toggle('hidden',room.selectedGame!=='code_break');
    mastermindAiDifficulty.value=String(mmOptions.aiDifficulty||'normal');
@@ -943,6 +957,7 @@ function renderRoom(room,timing){
    shogiAiDifficulty.value=String(shogiOptions.aiDifficulty||'hard');
    shogiAiDifficulty.disabled=!room.isHost;
    shogiOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'1人プレイ時のAI強さを選べます。':'2人対戦ではAI強さは使用しません。';
+   renderDrawingModeOptions(room);
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
    readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';
@@ -1007,9 +1022,10 @@ async function loadPartyConfig(epoch=lifecycleEpoch){
 
  const games=Array.isArray(res.config.games)?res.config.games:[];
  if(games.length){
-   const current=gameEl.value;
+   const current=(currentRoom&&currentRoom.selectedGame==='telephone')?'draw':gameEl.value;
    gameEl.innerHTML='';
    games.forEach(game=>{
+     if(game.id==='telephone')return;
      const option=document.createElement('option');
      option.value=game.id;
      const min=Number(game.minPlayers)||2,max=Number(game.maxPlayers)||10;
@@ -1076,7 +1092,17 @@ registerPhonePushChannel();
 createBtn.onclick=()=>runOnce('create',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
-gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');shogiLobbyOptions.classList.toggle('hidden',gameEl.value!=='mini_shogi');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');shogiLobbyOptions.classList.toggle('hidden',gameEl.value!=='mini_shogi');drawingLobbyOptions.classList.toggle('hidden',gameEl.value!=='draw');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+async function selectDrawingMode(gameId){
+ if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
+ if(gameId!=='draw'&&gameId!=='telephone')return;
+ const res=await FlecityBridge.call('partySelectGame',{gameId});
+ if(!res.ok){status('お絵かきモード変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ renderRoom(res.room);
+}
+drawingModeGuess.onclick=()=>runOnce('drawing-mode',()=>selectDrawingMode('draw'));
+drawingModeTelephone.onclick=()=>runOnce('drawing-mode',()=>selectDrawingMode('telephone'));
+
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
  const res=await FlecityBridge.call('partySetMastermindOptions',{aiDifficulty:mastermindAiDifficulty.value,allowDuplicates:mastermindDuplicates.value!=='no',turnLimit:mastermindTurnLimit.value!=='no',firstTurn:mastermindFirstTurn.value});

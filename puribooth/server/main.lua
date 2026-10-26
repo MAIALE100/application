@@ -7,6 +7,7 @@ local databaseReady = false
 local themeSerial = 0
 local sessionSerial = 0
 local collectionSerial = 0
+local collectionProcessRunning = false
 local refundRetryRunning = false
 local puriphotoUiCache = nil
 local clearThemeRecipients
@@ -978,6 +979,36 @@ local function collectionFinalizeQueries(claimed)
     return queries
 end
 
+local function collectionClaimQueries(claimed, collectionId, total, allocations)
+    local queries = {}
+
+    for _, item in ipairs(claimed or {}) do
+        queries[#queries + 1] = {
+            query = [[
+                UPDATE puribooth_booths
+                SET balance = balance - ?
+                WHERE id = ?
+            ]],
+            values = { item.amount, item.id }
+        }
+    end
+
+    queries[#queries + 1] = {
+        query = [[
+            UPDATE puribooth_collections
+            SET
+                amount = ?,
+                allocations = ?,
+                status = 'claimed',
+                last_error = NULL
+            WHERE collection_id = ? AND status = 'preparing'
+        ]],
+        values = { total, allocations, collectionId }
+    }
+
+    return queries
+end
+
 local function setCollectionLocks(claimed, collectionId)
     for _, item in ipairs(claimed or {}) do
         collectionLocks[tostring(item.id)] = collectionId or true
@@ -993,299 +1024,358 @@ local function clearCollectionLocks(claimed, collectionId)
     end
 end
 
+local function transitionCollection(collectionId, fromStatus, toStatus, errorText)
+    local affected = MySQL.update.await([[
+        UPDATE puribooth_collections
+        SET
+            status = ?,
+            last_error = ?
+        WHERE collection_id = ? AND status = ?
+    ]], {
+        tostring(toStatus),
+        errorText and safeAuditDetail(errorText) or nil,
+        tostring(collectionId),
+        tostring(fromStatus)
+    })
+
+    return affected and affected > 0
+end
+
+local function finalizeCollection(collectionId, claimed)
+    local queries = collectionFinalizeQueries(claimed)
+    queries[#queries + 1] = {
+        query = [[
+            UPDATE puribooth_collections
+            SET
+                status = 'resolved',
+                last_error = NULL,
+                resolved_at = NOW()
+            WHERE collection_id = ? AND status = 'finalizing'
+        ]],
+        values = { tostring(collectionId) }
+    }
+
+    return collectionTransaction(queries)
+end
+
+local function restoreCollection(collectionId, claimed)
+    local queries = collectionRestoreQueries(claimed)
+    queries[#queries + 1] = {
+        query = [[
+            UPDATE puribooth_collections
+            SET
+                status = 'rolled_back',
+                last_error = NULL,
+                resolved_at = NOW()
+            WHERE collection_id = ? AND status = 'restoring'
+        ]],
+        values = { tostring(collectionId) }
+    }
+
+    return collectionTransaction(queries)
+end
+
 local function collectSales(source, target)
-    if not requireManagementAccess(source, "sales")
-        or not requireSalesLocation(source) then
+    if collectionProcessRunning then
+        notify(source, "error", "別の売上回収処理が進行中です。")
         return
     end
 
-    local unresolvedCollections = tonumber(MySQL.scalar.await([[
-        SELECT COUNT(*)
-        FROM puribooth_collections
-        WHERE status NOT IN ('resolved', 'rolled_back')
-    ]])) or 0
+    collectionProcessRunning = true
 
-    if unresolvedCollections > 0 then
-        notify(
-            source,
-            "error",
-            "未解決の売上回収処理があります。新しい回収は停止中です。開発側で puribooth_collections を確認してください。"
-        )
-        return
-    end
-
-    target = string.lower(tostring(target or ""))
-    if target == "" then
-        notify(
-            source,
-            "inform",
-            "回収: /puribooth collect all または /puribooth collect <台ID>"
-        )
-        return
-    end
-
-    local collectorCitizenId = nil
-    local collector = exports.qbx_core:GetPlayer(source)
-    if collector and collector.PlayerData then
-        collectorCitizenId = collector.PlayerData.citizenid
-    end
-
-    local collectionId = nextCollectionId(source)
-    local ledgerOk, ledgerId = pcall(function()
-        return MySQL.insert.await([[
-            INSERT INTO puribooth_collections
-                (
-                    collection_id,
-                    collector_citizenid,
-                    target,
-                    amount,
-                    status,
-                    allocations
-                )
-            VALUES (?, ?, ?, 0, 'preparing', '[]')
-        ]], {
-            collectionId,
-            collectorCitizenId,
-            target
-        })
-    end)
-
-    if not ledgerOk or not ledgerId then
-        notify(source, "error", "売上回収の保守台帳を開始できませんでした。回収は行っていません。")
-        return
-    end
-
-    local rows
-
-    if target == "all" then
-        rows = MySQL.query.await([[
-            SELECT id, balance
-            FROM puribooth_booths
-            WHERE balance > 0
-            ORDER BY id ASC
-        ]]) or {}
-    else
-        local numericId = tonumber(target)
-        if not numericId then
-            MySQL.update.await(
-                "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'invalid-target', resolved_at = NOW() WHERE collection_id = ?",
-                { collectionId }
-            )
-            notify(source, "error", "台IDは数字で指定してください。")
+    local ok, err = xpcall(function()
+        if not requireManagementAccess(source, "sales")
+            or not requireSalesLocation(source) then
             return
         end
 
-        rows = MySQL.query.await([[
-            SELECT id, balance
-            FROM puribooth_booths
-            WHERE id = ? AND balance > 0
-            LIMIT 1
-        ]], { numericId }) or {}
-    end
+        local unresolvedCollections = tonumber(MySQL.scalar.await([[
+            SELECT COUNT(*)
+            FROM puribooth_collections
+            WHERE status NOT IN ('resolved', 'rolled_back')
+        ]])) or 0
 
-    if #rows == 0 then
-        MySQL.update.await(
-            "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'no-balance', resolved_at = NOW() WHERE collection_id = ?",
-            { collectionId }
-        )
-        notify(source, "inform", "回収できる未回収売上はありません。")
-        return
-    end
+        if unresolvedCollections > 0 then
+            notify(
+                source,
+                "error",
+                "未解決の売上回収処理があります。新しい回収は停止中です。開発側で puribooth_collections を確認してください。"
+            )
+            return
+        end
 
-    local claimed = {}
-    local total = 0
+        target = string.lower(tostring(target or ""))
+        if target == "" then
+            notify(
+                source,
+                "inform",
+                "回収: /puribooth collect all または /puribooth collect <台ID>"
+            )
+            return
+        end
 
-    for _, row in ipairs(rows) do
-        local boothId = tonumber(row.id)
-        local amount = math.max(0, math.floor(tonumber(row.balance) or 0))
-        local lockKey = boothId and tostring(boothId) or nil
+        local collectorCitizenId = nil
+        local collector = exports.qbx_core:GetPlayer(source)
+        if collector and collector.PlayerData then
+            collectorCitizenId = collector.PlayerData.citizenid
+        end
 
-        if boothId and amount > 0 and not collectionLocks[lockKey] then
-            collectionLocks[lockKey] = collectionId
-
-            local affected = MySQL.update.await([[
-                UPDATE puribooth_booths
-                SET balance = balance - ?
-                WHERE id = ? AND balance >= ?
+        local collectionId = nextCollectionId(source)
+        local ledgerOk, ledgerId = pcall(function()
+            return MySQL.insert.await([[
+                INSERT INTO puribooth_collections
+                    (
+                        collection_id,
+                        collector_citizenid,
+                        target,
+                        amount,
+                        status,
+                        allocations
+                    )
+                VALUES (?, ?, ?, 0, 'preparing', '[]')
             ]], {
-                amount,
-                boothId,
-                amount
+                collectionId,
+                collectorCitizenId,
+                target
             })
+        end)
 
-            if affected and affected > 0 then
+        if not ledgerOk or not ledgerId then
+            notify(source, "error", "売上回収の保守台帳を開始できませんでした。回収は行っていません。")
+            return
+        end
+
+        local rows
+
+        if target == "all" then
+            rows = MySQL.query.await([[
+                SELECT id, balance
+                FROM puribooth_booths
+                WHERE balance > 0
+                ORDER BY id ASC
+            ]]) or {}
+        else
+            local numericId = tonumber(target)
+            if not numericId then
+                MySQL.update.await(
+                    "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'invalid-target', resolved_at = NOW() WHERE collection_id = ?",
+                    { collectionId }
+                )
+                notify(source, "error", "台IDは数字で指定してください。")
+                return
+            end
+
+            rows = MySQL.query.await([[
+                SELECT id, balance
+                FROM puribooth_booths
+                WHERE id = ? AND balance > 0
+                LIMIT 1
+            ]], { numericId }) or {}
+        end
+
+        if #rows == 0 then
+            MySQL.update.await(
+                "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'no-balance', resolved_at = NOW() WHERE collection_id = ?",
+                { collectionId }
+            )
+            notify(source, "inform", "回収できる未回収売上はありません。")
+            return
+        end
+
+        local claimed = {}
+        local total = 0
+
+        for _, row in ipairs(rows) do
+            local boothId = tonumber(row.id)
+            local amount = math.max(0, math.floor(tonumber(row.balance) or 0))
+
+            if boothId and amount > 0 then
                 claimed[#claimed + 1] = {
                     id = boothId,
                     amount = amount
                 }
                 total = total + amount
-            else
-                collectionLocks[lockKey] = nil
             end
         end
-    end
 
-    if total <= 0 then
-        clearCollectionLocks(claimed, collectionId)
-        MySQL.update.await(
-            "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'nothing-claimed', resolved_at = NOW() WHERE collection_id = ?",
-            { collectionId }
-        )
-        notify(source, "inform", "他の担当者が先に売上を回収しました。")
-        return
-    end
+        if total <= 0 then
+            MySQL.update.await(
+                "UPDATE puribooth_collections SET status = 'rolled_back', last_error = 'nothing-to-claim', resolved_at = NOW() WHERE collection_id = ?",
+                { collectionId }
+            )
+            notify(source, "inform", "回収できる未回収売上はありません。")
+            return
+        end
 
-    local allocations = json.encode(claimed)
-    local ledgerUpdated = MySQL.update.await([[
-        UPDATE puribooth_collections
-        SET
-            amount = ?,
-            allocations = ?,
-            status = 'claimed',
-            last_error = NULL
-        WHERE collection_id = ? AND status = 'preparing'
-    ]], {
-        total,
-        allocations,
-        collectionId
-    })
+        local allocations = json.encode(claimed)
+        setCollectionLocks(claimed, collectionId)
 
-    if not ledgerUpdated or ledgerUpdated < 1 then
-        local restored =
+        local claimedOk =
             collectionTransaction(
-                collectionRestoreQueries(claimed)
+                collectionClaimQueries(
+                    claimed,
+                    collectionId,
+                    total,
+                    allocations
+                )
             )
 
-        clearCollectionLocks(claimed, collectionId)
+        if not claimedOk then
+            clearCollectionLocks(claimed, collectionId)
+            MySQL.update.await([[
+                UPDATE puribooth_collections
+                SET
+                    status = 'rolled_back',
+                    last_error = 'atomic-claim-failed',
+                    resolved_at = NOW()
+                WHERE collection_id = ? AND status = 'preparing'
+            ]], { collectionId })
 
-        MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                status = ?,
-                last_error = ?,
-                resolved_at = IF(? = 'rolled_back', NOW(), NULL)
-            WHERE collection_id = ?
-        ]], {
-            restored and "rolled_back" or "rollback_failed",
-            "ledger-claim-update-failed",
-            restored and "rolled_back" or "rollback_failed",
-            collectionId
-        })
+            notify(
+                source,
+                "error",
+                "売上回収のDB確保に失敗したため、会社口座への入金は行っていません。"
+            )
+            return
+        end
 
-        notify(
-            source,
-            "error",
-            restored
-                and "売上回収台帳を確定できなかったため回収を取り消しました。"
-                or "売上回収台帳とDB復元に失敗しました。開発側の確認が必要です。"
-        )
-        return
-    end
+        if not transitionCollection(
+            collectionId,
+            "claimed",
+            "paying",
+            nil
+        ) then
+            clearCollectionLocks(claimed, collectionId)
+            print(
+                ("[puribooth] CRITICAL collection could not enter paying state id=%s")
+                    :format(collectionId)
+            )
+            notify(
+                source,
+                "error",
+                ("売上回収を安全に続行できません。会社口座への入金は行っていません。collection_id=%s")
+                    :format(collectionId)
+            )
+            return
+        end
 
-    local paid, destination = addCompanyMoney(source, total)
+        local paid, destination = addCompanyMoney(source, total)
 
-    if not paid then
-        local restored =
-            collectionTransaction(
-                collectionRestoreQueries(claimed)
+        if not paid then
+            local moved = transitionCollection(
+                collectionId,
+                "paying",
+                "restoring",
+                destination or "payout-failed"
             )
 
-        clearCollectionLocks(claimed, collectionId)
+            if not moved then
+                clearCollectionLocks(claimed, collectionId)
+                print(
+                    ("[puribooth] CRITICAL payout failed but collection state transition failed id=%s")
+                        :format(collectionId)
+                )
+                notify(
+                    source,
+                    "error",
+                    ("会社口座への入金は失敗しましたがDB復元状態へ移れませんでした。collection_id=%s")
+                        :format(collectionId)
+                )
+                return
+            end
 
-        MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                destination = ?,
-                status = ?,
-                last_error = ?,
-                resolved_at = IF(? = 'rolled_back', NOW(), NULL)
-            WHERE collection_id = ?
-        ]], {
-            tostring(destination or ""),
-            restored and "rolled_back" or "rollback_failed",
-            safeAuditDetail(destination or "payout-failed"),
-            restored and "rolled_back" or "rollback_failed",
-            collectionId
-        })
+            local restored = restoreCollection(collectionId, claimed)
+            clearCollectionLocks(claimed, collectionId)
 
-        notify(
-            source,
-            "error",
-            restored
-                and ("売上回収を取り消しました: %s")
+            if not restored then
+                print(
+                    ("[puribooth] CRITICAL collection rollback transaction failed id=%s")
+                        :format(collectionId)
+                )
+                notify(
+                    source,
+                    "error",
+                    ("会社口座への入金は失敗し、DB復元も未完了です。collection_id=%s")
+                        :format(collectionId)
+                )
+                return
+            end
+
+            notify(
+                source,
+                "error",
+                ("売上回収を取り消しました: %s")
                     :format(tostring(destination or "入金失敗"))
-                or "会社口座への入金は失敗し、DB復元にも失敗しました。開発側の確認が必要です。"
+            )
+            return
+        end
+
+        local enteredFinalize = transitionCollection(
+            collectionId,
+            "paying",
+            "finalizing",
+            nil
         )
-        return
-    end
 
-    local finalized =
-        collectionTransaction(
-            collectionFinalizeQueries(claimed)
-        )
+        if not enteredFinalize then
+            clearCollectionLocks(claimed, collectionId)
+            print(
+                ("[puribooth] CRITICAL payout succeeded but finalizing state write failed id=%s amount=%d destination=%s")
+                    :format(collectionId, total, tostring(destination))
+            )
+            notify(
+                source,
+                "error",
+                ("会社口座へ $%d は入金済みですがDB確定待ちです。再回収せず collection_id=%s を開発側へ共有してください。")
+                    :format(total, collectionId)
+            )
+            return
+        end
 
-    clearCollectionLocks(claimed, collectionId)
+        local finalized = finalizeCollection(collectionId, claimed)
+        clearCollectionLocks(claimed, collectionId)
 
-    if not finalized then
-        MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                destination = ?,
-                status = 'paid_unfinalized',
-                last_error = 'bank-paid-db-finalize-failed'
-            WHERE collection_id = ?
-        ]], {
-            tostring(destination or ""),
-            collectionId
-        })
+        if not finalized then
+            print(
+                ("[puribooth] CRITICAL collection finalization transaction failed id=%s amount=%d destination=%s")
+                    :format(collectionId, total, tostring(destination))
+            )
 
-        print(
-            ("[puribooth] CRITICAL collection paid but DB finalization failed id=%s amount=%d destination=%s")
-                :format(collectionId, total, tostring(destination))
+            notify(
+                source,
+                "error",
+                ("会社口座へ $%d は入金済みですがDB確定に失敗しました。再回収せず puribooth_collection_retry %s を使用してください。")
+                    :format(total, collectionId)
+            )
+            return
+        end
+
+        MySQL.update.await(
+            "UPDATE puribooth_collections SET destination = ? WHERE collection_id = ?",
+            { tostring(destination or ""), collectionId }
         )
 
         notify(
             source,
-            "error",
-            ("会社口座へ $%d は入金済みですがDB確定に失敗しました。再回収せず開発側へ collection_id=%s を共有してください。")
-                :format(total, collectionId)
+            "inform",
+            ("FLEPURI売上 $%d を %s へ回収しました。")
+                :format(total, tostring(destination))
         )
-        return
-    end
+    end, debug.traceback)
 
-    local resolved = MySQL.update.await([[
-        UPDATE puribooth_collections
-        SET
-            destination = ?,
-            status = 'resolved',
-            last_error = NULL,
-            resolved_at = NOW()
-        WHERE collection_id = ?
-    ]], {
-        tostring(destination or ""),
-        collectionId
-    })
+    collectionProcessRunning = false
 
-    if not resolved or resolved < 1 then
+    if not ok then
         print(
-            ("[puribooth] CRITICAL collection finalized but ledger resolution write failed id=%s amount=%d")
-                :format(collectionId, total)
+            ("[puribooth] ERROR collection worker failed: %s")
+                :format(tostring(err))
         )
         notify(
             source,
             "error",
-            ("売上 $%d の入金とDB確定は完了しましたが保守台帳の更新に失敗しました。collection_id=%s")
-                :format(total, collectionId)
+            "売上回収処理で予期しないエラーが発生しました。再回収せず開発側で状態を確認してください。"
         )
-        return
     end
-
-    notify(
-        source,
-        "inform",
-        ("FLEPURI売上 $%d を %s へ回収しました。")
-            :format(total, tostring(destination))
-    )
 end
 
 local function changeBoothPrice(source, amountText, boothIdText)

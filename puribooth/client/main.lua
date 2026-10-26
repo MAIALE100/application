@@ -61,23 +61,23 @@ local function localizeBoothLabel(value)
 
     local streetNumber = label:match("^Street PURI #(%d+)$")
     if streetNumber then
-        return ("ストリートプリ #%s"):format(streetNumber)
+        return ("フレプリ #%s"):format(streetNumber)
     end
 
     if label == "Street PURI" then
-        return "ストリートプリ"
+        return "フレプリ"
     end
 
     if label == "Legion PURI" then
-        return "リージョンプリ"
+        return "フレプリ"
     end
 
     if label == "PURI" then
-        return "プリクラ"
+        return "フレプリ"
     end
 
     if label == "" then
-        return "ストリートプリ"
+        return "フレプリ"
     end
 
     return label
@@ -128,7 +128,7 @@ local function prepareBooth(raw, fallbackId)
 
     local booth = {
         id = tostring(raw.id or fallbackId),
-        label = localizeBoothLabel(raw.label or "ストリートプリ"),
+        label = localizeBoothLabel(raw.label or "フレプリ"),
         model = tostring(raw.model or Config.DefaultModel),
         coords = {
             x = tonumber(raw.coords.x) or 0.0,
@@ -524,7 +524,7 @@ local function startPlacementPreview()
 
     local model = requestModel(Config.DefaultModel)
     if not model then
-        notify("error", "プリクラ台モデルを読み込めませんでした。")
+        notify("error", "フレプリ台モデルを読み込めませんでした。")
         return
     end
 
@@ -816,7 +816,7 @@ end)
 
 local function startSession(boothId)
     if editorOpen or ownedSession then
-        notify("error", "すでにプリクラ撮影を準備中です。")
+        notify("error", "すでにフレプリ撮影を準備中です。")
         return
     end
 
@@ -1213,7 +1213,7 @@ end
 local function locationMetadata(booth)
     if not booth then
         return {
-            label = "ストリートプリ",
+            label = "フレプリ",
             street = "",
             zone = ""
         }
@@ -1238,7 +1238,7 @@ local function locationMetadata(booth)
     end
 
     return {
-        label = localizeBoothLabel(booth.label or "ストリートプリ"),
+        label = localizeBoothLabel(booth.label or "フレプリ"),
         street = street or "",
         zone = zone or ""
     }
@@ -1260,7 +1260,7 @@ local function openEditor(boothId, shots)
         action = "open",
         boothId = boothId,
         shots = shots,
-        label = booth and localizeBoothLabel(booth.label) or "ストリートプリ"
+        label = booth and localizeBoothLabel(booth.label) or "フレプリ"
     })
 end
 
@@ -1301,7 +1301,7 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
         clearTheme()
         notify(
             "error",
-            "撮影セッションが終了しました。必要ならもう一度プリクラ台から開始してください。"
+            "撮影セッションが終了しました。必要ならもう一度フレプリ台から開始してください。"
         )
     end
 end)
@@ -1766,7 +1766,7 @@ CreateThread(function()
                     wait = 0
 
                     drawText2d(
-                        ("プリクラ撮影  $%s   [E]")
+                        ("フレプリ撮影  $%s   [E]")
                             :format(Config.Price or 0),
                         0.5,
                         0.86,
@@ -1936,7 +1936,7 @@ CreateThread(function()
                     stopPlacementCameraPreview()
                 else
                     cleanupPlacement()
-                    notify("inform", "プリクラ台の配置をキャンセルしました。")
+                    notify("inform", "フレプリ台の配置をキャンセルしました。")
                 end
             end
 

@@ -74,6 +74,7 @@
         whiten: 5,
         rosy: 4,
         previewOriginal: false,
+        previewFaceOriginal: false,
         activeTab: 'layout',
         exporting: false,
         faceEditShot: 0,
@@ -504,7 +505,7 @@
 
         const slim = Math.max(0, Math.min(30, Number(target.slim) || 0))
         if (slim > 0) {
-            const scaleX = 1 - (slim / 30) * .085
+            const scaleX = 1 - (slim / 30) * .14
             ctx.save()
             ctx.filter = 'none'
             ctx.beginPath()
@@ -539,7 +540,7 @@
 
         const eye = Math.max(0, Math.min(40, Number(target.eye) || 0))
         if (eye > 0) {
-            const factor = 1 + (eye / 40) * .24
+            const factor = 1 + (eye / 40) * .34
             const eyeY = cy - faceH * .13
             const eyeOffset = faceW * .22
             const eyeW = Math.max(8, faceW * .29)
@@ -587,7 +588,7 @@
             ctx.save()
             ctx.filter = 'none'
             ctx.globalCompositeOperation = 'screen'
-            ctx.globalAlpha = (bright / 30) * .18
+            ctx.globalAlpha = (bright / 30) * .22
             ctx.fillStyle = '#fff7f3'
             ctx.beginPath()
             ctx.ellipse(
@@ -605,7 +606,7 @@
 
         const rosy = Math.max(0, Math.min(30, Number(target.rosy) || 0))
         if (rosy > 0) {
-            const alpha = (rosy / 30) * .24
+            const alpha = (rosy / 30) * .28
             ;[-1, 1].forEach(side => {
                 const cheekX = cx + side * faceW * .24
                 const cheekY = cy + faceH * .13
@@ -662,6 +663,7 @@
         if (
             shotIndex !== null
             && !state.previewOriginal
+            && !state.previewFaceOriginal
             && Array.isArray(state.faceTargets[shotIndex])
         ) {
             applyFaceBeautyForShot(image, shotIndex, geometry)
@@ -745,8 +747,8 @@
         ctx.ellipse(
             mapped.x,
             mapped.y,
-            mapped.faceW * .58,
-            mapped.faceH * .62,
+            mapped.faceW * .52,
+            mapped.faceH * .58,
             0,
             0,
             Math.PI * 2
@@ -1523,6 +1525,7 @@
         state.whiten = 5
         state.rosy = 4
         state.previewOriginal = false
+        state.previewFaceOriginal = false
         state.activeTab = 'layout'
         state.exporting = false
 
@@ -1663,10 +1666,10 @@
         const target = currentFaceTarget()
         if (!target) return
         target.enabled = true
-        target.eye = 18
-        target.slim = 14
-        target.bright = 9
-        target.rosy = 7
+        target.eye = 26
+        target.slim = 20
+        target.bright = 10
+        target.rosy = 8
         refreshFaceControls()
         toolStatus.textContent =
             `顔${state.faceSlot + 1}にプリクラ顔を適用しました`
@@ -1710,6 +1713,35 @@
                 : 'この写真には他の登録済み顔がありません'
         render()
     })
+
+
+    const compareFaceButton =
+        document.getElementById('compareFaceButton')
+
+    if (compareFaceButton) {
+        const setFaceOriginalPreview = value => {
+            state.previewFaceOriginal = value
+            compareFaceButton.classList.toggle('active', value)
+            compareFaceButton.textContent =
+                value
+                    ? '顔補正前を表示中'
+                    : '押して顔補正前を確認'
+            render()
+        }
+
+        compareFaceButton.addEventListener('pointerdown', event => {
+            event.preventDefault()
+            compareFaceButton.setPointerCapture?.(event.pointerId)
+            setFaceOriginalPreview(true)
+        })
+
+        ;['pointerup', 'pointercancel', 'pointerleave'].forEach(name => {
+            compareFaceButton.addEventListener(
+                name,
+                () => setFaceOriginalPreview(false)
+            )
+        })
+    }
 
     document.getElementById('faceCopyAll').addEventListener('click', () => {
         const source = currentFaceTarget()

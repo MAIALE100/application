@@ -1,6 +1,6 @@
 # FLEPURI / PuriBooth
 
-**Release: v1.0.3 (Flecity operator submission)**
+**Release: v1.0.4 (Flecity operator submission)**
 
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。
@@ -255,7 +255,7 @@ puribooth_selftest
 
 以下を実体ベースで確認します。
 
-- qbx_core 2.5.4+ の互換性
+- qbx_coreの起動と必要exports（GetJobs / GetJob / GetPlayer）の互換性
 - oxmysql / lb-phone / screenshot-basic の起動
 - PuriPhoto 1.1.0+ の互換性
 - PuriPhoto production UIのindex / JS / CSS

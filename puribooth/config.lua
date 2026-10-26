@@ -118,7 +118,7 @@ Config.Geometry = {
 
 -- One-time migration: if the booth database is empty, retain the current
 -- Legion prototype so an admin can remove it and place the first real location.
-Config.SeedLegacyBooth = true
+Config.SeedLegacyBooth = false
 Config.LegacyBooth = {
     label = "フレプリ",
     model = Config.DefaultModel,

@@ -622,6 +622,13 @@ local function managementSnapshot(source, silent)
             price = hasManagementAccess(source, "price"),
             rename = hasManagementAccess(source, "rename"),
             sales = hasManagementAccess(source, "sales")
+        },
+        limits = {
+            minPrice = math.max(0, math.floor(tonumber(Config.MinPrice) or 0)),
+            maxPrice = math.max(
+                0,
+                math.floor(tonumber(Config.MaxPrice) or 100000)
+            )
         }
     }
 

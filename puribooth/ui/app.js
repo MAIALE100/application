@@ -70,6 +70,7 @@
         softness: 0.5,
         warmth: 8,
         glow: 8,
+        skinSmooth: 5,
         whiten: 5,
         rosy: 4,
         stickers: [],
@@ -524,16 +525,57 @@
     }
 
     const applySkinBeauty = () => {
-        if (state.whiten <= 0 && state.rosy <= 0) return
+        if (
+            state.skinSmooth <= 0
+            && state.whiten <= 0
+            && state.rosy <= 0
+        ) return
 
         let imageData
+        let smoothedData = null
+
         try {
-            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+            imageData =
+                ctx.getImageData(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                )
+
+            if (state.skinSmooth > 0 && beautyBufferCtx) {
+                beautyBufferCtx.save()
+                beautyBufferCtx.clearRect(
+                    0,
+                    0,
+                    beautyBuffer.width,
+                    beautyBuffer.height
+                )
+                beautyBufferCtx.filter =
+                    `blur(${Math.max(
+                        .75,
+                        state.skinSmooth / 7
+                    )}px)`
+                beautyBufferCtx.drawImage(canvas, 0, 0)
+                beautyBufferCtx.restore()
+                smoothedData =
+                    beautyBufferCtx.getImageData(
+                        0,
+                        0,
+                        beautyBuffer.width,
+                        beautyBuffer.height
+                    ).data
+            }
         } catch (_) {
             return
         }
 
         const data = imageData.data
+        const smoothStrength =
+            Math.max(
+                0,
+                Math.min(1, state.skinSmooth / 30)
+            ) * .48
         const whitenStrength =
             Math.max(0, Math.min(1, state.whiten / 25)) * .34
         const rosyStrength =
@@ -567,21 +609,54 @@
 
             if (!isSkin) continue
 
+            if (smoothStrength > 0 && smoothedData) {
+                const sr = smoothedData[i]
+                const sg = smoothedData[i + 1]
+                const sb = smoothedData[i + 2]
+                const detailDelta =
+                    Math.abs(r - sr)
+                    + Math.abs(g - sg)
+                    + Math.abs(b - sb)
+
+                const edgeGuard =
+                    detailDelta > 78
+                        ? .18
+                        : detailDelta > 48
+                            ? .45
+                            : 1
+                const mix =
+                    smoothStrength * edgeGuard
+
+                data[i] =
+                    r + (sr - r) * mix
+                data[i + 1] =
+                    g + (sg - g) * mix
+                data[i + 2] =
+                    b + (sb - b) * mix
+            }
+
             if (whitenStrength > 0) {
                 data[i] =
                     Math.min(
                         255,
-                        r + (246 - r) * whitenStrength
+                        data[i]
+                        + (246 - data[i]) * whitenStrength
                     )
                 data[i + 1] =
                     Math.min(
                         255,
-                        g + (240 - g) * whitenStrength * .92
+                        data[i + 1]
+                        + (240 - data[i + 1])
+                        * whitenStrength
+                        * .92
                     )
                 data[i + 2] =
                     Math.min(
                         255,
-                        b + (235 - b) * whitenStrength * .82
+                        data[i + 2]
+                        + (235 - data[i + 2])
+                        * whitenStrength
+                        * .82
                     )
             }
 
@@ -1040,6 +1115,7 @@
     bindRange('softness', 'softness')
     bindRange('warmth', 'warmth')
     bindRange('glow', 'glow')
+    bindRange('skinSmooth', 'skinSmooth')
     bindRange('whiten', 'whiten')
     bindRange('rosy', 'rosy')
 
@@ -1047,13 +1123,13 @@
         button.addEventListener('click', () => {
             const preset = button.dataset.preset
             const values = {
-                natural: [104, 103, 104, 0, 3, 0, 0, 0],
-                puri: [116, 104, 116, .35, 9, 10, 7, 5],
-                y2k: [109, 118, 140, .15, 12, 4, 3, 1],
-                mono: [106, 126, 0, .10, 0, 0, 1, 0],
-                soft: [114, 100, 110, .40, 7, 8, 6, 4],
-                cool: [106, 112, 112, .10, -14, 2, 2, 0],
-                night: [114, 116, 106, .15, 4, 5, 4, 2]
+                natural: [104, 103, 104, 0, 3, 0, 2, 0, 0],
+                puri: [116, 104, 116, .35, 9, 10, 13, 7, 5],
+                y2k: [109, 118, 140, .15, 12, 4, 5, 3, 1],
+                mono: [106, 126, 0, .10, 0, 0, 2, 1, 0],
+                soft: [114, 100, 110, .40, 7, 8, 16, 6, 4],
+                cool: [106, 112, 112, .10, -14, 2, 4, 2, 0],
+                night: [114, 116, 106, .15, 4, 5, 7, 4, 2]
             }[preset]
             if (!values) return
             ;[
@@ -1063,6 +1139,7 @@
                 state.softness,
                 state.warmth,
                 state.glow,
+                state.skinSmooth,
                 state.whiten,
                 state.rosy
             ] = values
@@ -1073,6 +1150,7 @@
                 'softness',
                 'warmth',
                 'glow',
+                'skinSmooth',
                 'whiten',
                 'rosy'
             ].forEach((id, i) => {

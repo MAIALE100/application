@@ -241,10 +241,14 @@
 
                 <div class="text-quick-grid">
                     <button data-text-value="♡だいすき♡">♡だいすき♡</button>
+                    <button data-text-value="ずっと一緒">ずっと一緒</button>
+                    <button data-text-value="なかよし♡">なかよし♡</button>
+                    <button data-text-value="今日も盛れた♡">今日も盛れた♡</button>
                     <button data-text-value="BESTIES">BESTIES</button>
+                    <button data-text-value="LOVE U">LOVE U</button>
                     <button data-text-value="FLECITY">FLECITY</button>
                     <button data-text-value="#プリクラ">#プリクラ</button>
-                    <button data-text-value="ずっと一緒">ずっと一緒</button>
+                    <button data-text-value="#Flecity">#Flecity</button>
                     <button data-text-preset="date">今日の日付</button>
                 </div>
 
@@ -293,13 +297,15 @@
                     <button class="active" data-draw-style="pen">ペン</button>
                     <button data-draw-style="marker">マーカー</button>
                     <button data-draw-style="neon">ネオン</button>
+                    <button data-draw-style="eraser">消しゴム</button>
                 </div>
                 <div class="inline-row">
                     <input id="drawColor" type="color" value="#ff3f9d" />
                     <button id="drawToggle">ペン：オン</button>
                 </div>
-                <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="40" value="10" /></label>
-                <button id="clearDrawButton" class="wide">落書きだけ消す</button>
+                <label class="range-row"><span>ペン太さ / 消しゴム範囲</span><input id="drawWidth" type="range" min="3" max="40" value="10" /></label>
+                <p class="micro-note">消しゴムはなぞった部分だけ消します。写真や文字・スタンプは消えません。</p>
+                <button id="clearDrawButton" class="wide">落書きだけ全部消す</button>
             </section>
 
             <div class="history-actions">
@@ -311,6 +317,8 @@
                 <button id="shrinkSelectedButton" disabled>− 小さく</button>
                 <button id="growSelectedButton" disabled>＋ 大きく</button>
                 <button id="rotateRightButton" disabled>↻</button>
+                <button id="sendBackwardButton" disabled>↓ 背面へ</button>
+                <button id="bringForwardButton" disabled>↑ 前面へ</button>
                 <button id="duplicateSelectedButton" disabled>複製</button>
                 <button id="deleteSelectedButton" disabled>削除</button>
             </div>

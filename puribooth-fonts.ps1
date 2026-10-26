@@ -87,22 +87,30 @@ function Expand-FontZip {
     }
 }
 
-Write-Host "Searching local downloads for the three PuriBooth fonts..." -ForegroundColor Cyan
+Write-Host "Searching local downloads for the four FLEPURI fonts..." -ForegroundColor Cyan
 
-$heiseiZip = Find-DownloadedFile -ExactName "HeiseijyojiFont__15_.zip"
+$poprumZip = Find-DownloadedFile -ExactName "poprumkiwi.zip"
+$galZip = Find-DownloadedFile -ExactName "galmojigothicfree.zip"
 $hitoriZip = Find-DownloadedFile -ExactName "HitoriGothic.zip"
 $hachiZip = Find-DownloadedFile -ExactName "Hachi_Maru_Pop.zip"
 
-$heiseiOk = Expand-FontZip -ZipFile $heiseiZip -FontPattern "*.otf" -DestinationName "HeiseijyojiFont.otf"
+$poprumOk = Expand-FontZip -ZipFile $poprumZip -FontPattern "PopRumKiwi-Telop.ttf" -DestinationName "PopRumKiwi-Telop.ttf" -LicensePattern "*.txt" -LicenseName "PopRumKiwi-LICENSE.txt"
+$galOk = Expand-FontZip -ZipFile $galZip -FontPattern "galmojigothicfree.ttf" -DestinationName "galmojigothicfree.ttf" -LicensePattern "read me SIL.txt" -LicenseName "GalMojiGothic-LICENSE.txt"
 $hitoriOk = Expand-FontZip -ZipFile $hitoriZip -FontPattern "*.ttf" -DestinationName "HitoriGothic.ttf"
 $hachiOk = Expand-FontZip -ZipFile $hachiZip -FontPattern "HachiMaruPop-Regular.ttf" -DestinationName "HachiMaruPop-Regular.ttf" -LicensePattern "OFL.txt" -LicenseName "HachiMaruPop-OFL.txt"
 
-if ($heiseiOk) {
-    Write-Host "Heisei Joshi Font: imported for local testing" -ForegroundColor Green
-    Write-Warning "Heisei Joshi Font needs separate embedding permission before official distribution. The font binary is kept out of GitHub."
+if ($poprumOk) {
+    Write-Host "PopRum Kiwi Telop: imported (SIL OFL 1.1)" -ForegroundColor Green
 }
 else {
-    Write-Warning "Heisei Joshi Font: HeiseijyojiFont__15_.zip was not found in the common folders."
+    Write-Warning "PopRum Kiwi Telop: poprumkiwi.zip was not found in the common folders."
+}
+
+if ($galOk) {
+    Write-Host "Gal Moji Gothic Free: imported (SIL OFL 1.1)" -ForegroundColor Green
+}
+else {
+    Write-Warning "Gal Moji Gothic Free: galmojigothicfree.zip was not found in the common folders."
 }
 
 if ($hitoriOk) {
@@ -120,9 +128,10 @@ else {
 }
 
 $available = @(
-    (Test-Path -LiteralPath (Join-Path $Target "HeiseijyojiFont.otf")),
+    (Test-Path -LiteralPath (Join-Path $Target "PopRumKiwi-Telop.ttf")),
+    (Test-Path -LiteralPath (Join-Path $Target "galmojigothicfree.ttf")),
     (Test-Path -LiteralPath (Join-Path $Target "HitoriGothic.ttf")),
     (Test-Path -LiteralPath (Join-Path $Target "HachiMaruPop-Regular.ttf"))
 ) | Where-Object { $_ }
 
-Write-Host ("PuriBooth fonts ready: {0}/3" -f $available.Count) -ForegroundColor Cyan
+Write-Host ("FLEPURI fonts ready: {0}/4" -f $available.Count) -ForegroundColor Cyan

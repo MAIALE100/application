@@ -62,9 +62,31 @@ Config.Exterior = {
         topZ = 1.82
     },
 
+    skin = {
+        -- Opaque front skin that visually hides the stock claw-machine fascia.
+        front = 0.105,
+        halfWidth = 0.535,
+
+        headerBottomZ = 1.56,
+        headerTopZ = 2.13,
+
+        lowerBottomZ = 0.10,
+        lowerTopZ = 0.76,
+
+        -- Side sleeves make the cover read as a cabinet from oblique angles.
+        sideBack = -0.40,
+        sideFront = 0.11,
+
+        -- Fake camera/ring light in the upper shooting window.
+        ringRight = 0.0,
+        ringForward = 0.125,
+        ringZ = 1.23,
+        ringRadius = 0.17
+    },
+
     sign = {
         right = 0.0,
-        forward = 0.03,
+        forward = 0.125,
         z = 1.94,
         scale = 0.52
     },

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flecity PURI</title>
+    <title>Flecity プリクラ</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,10 +11,10 @@
         <div class="theme-card">
             <div class="theme-head">
                 <div>
-                    <p class="eyebrow">FLECITY STREET PURI</p>
+                    <p class="eyebrow">フレシティ・ストリートプリ</p>
                     <h1>撮影背景・床</h1>
                 </div>
-                <span class="theme-session">SESSION ONLY</span>
+                <span class="theme-session">今回のみ</span>
             </div>
 
             <p class="theme-note">プリセットか画像URLを選択。撮影終了後に設定は破棄され、DBには保存されません。</p>
@@ -23,14 +23,14 @@
                 <div class="theme-section">
                     <h2>背景</h2>
                     <div class="theme-presets" data-theme-target="background">
-                        <button class="theme-choice active" data-theme-value="pink">PINK</button>
-                        <button class="theme-choice" data-theme-value="white">WHITE</button>
+                        <button class="theme-choice active" data-theme-value="pink">ピンク</button>
+                        <button class="theme-choice" data-theme-value="white">ホワイト</button>
                         <button class="theme-choice" data-theme-value="y2k">Y2K</button>
-                        <button class="theme-choice" data-theme-value="black">BLACK</button>
-                        <button class="theme-choice" data-theme-value="hearts">HEARTS</button>
-                        <button class="theme-choice" data-theme-value="mint">MINT</button>
-                        <button class="theme-choice" data-theme-value="lavender">LAVENDER</button>
-                        <button class="theme-choice" data-theme-value="sky">SKY</button>
+                        <button class="theme-choice" data-theme-value="black">ブラック</button>
+                        <button class="theme-choice" data-theme-value="hearts">ハート</button>
+                        <button class="theme-choice" data-theme-value="mint">ミント</button>
+                        <button class="theme-choice" data-theme-value="lavender">ラベンダー</button>
+                        <button class="theme-choice" data-theme-value="sky">スカイ</button>
                         <button class="theme-choice" data-theme-value="none">なし</button>
                     </div>
                     <input id="backgroundUrl" class="theme-url" maxlength="2048" placeholder="https://... 背景画像URL（任意）" />
@@ -40,14 +40,14 @@
                 <div class="theme-section">
                     <h2>床</h2>
                     <div class="theme-presets" data-theme-target="floor">
-                        <button class="theme-choice active" data-theme-value="pink">PINK</button>
-                        <button class="theme-choice" data-theme-value="white">WHITE</button>
+                        <button class="theme-choice active" data-theme-value="pink">ピンク</button>
+                        <button class="theme-choice" data-theme-value="white">ホワイト</button>
                         <button class="theme-choice" data-theme-value="y2k">Y2K</button>
-                        <button class="theme-choice" data-theme-value="black">BLACK</button>
-                        <button class="theme-choice" data-theme-value="hearts">HEARTS</button>
-                        <button class="theme-choice" data-theme-value="mint">MINT</button>
-                        <button class="theme-choice" data-theme-value="lavender">LAVENDER</button>
-                        <button class="theme-choice" data-theme-value="sky">SKY</button>
+                        <button class="theme-choice" data-theme-value="black">ブラック</button>
+                        <button class="theme-choice" data-theme-value="hearts">ハート</button>
+                        <button class="theme-choice" data-theme-value="mint">ミント</button>
+                        <button class="theme-choice" data-theme-value="lavender">ラベンダー</button>
+                        <button class="theme-choice" data-theme-value="sky">スカイ</button>
                         <button class="theme-choice" data-theme-value="none">なし</button>
                     </div>
                     <input id="floorUrl" class="theme-url" maxlength="2048" placeholder="https://... 床画像URL（任意）" />
@@ -55,7 +55,7 @@
                 </div>
             </div>
 
-            <div id="themeStatus" class="theme-status">PINK / PINK</div>
+            <div id="themeStatus" class="theme-status">背景：ピンク / 床：ピンク</div>
             <div class="theme-actions">
                 <button id="themeCancelButton" class="ghost">撮影をやめる</button>
                 <button id="themeConfirmButton" class="primary">この背景・床で撮影</button>
@@ -67,10 +67,10 @@
         <section class="preview-panel">
             <header>
                 <div>
-                    <p class="eyebrow">FLECITY STREET PURI</p>
-                    <h1 id="boothLabel">Legion PURI</h1>
+                    <p class="eyebrow">フレシティ・ストリートプリ</p>
+                    <h1 id="boothLabel">ストリートプリ</h1>
                 </div>
-                <div class="shot-count" id="shotCount">4 SHOTS</div>
+                <div class="shot-count" id="shotCount">4枚撮影</div>
             </header>
 
             <div class="canvas-wrap">
@@ -119,21 +119,21 @@
                 <label class="range-row"><span>やわらかさ</span><input id="softness" type="range" min="0" max="3" step="0.25" value="0.5" /></label>
                 <label class="range-row"><span>あたたかさ</span><input id="warmth" type="range" min="0" max="30" value="8" /></label>
                 <div class="preset-row">
-                    <button data-preset="natural">Natural</button>
-                    <button data-preset="puri">PURI</button>
+                    <button data-preset="natural">ナチュラル</button>
+                    <button data-preset="puri">プリクラ</button>
                     <button data-preset="y2k">Y2K</button>
-                    <button data-preset="mono">Mono</button>
+                    <button data-preset="mono">モノクロ</button>
                 </div>
             </section>
 
             <section class="tool-page" data-page="frame">
                 <h2>フレーム</h2>
                 <div class="choice-grid">
-                    <button class="choice active" data-frame="pink">PINK</button>
-                    <button class="choice" data-frame="white">WHITE</button>
-                    <button class="choice" data-frame="black">BLACK</button>
+                    <button class="choice active" data-frame="pink">ピンク</button>
+                    <button class="choice" data-frame="white">ホワイト</button>
+                    <button class="choice" data-frame="black">ブラック</button>
                     <button class="choice" data-frame="y2k">Y2K</button>
-                    <button class="choice" data-frame="hearts">HEARTS</button>
+                    <button class="choice" data-frame="hearts">ハート</button>
                     <button class="choice" data-frame="none">なし</button>
                 </div>
             </section>
@@ -159,7 +159,7 @@
             <section class="tool-page" data-page="text">
                 <h2>文字</h2>
                 <p>文字を入力して「配置」を押し、写真をクリック。</p>
-                <input id="textInput" class="text-input" maxlength="32" placeholder="BESTIES / FLECITY / 日付..." />
+                <input id="textInput" class="text-input" maxlength="32" placeholder="なかよし / 日付 / メッセージ..." />
                 <div class="inline-row">
                     <input id="textColor" type="color" value="#ff4fa3" />
                     <button id="armTextButton">配置する</button>
@@ -172,7 +172,7 @@
                 <p>写真の上を直接ドラッグして描けます。</p>
                 <div class="inline-row">
                     <input id="drawColor" type="color" value="#ff3f9d" />
-                    <button id="drawToggle">ペン ON</button>
+                    <button id="drawToggle">ペン：オン</button>
                 </div>
                 <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="36" value="10" /></label>
                 <button id="clearDrawButton" class="wide">落書きだけ消す</button>

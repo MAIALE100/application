@@ -361,4 +361,4 @@ puribooth/ui/fonts/
 フォント未導入でもフォールバック書体で動作しますが、意図したプリクラ表示にする場合は4書体の導入を推奨します。
 利用時は各フォントの配布元に記載されたライセンス条件に従ってください。
 
-運営導入時は `INSTALL.md`、PuriPhoto互換対応は `PURIPHOTO_COMPAT.md`、最終確認は `ACCEPTANCE_TEST.md` を参照してください。
+運営導入時は `INSTALL.md`、PuriPhoto互換対応は `PURIPHOTO_COMPAT.md`、保守窓口は `SUPPORT.md`、最終確認は `ACCEPTANCE_TEST.md` を参照してください。

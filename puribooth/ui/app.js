@@ -12,6 +12,45 @@
     const shotCount = document.getElementById('shotCount')
     const canvasHint = document.getElementById('canvasHint')
     const toolStatus = document.getElementById('toolStatus')
+    const shootHudMain = document.getElementById('shootHudMain')
+    const shootHudSecondary = document.getElementById('shootHudSecondary')
+    const shootHudCountdown = document.getElementById('shootHudCountdown')
+    const shootHudTimers = {
+        main: null,
+        secondary: null,
+        countdown: null
+    }
+
+    const showShootHudLine = (slot, text) => {
+        const element =
+            slot === 'countdown'
+                ? shootHudCountdown
+                : slot === 'secondary'
+                    ? shootHudSecondary
+                    : shootHudMain
+
+        if (!element) return
+
+        const key =
+            slot === 'countdown'
+                ? 'countdown'
+                : slot === 'secondary'
+                    ? 'secondary'
+                    : 'main'
+
+        element.textContent = String(text || '')
+        element.classList.toggle('visible', Boolean(text))
+
+        if (shootHudTimers[key]) {
+            clearTimeout(shootHudTimers[key])
+        }
+
+        shootHudTimers[key] = setTimeout(() => {
+            element.classList.remove('visible')
+            element.textContent = ''
+            shootHudTimers[key] = null
+        }, 170)
+    }
 
     const state = {
         boothId: null,
@@ -1099,6 +1138,11 @@
     window.addEventListener('message', async event => {
         const data = event.data
         if (!data) return
+
+        if (data.action === 'shootHudLine') {
+            showShootHudLine(data.slot, data.text)
+            return
+        }
 
         if (data.action === 'openTheme') {
             app.classList.add('hidden')

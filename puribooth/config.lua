@@ -16,6 +16,7 @@ Config.Management = {
     placeMinGrade = 0,
     removeMinGrade = 0,
     priceMinGrade = 0,
+    renameMinGrade = 0,
     salesMinGrade = 0,
 
     -- 本社の座標が決まったら true にして coords を指定できます。

@@ -1278,6 +1278,15 @@ local function safeAuditDetail(value)
     return detail
 end
 
+local function beginSettlement(session, kind)
+    if not session or session.settling then
+        return false
+    end
+
+    session.settling = tostring(kind or "unknown")
+    return true
+end
+
 local function auditEvent(session, boothId, eventType, amount, detail)
     if not databaseReady then return false end
 
@@ -1376,12 +1385,23 @@ end
 local function recordCompletedSale(boothId, session, reason)
     boothId = tostring(boothId)
 
-    if not session or session.saleRecorded then
+    if not session then
+        return false
+    end
+
+    if session.saleRecorded then
         return true
     end
 
+    if session.saleRecording then
+        return nil
+    end
+
+    session.saleRecording = true
+
     local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
-    local affected = MySQL.update.await([[
+    local ok, affected = pcall(function()
+        return MySQL.update.await([[
         UPDATE puribooth_booths
         SET
             balance = balance + ?,
@@ -1389,13 +1409,16 @@ local function recordCompletedSale(boothId, session, reason)
             completed_sales = completed_sales + 1,
             last_sale_at = NOW()
         WHERE id = ?
-    ]], {
-        amount,
-        amount,
-        tonumber(boothId)
-    })
+        ]], {
+            amount,
+            amount,
+            tonumber(boothId)
+        })
+    end)
 
-    if not affected or affected < 1 then
+    session.saleRecording = false
+
+    if not ok or not affected or affected < 1 then
         print(
             ("[puribooth] ERROR failed to record sale booth=%s amount=%d reason=%s")
                 :format(
@@ -1492,6 +1515,10 @@ local function expireSession(boothId, session, reason)
     boothId = tostring(boothId)
     if not session or sessions[boothId] ~= session then
         return false
+    end
+
+    if not beginSettlement(session, reason or "expired") then
+        return nil
     end
 
     local refunded = true
@@ -1713,11 +1740,16 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
                 return
             end
 
-            expireSession(
+            local expired = expireSession(
                 activeBoothId,
                 activeSession,
                 "puribooth-stale-owner-session-refund"
             )
+
+            if expired == nil then
+                notify(source, "error", "前のフレプリ利用を精算中です。少ししてから再度お試しください。")
+                return
+            end
         end
     end
 
@@ -1726,11 +1758,16 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         notify(source, "error", "このフレプリ台は使用中です。")
         return
     elseif existing then
-        expireSession(
+        local expired = expireSession(
             boothId,
             existing,
             "puribooth-stale-booth-session-refund"
         )
+
+        if expired == nil then
+            notify(source, "error", "このフレプリ台は前の利用を精算中です。")
+            return
+        end
     end
 
     if sessionLocks[boothId] then
@@ -1937,9 +1974,13 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
         notify(
             source,
             "error",
-            refunded
-                and "撮影準備時間が終了したため料金を返金しました。"
-                or "撮影準備時間が終了しました。返金は自動再試行待ちです。"
+            refunded == nil
+                and "撮影セッションを精算中です。"
+                or (
+                    refunded
+                        and "撮影準備時間が終了したため料金を返金しました。"
+                        or "撮影準備時間が終了しました。返金は自動再試行待ちです。"
+                )
         )
         return
     end
@@ -2047,8 +2088,17 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
         return
     end
 
+    if not beginSettlement(session, "capture-complete") then
+        return
+    end
+
     local recorded =
         recordCompletedSale(boothId, session, "capture-complete")
+
+    if recorded == nil then
+        session.settling = nil
+        return
+    end
 
     if not recorded then
         local refunded = refundSession(
@@ -2076,6 +2126,10 @@ RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
     local session = sessions[boothId]
     if not session or session.owner ~= source then return end
 
+    if not beginSettlement(session, "cancel-session") then
+        return
+    end
+
     local refund = not session.capturing
 
     if refund and session.paid and session.paid > 0 then
@@ -2100,6 +2154,11 @@ RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
                 session,
                 "user-cancel-after-capture-start"
             )
+
+        if recorded == nil then
+            session.settling = nil
+            return
+        end
 
         if recorded then
             notify(
@@ -2158,6 +2217,10 @@ RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
     local session = sessions[boothId]
     if not session or session.owner ~= source or not session.capturing then return end
 
+    if not beginSettlement(session, "technical-failure") then
+        return
+    end
+
     if session.paid and session.paid > 0 then
         local refunded = refundSession(
             session,
@@ -2215,6 +2278,10 @@ AddEventHandler("playerDropped", function()
 
     for boothId, session in pairs(sessions) do
         if session.owner == source then
+            if not beginSettlement(session, "player-dropped") then
+                goto continue_session
+            end
+
             if session.capturing then
                 local recorded =
                     recordCompletedSale(
@@ -2222,6 +2289,11 @@ AddEventHandler("playerDropped", function()
                         session,
                         "player-dropped-after-capture-start"
                     )
+
+                if recorded == nil then
+                    session.settling = nil
+                    goto continue_session
+                end
 
                 if not recorded then
                     refundSession(
@@ -2240,6 +2312,8 @@ AddEventHandler("playerDropped", function()
 
             releaseSession(boothId)
         end
+
+        ::continue_session::
     end
 end)
 
@@ -2259,7 +2333,7 @@ CreateThread(function()
                         or "puribooth-setup-timeout-refund"
                 )
 
-                if GetPlayerName(session.owner) then
+                if refunded ~= nil and GetPlayerName(session.owner) then
                     notify(
                         session.owner,
                         "error",

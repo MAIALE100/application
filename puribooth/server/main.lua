@@ -63,7 +63,7 @@ local function normalizeBooth(row)
     local id = tostring(row.id)
     return {
         id = id,
-        label = tostring(row.label or ("PURI #" .. id)),
+        label = tostring(row.label or ("プリクラ #" .. id)),
         model = tostring(row.model or Config.DefaultModel),
         coords = {
             x = tonumber(row.x) or 0.0,
@@ -131,7 +131,7 @@ local function loadBooths()
                 (label, model, x, y, z, heading, created_by)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ]], {
-            tostring(seed.label or "Legion PURI"),
+            tostring(seed.label or "リージョンプリ"),
             tostring(seed.model or Config.DefaultModel),
             tonumber(seed.x) or 0.0,
             tonumber(seed.y) or 0.0,
@@ -245,7 +245,7 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
             (label, model, x, y, z, heading, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ]], {
-        "Street PURI",
+        "ストリートプリ",
         Config.DefaultModel,
         x, y, z, heading,
         GetPlayerName(source) or ("source:" .. source)
@@ -258,7 +258,7 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
 
     local booth = {
         id = tostring(insertedId),
-        label = ("Street PURI #%d"):format(insertedId),
+        label = ("ストリートプリ #%d"):format(insertedId),
         model = Config.DefaultModel,
         coords = { x = x, y = y, z = z },
         heading = heading
@@ -371,7 +371,7 @@ end
 
 RegisterCommand("puribooth", function(source, args)
     if source == 0 then
-        print("[puribooth] player usage: /puribooth place | remove | list")
+        print("[puribooth] プレイヤー用: /puribooth place | remove | list")
         return
     end
 
@@ -402,7 +402,7 @@ RegisterCommand("puribooth", function(source, args)
         return
     end
 
-    notify(source, "inform", "/puribooth claimadmin  /puribooth place  /puribooth remove  /puribooth list")
+    notify(source, "inform", "管理: /puribooth claimadmin　設置: /puribooth place　撤去: /puribooth remove　一覧: /puribooth list")
 end, false)
 
 RegisterNetEvent("puribooth:server:startSession", function(boothId)

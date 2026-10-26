@@ -417,6 +417,10 @@ const App = () => {
                 throw new Error('booth_import_token_missing')
             }
 
+            await new Promise<void>((resolve) => {
+                window.requestAnimationFrame(() => resolve())
+            })
+
             const confirmed = await nuiRequest<SimpleResponse>(
                 'puriphotoConfirmBoothImport',
                 { token: imported.token }

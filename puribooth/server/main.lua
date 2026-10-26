@@ -1407,6 +1407,35 @@ local function resourceState(name)
     return state == "started" and "PASS" or ("FAIL(" .. state .. ")")
 end
 
+local function managementJobState()
+    if GetResourceState("qbx_core") ~= "started" then
+        return "FAIL(qbx_core)"
+    end
+
+    local jobName = tostring((Config.Management or {}).job or "weazel")
+    local job = exports.qbx_core:GetJob(jobName)
+    return job and "PASS" or ("FAIL(" .. jobName .. ")")
+end
+
+local function payoutState()
+    local payout = Config.Payout or {}
+    if payout.enabled == false then
+        return "DISABLED"
+    end
+
+    local mode = tostring(payout.mode or "renewed-banking")
+    if mode == "player-bank" then
+        return "PASS(player-bank)"
+    end
+
+    if mode == "renewed-banking" then
+        local resource = tostring(payout.resource or "Renewed-Banking")
+        return resourceState(resource)
+    end
+
+    return "FAIL(mode=" .. mode .. ")"
+end
+
 RegisterCommand("puribooth_selftest", function(source)
     if source ~= 0 then
         notify(source, "error", "このコマンドはサーバーコンソール専用です。")
@@ -1418,6 +1447,15 @@ RegisterCommand("puribooth_selftest", function(source)
     local screenshot = resourceState("screenshot-basic")
     local mysql = resourceState("oxmysql")
     local puriphoto = resourceState("puriphoto")
+    local job = managementJobState()
+    local payout = payoutState()
+
+    local payoutRequired =
+        (Config.Payout or {}).enabled ~= false
+
+    local payoutPass =
+        not payoutRequired
+        or payout:sub(1, 4) == "PASS"
 
     local overall =
         qbx == "PASS"
@@ -1425,9 +1463,11 @@ RegisterCommand("puribooth_selftest", function(source)
         and screenshot == "PASS"
         and mysql == "PASS"
         and puriphoto == "PASS"
+        and job == "PASS"
+        and payoutPass
         and databaseReady
 
-    print(("[puribooth] selftest %s (qbx_core=%s, oxmysql=%s, lb-phone=%s, screenshot-basic=%s, puriphoto=%s, database=%s, booths=%d)")
+    print(("[puribooth] selftest %s (qbx_core=%s, oxmysql=%s, lb-phone=%s, screenshot-basic=%s, puriphoto=%s, management_job=%s, payout=%s, database=%s, booths=%d)")
         :format(
             overall and "PASS" or "FAIL",
             qbx,
@@ -1435,6 +1475,8 @@ RegisterCommand("puribooth_selftest", function(source)
             phone,
             screenshot,
             puriphoto,
+            job,
+            payout,
             databaseReady and "PASS" or "FAIL",
             boothCount()
         ))

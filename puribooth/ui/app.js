@@ -65,6 +65,9 @@
         saturation: 112,
         softness: 0.5,
         warmth: 8,
+        glow: 8,
+        whiten: 5,
+        rosy: 4,
         stickers: [],
         texts: [],
         strokes: [],
@@ -586,6 +589,33 @@
             ctx.fillRect(0, 0, 1200, 900)
             ctx.restore()
         }
+
+        if (state.glow > 0) {
+            ctx.save()
+            ctx.globalCompositeOperation = 'screen'
+            ctx.globalAlpha = Math.min(.22, state.glow / 130)
+            ctx.filter = `blur(${Math.max(1, state.glow / 8)}px)`
+            ctx.drawImage(canvas, 0, 0)
+            ctx.restore()
+        }
+
+        if (state.whiten > 0) {
+            ctx.save()
+            ctx.globalCompositeOperation = 'screen'
+            ctx.globalAlpha = Math.min(.16, state.whiten / 150)
+            ctx.fillStyle = '#fff8fb'
+            ctx.fillRect(0, 0, 1200, 900)
+            ctx.restore()
+        }
+
+        if (state.rosy > 0) {
+            ctx.save()
+            ctx.globalCompositeOperation = 'soft-light'
+            ctx.globalAlpha = Math.min(.14, state.rosy / 140)
+            ctx.fillStyle = '#ff6f9f'
+            ctx.fillRect(0, 0, 1200, 900)
+            ctx.restore()
+        }
     }
 
     const drawFrame = () => {
@@ -875,22 +905,43 @@
     bindRange('saturation', 'saturation')
     bindRange('softness', 'softness')
     bindRange('warmth', 'warmth')
+    bindRange('glow', 'glow')
+    bindRange('whiten', 'whiten')
+    bindRange('rosy', 'rosy')
 
     document.querySelectorAll('[data-preset]').forEach(button => {
         button.addEventListener('click', () => {
             const preset = button.dataset.preset
             const values = {
-                natural: [104, 103, 104, 0, 3],
-                puri: [118, 102, 116, .6, 10],
-                y2k: [112, 112, 135, .25, 13],
-                mono: [108, 122, 0, .15, 0],
-                soft: [124, 96, 118, 1.1, 12],
-                cool: [110, 108, 116, .25, 0],
-                night: [128, 110, 112, .35, 6]
+                natural: [104, 103, 104, 0, 3, 2, 1, 1],
+                puri: [118, 102, 116, .6, 10, 16, 8, 7],
+                y2k: [112, 112, 135, .25, 13, 12, 5, 4],
+                mono: [108, 122, 0, .15, 0, 4, 2, 0],
+                soft: [124, 96, 118, 1.1, 12, 22, 10, 8],
+                cool: [110, 108, 116, .25, 0, 6, 4, 0],
+                night: [128, 110, 112, .35, 6, 14, 7, 4]
             }[preset]
             if (!values) return
-            ;[state.brightness, state.contrast, state.saturation, state.softness, state.warmth] = values
-            ;['brightness','contrast','saturation','softness','warmth'].forEach((id, i) => {
+            ;[
+                state.brightness,
+                state.contrast,
+                state.saturation,
+                state.softness,
+                state.warmth,
+                state.glow,
+                state.whiten,
+                state.rosy
+            ] = values
+            ;[
+                'brightness',
+                'contrast',
+                'saturation',
+                'softness',
+                'warmth',
+                'glow',
+                'whiten',
+                'rosy'
+            ].forEach((id, i) => {
                 document.getElementById(id).value = values[i]
             })
             toolStatus.textContent = `${preset.toUpperCase()} を適用しました`

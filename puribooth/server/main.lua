@@ -147,6 +147,46 @@ local function playerNearCapture(source, booth, maxDistance)
         <= (maxDistance or tonumber(Config.ThemeSyncDistance) or 5.5)
 end
 
+local function relevantBoothForPlayer(source, capturingOnly)
+    local ped = GetPlayerPed(source)
+    if not ped or ped <= 0 then return nil end
+
+    -- A payer always belongs to their own active booth.
+    for boothId, session in pairs(sessions) do
+        if session.owner == source
+            and (not capturingOnly or session.capturing) then
+            return tostring(boothId)
+        end
+    end
+
+    local coords = GetEntityCoords(ped)
+    local maxDistance =
+        capturingOnly
+            and (tonumber(Config.CountdownSyncDistance) or 5.5)
+            or (tonumber(Config.ThemeSyncDistance) or 5.5)
+
+    local bestId = nil
+    local bestDistance = nil
+
+    for boothId, session in pairs(sessions) do
+        if not capturingOnly or session.capturing then
+            local booth = getBooth(boothId)
+            local center = booth and captureCenterForBooth(booth)
+
+            if center then
+                local distance = #(coords - center)
+                if distance <= maxDistance
+                    and (not bestDistance or distance < bestDistance) then
+                    bestId = tostring(boothId)
+                    bestDistance = distance
+                end
+            end
+        end
+    end
+
+    return bestId
+end
+
 local function validThemeSurface(surface)
     if type(surface) ~= "table" then
         return { enabled = false, image = "" }
@@ -205,7 +245,8 @@ local function syncThemeToNearby(boothId, session)
         local playerId = tonumber(playerIdText)
 
         if playerId
-            and playerNearCapture(playerId, booth, syncDistance) then
+            and playerNearCapture(playerId, booth, syncDistance)
+            and relevantBoothForPlayer(playerId, false) == tostring(boothId) then
 
             nearbyNow[playerId] = true
 
@@ -708,7 +749,10 @@ RegisterNetEvent("puribooth:server:announceCountdown", function(boothId, shotInd
         for _, playerIdText in ipairs(GetPlayers()) do
             local playerId = tonumber(playerIdText)
 
-            if playerId and playerNearCapture(playerId, booth, distance) then
+            if playerId
+                and playerNearCapture(playerId, booth, distance)
+                and relevantBoothForPlayer(playerId, true) == boothId then
+
                 TriggerClientEvent(
                     "puribooth:client:countdown",
                     playerId,

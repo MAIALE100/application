@@ -87,10 +87,10 @@ restart puribooth
 不具合修正版で重大な問題が出た場合は、直前のrelease branchへ戻して
 `puribooth` のみ再起動します。
 
-v1.0.2の直前安定版:
+v1.0.3から緊急ロールバックする場合の基準版:
 - `release/flepri-v1.0.1`
 
-DB追加テーブル（`puribooth_events` / `puribooth_refunds`）は残っていても
+DB追加テーブル（`puribooth_events` / `puribooth_refunds` / `puribooth_collections`）は残っていても
 v1.0.1の動作を妨げません。
 
 ## 保守ログ

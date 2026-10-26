@@ -1310,12 +1310,20 @@ local function collectSales(source, target)
             return
         end
 
-        local enteredFinalize = transitionCollection(
-            collectionId,
-            "paying",
-            "finalizing",
-            nil
-        )
+        local finalizeState = MySQL.update.await([[
+            UPDATE puribooth_collections
+            SET
+                status = 'finalizing',
+                destination = ?,
+                last_error = NULL
+            WHERE collection_id = ? AND status = 'paying'
+        ]], {
+            tostring(destination or ""),
+            collectionId
+        })
+
+        local enteredFinalize =
+            finalizeState and finalizeState > 0
 
         if not enteredFinalize then
             clearCollectionLocks(claimed, collectionId)
@@ -3372,8 +3380,8 @@ RegisterCommand("puribooth_collections", function(source)
     end
 
     if #rows > 0 then
-        print("[puribooth] NOTE: paid_unfinalized / rollback_failed は puribooth_collection_retry <collection_id> で安全に再処理できます。")
-        print("[puribooth] NOTE: preparing / claimed は外部入金状態が曖昧なため自動処理せず開発側で照合します。")
+        print("[puribooth] NOTE: finalizing / restoring は puribooth_collection_retry <collection_id> で安全に再処理できます。")
+        print("[puribooth] NOTE: paying は銀行履歴を照合し、puribooth_collection_review <collection_id> <paid|notpaid> を使用してください。")
     end
 end, false)
 
@@ -3404,70 +3412,177 @@ RegisterCommand("puribooth_collection_retry", function(source, args)
     local status = tostring(row.status or "")
     local claimed = decodeCollectionAllocations(row.allocations)
 
+    if status == "preparing" then
+        local updated = MySQL.update.await([[
+            UPDATE puribooth_collections
+            SET
+                status = 'rolled_back',
+                last_error = 'manual-cleanup-preparing',
+                resolved_at = NOW()
+            WHERE collection_id = ? AND status = 'preparing'
+        ]], { collectionId })
+
+        print(
+            updated and updated > 0
+                and ("[puribooth] collection preparing row closed: %s"):format(collectionId)
+                or ("[puribooth] collection preparing cleanup failed: %s"):format(collectionId)
+        )
+        return
+    end
+
     if not claimed then
         print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
         return
     end
 
-    if status == "paid_unfinalized" then
-        local finalized =
-            collectionTransaction(
-                collectionFinalizeQueries(claimed)
-            )
-
-        if not finalized then
-            print(("[puribooth] collection finalize retry failed: %s"):format(collectionId))
+    if status == "claimed" then
+        if not transitionCollection(
+            collectionId,
+            "claimed",
+            "restoring",
+            "manual-recovery-before-payout"
+        ) then
+            print(("[puribooth] collection claim recovery lock failed: %s"):format(collectionId))
             return
         end
+        status = "restoring"
+    elseif status == "paid_unfinalized" then
+        if not transitionCollection(
+            collectionId,
+            "paid_unfinalized",
+            "finalizing",
+            "legacy-recovery"
+        ) then
+            print(("[puribooth] collection legacy finalize lock failed: %s"):format(collectionId))
+            return
+        end
+        status = "finalizing"
+    elseif status == "rollback_failed" then
+        if not transitionCollection(
+            collectionId,
+            "rollback_failed",
+            "restoring",
+            "legacy-recovery"
+        ) then
+            print(("[puribooth] collection legacy restore lock failed: %s"):format(collectionId))
+            return
+        end
+        status = "restoring"
+    end
 
-        local updated = MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                status = 'resolved',
-                last_error = NULL,
-                resolved_at = NOW()
-            WHERE collection_id = ? AND status = 'paid_unfinalized'
-        ]], { collectionId })
-
+    if status == "finalizing" then
+        local finalized = finalizeCollection(collectionId, claimed)
         print(
-            updated and updated > 0
+            finalized
                 and ("[puribooth] collection finalized: %s"):format(collectionId)
-                or ("[puribooth] collection DB finalized but ledger update failed: %s"):format(collectionId)
+                or ("[puribooth] collection finalize retry failed; state remains finalizing: %s"):format(collectionId)
         )
         return
     end
 
-    if status == "rollback_failed" then
-        local restored =
-            collectionTransaction(
-                collectionRestoreQueries(claimed)
-            )
-
-        if not restored then
-            print(("[puribooth] collection rollback retry failed: %s"):format(collectionId))
-            return
-        end
-
-        local updated = MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                status = 'rolled_back',
-                last_error = NULL,
-                resolved_at = NOW()
-            WHERE collection_id = ? AND status = 'rollback_failed'
-        ]], { collectionId })
-
+    if status == "restoring" then
+        local restored = restoreCollection(collectionId, claimed)
         print(
-            updated and updated > 0
+            restored
                 and ("[puribooth] collection rollback restored: %s"):format(collectionId)
-                or ("[puribooth] collection rollback restored but ledger update failed: %s"):format(collectionId)
+                or ("[puribooth] collection restore retry failed; state remains restoring: %s"):format(collectionId)
+        )
+        return
+    end
+
+    if status == "paying" then
+        print(
+            ("[puribooth] collection %s is paying/ambiguous. Check Renewed-Banking first, then use puribooth_collection_review %s <paid|notpaid>")
+                :format(collectionId, collectionId)
         )
         return
     end
 
     print(
-        ("[puribooth] collection %s status=%s is not safe for automatic retry")
+        ("[puribooth] collection %s status=%s does not need automatic recovery")
             :format(collectionId, status)
+    )
+end, false)
+
+RegisterCommand("puribooth_collection_review", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local collectionId = tostring(args[1] or "")
+    local verdict = string.lower(tostring(args[2] or ""))
+
+    if collectionId == ""
+        or (verdict ~= "paid" and verdict ~= "notpaid") then
+
+        print("[puribooth] usage: puribooth_collection_review <collection_id> <paid|notpaid>")
+        print("[puribooth]   paid    = Renewed-Banking側で入金済みを確認")
+        print("[puribooth]   notpaid = Renewed-Banking側で未入金を確認")
+        return
+    end
+
+    local row = MySQL.single.await([[
+        SELECT collection_id, status, allocations
+        FROM puribooth_collections
+        WHERE collection_id = ?
+        LIMIT 1
+    ]], { collectionId })
+
+    if not row then
+        print(("[puribooth] collection not found: %s"):format(collectionId))
+        return
+    end
+
+    if tostring(row.status or "") ~= "paying" then
+        print(
+            ("[puribooth] collection %s status=%s is not awaiting bank review")
+                :format(collectionId, tostring(row.status or "?"))
+        )
+        return
+    end
+
+    local claimed = decodeCollectionAllocations(row.allocations)
+    if not claimed then
+        print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
+        return
+    end
+
+    if verdict == "paid" then
+        if not transitionCollection(
+            collectionId,
+            "paying",
+            "finalizing",
+            "manual-confirmed-bank-paid"
+        ) then
+            print(("[puribooth] collection review lock failed: %s"):format(collectionId))
+            return
+        end
+
+        local finalized = finalizeCollection(collectionId, claimed)
+        print(
+            finalized
+                and ("[puribooth] collection bank-paid finalization complete: %s"):format(collectionId)
+                or ("[puribooth] collection finalization failed; state remains finalizing: %s"):format(collectionId)
+        )
+        return
+    end
+
+    if not transitionCollection(
+        collectionId,
+        "paying",
+        "restoring",
+        "manual-confirmed-bank-not-paid"
+    ) then
+        print(("[puribooth] collection review lock failed: %s"):format(collectionId))
+        return
+    end
+
+    local restored = restoreCollection(collectionId, claimed)
+    print(
+        restored
+            and ("[puribooth] collection bank-not-paid rollback complete: %s"):format(collectionId)
+            or ("[puribooth] collection rollback failed; state remains restoring: %s"):format(collectionId)
     )
 end, false)
 

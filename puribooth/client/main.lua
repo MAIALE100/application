@@ -37,6 +37,8 @@ local themeTextures = {
     background = nil,
     floor = nil
 }
+local sharedThemes = {}
+local sharedThemeTextures = {}
 
 
 
@@ -214,6 +216,43 @@ local function createThemeTexture(kind, image)
 
     themeTextures[kind] = slot
     return true
+end
+
+local function createSharedThemeTexture(boothId, kind, image)
+    boothId = tostring(boothId)
+    themeTextureGeneration = themeTextureGeneration + 1
+
+    local slot = {
+        txdName = ("puribooth_shared_%s_%s_%s_%d")
+            :format(
+                boothId,
+                kind,
+                themeRuntimeNonce,
+                themeTextureGeneration
+            ),
+        txnName = "surface"
+    }
+
+    slot.txd = CreateRuntimeTxd(slot.txdName)
+    if not slot.txd then return false end
+
+    slot.texture = CreateRuntimeTextureFromImage(
+        slot.txd,
+        slot.txnName,
+        image
+    )
+    if not slot.texture then return false end
+
+    sharedThemeTextures[boothId] =
+        sharedThemeTextures[boothId] or {}
+    sharedThemeTextures[boothId][kind] = slot
+    return true
+end
+
+local function clearSharedTheme(boothId)
+    boothId = tostring(boothId)
+    sharedThemes[boothId] = nil
+    sharedThemeTextures[boothId] = nil
 end
 
 local function clearTheme()
@@ -653,12 +692,29 @@ local function renderPhotoLighting(booth)
 end
 
 local function renderThemeSurfaces(booth)
-    if not booth or not activeTheme then return end
+    if not booth then return end
+
+    local boothId = tostring(booth.id or "")
+    local theme = nil
+    local textures = nil
+
+    if ownedSession
+        and tostring(ownedSession.boothId) == boothId
+        and activeTheme then
+
+        theme = activeTheme
+        textures = themeTextures
+    else
+        theme = sharedThemes[boothId]
+        textures = sharedThemeTextures[boothId]
+    end
+
+    if not theme or not textures then return end
 
     local surfaces = Config.ThemeSurfaces or {}
     local forwardX, forwardY, rightX, rightY = getBasis(booth.heading)
 
-    local backgroundSpec = activeTheme.background
+    local backgroundSpec = theme.background
     if backgroundSpec and backgroundSpec.enabled then
 
         local bg = surfaces.background or {}
@@ -693,7 +749,7 @@ local function renderThemeSurfaces(booth)
             center.z + height
         )
 
-        local slot = themeTextures.background
+        local slot = textures.background
         if slot and slot.texture then
             drawTexturedQuad(
                 topLeft,
@@ -706,7 +762,7 @@ local function renderThemeSurfaces(booth)
         end
     end
 
-    local floorSpec = activeTheme.floor
+    local floorSpec = theme.floor
     if floorSpec and floorSpec.enabled then
 
         local floor = surfaces.floor or {}
@@ -733,7 +789,7 @@ local function renderThemeSurfaces(booth)
         local backRight = floorCorner(halfWidth, -halfDepth)
         local frontRight = floorCorner(halfWidth, halfDepth)
 
-        local slot = themeTextures.floor
+        local slot = textures.floor
         if slot and slot.texture then
             drawTexturedQuad(
                 backLeft,
@@ -1582,6 +1638,69 @@ local function openEditor(boothId, shots)
     })
 end
 
+RegisterNetEvent("puribooth:client:themeSync", function(boothId, theme, version)
+    boothId = tostring(boothId)
+    if type(theme) ~= "table" then return end
+
+    -- The payer already has local full-quality textures. Do not rebuild them.
+    if ownedSession
+        and tostring(ownedSession.boothId) == boothId
+        and activeTheme then
+        return
+    end
+
+    local current = sharedThemes[boothId]
+    if current
+        and tonumber(current.version) == tonumber(version) then
+        return
+    end
+
+    clearSharedTheme(boothId)
+
+    local background = theme.background or {}
+    local floor = theme.floor or {}
+
+    if background.enabled == true then
+        local image = validThemeImage(background.image)
+        if not image
+            or not createSharedThemeTexture(
+                boothId,
+                "background",
+                image
+            ) then
+            clearSharedTheme(boothId)
+            return
+        end
+    end
+
+    if floor.enabled == true then
+        local image = validThemeImage(floor.image)
+        if not image
+            or not createSharedThemeTexture(
+                boothId,
+                "floor",
+                image
+            ) then
+            clearSharedTheme(boothId)
+            return
+        end
+    end
+
+    sharedThemes[boothId] = {
+        version = tonumber(version) or 0,
+        background = {
+            enabled = background.enabled == true
+        },
+        floor = {
+            enabled = floor.enabled == true
+        }
+    }
+end)
+
+RegisterNetEvent("puribooth:client:themeClear", function(boothId)
+    clearSharedTheme(boothId)
+end)
+
 RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
     boothId = tostring(boothId)
     sharedSessions[boothId] = state or nil
@@ -1589,6 +1708,7 @@ RegisterNetEvent("puribooth:client:sessionState", function(boothId, state)
     if not state then
         countdownGeneration = countdownGeneration + 1
         countdownDisplay = nil
+        clearSharedTheme(boothId)
     end
 
     if not ownedSession or ownedSession.boothId ~= boothId or state then
@@ -1664,10 +1784,43 @@ RegisterNetEvent("puribooth:client:sessionOpened", function(boothId, expiresAt)
     )
 end)
 
+local function relevantCountdownBooth()
+    if ownedSession then
+        local ownedId = tostring(ownedSession.boothId)
+        local ownedState = sharedSessions[ownedId]
+        if ownedState and ownedState.capturing then
+            return ownedId
+        end
+    end
+
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local bestId = nil
+    local bestDistance = nil
+    local maxDistance = tonumber(Config.CountdownSyncDistance) or 5.5
+
+    for id, state in pairs(sharedSessions) do
+        if state and state.capturing then
+            local booth = dynamicBooths[id]
+            if booth then
+                local distance = #(coords - booth.captureCenter)
+                if distance <= maxDistance
+                    and (not bestDistance or distance < bestDistance) then
+                    bestId = tostring(id)
+                    bestDistance = distance
+                end
+            end
+        end
+    end
+
+    return bestId
+end
+
 RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
     boothId = tostring(boothId)
     local booth = dynamicBooths[boothId]
     if not booth then return end
+    if relevantCountdownBooth() ~= boothId then return end
 
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -1926,6 +2079,30 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
         floor = { enabled = floorEnabled }
     }
 
+    -- Share this booth's temporary theme only with players entering its
+    -- capture area. Latent transfer avoids large custom images hitching clients.
+    TriggerLatentServerEvent(
+        "puribooth:server:setTheme",
+        math.max(
+            100000,
+            math.floor(
+                tonumber(Config.ThemeSyncBytesPerSecond)
+                or 750000
+            )
+        ),
+        ownedSession.boothId,
+        {
+            background = {
+                enabled = backgroundEnabled,
+                image = backgroundImage or ""
+            },
+            floor = {
+                enabled = floorEnabled,
+                image = floorImage or ""
+            }
+        }
+    )
+
     -- Do not retain the large base64 strings after runtime textures are made.
     backgroundImage = nil
     floorImage = nil
@@ -2075,6 +2252,18 @@ CreateThread(function()
                     state ~= nil,
                     false
                 )
+            end
+
+            if state then
+                local themeDistance =
+                    #(coords - booth.captureCenter)
+                local themeSyncDistance =
+                    tonumber(Config.ThemeSyncDistance) or 5.5
+
+                if themeDistance <= themeSyncDistance then
+                    renderThemeSurfaces(booth)
+                    renderPhotoLighting(booth)
+                end
             end
 
             if state and not state.capturing then
@@ -2312,15 +2501,6 @@ CreateThread(function()
         if ownedSession and not editorOpen then
             local booth = dynamicBooths[ownedSession.boothId]
 
-            if booth
-                and activeTheme
-                and (cameraPreviewActive or captureInProgress) then
-
-                wait = 0
-                renderThemeSurfaces(booth)
-                renderPhotoLighting(booth)
-            end
-
             if booth then
                 local phase = ownedSession.phase or "gathering"
 
@@ -2432,6 +2612,8 @@ AddEventHandler("onResourceStop", function(resource)
     destroyPreviewCamera(false)
     cleanupPlacement()
     clearTheme()
+    sharedThemes = {}
+    sharedThemeTextures = {}
 
     for boothId in pairs(spawnedObjects) do
         removeSpawnedBooth(boothId)

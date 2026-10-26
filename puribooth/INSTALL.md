@@ -1,43 +1,60 @@
 # FLEPURI v1.0.1 導入手順
 
-## 1. 配置
-提出ZIPを展開し、`puribooth` フォルダをFiveMサーバーのresources配下へ配置してください。
+## 1. FLEPURI本体
+
+提出ZIP内の `puribooth` をFiveMサーバーのresources配下へ配置してください。
 
 例:
+
 ```
 resources/[flecity]/puribooth/
 ```
 
-## 2. 必要リソース
-次のリソースが起動済みであることを確認してください。
+## 2. PuriPhoto互換性
 
-- qbx_core
+FLEPURI v1.0.1 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+
+提出互換版は **PuriPhoto v1.1.1** です。
+
+既存PuriPhotoを使う場合は `PURIPHOTO_COMPAT.md` を参照してください。古いproduction bundleを検出した場合、FLEPURIは料金を引かず撮影開始を止めます。
+
+## 3. 必要リソース
+
+- qbx_core 2.5.4+
 - oxmysql
 - lb-phone
 - screenshot-basic
-- puriphoto
+- puriphoto 1.1.0+ + FLEPURI bridge
 - Renewed-Banking（既定の会社口座回収を使う場合）
 
-`server.cfg` では依存リソースより後にFLEPURIを起動してください。
+起動順:
 
 ```
+ensure qbx_core
+ensure oxmysql
+ensure lb-phone
+ensure screenshot-basic
 ensure puriphoto
 ensure puribooth
 ```
 
-## 3. DB
+既存server.cfgの管理方針がある場合は、その依存順を保ったまま `puribooth` をPuriPhotoより後に起動してください。
+
+## 4. DB
+
 手動SQLは不要です。
-初回起動時に `puribooth_booths` を自動作成し、既存テストDBに不足列がある場合も自動追加します。
 
-## 4. Weazel権限
-既定では管理操作を `weazel` job に限定しています。
+初回起動時に `puribooth_booths` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列が全て存在するかまで確認します。
 
-`config.lua`:
+## 5. Weazel権限
+
+既定:
+
 ```lua
 Config.Management.job = "weazel"
 ```
 
-必要に応じて以下を変更できます。
+設定可能:
 
 - placeMinGrade
 - removeMinGrade
@@ -48,60 +65,71 @@ Config.Management.job = "weazel"
 - salesCoords
 - salesDistance
 
-## 5. 売上回収
-既定設定ではRenewed-Bankingの `weazel` 会社口座へ入金します。
+## 6. 売上回収
+
+既定ではRenewed-Bankingの `weazel` 会社口座へ入金します。
 
 ```lua
 Config.Payout = {
     enabled = true,
     mode = "renewed-banking",
     resource = "Renewed-Banking",
-    account = "weazel"
+    account = "weazel",
+    transactionTitle = "FLEPURI売上"
 }
 ```
 
-会社口座を使わないテスト環境では `mode = "player-bank"` へ変更できます。
+selftestはRenewed-Bankingの起動だけでなく、`weazel` 口座が実際に取得できることも確認します。
 
-## 6. フォント
-フォントファイルは提出ZIPへ同梱していません。
-必要な書体を各公式配布元から取得し、以下へ配置してください。
+回収時は会社口座残高へ加算し、銀行取引履歴にもFLEPURI売上として記録します。残高加算に失敗した場合は、確保した未回収売上を各台へ戻します。
+
+## 7. フォント
+
+フォント本体は提出ZIPへ同梱しません。
+
+配置先:
 
 ```
 puribooth/ui/fonts/
 ```
 
-期待するファイル名:
+期待ファイル名:
 
 - PopRumKiwi-Telop.ttf
 - galmojigothicfree.ttf
 - HitoriGothic.ttf
 - HachiMaruPop-Regular.ttf
 
-公式配布先はREADME.mdを参照してください。
-未導入でもフォールバック書体で動作します。
+未導入でもフォールバック書体で動作します。selftestでは `fonts=OPTIONAL(n/4)` と表示しますが、全体FAILにはしません。
 
-## 7. 起動確認
-サーバーコンソールで:
+## 8. 起動確認
+
+サーバーコンソール:
 
 ```
+restart puriphoto
 restart puribooth
 puribooth_selftest
 ```
 
-`selftest PASS` を確認してください。
+最上段が:
 
-## 8. 初回設置
-weazel jobのプレイヤーで:
+```
+[puribooth] selftest PASS
+```
+
+になれば依存・PuriPhoto bridge・会社口座・DB・設定の事前検査は合格です。
+
+FAIL時は直下に `FIX:` が表示されます。
+
+## 9. 初回設置
+
+weazel job:
 
 ```
 /puribooth place
-```
-
-設置後、料金・売上管理が必要なら:
-
-```
 /puribooth price 1000
 /puribooth sales
 ```
 
-詳細な確認項目は `ACCEPTANCE_TEST.md` を参照してください。
+最後に `ACCEPTANCE_TEST.md` の実機テストを実施してください。

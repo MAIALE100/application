@@ -1,4 +1,4 @@
-# FLEPURI v1.0.3 導入手順
+# FLEPURI v1.0.4 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.3 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.4 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -20,7 +20,7 @@ FLEPURI v1.0.3 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import brid
 
 ## 3. 必要リソース
 
-- qbx_core 2.5.4+
+- qbx_core（FLEPURIはリソース版番号ではなく必要exportsを実体確認）
 - oxmysql
 - lb-phone
 - screenshot-basic

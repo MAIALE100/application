@@ -4,6 +4,7 @@ local sourceSessionLocks = {}
 local booths = {}
 local databaseReady = false
 local themeSerial = 0
+local puriphotoUiCache = nil
 local clearThemeRecipients
 
 local function notify(source, kind, message)
@@ -94,7 +95,20 @@ end
 
 local function puriphotoUiState()
     if GetResourceState("puriphoto") ~= "started" then
+        puriphotoUiCache = nil
         return false, "FAIL(resource)"
+    end
+
+    if puriphotoUiCache then
+        return puriphotoUiCache.ok, puriphotoUiCache.state
+    end
+
+    local function finish(ok, state)
+        puriphotoUiCache = {
+            ok = ok == true,
+            state = tostring(state)
+        }
+        return puriphotoUiCache.ok, puriphotoUiCache.state
     end
 
     local index = LoadResourceFile(
@@ -103,14 +117,14 @@ local function puriphotoUiState()
     )
 
     if type(index) ~= "string" or #index < 100 then
-        return false, "FAIL(ui-dist-index)"
+        return finish(false, "FAIL(ui-dist-index)")
     end
 
     local scriptPath =
         index:match('src=["\']([^"\']+%.js)["\']')
 
     if not scriptPath then
-        return false, "FAIL(ui-dist-script)"
+        return finish(false, "FAIL(ui-dist-script)")
     end
 
     scriptPath =
@@ -125,7 +139,7 @@ local function puriphotoUiState()
     )
 
     if type(bundle) ~= "string" or #bundle < 1000 then
-        return false, "FAIL(ui-dist-bundle)"
+        return finish(false, "FAIL(ui-dist-bundle)")
     end
 
     local hasImportNotice =
@@ -138,14 +152,14 @@ local function puriphotoUiState()
     if not hasImportNotice
         or not hasImportCallback
         or not hasImportConfirm then
-        return false, "FAIL(stale-ui-no-flepri-import)"
+        return finish(false, "FAIL(stale-ui-no-flepri-import)")
     end
 
     local stylePath =
         index:match('href=["\']([^"\']+%.css)["\']')
 
     if not stylePath then
-        return false, "FAIL(ui-dist-style)"
+        return finish(false, "FAIL(ui-dist-style)")
     end
 
     stylePath =
@@ -160,7 +174,7 @@ local function puriphotoUiState()
     )
 
     if type(style) ~= "string" or #style < 1000 then
-        return false, "FAIL(ui-dist-css)"
+        return finish(false, "FAIL(ui-dist-css)")
     end
 
     local bridge = LoadResourceFile(
@@ -172,12 +186,14 @@ local function puriphotoUiState()
         or bridge:find("OpenBoothImport", 1, true) == nil
         or bridge:find("CancelBoothImport", 1, true) == nil
         or bridge:find("boothImportConsumed", 1, true) == nil then
-        return false, "FAIL(client-flepri-bridge)"
+        return finish(false, "FAIL(client-flepri-bridge)")
     end
 
-    return true,
+    return finish(
+        true,
         ("PASS(index=%dB,bundle=%dB,css=%dB)")
             :format(#index, #bundle, #style)
+    )
 end
 
 local function managementMinimumGrade(action)
@@ -1730,7 +1746,18 @@ RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
     releaseSession(boothId)
 end)
 
+AddEventHandler("onResourceStart", function(resource)
+    if resource == "puriphoto" then
+        puriphotoUiCache = nil
+    end
+end)
+
 AddEventHandler("onResourceStop", function(resource)
+    if resource == "puriphoto" then
+        puriphotoUiCache = nil
+        return
+    end
+
     if resource ~= GetCurrentResourceName() then return end
     if GetResourceState("qbx_core") ~= "started" then return end
 

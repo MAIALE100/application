@@ -388,6 +388,7 @@ const App = () => {
             const result = await nuiRequest<{
                 ok: boolean
                 import?: {
+                    token: string
                     image: string
                     location?: CaptureLocation
                 }
@@ -411,6 +412,19 @@ const App = () => {
             setToolsCollapsed(false)
             setIsEditing(true)
             setError(null)
+
+            if (!imported.token) {
+                throw new Error('booth_import_token_missing')
+            }
+
+            const confirmed = await nuiRequest<SimpleResponse>(
+                'puriphotoConfirmBoothImport',
+                { token: imported.token }
+            )
+
+            if (!confirmed.ok) {
+                throw new Error(confirmed.error || 'booth_import_confirm_failed')
+            }
         } catch (cause) {
             console.warn('[PuriPhoto] Booth import unavailable:', cause)
         }

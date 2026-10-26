@@ -96,8 +96,10 @@ end
 
 local function releaseSession(boothId)
     boothId = tostring(boothId)
-    if not sessions[boothId] then return end
+    local session = sessions[boothId]
+    if not session then return end
 
+    clearThemeRecipients(boothId, session)
     sessions[boothId] = nil
     broadcastState(boothId)
 end
@@ -109,6 +111,127 @@ local function playerNearBooth(source, booth, maxDistance)
     local coords = GetEntityCoords(ped)
     local boothCoords = vector3(booth.coords.x, booth.coords.y, booth.coords.z)
     return #(coords - boothCoords) <= (maxDistance or 7.0)
+end
+
+local function captureCenterForBooth(booth)
+    if not booth then return nil end
+
+    local geometry = Config.Geometry or {}
+    local radians = math.rad(tonumber(booth.heading) or 0.0)
+    local forwardX = -math.sin(radians)
+    local forwardY = math.cos(radians)
+    local rightX = math.cos(radians)
+    local rightY = math.sin(radians)
+
+    local forward = tonumber(geometry.captureForward) or 3.20
+    local right = tonumber(geometry.captureRight) or 0.0
+    local z = tonumber(geometry.captureZ) or 0.0
+
+    return vector3(
+        booth.coords.x + forwardX * forward + rightX * right,
+        booth.coords.y + forwardY * forward + rightY * right,
+        booth.coords.z + z
+    )
+end
+
+local function playerNearCapture(source, booth, maxDistance)
+    local ped = GetPlayerPed(source)
+    if not ped or ped <= 0 or not booth then return false end
+
+    local center = captureCenterForBooth(booth)
+    if not center then return false end
+
+    return #(GetEntityCoords(ped) - center)
+        <= (maxDistance or tonumber(Config.ThemeSyncDistance) or 5.5)
+end
+
+local function validThemeSurface(surface)
+    if type(surface) ~= "table" then
+        return { enabled = false, image = "" }
+    end
+
+    if surface.enabled ~= true then
+        return { enabled = false, image = "" }
+    end
+
+    local image = surface.image
+    if type(image) ~= "string"
+        or #image < 32
+        or #image > (8 * 1024 * 1024)
+        or not image:sub(1, 32):lower():find("^data:image/") then
+
+        return nil
+    end
+
+    return {
+        enabled = true,
+        image = image
+    }
+end
+
+local function clearThemeRecipients(boothId, session)
+    if not session or type(session.themeRecipients) ~= "table" then return end
+
+    for playerId in pairs(session.themeRecipients) do
+        if GetPlayerName(playerId) then
+            TriggerClientEvent(
+                "puribooth:client:themeClear",
+                playerId,
+                tostring(boothId)
+            )
+        end
+    end
+
+    session.themeRecipients = {}
+end
+
+local function syncThemeToNearby(boothId, session)
+    local booth = getBooth(boothId)
+    if not booth or not session or not session.theme then return end
+
+    session.themeRecipients = session.themeRecipients or {}
+    local syncDistance = tonumber(Config.ThemeSyncDistance) or 5.5
+    local bps = math.max(
+        100000,
+        math.floor(tonumber(Config.ThemeSyncBytesPerSecond) or 750000)
+    )
+
+    local nearbyNow = {}
+
+    for _, playerIdText in ipairs(GetPlayers()) do
+        local playerId = tonumber(playerIdText)
+
+        if playerId
+            and playerNearCapture(playerId, booth, syncDistance) then
+
+            nearbyNow[playerId] = true
+
+            if session.themeRecipients[playerId] ~= session.themeVersion then
+                TriggerLatentClientEvent(
+                    "puribooth:client:themeSync",
+                    playerId,
+                    bps,
+                    tostring(boothId),
+                    session.theme,
+                    session.themeVersion
+                )
+                session.themeRecipients[playerId] = session.themeVersion
+            end
+        end
+    end
+
+    for playerId in pairs(session.themeRecipients) do
+        if not nearbyNow[playerId] then
+            if GetPlayerName(playerId) then
+                TriggerClientEvent(
+                    "puribooth:client:themeClear",
+                    playerId,
+                    tostring(boothId)
+                )
+            end
+            session.themeRecipients[playerId] = nil
+        end
+    end
 end
 
 local function loadBooths()
@@ -476,7 +599,10 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         paid = price,
         moneyType = paidWith or "cash",
         capturing = false,
-        expiresAt = os.time() + math.max(30, tonumber(Config.SessionTimeoutSeconds) or 180)
+        expiresAt = os.time() + math.max(30, tonumber(Config.SessionTimeoutSeconds) or 180),
+        theme = nil,
+        themeVersion = 0,
+        themeRecipients = {}
     }
 
     broadcastState(boothId)
@@ -486,6 +612,38 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         boothId,
         sessions[boothId].expiresAt
     )
+end)
+
+RegisterNetEvent("puribooth:server:setTheme", function(boothId, theme)
+    local source = source
+    boothId = tostring(boothId)
+
+    local session = sessions[boothId]
+    local booth = getBooth(boothId)
+
+    if not session or not booth or session.owner ~= source then return end
+    if session.capturing then return end
+    if not playerNearBooth(source, booth, 12.0) then return end
+    if type(theme) ~= "table" then return end
+
+    local background = validThemeSurface(theme.background)
+    local floor = validThemeSurface(theme.floor)
+
+    if not background or not floor then
+        notify(source, "error", "背景・床の共有データが不正です。")
+        return
+    end
+
+    clearThemeRecipients(boothId, session)
+
+    session.theme = {
+        background = background,
+        floor = floor
+    }
+    session.themeVersion = (tonumber(session.themeVersion) or 0) + 1
+    session.themeRecipients = {}
+
+    syncThemeToNearby(boothId, session)
 end)
 
 RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
@@ -537,7 +695,23 @@ RegisterNetEvent("puribooth:server:announceCountdown", function(boothId, shotInd
         )
     )
 
-    TriggerClientEvent("puribooth:client:countdown", -1, boothId, shotIndex)
+    local booth = getBooth(boothId)
+    local distance = tonumber(Config.CountdownSyncDistance) or 5.5
+
+    if booth then
+        for _, playerIdText in ipairs(GetPlayers()) do
+            local playerId = tonumber(playerIdText)
+
+            if playerId and playerNearCapture(playerId, booth, distance) then
+                TriggerClientEvent(
+                    "puribooth:client:countdown",
+                    playerId,
+                    boothId,
+                    shotIndex
+                )
+            end
+        end
+    end
 end)
 
 RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
@@ -671,6 +845,18 @@ CreateThread(function()
                 end
 
                 releaseSession(boothId)
+            end
+        end
+    end
+end)
+
+CreateThread(function()
+    while true do
+        Wait(1000)
+
+        for boothId, session in pairs(sessions) do
+            if session.theme then
+                syncThemeToNearby(boothId, session)
             end
         end
     end

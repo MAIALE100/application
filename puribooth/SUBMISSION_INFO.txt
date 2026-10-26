@@ -1,6 +1,7 @@
 FLEPURI / フレプリ v1.0.3
 Flecity operator submission package
 Release date: 2026-10-27
+Package file: FLEPURI_v1.0.3_submission.zip
 
 Primary resource:
   puribooth v1.0.3

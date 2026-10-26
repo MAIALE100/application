@@ -243,7 +243,17 @@ end
 
 local function validThemeImage(value)
     if type(value) ~= "string" then return nil end
-    if #value < 32 or #value > (8 * 1024 * 1024) then return nil end
+
+    local maxBytes =
+        math.max(
+            256 * 1024,
+            math.floor(
+                tonumber(Config.MaxThemeImageBytes)
+                or (4 * 1024 * 1024)
+            )
+        )
+
+    if #value < 32 or #value > maxBytes then return nil end
 
     local lower = value:sub(1, 32):lower()
     if lower:find("^data:image/jpeg;base64,") then

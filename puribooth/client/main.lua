@@ -6,6 +6,7 @@ local sharedSessions = {}
 local ownedSession = nil
 local editorOpen = false
 local editorBooth = nil
+local managementOpen = false
 
 local countdownDisplay = nil
 local countdownGeneration = 0
@@ -1920,6 +1921,70 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
     end)
 end)
 
+RegisterNetEvent("puribooth:client:openManagement", function(snapshot)
+    if ownedSession or editorOpen or placementMode or captureInProgress then
+        notify(
+            "error",
+            "撮影・編集・設置操作中は本社管理画面を開けません。"
+        )
+        return
+    end
+
+    managementOpen = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openManagement",
+        snapshot = snapshot or {}
+    })
+end)
+
+RegisterNetEvent("puribooth:client:managementSnapshot", function(snapshot)
+    if not managementOpen then return end
+
+    SendNUIMessage({
+        action = "managementSnapshot",
+        snapshot = snapshot or {}
+    })
+end)
+
+RegisterNUICallback("puriboothManageClose", function(_, cb)
+    managementOpen = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = "closeManagement" })
+    cb({ ok = true })
+end)
+
+RegisterNUICallback("puriboothManageRefresh", function(_, cb)
+    TriggerServerEvent("puribooth:server:managementRefresh")
+    cb({ ok = true })
+end)
+
+RegisterNUICallback("puriboothManagePrice", function(data, cb)
+    TriggerServerEvent(
+        "puribooth:server:managementPrice",
+        type(data) == "table" and data.boothId or nil,
+        type(data) == "table" and data.price or nil
+    )
+    cb({ ok = true })
+end)
+
+RegisterNUICallback("puriboothManageRename", function(data, cb)
+    TriggerServerEvent(
+        "puribooth:server:managementRename",
+        type(data) == "table" and data.boothId or nil,
+        type(data) == "table" and data.label or nil
+    )
+    cb({ ok = true })
+end)
+
+RegisterNUICallback("puriboothManageCollect", function(data, cb)
+    TriggerServerEvent(
+        "puribooth:server:managementCollect",
+        type(data) == "table" and data.target or nil
+    )
+    cb({ ok = true })
+end)
+
 RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
     if not ownedSession or ownedSession.phase ~= "theme" then
         cb({ ok = false, error = "no_session" })
@@ -2489,6 +2554,7 @@ AddEventHandler("onResourceStop", function(resource)
         return
     end
 
+    managementOpen = false
     SetNuiFocus(false, false)
     setCameraSafeFrame(false)
     destroyPreviewCamera(false)

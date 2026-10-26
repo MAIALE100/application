@@ -1,0 +1,47 @@
+name: Build Flecity Submission ZIP
+
+on:
+  push:
+    branches:
+      - package-flepri-puriphoto-flecity-2026-10-27
+      - package-flepri-v1.0.5-flecity
+      - package-puriphoto-v1.1.1-flecity
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Choose package name
+        id: pkg
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in
+            package-flepri-v1.0.5-flecity)
+              echo "name=FLEPURI_v1.0.5_Flecity_Operator" >> "$GITHUB_OUTPUT"
+              ;;
+            package-puriphoto-v1.1.1-flecity)
+              echo "name=PuriPhoto_v1.1.1_Flecity_Update" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "name=FLEPURI_PuriPhoto_Flecity_Submission_2026-10-27" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Create ZIP
+        shell: bash
+        run: |
+          zip -r "${{ steps.pkg.outputs.name }}.zip" .             -x ".git/*" ".github/*" "${{ steps.pkg.outputs.name }}.zip"
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pkg.outputs.name }}
+          path: ${{ steps.pkg.outputs.name }}.zip
+          if-no-files-found: error
+          retention-days: 30

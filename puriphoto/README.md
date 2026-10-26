@@ -1,21 +1,59 @@
-# LB Phone - TypeScript React Template
+# PuriPhoto
 
-If you don't know how react.js works, you should use the [vanilla js](https://github.com/lbphone/lb-phone-app-template/tree/main/vanilla-js) template instead.
+Flecity向けLB Phone写真編集・アルバムアプリです。
 
-## Installing modules
+## Runtime
 
-1. Install [node.js](https://nodejs.org/en/download)
-2. CD to the `ui` folder and run `npm i`, wait for it to complete.
+- qbx_core
+- oxmysql
+- lb-phone
+- Node.js / npm はソースからUIを再ビルドする時だけ必要
 
-## Developing the app
+現在のFLEPURI互換ランタイムは **PuriPhoto v1.1.1** です。
 
-1. Run `npm run dev`
-2. Go to `http://localhost:3000` in your browser to see the app in your browser.
-3. Comment out line 25 and uncomment line 24 in client.lua.
-4. Refresh and ensure the resource
+## FLEPURI連携
 
-## Building the app
+PuriPhoto v1.1.1 はFLEPURIから完成画像を受け取るため、以下を提供します。
 
-1. Run `npm run build` to build the app. The build will be in the `dist` folder.
-2. Comment out line 24 and uncomment line 25 in client.lua.
-3. Refresh and ensure the resource
+- client export: `OpenBoothImport(image, metadata)`
+- client export: `CancelBoothImport(token)`
+- NUI callback: `puriphotoGetBoothImport`
+- UI message: `boothImportAvailable`
+- local receipt event: `puriphoto:client:boothImportConsumed`
+
+FLEPURIはPuriPhotoのNUIが実際に画像を取得したことを確認してから編集画面を閉じます。
+
+## Production build
+
+```powershell
+cd puriphoto\ui
+npm ci --no-audit --no-fund
+npm run build -- --emptyOutDir
+```
+
+FLEPURI開発環境ではルートの `puribooth-update.ps1` がこの処理を自動実行し、生成されたproduction bundleに
+
+- `boothImportAvailable`
+- `puriphotoGetBoothImport`
+
+が含まれることまで検証します。
+
+## Runtime files
+
+FiveMは `ui/dist/index.html` を読み込みます。ソースの `ui/src` だけを更新しても本番UIには反映されません。
+
+FLEPURI提出版で使用するproduction indexは、FLEPURI互換bundleを参照しています。
+
+```
+ui/dist/assets/puriphoto-v1.1.1-flepri.js
+```
+
+## Development
+
+```powershell
+cd puriphoto\ui
+npm install
+npm run dev
+```
+
+ソース変更後は必ずproduction buildを更新してからFiveMで確認してください。

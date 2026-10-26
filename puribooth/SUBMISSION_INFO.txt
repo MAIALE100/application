@@ -56,3 +56,4 @@ Operator docs:
   INSTALL.md
   PURIPHOTO_COMPAT.md
   ACCEPTANCE_TEST.md
+  SUPPORT.md

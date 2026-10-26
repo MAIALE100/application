@@ -103,10 +103,43 @@ local function puriphotoUiState()
     )
 
     if type(index) ~= "string" or #index < 100 then
-        return false, "FAIL(ui-dist)"
+        return false, "FAIL(ui-dist-index)"
     end
 
-    return true, ("PASS(index=%dB)"):format(#index)
+    local scriptPath =
+        index:match('src=["\']([^"\']+%.js)["\']')
+
+    if not scriptPath then
+        return false, "FAIL(ui-dist-script)"
+    end
+
+    scriptPath =
+        scriptPath
+            :gsub("^%./", "")
+            :gsub("^/", "")
+            :gsub("^ui/dist/", "")
+
+    local bundle = LoadResourceFile(
+        "puriphoto",
+        "ui/dist/" .. scriptPath
+    )
+
+    if type(bundle) ~= "string" or #bundle < 1000 then
+        return false, "FAIL(ui-dist-bundle)"
+    end
+
+    local hasImportNotice =
+        bundle:find("boothImportAvailable", 1, true) ~= nil
+    local hasImportCallback =
+        bundle:find("puriphotoGetBoothImport", 1, true) ~= nil
+
+    if not hasImportNotice or not hasImportCallback then
+        return false, "FAIL(stale-ui-no-flepri-import)"
+    end
+
+    return true,
+        ("PASS(index=%dB,bundle=%dB)")
+            :format(#index, #bundle)
 end
 
 local function managementMinimumGrade(action)

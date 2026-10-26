@@ -79,6 +79,12 @@
         draggingDecoration: false,
         dragHistoryCaptured: false,
         dragOffset: { x: 0, y: 0 },
+        photoEditShot: 0,
+        photoTransforms: Array.from({ length: 4 }, () => ({
+            zoom: 1,
+            panX: 0,
+            panY: 0
+        })),
         theme: {
             backgroundPreset: 'pink',
             floorPreset: 'pink'
@@ -357,20 +363,52 @@
         image.src = src
     })
 
-    const drawCover = (image, x, y, w, h) => {
+    const drawCover = (image, x, y, w, h, transform = null) => {
         const srcRatio = image.width / image.height
         const dstRatio = w / h
-        let sx = 0, sy = 0, sw = image.width, sh = image.height
+        let baseW = image.width
+        let baseH = image.height
 
         if (srcRatio > dstRatio) {
-            sw = image.height * dstRatio
-            sx = (image.width - sw) / 2
+            baseW = image.height * dstRatio
         } else {
-            sh = image.width / dstRatio
-            sy = (image.height - sh) / 2
+            baseH = image.width / dstRatio
         }
 
-        ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h)
+        const zoom = Math.max(
+            1,
+            Math.min(2.4, Number(transform?.zoom) || 1)
+        )
+        const cropW = baseW / zoom
+        const cropH = baseH / zoom
+        const panX = Math.max(-1, Math.min(1, Number(transform?.panX) || 0))
+        const panY = Math.max(-1, Math.min(1, Number(transform?.panY) || 0))
+
+        const minCenterX = cropW / 2
+        const maxCenterX = image.width - cropW / 2
+        const minCenterY = cropH / 2
+        const maxCenterY = image.height - cropH / 2
+        const centerX =
+            image.width / 2
+            + panX * Math.max(0, (maxCenterX - minCenterX) / 2)
+        const centerY =
+            image.height / 2
+            + panY * Math.max(0, (maxCenterY - minCenterY) / 2)
+
+        const sx = Math.max(
+            0,
+            Math.min(image.width - cropW, centerX - cropW / 2)
+        )
+        const sy = Math.max(
+            0,
+            Math.min(image.height - cropH, centerY - cropH / 2)
+        )
+
+        ctx.drawImage(
+            image,
+            sx, sy, cropW, cropH,
+            x, y, w, h
+        )
     }
 
     const photoFilter = () =>
@@ -487,20 +525,55 @@
                 [0, 0, 600, 450], [600, 0, 600, 450],
                 [0, 450, 600, 450], [600, 450, 600, 450]
             ]
-            cells.forEach((cell, i) => state.images[i] && drawCover(state.images[i], ...cell))
+            cells.forEach((cell, i) =>
+                state.images[i]
+                    && drawCover(
+                        state.images[i],
+                        ...cell,
+                        state.photoTransforms[i]
+                    )
+            )
         } else if (state.layout === 'strip') {
             const width = 300
             for (let i = 0; i < 4; i++) {
-                if (state.images[i]) drawCover(state.images[i], width * i, 0, width, 900)
+                if (state.images[i]) {
+                    drawCover(
+                        state.images[i],
+                        width * i, 0, width, 900,
+                        state.photoTransforms[i]
+                    )
+                }
             }
         } else if (state.layout === 'hero') {
-            if (state.images[0]) drawCover(state.images[0], 0, 0, 800, 900)
+            if (state.images[0]) {
+                drawCover(
+                    state.images[0],
+                    0, 0, 800, 900,
+                    state.photoTransforms[0]
+                )
+            }
             for (let i = 1; i < 4; i++) {
-                if (state.images[i]) drawCover(state.images[i], 800, (i - 1) * 300, 400, 300)
+                if (state.images[i]) {
+                    drawCover(
+                        state.images[i],
+                        800, (i - 1) * 300, 400, 300,
+                        state.photoTransforms[i]
+                    )
+                }
             }
         } else {
-            const selected = state.images[state.singleShot] || state.images[0]
-            if (selected) drawCover(selected, 0, 0, 1200, 900)
+            const selectedIndex =
+                state.images[state.singleShot]
+                    ? state.singleShot
+                    : 0
+            const selected = state.images[selectedIndex]
+            if (selected) {
+                drawCover(
+                    selected,
+                    0, 0, 1200, 900,
+                    state.photoTransforms[selectedIndex]
+                )
+            }
         }
 
         ctx.restore()
@@ -707,6 +780,90 @@
         if (state.layout === 'single') render()
     })
 
+    const refreshPhotoTransformControls = () => {
+        const index = Math.max(
+            0,
+            Math.min(3, Number(state.photoEditShot) || 0)
+        )
+        const transform =
+            state.photoTransforms[index]
+            || { zoom: 1, panX: 0, panY: 0 }
+
+        document.querySelectorAll('[data-photo-shot]').forEach(button => {
+            button.classList.toggle(
+                'active',
+                Number(button.dataset.photoShot) === index
+            )
+            button.disabled = !state.images[index]
+                && Number(button.dataset.photoShot) === index
+        })
+
+        const zoom = document.getElementById('photoZoom')
+        const panX = document.getElementById('photoPanX')
+        const panY = document.getElementById('photoPanY')
+        const status = document.getElementById('photoAdjustStatus')
+
+        if (zoom) zoom.value = Math.round(transform.zoom * 100)
+        if (panX) panX.value = Math.round(transform.panX * 100)
+        if (panY) panY.value = Math.round(transform.panY * 100)
+        if (status) {
+            status.textContent =
+                `${index + 1}枚目：拡大 ${Math.round(transform.zoom * 100)}% / 左右 ${Math.round(transform.panX * 100)} / 上下 ${Math.round(transform.panY * 100)}`
+        }
+    }
+
+    const resetPhotoTransforms = () => {
+        state.photoEditShot = 0
+        state.photoTransforms =
+            Array.from(
+                { length: 4 },
+                () => ({ zoom: 1, panX: 0, panY: 0 })
+            )
+        refreshPhotoTransformControls()
+    }
+
+    document.querySelectorAll('[data-photo-shot]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = Number(button.dataset.photoShot)
+            if (!state.images[index]) return
+            state.photoEditShot = index
+            refreshPhotoTransformControls()
+        })
+    })
+
+    const bindPhotoTransformRange = (id, key, divisor = 100) => {
+        document.getElementById(id).addEventListener('input', event => {
+            const index = state.photoEditShot
+            const transform = state.photoTransforms[index]
+            if (!transform) return
+            transform[key] = Number(event.target.value) / divisor
+            refreshPhotoTransformControls()
+            render()
+        })
+    }
+
+    bindPhotoTransformRange('photoZoom', 'zoom', 100)
+    bindPhotoTransformRange('photoPanX', 'panX', 100)
+    bindPhotoTransformRange('photoPanY', 'panY', 100)
+
+    document.getElementById('photoResetCurrent').addEventListener('click', () => {
+        state.photoTransforms[state.photoEditShot] = {
+            zoom: 1,
+            panX: 0,
+            panY: 0
+        }
+        refreshPhotoTransformControls()
+        toolStatus.textContent =
+            `${state.photoEditShot + 1}枚目の位置調整をリセットしました`
+        render()
+    })
+
+    document.getElementById('photoResetAll').addEventListener('click', () => {
+        resetPhotoTransforms()
+        toolStatus.textContent = '4枚すべての位置調整をリセットしました'
+        render()
+    })
+
     const bindRange = (id, key) => {
         document.getElementById(id).addEventListener('input', event => {
             state[key] = Number(event.target.value)
@@ -726,7 +883,10 @@
                 natural: [104, 103, 104, 0, 3],
                 puri: [118, 102, 116, .6, 10],
                 y2k: [112, 112, 135, .25, 13],
-                mono: [108, 122, 0, .15, 0]
+                mono: [108, 122, 0, .15, 0],
+                soft: [124, 96, 118, 1.1, 12],
+                cool: [110, 108, 116, .25, 0],
+                night: [128, 110, 112, .35, 6]
             }[preset]
             if (!values) return
             ;[state.brightness, state.contrast, state.saturation, state.softness, state.warmth] = values
@@ -1185,6 +1345,7 @@
 
         try {
             state.images = await Promise.all(state.shots.map(loadImage))
+            resetPhotoTransforms()
             resetDecorations(false)
             app.classList.remove('hidden')
             render()

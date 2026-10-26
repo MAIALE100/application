@@ -792,6 +792,8 @@
         const shrink = document.getElementById('shrinkSelectedButton')
         const grow = document.getElementById('growSelectedButton')
         const rotateRight = document.getElementById('rotateRightButton')
+        const sendBackward = document.getElementById('sendBackwardButton')
+        const bringForward = document.getElementById('bringForwardButton')
         const duplicate = document.getElementById('duplicateSelectedButton')
         const del = document.getElementById('deleteSelectedButton')
         const hasSelection = Boolean(state.selectedDecoration)
@@ -802,6 +804,8 @@
         if (shrink) shrink.disabled = !hasSelection
         if (grow) grow.disabled = !hasSelection
         if (rotateRight) rotateRight.disabled = !hasSelection
+        if (sendBackward) sendBackward.disabled = !hasSelection
+        if (bringForward) bringForward.disabled = !hasSelection
         if (duplicate) duplicate.disabled = !hasSelection
         if (del) del.disabled = !hasSelection
     }
@@ -840,33 +844,64 @@
         toolStatus.textContent = '装飾をやり直しました'
     }
 
-    const decorationHitTest = point => {
-        for (let i = state.texts.length - 1; i >= 0; i--) {
-            const item = state.texts[i]
-            ctx.save()
-            const preset = setCanvasTextFont(item, item.size)
-            const metrics = ctx.measureText(item.value)
-            const measuredWidth = metrics.width * preset.scaleX
-            ctx.restore()
-            const halfW = Math.max(item.size, measuredWidth) * .55
-            const halfH = item.size * .7
-            if (
-                point.x >= item.x - halfW
-                && point.x <= item.x + halfW
-                && point.y >= item.y - halfH
-                && point.y <= item.y + halfH
-            ) {
-                return { type: 'text', index: i }
-            }
-        }
+    const decorationEntries = () => {
+        const entries = []
+        state.stickers.forEach((item, index) => {
+            entries.push({
+                type: 'sticker',
+                index,
+                item,
+                z: Number.isFinite(Number(item.z)) ? Number(item.z) : index
+            })
+        })
+        state.texts.forEach((item, index) => {
+            entries.push({
+                type: 'text',
+                index,
+                item,
+                z: Number.isFinite(Number(item.z))
+                    ? Number(item.z)
+                    : state.stickers.length + index + 100
+            })
+        })
+        return entries.sort((a, b) => a.z - b.z)
+    }
 
-        for (let i = state.stickers.length - 1; i >= 0; i--) {
-            const item = state.stickers[i]
-            const radius = item.size * .58
-            const dx = point.x - item.x
-            const dy = point.y - item.y
-            if ((dx * dx + dy * dy) <= radius * radius) {
-                return { type: 'sticker', index: i }
+    const nextDecorationZ = () => {
+        const entries = decorationEntries()
+        if (!entries.length) return 1
+        return Math.max(...entries.map(entry => entry.z)) + 1
+    }
+
+    const decorationHitTest = point => {
+        const entries = decorationEntries().reverse()
+
+        for (const entry of entries) {
+            const item = entry.item
+
+            if (entry.type === 'text') {
+                ctx.save()
+                const preset = setCanvasTextFont(item, item.size)
+                const metrics = ctx.measureText(item.value)
+                const measuredWidth = metrics.width * preset.scaleX
+                ctx.restore()
+                const halfW = Math.max(item.size, measuredWidth) * .55
+                const halfH = item.size * .7
+                if (
+                    point.x >= item.x - halfW
+                    && point.x <= item.x + halfW
+                    && point.y >= item.y - halfH
+                    && point.y <= item.y + halfH
+                ) {
+                    return { type: 'text', index: entry.index }
+                }
+            } else {
+                const radius = item.size * .58
+                const dx = point.x - item.x
+                const dy = point.y - item.y
+                if ((dx * dx + dy * dy) <= radius * radius) {
+                    return { type: 'sticker', index: entry.index }
+                }
             }
         }
 
@@ -1431,20 +1466,18 @@
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
 
-        state.stickers.forEach(item => {
+        decorationEntries().forEach(entry => {
+            const item = entry.item
             ctx.save()
             ctx.translate(item.x, item.y)
             ctx.rotate((Number(item.rotation) || 0) * Math.PI / 180)
-            ctx.font = `${item.size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`
-            ctx.fillText(item.value, 0, 0)
-            ctx.restore()
-        })
 
-        state.texts.forEach(item => {
-            ctx.save()
-            ctx.translate(item.x, item.y)
-            ctx.rotate((Number(item.rotation) || 0) * Math.PI / 180)
-            drawStyledText(item)
+            if (entry.type === 'sticker') {
+                ctx.font = `${item.size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`
+                ctx.fillText(item.value, 0, 0)
+            } else {
+                drawStyledText(item)
+            }
             ctx.restore()
         })
         ctx.restore()
@@ -1516,7 +1549,7 @@
         state.armedStamp = null
         state.armedText = false
         state.textStyle = 'puri'
-        state.textFont = 'puriRound'
+        state.textFont = 'heisei'
         state.repeatStamp = false
         state.drawEnabled = false
         state.drawStyle = 'pen'
@@ -2258,7 +2291,16 @@
             document.querySelectorAll('[data-draw-style]').forEach(item => {
                 item.classList.toggle('active', item === button)
             })
-            toolStatus.textContent = `${button.textContent.trim()}で落書きできます`
+            const toggle = document.getElementById('drawToggle')
+            if (toggle) {
+                toggle.textContent = state.drawEnabled
+                    ? `${button.textContent.trim()}：オフ`
+                    : `${button.textContent.trim()}：オン`
+            }
+            toolStatus.textContent =
+                state.drawStyle === 'eraser'
+                    ? '消しゴムでなぞった落書きだけ消せます'
+                    : `${button.textContent.trim()}で落書きできます`
         })
     })
 
@@ -2303,8 +2345,19 @@
         state.drawEnabled = !state.drawEnabled
         state.armedStamp = null
         state.armedText = false
-        event.currentTarget.textContent = state.drawEnabled ? 'ペン：オフ' : 'ペン：オン'
-        toolStatus.textContent = state.drawEnabled ? '写真上をドラッグして落書き' : 'ペンを停止しました'
+        const activeLabel =
+            document.querySelector('[data-draw-style].active')?.textContent?.trim()
+            || 'ペン'
+        event.currentTarget.textContent =
+            state.drawEnabled
+                ? `${activeLabel}：オフ`
+                : `${activeLabel}：オン`
+        toolStatus.textContent =
+            state.drawEnabled
+                ? (state.drawStyle === 'eraser'
+                    ? '写真上をなぞって落書きを部分消し'
+                    : '写真上をドラッグして落書き')
+                : '落書きツールを停止しました'
     })
 
     document.getElementById('clearDrawButton').addEventListener('click', () => {
@@ -2316,6 +2369,58 @@
         toolStatus.textContent = '落書きを消しました'
         render()
     })
+
+    const eraseStrokeAtPoint = point => {
+        const radius =
+            Math.max(
+                12,
+                Number(document.getElementById('drawWidth')?.value || 10) * 1.7
+            )
+        const radiusSq = radius * radius
+        let changed = false
+        const nextStrokes = []
+
+        state.strokes.forEach(stroke => {
+            let current = []
+
+            const flush = () => {
+                if (current.length > 1) {
+                    nextStrokes.push({
+                        ...stroke,
+                        points: current
+                    })
+                }
+                current = []
+            }
+
+            stroke.points.forEach(strokePoint => {
+                const dx = strokePoint.x - point.x
+                const dy = strokePoint.y - point.y
+                if ((dx * dx + dy * dy) <= radiusSq) {
+                    changed = true
+                    flush()
+                } else {
+                    current.push({ ...strokePoint })
+                }
+            })
+            flush()
+        })
+
+        if (changed) {
+            state.strokes = nextStrokes
+        }
+        return changed
+    }
+
+    let eraseRenderPending = false
+    const scheduleEraseRender = () => {
+        if (eraseRenderPending) return
+        eraseRenderPending = true
+        requestAnimationFrame(() => {
+            eraseRenderPending = false
+            render()
+        })
+    }
 
     const canvasPoint = event => {
         const rect = canvas.getBoundingClientRect()
@@ -2339,6 +2444,15 @@
             state.selectedDecoration = null
             state.drawing = true
             canvas.setPointerCapture(event.pointerId)
+
+            if (state.drawStyle === 'eraser') {
+                state.activeStroke = { style: 'eraser', points: [point] }
+                eraseStrokeAtPoint(point)
+                updateHistoryButtons()
+                render()
+                return
+            }
+
             const stroke = {
                 color: document.getElementById('drawColor').value,
                 width: Number(document.getElementById('drawWidth').value),
@@ -2359,7 +2473,8 @@
                 x: point.x,
                 y: point.y,
                 size: Number(document.getElementById('stampSize').value),
-                rotation: 0
+                rotation: 0,
+                z: nextDecorationZ()
             })
             if (!state.repeatStamp) {
                 state.armedStamp = null
@@ -2389,7 +2504,8 @@
                     color: document.getElementById('textColor').value,
                     style: state.textStyle,
                     font: state.textFont,
-                    rotation: 0
+                    rotation: 0,
+                    z: nextDecorationZ()
                 })
                 state.armedText = false
                 state.selectedDecoration = {
@@ -2445,12 +2561,27 @@
 
         if (state.drawing && state.activeStroke) {
             const stroke = state.activeStroke
-            const before = stroke.points.length
             const events =
                 typeof event.getCoalescedEvents === 'function'
                     ? event.getCoalescedEvents()
                     : []
 
+            if (stroke.style === 'eraser') {
+                let changed = false
+                if (events.length) {
+                    events.forEach(sample => {
+                        changed =
+                            eraseStrokeAtPoint(canvasPoint(sample))
+                            || changed
+                    })
+                } else {
+                    changed = eraseStrokeAtPoint(point)
+                }
+                if (changed) scheduleEraseRender()
+                return
+            }
+
+            const before = stroke.points.length
             if (events.length) {
                 events.forEach(sample => {
                     appendInterpolatedStrokePoint(
@@ -2607,6 +2738,36 @@
         rotateSelectedDecoration(15)
     })
 
+    const moveSelectedLayer = direction => {
+        const item = selectedDecorationItem()
+        if (!item) return
+
+        const entries = decorationEntries()
+        if (!entries.length) return
+
+        pushDecorationHistory()
+        const values = entries.map(entry => entry.z)
+        item.z =
+            direction > 0
+                ? Math.max(...values) + 1
+                : Math.min(...values) - 1
+
+        toolStatus.textContent =
+            direction > 0
+                ? '選択した装飾を前面へ移動しました'
+                : '選択した装飾を背面へ移動しました'
+        updateHistoryButtons()
+        render()
+    }
+
+    document.getElementById('sendBackwardButton').addEventListener('click', () => {
+        moveSelectedLayer(-1)
+    })
+
+    document.getElementById('bringForwardButton').addEventListener('click', () => {
+        moveSelectedLayer(1)
+    })
+
     const resizeSelectedDecoration = factor => {
         const item = selectedDecorationItem()
         if (!item) return
@@ -2642,7 +2803,8 @@
             state.stickers.push({
                 ...item,
                 x: Math.min(canvas.width, item.x + 36),
-                y: Math.min(canvas.height, item.y + 36)
+                y: Math.min(canvas.height, item.y + 36),
+                z: nextDecorationZ()
             })
             state.selectedDecoration = {
                 type: 'sticker',
@@ -2652,7 +2814,8 @@
             state.texts.push({
                 ...item,
                 x: Math.min(canvas.width, item.x + 36),
-                y: Math.min(canvas.height, item.y + 36)
+                y: Math.min(canvas.height, item.y + 36),
+                z: nextDecorationZ()
             })
             state.selectedDecoration = {
                 type: 'text',

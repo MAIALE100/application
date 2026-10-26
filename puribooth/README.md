@@ -1,6 +1,6 @@
 # FLEPURI / PuriBooth
 
-**Release: v1.0.1 (Flecity operator submission)**
+**Release: v1.0.2 (Flecity operator submission)**
 
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。
@@ -80,6 +80,8 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 - 撮影開始前の切断: citizenidを使ってオフライン返金
 - 売上DB記録失敗: 返金へフォールバック
 - リソース再起動で未完了セッションが残った場合: 返金を試行
+- 返金exportが一時失敗した場合: DBへ保留し、自動再試行
+- 返金処理が「支払い済みか未確定」になった場合: 二重返金防止のためprocessingで停止し、手動照合
 
 ## Weazel管理
 
@@ -201,8 +203,12 @@ Config.Payout = {
 
 ## DB
 
-初回起動時に `puribooth_booths` を自動作成し、既存テストDBも自動移行します。
+初回起動時に次のテーブルを自動作成し、既存テストDBも自動移行します。
 手動SQL導入は不要です。
+
+- `puribooth_booths`: 台・料金・売上
+- `puribooth_events`: 課金 / 売上 / 返金の監査ログ
+- `puribooth_refunds`: 返金失敗時の復旧キュー
 
 主な保存内容:
 - 設置座標 / 向き / モデル
@@ -255,8 +261,28 @@ puribooth_selftest
 - 料金範囲 / 支払い方法 / ShotCount=4
 - フォント4書体の導入状況（任意）
 - booth数
+- 未解決返金キュー
 
-互換性を確認できない場合、FLEPURIは課金を開始しません。
+互換性を確認できない場合、FLEPURIは課金を開始しません。未解決返金が残っている場合もselftestはFAILになります。
+
+### 保守 / 障害対応
+
+サーバーコンソール専用:
+
+```
+puribooth_support
+puribooth_support <session_id または citizenid>
+puribooth_refunds
+puribooth_retry_refunds
+```
+
+- `puribooth_support`: 稼働状況 / active session / 未解決返金の概要
+- `puribooth_support <...>`: 対象の課金・売上・返金履歴を最大30件表示
+- `puribooth_refunds`: 未解決返金を一覧表示
+- `puribooth_retry_refunds`: pending返金を即時再試行
+- `processing` 返金は二重返金防止のため自動再試行しません。実際の入金有無を照合してから対応します。
+
+通常のpending返金は `Config.RefundRetrySeconds`（既定60秒）ごとに自動再試行します。監査ログは `Config.SupportHistoryDays`（既定90日）保持します。
 
 ## 開発サーバーへの反映
 

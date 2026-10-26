@@ -9,6 +9,9 @@ Config.ShotCount = 4
 Config.ShotIntervalMs = 1800
 Config.ScreenshotQuality = 0.92
 Config.InteractDistance = 2.2
+Config.ThemeSyncDistance = 5.5
+Config.CountdownSyncDistance = 5.5
+Config.ThemeSyncBytesPerSecond = 750000
 Config.Debug = false
 
 -- Placement/removal is restricted to Qbox's admin ACE.

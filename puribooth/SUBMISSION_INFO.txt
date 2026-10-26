@@ -1,9 +1,9 @@
-FLEPURI / フレプリ v1.0.2
+FLEPURI / フレプリ v1.0.3
 Flecity operator submission package
 Release date: 2026-10-27
 
 Primary resource:
-  puribooth v1.0.2
+  puribooth v1.0.3
 
 Compatible PuriPhoto runtime:
   puriphoto v1.1.1
@@ -28,6 +28,8 @@ Safety:
   Failed refunds are persisted and retried automatically.
   Ambiguous refund states stop in processing to avoid double refunds.
   Payment / sale / refund events are retained for support tracing.
+  Terminal session settlement is serialized to prevent sale/refund races.
+  Company-sales collection uses a crash-safe recovery ledger and DB transactions.
 
 Management:
   Default job: weazel
@@ -39,7 +41,7 @@ Sales:
   Successful collections are also recorded in bank transaction history.
 
 Database:
-  puribooth_booths / puribooth_events / puribooth_refunds are created automatically.
+  puribooth_booths / puribooth_events / puribooth_refunds / puribooth_collections are created automatically.
   No manual SQL import is required.
   puribooth_selftest checks required schema columns.
 
@@ -51,6 +53,7 @@ First verification:
   puribooth_selftest
   puribooth_support
   puribooth_refunds
+  puribooth_collections
 
 Operator docs:
   INSTALL.md

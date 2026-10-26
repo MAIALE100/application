@@ -77,6 +77,18 @@
         }
     }
 
+    const themeLabel = value => ({
+        pink: 'ピンク',
+        white: 'ホワイト',
+        y2k: 'Y2K',
+        black: 'ブラック',
+        hearts: 'ハート',
+        mint: 'ミント',
+        lavender: 'ラベンダー',
+        sky: 'スカイ',
+        none: 'なし'
+    })[String(value || '').toLowerCase()] || String(value || '')
+
     const refreshThemeStatus = () => {
         const bgUrl = safeHttpUrl(backgroundUrl.value)
         const floorImageUrl = safeHttpUrl(floorUrl.value)
@@ -89,7 +101,7 @@
 
         themeStatus.classList.remove('error')
         themeStatus.textContent =
-            `背景: ${bgUrl ? 'CUSTOM URL' : state.theme.backgroundPreset.toUpperCase()} / 床: ${floorImageUrl ? 'CUSTOM URL' : state.theme.floorPreset.toUpperCase()}`
+            `背景：${bgUrl ? '画像URL' : themeLabel(state.theme.backgroundPreset)} / 床：${floorImageUrl ? '画像URL' : themeLabel(state.theme.floorPreset)}`
 
         applyThemePreview(backgroundPreview, state.theme.backgroundPreset, backgroundUrl.value)
         applyThemePreview(floorPreview, state.theme.floorPreset, floorUrl.value)
@@ -493,7 +505,7 @@
             ctx.strokeRect(19, 19, 1162, 862)
             ctx.font = '900 30px sans-serif'
             ctx.fillStyle = '#fff'
-            ctx.fillText('FLECITY PURI', 48, 66)
+            ctx.fillText('フレシティプリ', 48, 66)
         } else if (state.frame === 'hearts') {
             ctx.strokeStyle = '#ff77b7'
             ctx.lineWidth = 28
@@ -627,7 +639,7 @@
         }
 
         document.querySelectorAll('[data-stamp]').forEach(button => button.classList.remove('active'))
-        document.getElementById('drawToggle').textContent = 'ペン ON'
+        document.getElementById('drawToggle').textContent = 'ペン：オン'
         toolStatus.textContent = recordHistory ? '装飾をリセットしました' : '編集できます'
         updateHistoryButtons()
         render()
@@ -720,7 +732,7 @@
         state.drawEnabled = !state.drawEnabled
         state.armedStamp = null
         state.armedText = false
-        event.currentTarget.textContent = state.drawEnabled ? 'ペン OFF' : 'ペン ON'
+        event.currentTarget.textContent = state.drawEnabled ? 'ペン：オフ' : 'ペン：オン'
         toolStatus.textContent = state.drawEnabled ? '写真上をドラッグして落書き' : 'ペンを停止しました'
     })
 
@@ -1117,8 +1129,8 @@
         themeSetup.classList.add('hidden')
         state.boothId = data.boothId
         state.shots = Array.isArray(data.shots) ? data.shots.slice(0, 4) : []
-        boothLabel.textContent = data.label || 'PURI'
-        shotCount.textContent = `${state.shots.length} SHOTS`
+        boothLabel.textContent = data.label || 'プリクラ'
+        shotCount.textContent = `${state.shots.length}枚撮影`
         canvasHint.textContent = '本物のプリクラみたいに、ここで仕上げてからPuriPhotoへ'
 
         try {

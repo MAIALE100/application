@@ -681,3 +681,62 @@ input[type="color"] {
     background: #241521;
     color: #fff;
 }
+
+
+/* Purikura text font presets */
+.text-font-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 8px 0 4px;
+}
+
+.text-font-grid button {
+    min-height: 44px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #f3edf2;
+    color: #5d4656;
+    cursor: pointer;
+    font-size: 15px;
+    transition: border-color .12s ease, background .12s ease, transform .12s ease;
+}
+
+.text-font-grid button:hover {
+    transform: translateY(-1px);
+}
+
+.text-font-grid button.active {
+    border-color: #ff4fa3;
+    background: #ffe3f0;
+    color: #c82a72;
+}
+
+.text-font-grid .font-puri-round {
+    font-family: "Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 900;
+    letter-spacing: .04em;
+}
+
+.text-font-grid .font-handwritten {
+    font-family: "Segoe Print","Comic Sans MS","Yu Gothic","Meiryo",cursive;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.text-font-grid .font-pop {
+    font-family: "Arial Rounded MT Bold","Arial Black","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+.text-font-grid .font-y2k {
+    font-family: "Impact","Arial Black","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+.text-font-grid .font-simple {
+    font-family: "Noto Sans JP","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 700;
+}

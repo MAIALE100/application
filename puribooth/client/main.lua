@@ -6,6 +6,7 @@ local sharedSessions = {}
 local ownedSession = nil
 local editorOpen = false
 local editorBooth = nil
+local puriphotoHandoffReceipts = {}
 
 local countdownDisplay = nil
 local countdownGeneration = 0
@@ -110,6 +111,16 @@ local function puriphotoCompatible()
 end
 
 RegisterNetEvent("puribooth:client:notify", notify)
+
+AddEventHandler(
+    "puriphoto:client:boothImportConsumed",
+    function(token)
+        token = tostring(token or "")
+        if token ~= "" then
+            puriphotoHandoffReceipts[token] = GetGameTimer()
+        end
+    end
+)
 
 local function localizeBoothLabel(value)
     local label = tostring(value or "")
@@ -2137,7 +2148,7 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
     local booth = boothId and dynamicBooths[boothId] or nil
     local metadata = locationMetadata(booth)
 
-    local callOk, accepted, reason = pcall(function()
+    local callOk, accepted, tokenOrReason = pcall(function()
         return exports.puriphoto:OpenBoothImport(
             image,
             metadata
@@ -2155,8 +2166,54 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
             ok = false,
             error = "puriphoto_handoff_failed",
             reason = callOk
-                and tostring(reason or "rejected")
+                and tostring(tokenOrReason or "rejected")
                 or "export_error"
+        })
+        return
+    end
+
+    local handoffToken = tostring(tokenOrReason or "")
+    if handoffToken == "" then
+        notify(
+            "error",
+            "PuriPhotoから受取確認IDを取得できませんでした。"
+                .. " 編集内容は残してあります。"
+        )
+
+        cb({
+            ok = false,
+            error = "puriphoto_handoff_token_missing"
+        })
+        return
+    end
+
+    local deadline = GetGameTimer() + 7000
+
+    while not puriphotoHandoffReceipts[handoffToken]
+        and GetGameTimer() < deadline do
+        Wait(25)
+    end
+
+    local consumed =
+        puriphotoHandoffReceipts[handoffToken] ~= nil
+    puriphotoHandoffReceipts[handoffToken] = nil
+
+    if not consumed then
+        pcall(function()
+            exports.puriphoto:CancelBoothImport(
+                handoffToken
+            )
+        end)
+
+        notify(
+            "error",
+            "PuriPhotoが写真を受け取ったことを確認できませんでした。"
+                .. " 編集内容は残してあります。もう一度送信してください。"
+        )
+
+        cb({
+            ok = false,
+            error = "puriphoto_handoff_timeout"
         })
         return
     end

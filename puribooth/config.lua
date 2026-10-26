@@ -1,7 +1,39 @@
 Config = {}
 
-Config.Price = 1000
+Config.Price = 1000 -- 新規設置台の初期料金
+Config.MinPrice = 0
+Config.MaxPrice = 100000
 Config.PaymentMethods = { "cash", "bank" }
+
+-- 設置・撤去・料金変更・売上確認を使えるjob。
+-- 提出版では初回claimadmin方式を使わず、jobで権限管理します。
+Config.Management = {
+    job = "weazel",
+    requireOnDuty = false,
+    allowAceOverride = false,
+    ace = "group.admin",
+
+    placeMinGrade = 0,
+    removeMinGrade = 0,
+    priceMinGrade = 0,
+    salesMinGrade = 0,
+
+    -- 本社の座標が決まったら true にして coords を指定できます。
+    salesRequireLocation = false,
+    salesCoords = { x = 0.0, y = 0.0, z = 0.0 },
+    salesDistance = 12.0
+}
+
+-- 売上入金先。QBox標準構成で使われるRenewed-Bankingに対応。
+-- accountを "weazel" にするとweazelのjob口座へ入金できます。
+Config.Payout = {
+    enabled = true,
+    mode = "renewed-banking",
+    resource = "Renewed-Banking",
+    account = "weazel",
+    retrySeconds = 60,
+    transactionTitle = "FLEPURI売上"
+}
 Config.SessionTimeoutSeconds = 180
 Config.CaptureTimeoutSeconds = 600
 Config.CountdownSeconds = 3
@@ -14,10 +46,7 @@ Config.CountdownSyncDistance = 5.5
 Config.ThemeSyncBytesPerSecond = 750000
 Config.Debug = false
 
--- Placement/removal is restricted to Qbox's admin ACE.
-Config.AdminAce = "group.admin"
 Config.AdminRemoveDistance = 6.0
-Config.AllowFirstAdminClaim = true
 Config.AdminPlaceMaxDistance = 15.0
 
 Config.PlacementPreview = {

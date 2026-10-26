@@ -1,3 +1,27 @@
+@font-face {
+    font-family: "HeiseiJoshi";
+    src: url("fonts/HeiseijyojiFont.otf") format("opentype");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "HitoriGothic";
+    src: url("fonts/HitoriGothic.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "HachiMaruPop";
+    src: url("fonts/HachiMaruPop-Regular.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
 * { box-sizing: border-box; }
 :root {
     font-family: Inter, "Noto Sans JP", system-ui, sans-serif;
@@ -712,31 +736,21 @@ input[type="color"] {
     color: #c82a72;
 }
 
-.text-font-grid .font-puri-round {
-    font-family: "Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;
-    font-weight: 900;
-    letter-spacing: .04em;
+.text-font-grid .font-heisei {
+    font-family: "HeiseiJoshi","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 400;
 }
 
-.text-font-grid .font-handwritten {
-    font-family: "Segoe Print","Comic Sans MS","Yu Gothic","Meiryo",cursive;
-    font-weight: 700;
-    font-style: italic;
+.text-font-grid .font-hitori {
+    font-family: "HitoriGothic","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 400;
 }
 
-.text-font-grid .font-pop {
-    font-family: "Arial Rounded MT Bold","Arial Black","Yu Gothic","Meiryo",sans-serif;
-    font-weight: 900;
-    letter-spacing: .08em;
+.text-font-grid .font-hachi {
+    font-family: "HachiMaruPop","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    font-weight: 400;
 }
 
-.text-font-grid .font-y2k {
-    font-family: "Impact","Arial Black","Yu Gothic","Meiryo",sans-serif;
-    font-weight: 900;
-    letter-spacing: .08em;
-}
-
-.text-font-grid .font-simple {
-    font-family: "Noto Sans JP","Yu Gothic","Meiryo",sans-serif;
-    font-weight: 700;
+#canvas {
+    touch-action: none;
 }

@@ -1766,7 +1766,16 @@ end)
 
 local function resourceState(name)
     local state = GetResourceState(name)
-    return state == "started" and "PASS" or ("FAIL(" .. state .. ")")
+    if state ~= "started" then
+        return ("FAIL(%s)"):format(tostring(state))
+    end
+
+    local version = resourceVersion(name)
+    if version then
+        return ("PASS(v%s)"):format(version)
+    end
+
+    return "PASS"
 end
 
 local function managementJobState()
@@ -1919,6 +1928,29 @@ local function configState()
     return "PASS"
 end
 
+local function fontState()
+    local files = {
+        "ui/fonts/PopRumKiwi-Telop.ttf",
+        "ui/fonts/galmojigothicfree.ttf",
+        "ui/fonts/HitoriGothic.ttf",
+        "ui/fonts/HachiMaruPop-Regular.ttf"
+    }
+
+    local count = 0
+    for _, file in ipairs(files) do
+        local data = LoadResourceFile(GetCurrentResourceName(), file)
+        if type(data) == "string" and #data > 0 then
+            count = count + 1
+        end
+    end
+
+    if count == #files then
+        return ("PASS(%d/%d)"):format(count, #files)
+    end
+
+    return ("OPTIONAL(%d/%d)"):format(count, #files)
+end
+
 RegisterCommand("puribooth_selftest", function(source)
     if source ~= 0 then
         notify(source, "error", "このコマンドはサーバーコンソール専用です。")
@@ -1935,6 +1967,7 @@ RegisterCommand("puribooth_selftest", function(source)
     local payout = payoutState()
     local database = databaseSchemaState()
     local config = configState()
+    local fonts = fontState()
 
     local payoutRequired =
         (Config.Payout or {}).enabled ~= false
@@ -1945,9 +1978,9 @@ RegisterCommand("puribooth_selftest", function(source)
 
     local overall =
         qbx:sub(1, 4) == "PASS"
-        and phone == "PASS"
-        and screenshot == "PASS"
-        and mysql == "PASS"
+        and phone:sub(1, 4) == "PASS"
+        and screenshot:sub(1, 4) == "PASS"
+        and mysql:sub(1, 4) == "PASS"
         and puriphoto:sub(1, 4) == "PASS"
         and puriphotoUi:sub(1, 4) == "PASS"
         and job == "PASS"
@@ -1966,7 +1999,41 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   payout=%s"):format(payout))
     print(("[puribooth]   database=%s"):format(database))
     print(("[puribooth]   config=%s"):format(config))
+    print(("[puribooth]   fonts=%s"):format(fonts))
     print(("[puribooth]   booths=%d"):format(boothCount()))
+
+    if qbx:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: qbx_core 2.5.4+ を起動し、FLEPURIより先にensureしてください。")
+    end
+
+    if puriphoto:sub(1, 4) ~= "PASS"
+        or puriphotoUi:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: PuriPhoto 1.1.0+ と ui/dist のproduction buildを確認してください。")
+    end
+
+    if phone:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: lb-phoneをFLEPURIより先に起動してください。")
+    end
+
+    if screenshot:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: screenshot-basicを起動してください。")
+    end
+
+    if payoutRequired and not payoutPass then
+        print("[puribooth]   FIX: Renewed-Bankingとweazel会社口座の作成状態を確認してください。")
+    end
+
+    if database ~= "PASS" then
+        print("[puribooth]   FIX: oxmysql接続とpuribooth_boothsの自動migration結果を確認してください。")
+    end
+
+    if config ~= "PASS" then
+        print("[puribooth]   FIX: config.luaを確認してください。v1.0系のShotCountは4固定です。")
+    end
+
+    if fonts:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   NOTE: フォントは任意導入です。未導入時はフォールバック書体で動作します。")
+    end
 end, false)
 
 CreateThread(function()

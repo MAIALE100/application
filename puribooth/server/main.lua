@@ -11,6 +11,8 @@ local collectionProcessRunning = false
 local refundRetryRunning = false
 local puriphotoUiCache = nil
 local clearThemeRecipients
+local devRuntimeManagementJobCreated = false
+local devManagementAssignments = {}
 
 local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
@@ -96,6 +98,46 @@ local function resourceCompatibilityState(name)
     return true,
         ("PASS(v%s>=v%s)"):format(actual, minimum),
         actual
+end
+
+local function qbxCompatibilityState()
+    local state = GetResourceState("qbx_core")
+    if state ~= "started" then
+        return false, ("FAIL(state=%s)"):format(tostring(state)), nil
+    end
+
+    local version = resourceVersion("qbx_core")
+
+    -- QBox framework release numbers and the qbx_core resource version are
+    -- separate version streams. Validate the capabilities FLEPURI actually
+    -- depends on instead of comparing qbx_core against a framework release.
+    local jobsOk, jobs = pcall(function()
+        return exports.qbx_core:GetJobs()
+    end)
+
+    if not jobsOk or type(jobs) ~= "table" then
+        return false, "FAIL(export=GetJobs)", version
+    end
+
+    local jobOk = pcall(function()
+        exports.qbx_core:GetJob("unemployed")
+    end)
+
+    if not jobOk then
+        return false, "FAIL(export=GetJob)", version
+    end
+
+    local playerOk = pcall(function()
+        exports.qbx_core:GetPlayer(-1)
+    end)
+
+    if not playerOk then
+        return false, "FAIL(export=GetPlayer)", version
+    end
+
+    return true,
+        ("PASS(v%s,exports=ok)"):format(tostring(version or "unknown")),
+        version
 end
 
 local function puriphotoUiState()
@@ -2144,7 +2186,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
     end
 
     local qbxCompatible, qbxState =
-        resourceCompatibilityState("qbx_core")
+        qbxCompatibilityState()
     local puriphotoCompatible, puriphotoState =
         resourceCompatibilityState("puriphoto")
     local puriphotoUiReady, puriphotoUi =
@@ -2911,6 +2953,224 @@ local function managementJobState()
     local job = exports.qbx_core:GetJob(jobName)
     return job and "PASS" or ("FAIL(" .. jobName .. ")")
 end
+
+local function developmentTarget(explicit)
+    local target = tonumber(explicit)
+    if target and GetPlayerName(target) then
+        return target
+    end
+
+    if explicit ~= nil and tostring(explicit) ~= "" then
+        return nil, ("player %s is not online"):format(tostring(explicit))
+    end
+
+    local players = GetPlayers()
+    if #players == 1 then
+        return tonumber(players[1])
+    end
+
+    if #players == 0 then
+        return nil, "no players are online"
+    end
+
+    return nil, "multiple players are online; specify the server ID"
+end
+
+local function removeDevelopmentRuntimeJobIfUnused()
+    if not devRuntimeManagementJobCreated
+        or next(devManagementAssignments) ~= nil
+        or GetResourceState("qbx_core") ~= "started" then
+        return
+    end
+
+    local jobName = tostring((Config.Management or {}).job or "weazel")
+    local ok, removed = pcall(function()
+        return exports.qbx_core:RemoveJob(jobName)
+    end)
+
+    if ok and removed == true then
+        devRuntimeManagementJobCreated = false
+        print(("[puribooth] DEV runtime job removed: %s"):format(jobName))
+    end
+end
+
+RegisterCommand("puribooth_dev_weazel", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local qbxOk, qbxState = qbxCompatibilityState()
+    if not qbxOk then
+        print(("[puribooth] DEV helper blocked: qbx_core=%s"):format(qbxState))
+        return
+    end
+
+    local target, targetError = developmentTarget(args[1])
+    if not target then
+        print(("[puribooth] usage: puribooth_dev_weazel [server_id] (%s)")
+            :format(tostring(targetError)))
+        return
+    end
+
+    local jobName = tostring((Config.Management or {}).job or "weazel")
+    local existingJob = exports.qbx_core:GetJob(jobName)
+
+    if not existingJob then
+        local createOk, created, message = pcall(function()
+            return exports.qbx_core:CreateJob(jobName, {
+                label = "Weazel News (FLEPURI DEV)",
+                defaultDuty = true,
+                offDutyPay = false,
+                grades = {
+                    [0] = {
+                        name = "FLEPURI Tester",
+                        payment = 0,
+                        isboss = true,
+                        bankAuth = true
+                    }
+                }
+            })
+        end)
+
+        if not createOk or created ~= true then
+            print(("[puribooth] DEV helper could not create runtime job %s: %s")
+                :format(jobName, tostring(message or created)))
+            return
+        end
+
+        devRuntimeManagementJobCreated = true
+        print(("[puribooth] DEV runtime job created: %s"):format(jobName))
+    end
+
+    local player = exports.qbx_core:GetPlayer(target)
+    local playerData = player and player.PlayerData
+    local currentJob = playerData and playerData.job
+    local citizenid = playerData and playerData.citizenid
+
+    if not citizenid or not currentJob then
+        print(("[puribooth] DEV helper could not read player data for source=%s")
+            :format(tostring(target)))
+        removeDevelopmentRuntimeJobIfUnused()
+        return
+    end
+
+    if not devManagementAssignments[citizenid] then
+        devManagementAssignments[citizenid] = {
+            source = target,
+            citizenid = tostring(citizenid),
+            job = tostring(currentJob.name or "unemployed"),
+            grade = tonumber(currentJob.grade and currentJob.grade.level) or 0,
+            onduty = currentJob.onduty == true
+        }
+    end
+
+    local setOk, changed, setMessage = pcall(function()
+        return exports.qbx_core:SetJob(target, jobName, 0)
+    end)
+
+    if not setOk or changed ~= true then
+        print(("[puribooth] DEV helper could not assign %s to source=%s: %s")
+            :format(jobName, tostring(target), tostring(setMessage or changed)))
+        return
+    end
+
+    pcall(function()
+        exports.qbx_core:SetJobDuty(target, true)
+    end)
+
+    local verify = exports.qbx_core:GetPlayer(target)
+    local verifyJob =
+        verify
+        and verify.PlayerData
+        and verify.PlayerData.job
+        and verify.PlayerData.job.name
+
+    if tostring(verifyJob or "") ~= jobName then
+        print(("[puribooth] DEV helper assignment verification failed source=%s job=%s")
+            :format(tostring(target), tostring(verifyJob)))
+        return
+    end
+
+    print(("[puribooth] DEV access ready source=%s citizenid=%s job=%s grade=0")
+        :format(tostring(target), tostring(citizenid), jobName))
+    print("[puribooth] DEV restore after testing: puribooth_dev_weazel_restore [server_id]")
+end, false)
+
+RegisterCommand("puribooth_dev_weazel_restore", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local target = tonumber(args[1])
+    local assignment
+
+    if target then
+        for _, item in pairs(devManagementAssignments) do
+            if tonumber(item.source) == target then
+                assignment = item
+                break
+            end
+        end
+    else
+        local count = 0
+        for _, item in pairs(devManagementAssignments) do
+            assignment = item
+            count = count + 1
+        end
+
+        if count ~= 1 then
+            print("[puribooth] usage: puribooth_dev_weazel_restore <server_id>")
+            return
+        end
+    end
+
+    if not assignment then
+        print("[puribooth] DEV restore: no saved assignment found.")
+        return
+    end
+
+    if GetResourceState("qbx_core") ~= "started" then
+        print("[puribooth] DEV restore blocked: qbx_core is not started.")
+        return
+    end
+
+    local restoreOk, restored, restoreMessage = pcall(function()
+        return exports.qbx_core:SetJob(
+            assignment.citizenid,
+            assignment.job,
+            assignment.grade
+        )
+    end)
+
+    if not restoreOk or restored ~= true then
+        print(("[puribooth] DEV restore failed citizenid=%s job=%s: %s")
+            :format(
+                tostring(assignment.citizenid),
+                tostring(assignment.job),
+                tostring(restoreMessage or restored)
+            ))
+        return
+    end
+
+    pcall(function()
+        exports.qbx_core:SetJobDuty(
+            assignment.citizenid,
+            assignment.onduty == true
+        )
+    end)
+
+    devManagementAssignments[assignment.citizenid] = nil
+    print(("[puribooth] DEV access restored citizenid=%s job=%s grade=%s")
+        :format(
+            tostring(assignment.citizenid),
+            tostring(assignment.job),
+            tostring(assignment.grade)
+        ))
+
+    removeDevelopmentRuntimeJobIfUnused()
+end, false)
 
 local function payoutState()
     local payout = Config.Payout or {}
@@ -3707,7 +3967,7 @@ RegisterCommand("puribooth_selftest", function(source)
         return
     end
 
-    local _, qbx = resourceCompatibilityState("qbx_core")
+    local _, qbx = qbxCompatibilityState()
     local phone = resourceState("lb-phone")
     local screenshot = resourceState("screenshot-basic")
     local mysql = resourceState("oxmysql")
@@ -3762,7 +4022,7 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   booths=%d"):format(boothCount()))
 
     if qbx:sub(1, 4) ~= "PASS" then
-        print("[puribooth]   FIX: qbx_core 2.5.4+ を起動し、FLEPURIより先にensureしてください。")
+        print("[puribooth]   FIX: qbx_coreをFLEPURIより先にensureし、GetJobs/GetJob/GetPlayer exportsを確認してください。")
     end
 
     if puriphoto:sub(1, 4) ~= "PASS"
@@ -3810,10 +4070,10 @@ end, false)
 CreateThread(function()
     Wait(1500)
 
-    local _, qbx = resourceCompatibilityState("qbx_core")
+    local _, qbx = qbxCompatibilityState()
     local _, puriphoto = resourceCompatibilityState("puriphoto")
 
-    print(("[puribooth] v1.0.3 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+    print(("[puribooth] v1.0.4 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
         :format(
             tonumber(Config.Price) or 0,
             tonumber(Config.ShotCount) or 4,

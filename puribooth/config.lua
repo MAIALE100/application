@@ -18,8 +18,8 @@ Config.MinimumVersions = {
 Config.Management = {
     job = "weazel",
     requireOnDuty = false,
-    allowAceOverride = false,
-    ace = "group.admin",
+    allowAceOverride = true,
+    ace = "group.admin" -- 運営ACE。group.godも常に許可,
 
     placeMinGrade = 0,
     removeMinGrade = 0,

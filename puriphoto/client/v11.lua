@@ -288,19 +288,38 @@ RegisterNUICallback("puriphotoGetBoothImport", function(_, cb)
         return
     end
 
-    local payload = pendingBoothImport
-    pendingBoothImport = nil
-
     cb({
         ok = true,
         import = {
-            image = payload.image,
-            location = payload.location
+            token = pendingBoothImport.token,
+            image = pendingBoothImport.image,
+            location = pendingBoothImport.location
         }
     })
+end)
+
+RegisterNUICallback("puriphotoConfirmBoothImport", function(data, cb)
+    local token =
+        type(data) == "table"
+        and tostring(data.token or "")
+        or ""
+
+    if token == ""
+        or not pendingBoothImport
+        or tostring(pendingBoothImport.token or "") ~= token then
+        cb({
+            ok = false,
+            error = "booth_import_token_mismatch"
+        })
+        return
+    end
+
+    pendingBoothImport = nil
+
+    cb({ ok = true })
 
     TriggerEvent(
         "puriphoto:client:boothImportConsumed",
-        payload.token
+        token
     )
 end)

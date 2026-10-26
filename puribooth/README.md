@@ -273,6 +273,17 @@ puribooth_selftest
 
 互換性を確認できない場合、FLEPURIは課金を開始しません。未解決返金が残っている場合もselftestはFAILになります。
 
+### テストサーバーでweazel jobがない場合
+
+バニラQBoxには `weazel` がないため、開発テスト時だけサーバーコンソールから次を使用できます。
+
+```
+puribooth_dev_weazel [server_id]
+puribooth_dev_weazel_restore [server_id]
+```
+
+プレイヤーが1人だけ接続中なら `server_id` は省略できます。前者はweazelが存在しない時だけruntime jobを作り、対象テスターへ一時付与します。後者はテスト前のjobへ戻します。runtime jobはQBoxのファイルを変更せず、本番のweazel定義が存在する場合は上書きしません。
+
 ### 保守 / 障害対応
 
 サーバーコンソール専用:

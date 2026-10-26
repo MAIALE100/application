@@ -1,4 +1,4 @@
-# FLEPURI v1.0.2 保守・不具合対応
+# FLEPURI v1.0.3 保守・不具合対応
 
 FLEPURIのコード修正・不具合対応は開発側で行います。
 運営側にLua / NUI / DB修正を依頼する前提ではありません。
@@ -24,9 +24,10 @@ puribooth_selftest
 puribooth_support
 puribooth_support <session_id または citizenid>
 puribooth_refunds
+puribooth_collections
 ```
 
-`puribooth_support <citizenid>` では、直近の課金・売上・返金イベントを追跡できます。
+`puribooth_support <citizenid>` では、直近の課金・売上・返金イベントを追跡できます。会社売上回収は `puribooth_collections` で未解決状態を確認できます。
 
 ## 返金事故
 
@@ -36,6 +37,29 @@ puribooth_refunds
 `processing` は、QBoxへ返金要求を送った後にDB確定できなかった可能性がある状態です。
 二重返金を避けるため自動再試行しません。
 実際の残高 / 取引履歴を照合してから開発側で処理します。
+
+照合後:
+```
+puribooth_refund_review <session_id> resolved
+puribooth_refund_review <session_id> retry
+```
+
+## 会社売上回収事故
+
+会社売上回収は `puribooth_collections` に記録します。
+
+- `finalizing`: 会社口座入金済み。DBの回収確定だけ再試行可能
+- `restoring`: 会社口座入金失敗済み。台残高の復元だけ再試行可能
+- `paying`: 銀行呼び出し中に停止した可能性があり、入金有無が不明
+
+```
+puribooth_collections
+puribooth_collection_retry <collection_id>
+puribooth_collection_review <collection_id> paid
+puribooth_collection_review <collection_id> notpaid
+```
+
+`paying` の場合だけRenewed-Banking履歴を先に照合します。`paid` / `notpaid` を確定するまで銀行への再送金は行いません。未解決回収がある間は、新しい売上回収と台撤去を自動停止します。
 
 ## 更新方針
 
@@ -73,6 +97,7 @@ v1.0.1の動作を妨げません。
 
 - `puribooth_events`: 課金 / 売上 / 返金の追跡
 - `puribooth_refunds`: 未解決返金の復旧管理
+- `puribooth_collections`: 会社売上回収のクラッシュ復旧管理
 - 既定保持期間: 90日
 
 保持期間は `Config.SupportHistoryDays` で変更できます。

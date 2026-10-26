@@ -5,6 +5,13 @@ Config.MinPrice = 0
 Config.MaxPrice = 100000
 Config.PaymentMethods = { "cash", "bank" }
 
+-- FLEPURI v1.0 compatibility floor.
+-- 起動中リソースがこれ未満の場合は、課金開始前に利用を止めます。
+Config.MinimumVersions = {
+    qbx_core = "2.5.4",
+    puriphoto = "1.1.0"
+}
+
 -- 設置・撤去・料金変更・売上確認を使えるjob。
 -- 提出版では初回claimadmin方式を使わず、jobで権限管理します。
 Config.Management = {
@@ -31,13 +38,12 @@ Config.Payout = {
     mode = "renewed-banking",
     resource = "Renewed-Banking",
     account = "weazel",
-    retrySeconds = 60,
     transactionTitle = "FLEPURI売上"
 }
 Config.SessionTimeoutSeconds = 180
 Config.CaptureTimeoutSeconds = 600
 Config.CountdownSeconds = 3
-Config.ShotCount = 4
+Config.ShotCount = 4 -- v1.0編集UIは4枚固定。変更時はselftestをFAILにします。
 Config.ShotIntervalMs = 1800
 Config.ScreenshotQuality = 0.92
 Config.InteractDistance = 2.2

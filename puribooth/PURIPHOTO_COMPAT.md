@@ -11,8 +11,10 @@ FLEPURIはPuriPhotoを単に「started」で判定しません。
 - indexが参照するproduction JavaScriptが存在
 - JavaScriptに `boothImportAvailable` が存在
 - JavaScriptに `puriphotoGetBoothImport` が存在
+- JavaScriptに `puriphotoConfirmBoothImport` が存在
 - indexが参照するproduction CSSが存在
 - client/v11.lua に `OpenBoothImport` exportが存在
+- client/v11.lua に `CancelBoothImport` exportが存在
 - client/v11.lua に `boothImportConsumed` receipt bridgeが存在
 
 どれか1つでも不足すると、撮影料金を引く前にFLEPURIを停止します。
@@ -53,6 +55,6 @@ FLEPURI開発環境の `puribooth-update.ps1` はbuild後にbooth-import bridge�
 
 FLEPURI v1.0.1は完成画像をPuriPhoto exportへ渡しただけでは編集画面を閉じません。
 
-PuriPhoto NUIが `puriphotoGetBoothImport` で画像を実際に取得し、`puriphoto:client:boothImportConsumed` receiptを返した場合だけFLEPURI編集画面を閉じます。
+PuriPhoto NUIが `puriphotoGetBoothImport` で画像を取得し、React描画フレーム後に `puriphotoConfirmBoothImport` を返し、その後 `puriphoto:client:boothImportConsumed` receiptが届いた場合だけFLEPURI編集画面を閉じます。
 
 receiptが返らない場合はhandoffを取り消し、FLEPURI側の完成画像・編集状態を保持します。

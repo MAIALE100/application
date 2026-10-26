@@ -256,6 +256,18 @@ end
 
 exports("OpenBoothImport", openBoothImport)
 
+exports("CancelBoothImport", function(token)
+    token = tostring(token or "")
+
+    if pendingBoothImport
+        and tostring(pendingBoothImport.token or "") == token then
+        pendingBoothImport = nil
+        return true
+    end
+
+    return false
+end)
+
 RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
     local ok, reason = openBoothImport(image, metadata)
 

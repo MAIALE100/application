@@ -999,6 +999,21 @@ local function collectSales(source, target)
         return
     end
 
+    local unresolvedCollections = tonumber(MySQL.scalar.await([[
+        SELECT COUNT(*)
+        FROM puribooth_collections
+        WHERE status NOT IN ('resolved', 'rolled_back')
+    ]])) or 0
+
+    if unresolvedCollections > 0 then
+        notify(
+            source,
+            "error",
+            "未解決の売上回収処理があります。新しい回収は停止中です。開発側で puribooth_collections を確認してください。"
+        )
+        return
+    end
+
     target = string.lower(tostring(target or ""))
     if target == "" then
         notify(
@@ -1438,6 +1453,17 @@ local function removeNearestBooth(source)
         return
     end
 
+    local unresolvedCollections = tonumber(MySQL.scalar.await([[
+        SELECT COUNT(*)
+        FROM puribooth_collections
+        WHERE status NOT IN ('resolved', 'rolled_back')
+    ]])) or 0
+
+    if unresolvedCollections > 0 then
+        notify(source, "error", "未解決の売上回収があるため、台の撤去を停止しています。")
+        return
+    end
+
     local balance = tonumber(MySQL.scalar.await(
         "SELECT balance FROM puribooth_booths WHERE id = ?",
         { tonumber(nearestId) }
@@ -1525,9 +1551,10 @@ end, false)
 local function nextSessionId(source, boothId)
     sessionSerial = sessionSerial + 1
 
-    return ("%d-%d-%s-%d")
+    return ("%d-%d-%d-%s-%d")
         :format(
             os.time(),
+            GetGameTimer(),
             tonumber(source) or 0,
             tostring(boothId or "0"),
             sessionSerial
@@ -2740,6 +2767,11 @@ CreateThread(function()
                 ("DELETE FROM puribooth_refunds WHERE status = 'resolved' AND resolved_at < (NOW() - INTERVAL %d DAY)")
                     :format(keepDays)
             )
+
+            MySQL.update.await(
+                ("DELETE FROM puribooth_collections WHERE status IN ('resolved', 'rolled_back') AND resolved_at < (NOW() - INTERVAL %d DAY)")
+                    :format(keepDays)
+            )
         end
 
         Wait(21600000)
@@ -2887,7 +2919,7 @@ local function databaseSchemaState()
         SELECT TABLE_NAME
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME IN ('puribooth_events', 'puribooth_refunds')
+          AND TABLE_NAME IN ('puribooth_events', 'puribooth_refunds', 'puribooth_collections')
     ]]) or {}
 
     local operational = {}
@@ -2901,6 +2933,10 @@ local function databaseSchemaState()
 
     if not operational.puribooth_refunds then
         return "FAIL(missing-table=puribooth_refunds)"
+    end
+
+    if not operational.puribooth_collections then
+        return "FAIL(missing-table=puribooth_collections)"
     end
 
     return "PASS"
@@ -3074,6 +3110,67 @@ local function refundQueueState()
         :format(pending, processing), pending, processing
 end
 
+local function collectionQueueState()
+    if not databaseReady then
+        return "FAIL(database-not-ready)", 0
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT status, COUNT(*) AS count
+        FROM puribooth_collections
+        WHERE status NOT IN ('resolved', 'rolled_back')
+        GROUP BY status
+    ]]) or {}
+
+    local total = 0
+    local parts = {}
+
+    for _, row in ipairs(rows) do
+        local count = tonumber(row.count) or 0
+        total = total + count
+        parts[#parts + 1] =
+            ("%s=%d"):format(tostring(row.status or "?"), count)
+    end
+
+    if total == 0 then
+        return "PASS(0)", 0
+    end
+
+    return ("FAIL(%s)"):format(table.concat(parts, ",")), total
+end
+
+local function decodeCollectionAllocations(value)
+    local ok, decoded = pcall(function()
+        return json.decode(tostring(value or "[]"))
+    end)
+
+    if not ok or type(decoded) ~= "table" then
+        return nil
+    end
+
+    local normalized = {}
+
+    for _, item in ipairs(decoded) do
+        local id = tonumber(item.id)
+        local amount = math.max(0, math.floor(tonumber(item.amount) or 0))
+
+        if not id or amount <= 0 then
+            return nil
+        end
+
+        normalized[#normalized + 1] = {
+            id = id,
+            amount = amount
+        }
+    end
+
+    if #normalized == 0 then
+        return nil
+    end
+
+    return normalized
+end
+
 local function activeSessionCount()
     local count = 0
     for _ in pairs(sessions) do count = count + 1 end
@@ -3087,7 +3184,8 @@ RegisterCommand("puribooth_support", function(source, args)
     end
 
     local refunds, pending, processing = refundQueueState()
-    print(("[puribooth] support version=1.0.2 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s")
+    local collections = collectionQueueState()
+    print(("[puribooth] support version=1.0.3 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s collections=%s")
         :format(
             databaseReady and "PASS" or "FAIL",
             boothCount(),
@@ -3097,7 +3195,8 @@ RegisterCommand("puribooth_support", function(source, args)
                 for _ in pairs(sessionLocks) do count = count + 1 end
                 return count
             end)(),
-            refunds
+            refunds,
+            collections
         ))
 
     local query = tostring(args[1] or "")
@@ -3141,6 +3240,145 @@ RegisterCommand("puribooth_support", function(source, args)
                 )
         )
     end
+end, false)
+
+RegisterCommand("puribooth_collections", function(source)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT
+            collection_id,
+            collector_citizenid,
+            target,
+            amount,
+            destination,
+            status,
+            last_error,
+            created_at,
+            updated_at
+        FROM puribooth_collections
+        WHERE status NOT IN ('resolved', 'rolled_back')
+        ORDER BY id ASC
+        LIMIT 50
+    ]]) or {}
+
+    print(("[puribooth] unresolved collections=%d"):format(#rows))
+    for _, row in ipairs(rows) do
+        print(
+            ("[puribooth]   id=%s status=%s amount=%s target=%s destination=%s collector=%s error=%s")
+                :format(
+                    tostring(row.collection_id or "?"),
+                    tostring(row.status or "?"),
+                    tostring(row.amount or 0),
+                    tostring(row.target or "?"),
+                    tostring(row.destination or "-"),
+                    tostring(row.collector_citizenid or "-"),
+                    tostring(row.last_error or "-")
+                )
+        )
+    end
+
+    if #rows > 0 then
+        print("[puribooth] NOTE: paid_unfinalized / rollback_failed は puribooth_collection_retry <collection_id> で安全に再処理できます。")
+        print("[puribooth] NOTE: preparing / claimed は外部入金状態が曖昧なため自動処理せず開発側で照合します。")
+    end
+end, false)
+
+RegisterCommand("puribooth_collection_retry", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local collectionId = tostring(args[1] or "")
+    if collectionId == "" then
+        print("[puribooth] usage: puribooth_collection_retry <collection_id>")
+        return
+    end
+
+    local row = MySQL.single.await([[
+        SELECT collection_id, status, allocations
+        FROM puribooth_collections
+        WHERE collection_id = ?
+        LIMIT 1
+    ]], { collectionId })
+
+    if not row then
+        print(("[puribooth] collection not found: %s"):format(collectionId))
+        return
+    end
+
+    local status = tostring(row.status or "")
+    local claimed = decodeCollectionAllocations(row.allocations)
+
+    if not claimed then
+        print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
+        return
+    end
+
+    if status == "paid_unfinalized" then
+        local finalized =
+            collectionTransaction(
+                collectionFinalizeQueries(claimed)
+            )
+
+        if not finalized then
+            print(("[puribooth] collection finalize retry failed: %s"):format(collectionId))
+            return
+        end
+
+        local updated = MySQL.update.await([[
+            UPDATE puribooth_collections
+            SET
+                status = 'resolved',
+                last_error = NULL,
+                resolved_at = NOW()
+            WHERE collection_id = ? AND status = 'paid_unfinalized'
+        ]], { collectionId })
+
+        print(
+            updated and updated > 0
+                and ("[puribooth] collection finalized: %s"):format(collectionId)
+                or ("[puribooth] collection DB finalized but ledger update failed: %s"):format(collectionId)
+        )
+        return
+    end
+
+    if status == "rollback_failed" then
+        local restored =
+            collectionTransaction(
+                collectionRestoreQueries(claimed)
+            )
+
+        if not restored then
+            print(("[puribooth] collection rollback retry failed: %s"):format(collectionId))
+            return
+        end
+
+        local updated = MySQL.update.await([[
+            UPDATE puribooth_collections
+            SET
+                status = 'rolled_back',
+                last_error = NULL,
+                resolved_at = NOW()
+            WHERE collection_id = ? AND status = 'rollback_failed'
+        ]], { collectionId })
+
+        print(
+            updated and updated > 0
+                and ("[puribooth] collection rollback restored: %s"):format(collectionId)
+                or ("[puribooth] collection rollback restored but ledger update failed: %s"):format(collectionId)
+        )
+        return
+    end
+
+    print(
+        ("[puribooth] collection %s status=%s is not safe for automatic retry")
+            :format(collectionId, status)
+    )
 end, false)
 
 RegisterCommand("puribooth_refunds", function(source)
@@ -3276,6 +3514,7 @@ RegisterCommand("puribooth_selftest", function(source)
     local accounting = boothDataState()
     local config = configState()
     local refunds = refundQueueState()
+    local collections = collectionQueueState()
     local fonts = fontState()
 
     local payoutRequired =
@@ -3298,6 +3537,7 @@ RegisterCommand("puribooth_selftest", function(source)
         and accounting == "PASS"
         and config == "PASS"
         and refunds:sub(1, 4) == "PASS"
+        and collections:sub(1, 4) == "PASS"
 
     print(("[puribooth] selftest %s"):format(overall and "PASS" or "FAIL"))
     print(("[puribooth]   qbx_core=%s"):format(qbx))
@@ -3312,6 +3552,7 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   accounting=%s"):format(accounting))
     print(("[puribooth]   config=%s"):format(config))
     print(("[puribooth]   refunds=%s"):format(refunds))
+    print(("[puribooth]   collections=%s"):format(collections))
     print(("[puribooth]   fonts=%s"):format(fonts))
     print(("[puribooth]   booths=%d"):format(boothCount()))
 
@@ -3350,6 +3591,10 @@ RegisterCommand("puribooth_selftest", function(source)
 
     if refunds:sub(1, 4) ~= "PASS" then
         print("[puribooth]   FIX: puribooth_refunds / puribooth_retry_refunds で未解決返金を確認してください。")
+    end
+
+    if collections:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: puribooth_collections で未解決の会社売上回収を確認してください。")
     end
 
     if fonts:sub(1, 4) ~= "PASS" then

@@ -2189,7 +2189,16 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
 
     SetNuiFocus(false, false)
 
-    local deadline = GetGameTimer() + 7000
+    local handoffTimeout =
+        math.max(
+            3000,
+            math.floor(
+                tonumber(Config.PuriPhotoHandoffTimeoutMs)
+                or 12000
+            )
+        )
+
+    local deadline = GetGameTimer() + handoffTimeout
 
     while not puriphotoHandoffReceipts[handoffToken]
         and GetGameTimer() < deadline do

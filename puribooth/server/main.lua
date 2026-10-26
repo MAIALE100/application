@@ -137,9 +137,42 @@ local function puriphotoUiState()
         return false, "FAIL(stale-ui-no-flepri-import)"
     end
 
+    local stylePath =
+        index:match('href=["\']([^"\']+%.css)["\']')
+
+    if not stylePath then
+        return false, "FAIL(ui-dist-style)"
+    end
+
+    stylePath =
+        stylePath
+            :gsub("^%./", "")
+            :gsub("^/", "")
+            :gsub("^ui/dist/", "")
+
+    local style = LoadResourceFile(
+        "puriphoto",
+        "ui/dist/" .. stylePath
+    )
+
+    if type(style) ~= "string" or #style < 1000 then
+        return false, "FAIL(ui-dist-css)"
+    end
+
+    local bridge = LoadResourceFile(
+        "puriphoto",
+        "client/v11.lua"
+    )
+
+    if type(bridge) ~= "string"
+        or bridge:find("OpenBoothImport", 1, true) == nil
+        or bridge:find("boothImportConsumed", 1, true) == nil then
+        return false, "FAIL(client-flepri-bridge)"
+    end
+
     return true,
-        ("PASS(index=%dB,bundle=%dB)")
-            :format(#index, #bundle)
+        ("PASS(index=%dB,bundle=%dB,css=%dB)")
+            :format(#index, #bundle, #style)
 end
 
 local function managementMinimumGrade(action)

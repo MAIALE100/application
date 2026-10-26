@@ -1,6 +1,6 @@
 # FLEPURI / PuriBooth
 
-**Release: v1.0.2 (Flecity operator submission)**
+**Release: v1.0.3 (Flecity operator submission)**
 
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。
@@ -199,6 +199,11 @@ Config.Payout = {
 会社口座への送金が失敗した場合、先に確保した未回収残高をDBへ戻すため、
 入金失敗で売上だけ消えることはありません。
 
+会社売上回収は `puribooth_collections` に台ごとの配分と状態を記録します。
+台残高の確保 / 復元 / 回収確定はDBトランザクションで処理し、銀行呼び出し前後を
+`paying` / `finalizing` として区別します。銀行入金後にサーバーが停止しても、
+銀行へ二重送金せずDB側だけ復旧できる設計です。未解決回収がある間は新しい回収と台撤去を停止します。
+
 テスト環境などで会社口座がない場合は `mode = "player-bank"` も使用できます。
 
 ## DB
@@ -209,6 +214,7 @@ Config.Payout = {
 - `puribooth_booths`: 台・料金・売上
 - `puribooth_events`: 課金 / 売上 / 返金の監査ログ
 - `puribooth_refunds`: 返金失敗時の復旧キュー
+- `puribooth_collections`: 会社売上回収の復旧台帳
 
 主な保存内容:
 - 設置座標 / 向き / モデル
@@ -262,6 +268,8 @@ puribooth_selftest
 - フォント4書体の導入状況（任意）
 - booth数
 - 未解決返金キュー
+- 未解決の会社売上回収台帳
+- `lifetime_sales = balance + collected_total` の会計整合性
 
 互換性を確認できない場合、FLEPURIは課金を開始しません。未解決返金が残っている場合もselftestはFAILになります。
 
@@ -274,13 +282,21 @@ puribooth_support
 puribooth_support <session_id または citizenid>
 puribooth_refunds
 puribooth_retry_refunds
+puribooth_refund_review <session_id> <resolved|retry>
+puribooth_collections
+puribooth_collection_retry <collection_id>
+puribooth_collection_review <collection_id> <paid|notpaid>
 ```
 
 - `puribooth_support`: 稼働状況 / active session / 未解決返金の概要
 - `puribooth_support <...>`: 対象の課金・売上・返金履歴を最大30件表示
 - `puribooth_refunds`: 未解決返金を一覧表示
 - `puribooth_retry_refunds`: pending返金を即時再試行
-- `processing` 返金は二重返金防止のため自動再試行しません。実際の入金有無を照合してから対応します。
+- `puribooth_refund_review`: processing返金を残高照合後に解決 / 再試行へ戻す
+- `puribooth_collections`: 未解決の会社売上回収を一覧表示
+- `puribooth_collection_retry`: finalizing / restoring を銀行へ再送金せずDBだけ安全に再処理
+- `puribooth_collection_review`: paying状態をRenewed-Banking照合後に paid / notpaid として確定
+- `processing` 返金と `paying` 売上回収は二重処理防止のため自動再試行しません。実際の入出金を照合してから対応します。
 
 通常のpending返金は `Config.RefundRetrySeconds`（既定60秒）ごとに自動再試行します。監査ログは `Config.SupportHistoryDays`（既定90日）保持します。
 

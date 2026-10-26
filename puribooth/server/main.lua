@@ -1500,95 +1500,111 @@ local function retryPendingRefunds(limit)
     end
 
     refundRetryRunning = true
-    limit = math.max(
-        1,
-        math.min(
-            100,
-            math.floor(
-                tonumber(limit)
-                or tonumber(Config.RefundRetryBatch)
-                or 25
+
+    local ok, attempted, resolved = pcall(function()
+        limit = math.max(
+            1,
+            math.min(
+                100,
+                math.floor(
+                    tonumber(limit)
+                    or tonumber(Config.RefundRetryBatch)
+                    or 25
+                )
             )
         )
-    )
 
-    local rows = MySQL.query.await(
-        ("SELECT id, session_id, booth_id, citizenid, money_type, amount, reason FROM puribooth_refunds WHERE status = 'pending' ORDER BY id ASC LIMIT %d")
-            :format(limit)
-    ) or {}
+        local rows = MySQL.query.await(
+            ("SELECT id, session_id, booth_id, citizenid, money_type, amount, reason FROM puribooth_refunds WHERE status = 'pending' ORDER BY id ASC LIMIT %d")
+                :format(limit)
+        ) or {}
 
-    local attempted = 0
-    local resolved = 0
+        local attemptedCount = 0
+        local resolvedCount = 0
 
-    for _, row in ipairs(rows) do
-        local claimed = MySQL.update.await([[
-            UPDATE puribooth_refunds
-            SET
-                status = 'processing',
-                attempts = attempts + 1,
-                last_attempt_at = NOW(),
-                last_error = NULL
-            WHERE id = ? AND status = 'pending'
-        ]], { tonumber(row.id) })
+        for _, row in ipairs(rows) do
+            local claimed = MySQL.update.await([[
+                UPDATE puribooth_refunds
+                SET
+                    status = 'processing',
+                    attempts = attempts + 1,
+                    last_attempt_at = NOW(),
+                    last_error = NULL
+                WHERE id = ? AND status = 'pending'
+            ]], { tonumber(row.id) })
 
-        if claimed and claimed > 0 then
-            attempted = attempted + 1
+            if claimed and claimed > 0 then
+                attemptedCount = attemptedCount + 1
 
-            local ok, added = pcall(function()
-                return exports.qbx_core:AddMoney(
-                    tostring(row.citizenid),
-                    tostring(row.money_type or "cash"),
-                    math.max(0, math.floor(tonumber(row.amount) or 0)),
-                    tostring(row.reason or "puribooth-refund-retry")
-                )
-            end)
-
-            if ok and added == true then
-                local marked = MySQL.update.await([[
-                    UPDATE puribooth_refunds
-                    SET
-                        status = 'resolved',
-                        resolved_at = NOW(),
-                        last_error = NULL
-                    WHERE id = ? AND status = 'processing'
-                ]], { tonumber(row.id) })
-
-                if marked and marked > 0 then
-                    resolved = resolved + 1
-                    auditEvent(
-                        {
-                            sessionId = tostring(row.session_id),
-                            boothId = tonumber(row.booth_id),
-                            refundIdentifier = tostring(row.citizenid),
-                            moneyType = tostring(row.money_type or "cash")
-                        },
-                        row.booth_id,
-                        "refund_retry_resolved",
-                        row.amount,
-                        row.reason
+                local moneyOk, added = pcall(function()
+                    return exports.qbx_core:AddMoney(
+                        tostring(row.citizenid),
+                        tostring(row.money_type or "cash"),
+                        math.max(0, math.floor(tonumber(row.amount) or 0)),
+                        tostring(row.reason or "puribooth-refund-retry")
                     )
+                end)
+
+                if moneyOk and added == true then
+                    local marked = MySQL.update.await([[
+                        UPDATE puribooth_refunds
+                        SET
+                            status = 'resolved',
+                            resolved_at = NOW(),
+                            last_error = NULL
+                        WHERE id = ? AND status = 'processing'
+                    ]], { tonumber(row.id) })
+
+                    if marked and marked > 0 then
+                        resolvedCount = resolvedCount + 1
+                        auditEvent(
+                            {
+                                sessionId = tostring(row.session_id),
+                                boothId = tonumber(row.booth_id),
+                                refundIdentifier = tostring(row.citizenid),
+                                moneyType = tostring(row.money_type or "cash")
+                            },
+                            row.booth_id,
+                            "refund_retry_resolved",
+                            row.amount,
+                            row.reason
+                        )
+                    else
+                        print(
+                            ("[puribooth] CRITICAL refund paid but resolution write failed session=%s; manual review required")
+                                :format(tostring(row.session_id))
+                        )
+                    end
                 else
-                    print(
-                        ("[puribooth] CRITICAL refund paid but resolution write failed session=%s; manual review required")
-                            :format(tostring(row.session_id))
-                    )
+                    MySQL.update.await([[
+                        UPDATE puribooth_refunds
+                        SET
+                            status = 'pending',
+                            last_error = ?
+                        WHERE id = ? AND status = 'processing'
+                    ]], {
+                        moneyOk and "qbx-addmoney-returned-false" or "qbx-addmoney-error",
+                        tonumber(row.id)
+                    })
                 end
-            else
-                MySQL.update.await([[
-                    UPDATE puribooth_refunds
-                    SET
-                        status = 'pending',
-                        last_error = ?
-                    WHERE id = ? AND status = 'processing'
-                ]], {
-                    ok and "qbx-addmoney-returned-false" or "qbx-addmoney-error",
-                    tonumber(row.id)
-                })
             end
         end
-    end
+
+        return attemptedCount, resolvedCount
+    end)
 
     refundRetryRunning = false
+
+    if not ok then
+        print(
+            ("[puribooth] ERROR refund retry worker failed: %s")
+                :format(tostring(attempted))
+        )
+        return 0, 0
+    end
+
+    attempted = tonumber(attempted) or 0
+    resolved = tonumber(resolved) or 0
 
     if attempted > 0 then
         print(

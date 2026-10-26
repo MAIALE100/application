@@ -503,9 +503,9 @@
             0, 0, faceBuffer.width, faceBuffer.height
         )
 
-        const slim = Math.max(0, Math.min(30, Number(target.slim) || 0))
+        const slim = Math.max(0, Math.min(45, Number(target.slim) || 0))
         if (slim > 0) {
-            const scaleX = 1 - (slim / 30) * .14
+            const scaleX = 1 - (slim / 45) * .22
             ctx.save()
             ctx.filter = 'none'
             ctx.beginPath()
@@ -538,9 +538,9 @@
             )
         }
 
-        const eye = Math.max(0, Math.min(40, Number(target.eye) || 0))
+        const eye = Math.max(0, Math.min(60, Number(target.eye) || 0))
         if (eye > 0) {
-            const factor = 1 + (eye / 40) * .34
+            const factor = 1 + (eye / 60) * .52
             const eyeY = cy - faceH * .13
             const eyeOffset = faceW * .22
             const eyeW = Math.max(8, faceW * .29)
@@ -583,12 +583,12 @@
             })
         }
 
-        const bright = Math.max(0, Math.min(30, Number(target.bright) || 0))
+        const bright = Math.max(0, Math.min(40, Number(target.bright) || 0))
         if (bright > 0) {
             ctx.save()
             ctx.filter = 'none'
             ctx.globalCompositeOperation = 'screen'
-            ctx.globalAlpha = (bright / 30) * .22
+            ctx.globalAlpha = (bright / 40) * .34
             ctx.fillStyle = '#fff7f3'
             ctx.beginPath()
             ctx.ellipse(
@@ -604,13 +604,13 @@
             ctx.restore()
         }
 
-        const rosy = Math.max(0, Math.min(30, Number(target.rosy) || 0))
+        const rosy = Math.max(0, Math.min(40, Number(target.rosy) || 0))
         if (rosy > 0) {
-            const alpha = (rosy / 30) * .28
+            const alpha = (rosy / 40) * .42
             ;[-1, 1].forEach(side => {
                 const cheekX = cx + side * faceW * .24
                 const cheekY = cy + faceH * .13
-                const radius = Math.max(6, faceW * .18)
+                const radius = Math.max(7, faceW * .22)
                 const gradient = ctx.createRadialGradient(
                     cheekX, cheekY, 0,
                     cheekX, cheekY, radius
@@ -1457,7 +1457,7 @@
         const status = document.getElementById('faceStatus')
         if (status) {
             status.textContent = target.enabled
-                ? `${shotIndex + 1}枚目 / 顔${slotIndex + 1}：登録済み。写真内の顔をクリックすると位置を変更できます。`
+                ? `${shotIndex + 1}枚目 / 顔${slotIndex + 1}：登録済み｜目 ${target.eye} / 小顔 ${target.slim} / 明るさ ${target.bright} / 血色 ${target.rosy}`
                 : `${shotIndex + 1}枚目 / 顔${slotIndex + 1}：未登録。写真内の顔をクリックしてください。`
         }
     }
@@ -1662,18 +1662,31 @@
     bindFaceRange('faceBright', 'bright')
     bindFaceRange('faceRosy', 'rosy')
 
-    document.getElementById('facePuriPreset').addEventListener('click', () => {
+    const applyFacePreset = (name, values) => {
         const target = currentFaceTarget()
         if (!target) return
         target.enabled = true
-        target.eye = 26
-        target.slim = 20
-        target.bright = 10
-        target.rosy = 8
+        target.eye = values.eye
+        target.slim = values.slim
+        target.bright = values.bright
+        target.rosy = values.rosy
         refreshFaceControls()
         toolStatus.textContent =
-            `顔${state.faceSlot + 1}にプリクラ顔を適用しました`
+            `顔${state.faceSlot + 1}に「${name}」を適用しました`
         render()
+    }
+
+    document.querySelectorAll('[data-face-preset]').forEach(button => {
+        button.addEventListener('click', () => {
+            const preset = button.dataset.facePreset
+            const values = {
+                natural: { eye: 12, slim: 8, bright: 6, rosy: 4 },
+                strong: { eye: 34, slim: 25, bright: 15, rosy: 13 },
+                max: { eye: 50, slim: 36, bright: 23, rosy: 21 }
+            }[preset]
+            if (!values) return
+            applyFacePreset(button.textContent.trim(), values)
+        })
     })
 
     document.getElementById('faceResetCurrent').addEventListener('click', () => {
@@ -1742,6 +1755,29 @@
             )
         })
     }
+
+    document.getElementById('faceCopyPerson').addEventListener('click', () => {
+        const source = currentFaceTarget()
+        if (!source?.enabled) {
+            toolStatus.textContent = '先に基準にする顔を登録してください'
+            return
+        }
+
+        let copied = 0
+        state.faceTargets.forEach((targets, shotIndex) => {
+            if (shotIndex === state.faceEditShot) return
+            const target = targets[state.faceSlot]
+            if (!target?.enabled) return
+            copyFaceValues(source, target)
+            copied++
+        })
+
+        toolStatus.textContent =
+            copied > 0
+                ? `顔${state.faceSlot + 1}の設定を他の${copied}枚へ反映しました`
+                : `他の写真に登録済みの顔${state.faceSlot + 1}がありません`
+        render()
+    })
 
     document.getElementById('faceCopyAll').addEventListener('click', () => {
         const source = currentFaceTarget()

@@ -1,69 +1,67 @@
-# FLEPURI release checklist
+# FLEPURI v1.0.1 release checklist
 
-## Runtime
-- [x] QBox 2.5.4 / oxmysql integration
-- [x] booth DB auto schema
-- [x] admin place / remove / list
-- [x] cash / bank charge and refund paths
-- [x] fixed-camera 4-shot capture
-- [x] background / floor presets and custom image conversion
-- [x] multi-booth session isolation
-- [x] participant theme / countdown isolation
-- [x] PuriBooth editor
-- [x] PuriPhoto handoff
-- [x] interaction ring and placement direction preview
-- [x] legacy booth auto-spawn disabled
+## Static / automated validation
+- [x] FLEPURI resource version 1.0.1
+- [x] PuriPhoto compatibility runtime version 1.1.1
+- [x] QBox 2.5.4+ compatibility floor declared
+- [x] DB auto schema + schema selftest
+- [x] per-booth accounting invariant selftest
+- [x] Weazel management checks are server-side
+- [x] cash / bank payment paths are server-side
+- [x] duplicate booth/player start locks
+- [x] sale-record failure refund fallback
+- [x] pre-capture disconnect refund uses citizenid
+- [x] background payload JPEG-only / size limit / cooldown
+- [x] 1 -> 2 -> 3 -> 4 countdown sequence enforced server-side
+- [x] premature captureComplete rejected
+- [x] PuriPhoto version / index / JS / CSS / client bridge preflight
+- [x] PuriPhoto two-phase get -> render -> confirm -> receipt handoff
+- [x] handoff timeout keeps FLEPURI edit state
+- [x] PuriPhoto handoff can be cancelled on timeout
+- [x] production bundle contains boothImportAvailable
+- [x] production bundle contains puriphotoGetBoothImport
+- [x] production bundle contains puriphotoConfirmBoothImport
+- [x] PuriPhoto package / lock root metadata aligned
+- [x] production index has no external Google Fonts dependency
+- [x] Renewed-Banking account existence selftest
+- [x] Renewed-Banking collection history integration
+- [x] company payout failure restores claimed booth balance
+- [x] font binaries excluded from operator package
+- [x] release packager verifies ZIP and SHA256
+- [x] JavaScript syntax checks pass
+- [x] Lua structural checks pass
+- [x] NUI callback wiring checks pass
+- [x] client/server event wiring checks pass
+- [x] Config reference/definition checks pass
 
-## Performance / cleanup
-- [x] decoration canvas base-layer cache
-- [x] freehand incremental drawing
-- [x] stamp drag / eraser RAF throttling
-- [x] duplicate editor keyboard listener removed
-- [x] background image sync uses latent events
-- [x] idle booth loop sleeps when no booth is nearby
-- [x] PuriPhoto release build forces empty dist before build
-- [ ] run final fresh PuriPhoto production build and confirm generated size
+## Runtime acceptance on FiveM
+- [ ] puribooth_selftest PASS on operator-like environment
+- [ ] non-weazel cannot place / remove / change price / view sales / collect
+- [ ] weazel can place / remove / change price / view sales / collect
+- [ ] booth location / heading / price persists after restart
+- [ ] one-player pay -> theme -> camera -> 4 shots -> edit -> PuriPhoto -> save
+- [ ] PuriPhoto displays the handed-off image before FLEPURI editor closes
+- [ ] PuriPhoto handoff failure restores FLEPURI editor focus/state
+- [ ] pre-capture cancel refund
+- [ ] pre-capture disconnect refund
+- [ ] technical failure refund
+- [ ] capture timeout refund
+- [ ] resource restart refund
+- [ ] two-player shared background / floor
+- [ ] two booths simultaneously with different themes/countdowns
+- [ ] successful capture increments only target booth accounting
+- [ ] refunded session does not increment sales
+- [ ] collect one booth
+- [ ] collect all booths
+- [ ] bank transaction history shows FLEPURI sale collection
+- [ ] failed company-bank payout restores pending balance
+- [ ] no legacy booth auto-spawns
 
-## External dependencies
-- [ ] confirm qbx_core is available on Flecity
-- [ ] confirm oxmysql is available on Flecity
-- [ ] confirm lb-phone is available on Flecity
-- [ ] confirm screenshot-basic is started on Flecity
-- [ ] confirm target PuriPhoto version / replace with bundled compatible PuriPhoto
-
-## Fonts / licensing
-- [x] PopRum Kiwi Telop identified as SIL OFL 1.1
-- [x] Gal Moji Gothic Free identified as SIL OFL 1.1
-- [x] Hachi Maru Pop identified as SIL OFL 1.1
-- [x] Hitori Gothic distribution page permits embedding and states SIL OFL
-- [x] replace Heisei Joshi Font with redistributable OFL alternatives
-- [x] exclude font binaries from operator ZIP and provide official download links instead
-
-## Final validation
-- [ ] verify non-weazel player cannot place / remove / change price / view sales
-- [ ] verify weazel player can place / remove / change price
-- [ ] verify each booth keeps an independent price after restart
-- [ ] verify successful capture increments only that booth's balance / lifetime / count
-- [ ] verify refunded sessions do not increment sales
-- [ ] verify /puribooth sales totals match per-booth totals
-- [ ] verify /puribooth collect all deposits once and clears only claimed balances
-- [ ] verify failed company-bank payout restores booth balances
-- [ ] fresh-install test with empty puribooth tables
-- [ ] one-player full flow: pay -> theme -> camera -> 4 shots -> edit -> PuriPhoto -> save
-- [ ] cancellation / refund test
-- [ ] resource restart refund test
-- [ ] two-player shared background / floor test
-- [ ] two booths used simultaneously with different themes
-- [ ] booth remove / restart / persistence test
-- [ ] puribooth_selftest confirms management_job=PASS and payout=PASS
-- [ ] puribooth_selftest PASS on final operator-like environment
-- [ ] verify no legacy test booth appears after restart
-
-## Operator ZIP
-- [ ] clean PuriPhoto build
-- [ ] decide font permission / replacement
-- [ ] stage only runtime files + README + licenses
-- [ ] include operator install / config notes
-- [ ] create ZIP
-- [ ] extract ZIP into a clean folder and verify contents
-- [ ] final SHA / version tag
+## Release package
+- [x] operator install guide
+- [x] PuriPhoto compatibility guide
+- [x] acceptance test guide
+- [x] optional PuriPhoto compatibility patch recipe
+- [x] internal checklist excluded from operator ZIP
+- [x] optional font binaries excluded
+- [ ] final v1.0.1 ZIP generated and SHA256 fixed

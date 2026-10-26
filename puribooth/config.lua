@@ -52,60 +52,22 @@ Config.ThemeSurfaces = {
     }
 }
 
-Config.Exterior = {
+Config.InteractionMarker = {
     enabled = true,
-    renderDistance = 26.0,
+    renderDistance = 18.0,
+    labelDistance = 5.0,
 
-    -- Temporary branded shell around the stock cabinet.
-    -- These values can stay when the final streamed FLEPURI model replaces it.
-    shell = {
-        halfWidth = 0.50,
-        front = 0.61,
-        bottomZ = 0.10,
-        topZ = 1.82
-    },
+    -- Flat interaction circle around the cabinet.
+    radius = 1.18,
+    height = 0.055,
+    zOffset = 0.035,
 
-    skin = {
-        -- Opaque front skin that visually hides the stock claw-machine fascia.
-        front = 0.62,
-        halfWidth = 0.49,
+    available = { r = 82, g = 218, b = 255, a = 92 },
+    nearby = { r = 115, g = 235, b = 255, a = 135 },
+    occupied = { r = 255, g = 118, b = 184, a = 78 },
 
-        headerBottomZ = 1.56,
-        headerTopZ = 2.13,
-
-        lowerBottomZ = 0.10,
-        lowerTopZ = 0.76,
-
-        -- Side sleeves make the cover read as a cabinet from oblique angles.
-        sideBack = 0.40,
-        sideFront = 0.62,
-
-        -- Fake camera/ring light in the upper shooting window.
-        ringRight = 0.0,
-        ringForward = 0.635,
-        ringZ = 1.23,
-        ringRadius = 0.17
-    },
-
-    sign = {
-        right = 0.0,
-        forward = 0.645,
-        z = 1.94,
-        scale = 0.52
-    },
-
-    floor = {
-        right = 0.0,
-        forward = 0.18,
-        halfWidth = 0.62,
-        halfDepth = 0.46,
-        z = 0.025
-    },
-
-    light = {
-        range = 2.6,
-        intensity = 0.95
-    }
+    pulseAmount = 0.10,
+    pulseSpeed = 0.0032
 }
 
 Config.PhotoLighting = {

@@ -1,5 +1,7 @@
 # FLEPURI / PuriBooth
 
+**Release: v1.0.0 (Flecity operator submission)**
+
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。
 
@@ -10,6 +12,8 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 - lb-phone
 - screenshot-basic
 - puriphoto
+- Renewed-Banking（会社口座へ売上回収する既定設定で必要）
+
 
 `fxmanifest.lua` でも依存関係を宣言しています。
 
@@ -309,4 +313,7 @@ puribooth/ui/fonts/
 `puribooth-fonts.ps1` は、上記ZIPをDownloads等へ置いた開発環境では自動取り込みにも使えます。
 
 この配布方法ではFLEPURI側がフォントファイル自体を再配布しません。
+フォント未導入でもフォールバック書体で動作しますが、意図したプリクラ表示にする場合は4書体の導入を推奨します。
 利用時は各フォントの配布元に記載されたライセンス条件に従ってください。
+
+運営導入時は `INSTALL.md`、最終確認は `ACCEPTANCE_TEST.md` を参照してください。

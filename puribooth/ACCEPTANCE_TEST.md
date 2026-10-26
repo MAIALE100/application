@@ -1,4 +1,4 @@
-# FLEPURI v1.0.1 受入テスト
+# FLEPURI v1.0.2 受入テスト
 
 運営導入後、最低限以下を確認してください。
 
@@ -10,7 +10,9 @@
 - Renewed-Bankingのweazel会社口座がPASS表示される
 - DB schema / configがPASS表示される
 - 起動時にLuaエラー / NUIエラーが出ない
-- DBに `puribooth_booths` が自動作成される
+- DBに `puribooth_booths` / `puribooth_events` / `puribooth_refunds` が自動作成される
+- `puribooth_support` がエラーなく状態を表示する
+- `puribooth_refunds` が0件または既知の未解決返金だけを表示する
 - 再起動しても勝手にテスト台が生成されない
 
 ## 権限
@@ -27,6 +29,7 @@
 ## 撮影
 - cash / bank の順で料金を支払える
 - 撮影前キャンセルは返金される
+- 撮影準備期限ちょうど付近で撮影開始しても、期限切れなら料金が消えず返金される
 - 支払い後・撮影開始前に切断しても citizenid 経由で返金される
 - 4枚撮影できる
 - 2〜4枚目はPOSE READYで任意開始できる
@@ -34,6 +37,7 @@
 - 2台同時利用時に背景 / カウントダウンが混線しない
 - 技術失敗・撮影タイムアウト時に返金される
 - 売上DB記録失敗時は料金返金へフォールバックする
+- 返金export一時失敗時はpuribooth_refundsへpendingとして残り、自動再試行される
 - 正常撮影後に編集画面が開く
 
 ## 編集
@@ -55,6 +59,7 @@
 - 4枚目まで進行していないcaptureCompleteでは売上確定しない
 - 背景テーマ連打がcooldownで抑制される
 - JPEG以外の背景共有payloadが拒否される
+- 想定外のfinishSessionイベントだけで有料セッションが破棄されない
 
 ## 売上
 - 正常撮影1回で対象台だけの未回収売上・累計売上・撮影回数が増える
@@ -66,5 +71,11 @@
 - Renewed-Bankingの取引履歴にFLEPURI売上が残る
 - Renewed-Banking入金失敗時は未回収残高が復元される
 
+## 保守確認
+- 正常撮影後、`puribooth_support <citizenid>` に session_charged → sale_recorded が残る
+- 撮影前返金後、refund_completed が残る
+- 未解決返金がない状態では `puribooth_selftest` の refunds がPASS(0)
+- `processing` 返金が発生した場合は自動再試行されず、手動照合対象になる
+
 ## 合格基準
-上記に重大不具合がなく、サーバーコンソールに継続的なエラーが出ないこと。
+上記に重大不具合がなく、サーバーコンソールに継続的なエラーが出ず、`puribooth_selftest` がPASSであること。

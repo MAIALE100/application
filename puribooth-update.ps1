@@ -95,6 +95,27 @@ if (-not $BoothOnly) {
                 throw "PuriPhoto production bundle does not contain the complete FLEPURI booth-import receipt bridge"
             }
 
+            $clientBridge = Join-Path $PuriSource "client\v11.lua"
+            if (-not (Test-Path -LiteralPath $clientBridge)) {
+                throw "PuriPhoto client/v11.lua is missing"
+            }
+
+            $clientBridgeContent = Get-Content -LiteralPath $clientBridge -Raw
+            $requiredClientBridgeTokens = @(
+                "OpenBoothImport",
+                "CancelBoothImport",
+                "puriphotoConfirmBoothImport",
+                "boothImportConsumed"
+            )
+
+            foreach ($token in $requiredClientBridgeTokens) {
+                if (-not $clientBridgeContent.Contains($token)) {
+                    throw "PuriPhoto client bridge is incomplete: missing $token"
+                }
+            }
+
+            Write-Host "PuriPhoto client bridge=PASS" -ForegroundColor Green
+
             $distBytes = (
                 Get-ChildItem -LiteralPath $dist -File -Recurse |
                 Measure-Object -Property Length -Sum

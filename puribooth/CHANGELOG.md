@@ -1,5 +1,19 @@
 # PuriBooth Changelog
 
+## 1.0.2 - 2026-10-27
+
+### 保守・復旧強化
+- 撮影準備期限切れ直後にbeginCapture / 新規startSessionが競合すると返金せずセッション解放される可能性を修正
+- 返金export失敗を `puribooth_refunds` に永続化し、pendingを自動再試行
+- 自動返金はprocessing→resolvedの状態遷移を使い、異常終了時の二重返金を抑止
+- 課金 / 売上 / 返金を `puribooth_events` に監査記録
+- `puribooth_support` / `puribooth_refunds` / `puribooth_retry_refunds` を追加
+- 未解決返金が残っている場合selftestをFAILに変更
+- 想定外finishSessionイベントで有料セッションを無条件解放しないよう防御
+- 監査ログ / 解決済み返金に保持期限を追加（既定90日）
+- 返金workerのDB例外時もロックが残らないよう保護
+
+
 ## 1.0.1 - 2026-10-27
 
 ### 本番安定化

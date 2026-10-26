@@ -1,0 +1,103 @@
+FLEPURI v1.0.5
+Flecity運営様向け コマンド一覧
+
+────────────────────────
+■ 権限
+────────────────────────
+
+以下の管理コマンドは、いずれかの条件を満たす方が使用できます。
+
+・QBox job = weazel
+・ACE group.admin
+・ACE group.god
+
+運営権限者様はWeazelへjob変更せず、そのまま管理可能です。
+
+────────────────────────
+■ ゲーム内 管理コマンド
+────────────────────────
+
+/puribooth
+  コマンド早見を表示します。
+
+/puribooth place
+  新しいFLEPURI台を設置します。
+
+  配置中:
+    矢印キー       移動
+    Q / E          回転
+    PageUp/Down    高さ
+    Shift          高速調整
+    C              撮影カメラ確認
+    Enter          設置確定
+    Backspace      キャンセル
+
+/puribooth remove
+  最寄りのFLEPURI台を撤去します。
+  未回収売上が残っている台は、安全のため撤去できません。
+
+/puribooth list
+  現在の設置台数を表示します。
+
+/puribooth price <料金> [台ID]
+  台ごとの利用料金を変更します。
+
+  例:
+    /puribooth price 1000
+    /puribooth price 1500 3
+
+  台IDを省略した場合は、近くの台を対象にします。
+
+/puribooth sales
+  全台の料金・未回収売上・累計売上・撮影回数を表示します。
+
+/puribooth collect all
+  全台の未回収売上をRenewed-Banking会社口座へ回収します。
+
+/puribooth collect <台ID>
+  指定した1台のみ売上を回収します。
+
+────────────────────────
+■ サーバーコンソール 診断・保守
+────────────────────────
+
+puribooth_selftest
+  必要resource、PuriPhoto連携、Weazel job、会社口座、
+  DB、会計整合性、未解決返金等を一括確認します。
+  通常は導入直後に1回実行してPASSをご確認ください。
+
+puribooth_support
+  現在のFLEPURI稼働状況を表示します。
+
+puribooth_support <session_id または citizenid>
+  対象の課金・売上・返金履歴を表示します。
+
+puribooth_refunds
+  未解決の返金キューを表示します。
+
+puribooth_retry_refunds
+  pending状態の返金を即時再試行します。
+
+puribooth_refund_review <session_id> <resolved|retry>
+  processing状態の返金を、実際の残高確認後に整理する保守コマンドです。
+  通常運用では使用不要です。
+
+puribooth_collections
+  未解決の会社売上回収状態を表示します。
+
+puribooth_collection_retry <collection_id>
+  銀行へ再送金せず、DB側だけ安全に再処理できる状態を復旧します。
+
+puribooth_collection_review <collection_id> <paid|notpaid>
+  売上回収中のサーバー停止等で銀行入金結果が不明な場合に、
+  Renewed-Banking側を確認後に確定する保守コマンドです。
+
+────────────────────────
+■ 開発テスト用コマンド
+────────────────────────
+
+puribooth_dev_weazel [server_id]
+puribooth_dev_weazel_restore [server_id]
+
+上記2つは、weazel jobが存在しない開発サーバー向けです。
+Flecity本番環境では通常ご使用いただく必要はございません。

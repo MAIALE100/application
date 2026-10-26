@@ -29,6 +29,7 @@ local poseReadyForNextShot = false
 local poseAdvanceRequested = false
 local poseShotIndex = 0
 local captureCancelledByUser = false
+local captureGuideVisible = true
 
 local themeRuntimeNonce = ("%d_%d"):format(GetGameTimer(), PlayerId())
 local themeTextureGeneration = 0
@@ -54,6 +55,33 @@ local function notify(kind, message)
 end
 
 RegisterNetEvent("puribooth:client:notify", notify)
+
+local function localizeBoothLabel(value)
+    local label = tostring(value or "")
+
+    local streetNumber = label:match("^Street PURI #(%d+)$")
+    if streetNumber then
+        return ("ストリートプリ #%s"):format(streetNumber)
+    end
+
+    if label == "Street PURI" then
+        return "ストリートプリ"
+    end
+
+    if label == "Legion PURI" then
+        return "リージョンプリ"
+    end
+
+    if label == "PURI" then
+        return "プリクラ"
+    end
+
+    if label == "" then
+        return "ストリートプリ"
+    end
+
+    return label
+end
 
 local function requestModel(modelName)
     local model = joaat(modelName)
@@ -100,7 +128,7 @@ local function prepareBooth(raw, fallbackId)
 
     local booth = {
         id = tostring(raw.id or fallbackId),
-        label = tostring(raw.label or "Street PURI"),
+        label = localizeBoothLabel(raw.label or "ストリートプリ"),
         model = tostring(raw.model or Config.DefaultModel),
         coords = {
             x = tonumber(raw.coords.x) or 0.0,
@@ -655,7 +683,7 @@ local function buildPlacementBooth()
 
     return prepareBooth({
         id = "placement-preview",
-        label = "Placement Preview",
+        label = "設置プレビュー",
         model = Config.DefaultModel,
         coords = {
             x = pos.x,
@@ -909,6 +937,187 @@ local function sessionMarker(booth)
     )
 end
 
+local function captureGuideDimensions(booth)
+    local guide = Config.CaptureGuide or {}
+    local camera = booth.camera and booth.camera.coords
+    local center = booth.captureCenter
+
+    if not camera or not center then
+        return 1.2, 1.35, 1.5
+    end
+
+    local dx = center.x - camera.x
+    local dy = center.y - camera.y
+    local horizontalDistance = math.max(0.5, math.sqrt(dx * dx + dy * dy))
+
+    local aspect = GetAspectRatio(false)
+    if not aspect or aspect < 1.0 or aspect > 3.0 then
+        aspect = 16.0 / 9.0
+    end
+
+    local verticalFov = math.rad(
+        tonumber(booth.camera.fov) or 68.0
+    )
+
+    local visibleHalfWidth =
+        math.tan(verticalFov * 0.5)
+        * aspect
+        * horizontalDistance
+
+    local captureHalfWidth =
+        math.max(
+            0.8,
+            (tonumber(booth.captureSize.x) or 3.4) * 0.5
+        )
+
+    local outerHalfWidth = math.min(
+        captureHalfWidth,
+        visibleHalfWidth
+            * (tonumber(guide.outerWidthScale) or 0.94)
+    )
+
+    local safeHalfWidth = math.min(
+        outerHalfWidth * 0.92,
+        visibleHalfWidth
+            * (tonumber(guide.safeWidthScale) or 0.78)
+    )
+
+    local safeDepth = math.max(
+        0.7,
+        tonumber(guide.depth) or 1.35
+    )
+
+    return safeHalfWidth, safeDepth, outerHalfWidth
+end
+
+local function drawCaptureGuide(booth)
+    local guide = Config.CaptureGuide or {}
+    if guide.enabled == false or not captureGuideVisible or not booth then
+        return
+    end
+
+    local center = booth.captureCenter
+    local safeHalfWidth, safeDepth, outerHalfWidth =
+        captureGuideDimensions(booth)
+
+    local forwardX, forwardY, rightX, rightY =
+        getBasis(booth.heading)
+
+    local groundZ = center.z + 0.045
+    local halfDepth = safeDepth * 0.5
+
+    local function worldPoint(rightOffset, forwardOffset, zOffset)
+        return vector3(
+            center.x
+                + rightX * rightOffset
+                + forwardX * forwardOffset,
+            center.y
+                + rightY * rightOffset
+                + forwardY * forwardOffset,
+            groundZ + (zOffset or 0.0)
+        )
+    end
+
+    local function drawRect(halfWidth, depthHalf, r, g, b, a)
+        local a1 = worldPoint(-halfWidth, -depthHalf, 0.0)
+        local b1 = worldPoint( halfWidth, -depthHalf, 0.0)
+        local c1 = worldPoint( halfWidth,  depthHalf, 0.0)
+        local d1 = worldPoint(-halfWidth,  depthHalf, 0.0)
+
+        DrawLine(a1.x, a1.y, a1.z, b1.x, b1.y, b1.z, r, g, b, a)
+        DrawLine(b1.x, b1.y, b1.z, c1.x, c1.y, c1.z, r, g, b, a)
+        DrawLine(c1.x, c1.y, c1.z, d1.x, d1.y, d1.z, r, g, b, a)
+        DrawLine(d1.x, d1.y, d1.z, a1.x, a1.y, a1.z, r, g, b, a)
+    end
+
+    -- 白枠: カメラ上で写る目安。緑枠: 人物が切れにくい安全範囲。
+    drawRect(outerHalfWidth, halfDepth, 255, 255, 255, 220)
+    drawRect(safeHalfWidth, halfDepth * 0.78, 95, 235, 180, 235)
+
+    DrawMarker(
+        1,
+        center.x,
+        center.y,
+        center.z - 1.02,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        safeHalfWidth * 2.0,
+        safeDepth * 0.78,
+        0.10,
+        95, 235, 180, 36,
+        false, false, 2, false, nil, nil, false
+    )
+
+    local centerBack = worldPoint(0.0, -halfDepth, 0.0)
+    local centerFront = worldPoint(0.0, halfDepth, 0.0)
+    DrawLine(
+        centerBack.x, centerBack.y, centerBack.z,
+        centerFront.x, centerFront.y, centerFront.z,
+        255, 255, 255, 135
+    )
+
+    -- 最大4人で使える立ち位置目安。2人なら中央寄りの2点が使いやすい。
+    local markerCount = math.max(
+        1,
+        math.min(
+            4,
+            tonumber(guide.positionMarkers) or 4
+        )
+    )
+
+    for i = 1, markerCount do
+        local normalized =
+            markerCount == 1
+            and 0.0
+            or (-0.72 + ((i - 1) / (markerCount - 1)) * 1.44)
+
+        local point = worldPoint(
+            safeHalfWidth * normalized,
+            0.0,
+            0.0
+        )
+
+        DrawMarker(
+            1,
+            point.x,
+            point.y,
+            center.z - 1.015,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.34, 0.34, 0.075,
+            255, 255, 255, 185,
+            false, false, 2, false, nil, nil, false
+        )
+    end
+
+    -- 縦方向の安全フレーム。頭がこの高さを大きく超えると切れやすい。
+    local frameHeight = math.max(
+        1.8,
+        tonumber(guide.frameHeight) or 2.25
+    )
+
+    local leftBottom = worldPoint(-safeHalfWidth, 0.0, 0.0)
+    local rightBottom = worldPoint(safeHalfWidth, 0.0, 0.0)
+    local leftTop = worldPoint(-safeHalfWidth, 0.0, frameHeight)
+    local rightTop = worldPoint(safeHalfWidth, 0.0, frameHeight)
+
+    DrawLine(
+        leftBottom.x, leftBottom.y, leftBottom.z,
+        leftTop.x, leftTop.y, leftTop.z,
+        95, 235, 180, 185
+    )
+    DrawLine(
+        rightBottom.x, rightBottom.y, rightBottom.z,
+        rightTop.x, rightTop.y, rightTop.z,
+        95, 235, 180, 185
+    )
+    DrawLine(
+        leftTop.x, leftTop.y, leftTop.z,
+        rightTop.x, rightTop.y, rightTop.z,
+        95, 235, 180, 185
+    )
+end
+
 local function createBoothCamera(booth)
     local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
     local c = booth.camera.coords
@@ -961,7 +1170,7 @@ local function enterCameraPreview(boothId)
 
     notify(
         "inform",
-        "画角を固定しました。エモートや立ち位置を整えて、もう一度Eで撮影開始です。"
+        "撮影画角を確認中です。白枠が写る目安、緑枠が安全範囲です。立ち位置やポーズを整えて[E]で撮影を開始してください。"
     )
 end
 
@@ -990,7 +1199,7 @@ end
 local function locationMetadata(booth)
     if not booth then
         return {
-            label = "Street PURI",
+            label = "ストリートプリ",
             street = "",
             zone = ""
         }
@@ -1015,7 +1224,7 @@ local function locationMetadata(booth)
     end
 
     return {
-        label = booth.label or "Street PURI",
+        label = localizeBoothLabel(booth.label or "ストリートプリ"),
         street = street or "",
         zone = zone or ""
     }
@@ -1037,7 +1246,7 @@ local function openEditor(boothId, shots)
         action = "open",
         boothId = boothId,
         shots = shots,
-        label = booth and booth.label or "Street PURI"
+        label = booth and localizeBoothLabel(booth.label) or "ストリートプリ"
     })
 end
 
@@ -1150,7 +1359,7 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
             end
 
             countdownDisplay =
-                ("PHOTO %d/%d   %d")
+                ("%d枚目 / %d枚　%d")
                 :format(
                     shotIndex,
                     Config.ShotCount or 4,
@@ -1168,7 +1377,7 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
             return
         end
 
-        countdownDisplay = "SMILE!"
+        countdownDisplay = "はい、チーズ！"
 
         local smileUntil = GetGameTimer() + 450
         while myGeneration == countdownGeneration
@@ -1392,7 +1601,7 @@ RegisterNUICallback("puriboothThemeConfirm", function(data, cb)
 
     notify(
         "inform",
-        "背景と床を反映しました。Eで撮影画角を確認できます。"
+        "背景と床を反映しました。白枠・緑枠を見ながら並び、[E]で撮影画角を確認できます。[G]でガイド表示を切り替えられます。"
     )
 
     cb({ ok = true })
@@ -1508,27 +1717,19 @@ CreateThread(function()
         local wait = 800
         local ped = PlayerPedId()
         local coords = GetEntityCoords(ped)
+        local captureGuideNearby = false
 
         for boothId, booth in pairs(dynamicBooths) do
             local state = sharedSessions[boothId]
 
-            if state
-                and not state.capturing
-                and not (
-                    ownedSession
-                    and ownedSession.boothId == boothId
-                    and (
-                        ownedSession.phase == "preview"
-                        or ownedSession.phase == "starting"
-                        or captureInProgress
-                    )
-                ) then
-
+            if state and not state.capturing then
                 local distance = #(coords - booth.captureCenter)
 
                 if distance < 35.0 then
                     wait = 0
+                    captureGuideNearby = true
                     sessionMarker(booth)
+                    drawCaptureGuide(booth)
                 end
             end
 
@@ -1548,7 +1749,7 @@ CreateThread(function()
                     wait = 0
 
                     drawText2d(
-                        ("PURI  $%s   [E]")
+                        ("プリクラ撮影  $%s   [E]")
                             :format(Config.Price or 0),
                         0.5,
                         0.86,
@@ -1559,6 +1760,28 @@ CreateThread(function()
                         startSession(boothId)
                     end
                 end
+            end
+        end
+
+        if captureGuideNearby then
+            wait = 0
+
+            local guideControl =
+                tonumber(
+                    (Config.CaptureGuide or {}).toggleControl
+                ) or 47
+
+            DisableControlAction(0, guideControl, true)
+
+            if IsDisabledControlJustReleased(0, guideControl) then
+                captureGuideVisible = not captureGuideVisible
+
+                notify(
+                    "inform",
+                    captureGuideVisible
+                        and "撮影範囲ガイドを表示しました。白枠が写る目安、緑枠が安全範囲です。"
+                        or "撮影範囲ガイドを非表示にしました。"
+                )
             end
         end
 
@@ -1700,21 +1923,21 @@ CreateThread(function()
 
                 if placementCameraPreviewActive then
                     drawText2d(
-                        "CAMERA PREVIEW   [C] BACK   [BACKSPACE] BACK",
+                        "撮影カメラ確認　[C] 戻る　[BACKSPACE] 戻る",
                         0.5,
                         0.82,
                         0.42
                     )
                 else
                     drawText2d(
-                        "PINK BOX = PHOTO ZONE   ARROWS MOVE   Q/E ROTATE   PGUP/PGDN HEIGHT",
+                        "ピンク枠＝撮影範囲　矢印＝移動　Q/E＝回転　PageUp/PageDown＝高さ",
                         0.5,
                         0.80,
                         0.34
                     )
 
                     drawText2d(
-                        "[C] CAMERA   [SHIFT] FAST   [ENTER] PLACE   [BACKSPACE] CANCEL",
+                        "[C] カメラ確認　[SHIFT] 高速移動　[ENTER] 設置　[BACKSPACE] 中止",
                         0.5,
                         0.84,
                         0.38
@@ -1743,7 +1966,7 @@ CreateThread(function()
                     sessionMarker(booth)
 
                     drawText2d(
-                        "STEP 1/2   [E] CAMERA   [R] THEME   [BACKSPACE] CANCEL",
+                        "手順 1/2　[E] カメラ確認　[R] 背景・床　[G] ガイド　[BACKSPACE] 中止",
                         0.5,
                         0.82,
                         0.42
@@ -1767,7 +1990,7 @@ CreateThread(function()
                     wait = 0
 
                     drawText2d(
-                        "STEP 2/2   [E] START   [R] THEME   [BACKSPACE] BACK",
+                        "手順 2/2　[E] 撮影開始　[R] 背景・床　[G] ガイド　[BACKSPACE] 戻る",
                         0.5,
                         0.82,
                         0.44
@@ -1807,7 +2030,7 @@ CreateThread(function()
                 countdownDisplay = nil
             elseif poseReadyForNextShot then
                 drawText2d(
-                    ("PHOTO %d/%d   POSE READY   [E] COUNTDOWN   [BACKSPACE] CANCEL")
+                    ("%d枚目 / %d枚　ポーズを決めたら [E] カウント開始　[BACKSPACE] 中止")
                         :format(
                             poseShotIndex,
                             tonumber(Config.ShotCount) or 4

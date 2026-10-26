@@ -7,6 +7,58 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <section id="managementPanel" class="management-panel hidden">
+        <div class="management-shell">
+            <header class="management-head">
+                <div>
+                    <p class="eyebrow">FLEPURI / WEAZEL</p>
+                    <h1>本社管理</h1>
+                    <p class="management-subtitle">各フレプリ台の料金・売上・稼働実績を一括管理</p>
+                </div>
+                <div class="management-head-actions">
+                    <button id="managementRefreshButton" class="ghost">再読込</button>
+                    <button id="managementCloseButton" class="ghost">閉じる</button>
+                </div>
+            </header>
+
+            <div class="management-summary">
+                <div class="management-stat">
+                    <span>設置台数</span>
+                    <strong id="managementTotalBooths">0</strong>
+                </div>
+                <div class="management-stat">
+                    <span>未回収売上</span>
+                    <strong id="managementTotalBalance">$0</strong>
+                </div>
+                <div class="management-stat">
+                    <span>累計売上</span>
+                    <strong id="managementTotalLifetime">$0</strong>
+                </div>
+                <div class="management-stat">
+                    <span>累計撮影</span>
+                    <strong id="managementTotalCompleted">0回</strong>
+                </div>
+            </div>
+
+            <div class="management-table">
+                <div class="management-row management-row-head">
+                    <span>ID / 台名</span>
+                    <span>料金</span>
+                    <span>未回収</span>
+                    <span>累計売上</span>
+                    <span>撮影</span>
+                    <span>操作</span>
+                </div>
+                <div id="managementRows" class="management-rows"></div>
+            </div>
+
+            <footer class="management-footer">
+                <div id="managementStatus" class="management-status">最新の売上情報を表示しています。</div>
+                <button id="managementCollectAllButton" class="primary">全台の未回収売上を回収</button>
+            </footer>
+        </div>
+    </section>
+
     <section id="themeSetup" class="theme-setup hidden">
         <div class="theme-card">
             <div class="theme-head">

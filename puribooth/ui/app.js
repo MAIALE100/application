@@ -109,7 +109,8 @@
         armedStamp: null,
         armedText: false,
         textStyle: 'puri',
-        textFont: 'heisei',
+        textFont: 'poprum',
+        textGradient: false,
         repeatStamp: false,
         drawing: false,
         drawEnabled: false,
@@ -1270,10 +1271,16 @@
     }
 
     const textFontPreset = value => {
-        const preset = String(value || 'heisei')
+        const preset = String(value || 'poprum')
         const fonts = {
-            heisei: {
-                family: '"HeiseiJoshi","Yu Gothic","Meiryo",sans-serif',
+            poprum: {
+                family: '"PopRumKiwi","Yu Gothic","Meiryo",sans-serif',
+                weight: 400,
+                italic: false,
+                scaleX: 1
+            },
+            gal: {
+                family: '"GalMojiGothic","Yu Gothic","Meiryo",sans-serif',
                 weight: 400,
                 italic: false,
                 scaleX: 1
@@ -1289,9 +1296,17 @@
                 weight: 400,
                 italic: false,
                 scaleX: 1
+            },
+            // Backward compatibility for an editor session opened before the
+            // licensed replacement font set was introduced.
+            heisei: {
+                family: '"PopRumKiwi","Yu Gothic","Meiryo",sans-serif',
+                weight: 400,
+                italic: false,
+                scaleX: 1
             }
         }
-        return fonts[preset] || fonts.heisei
+        return fonts[preset] || fonts.poprum
     }
 
     const setCanvasTextFont = (item, size) => {
@@ -1300,75 +1315,163 @@
         return preset
     }
 
+    const textStyleDefaults = style => {
+        const presets = {
+            puri: {
+                primaryColor: '#ff4fa3',
+                color2: '#ff9bd0',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 10,
+                glowColor: '#ff4fa3',
+                glowStrength: 8,
+                shadowColor: '#5b2048',
+                shadowStrength: 5,
+                shadowOffset: 3
+            },
+            outline: {
+                primaryColor: null,
+                color2: '#ff9bd0',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 13,
+                glowColor: '#ff4fa3',
+                glowStrength: 0,
+                shadowColor: '#5b2048',
+                shadowStrength: 2,
+                shadowOffset: 2
+            },
+            neon: {
+                primaryColor: '#ffffff',
+                color2: '#ffffff',
+                gradient: false,
+                outlineColor: '#55cfff',
+                outlineWidth: 4,
+                glowColor: '#55cfff',
+                glowStrength: 28,
+                shadowColor: '#55cfff',
+                shadowStrength: 4,
+                shadowOffset: 0
+            },
+            y2k: {
+                primaryColor: '#ff5dbb',
+                color2: '#65dcff',
+                gradient: true,
+                outlineColor: '#ffffff',
+                outlineWidth: 10,
+                glowColor: '#a98cff',
+                glowStrength: 8,
+                shadowColor: '#5d3973',
+                shadowStrength: 5,
+                shadowOffset: 3
+            },
+            simple: {
+                primaryColor: null,
+                color2: '#55cfff',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 0,
+                glowColor: '#ff4fa3',
+                glowStrength: 0,
+                shadowColor: '#241521',
+                shadowStrength: 0,
+                shadowOffset: 0
+            }
+        }
+        return presets[style] || presets.puri
+    }
+
+    const resolveTextEffects = item => {
+        const defaults = textStyleDefaults(item?.style || 'puri')
+        const numeric = (value, fallback) => {
+            const parsed = Number(value)
+            return Number.isFinite(parsed) ? parsed : fallback
+        }
+
+        return {
+            color2: item?.color2 || defaults.color2,
+            gradient:
+                typeof item?.gradient === 'boolean'
+                    ? item.gradient
+                    : defaults.gradient,
+            outlineColor: item?.outlineColor || defaults.outlineColor,
+            outlineWidth: numeric(item?.outlineWidth, defaults.outlineWidth),
+            glowColor: item?.glowColor || defaults.glowColor,
+            glowStrength: numeric(item?.glowStrength, defaults.glowStrength),
+            shadowColor: item?.shadowColor || defaults.shadowColor,
+            shadowStrength: numeric(item?.shadowStrength, defaults.shadowStrength),
+            shadowOffset: numeric(item?.shadowOffset, defaults.shadowOffset)
+        }
+    }
+
     const drawStyledText = item => {
-        const style = item.style || 'puri'
         const size = Number(item.size) || 64
         const fontPreset = setCanvasTextFont(item, size)
+        const effects = resolveTextEffects(item)
+        const primaryColor =
+            item.color
+            || textStyleDefaults(item.style || 'puri').primaryColor
+            || '#ff4fa3'
+
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.scale(fontPreset.scaleX, 1)
 
-        if (style === 'simple') {
-            ctx.fillStyle = item.color
-            ctx.fillText(item.value, 0, 0)
-            return
+        const measuredWidth =
+            Math.max(size * 2, ctx.measureText(item.value).width)
+        let fillPaint = primaryColor
+
+        if (effects.gradient) {
+            const gradient =
+                ctx.createLinearGradient(
+                    -measuredWidth / 2,
+                    0,
+                    measuredWidth / 2,
+                    0
+                )
+            gradient.addColorStop(0, primaryColor)
+            gradient.addColorStop(1, effects.color2)
+            fillPaint = gradient
         }
 
-        if (style === 'outline') {
+        if (effects.shadowStrength > 0) {
+            ctx.save()
+            ctx.fillStyle = fillPaint
+            ctx.shadowColor = effects.shadowColor
+            ctx.shadowBlur = effects.shadowStrength
+            ctx.shadowOffsetX = effects.shadowOffset * .6
+            ctx.shadowOffsetY = effects.shadowOffset
+            ctx.fillText(item.value, 0, 0)
+            ctx.restore()
+        }
+
+        if (effects.glowStrength > 0) {
+            ctx.save()
             ctx.lineJoin = 'round'
-            ctx.lineWidth = Math.max(7, size * .14)
-            ctx.strokeStyle = '#fff'
+            ctx.lineWidth =
+                Math.max(
+                    2,
+                    effects.outlineWidth * .45,
+                    size * .035
+                )
+            ctx.strokeStyle = effects.glowColor
+            ctx.shadowColor = effects.glowColor
+            ctx.shadowBlur = effects.glowStrength
+            ctx.globalAlpha = .92
             ctx.strokeText(item.value, 0, 0)
-            ctx.lineWidth = Math.max(2, size * .035)
-            ctx.strokeStyle = 'rgba(36,21,33,.35)'
-            ctx.strokeText(item.value, 0, 0)
-            ctx.fillStyle = item.color
-            ctx.fillText(item.value, 0, 0)
-            return
+            ctx.restore()
         }
 
-        if (style === 'neon') {
+        if (effects.outlineWidth > 0) {
+            ctx.save()
             ctx.lineJoin = 'round'
-            ctx.shadowColor = item.color
-            ctx.shadowBlur = Math.max(12, size * .28)
-            ctx.lineWidth = Math.max(5, size * .08)
-            ctx.strokeStyle = item.color
+            ctx.lineWidth = effects.outlineWidth
+            ctx.strokeStyle = effects.outlineColor
             ctx.strokeText(item.value, 0, 0)
-            ctx.shadowBlur = Math.max(6, size * .12)
-            ctx.fillStyle = '#fff'
-            ctx.fillText(item.value, 0, 0)
-            return
+            ctx.restore()
         }
 
-        if (style === 'y2k') {
-            const width = Math.max(size * 3, ctx.measureText(item.value).width)
-            const gradient = ctx.createLinearGradient(-width / 2, 0, width / 2, 0)
-            gradient.addColorStop(0, '#ff5dbb')
-            gradient.addColorStop(.34, '#65dcff')
-            gradient.addColorStop(.67, '#a98cff')
-            gradient.addColorStop(1, '#ffe878')
-            ctx.lineJoin = 'round'
-            ctx.lineWidth = Math.max(8, size * .14)
-            ctx.strokeStyle = '#fff'
-            ctx.strokeText(item.value, 0, 0)
-            ctx.fillStyle = gradient
-            ctx.fillText(item.value, 0, 0)
-            return
-        }
-
-        // Default purikura lettering: white sticker outline + soft pink shadow.
-        ctx.lineJoin = 'round'
-        ctx.shadowColor = 'rgba(255,65,151,.40)'
-        ctx.shadowBlur = Math.max(6, size * .11)
-        ctx.shadowOffsetY = Math.max(2, size * .035)
-        ctx.lineWidth = Math.max(9, size * .16)
-        ctx.strokeStyle = '#fff'
-        ctx.strokeText(item.value, 0, 0)
-        ctx.shadowColor = 'transparent'
-        ctx.lineWidth = Math.max(2, size * .035)
-        ctx.strokeStyle = 'rgba(255,255,255,.95)'
-        ctx.strokeText(item.value, 0, 0)
-        ctx.fillStyle = item.color
+        ctx.fillStyle = fillPaint
         ctx.fillText(item.value, 0, 0)
     }
 
@@ -1569,6 +1672,196 @@
         })
     }
 
+    const textEffectControlIds = [
+        'textColor2',
+        'textOutlineColor',
+        'textOutlineWidth',
+        'textGlowColor',
+        'textGlowStrength',
+        'textShadowColor',
+        'textShadowStrength',
+        'textShadowOffset'
+    ]
+
+    const updateTextGradientButton = () => {
+        const button = document.getElementById('textGradientToggle')
+        if (!button) return
+        button.textContent =
+            `グラデーション：${state.textGradient ? 'ON' : 'OFF'}`
+        button.classList.toggle('active', state.textGradient)
+    }
+
+    const setTextEffectControls = (values, setPrimary = false) => {
+        if (!values) return
+
+        if (setPrimary && values.primaryColor) {
+            const primary = document.getElementById('textColor')
+            if (primary) primary.value = values.primaryColor
+        }
+
+        const mapping = {
+            textColor2: values.color2,
+            textOutlineColor: values.outlineColor,
+            textOutlineWidth: values.outlineWidth,
+            textGlowColor: values.glowColor,
+            textGlowStrength: values.glowStrength,
+            textShadowColor: values.shadowColor,
+            textShadowStrength: values.shadowStrength,
+            textShadowOffset: values.shadowOffset
+        }
+
+        Object.entries(mapping).forEach(([id, value]) => {
+            const element = document.getElementById(id)
+            if (element && value !== undefined && value !== null) {
+                element.value = String(value)
+            }
+        })
+
+        state.textGradient = Boolean(values.gradient)
+        updateTextGradientButton()
+    }
+
+    const readTextEffectControls = () => ({
+        color2:
+            document.getElementById('textColor2')?.value
+            || '#55cfff',
+        gradient: Boolean(state.textGradient),
+        outlineColor:
+            document.getElementById('textOutlineColor')?.value
+            || '#ffffff',
+        outlineWidth:
+            Number(document.getElementById('textOutlineWidth')?.value || 0),
+        glowColor:
+            document.getElementById('textGlowColor')?.value
+            || '#ff4fa3',
+        glowStrength:
+            Number(document.getElementById('textGlowStrength')?.value || 0),
+        shadowColor:
+            document.getElementById('textShadowColor')?.value
+            || '#241521',
+        shadowStrength:
+            Number(document.getElementById('textShadowStrength')?.value || 0),
+        shadowOffset:
+            Number(document.getElementById('textShadowOffset')?.value || 0)
+    })
+
+    const applyTextControlsToItem = item => {
+        if (!item) return
+        Object.assign(item, readTextEffectControls())
+    }
+
+    const loadTextControlsFromItem = item => {
+        if (!item) return
+        const effects = resolveTextEffects(item)
+        setTextEffectControls(effects, false)
+    }
+
+    const applyTextStylePresetToControls = (style, setPrimary = true) => {
+        setTextEffectControls(textStyleDefaults(style), setPrimary)
+    }
+
+    const textEffectPreset = name => {
+        const currentPrimary =
+            document.getElementById('textColor')?.value
+            || '#ff4fa3'
+
+        const presets = {
+            puri: {
+                primaryColor: '#ff4fa3',
+                color2: '#ff9bd0',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 11,
+                glowColor: '#ff4fa3',
+                glowStrength: 8,
+                shadowColor: '#5b2048',
+                shadowStrength: 5,
+                shadowOffset: 3
+            },
+            neonPink: {
+                primaryColor: '#ffffff',
+                color2: '#ffffff',
+                gradient: false,
+                outlineColor: '#ff4fa3',
+                outlineWidth: 4,
+                glowColor: '#ff4fa3',
+                glowStrength: 32,
+                shadowColor: '#ff4fa3',
+                shadowStrength: 5,
+                shadowOffset: 0
+            },
+            neonBlue: {
+                primaryColor: '#ffffff',
+                color2: '#ffffff',
+                gradient: false,
+                outlineColor: '#55cfff',
+                outlineWidth: 4,
+                glowColor: '#55cfff',
+                glowStrength: 32,
+                shadowColor: '#55cfff',
+                shadowStrength: 5,
+                shadowOffset: 0
+            },
+            gradient: {
+                primaryColor: '#ff4fa3',
+                color2: '#55cfff',
+                gradient: true,
+                outlineColor: '#ffffff',
+                outlineWidth: 9,
+                glowColor: '#a98cff',
+                glowStrength: 8,
+                shadowColor: '#5d3973',
+                shadowStrength: 4,
+                shadowOffset: 2
+            },
+            outline: {
+                primaryColor: currentPrimary,
+                color2: '#ffffff',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 18,
+                glowColor: currentPrimary,
+                glowStrength: 0,
+                shadowColor: '#241521',
+                shadowStrength: 2,
+                shadowOffset: 2
+            },
+            shadow: {
+                primaryColor: currentPrimary,
+                color2: '#ffffff',
+                gradient: false,
+                outlineColor: '#ffffff',
+                outlineWidth: 7,
+                glowColor: currentPrimary,
+                glowStrength: 0,
+                shadowColor: '#241521',
+                shadowStrength: 14,
+                shadowOffset: 8
+            }
+        }
+
+        return presets[name] || presets.puri
+    }
+
+    const applyCurrentTextEffectsToSelection = (history = true) => {
+        const item = selectedDecorationItem()
+        if (state.selectedDecoration?.type !== 'text' || !item) return false
+
+        if (history) pushDecorationHistory()
+        item.color =
+            document.getElementById('textColor')?.value
+            || item.color
+            || '#ff4fa3'
+        item.size =
+            Number(document.getElementById('textSize')?.value || item.size || 64)
+        item.style = state.textStyle
+        item.font = state.textFont
+        applyTextControlsToItem(item)
+        updateHistoryButtons()
+        renderDecorationsOnly()
+        return true
+    }
+
     const resetDecorations = (recordHistory = true) => {
         if (
             recordHistory
@@ -1587,7 +1880,7 @@
         state.armedStamp = null
         state.armedText = false
         state.textStyle = 'puri'
-        state.textFont = 'heisei'
+        state.textFont = 'poprum'
         state.repeatStamp = false
         state.drawEnabled = false
         state.drawStyle = 'pen'
@@ -1605,9 +1898,49 @@
             button.classList.toggle('active', button.dataset.textStyle === 'puri')
         })
         document.querySelectorAll('[data-text-font]').forEach(button => {
-            button.classList.toggle('active', button.dataset.textFont === 'heisei')
+            button.classList.toggle('active', button.dataset.textFont === 'poprum')
         })
-        document.querySelectorAll('[data-draw-style]').forEach(button => {
+        state.textGradient = false
+        applyTextStylePresetToControls('puri', true)
+        document.querySelectorAll('[data-text-effect-preset]').forEach(button => {
+        button.addEventListener('click', () => {
+            const preset =
+                textEffectPreset(button.dataset.textEffectPreset || 'puri')
+            setTextEffectControls(preset, true)
+
+            if (applyCurrentTextEffectsToSelection(true)) {
+                toolStatus.textContent = '選択中の文字加工を変更しました'
+            } else {
+                toolStatus.textContent = `${button.textContent.trim()}を選びました`
+            }
+        })
+    })
+
+    document.getElementById('textGradientToggle')?.addEventListener('click', () => {
+        state.textGradient = !state.textGradient
+        updateTextGradientButton()
+
+        if (applyCurrentTextEffectsToSelection(true)) {
+            toolStatus.textContent =
+                state.textGradient
+                    ? '選択中の文字を2色グラデーションにしました'
+                    : '選択中の文字を単色にしました'
+        }
+    })
+
+    ;[
+        'textColor',
+        'textSize',
+        ...textEffectControlIds
+    ].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => {
+            if (applyCurrentTextEffectsToSelection(true)) {
+                toolStatus.textContent = '選択中の文字加工を更新しました'
+            }
+        })
+    })
+
+    document.querySelectorAll('[data-draw-style]').forEach(button => {
             button.classList.toggle('active', button.dataset.drawStyle === 'pen')
         })
         const stampRepeatButton = document.getElementById('stampRepeatButton')
@@ -2282,7 +2615,7 @@
                 pushDecorationHistory()
                 item.color = color
                 updateHistoryButtons()
-                render()
+                renderDecorationsOnly()
             }
         })
     })
@@ -2293,20 +2626,20 @@
             document.querySelectorAll('[data-text-style]').forEach(item => {
                 item.classList.toggle('active', item === button)
             })
-            const item = selectedDecorationItem()
-            if (state.selectedDecoration?.type === 'text' && item) {
-                pushDecorationHistory()
-                item.style = state.textStyle
-                updateHistoryButtons()
-                toolStatus.textContent = '選択中の文字スタイルを変更しました'
-                render()
+
+            applyTextStylePresetToControls(state.textStyle, true)
+
+            if (applyCurrentTextEffectsToSelection(true)) {
+                toolStatus.textContent = '選択中の文字スタイルと加工を変更しました'
+            } else {
+                toolStatus.textContent = `${button.textContent.trim()}を選びました`
             }
         })
     })
 
     document.querySelectorAll('[data-text-font]').forEach(button => {
         button.addEventListener('click', () => {
-            state.textFont = button.dataset.textFont || 'heisei'
+            state.textFont = button.dataset.textFont || 'poprum'
             document.querySelectorAll('[data-text-font]').forEach(item => {
                 item.classList.toggle('active', item === button)
             })
@@ -2316,7 +2649,7 @@
                 item.font = state.textFont
                 updateHistoryButtons()
                 toolStatus.textContent = '選択中のフォントを変更しました'
-                render()
+                renderDecorationsOnly()
             } else {
                 toolStatus.textContent = `${button.textContent.trim()}を選びました`
             }
@@ -2374,9 +2707,10 @@
         item.size = Number(document.getElementById('textSize').value)
         item.style = state.textStyle
         item.font = state.textFont
+        applyTextControlsToItem(item)
         updateHistoryButtons()
         toolStatus.textContent = '選択中の文字を更新しました'
-        render()
+        renderDecorationsOnly()
     })
 
     document.getElementById('drawToggle').addEventListener('click', event => {
@@ -2587,6 +2921,7 @@
                     color: document.getElementById('textColor').value,
                     style: state.textStyle,
                     font: state.textFont,
+                    ...readTextEffectControls(),
                     rotation: 0,
                     z: nextDecorationZ()
                 })
@@ -2610,13 +2945,14 @@
             const item = selectedDecorationItem()
             if (hit.type === 'text' && item) {
                 state.textStyle = item.style || 'puri'
-                state.textFont = item.font || 'heisei'
+                state.textFont = item.font || 'poprum'
                 const textInput = document.getElementById('textInput')
                 const textSize = document.getElementById('textSize')
                 const textColor = document.getElementById('textColor')
                 if (textInput) textInput.value = item.value || ''
                 if (textSize) textSize.value = String(Number(item.size) || 64)
                 if (textColor) textColor.value = item.color || '#ff4fa3'
+                loadTextControlsFromItem(item)
                 document.querySelectorAll('[data-text-style]').forEach(button => {
                     button.classList.toggle('active', button.dataset.textStyle === state.textStyle)
                 })
@@ -3082,6 +3418,8 @@
             app.classList.remove('hidden')
         }
     })
+
+    applyTextStylePresetToControls('puri', true)
 
     if (document.fonts?.ready) {
         document.fonts.ready.then(() => render()).catch(() => {})

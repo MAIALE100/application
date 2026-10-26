@@ -1,5 +1,25 @@
 # PuriBooth Changelog
 
+## 1.0.3 - 2026-10-27
+
+### 提出前最終安定化
+- v1.0.2で退行していたPuriPhotoの二段階receipt確認（Get→Confirm→Consumed）を復元
+- PuriPhoto production bundle / client bridge検査を強化し、confirm callback欠落時は課金前に停止
+- PuriPhoto handoff timeoutをConfig化し、3〜60秒の範囲をselftestで検証
+- 会計整合性 `lifetime_sales = balance + collected_total` のselftestを復元
+- 撮影完了 / キャンセル / 切断 / タイムアウトの終端処理をsettlement lockで直列化
+- 直接返金の同時実行をrefundInProgressで防止
+- 有料セッションの監査ログ保存に失敗した場合はセッションを開かず返金へフォールバック
+- resource stop時に売上 / 返金の結果が不明なセッションはprocessingへ隔離し、二重返金を防止
+- `puribooth_refund_review` を追加し、照合済み返金をDB直接編集せず解決可能に変更
+- 会社売上回収専用 `puribooth_collections` 台帳を追加
+- 台残高の確保 / 復元 / 回収確定をoxmysql transactionで原子的に処理
+- 銀行呼び出し境界をpaying / finalizing / restoringで分離し、クラッシュ後の二重入金を防止
+- `puribooth_collections` / `puribooth_collection_retry` / `puribooth_collection_review` を追加
+- 未解決の会社売上回収がある間は新しい回収と台撤去を停止
+- updaterのPuriPhoto build guardでもconfirm receipt bridgeを必須化
+- 不具合修正・復旧は開発側で行えるようSUPPORT.mdを拡充
+
 ## 1.0.2 - 2026-10-27
 
 ### 保守・復旧強化

@@ -171,43 +171,89 @@ end)
 
 local pendingBoothImport = nil
 
-RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
-    if type(image) ~= "string" or #image < 100 then
-        return
+local function openBoothImport(image, metadata)
+    if type(image) ~= "string"
+        or #image < 100
+        or #image > (12 * 1024 * 1024) then
+        return false, "invalid_image"
+    end
+
+    if GetResourceState("lb-phone") ~= "started" then
+        return false, "lb_phone_not_started"
     end
 
     metadata = type(metadata) == "table" and metadata or {}
+
     local ped = PlayerPedId()
-    local coords = GetEntityCoords(ped)
+    local current = GetEntityCoords(ped)
+
+    local x = tonumber(metadata.x) or current.x
+    local y = tonumber(metadata.y) or current.y
+    local z = tonumber(metadata.z) or current.z
+
+    if math.abs(x) > 100000
+        or math.abs(y) > 100000
+        or math.abs(z) > 100000 then
+        x, y, z = current.x, current.y, current.z
+    end
 
     pendingBoothImport = {
         image = image,
         location = {
-            label = tostring(metadata.label or "Street PURI"),
+            label = tostring(metadata.label or "フレプリ"),
             street = tostring(metadata.street or ""),
             zone = tostring(metadata.zone or ""),
-            x = coords.x,
-            y = coords.y,
-            z = coords.z
+            x = x,
+            y = y,
+            z = z
         }
     }
 
-    if GetResourceState("lb-phone") ~= "started" then
-        return
+    local opened, openResult = pcall(function()
+        return exports["lb-phone"]:OpenApp(Config.Identifier)
+    end)
+
+    if not opened or openResult == false then
+        pendingBoothImport = nil
+        return false, "open_app_failed"
     end
 
-    exports["lb-phone"]:OpenApp(Config.Identifier)
-
     CreateThread(function()
-        Wait(500)
-        exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
-            action = "boothImportAvailable"
-        })
-        Wait(700)
-        exports["lb-phone"]:SendCustomAppMessage(Config.Identifier, {
-            action = "boothImportAvailable"
-        })
+        Wait(350)
+
+        pcall(function()
+            exports["lb-phone"]:SendCustomAppMessage(
+                Config.Identifier,
+                { action = "boothImportAvailable" }
+            )
+        end)
+
+        Wait(650)
+
+        if pendingBoothImport then
+            pcall(function()
+                exports["lb-phone"]:SendCustomAppMessage(
+                    Config.Identifier,
+                    { action = "boothImportAvailable" }
+                )
+            end)
+        end
     end)
+
+    return true
+end
+
+exports("OpenBoothImport", openBoothImport)
+
+RegisterNetEvent("puriphoto:client:openBoothImport", function(image, metadata)
+    local ok, reason = openBoothImport(image, metadata)
+
+    if not ok then
+        print(
+            ("[PuriPhoto] booth import rejected: %s")
+                :format(tostring(reason or "unknown"))
+        )
+    end
 end)
 
 RegisterNUICallback("puriphotoGetBoothImport", function(_, cb)

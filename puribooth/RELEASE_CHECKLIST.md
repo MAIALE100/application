@@ -65,3 +65,8 @@
 - [x] internal checklist excluded from operator ZIP
 - [x] optional font binaries excluded
 - [x] final v1.0.1 ZIP generated and SHA256 fixed
+
+## Fixed artifact
+- ZIP: FLEPURI_v1.0.1_submission.zip
+- Size: 960272 bytes
+- SHA256: 7bdbadec43276f1f8358a02d0afb755730bc761ed4edcc95ab4e6a8801d01876

@@ -276,6 +276,193 @@ local function drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, txd,
     )
 end
 
+local function drawWorldLabel(text, coords, scale, r, g, b, a)
+    SetDrawOrigin(coords.x, coords.y, coords.z, 0)
+    SetTextFont(4)
+    SetTextScale(0.0, scale or 0.35)
+    SetTextCentre(true)
+    SetTextColour(r or 255, g or 255, b or 255, a or 255)
+    SetTextOutline()
+
+    BeginTextCommandDisplayText("STRING")
+    AddTextComponentSubstringPlayerName(text)
+    EndTextCommandDisplayText(0.0, 0.0)
+
+    ClearDrawOrigin()
+end
+
+local function renderBoothExterior(booth, occupied, preview)
+    local exterior = Config.Exterior or {}
+    if exterior.enabled == false or not booth then return end
+
+    local shell = exterior.shell or {}
+    local sign = exterior.sign or {}
+    local floor = exterior.floor or {}
+    local light = exterior.light or {}
+
+    local forwardX, forwardY, rightX, rightY =
+        getBasis(booth.heading)
+
+    local halfWidth = tonumber(shell.halfWidth) or 0.82
+    local front = tonumber(shell.front) or 0.08
+    local bottomZ = tonumber(shell.bottomZ) or 0.08
+    local topZ = tonumber(shell.topZ) or 2.12
+
+    local leftBottom = offsetFromBooth(
+        booth,
+        -halfWidth,
+        front,
+        bottomZ
+    )
+    local rightBottom = offsetFromBooth(
+        booth,
+        halfWidth,
+        front,
+        bottomZ
+    )
+    local leftTop = offsetFromBooth(
+        booth,
+        -halfWidth,
+        front,
+        topZ
+    )
+    local rightTop = offsetFromBooth(
+        booth,
+        halfWidth,
+        front,
+        topZ
+    )
+
+    local alpha = preview and 130 or (occupied and 125 or 235)
+    local pink = {
+        r = occupied and 180 or 255,
+        g = occupied and 90 or 72,
+        b = occupied and 160 or 178
+    }
+    local cyan = {
+        r = occupied and 100 or 86,
+        g = occupied and 170 or 220,
+        b = occupied and 190 or 255
+    }
+
+    -- Double-line neon shell. The second dim line creates a cheap glow halo.
+    for _, thicknessOffset in ipairs({ 0.0, 0.018 }) do
+        local zOffset = thicknessOffset
+        DrawLine(
+            leftBottom.x, leftBottom.y, leftBottom.z + zOffset,
+            leftTop.x, leftTop.y, leftTop.z + zOffset,
+            pink.r, pink.g, pink.b, alpha
+        )
+        DrawLine(
+            rightBottom.x, rightBottom.y, rightBottom.z + zOffset,
+            rightTop.x, rightTop.y, rightTop.z + zOffset,
+            cyan.r, cyan.g, cyan.b, alpha
+        )
+        DrawLine(
+            leftTop.x, leftTop.y, leftTop.z + zOffset,
+            rightTop.x, rightTop.y, rightTop.z + zOffset,
+            255, 210, 242, alpha
+        )
+    end
+
+    local signPos = offsetFromBooth(
+        booth,
+        tonumber(sign.right) or 0.0,
+        tonumber(sign.forward) or 0.03,
+        tonumber(sign.z) or 2.28
+    )
+
+    local signScale = tonumber(sign.scale) or 0.42
+
+    drawWorldLabel(
+        "FLEPURI",
+        signPos,
+        signScale,
+        255,
+        255,
+        255,
+        preview and 160 or 255
+    )
+
+    local subtitle = vector3(
+        signPos.x,
+        signPos.y,
+        signPos.z - 0.16
+    )
+
+    drawWorldLabel(
+        occupied
+            and "IN USE"
+            or (("PHOTO BOOTH  $%s"):format(Config.Price or 0)),
+        subtitle,
+        signScale * 0.48,
+        occupied and 255 or 255,
+        occupied and 190 or 225,
+        occupied and 210 or 244,
+        preview and 145 or 230
+    )
+
+    -- Small pink/cyan light pools make the cabinet read as a dedicated booth
+    -- at night without changing the photographed scene lighting.
+    local lightRange = tonumber(light.range) or 3.8
+    local intensity = tonumber(light.intensity) or 1.35
+
+    DrawLightWithRange(
+        leftTop.x,
+        leftTop.y,
+        leftTop.z - 0.25,
+        pink.r,
+        pink.g,
+        pink.b,
+        lightRange,
+        preview and intensity * 0.5 or intensity
+    )
+
+    DrawLightWithRange(
+        rightTop.x,
+        rightTop.y,
+        rightTop.z - 0.25,
+        cyan.r,
+        cyan.g,
+        cyan.b,
+        lightRange,
+        preview and intensity * 0.5 or intensity
+    )
+
+    -- Branded floor footprint. It is intentionally just an outline so it does
+    -- not fight the custom photo-floor surface during an active session.
+    local floorCenter = offsetFromBooth(
+        booth,
+        tonumber(floor.right) or 0.0,
+        tonumber(floor.forward) or 0.35,
+        tonumber(floor.z) or 0.025
+    )
+    local floorHalfWidth = tonumber(floor.halfWidth) or 0.92
+    local floorHalfDepth = tonumber(floor.halfDepth) or 0.72
+
+    local function floorPoint(rightOffset, forwardOffset)
+        return vector3(
+            floorCenter.x
+                + rightX * rightOffset
+                + forwardX * forwardOffset,
+            floorCenter.y
+                + rightY * rightOffset
+                + forwardY * forwardOffset,
+            floorCenter.z
+        )
+    end
+
+    local a = floorPoint(-floorHalfWidth, -floorHalfDepth)
+    local b1 = floorPoint(floorHalfWidth, -floorHalfDepth)
+    local c = floorPoint(floorHalfWidth, floorHalfDepth)
+    local d = floorPoint(-floorHalfWidth, floorHalfDepth)
+
+    DrawLine(a.x, a.y, a.z, b1.x, b1.y, b1.z, pink.r, pink.g, pink.b, alpha)
+    DrawLine(b1.x, b1.y, b1.z, c.x, c.y, c.z, cyan.r, cyan.g, cyan.b, alpha)
+    DrawLine(c.x, c.y, c.z, d.x, d.y, d.z, pink.r, pink.g, pink.b, alpha)
+    DrawLine(d.x, d.y, d.z, a.x, a.y, a.z, cyan.r, cyan.g, cyan.b, alpha)
+end
+
 local function renderPhotoLighting(booth)
     local lighting = Config.PhotoLighting or {}
     if lighting.enabled == false or not booth then return end
@@ -841,7 +1028,7 @@ local function registerInteraction(boothId, booth)
             {
                 name = ("puribooth_%s"):format(boothId),
                 icon = "fa-solid fa-camera-retro",
-                label = ("プリクラを撮る $%s"):format(Config.Price or 0),
+                label = ("フレプリを撮る $%s"):format(Config.Price or 0),
                 distance = Config.InteractDistance or 2.2,
                 canInteract = function()
                     return not sharedSessions[boothId]
@@ -1738,6 +1925,26 @@ CreateThread(function()
 
         for boothId, booth in pairs(dynamicBooths) do
             local state = sharedSessions[boothId]
+            local bc = vector3(
+                booth.coords.x,
+                booth.coords.y,
+                booth.coords.z
+            )
+
+            local exterior = Config.Exterior or {}
+            local exteriorDistance =
+                tonumber(exterior.renderDistance) or 26.0
+
+            if exterior.enabled ~= false
+                and #(coords - bc) <= exteriorDistance then
+
+                wait = 0
+                renderBoothExterior(
+                    booth,
+                    state ~= nil,
+                    false
+                )
+            end
 
             if state and not state.capturing then
                 local distance = #(coords - booth.captureCenter)
@@ -1755,12 +1962,6 @@ CreateThread(function()
                 and not ownedSession
                 and not editorOpen
                 and not placementMode then
-
-                local bc = vector3(
-                    booth.coords.x,
-                    booth.coords.y,
-                    booth.coords.z
-                )
 
                 if #(coords - bc) <= (Config.InteractDistance or 2.2) then
                     wait = 0
@@ -1946,6 +2147,11 @@ CreateThread(function()
 
                 local previewBooth = buildPlacementBooth()
                 drawPlacementZone(previewBooth)
+                renderBoothExterior(
+                    previewBooth,
+                    false,
+                    true
+                )
 
                 if placementCameraPreviewActive then
                     drawText2d(

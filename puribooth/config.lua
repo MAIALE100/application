@@ -22,9 +22,9 @@ Config.AdminPlaceMaxDistance = 15.0
 
 Config.PlacementPreview = {
     initialDistance = 2.8,
-    moveStep = 0.035,
-    rotateStep = 1.0,
-    heightStep = 0.02,
+    moveStep = 0.012,
+    rotateStep = 0.5,
+    heightStep = 0.008,
     maxHorizontalOffset = 6.0,
     alpha = 125
 }

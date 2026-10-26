@@ -132,8 +132,12 @@ local function puriphotoUiState()
         bundle:find("boothImportAvailable", 1, true) ~= nil
     local hasImportCallback =
         bundle:find("puriphotoGetBoothImport", 1, true) ~= nil
+    local hasImportConfirm =
+        bundle:find("puriphotoConfirmBoothImport", 1, true) ~= nil
 
-    if not hasImportNotice or not hasImportCallback then
+    if not hasImportNotice
+        or not hasImportCallback
+        or not hasImportConfirm then
         return false, "FAIL(stale-ui-no-flepri-import)"
     end
 
@@ -166,6 +170,7 @@ local function puriphotoUiState()
 
     if type(bridge) ~= "string"
         or bridge:find("OpenBoothImport", 1, true) == nil
+        or bridge:find("CancelBoothImport", 1, true) == nil
         or bridge:find("boothImportConsumed", 1, true) == nil then
         return false, "FAIL(client-flepri-bridge)"
     end

@@ -32,11 +32,12 @@
 - [ ] confirm target PuriPhoto version / replace with bundled compatible PuriPhoto
 
 ## Fonts / licensing
+- [x] PopRum Kiwi Telop identified as SIL OFL 1.1
+- [x] Gal Moji Gothic Free identified as SIL OFL 1.1
 - [x] Hachi Maru Pop identified as SIL OFL 1.1
 - [x] Hitori Gothic distribution page permits embedding and states SIL OFL
-- [ ] obtain permission for embedding / redistribution of Heisei Joshi Font
-      OR replace it with a redistributable font before creating the operator ZIP
-- [ ] include required font license / attribution files in release ZIP
+- [x] replace Heisei Joshi Font with redistributable OFL alternatives
+- [ ] include required OFL/license/copyright files in release ZIP
 
 ## Final validation
 - [ ] fresh-install test with empty puribooth tables

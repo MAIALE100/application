@@ -59,6 +59,26 @@ Config.PhotoLighting = {
     heightOffset = 0.55
 }
 
+Config.CaptureGuide = {
+    enabled = true,
+
+    -- 実カメラFOVから算出した横幅に対する「安全に写る範囲」。
+    safeWidthScale = 0.78,
+    outerWidthScale = 0.94,
+
+    -- 立ち位置として使える前後幅。
+    depth = 1.35,
+
+    -- 人物の頭が切れにくい高さ目安。
+    frameHeight = 2.25,
+
+    -- 最大4人が並びやすい足元マーカー。
+    positionMarkers = 4,
+
+    -- Gキー。撮影開始前だけガイド表示を切り替える。
+    toggleControl = 47
+}
+
 Config.Geometry = {
     captureForward = 3.20,
     captureRight = 0.0,
@@ -79,7 +99,7 @@ Config.Geometry = {
 -- Legion prototype so an admin can remove it and place the first real location.
 Config.SeedLegacyBooth = true
 Config.LegacyBooth = {
-    label = "Legion PURI",
+    label = "リージョンプリ",
     model = Config.DefaultModel,
     x = 207.60,
     y = -919.66,

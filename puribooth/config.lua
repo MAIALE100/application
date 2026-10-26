@@ -49,6 +49,40 @@ Config.ThemeSurfaces = {
     }
 }
 
+Config.Exterior = {
+    enabled = true,
+    renderDistance = 26.0,
+
+    -- Temporary branded shell around the stock cabinet.
+    -- These values can stay when the final streamed FLEPURI model replaces it.
+    shell = {
+        halfWidth = 0.82,
+        front = 0.08,
+        bottomZ = 0.08,
+        topZ = 2.12
+    },
+
+    sign = {
+        right = 0.0,
+        forward = 0.03,
+        z = 2.28,
+        scale = 0.42
+    },
+
+    floor = {
+        right = 0.0,
+        forward = 0.35,
+        halfWidth = 0.92,
+        halfDepth = 0.72,
+        z = 0.025
+    },
+
+    light = {
+        range = 3.8,
+        intensity = 1.35
+    }
+}
+
 Config.PhotoLighting = {
     enabled = true,
     range = 7.0,

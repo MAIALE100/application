@@ -477,6 +477,17 @@
         if (!mapped || mapped.faceH < 18) return
 
         const { x: cx, y: cy, faceW, faceH } = mapped
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(
+            geometry.x,
+            geometry.y,
+            geometry.w,
+            geometry.h
+        )
+        ctx.clip()
+
         const regionW = Math.max(32, faceW * 1.65)
         const regionH = Math.max(36, faceH * 1.55)
         const rx = cx - regionW / 2
@@ -618,6 +629,8 @@
                 ctx.restore()
             })
         }
+
+        ctx.restore()
     }
 
     const applyFaceBeautyForShot = (image, shotIndex, geometry) => {

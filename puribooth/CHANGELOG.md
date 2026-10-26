@@ -1,5 +1,13 @@
 # PuriBooth Changelog
 
+## 0.8.10 - 2026-10-26
+
+### 提出版準備 / 軽量化
+- PuriBooth編集UIの重複keydown監視を削除
+- READMEを現行FLEPURI仕様・複数台同期仕様へ更新
+- PuriPhotoビルド時に --emptyOutDir を明示し、古いdist成果物を提出物へ残さないよう改善
+- 運営提出用 RELEASE_CHECKLIST.md を追加
+
 ## 0.8.9 - 2026-10-26
 
 ### 自動生成停止

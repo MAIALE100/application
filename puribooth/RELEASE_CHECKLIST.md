@@ -64,4 +64,4 @@
 - [x] optional PuriPhoto compatibility patch recipe
 - [x] internal checklist excluded from operator ZIP
 - [x] optional font binaries excluded
-- [ ] final v1.0.1 ZIP generated and SHA256 fixed
+- [x] final v1.0.1 ZIP generated and SHA256 fixed

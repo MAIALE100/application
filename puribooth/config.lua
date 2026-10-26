@@ -56,16 +56,16 @@ Config.Exterior = {
     -- Temporary branded shell around the stock cabinet.
     -- These values can stay when the final streamed FLEPURI model replaces it.
     shell = {
-        halfWidth = 0.56,
-        front = 0.055,
+        halfWidth = 0.50,
+        front = 0.61,
         bottomZ = 0.10,
         topZ = 1.82
     },
 
     skin = {
         -- Opaque front skin that visually hides the stock claw-machine fascia.
-        front = 0.105,
-        halfWidth = 0.535,
+        front = 0.62,
+        halfWidth = 0.49,
 
         headerBottomZ = 1.56,
         headerTopZ = 2.13,
@@ -74,19 +74,19 @@ Config.Exterior = {
         lowerTopZ = 0.76,
 
         -- Side sleeves make the cover read as a cabinet from oblique angles.
-        sideBack = -0.40,
-        sideFront = 0.11,
+        sideBack = 0.40,
+        sideFront = 0.62,
 
         -- Fake camera/ring light in the upper shooting window.
         ringRight = 0.0,
-        ringForward = 0.125,
+        ringForward = 0.635,
         ringZ = 1.23,
         ringRadius = 0.17
     },
 
     sign = {
         right = 0.0,
-        forward = 0.125,
+        forward = 0.645,
         z = 1.94,
         scale = 0.52
     },

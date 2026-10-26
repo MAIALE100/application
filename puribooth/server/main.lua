@@ -1382,6 +1382,68 @@ local function queueRefund(session, reason, errorText)
     return queued
 end
 
+local function queueRefundReview(session, reason, errorText)
+    if not databaseReady or not session then return false end
+
+    local sessionId = tostring(session.sessionId or "")
+    local citizenid = tostring(session.refundIdentifier or "")
+    local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
+
+    if sessionId == "" or citizenid == "" or amount <= 0 then
+        return false
+    end
+
+    local ok, affected = pcall(function()
+        return MySQL.update.await([[
+            INSERT INTO puribooth_refunds
+                (
+                    session_id,
+                    booth_id,
+                    citizenid,
+                    money_type,
+                    amount,
+                    reason,
+                    status,
+                    attempts,
+                    last_error
+                )
+            VALUES (?, ?, ?, ?, ?, ?, 'processing', 0, ?)
+            ON DUPLICATE KEY UPDATE
+                reason = VALUES(reason),
+                last_error = VALUES(last_error),
+                status = IF(status = 'resolved', status, 'processing')
+        ]], {
+            sessionId,
+            tonumber(session.boothId),
+            citizenid,
+            tostring(session.moneyType or "cash"),
+            amount,
+            tostring(reason or "puribooth-refund-review"),
+            safeAuditDetail(errorText)
+        })
+    end)
+
+    local queued = ok and affected ~= nil
+    session.refundQueued = queued
+
+    if queued then
+        auditEvent(
+            session,
+            session.boothId,
+            "refund_review_required",
+            amount,
+            reason
+        )
+    else
+        print(
+            ("[puribooth] CRITICAL refund review write failed session=%s booth=%s amount=%d")
+                :format(sessionId, tostring(session.boothId or "?"), amount)
+        )
+    end
+
+    return queued
+end
+
 local function recordCompletedSale(boothId, session, reason)
     boothId = tostring(boothId)
 
@@ -2256,11 +2318,30 @@ AddEventHandler("onResourceStop", function(resource)
 
     for _, session in pairs(sessions) do
         if session.paid and session.paid > 0 then
-            refundSession(
-                session,
-                session.owner,
-                "puribooth-resource-restart-refund"
-            )
+            if session.saleRecorded == true then
+                auditEvent(
+                    session,
+                    session.boothId,
+                    "resource_stop_sale_already_recorded",
+                    session.paid,
+                    "no-refund"
+                )
+            elseif session.saleRecording == true
+                or session.refundInProgress == true
+                or session.settling == "capture-complete" then
+
+                queueRefundReview(
+                    session,
+                    "puribooth-resource-stop-uncertain",
+                    "settlement-state-uncertain"
+                )
+            else
+                refundSession(
+                    session,
+                    session.owner,
+                    "puribooth-resource-restart-refund"
+                )
+            end
         end
     end
 end)
@@ -2857,6 +2938,60 @@ RegisterCommand("puribooth_retry_refunds", function(source)
         ("[puribooth] manual refund retry attempted=%d resolved=%d")
             :format(attempted, resolved)
     )
+end, false)
+
+RegisterCommand("puribooth_refund_review", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local sessionId = tostring(args[1] or "")
+    local action = string.lower(tostring(args[2] or ""))
+
+    if sessionId == "" or (action ~= "resolved" and action ~= "retry") then
+        print("[puribooth] usage: puribooth_refund_review <session_id> <resolved|retry>")
+        print("[puribooth]   resolved = QBox側ですでに返金済みと確認した場合")
+        print("[puribooth]   retry    = 未返金と確認し、自動再試行へ戻す場合")
+        return
+    end
+
+    local affected
+
+    if action == "resolved" then
+        affected = MySQL.update.await([[
+            UPDATE puribooth_refunds
+            SET
+                status = 'resolved',
+                resolved_at = NOW(),
+                last_error = 'manual-confirmed-refunded'
+            WHERE session_id = ? AND status = 'processing'
+        ]], { sessionId })
+    else
+        affected = MySQL.update.await([[
+            UPDATE puribooth_refunds
+            SET
+                status = 'pending',
+                last_error = 'manual-approved-retry'
+            WHERE session_id = ? AND status = 'processing'
+        ]], { sessionId })
+    end
+
+    if affected and affected > 0 then
+        print(
+            ("[puribooth] refund review session=%s action=%s updated")
+                :format(sessionId, action)
+        )
+
+        if action == "retry" then
+            retryPendingRefunds(1)
+        end
+    else
+        print(
+            ("[puribooth] refund review session=%s not found or not processing")
+                :format(sessionId)
+        )
+    end
 end, false)
 
 RegisterCommand("puribooth_selftest", function(source)

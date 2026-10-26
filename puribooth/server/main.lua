@@ -288,7 +288,7 @@ local function validThemeSurface(surface)
     if type(image) ~= "string"
         or #image < 32
         or #image > (8 * 1024 * 1024)
-        or not image:sub(1, 32):lower():find("^data:image/") then
+        or not image:sub(1, 32):lower():find("^data:image/jpeg;base64,") then
 
         return nil
     end

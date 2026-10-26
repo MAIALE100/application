@@ -182,19 +182,22 @@
                 <label class="range-row"><span>顔位置・左右</span><input id="faceX" type="range" min="0" max="100" value="50" /></label>
                 <label class="range-row"><span>顔位置・上下</span><input id="faceY" type="range" min="0" max="100" value="30" /></label>
                 <label class="range-row"><span>顔の範囲</span><input id="faceSize" type="range" min="8" max="45" value="22" /></label>
-                <label class="range-row"><span>目を大きく</span><input id="faceEye" type="range" min="0" max="40" value="0" /></label>
-                <label class="range-row"><span>小顔</span><input id="faceSlim" type="range" min="0" max="30" value="0" /></label>
-                <label class="range-row"><span>顔の明るさ</span><input id="faceBright" type="range" min="0" max="30" value="0" /></label>
-                <label class="range-row"><span>頬の血色</span><input id="faceRosy" type="range" min="0" max="30" value="0" /></label>
+                <label class="range-row"><span>目を大きく</span><input id="faceEye" type="range" min="0" max="60" value="0" /></label>
+                <label class="range-row"><span>小顔</span><input id="faceSlim" type="range" min="0" max="45" value="0" /></label>
+                <label class="range-row"><span>顔の明るさ</span><input id="faceBright" type="range" min="0" max="40" value="0" /></label>
+                <label class="range-row"><span>頬の血色</span><input id="faceRosy" type="range" min="0" max="40" value="0" /></label>
 
-                <div class="inline-row">
-                    <button id="facePuriPreset">プリクラ顔</button>
-                    <button id="faceResetCurrent">この顔をリセット</button>
+                <div class="preset-row">
+                    <button data-face-preset="natural">ナチュラル盛り</button>
+                    <button data-face-preset="strong">しっかり盛り</button>
+                    <button data-face-preset="max">激盛り</button>
                 </div>
+                <button id="faceResetCurrent" class="wide">この顔をリセット</button>
                 <div class="inline-row">
-                    <button id="faceCopyShot">この写真の全員に反映</button>
-                    <button id="faceCopyAll">全写真の登録顔に反映</button>
+                    <button id="faceCopyShot">この写真の全員へ</button>
+                    <button id="faceCopyPerson">同じ顔番号を全写真へ</button>
                 </div>
+                <button id="faceCopyAll" class="wide">全写真の登録顔へ反映</button>
             </section>
 
             <section class="tool-page" data-page="frame">

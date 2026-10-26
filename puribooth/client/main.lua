@@ -1795,11 +1795,12 @@ RegisterNetEvent("puribooth:client:sessionOpened", function(boothId, expiresAt)
     )
 end)
 
-local function relevantCountdownBooth()
+local function relevantSessionBooth(capturingOnly)
     if ownedSession then
         local ownedId = tostring(ownedSession.boothId)
         local ownedState = sharedSessions[ownedId]
-        if ownedState and ownedState.capturing then
+        if ownedState
+            and (not capturingOnly or ownedState.capturing) then
             return ownedId
         end
     end
@@ -1808,10 +1809,13 @@ local function relevantCountdownBooth()
     local coords = GetEntityCoords(ped)
     local bestId = nil
     local bestDistance = nil
-    local maxDistance = tonumber(Config.CountdownSyncDistance) or 5.5
+    local maxDistance =
+        capturingOnly
+            and (tonumber(Config.CountdownSyncDistance) or 5.5)
+            or (tonumber(Config.ThemeSyncDistance) or 5.5)
 
     for id, state in pairs(sharedSessions) do
-        if state and state.capturing then
+        if state and (not capturingOnly or state.capturing) then
             local booth = dynamicBooths[id]
             if booth then
                 local distance = #(coords - booth.captureCenter)
@@ -1825,6 +1829,10 @@ local function relevantCountdownBooth()
     end
 
     return bestId
+end
+
+local function relevantCountdownBooth()
+    return relevantSessionBooth(true)
 end
 
 RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
@@ -2241,6 +2249,7 @@ CreateThread(function()
         local ped = PlayerPedId()
         local coords = GetEntityCoords(ped)
         local captureGuideNearby = false
+        local relevantBoothId = relevantSessionBooth(false)
 
         for boothId, booth in pairs(dynamicBooths) do
             local state = sharedSessions[boothId]
@@ -2265,7 +2274,7 @@ CreateThread(function()
                 )
             end
 
-            if state then
+            if state and tostring(boothId) == relevantBoothId then
                 local themeDistance =
                     #(coords - booth.captureCenter)
                 local themeSyncDistance =
@@ -2277,7 +2286,10 @@ CreateThread(function()
                 end
             end
 
-            if state and not state.capturing then
+            if state
+                and not state.capturing
+                and tostring(boothId) == relevantBoothId then
+
                 local distance = #(coords - booth.captureCenter)
 
                 if distance < 35.0 then

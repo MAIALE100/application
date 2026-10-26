@@ -1,17 +1,17 @@
-FLEPURI / フレプリ v1.0.3
+FLEPURI / フレプリ v1.0.4
 Flecity operator submission package
 Release date: 2026-10-27
-Package file: FLEPURI_v1.0.3_submission.zip
+Package file: FLEPURI_v1.0.4_submission.zip
 
 Primary resource:
-  puribooth v1.0.3
+  puribooth v1.0.4
 
 Compatible PuriPhoto runtime:
   puriphoto v1.1.1
   production bundle: ui/dist/assets/puriphoto-v1.1.1-flepri.js
 
 Required runtime:
-  qbx_core 2.5.4+
+  qbx_core with GetJobs/GetJob/GetPlayer exports
   oxmysql
   lb-phone
   screenshot-basic

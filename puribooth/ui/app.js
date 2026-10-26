@@ -1683,6 +1683,61 @@
         render()
     })
 
+    const copyFaceValues = (source, target) => {
+        target.eye = source.eye
+        target.slim = source.slim
+        target.bright = source.bright
+        target.rosy = source.rosy
+    }
+
+    document.getElementById('faceCopyShot').addEventListener('click', () => {
+        const source = currentFaceTarget()
+        if (!source?.enabled) {
+            toolStatus.textContent = '先に基準にする顔を登録してください'
+            return
+        }
+
+        let copied = 0
+        state.faceTargets[state.faceEditShot].forEach((target, index) => {
+            if (index === state.faceSlot || !target.enabled) return
+            copyFaceValues(source, target)
+            copied++
+        })
+
+        toolStatus.textContent =
+            copied > 0
+                ? `同じ写真の${copied}人へ顔補正を反映しました`
+                : 'この写真には他の登録済み顔がありません'
+        render()
+    })
+
+    document.getElementById('faceCopyAll').addEventListener('click', () => {
+        const source = currentFaceTarget()
+        if (!source?.enabled) {
+            toolStatus.textContent = '先に基準にする顔を登録してください'
+            return
+        }
+
+        let copied = 0
+        state.faceTargets.forEach((targets, shotIndex) => {
+            targets.forEach((target, slotIndex) => {
+                if (
+                    shotIndex === state.faceEditShot
+                    && slotIndex === state.faceSlot
+                ) return
+                if (!target.enabled) return
+                copyFaceValues(source, target)
+                copied++
+            })
+        })
+
+        toolStatus.textContent =
+            copied > 0
+                ? `全写真の登録済み${copied}人へ顔補正を反映しました`
+                : 'ほかに登録済みの顔がありません'
+        render()
+    })
+
     const bindRange = (id, key) => {
         document.getElementById(id).addEventListener('input', event => {
             state[key] = Number(event.target.value)

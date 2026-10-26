@@ -1,4 +1,4 @@
-# PuriPhoto compatibility for FLEPURI v1.0.1
+# PuriPhoto compatibility for FLEPURI v1.0.2
 
 ## Required
 
@@ -51,7 +51,7 @@ FLEPURI開発環境の `puribooth-update.ps1` はbuild後にbooth-import bridge�
 
 ## Handoff safety
 
-FLEPURI v1.0.1は完成画像をPuriPhoto exportへ渡しただけでは編集画面を閉じません。
+FLEPURI v1.0.2は完成画像をPuriPhoto exportへ渡しただけでは編集画面を閉じません。
 
 PuriPhoto NUIが `puriphotoGetBoothImport` で画像を実際に取得し、`puriphoto:client:boothImportConsumed` receiptを返した場合だけFLEPURI編集画面を閉じます。
 

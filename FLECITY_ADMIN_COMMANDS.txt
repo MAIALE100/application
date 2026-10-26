@@ -1,13 +1,12 @@
 Flecity 管理・開発コマンド早見表
 ================================
-更新日: 2026-10-26
+更新日: 2026-10-27
 
-[PuriBooth / プリクラ台]
+[FLEPURI / フレプリ台]
 
-初回だけ管理権限を取得
-/puribooth claimadmin
+管理コマンドは weazel job のみ利用可能
 
-プリクラ台を設置
+フレプリ台を設置
 /puribooth place
 
 設置プレビュー中
@@ -19,8 +18,24 @@ C               : 撮影カメラ確認
 Enter           : 設置確定
 Backspace       : 設置キャンセル
 
-近くのプリクラ台を撤去
+近くのフレプリ台を撤去
 /puribooth remove
+※未回収売上が残っている台は撤去不可
+
+近くの台の料金変更
+/puribooth price 1500
+
+台IDを指定して料金変更
+/puribooth price 1500 3
+
+全台の料金・未回収売上・累計売上・撮影回数を確認
+/puribooth sales
+
+全台の未回収売上を会社口座へ回収
+/puribooth collect all
+
+指定台だけ回収
+/puribooth collect 3
 
 設置済み台数を確認
 /puribooth list

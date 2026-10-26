@@ -74,6 +74,16 @@ if (-not $BoothOnly) {
     
 }
 
+Invoke-Step "Importing local purikura fonts" {
+    $fontImporter = Join-Path $Root "puribooth-fonts.ps1"
+    if (Test-Path -LiteralPath $fontImporter) {
+        & $fontImporter
+    }
+    else {
+        Write-Warning "Font importer not found. Custom fonts will use fallback fonts."
+    }
+}
+
 Invoke-Step "Validating booth JavaScript" {
     node --check (Join-Path $BoothSource "ui\app.js")
     if ($LASTEXITCODE -ne 0) { throw "PuriBooth UI JavaScript syntax check failed" }

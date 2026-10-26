@@ -805,7 +805,12 @@ local function changeBoothPrice(source, amountText, boothIdText)
     end
 
     booth.price = price
-    broadcastBooths(-1)
+    TriggerClientEvent(
+        "puribooth:client:updateBoothPrice",
+        -1,
+        boothId,
+        price
+    )
 
     notify(
         source,

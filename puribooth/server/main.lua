@@ -1240,9 +1240,10 @@ end, false)
 local function nextSessionId(source, boothId)
     sessionSerial = sessionSerial + 1
 
-    return ("%d-%d-%s-%d")
+    return ("%d-%d-%d-%s-%d")
         :format(
             os.time(),
+            GetGameTimer(),
             tonumber(source) or 0,
             tostring(boothId or "0"),
             sessionSerial
@@ -1319,7 +1320,11 @@ local function queueRefund(session, reason, errorText)
             ON DUPLICATE KEY UPDATE
                 reason = VALUES(reason),
                 last_error = VALUES(last_error),
-                status = IF(status = 'resolved', status, 'pending')
+                status = IF(
+                    status IN ('resolved', 'processing'),
+                    status,
+                    'pending'
+                )
         ]], {
             sessionId,
             tonumber(session.boothId),

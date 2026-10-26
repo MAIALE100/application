@@ -2846,6 +2846,50 @@
         render()
     })
 
+    window.addEventListener('keydown', event => {
+        const target = event.target
+        const isTyping =
+            target instanceof HTMLInputElement
+            || target instanceof HTMLTextAreaElement
+            || target?.isContentEditable
+
+        if ((event.ctrlKey || event.metaKey) && !isTyping) {
+            if (event.key.toLowerCase() === 'z') {
+                event.preventDefault()
+                if (event.shiftKey) {
+                    redoDecoration()
+                } else {
+                    undoDecoration()
+                }
+                return
+            }
+
+            if (event.key.toLowerCase() === 'y') {
+                event.preventDefault()
+                redoDecoration()
+                return
+            }
+        }
+
+        if (!isTyping && (event.key === 'Delete' || event.key === 'Backspace')) {
+            if (!state.selectedDecoration) return
+            event.preventDefault()
+            document.getElementById('deleteSelectedButton')?.click()
+            return
+        }
+
+        if (!isTyping && event.key === 'Escape') {
+            state.armedStamp = null
+            state.armedText = false
+            state.selectedDecoration = null
+            state.draggingDecoration = false
+            document.querySelectorAll('[data-stamp]').forEach(item => item.classList.remove('active'))
+            updateHistoryButtons()
+            toolStatus.textContent = '選択を解除しました'
+            render()
+        }
+    })
+
     document.getElementById('resetButton').addEventListener('click', () => resetDecorations(true))
 
     document.getElementById('cancelButton').addEventListener('click', async () => {

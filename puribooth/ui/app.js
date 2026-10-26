@@ -101,6 +101,7 @@
         armedStamp: null,
         armedText: false,
         textStyle: 'puri',
+        textFont: 'puriRound',
         repeatStamp: false,
         drawing: false,
         drawEnabled: false,
@@ -843,10 +844,11 @@
         for (let i = state.texts.length - 1; i >= 0; i--) {
             const item = state.texts[i]
             ctx.save()
-            ctx.font = `900 ${item.size}px "Noto Sans JP",sans-serif`
+            const preset = setCanvasTextFont(item, item.size)
             const metrics = ctx.measureText(item.value)
+            const measuredWidth = metrics.width * preset.scaleX
             ctx.restore()
-            const halfW = Math.max(item.size, metrics.width) * .55
+            const halfW = Math.max(item.size, measuredWidth) * .55
             const halfH = item.size * .7
             if (
                 point.x >= item.x - halfW
@@ -1224,12 +1226,56 @@
         ctx.restore()
     }
 
+    const textFontPreset = value => {
+        const preset = String(value || 'puriRound')
+        const fonts = {
+            puriRound: {
+                family: '"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif',
+                weight: 900,
+                italic: false,
+                scaleX: 1.06
+            },
+            handwritten: {
+                family: '"Segoe Print","Comic Sans MS","Yu Gothic","Meiryo",cursive',
+                weight: 700,
+                italic: true,
+                scaleX: 1.02
+            },
+            pop: {
+                family: '"Arial Rounded MT Bold","Arial Black","Yu Gothic","Meiryo",sans-serif',
+                weight: 900,
+                italic: false,
+                scaleX: 1.13
+            },
+            y2k: {
+                family: '"Impact","Arial Black","Yu Gothic","Meiryo",sans-serif',
+                weight: 900,
+                italic: false,
+                scaleX: .92
+            },
+            simple: {
+                family: '"Noto Sans JP","Yu Gothic","Meiryo",sans-serif',
+                weight: 700,
+                italic: false,
+                scaleX: 1
+            }
+        }
+        return fonts[preset] || fonts.puriRound
+    }
+
+    const setCanvasTextFont = (item, size) => {
+        const preset = textFontPreset(item?.font)
+        ctx.font = `${preset.italic ? 'italic ' : ''}${preset.weight} ${size}px ${preset.family}`
+        return preset
+    }
+
     const drawStyledText = item => {
         const style = item.style || 'puri'
         const size = Number(item.size) || 64
-        ctx.font = `900 ${size}px "Noto Sans JP",sans-serif`
+        const fontPreset = setCanvasTextFont(item, size)
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
+        ctx.scale(fontPreset.scaleX, 1)
 
         if (style === 'simple') {
             ctx.fillStyle = item.color
@@ -1366,8 +1412,8 @@
                     radius * 2
                 )
             } else {
-                ctx.font = `900 ${selected.size}px "Noto Sans JP",sans-serif`
-                const width = Math.max(selected.size, ctx.measureText(selected.value).width) + 28
+                const preset = setCanvasTextFont(selected, selected.size)
+                const width = Math.max(selected.size, ctx.measureText(selected.value).width * preset.scaleX) + 28
                 const height = selected.size * 1.5
                 ctx.strokeRect(
                     -width / 2,
@@ -1410,6 +1456,7 @@
         state.armedStamp = null
         state.armedText = false
         state.textStyle = 'puri'
+        state.textFont = 'puriRound'
         state.repeatStamp = false
         state.drawEnabled = false
         state.drawStyle = 'pen'
@@ -1425,6 +1472,9 @@
         document.querySelectorAll('[data-stamp]').forEach(button => button.classList.remove('active'))
         document.querySelectorAll('[data-text-style]').forEach(button => {
             button.classList.toggle('active', button.dataset.textStyle === 'puri')
+        })
+        document.querySelectorAll('[data-text-font]').forEach(button => {
+            button.classList.toggle('active', button.dataset.textFont === 'puriRound')
         })
         document.querySelectorAll('[data-draw-style]').forEach(button => {
             button.classList.toggle('active', button.dataset.drawStyle === 'pen')
@@ -2123,6 +2173,25 @@
         })
     })
 
+    document.querySelectorAll('[data-text-font]').forEach(button => {
+        button.addEventListener('click', () => {
+            state.textFont = button.dataset.textFont || 'puriRound'
+            document.querySelectorAll('[data-text-font]').forEach(item => {
+                item.classList.toggle('active', item === button)
+            })
+            const item = selectedDecorationItem()
+            if (state.selectedDecoration?.type === 'text' && item) {
+                pushDecorationHistory()
+                item.font = state.textFont
+                updateHistoryButtons()
+                toolStatus.textContent = '選択中のフォントを変更しました'
+                render()
+            } else {
+                toolStatus.textContent = `${button.textContent.trim()}を選びました`
+            }
+        })
+    })
+
     document.querySelectorAll('[data-draw-style]').forEach(button => {
         button.addEventListener('click', () => {
             state.drawStyle = button.dataset.drawStyle || 'pen'
@@ -2164,6 +2233,7 @@
         item.color = document.getElementById('textColor').value
         item.size = Number(document.getElementById('textSize').value)
         item.style = state.textStyle
+        item.font = state.textFont
         updateHistoryButtons()
         toolStatus.textContent = '選択中の文字を更新しました'
         render()
@@ -2258,6 +2328,7 @@
                     size: Number(document.getElementById('textSize').value),
                     color: document.getElementById('textColor').value,
                     style: state.textStyle,
+                    font: state.textFont,
                     rotation: 0
                 })
                 state.armedText = false
@@ -2278,6 +2349,22 @@
 
         if (hit) {
             const item = selectedDecorationItem()
+            if (hit.type === 'text' && item) {
+                state.textStyle = item.style || 'puri'
+                state.textFont = item.font || 'puriRound'
+                const textInput = document.getElementById('textInput')
+                const textSize = document.getElementById('textSize')
+                const textColor = document.getElementById('textColor')
+                if (textInput) textInput.value = item.value || ''
+                if (textSize) textSize.value = String(Number(item.size) || 64)
+                if (textColor) textColor.value = item.color || '#ff4fa3'
+                document.querySelectorAll('[data-text-style]').forEach(button => {
+                    button.classList.toggle('active', button.dataset.textStyle === state.textStyle)
+                })
+                document.querySelectorAll('[data-text-font]').forEach(button => {
+                    button.classList.toggle('active', button.dataset.textFont === state.textFont)
+                })
+            }
             state.draggingDecoration = true
             state.dragHistoryCaptured = false
             state.dragOffset = {

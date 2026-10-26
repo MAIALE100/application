@@ -1,6 +1,8 @@
 local sessions = {}
 local booths = {}
 local databaseReady = false
+local themeSerial = 0
+local clearThemeRecipients
 
 local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
@@ -169,7 +171,7 @@ local function validThemeSurface(surface)
     }
 end
 
-local function clearThemeRecipients(boothId, session)
+clearThemeRecipients = function(boothId, session)
     if not session or type(session.themeRecipients) ~= "table" then return end
 
     for playerId in pairs(session.themeRecipients) do
@@ -177,7 +179,8 @@ local function clearThemeRecipients(boothId, session)
             TriggerClientEvent(
                 "puribooth:client:themeClear",
                 playerId,
-                tostring(boothId)
+                tostring(boothId),
+                tonumber(session.themeVersion) or 0
             )
         end
     end
@@ -226,7 +229,8 @@ local function syncThemeToNearby(boothId, session)
                 TriggerClientEvent(
                     "puribooth:client:themeClear",
                     playerId,
-                    tostring(boothId)
+                    tostring(boothId),
+                    tonumber(session.themeVersion) or 0
                 )
             end
             session.themeRecipients[playerId] = nil
@@ -636,11 +640,13 @@ RegisterNetEvent("puribooth:server:setTheme", function(boothId, theme)
 
     clearThemeRecipients(boothId, session)
 
+    themeSerial = themeSerial + 1
+
     session.theme = {
         background = background,
         floor = floor
     }
-    session.themeVersion = (tonumber(session.themeVersion) or 0) + 1
+    session.themeVersion = themeSerial
     session.themeRecipients = {}
 
     syncThemeToNearby(boothId, session)

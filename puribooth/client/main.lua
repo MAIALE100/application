@@ -1538,7 +1538,10 @@ local function locationMetadata(booth)
     return {
         label = localizeBoothLabel(booth.label or "フレプリ"),
         street = street or "",
-        zone = zone or ""
+        zone = zone or "",
+        x = tonumber(c.x) or 0.0,
+        y = tonumber(c.y) or 0.0,
+        z = tonumber(c.z) or 0.0
     }
 end
 
@@ -2131,6 +2134,33 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
         return
     end
 
+    local booth = boothId and dynamicBooths[boothId] or nil
+    local metadata = locationMetadata(booth)
+
+    local callOk, accepted, reason = pcall(function()
+        return exports.puriphoto:OpenBoothImport(
+            image,
+            metadata
+        )
+    end)
+
+    if not callOk or accepted ~= true then
+        notify(
+            "error",
+            "PuriPhotoへ写真を渡せませんでした。"
+                .. " 編集内容は残してあります。もう一度送信してください。"
+        )
+
+        cb({
+            ok = false,
+            error = "puriphoto_handoff_failed",
+            reason = callOk
+                and tostring(reason or "rejected")
+                or "export_error"
+        })
+        return
+    end
+
     SetNuiFocus(false, false)
     editorOpen = false
     SendNUIMessage({ action = "close" })
@@ -2142,17 +2172,8 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
         )
     end
 
-    local booth = boothId and dynamicBooths[boothId] or nil
-    local metadata = locationMetadata(booth)
-
     ownedSession = nil
     editorBooth = nil
-
-    TriggerEvent(
-        "puriphoto:client:openBoothImport",
-        image,
-        metadata
-    )
 
     cb({
         ok = true,

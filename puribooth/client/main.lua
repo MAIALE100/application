@@ -2187,6 +2187,8 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
         return
     end
 
+    SetNuiFocus(false, false)
+
     local deadline = GetGameTimer() + 7000
 
     while not puriphotoHandoffReceipts[handoffToken]
@@ -2204,6 +2206,8 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
                 handoffToken
             )
         end)
+
+        SetNuiFocus(true, true)
 
         notify(
             "error",

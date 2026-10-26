@@ -27,7 +27,7 @@ Config.PlacementPreview = {
 }
 
 -- Temporary stock model. This can later be replaced with the final streamed
--- Flecity PURI cabinet without changing the placement database.
+-- FLEPURI cabinet without changing the placement database.
 Config.DefaultModel = "ch_prop_arcade_claw_01a"
 
 -- Geometry is relative to the booth heading, so admins can place a booth
@@ -99,7 +99,7 @@ Config.Geometry = {
 -- Legion prototype so an admin can remove it and place the first real location.
 Config.SeedLegacyBooth = true
 Config.LegacyBooth = {
-    label = "リージョンプリ",
+    label = "フレプリ",
     model = Config.DefaultModel,
     x = 207.60,
     y = -919.66,

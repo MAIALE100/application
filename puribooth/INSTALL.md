@@ -1,4 +1,4 @@
-# FLEPURI v1.0.2 導入手順
+# FLEPURI v1.0.3 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.2 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.3 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -44,7 +44,7 @@ ensure puribooth
 
 手動SQLは不要です。
 
-初回起動時に `puribooth_booths` / `puribooth_events` / `puribooth_refunds` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列と保守テーブルの存在まで確認します。
+初回起動時に `puribooth_booths` / `puribooth_events` / `puribooth_refunds` / `puribooth_collections` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列と保守テーブルの存在まで確認します。
 
 ## 5. Weazel権限
 
@@ -118,7 +118,7 @@ puribooth_selftest
 [puribooth] selftest PASS
 ```
 
-になれば依存・PuriPhoto bridge・会社口座・DB・設定の事前検査は合格です。
+になれば依存・PuriPhoto receipt bridge・会社口座・DB・会計整合性・未解決返金/売上回収・設定の事前検査は合格です。
 
 FAIL時は直下に `FIX:` が表示されます。
 
@@ -144,7 +144,13 @@ puribooth_support
 puribooth_support <session_id または citizenid>
 puribooth_refunds
 puribooth_retry_refunds
+puribooth_refund_review <session_id> <resolved|retry>
+puribooth_collections
+puribooth_collection_retry <collection_id>
+puribooth_collection_review <collection_id> <paid|notpaid>
 ```
 
 `pending` 返金は通常60秒ごとに自動再試行されます。
 `processing` は「QBoxへの返金呼び出し後、DB確定前に異常終了した可能性」があるため、自動再試行せず手動照合してください。
+
+会社売上回収の `paying` も銀行呼び出し結果が不明な状態です。Renewed-Bankingの履歴を確認して `puribooth_collection_review <collection_id> <paid|notpaid>` で確定します。`finalizing` / `restoring` は `puribooth_collection_retry <collection_id>` で銀行へ再送金せずDB処理だけを再試行できます。

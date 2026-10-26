@@ -39,6 +39,210 @@
 body { margin: 0; overflow: hidden; user-select: none; }
 .hidden { display: none !important; }
 
+.management-panel {
+    width: 100vw;
+    height: 100vh;
+    padding: 3vh 3vw;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(255,255,255,.92), transparent 30%),
+        linear-gradient(135deg, rgba(255,205,232,.98), rgba(225,216,255,.98));
+}
+
+.management-shell {
+    width: min(94vw, 1500px);
+    height: min(92vh, 980px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    padding: 2vh 1.5vw;
+    border: 2px solid rgba(255,255,255,.9);
+    border-radius: 2.2vh;
+    background: rgba(255,255,255,.95);
+    box-shadow: 0 1.6vh 5vh rgba(71, 37, 68, .2);
+}
+
+.management-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1vw;
+}
+
+.management-head h1 {
+    margin: .2vh 0 0;
+    font-size: 3.1vh;
+}
+
+.management-subtitle {
+    margin: .35vh 0 0;
+    color: #806477;
+    font-size: 1.25vh;
+}
+
+.management-head-actions {
+    display: flex;
+    gap: .55vw;
+}
+
+.management-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .8vw;
+}
+
+.management-stat {
+    padding: 1.3vh 1vw;
+    border-radius: 1.35vh;
+    background: linear-gradient(145deg, #fff7fb, #f4efff);
+    border: 1px solid rgba(223, 188, 213, .65);
+}
+
+.management-stat span {
+    display: block;
+    color: #7e6175;
+    font-size: 1.08vh;
+    font-weight: 800;
+}
+
+.management-stat strong {
+    display: block;
+    margin-top: .35vh;
+    color: #261520;
+    font-size: 2.2vh;
+}
+
+.management-table {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #eadce7;
+    border-radius: 1.4vh;
+    background: #fff;
+}
+
+.management-row {
+    display: grid;
+    grid-template-columns: minmax(240px, 1.65fr) minmax(125px, .8fr) minmax(115px, .7fr) minmax(125px, .8fr) minmax(85px, .55fr) minmax(230px, 1.25fr);
+    gap: .7vw;
+    align-items: center;
+    padding: 1.05vh .8vw;
+    border-bottom: 1px solid #f0e7ed;
+}
+
+.management-row-head {
+    flex: none;
+    background: #21131e;
+    color: #fff;
+    font-size: 1.05vh;
+    font-weight: 900;
+    letter-spacing: .05em;
+}
+
+.management-rows {
+    min-height: 0;
+    overflow: auto;
+}
+
+.management-booth-name {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: .45vw;
+    align-items: center;
+}
+
+.management-id {
+    min-width: 3.3em;
+    padding: .45vh .45vw;
+    border-radius: .7vh;
+    background: #f2e8ef;
+    color: #79556f;
+    text-align: center;
+    font-size: 1.02vh;
+    font-weight: 900;
+}
+
+.management-row input {
+    width: 100%;
+    min-width: 0;
+    height: 4.1vh;
+    padding: 0 .65vw;
+    border: 1px solid #e0d1dc;
+    border-radius: .85vh;
+    background: #fff;
+    color: #2b1926;
+    outline: none;
+}
+
+.management-row input:focus {
+    border-color: #e84c9a;
+    box-shadow: 0 0 0 2px rgba(232, 76, 154, .12);
+}
+
+.management-money,
+.management-count {
+    font-size: 1.25vh;
+    font-weight: 900;
+}
+
+.management-balance {
+    color: #d63783;
+}
+
+.management-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .4vw;
+}
+
+.management-actions button,
+.management-booth-name button {
+    min-height: 3.7vh;
+    padding: .55vh .55vw;
+    font-size: 1.02vh;
+}
+
+.management-actions .collect-button {
+    grid-column: 1 / -1;
+}
+
+.management-empty {
+    padding: 5vh 2vw;
+    color: #826d7d;
+    text-align: center;
+    font-size: 1.3vh;
+}
+
+.management-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1vw;
+}
+
+.management-status {
+    min-width: 0;
+    color: #765c6f;
+    font-size: 1.15vh;
+}
+
+.management-footer .primary {
+    min-width: 260px;
+}
+
+@media (max-width: 1100px) {
+    .management-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .management-row {
+        grid-template-columns: minmax(210px, 1.5fr) minmax(115px, .8fr) minmax(105px, .7fr) minmax(115px, .8fr) minmax(75px, .55fr) minmax(205px, 1.2fr);
+    }
+}
+
 #app {
     width: 100vw;
     height: 100vh;

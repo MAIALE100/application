@@ -1963,6 +1963,46 @@ local function databaseSchemaState()
     return "PASS"
 end
 
+local function boothDataState()
+    if not databaseReady then
+        return "FAIL(not-ready)"
+    end
+
+    local minPrice =
+        math.max(0, math.floor(tonumber(Config.MinPrice) or 0))
+    local maxPrice =
+        math.max(
+            minPrice,
+            math.floor(tonumber(Config.MaxPrice) or 100000)
+        )
+
+    local ok, invalid = pcall(function()
+        return MySQL.scalar.await([[
+            SELECT COUNT(*)
+            FROM puribooth_booths
+            WHERE
+                price IS NULL
+                OR price < ?
+                OR price > ?
+                OR lifetime_sales <> (balance + collected_total)
+        ]], {
+            minPrice,
+            maxPrice
+        })
+    end)
+
+    if not ok then
+        return "FAIL(query)"
+    end
+
+    invalid = tonumber(invalid) or 0
+    if invalid > 0 then
+        return ("FAIL(invalid-booths=%d)"):format(invalid)
+    end
+
+    return "PASS"
+end
+
 local function configState()
     local minPrice = math.floor(tonumber(Config.MinPrice) or 0)
     local maxPrice = math.floor(tonumber(Config.MaxPrice) or 0)
@@ -2068,6 +2108,7 @@ RegisterCommand("puribooth_selftest", function(source)
     local job = managementJobState()
     local payout = payoutState()
     local database = databaseSchemaState()
+    local accounting = boothDataState()
     local config = configState()
     local fonts = fontState()
 
@@ -2088,6 +2129,7 @@ RegisterCommand("puribooth_selftest", function(source)
         and job == "PASS"
         and payoutPass
         and database == "PASS"
+        and accounting == "PASS"
         and config == "PASS"
 
     print(("[puribooth] selftest %s"):format(overall and "PASS" or "FAIL"))
@@ -2100,6 +2142,7 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   management_job=%s"):format(job))
     print(("[puribooth]   payout=%s"):format(payout))
     print(("[puribooth]   database=%s"):format(database))
+    print(("[puribooth]   accounting=%s"):format(accounting))
     print(("[puribooth]   config=%s"):format(config))
     print(("[puribooth]   fonts=%s"):format(fonts))
     print(("[puribooth]   booths=%d"):format(boothCount()))
@@ -2127,6 +2170,10 @@ RegisterCommand("puribooth_selftest", function(source)
 
     if database ~= "PASS" then
         print("[puribooth]   FIX: oxmysql接続とpuribooth_boothsの自動migration結果を確認してください。")
+    end
+
+    if accounting ~= "PASS" then
+        print("[puribooth]   FIX: 各台の料金と lifetime_sales = balance + collected_total を確認してください。")
     end
 
     if config ~= "PASS" then

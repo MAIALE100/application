@@ -1766,6 +1766,15 @@ CreateThread(function()
         if captureGuideNearby then
             wait = 0
 
+            if captureGuideVisible then
+                drawText2d(
+                    "白枠＝写る目安　緑枠＝安全範囲　白い丸＝立ち位置　[G] 表示切替",
+                    0.5,
+                    0.88,
+                    0.30
+                )
+            end
+
             local guideControl =
                 tonumber(
                     (Config.CaptureGuide or {}).toggleControl
@@ -1963,7 +1972,6 @@ CreateThread(function()
 
                 if phase == "gathering" then
                     wait = 0
-                    sessionMarker(booth)
 
                     drawText2d(
                         "手順 1/2　[E] カメラ確認　[R] 背景・床　[G] ガイド　[BACKSPACE] 中止",

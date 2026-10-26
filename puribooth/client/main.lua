@@ -894,15 +894,19 @@ end)
 
 
 local function drawText2d(text, x, y, scale)
-    SetTextFont(4)
-    SetTextScale(scale or 0.55, scale or 0.55)
-    SetTextCentre(true)
-    SetTextColour(255, 255, 255, 255)
-    SetTextOutline()
+    local slot = "main"
 
-    BeginTextCommandDisplayText("STRING")
-    AddTextComponentSubstringPlayerName(text)
-    EndTextCommandDisplayText(x, y)
+    if (tonumber(scale) or 0.0) >= 0.8 then
+        slot = "countdown"
+    elseif (tonumber(y) or 0.0) >= 0.86 then
+        slot = "secondary"
+    end
+
+    SendNUIMessage({
+        action = "shootHudLine",
+        slot = slot,
+        text = tostring(text or "")
+    })
 end
 
 local function sessionMarker(booth)

@@ -11,7 +11,7 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 - oxmysql
 - lb-phone
 - screenshot-basic
-- puriphoto
+- puriphoto 1.1.0+（FLEPURI booth-import bridge入り。提出互換版は1.1.1）
 - Renewed-Banking（会社口座へ売上回収する既定設定で必要）
 
 
@@ -241,7 +241,22 @@ Config.Payout = {
 puribooth_selftest
 ```
 
-qbx_core / oxmysql / lb-phone / screenshot-basic / puriphoto / DB / booth数を確認します.
+以下を実体ベースで確認します。
+
+- qbx_core 2.5.4+ の互換性
+- oxmysql / lb-phone / screenshot-basic の起動
+- PuriPhoto 1.1.0+ の互換性
+- PuriPhoto production UIのindex / JS / CSS
+- production JS内のFLEPURI booth-import bridge
+- PuriPhoto client側のhandoff export / receipt bridge
+- weazel job
+- Renewed-Bankingのweazel会社口座
+- puribooth_boothsの必要DB列
+- 料金範囲 / 支払い方法 / ShotCount=4
+- フォント4書体の導入状況（任意）
+- booth数
+
+互換性を確認できない場合、FLEPURIは課金を開始しません。
 
 ## 開発サーバーへの反映
 
@@ -320,4 +335,4 @@ puribooth/ui/fonts/
 フォント未導入でもフォールバック書体で動作しますが、意図したプリクラ表示にする場合は4書体の導入を推奨します。
 利用時は各フォントの配布元に記載されたライセンス条件に従ってください。
 
-運営導入時は `INSTALL.md`、最終確認は `ACCEPTANCE_TEST.md` を参照してください。
+運営導入時は `INSTALL.md`、PuriPhoto互換対応は `PURIPHOTO_COMPAT.md`、最終確認は `ACCEPTANCE_TEST.md` を参照してください。

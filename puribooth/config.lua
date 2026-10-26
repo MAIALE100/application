@@ -54,6 +54,14 @@ Config.MaxThemeImageBytes = 4 * 1024 * 1024
 Config.ThemeUpdateCooldownMs = 1000
 Config.Debug = false
 
+-- 返金exportが一時的に失敗した場合の自動復旧。
+-- processing状態は二重返金防止のため自動再試行せず、手動照合対象にします。
+Config.RefundRetrySeconds = 60
+Config.RefundRetryBatch = 25
+
+-- 課金 / 売上 / 返金の保守ログ保持日数。
+Config.SupportHistoryDays = 90
+
 Config.AdminRemoveDistance = 6.0
 Config.AdminPlaceMaxDistance = 15.0
 

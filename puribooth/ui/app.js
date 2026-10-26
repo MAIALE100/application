@@ -523,6 +523,90 @@
         return null
     }
 
+    const applySkinBeauty = () => {
+        if (state.whiten <= 0 && state.rosy <= 0) return
+
+        let imageData
+        try {
+            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        } catch (_) {
+            return
+        }
+
+        const data = imageData.data
+        const whitenStrength =
+            Math.max(0, Math.min(1, state.whiten / 25)) * .34
+        const rosyStrength =
+            Math.max(0, Math.min(1, state.rosy / 25)) * .32
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i]
+            const g = data[i + 1]
+            const b = data[i + 2]
+
+            if (r < 55 || g < 28 || b < 18) continue
+
+            const cb =
+                128
+                - .168736 * r
+                - .331264 * g
+                + .5 * b
+            const cr =
+                128
+                + .5 * r
+                - .418688 * g
+                - .081312 * b
+
+            const isSkin =
+                cb >= 76
+                && cb <= 126
+                && cr >= 132
+                && cr <= 176
+                && r > g * .96
+                && r > b * 1.03
+
+            if (!isSkin) continue
+
+            if (whitenStrength > 0) {
+                data[i] =
+                    Math.min(
+                        255,
+                        r + (246 - r) * whitenStrength
+                    )
+                data[i + 1] =
+                    Math.min(
+                        255,
+                        g + (240 - g) * whitenStrength * .92
+                    )
+                data[i + 2] =
+                    Math.min(
+                        255,
+                        b + (235 - b) * whitenStrength * .82
+                    )
+            }
+
+            if (rosyStrength > 0) {
+                data[i] =
+                    Math.min(
+                        255,
+                        data[i] + 24 * rosyStrength
+                    )
+                data[i + 1] =
+                    Math.max(
+                        0,
+                        data[i + 1] - 4 * rosyStrength
+                    )
+                data[i + 2] =
+                    Math.min(
+                        255,
+                        data[i + 2] + 9 * rosyStrength
+                    )
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0)
+    }
+
     const drawPhotos = () => {
         ctx.save()
         ctx.filter = photoFilter()
@@ -614,23 +698,7 @@
             ctx.restore()
         }
 
-        if (state.whiten > 0) {
-            ctx.save()
-            ctx.globalCompositeOperation = 'screen'
-            ctx.globalAlpha = Math.min(.35, state.whiten / 70)
-            ctx.fillStyle = '#fff8fb'
-            ctx.fillRect(0, 0, 1200, 900)
-            ctx.restore()
-        }
-
-        if (state.rosy > 0) {
-            ctx.save()
-            ctx.globalCompositeOperation = 'soft-light'
-            ctx.globalAlpha = Math.min(.28, state.rosy / 80)
-            ctx.fillStyle = '#ff6f9f'
-            ctx.fillRect(0, 0, 1200, 900)
-            ctx.restore()
-        }
+        applySkinBeauty()
     }
 
     const drawFrame = () => {

@@ -90,7 +90,7 @@
                 <button data-tab="layout" class="active">レイアウト</button>
                 <button data-tab="photo">写真調整</button>
                 <button data-tab="beauty">盛り</button>
-                <button data-tab="face">顔盛り</button>
+                <button data-tab="face" class="hidden">顔盛り</button>
                 <button data-tab="frame">フレーム</button>
                 <button data-tab="stamp">スタンプ</button>
                 <button data-tab="text">文字</button>
@@ -155,7 +155,7 @@
                 </div>
             </section>
 
-            <section class="tool-page" data-page="face">
+            <section class="tool-page hidden" data-page="face">
                 <h2>顔盛り</h2>
                 <p>写真を選び、顔1〜6を選んでから写真内の顔をクリック。友達ごとに目・小顔・明るさ・血色を個別調整できます。</p>
 
@@ -208,6 +208,9 @@
                     <button class="choice" data-frame="black">ブラック</button>
                     <button class="choice" data-frame="y2k">Y2K</button>
                     <button class="choice" data-frame="hearts">ハート</button>
+                    <button class="choice" data-frame="sparkle">キラキラ</button>
+                    <button class="choice" data-frame="polaroid">チェキ風</button>
+                    <button class="choice" data-frame="ribbon">リボン</button>
                     <button class="choice" data-frame="none">なし</button>
                 </div>
             </section>
@@ -228,27 +231,65 @@
                     <button data-stamp="🐾">🐾</button><button data-stamp="🔥">🔥</button>
                 </div>
                 <label class="range-row"><span>スタンプサイズ</span><input id="stampSize" type="range" min="40" max="180" value="92" /></label>
+                <button id="stampRepeatButton" class="wide">連続配置：OFF</button>
             </section>
 
             <section class="tool-page" data-page="text">
                 <h2>文字</h2>
-                <p>文字を入力して「配置」を押し、写真をクリック。</p>
+                <p>プリクラ文字を作って、写真の好きな場所に配置できます。</p>
                 <input id="textInput" class="text-input" maxlength="32" placeholder="なかよし / 日付 / メッセージ..." />
+
+                <div class="text-quick-grid">
+                    <button data-text-value="♡だいすき♡">♡だいすき♡</button>
+                    <button data-text-value="BESTIES">BESTIES</button>
+                    <button data-text-value="FLECITY">FLECITY</button>
+                    <button data-text-value="#プリクラ">#プリクラ</button>
+                    <button data-text-value="ずっと一緒">ずっと一緒</button>
+                    <button data-text-preset="date">今日の日付</button>
+                </div>
+
+                <h3 class="mini-heading">文字スタイル</h3>
+                <div class="preset-row text-style-grid">
+                    <button class="active" data-text-style="puri">プリ文字</button>
+                    <button data-text-style="outline">白ふち</button>
+                    <button data-text-style="neon">ネオン</button>
+                    <button data-text-style="y2k">Y2K</button>
+                    <button data-text-style="simple">シンプル</button>
+                </div>
+
+                <h3 class="mini-heading">色</h3>
+                <div class="text-color-grid">
+                    <button data-text-color="#ff4fa3" style="--swatch:#ff4fa3" aria-label="ピンク"></button>
+                    <button data-text-color="#ff6d8d" style="--swatch:#ff6d8d" aria-label="コーラル"></button>
+                    <button data-text-color="#8e5cff" style="--swatch:#8e5cff" aria-label="パープル"></button>
+                    <button data-text-color="#55cfff" style="--swatch:#55cfff" aria-label="ブルー"></button>
+                    <button data-text-color="#67d6ad" style="--swatch:#67d6ad" aria-label="ミント"></button>
+                    <button data-text-color="#ffd64a" style="--swatch:#ffd64a" aria-label="イエロー"></button>
+                    <button data-text-color="#ffffff" style="--swatch:#ffffff" aria-label="ホワイト"></button>
+                    <button data-text-color="#241521" style="--swatch:#241521" aria-label="ブラック"></button>
+                </div>
+
                 <div class="inline-row">
                     <input id="textColor" type="color" value="#ff4fa3" />
-                    <button id="armTextButton">配置する</button>
+                    <button id="armTextButton">写真に配置</button>
                 </div>
-                <label class="range-row"><span>文字サイズ</span><input id="textSize" type="range" min="34" max="120" value="64" /></label>
+                <label class="range-row"><span>文字サイズ</span><input id="textSize" type="range" min="28" max="150" value="64" /></label>
+                <p class="micro-note">配置後もドラッグ・回転・拡大縮小・削除できます。</p>
             </section>
 
             <section class="tool-page" data-page="draw">
                 <h2>落書き</h2>
                 <p>写真の上を直接ドラッグして描けます。</p>
+                <div class="preset-row draw-style-grid">
+                    <button class="active" data-draw-style="pen">ペン</button>
+                    <button data-draw-style="marker">マーカー</button>
+                    <button data-draw-style="neon">ネオン</button>
+                </div>
                 <div class="inline-row">
                     <input id="drawColor" type="color" value="#ff3f9d" />
                     <button id="drawToggle">ペン：オン</button>
                 </div>
-                <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="36" value="10" /></label>
+                <label class="range-row"><span>ペン太さ</span><input id="drawWidth" type="range" min="3" max="40" value="10" /></label>
                 <button id="clearDrawButton" class="wide">落書きだけ消す</button>
             </section>
 

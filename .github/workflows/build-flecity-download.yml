@@ -1,0 +1,30 @@
+name: Temporary Flecity package build
+on:
+  push:
+    branches: [main]
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: package-flepri-puriphoto-flecity-2026-10-27
+      - name: Build ZIPs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out flepri_only puriphoto_only
+          cp 00_README_FLECITY_OPERATOR_JA.txt 01_SUBMISSION_CONTENTS_JA.txt 02_OPERATOR_COMMANDS_JA.txt 04_SERVER_CFG_SNIPPET.txt 05_MESSAGE_TO_FLECITY_JA.txt flepri_only/
+          cp -a puribooth flepri_only/
+          cp 03_PURIPHOTO_UPDATE_GUIDE_JA.txt puriphoto_only/00_PURIPHOTO_UPDATE_GUIDE_JA.txt
+          cp -a puriphoto puriphoto_only/
+          (cd flepri_only && zip -r -9 ../out/FLEPURI_v1.0.5_Flecity_Operator.zip .)
+          (cd puriphoto_only && zip -r -9 ../out/PuriPhoto_v1.1.1_Flecity_Update.zip .)
+          zip -r -9 out/FLEPURI_PuriPhoto_Flecity_Submission_2026-10-27.zip 00_README_FLECITY_OPERATOR_JA.txt 01_SUBMISSION_CONTENTS_JA.txt 02_OPERATOR_COMMANDS_JA.txt 03_PURIPHOTO_UPDATE_GUIDE_JA.txt 04_SERVER_CFG_SNIPPET.txt 05_MESSAGE_TO_FLECITY_JA.txt puribooth puriphoto
+          (cd out && sha256sum *.zip > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Flecity_Submission_Files
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30

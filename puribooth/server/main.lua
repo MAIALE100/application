@@ -63,7 +63,7 @@ local function normalizeBooth(row)
     local id = tostring(row.id)
     return {
         id = id,
-        label = tostring(row.label or ("プリクラ #" .. id)),
+        label = tostring(row.label or ("フレプリ #" .. id)),
         model = tostring(row.model or Config.DefaultModel),
         coords = {
             x = tonumber(row.x) or 0.0,
@@ -210,7 +210,7 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
     end
 
     if not databaseReady then
-        notify(source, "error", "プリクラ台データベースを準備中です。")
+        notify(source, "error", "フレプリ台データベースを準備中です。")
         return
     end
 
@@ -245,20 +245,20 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
             (label, model, x, y, z, heading, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ]], {
-        "ストリートプリ",
+        "フレプリ",
         Config.DefaultModel,
         x, y, z, heading,
         GetPlayerName(source) or ("source:" .. source)
     })
 
     if not insertedId then
-        notify(source, "error", "プリクラ台を保存できませんでした。")
+        notify(source, "error", "フレプリ台を保存できませんでした。")
         return
     end
 
     local booth = {
         id = tostring(insertedId),
-        label = ("ストリートプリ #%d"):format(insertedId),
+        label = ("フレプリ #%d"):format(insertedId),
         model = Config.DefaultModel,
         coords = { x = x, y = y, z = z },
         heading = heading
@@ -271,7 +271,7 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
 
     booths[booth.id] = booth
     broadcastBooths(-1)
-    notify(source, "inform", ("プリクラ台 #%d を設置しました。"):format(insertedId))
+    notify(source, "inform", ("フレプリ台 #%d を設置しました。"):format(insertedId))
 end)
 
 local function removeNearestBooth(source)
@@ -296,12 +296,12 @@ local function removeNearestBooth(source)
     end
 
     if not nearestId then
-        notify(source, "error", "近くに撤去できるプリクラ台がありません。")
+        notify(source, "error", "近くに撤去できるフレプリ台がありません。")
         return
     end
 
     if sessions[nearestId] then
-        notify(source, "error", "使用中のプリクラ台は撤去できません。")
+        notify(source, "error", "使用中のフレプリ台は撤去できません。")
         return
     end
 
@@ -312,13 +312,13 @@ local function removeNearestBooth(source)
     )
 
     if not affected or affected < 1 then
-        notify(source, "error", "プリクラ台を撤去できませんでした。")
+        notify(source, "error", "フレプリ台を撤去できませんでした。")
         return
     end
 
     booths[nearestId] = nil
     TriggerClientEvent("puribooth:client:removeBooth", -1, nearestId)
-    notify(source, "inform", ("プリクラ台 #%s を撤去しました。"):format(nearestId))
+    notify(source, "inform", ("フレプリ台 #%s を撤去しました。"):format(nearestId))
 end
 
 local function claimFirstAdmin(source)
@@ -328,7 +328,7 @@ local function claimFirstAdmin(source)
     end
 
     if not databaseReady then
-        notify(source, "error", "プリクラ台データベースを準備中です。")
+        notify(source, "error", "フレプリ台データベースを準備中です。")
         return
     end
 
@@ -398,7 +398,7 @@ RegisterCommand("puribooth", function(source, args)
     end
 
     if action == "list" then
-        notify(source, "inform", ("設置済みプリクラ台: %d台"):format(boothCount()))
+        notify(source, "inform", ("設置済みフレプリ台: %d台"):format(boothCount()))
         return
     end
 
@@ -411,12 +411,12 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
     local booth = getBooth(boothId)
 
     if not booth then
-        notify(source, "error", "プリクラ台の設定が見つかりません。")
+        notify(source, "error", "フレプリ台の設定が見つかりません。")
         return
     end
 
     if not playerNearBooth(source, booth) then
-        notify(source, "error", "プリクラ台の近くで操作してください。")
+        notify(source, "error", "フレプリ台の近くで操作してください。")
         return
     end
 
@@ -439,7 +439,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
 
     local existing = sessions[boothId]
     if existing and existing.expiresAt > os.time() then
-        notify(source, "error", "このプリクラ台は使用中です。")
+        notify(source, "error", "このフレプリ台は使用中です。")
         return
     elseif existing then
         releaseSession(boothId)
@@ -505,7 +505,7 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
     end
 
     if not playerNearBooth(source, booth, 12.0) then
-        notify(source, "error", "プリクラ台から離れすぎています。")
+        notify(source, "error", "フレプリ台から離れすぎています。")
         return
     end
 

@@ -1647,8 +1647,15 @@
         document.getElementById(id).addEventListener('input', event => {
             const target = currentFaceTarget()
             if (!target) return
+
+            if (!target.enabled) {
+                toolStatus.textContent =
+                    '先に写真内の顔をクリックして登録してください'
+                refreshFaceControls()
+                return
+            }
+
             target[key] = Number(event.target.value)
-            target.enabled = true
             refreshFaceControls()
             render()
         })

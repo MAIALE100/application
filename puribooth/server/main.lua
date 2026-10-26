@@ -1,5 +1,6 @@
 local sessions = {}
 local sessionLocks = {}
+local sourceSessionLocks = {}
 local booths = {}
 local databaseReady = false
 local themeSerial = 0
@@ -650,6 +651,30 @@ local function addCompanyMoney(source, amount)
             return false, "会社口座への入金に失敗しました。"
         end
 
+        local title = tostring(
+            payout.transactionTitle
+            or "FLEPURI売上"
+        )
+
+        local historyOk, historyResult = pcall(function()
+            return exports[resource]:handleTransaction(
+                account,
+                title,
+                amount,
+                "FLEPURI未回収売上の回収",
+                "FLEPURI",
+                account,
+                "deposit"
+            )
+        end)
+
+        if not historyOk or not historyResult then
+            print(
+                ("[puribooth] WARN payout succeeded but transaction history failed account=%s amount=%d")
+                    :format(account, amount)
+            )
+        end
+
         return true, account
     end
 
@@ -1231,11 +1256,21 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         return
     end
 
+    if sourceSessionLocks[source] then
+        notify(source, "error", "別のフレプリ台の開始処理が進行中です。")
+        return
+    end
+
     sessionLocks[boothId] = source
+    sourceSessionLocks[source] = boothId
 
     local function unlockSessionStart()
         if sessionLocks[boothId] == source then
             sessionLocks[boothId] = nil
+        end
+
+        if sourceSessionLocks[source] == boothId then
+            sourceSessionLocks[source] = nil
         end
     end
 
@@ -1620,6 +1655,14 @@ end)
 
 AddEventHandler("playerDropped", function()
     local source = source
+
+    sourceSessionLocks[source] = nil
+
+    for boothId, lockedSource in pairs(sessionLocks) do
+        if lockedSource == source then
+            sessionLocks[boothId] = nil
+        end
+    end
 
     for boothId, session in pairs(sessions) do
         if session.owner == source then

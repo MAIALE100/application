@@ -4,6 +4,8 @@ local sourceSessionLocks = {}
 local booths = {}
 local databaseReady = false
 local themeSerial = 0
+local sessionSerial = 0
+local refundRetryRunning = false
 local clearThemeRecipients
 
 local function notify(source, kind, message)
@@ -630,6 +632,46 @@ CreateThread(function()
             ADD COLUMN IF NOT EXISTS last_collected_at DATETIME NULL
     ]])
 
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS puribooth_events (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            session_id VARCHAR(64) NULL,
+            booth_id INT UNSIGNED NULL,
+            citizenid VARCHAR(64) NULL,
+            event_type VARCHAR(48) NOT NULL,
+            amount BIGINT NOT NULL DEFAULT 0,
+            money_type VARCHAR(16) NULL,
+            detail VARCHAR(255) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            INDEX idx_puribooth_events_session (session_id),
+            INDEX idx_puribooth_events_citizen (citizenid),
+            INDEX idx_puribooth_events_booth_created (booth_id, created_at)
+        )
+    ]])
+
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS puribooth_refunds (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            session_id VARCHAR(64) NOT NULL,
+            booth_id INT UNSIGNED NULL,
+            citizenid VARCHAR(64) NOT NULL,
+            money_type VARCHAR(16) NOT NULL,
+            amount BIGINT UNSIGNED NOT NULL,
+            reason VARCHAR(96) NOT NULL,
+            status VARCHAR(16) NOT NULL DEFAULT 'pending',
+            attempts INT UNSIGNED NOT NULL DEFAULT 0,
+            last_error VARCHAR(255) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_attempt_at DATETIME NULL,
+            resolved_at DATETIME NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_puribooth_refunds_session (session_id),
+            INDEX idx_puribooth_refunds_status (status, created_at),
+            INDEX idx_puribooth_refunds_citizen (citizenid)
+        )
+    ]])
+
     MySQL.update.await(
         "UPDATE puribooth_booths SET price = ? WHERE price IS NULL",
         {
@@ -1195,6 +1237,121 @@ RegisterCommand("puribooth", function(source, args)
     )
 end, false)
 
+local function nextSessionId(source, boothId)
+    sessionSerial = sessionSerial + 1
+
+    return ("%d-%d-%s-%d")
+        :format(
+            os.time(),
+            tonumber(source) or 0,
+            tostring(boothId or "0"),
+            sessionSerial
+        )
+end
+
+local function safeAuditDetail(value)
+    local detail = tostring(value or "")
+    if #detail > 255 then
+        detail = detail:sub(1, 255)
+    end
+    return detail
+end
+
+local function auditEvent(session, boothId, eventType, amount, detail)
+    if not databaseReady then return false end
+
+    local ok, result = pcall(function()
+        return MySQL.insert.await([[
+            INSERT INTO puribooth_events
+                (session_id, booth_id, citizenid, event_type, amount, money_type, detail)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ]], {
+            session and session.sessionId or nil,
+            tonumber(boothId or (session and session.boothId)),
+            session and session.refundIdentifier or nil,
+            tostring(eventType or "unknown"),
+            math.floor(tonumber(amount) or 0),
+            session and session.moneyType or nil,
+            safeAuditDetail(detail)
+        })
+    end)
+
+    if not ok or not result then
+        print(
+            ("[puribooth] WARN audit write failed event=%s booth=%s")
+                :format(
+                    tostring(eventType or "unknown"),
+                    tostring(boothId or (session and session.boothId) or "?")
+                )
+        )
+        return false
+    end
+
+    return true
+end
+
+local function queueRefund(session, reason, errorText)
+    if not databaseReady or not session then return false end
+
+    local sessionId = tostring(session.sessionId or "")
+    local citizenid = tostring(session.refundIdentifier or "")
+    local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
+
+    if sessionId == "" or citizenid == "" or amount <= 0 then
+        return false
+    end
+
+    local ok, affected = pcall(function()
+        return MySQL.update.await([[
+            INSERT INTO puribooth_refunds
+                (
+                    session_id,
+                    booth_id,
+                    citizenid,
+                    money_type,
+                    amount,
+                    reason,
+                    status,
+                    attempts,
+                    last_error
+                )
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, ?)
+            ON DUPLICATE KEY UPDATE
+                reason = VALUES(reason),
+                last_error = VALUES(last_error),
+                status = IF(status = 'resolved', status, 'pending')
+        ]], {
+            sessionId,
+            tonumber(session.boothId),
+            citizenid,
+            tostring(session.moneyType or "cash"),
+            amount,
+            tostring(reason or "puribooth-refund"),
+            safeAuditDetail(errorText)
+        })
+    end)
+
+    local queued = ok and affected ~= nil
+    session.refundQueued = queued
+
+    if queued then
+        auditEvent(
+            session,
+            session.boothId,
+            "refund_queued",
+            amount,
+            reason
+        )
+    else
+        print(
+            ("[puribooth] CRITICAL refund queue write failed session=%s booth=%s amount=%d")
+                :format(sessionId, tostring(session.boothId or "?"), amount)
+        )
+    end
+
+    return queued
+end
+
 local function recordCompletedSale(boothId, session, reason)
     boothId = tostring(boothId)
 
@@ -1226,25 +1383,52 @@ local function recordCompletedSale(boothId, session, reason)
                     tostring(reason or "capture-complete")
                 )
         )
+        auditEvent(
+            session,
+            boothId,
+            "sale_record_failed",
+            amount,
+            reason
+        )
         return false
     end
 
     session.saleRecorded = true
+    auditEvent(
+        session,
+        boothId,
+        "sale_recorded",
+        amount,
+        reason
+    )
     return true
 end
 
 local function refundSession(session, fallbackSource, reason)
     if not session then return false end
+    if session.refunded == true then return true end
+    if session.refundQueued == true then return false end
 
     local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
-    if amount <= 0 then return true end
+    if amount <= 0 then
+        session.refunded = true
+        return true
+    end
 
     local identifier =
         session.refundIdentifier
         or fallbackSource
         or session.owner
 
-    if not identifier then return false end
+    if not identifier then
+        queueRefund(session, reason, "missing-refund-identifier")
+        return false
+    end
+
+    if GetResourceState("qbx_core") ~= "started" then
+        queueRefund(session, reason, "qbx_core-not-started")
+        return false
+    end
 
     local ok, added = pcall(function()
         return exports.qbx_core:AddMoney(
@@ -1255,7 +1439,165 @@ local function refundSession(session, fallbackSource, reason)
         )
     end)
 
-    return ok and added == true
+    if ok and added == true then
+        session.refunded = true
+        auditEvent(
+            session,
+            session.boothId,
+            "refund_completed",
+            amount,
+            reason
+        )
+        return true
+    end
+
+    queueRefund(
+        session,
+        reason,
+        ok and "qbx-addmoney-returned-false" or "qbx-addmoney-error"
+    )
+    return false
+end
+
+local function expireSession(boothId, session, reason)
+    boothId = tostring(boothId)
+    if not session or sessions[boothId] ~= session then
+        return false
+    end
+
+    local refunded = true
+    if session.paid and session.paid > 0 then
+        refunded = refundSession(
+            session,
+            session.owner,
+            reason
+                or (
+                    session.capturing
+                        and "puribooth-capture-timeout-refund"
+                        or "puribooth-setup-timeout-refund"
+                )
+        )
+    end
+
+    auditEvent(
+        session,
+        boothId,
+        "session_expired",
+        session.paid or 0,
+        reason
+    )
+    releaseSession(boothId)
+    return refunded
+end
+
+local function retryPendingRefunds(limit)
+    if refundRetryRunning or not databaseReady then
+        return 0, 0
+    end
+
+    if GetResourceState("qbx_core") ~= "started" then
+        return 0, 0
+    end
+
+    refundRetryRunning = true
+    limit = math.max(
+        1,
+        math.min(
+            100,
+            math.floor(
+                tonumber(limit)
+                or tonumber(Config.RefundRetryBatch)
+                or 25
+            )
+        )
+    )
+
+    local rows = MySQL.query.await(
+        ("SELECT id, session_id, booth_id, citizenid, money_type, amount, reason FROM puribooth_refunds WHERE status = 'pending' ORDER BY id ASC LIMIT %d")
+            :format(limit)
+    ) or {}
+
+    local attempted = 0
+    local resolved = 0
+
+    for _, row in ipairs(rows) do
+        local claimed = MySQL.update.await([[
+            UPDATE puribooth_refunds
+            SET
+                status = 'processing',
+                attempts = attempts + 1,
+                last_attempt_at = NOW(),
+                last_error = NULL
+            WHERE id = ? AND status = 'pending'
+        ]], { tonumber(row.id) })
+
+        if claimed and claimed > 0 then
+            attempted = attempted + 1
+
+            local ok, added = pcall(function()
+                return exports.qbx_core:AddMoney(
+                    tostring(row.citizenid),
+                    tostring(row.money_type or "cash"),
+                    math.max(0, math.floor(tonumber(row.amount) or 0)),
+                    tostring(row.reason or "puribooth-refund-retry")
+                )
+            end)
+
+            if ok and added == true then
+                local marked = MySQL.update.await([[
+                    UPDATE puribooth_refunds
+                    SET
+                        status = 'resolved',
+                        resolved_at = NOW(),
+                        last_error = NULL
+                    WHERE id = ? AND status = 'processing'
+                ]], { tonumber(row.id) })
+
+                if marked and marked > 0 then
+                    resolved = resolved + 1
+                    auditEvent(
+                        {
+                            sessionId = tostring(row.session_id),
+                            boothId = tonumber(row.booth_id),
+                            refundIdentifier = tostring(row.citizenid),
+                            moneyType = tostring(row.money_type or "cash")
+                        },
+                        row.booth_id,
+                        "refund_retry_resolved",
+                        row.amount,
+                        row.reason
+                    )
+                else
+                    print(
+                        ("[puribooth] CRITICAL refund paid but resolution write failed session=%s; manual review required")
+                            :format(tostring(row.session_id))
+                    )
+                end
+            else
+                MySQL.update.await([[
+                    UPDATE puribooth_refunds
+                    SET
+                        status = 'pending',
+                        last_error = ?
+                    WHERE id = ? AND status = 'processing'
+                ]], {
+                    ok and "qbx-addmoney-returned-false" or "qbx-addmoney-error",
+                    tonumber(row.id)
+                })
+            end
+        end
+    end
+
+    refundRetryRunning = false
+
+    if attempted > 0 then
+        print(
+            ("[puribooth] refund retry attempted=%d resolved=%d pending=%d")
+                :format(attempted, resolved, attempted - resolved)
+        )
+    end
+
+    return attempted, resolved
 end
 
 RegisterNetEvent("puribooth:server:startSession", function(boothId)
@@ -1326,7 +1668,11 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
                 return
             end
 
-            releaseSession(activeBoothId)
+            expireSession(
+                activeBoothId,
+                activeSession,
+                "puribooth-stale-owner-session-refund"
+            )
         end
     end
 
@@ -1335,7 +1681,11 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         notify(source, "error", "このフレプリ台は使用中です。")
         return
     elseif existing then
-        releaseSession(boothId)
+        expireSession(
+            boothId,
+            existing,
+            "puribooth-stale-booth-session-refund"
+        )
     end
 
     if sessionLocks[boothId] then
@@ -1415,7 +1765,11 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         end
     end
 
+    local sessionId = nextSessionId(source, boothId)
+
     sessions[boothId] = {
+        sessionId = sessionId,
+        boothId = tonumber(boothId),
         owner = source,
         refundIdentifier = citizenid,
         paid = price,
@@ -1429,6 +1783,14 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         lastCountdownShot = 0,
         lastCountdownAt = 0
     }
+
+    auditEvent(
+        sessions[boothId],
+        boothId,
+        price > 0 and "session_charged" or "session_opened",
+        price,
+        paidWith or "free"
+    )
 
     unlockSessionStart()
     broadcastState(boothId)
@@ -1501,8 +1863,18 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
     if session.capturing then return end
 
     if session.expiresAt <= os.time() then
-        releaseSession(boothId)
-        notify(source, "error", "撮影準備時間が終了しました。")
+        local refunded = expireSession(
+            boothId,
+            session,
+            "puribooth-begin-after-expiry-refund"
+        )
+        notify(
+            source,
+            "error",
+            refunded
+                and "撮影準備時間が終了したため料金を返金しました。"
+                or "撮影準備時間が終了しました。返金は自動再試行待ちです。"
+        )
         return
     end
 
@@ -1696,7 +2068,21 @@ RegisterNetEvent("puribooth:server:finishSession", function(boothId)
     local session = sessions[boothId]
     if not session or session.owner ~= source then return end
 
-    releaseSession(boothId)
+    print(
+        ("[puribooth] WARN ignored unexpected finishSession source=%s booth=%s phase=%s")
+            :format(
+                source,
+                boothId,
+                session.capturing and "capturing" or "setup"
+            )
+    )
+    auditEvent(
+        session,
+        boothId,
+        "unexpected_finish_ignored",
+        session.paid or 0,
+        session.capturing and "capturing" or "setup"
+    )
 end)
 
 RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
@@ -1727,7 +2113,6 @@ end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    if GetResourceState("qbx_core") ~= "started" then return end
 
     for _, session in pairs(sessions) do
         if session.paid and session.paid > 0 then
@@ -1788,33 +2173,80 @@ CreateThread(function()
         local now = os.time()
         for boothId, session in pairs(sessions) do
             if session.expiresAt <= now then
-                if session.paid and session.paid > 0 then
-                    local refunded = refundSession(
-                        session,
+                local wasCapturing = session.capturing == true
+                local refunded = expireSession(
+                    boothId,
+                    session,
+                    wasCapturing
+                        and "puribooth-capture-timeout-refund"
+                        or "puribooth-setup-timeout-refund"
+                )
+
+                if GetPlayerName(session.owner) then
+                    notify(
                         session.owner,
-                        session.capturing
-                            and "puribooth-capture-timeout-refund"
-                            or "puribooth-setup-timeout-refund"
+                        "error",
+                        refunded
+                            and (
+                                wasCapturing
+                                    and "撮影セッションがタイムアウトしたため料金を返金しました。"
+                                    or "撮影準備時間が終了したため料金を返金しました。"
+                            )
+                            or "撮影セッションが終了しました。返金は自動再試行待ちです。"
                     )
-
-                    if GetPlayerName(session.owner) then
-                        notify(
-                            session.owner,
-                            "error",
-                            refunded
-                                and (
-                                    session.capturing
-                                        and "撮影セッションがタイムアウトしたため料金を返金しました。"
-                                        or "撮影準備時間が終了したため料金を返金しました。"
-                                )
-                                or "撮影セッションが終了しましたが返金に失敗しました。スタッフへお知らせください。"
-                        )
-                    end
                 end
-
-                releaseSession(boothId)
             end
         end
+    end
+end)
+
+CreateThread(function()
+    Wait(10000)
+
+    while true do
+        retryPendingRefunds()
+
+        Wait(
+            math.max(
+                30,
+                math.floor(
+                    tonumber(Config.RefundRetrySeconds)
+                    or 60
+                )
+            ) * 1000
+        )
+    end
+end)
+
+CreateThread(function()
+    Wait(15000)
+
+    while true do
+        local keepDays =
+            math.max(
+                7,
+                math.min(
+                    365,
+                    math.floor(
+                        tonumber(Config.SupportHistoryDays)
+                        or 90
+                    )
+                )
+            )
+
+        if databaseReady then
+            MySQL.update.await(
+                ("DELETE FROM puribooth_events WHERE created_at < (NOW() - INTERVAL %d DAY)")
+                    :format(keepDays)
+            )
+
+            MySQL.update.await(
+                ("DELETE FROM puribooth_refunds WHERE status = 'resolved' AND resolved_at < (NOW() - INTERVAL %d DAY)")
+                    :format(keepDays)
+            )
+        end
+
+        Wait(21600000)
     end
 end)
 
@@ -1955,6 +2387,26 @@ local function databaseSchemaState()
             :format(table.concat(missing, ","))
     end
 
+    local tableRows = MySQL.query.await([[
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME IN ('puribooth_events', 'puribooth_refunds')
+    ]]) or {}
+
+    local operational = {}
+    for _, row in ipairs(tableRows) do
+        operational[tostring(row.TABLE_NAME or row.table_name or "")] = true
+    end
+
+    if not operational.puribooth_events then
+        return "FAIL(missing-table=puribooth_events)"
+    end
+
+    if not operational.puribooth_refunds then
+        return "FAIL(missing-table=puribooth_refunds)"
+    end
+
     return "PASS"
 end
 
@@ -2017,6 +2469,168 @@ local function fontState()
     return ("OPTIONAL(%d/%d)"):format(count, #files)
 end
 
+local function refundQueueState()
+    if not databaseReady then
+        return "FAIL(database-not-ready)", 0, 0
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT status, COUNT(*) AS count
+        FROM puribooth_refunds
+        WHERE status <> 'resolved'
+        GROUP BY status
+    ]]) or {}
+
+    local pending = 0
+    local processing = 0
+
+    for _, row in ipairs(rows) do
+        local count = tonumber(row.count) or 0
+        if tostring(row.status) == "pending" then
+            pending = pending + count
+        elseif tostring(row.status) == "processing" then
+            processing = processing + count
+        end
+    end
+
+    if pending == 0 and processing == 0 then
+        return "PASS(0)", pending, processing
+    end
+
+    return ("FAIL(pending=%d,processing=%d)")
+        :format(pending, processing), pending, processing
+end
+
+local function activeSessionCount()
+    local count = 0
+    for _ in pairs(sessions) do count = count + 1 end
+    return count
+end
+
+RegisterCommand("puribooth_support", function(source, args)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local refunds, pending, processing = refundQueueState()
+    print(("[puribooth] support version=1.0.2 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s")
+        :format(
+            databaseReady and "PASS" or "FAIL",
+            boothCount(),
+            activeSessionCount(),
+            (function()
+                local count = 0
+                for _ in pairs(sessionLocks) do count = count + 1 end
+                return count
+            end)(),
+            refunds
+        ))
+
+    local query = tostring(args[1] or "")
+    if query == "" then
+        if pending > 0 or processing > 0 then
+            print("[puribooth] support hint: run puribooth_refunds for unresolved refund details.")
+        end
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT
+            id,
+            session_id,
+            booth_id,
+            citizenid,
+            event_type,
+            amount,
+            money_type,
+            detail,
+            created_at
+        FROM puribooth_events
+        WHERE session_id = ? OR citizenid = ?
+        ORDER BY id DESC
+        LIMIT 30
+    ]], { query, query }) or {}
+
+    print(("[puribooth] support trace query=%s events=%d"):format(query, #rows))
+    for index = #rows, 1, -1 do
+        local row = rows[index]
+        print(
+            ("[puribooth]   %s session=%s booth=%s event=%s amount=%s method=%s detail=%s")
+                :format(
+                    tostring(row.created_at or "?"),
+                    tostring(row.session_id or "-"),
+                    tostring(row.booth_id or "-"),
+                    tostring(row.event_type or "-"),
+                    tostring(row.amount or 0),
+                    tostring(row.money_type or "-"),
+                    tostring(row.detail or "-")
+                )
+        )
+    end
+end, false)
+
+RegisterCommand("puribooth_refunds", function(source)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT
+            session_id,
+            booth_id,
+            citizenid,
+            money_type,
+            amount,
+            reason,
+            status,
+            attempts,
+            last_error,
+            created_at,
+            last_attempt_at
+        FROM puribooth_refunds
+        WHERE status <> 'resolved'
+        ORDER BY id ASC
+        LIMIT 50
+    ]]) or {}
+
+    print(("[puribooth] unresolved refunds=%d"):format(#rows))
+    for _, row in ipairs(rows) do
+        print(
+            ("[puribooth]   status=%s session=%s booth=%s citizenid=%s amount=%s method=%s attempts=%s reason=%s last_error=%s")
+                :format(
+                    tostring(row.status or "?"),
+                    tostring(row.session_id or "?"),
+                    tostring(row.booth_id or "-"),
+                    tostring(row.citizenid or "?"),
+                    tostring(row.amount or 0),
+                    tostring(row.money_type or "?"),
+                    tostring(row.attempts or 0),
+                    tostring(row.reason or "?"),
+                    tostring(row.last_error or "-")
+                )
+        )
+    end
+
+    if #rows > 0 then
+        print("[puribooth] NOTE: status=processing は二重返金防止のため自動再試行しません。手動照合してください。")
+    end
+end, false)
+
+RegisterCommand("puribooth_retry_refunds", function(source)
+    if source ~= 0 then
+        notify(source, "error", "このコマンドはサーバーコンソール専用です。")
+        return
+    end
+
+    local attempted, resolved = retryPendingRefunds()
+    print(
+        ("[puribooth] manual refund retry attempted=%d resolved=%d")
+            :format(attempted, resolved)
+    )
+end, false)
+
 RegisterCommand("puribooth_selftest", function(source)
     if source ~= 0 then
         notify(source, "error", "このコマンドはサーバーコンソール専用です。")
@@ -2033,6 +2647,7 @@ RegisterCommand("puribooth_selftest", function(source)
     local payout = payoutState()
     local database = databaseSchemaState()
     local config = configState()
+    local refunds = refundQueueState()
     local fonts = fontState()
 
     local payoutRequired =
@@ -2053,6 +2668,7 @@ RegisterCommand("puribooth_selftest", function(source)
         and payoutPass
         and database == "PASS"
         and config == "PASS"
+        and refunds:sub(1, 4) == "PASS"
 
     print(("[puribooth] selftest %s"):format(overall and "PASS" or "FAIL"))
     print(("[puribooth]   qbx_core=%s"):format(qbx))
@@ -2065,6 +2681,7 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   payout=%s"):format(payout))
     print(("[puribooth]   database=%s"):format(database))
     print(("[puribooth]   config=%s"):format(config))
+    print(("[puribooth]   refunds=%s"):format(refunds))
     print(("[puribooth]   fonts=%s"):format(fonts))
     print(("[puribooth]   booths=%d"):format(boothCount()))
 
@@ -2097,6 +2714,10 @@ RegisterCommand("puribooth_selftest", function(source)
         print("[puribooth]   FIX: config.luaを確認してください。v1.0系のShotCountは4固定です。")
     end
 
+    if refunds:sub(1, 4) ~= "PASS" then
+        print("[puribooth]   FIX: puribooth_refunds / puribooth_retry_refunds で未解決返金を確認してください。")
+    end
+
     if fonts:sub(1, 4) ~= "PASS" then
         print("[puribooth]   NOTE: フォントは任意導入です。未導入時はフォールバック書体で動作します。")
     end
@@ -2108,7 +2729,7 @@ CreateThread(function()
     local _, qbx = resourceCompatibilityState("qbx_core")
     local _, puriphoto = resourceCompatibilityState("puriphoto")
 
-    print(("[puribooth] v1.0.1 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+    print(("[puribooth] v1.0.2 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
         :format(
             tonumber(Config.Price) or 0,
             tonumber(Config.ShotCount) or 4,

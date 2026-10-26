@@ -1473,7 +1473,7 @@ CreateThread(function()
                     if GetPlayerName(session.owner) then
                         notify(
                             session.owner,
-                            refunded and "error" or "error",
+                            "error",
                             refunded
                                 and (
                                     session.capturing

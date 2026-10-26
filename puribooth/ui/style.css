@@ -622,3 +622,13 @@ input[type="color"] {
     opacity: .34;
     cursor: not-allowed;
 }
+
+
+.face-slot-grid .choice.configured:not(.active) {
+    box-shadow: inset 0 0 0 2px rgba(103, 242, 189, .9);
+}
+
+.face-slot-grid .choice.configured:not(.active)::after {
+    content: " ✓";
+    font-weight: 900;
+}

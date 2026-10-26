@@ -70,7 +70,11 @@ Copy-Item -Path (Join-Path $booth "*") -Destination $stageBooth -Recurse -Force
 Remove-Item -LiteralPath (Join-Path $stageBooth "RELEASE_CHECKLIST.md") -Force -ErrorAction SilentlyContinue
 
 Write-Host "==> Staging optional PuriPhoto compatibility patch" -ForegroundColor Cyan
-$patchRoot = Join-Path $stage "PuriPhoto_compat_patch\puriphoto"
+$patchStage = Join-Path $OutputDirectory "_patch_FLEPURI_v1.0.1"
+$patchZip = Join-Path $stage "PuriPhoto_compat_patch.zip"
+$patchRoot = Join-Path $patchStage "puriphoto"
+
+Remove-Item -LiteralPath $patchStage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path (Join-Path $patchRoot "client") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $patchRoot "ui\dist\assets") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $patchRoot "ui\src") -Force | Out-Null
@@ -113,7 +117,9 @@ The production build must contain:
 - puriphotoGetBoothImport
 - puriphotoConfirmBoothImport
 '@
-Set-Content -LiteralPath (Join-Path $stage "PuriPhoto_compat_patch\README.txt") -Value $patchReadme -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $patchStage "README.txt") -Value $patchReadme -Encoding UTF8
+
+Compress-Archive -Path (Join-Path $patchStage "*") -DestinationPath $patchZip -CompressionLevel Optimal
 
 $installFirst = @'
 FLEPURI v1.0.1 - INSTALL FIRST
@@ -124,10 +130,10 @@ FLEPURI v1.0.1 - INSTALL FIRST
 3. Run puribooth_selftest from the server console.
 
 If selftest reports PuriPhoto UI/bridge PASS:
-    The optional PuriPhoto_compat_patch is NOT needed.
+    PuriPhoto_compat_patch.zip is NOT needed.
 
 If selftest reports stale-ui / client-flepri-bridge / PuriPhoto UI failure:
-    Read PuriPhoto_compat_patch/README.txt and merge that patch into the existing PuriPhoto resource.
+    Open PuriPhoto_compat_patch.zip and follow README.txt.
 
 After installation:
     restart puriphoto
@@ -151,18 +157,62 @@ $required = @(
     "puribooth\ui\app.js",
     "puribooth\INSTALL.md",
     "puribooth\PURIPHOTO_COMPAT.md",
-    "PuriPhoto_compat_patch\README.txt",
-    "PuriPhoto_compat_patch\puriphoto\client\v11.lua",
-    "PuriPhoto_compat_patch\puriphoto\ui\dist\index.html",
-    "PuriPhoto_compat_patch\puriphoto\ui\dist\assets\puriphoto-v1.1.1-flepri.js"
+    "INSTALL_FIRST.txt",
+    "PuriPhoto_compat_patch.zip"
 )
 
 foreach ($relative in $required) {
     Assert-File (Join-Path $verify $relative)
 }
 
-$unexpectedFonts = Get-ChildItem -LiteralPath $verify -File -Recurse |
-    Where-Object { $_.Extension -match '^\.(ttf|otf|woff|woff2|eot)$' }
+$patchVerify = Join-Path $OutputDirectory "_verify_patch_FLEPURI_v1.0.1"
+Remove-Item -LiteralPath $patchVerify -Recurse -Force -ErrorAction SilentlyContinue
+Expand-Archive -LiteralPath (Join-Path $verify "PuriPhoto_compat_patch.zip") -DestinationPath $patchVerify -Force
+
+$patchRequired = @(
+    "README.txt",
+    "puriphoto\fxmanifest.lua",
+    "puriphoto\client\v11.lua",
+    "puriphoto\ui\package.json",
+    "puriphoto\ui\package-lock.json",
+    "puriphoto\ui\src\App.tsx",
+    "puriphoto\ui\dist\index.html",
+    "puriphoto\ui\dist\assets\puriphoto-v1.1.1-flepri.js",
+    "puriphoto\ui\dist\assets\index-9487c400.css"
+)
+
+foreach ($relative in $patchRequired) {
+    Assert-File (Join-Path $patchVerify $relative)
+}
+
+Assert-Contains (Join-Path $patchVerify "puriphoto\ui\dist\assets\puriphoto-v1.1.1-flepri.js") "boothImportAvailable"
+Assert-Contains (Join-Path $patchVerify "puriphoto\ui\dist\assets\puriphoto-v1.1.1-flepri.js") "puriphotoGetBoothImport"
+Assert-Contains (Join-Path $patchVerify "puriphoto\ui\dist\assets\puriphoto-v1.1.1-flepri.js") "puriphotoConfirmBoothImport"
+
+$unexpectedFonts = @(
+    Get-ChildItem -LiteralPath $verify -File -Recurse
+    Get-ChildItem -LiteralPath $patchVerify -File -Recurse
+) | Where-Object { $_.Extension -match '^\.(ttf|otf|woff|woff2|eot)
+if ($unexpectedFonts) {
+    throw "Verified ZIP unexpectedly contains font binaries."
+}
+
+if (Test-Path -LiteralPath (Join-Path $verify "puribooth\RELEASE_CHECKLIST.md")) {
+    throw "Internal RELEASE_CHECKLIST.md leaked into operator ZIP."
+}
+
+$hash = Get-FileHash -LiteralPath $zip -Algorithm SHA256
+$size = (Get-Item -LiteralPath $zip).Length
+
+Write-Host ""
+Write-Host "FLEPURI v1.0.1 submission package PASS" -ForegroundColor Green
+Write-Host ("ZIP:    {0}" -f $zip)
+Write-Host ("Bytes:  {0:N0}" -f $size)
+Write-Host ("SHA256: {0}" -f $hash.Hash)
+
+Remove-Item -LiteralPath $patchStage -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $patchVerify -Recurse -Force -ErrorAction SilentlyContinue
+ }
 
 if ($unexpectedFonts) {
     throw "Verified ZIP unexpectedly contains font binaries."

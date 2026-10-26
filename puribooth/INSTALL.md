@@ -132,7 +132,7 @@ weazel job:
 /puribooth sales
 ```
 
-最後に `ACCEPTANCE_TEST.md` の実機テストを実施してください。
+最後に `ACCEPTANCE_TEST.md` の実機テストを実施してください。不具合修正・更新の担当は開発側です。運営からの報告項目は `SUPPORT.md` にまとめています。
 
 
 ## 10. 保守コマンド

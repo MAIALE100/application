@@ -175,6 +175,17 @@ button:active { transform: translateY(1px); }
     margin-top: 1vh;
 }
 .preset-row { display: grid; grid-template-columns: repeat(2, 1fr); }
+.compare-beauty {
+    width: 100%;
+    margin-top: 1vh;
+    background: #21131e;
+    color: #fff;
+}
+.compare-beauty.active {
+    background: #fff;
+    color: #21131e;
+    outline: 2px solid #21131e;
+}
 .preset-row button, .inline-row button, .wide {
     background: #f1e8ef;
     color: #5e4658;

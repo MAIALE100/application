@@ -73,9 +73,16 @@ Write-Host "==> Staging optional PuriPhoto compatibility patch" -ForegroundColor
 $patchRoot = Join-Path $stage "PuriPhoto_compat_patch\puriphoto"
 New-Item -ItemType Directory -Path (Join-Path $patchRoot "client") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $patchRoot "ui\dist\assets") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $patchRoot "ui\src") -Force | Out-Null
 
 Copy-Item -LiteralPath (Join-Path $puri "fxmanifest.lua") -Destination (Join-Path $patchRoot "fxmanifest.lua") -Force
+Copy-Item -LiteralPath (Join-Path $puri "README.md") -Destination (Join-Path $patchRoot "README.md") -Force
+Copy-Item -LiteralPath (Join-Path $puri "CHANGELOG.md") -Destination (Join-Path $patchRoot "CHANGELOG.md") -Force
 Copy-Item -LiteralPath $puriBridge -Destination (Join-Path $patchRoot "client\v11.lua") -Force
+Copy-Item -LiteralPath (Join-Path $puri "ui\index.html") -Destination (Join-Path $patchRoot "ui\index.html") -Force
+Copy-Item -LiteralPath (Join-Path $puri "ui\package.json") -Destination (Join-Path $patchRoot "ui\package.json") -Force
+Copy-Item -LiteralPath (Join-Path $puri "ui\package-lock.json") -Destination (Join-Path $patchRoot "ui\package-lock.json") -Force
+Copy-Item -LiteralPath (Join-Path $puri "ui\src\App.tsx") -Destination (Join-Path $patchRoot "ui\src\App.tsx") -Force
 Copy-Item -LiteralPath (Join-Path $puri "ui\dist\index.html") -Destination (Join-Path $patchRoot "ui\dist\index.html") -Force
 Copy-Item -LiteralPath $puriJs -Destination (Join-Path $patchRoot "ui\dist\assets\puriphoto-v1.1.1-flepri.js") -Force
 Copy-Item -LiteralPath (Join-Path $puri "ui\dist\assets\index-9487c400.css") -Destination (Join-Path $patchRoot "ui\dist\assets\index-9487c400.css") -Force
@@ -98,7 +105,9 @@ Recommended:
 5. restart puribooth
 6. run puribooth_selftest
 
-If the existing PuriPhoto is newer or customized, rebuild its current ui/src instead of blindly overwriting it.
+The patch also contains the matching App.tsx and package/lock metadata so a later production rebuild keeps FLEPURI support.
+
+If the existing PuriPhoto is newer or customized, merge/rebuild its current ui/src instead of blindly overwriting unrelated custom files.
 The production build must contain:
 - boothImportAvailable
 - puriphotoGetBoothImport

@@ -55,6 +55,6 @@ FLEPURI開発環境の `puribooth-update.ps1` はbuild後にbooth-import bridge�
 
 FLEPURI v1.0.3は完成画像をPuriPhoto exportへ渡しただけでは編集画面を閉じません。
 
-PuriPhoto NUIが `puriphotoGetBoothImport` で画像を実際に取得し、`puriphoto:client:boothImportConsumed` receiptを返した場合だけFLEPURI編集画面を閉じます。
+PuriPhoto NUIが `puriphotoGetBoothImport` で画像とtokenを取得し、`puriphotoConfirmBoothImport` でtokenを確認した後、`puriphoto:client:boothImportConsumed` receiptが返った場合だけFLEPURI編集画面を閉じます。
 
 receiptが返らない場合はhandoffを取り消し、FLEPURI側の完成画像・編集状態を保持します。

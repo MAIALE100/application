@@ -1991,6 +1991,37 @@ local function configState()
         return "FAIL(management-job)"
     end
 
+    local handoffTimeout =
+        math.floor(
+            tonumber(Config.PuriPhotoHandoffTimeoutMs)
+            or 0
+        )
+
+    if handoffTimeout < 3000 or handoffTimeout > 60000 then
+        return "FAIL(puriphoto-handoff-timeout)"
+    end
+
+    local maxThemeBytes =
+        math.floor(
+            tonumber(Config.MaxThemeImageBytes)
+            or 0
+        )
+
+    if maxThemeBytes < (256 * 1024)
+        or maxThemeBytes > (8 * 1024 * 1024) then
+        return "FAIL(theme-image-limit)"
+    end
+
+    local themeCooldown =
+        math.floor(
+            tonumber(Config.ThemeUpdateCooldownMs)
+            or 0
+        )
+
+    if themeCooldown < 250 or themeCooldown > 10000 then
+        return "FAIL(theme-update-cooldown)"
+    end
+
     return "PASS"
 end
 

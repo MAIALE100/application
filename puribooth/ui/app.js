@@ -1218,7 +1218,7 @@
             ctx.strokeRect(19, 19, 1162, 862)
             ctx.font = '900 30px sans-serif'
             ctx.fillStyle = '#fff'
-            ctx.fillText('フレシティプリ', 48, 66)
+            ctx.fillText('FLEPURI', 48, 66)
         } else if (state.frame === 'hearts') {
             ctx.strokeStyle = '#ff77b7'
             ctx.lineWidth = 28
@@ -1254,7 +1254,7 @@
             ctx.fillStyle = '#5a4755'
             ctx.font = '700 28px "Noto Sans JP",sans-serif'
             ctx.textAlign = 'center'
-            ctx.fillText('FLECITY STREET PURI', 600, 858)
+            ctx.fillText('FLEPURI', 600, 858)
         } else if (state.frame === 'ribbon') {
             ctx.strokeStyle = '#ff9dca'
             ctx.lineWidth = 32

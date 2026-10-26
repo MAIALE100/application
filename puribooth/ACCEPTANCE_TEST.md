@@ -1,10 +1,10 @@
-# FLEPURI v1.0.3 受入テスト
+# FLEPURI v1.0.4 受入テスト
 
 運営導入後、最低限以下を確認してください。
 
 ## 起動
 - `puribooth_selftest` がPASS
-- qbx_coreが2.5.4+としてPASS表示される
+- qbx_coreが必要exportsの実体確認でPASS表示される
 - PuriPhoto versionとproduction UIがPASS表示される
 - PuriPhoto UIのJS / CSS / client bridgeが実体検査を通る
 - Renewed-Bankingのweazel会社口座がPASS表示される

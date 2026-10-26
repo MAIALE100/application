@@ -218,7 +218,7 @@ button:active { transform: translateY(1px); }
 
 .stamp-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: .4vw;
 }
 .stamp-grid button { font-size: 2.2vh; padding: .6vh; background: #f7f1f5; }
@@ -753,4 +753,21 @@ input[type="color"] {
 
 #canvas {
     touch-action: none;
+}
+
+
+/* Final purikura editor polish */
+.draw-style-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+[data-draw-style="eraser"].active {
+    background: #241521;
+    color: #fff;
+}
+
+.selection-actions #bringForwardButton:not(:disabled),
+.selection-actions #sendBackwardButton:not(:disabled) {
+    background: #f7eef5;
+    color: #563d50;
 }

@@ -6,7 +6,7 @@ FLEPURI v1.0.0 は以下の外部リソースと連携します。
 - oxmysql
 - LB Phone
 - screenshot-basic
-- PuriPhoto
+- PuriPhoto（FLEPURI互換版 v1.1.1 / booth-import bridge）
 - Renewed-Banking（既定の売上回収設定）
 
 各外部リソースはそれぞれの配布元のライセンス・利用条件に従って導入してください。

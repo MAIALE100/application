@@ -421,15 +421,6 @@ end
 
 CreateThread(function()
     MySQL.query.await([[
-        CREATE TABLE IF NOT EXISTS puribooth_admins (
-            identifier VARCHAR(96) NOT NULL,
-            player_name VARCHAR(96) NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (identifier)
-        )
-    ]])
-
-    MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS puribooth_booths (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             label VARCHAR(64) NOT NULL,
@@ -1451,6 +1442,6 @@ end, false)
 
 CreateThread(function()
     Wait(1000)
-    print(("[puribooth] v0.8.11 starting (price=$%d, shots=%d)")
+    print(("[puribooth] v0.8.12 starting (price=$%d, shots=%d)")
         :format(tonumber(Config.Price) or 0, tonumber(Config.ShotCount) or 4))
 end)

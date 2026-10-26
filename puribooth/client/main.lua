@@ -57,6 +57,58 @@ local function notify(kind, message)
     EndTextCommandThefeedPostTicker(false, false)
 end
 
+local function versionParts(value)
+    local parts = {}
+
+    for part in tostring(value or ""):gmatch("(%d+)") do
+        parts[#parts + 1] = tonumber(part) or 0
+        if #parts >= 4 then break end
+    end
+
+    return #parts > 0 and parts or nil
+end
+
+local function versionAtLeast(actual, minimum)
+    local actualParts = versionParts(actual)
+    local minimumParts = versionParts(minimum)
+
+    if not actualParts or not minimumParts then
+        return false
+    end
+
+    local count = math.max(#actualParts, #minimumParts)
+
+    for index = 1, count do
+        local current = actualParts[index] or 0
+        local required = minimumParts[index] or 0
+
+        if current > required then return true end
+        if current < required then return false end
+    end
+
+    return true
+end
+
+local function puriphotoCompatible()
+    if GetResourceState("puriphoto") ~= "started" then
+        return false, nil
+    end
+
+    local minimum =
+        tostring(((Config.MinimumVersions or {}).puriphoto) or "")
+
+    if minimum == "" then
+        return true, GetResourceMetadata("puriphoto", "version", 0)
+    end
+
+    local actual = GetResourceMetadata("puriphoto", "version", 0)
+    if type(actual) ~= "string" or actual == "" then
+        return false, nil
+    end
+
+    return versionAtLeast(actual, minimum), actual
+end
+
 RegisterNetEvent("puribooth:client:notify", notify)
 
 local function localizeBoothLabel(value)
@@ -2038,15 +2090,33 @@ RegisterNUICallback("puriboothFinish", function(data, cb)
         return
     end
 
-    if GetResourceState("puriphoto") ~= "started" then
+    local compatible, actualPuriPhotoVersion =
+        puriphotoCompatible()
+
+    if not compatible then
+        local minimum =
+            tostring(((Config.MinimumVersions or {}).puriphoto) or "")
+
         notify(
             "error",
-            "PuriPhotoが停止中です。編集内容はこの画面に残してあります。起動後にもう一度送信してください。"
+            actualPuriPhotoVersion
+                and (
+                    "PuriPhotoのバージョンがFLEPURIに対応していません。"
+                    .. " 編集内容は残してあります。"
+                )
+                or (
+                    "PuriPhotoが停止中、または互換性を確認できません。"
+                    .. " 編集内容はこの画面に残してあります。"
+                )
         )
 
         cb({
             ok = false,
-            error = "puriphoto_not_started"
+            error = actualPuriPhotoVersion
+                and "puriphoto_incompatible"
+                or "puriphoto_not_started",
+            actualVersion = actualPuriPhotoVersion,
+            minimumVersion = minimum
         })
         return
     end

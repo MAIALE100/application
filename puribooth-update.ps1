@@ -76,6 +76,7 @@ if (-not $BoothOnly) {
             $bundleFiles = Get-ChildItem -LiteralPath $dist -Filter "*.js" -File -Recurse
             $hasBoothImportNotice = $false
             $hasBoothImportCallback = $false
+            $hasBoothImportConfirm = $false
 
             foreach ($bundle in $bundleFiles) {
                 $content = Get-Content -LiteralPath $bundle.FullName -Raw
@@ -85,10 +86,13 @@ if (-not $BoothOnly) {
                 if ($content.Contains("puriphotoGetBoothImport")) {
                     $hasBoothImportCallback = $true
                 }
+                if ($content.Contains("puriphotoConfirmBoothImport")) {
+                    $hasBoothImportConfirm = $true
+                }
             }
 
-            if (-not $hasBoothImportNotice -or -not $hasBoothImportCallback) {
-                throw "PuriPhoto production bundle does not contain the FLEPURI booth-import bridge"
+            if (-not $hasBoothImportNotice -or -not $hasBoothImportCallback -or -not $hasBoothImportConfirm) {
+                throw "PuriPhoto production bundle does not contain the complete FLEPURI booth-import bridge"
             }
 
             $distBytes = (

@@ -1098,13 +1098,15 @@ RegisterNetEvent("puribooth:client:removeBooth", function(boothId)
 end)
 
 
-local function drawText2d(text, x, y, scale)
-    local slot = "main"
+local function drawText2d(text, x, y, scale, slotOverride)
+    local slot = slotOverride or "main"
 
-    if (tonumber(scale) or 0.0) >= 0.8 then
-        slot = "countdown"
-    elseif (tonumber(y) or 0.0) >= 0.86 then
-        slot = "secondary"
+    if not slotOverride then
+        if (tonumber(scale) or 0.0) >= 0.8 then
+            slot = "countdown"
+        elseif (tonumber(y) or 0.0) >= 0.86 then
+            slot = "secondary"
+        end
     end
 
     SendNUIMessage({
@@ -2333,15 +2335,17 @@ CreateThread(function()
                     drawText2d(
                         "ピンク枠＝撮影範囲　水色矢印＝撮影方向　Q/E＝回転　PageUp/PageDown＝高さ",
                         0.5,
-                        0.80,
-                        0.34
+                        0.88,
+                        0.34,
+                        "secondary"
                     )
 
                     drawText2d(
                         "[C] カメラ確認　[SHIFT] 高速移動　[ENTER] 設置　[BACKSPACE] 中止",
                         0.5,
                         0.84,
-                        0.38
+                        0.38,
+                        "main"
                     )
                 end
             end

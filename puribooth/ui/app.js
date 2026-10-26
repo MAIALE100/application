@@ -74,6 +74,26 @@
         whiten: 5,
         rosy: 4,
         previewOriginal: false,
+        activeTab: 'layout',
+        exporting: false,
+        faceEditShot: 0,
+        faceSlot: 0,
+        faceTargets: Array.from(
+            { length: 4 },
+            () => Array.from(
+                { length: 6 },
+                () => ({
+                    enabled: false,
+                    x: 50,
+                    y: 30,
+                    size: 22,
+                    eye: 0,
+                    slim: 0,
+                    bright: 0,
+                    rosy: 0
+                })
+            )
+        ),
         stickers: [],
         texts: [],
         strokes: [],
@@ -372,7 +392,7 @@
         image.src = src
     })
 
-    const drawCover = (image, x, y, w, h, transform = null) => {
+    const getCoverGeometry = (image, x, y, w, h, transform = null) => {
         const srcRatio = image.width / image.height
         const dstRatio = w / h
         let baseW = image.width
@@ -413,11 +433,325 @@
             Math.min(image.height - cropH, centerY - cropH / 2)
         )
 
+        return { x, y, w, h, sx, sy, cropW, cropH }
+    }
+
+    const faceBuffer = document.createElement('canvas')
+    const faceBufferCtx = faceBuffer.getContext('2d')
+
+    const mapFaceTargetToCanvas = (image, target, geometry) => {
+        const sourceX = image.width * (Number(target.x) || 0) / 100
+        const sourceY = image.height * (Number(target.y) || 0) / 100
+
+        if (
+            sourceX < geometry.sx
+            || sourceX > geometry.sx + geometry.cropW
+            || sourceY < geometry.sy
+            || sourceY > geometry.sy + geometry.cropH
+        ) return null
+
+        const x =
+            geometry.x
+            + (sourceX - geometry.sx) / geometry.cropW * geometry.w
+        const y =
+            geometry.y
+            + (sourceY - geometry.sy) / geometry.cropH * geometry.h
+        const faceH =
+            Math.max(
+                18,
+                image.height
+                * Math.max(8, Math.min(45, Number(target.size) || 22))
+                / 100
+                / geometry.cropH
+                * geometry.h
+            )
+        const faceW = faceH * .78
+
+        return { x, y, faceW, faceH }
+    }
+
+    const applyOneFaceBeauty = (image, target, geometry) => {
+        if (!target?.enabled) return
+
+        const mapped = mapFaceTargetToCanvas(image, target, geometry)
+        if (!mapped || mapped.faceH < 18) return
+
+        const { x: cx, y: cy, faceW, faceH } = mapped
+        const regionW = Math.max(32, faceW * 1.65)
+        const regionH = Math.max(36, faceH * 1.55)
+        const rx = cx - regionW / 2
+        const ry = cy - regionH * .48
+
+        faceBuffer.width = Math.max(1, Math.ceil(regionW))
+        faceBuffer.height = Math.max(1, Math.ceil(regionH))
+        faceBufferCtx.clearRect(0, 0, faceBuffer.width, faceBuffer.height)
+        faceBufferCtx.drawImage(
+            canvas,
+            rx, ry, regionW, regionH,
+            0, 0, faceBuffer.width, faceBuffer.height
+        )
+
+        const slim = Math.max(0, Math.min(30, Number(target.slim) || 0))
+        if (slim > 0) {
+            const scaleX = 1 - (slim / 30) * .085
+            ctx.save()
+            ctx.filter = 'none'
+            ctx.beginPath()
+            ctx.ellipse(
+                cx,
+                cy + faceH * .05,
+                faceW * .56,
+                faceH * .60,
+                0,
+                0,
+                Math.PI * 2
+            )
+            ctx.clip()
+            ctx.globalAlpha = .94
+            ctx.drawImage(
+                faceBuffer,
+                0, 0, faceBuffer.width, faceBuffer.height,
+                rx + regionW * (1 - scaleX) / 2,
+                ry,
+                regionW * scaleX,
+                regionH
+            )
+            ctx.restore()
+
+            faceBufferCtx.clearRect(0, 0, faceBuffer.width, faceBuffer.height)
+            faceBufferCtx.drawImage(
+                canvas,
+                rx, ry, regionW, regionH,
+                0, 0, faceBuffer.width, faceBuffer.height
+            )
+        }
+
+        const eye = Math.max(0, Math.min(40, Number(target.eye) || 0))
+        if (eye > 0) {
+            const factor = 1 + (eye / 40) * .24
+            const eyeY = cy - faceH * .13
+            const eyeOffset = faceW * .22
+            const eyeW = Math.max(8, faceW * .29)
+            const eyeH = Math.max(6, faceH * .17)
+            const bufferScaleX = faceBuffer.width / regionW
+            const bufferScaleY = faceBuffer.height / regionH
+
+            ;[-1, 1].forEach(side => {
+                const eyeX = cx + side * eyeOffset
+                const localX = (eyeX - rx) * bufferScaleX
+                const localY = (eyeY - ry) * bufferScaleY
+                const srcW = eyeW / factor * bufferScaleX
+                const srcH = eyeH / factor * bufferScaleY
+
+                ctx.save()
+                ctx.filter = 'none'
+                ctx.beginPath()
+                ctx.ellipse(
+                    eyeX,
+                    eyeY,
+                    eyeW * .56,
+                    eyeH * .62,
+                    0,
+                    0,
+                    Math.PI * 2
+                )
+                ctx.clip()
+                ctx.drawImage(
+                    faceBuffer,
+                    localX - srcW / 2,
+                    localY - srcH / 2,
+                    srcW,
+                    srcH,
+                    eyeX - eyeW / 2,
+                    eyeY - eyeH / 2,
+                    eyeW,
+                    eyeH
+                )
+                ctx.restore()
+            })
+        }
+
+        const bright = Math.max(0, Math.min(30, Number(target.bright) || 0))
+        if (bright > 0) {
+            ctx.save()
+            ctx.filter = 'none'
+            ctx.globalCompositeOperation = 'screen'
+            ctx.globalAlpha = (bright / 30) * .18
+            ctx.fillStyle = '#fff7f3'
+            ctx.beginPath()
+            ctx.ellipse(
+                cx,
+                cy,
+                faceW * .58,
+                faceH * .62,
+                0,
+                0,
+                Math.PI * 2
+            )
+            ctx.fill()
+            ctx.restore()
+        }
+
+        const rosy = Math.max(0, Math.min(30, Number(target.rosy) || 0))
+        if (rosy > 0) {
+            const alpha = (rosy / 30) * .24
+            ;[-1, 1].forEach(side => {
+                const cheekX = cx + side * faceW * .24
+                const cheekY = cy + faceH * .13
+                const radius = Math.max(6, faceW * .18)
+                const gradient = ctx.createRadialGradient(
+                    cheekX, cheekY, 0,
+                    cheekX, cheekY, radius
+                )
+                gradient.addColorStop(0, `rgba(255,88,130,${alpha})`)
+                gradient.addColorStop(1, 'rgba(255,88,130,0)')
+                ctx.save()
+                ctx.filter = 'none'
+                ctx.globalCompositeOperation = 'screen'
+                ctx.fillStyle = gradient
+                ctx.fillRect(
+                    cheekX - radius,
+                    cheekY - radius,
+                    radius * 2,
+                    radius * 2
+                )
+                ctx.restore()
+            })
+        }
+    }
+
+    const applyFaceBeautyForShot = (image, shotIndex, geometry) => {
+        const targets = state.faceTargets[shotIndex]
+        if (!Array.isArray(targets)) return
+        targets.forEach(target => applyOneFaceBeauty(image, target, geometry))
+    }
+
+    const drawCover = (
+        image,
+        x,
+        y,
+        w,
+        h,
+        transform = null,
+        shotIndex = null
+    ) => {
+        const geometry = getCoverGeometry(image, x, y, w, h, transform)
+
         ctx.drawImage(
             image,
-            sx, sy, cropW, cropH,
+            geometry.sx,
+            geometry.sy,
+            geometry.cropW,
+            geometry.cropH,
             x, y, w, h
         )
+
+        if (
+            shotIndex !== null
+            && !state.previewOriginal
+            && Array.isArray(state.faceTargets[shotIndex])
+        ) {
+            applyFaceBeautyForShot(image, shotIndex, geometry)
+        }
+
+        return geometry
+    }
+
+    const getLayoutCells = () => {
+        if (state.layout === 'grid') {
+            return [
+                { shot: 0, x: 0, y: 0, w: 600, h: 450 },
+                { shot: 1, x: 600, y: 0, w: 600, h: 450 },
+                { shot: 2, x: 0, y: 450, w: 600, h: 450 },
+                { shot: 3, x: 600, y: 450, w: 600, h: 450 }
+            ]
+        }
+
+        if (state.layout === 'strip') {
+            return [0, 1, 2, 3].map(shot => ({
+                shot,
+                x: shot * 300,
+                y: 0,
+                w: 300,
+                h: 900
+            }))
+        }
+
+        if (state.layout === 'hero') {
+            return [
+                { shot: 0, x: 0, y: 0, w: 800, h: 900 },
+                { shot: 1, x: 800, y: 0, w: 400, h: 300 },
+                { shot: 2, x: 800, y: 300, w: 400, h: 300 },
+                { shot: 3, x: 800, y: 600, w: 400, h: 300 }
+            ]
+        }
+
+        const shot =
+            state.images[state.singleShot]
+                ? state.singleShot
+                : 0
+
+        return [{ shot, x: 0, y: 0, w: 1200, h: 900 }]
+    }
+
+    const drawFaceGuide = () => {
+        if (
+            state.activeTab !== 'face'
+            || state.exporting
+            || state.previewOriginal
+        ) return
+
+        const shotIndex = Math.max(
+            0,
+            Math.min(3, Number(state.faceEditShot) || 0)
+        )
+        const target =
+            state.faceTargets[shotIndex]?.[state.faceSlot]
+        const image = state.images[shotIndex]
+        const cell =
+            getLayoutCells().find(item => item.shot === shotIndex)
+
+        if (!target?.enabled || !image || !cell) return
+
+        const geometry = getCoverGeometry(
+            image,
+            cell.x, cell.y, cell.w, cell.h,
+            state.photoTransforms[shotIndex]
+        )
+        const mapped = mapFaceTargetToCanvas(image, target, geometry)
+        if (!mapped) return
+
+        ctx.save()
+        ctx.filter = 'none'
+        ctx.setLineDash([10, 7])
+        ctx.lineWidth = 4
+        ctx.strokeStyle = '#67f2bd'
+        ctx.shadowColor = '#000'
+        ctx.shadowBlur = 5
+        ctx.beginPath()
+        ctx.ellipse(
+            mapped.x,
+            mapped.y,
+            mapped.faceW * .58,
+            mapped.faceH * .62,
+            0,
+            0,
+            Math.PI * 2
+        )
+        ctx.stroke()
+
+        ctx.setLineDash([])
+        ctx.fillStyle = 'rgba(22,18,24,.82)'
+        ctx.font = '700 24px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const label = `顔${state.faceSlot + 1}`
+        ctx.fillText(
+            label,
+            mapped.x,
+            mapped.y - mapped.faceH * .72
+        )
+        ctx.restore()
     }
 
     const photoFilter = () =>
@@ -700,7 +1034,8 @@
                     && drawCover(
                         state.images[i],
                         ...cell,
-                        state.photoTransforms[i]
+                        state.photoTransforms[i],
+                        i
                     )
             )
         } else if (state.layout === 'strip') {
@@ -710,7 +1045,8 @@
                     drawCover(
                         state.images[i],
                         width * i, 0, width, 900,
-                        state.photoTransforms[i]
+                        state.photoTransforms[i],
+                        i
                     )
                 }
             }
@@ -719,7 +1055,8 @@
                 drawCover(
                     state.images[0],
                     0, 0, 800, 900,
-                    state.photoTransforms[0]
+                    state.photoTransforms[0],
+                    0
                 )
             }
             for (let i = 1; i < 4; i++) {
@@ -727,7 +1064,8 @@
                     drawCover(
                         state.images[i],
                         800, (i - 1) * 300, 400, 300,
-                        state.photoTransforms[i]
+                        state.photoTransforms[i],
+                        i
                     )
                 }
             }
@@ -741,7 +1079,8 @@
                 drawCover(
                     selected,
                     0, 0, 1200, 900,
-                    state.photoTransforms[selectedIndex]
+                    state.photoTransforms[selectedIndex],
+                    selectedIndex
                 )
             }
         }
@@ -780,6 +1119,8 @@
         if (!state.previewOriginal) {
             applySkinBeauty()
         }
+
+        drawFaceGuide()
     }
 
     const drawFrame = () => {
@@ -953,8 +1294,11 @@
     }
 
     const setTab = tab => {
+        state.activeTab = tab
         document.querySelectorAll('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab))
         document.querySelectorAll('[data-page]').forEach(page => page.classList.toggle('active', page.dataset.page === tab))
+        if (tab === 'face') refreshFaceControls()
+        render()
     }
 
     document.querySelectorAll('[data-tab]').forEach(button => {
@@ -1017,6 +1361,141 @@
     }
 
 
+    const makeFaceTarget = () => ({
+        enabled: false,
+        x: 50,
+        y: 30,
+        size: 22,
+        eye: 0,
+        slim: 0,
+        bright: 0,
+        rosy: 0
+    })
+
+    const resetFaceTargets = () => {
+        state.faceEditShot = 0
+        state.faceSlot = 0
+        state.faceTargets =
+            Array.from(
+                { length: 4 },
+                () => Array.from(
+                    { length: 6 },
+                    () => makeFaceTarget()
+                )
+            )
+        refreshFaceControls()
+    }
+
+    const currentFaceTarget = () =>
+        state.faceTargets[state.faceEditShot]?.[state.faceSlot] || null
+
+    const refreshFaceControls = () => {
+        const shotIndex = Math.max(
+            0,
+            Math.min(3, Number(state.faceEditShot) || 0)
+        )
+        const slotIndex = Math.max(
+            0,
+            Math.min(5, Number(state.faceSlot) || 0)
+        )
+        const target =
+            state.faceTargets[shotIndex]?.[slotIndex]
+            || makeFaceTarget()
+
+        document.querySelectorAll('[data-face-shot]').forEach(button => {
+            const index = Number(button.dataset.faceShot)
+            button.classList.toggle('active', index === shotIndex)
+            button.disabled = !state.images[index]
+        })
+
+        document.querySelectorAll('[data-face-slot]').forEach(button => {
+            const index = Number(button.dataset.faceSlot)
+            const saved = state.faceTargets[shotIndex]?.[index]
+            button.classList.toggle('active', index === slotIndex)
+            button.classList.toggle('configured', Boolean(saved?.enabled))
+        })
+
+        const values = {
+            faceX: target.x,
+            faceY: target.y,
+            faceSize: target.size,
+            faceEye: target.eye,
+            faceSlim: target.slim,
+            faceBright: target.bright,
+            faceRosy: target.rosy
+        }
+
+        Object.entries(values).forEach(([id, value]) => {
+            const input = document.getElementById(id)
+            if (input) input.value = value
+        })
+
+        const enableButton = document.getElementById('faceEnableButton')
+        if (enableButton) {
+            enableButton.textContent =
+                target.enabled
+                    ? 'この顔補正を使わない'
+                    : 'この顔補正を使う'
+            enableButton.classList.toggle('active', target.enabled)
+        }
+
+        const status = document.getElementById('faceStatus')
+        if (status) {
+            status.textContent = target.enabled
+                ? `${shotIndex + 1}枚目 / 顔${slotIndex + 1}：登録済み。写真内の顔をクリックすると位置を変更できます。`
+                : `${shotIndex + 1}枚目 / 顔${slotIndex + 1}：未登録。写真内の顔をクリックしてください。`
+        }
+    }
+
+    const placeFaceTargetAtCanvasPoint = point => {
+        const cell =
+            getLayoutCells().find(item =>
+                point.x >= item.x
+                && point.x <= item.x + item.w
+                && point.y >= item.y
+                && point.y <= item.y + item.h
+            )
+
+        if (!cell) return false
+
+        const image = state.images[cell.shot]
+        if (!image) return false
+
+        const geometry = getCoverGeometry(
+            image,
+            cell.x, cell.y, cell.w, cell.h,
+            state.photoTransforms[cell.shot]
+        )
+        const sourceX =
+            geometry.sx
+            + (point.x - cell.x) / cell.w * geometry.cropW
+        const sourceY =
+            geometry.sy
+            + (point.y - cell.y) / cell.h * geometry.cropH
+
+        state.faceEditShot = cell.shot
+        const target =
+            state.faceTargets[cell.shot]?.[state.faceSlot]
+        if (!target) return false
+
+        target.enabled = true
+        target.x = Math.max(
+            0,
+            Math.min(100, sourceX / image.width * 100)
+        )
+        target.y = Math.max(
+            0,
+            Math.min(100, sourceY / image.height * 100)
+        )
+
+        refreshFaceControls()
+        toolStatus.textContent =
+            `${cell.shot + 1}枚目の顔${state.faceSlot + 1}を登録しました`
+        render()
+        return true
+    }
+
+
     const resetEditorSessionState = () => {
         state.layout = 'grid'
         state.singleShot = 0
@@ -1031,6 +1510,8 @@
         state.whiten = 5
         state.rosy = 4
         state.previewOriginal = false
+        state.activeTab = 'layout'
+        state.exporting = false
 
         document.querySelectorAll('[data-layout]').forEach(button => {
             button.classList.toggle(
@@ -1065,8 +1546,9 @@
             if (input) input.value = value
         })
 
-        setTab('layout')
         resetPhotoTransforms()
+        resetFaceTargets()
+        setTab('layout')
         resetDecorations(false)
     }
 
@@ -1109,6 +1591,82 @@
     document.getElementById('photoResetAll').addEventListener('click', () => {
         resetPhotoTransforms()
         toolStatus.textContent = '4枚すべての位置調整をリセットしました'
+        render()
+    })
+
+    document.querySelectorAll('[data-face-shot]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = Number(button.dataset.faceShot)
+            if (!state.images[index]) return
+            state.faceEditShot = index
+            refreshFaceControls()
+            render()
+        })
+    })
+
+    document.querySelectorAll('[data-face-slot]').forEach(button => {
+        button.addEventListener('click', () => {
+            state.faceSlot = Math.max(
+                0,
+                Math.min(5, Number(button.dataset.faceSlot) || 0)
+            )
+            refreshFaceControls()
+            render()
+        })
+    })
+
+    document.getElementById('faceEnableButton').addEventListener('click', () => {
+        const target = currentFaceTarget()
+        if (!target) return
+        target.enabled = !target.enabled
+        refreshFaceControls()
+        toolStatus.textContent =
+            target.enabled
+                ? `顔${state.faceSlot + 1}の補正を有効にしました`
+                : `顔${state.faceSlot + 1}の補正を無効にしました`
+        render()
+    })
+
+    const bindFaceRange = (id, key) => {
+        document.getElementById(id).addEventListener('input', event => {
+            const target = currentFaceTarget()
+            if (!target) return
+            target[key] = Number(event.target.value)
+            target.enabled = true
+            refreshFaceControls()
+            render()
+        })
+    }
+
+    bindFaceRange('faceX', 'x')
+    bindFaceRange('faceY', 'y')
+    bindFaceRange('faceSize', 'size')
+    bindFaceRange('faceEye', 'eye')
+    bindFaceRange('faceSlim', 'slim')
+    bindFaceRange('faceBright', 'bright')
+    bindFaceRange('faceRosy', 'rosy')
+
+    document.getElementById('facePuriPreset').addEventListener('click', () => {
+        const target = currentFaceTarget()
+        if (!target) return
+        target.enabled = true
+        target.eye = 18
+        target.slim = 14
+        target.bright = 9
+        target.rosy = 7
+        refreshFaceControls()
+        toolStatus.textContent =
+            `顔${state.faceSlot + 1}にプリクラ顔を適用しました`
+        render()
+    })
+
+    document.getElementById('faceResetCurrent').addEventListener('click', () => {
+        if (!state.faceTargets[state.faceEditShot]) return
+        state.faceTargets[state.faceEditShot][state.faceSlot] =
+            makeFaceTarget()
+        refreshFaceControls()
+        toolStatus.textContent =
+            `顔${state.faceSlot + 1}の補正をリセットしました`
         render()
     })
 
@@ -1268,6 +1826,12 @@
 
     canvas.addEventListener('pointerdown', event => {
         const point = canvasPoint(event)
+
+        if (state.activeTab === 'face') {
+            event.preventDefault()
+            placeFaceTargetAtCanvasPoint(point)
+            return
+        }
 
         if (state.drawEnabled) {
             pushDecorationHistory()
@@ -1551,23 +2115,28 @@
         button.disabled = true
         button.textContent = '書き出し中…'
         const previousSelection = state.selectedDecoration
+        const previousExporting = state.exporting
 
         try {
             state.selectedDecoration = null
+            state.exporting = true
             updateHistoryButtons()
             render()
 
             const image = canvas.toDataURL('image/jpeg', .92)
             const result = await post('puriboothFinish', { boothId: state.boothId, image })
             if (!result.ok) throw new Error(result.error || 'finish_failed')
+            state.exporting = previousExporting
             app.classList.add('hidden')
         } catch (error) {
             state.selectedDecoration = previousSelection
+            state.exporting = previousExporting
             updateHistoryButtons()
             render()
             console.error('[puribooth] finish failed', error)
             toolStatus.textContent = '保存に失敗しました。もう一度お試しください。'
         } finally {
+            state.exporting = previousExporting
             button.disabled = false
             button.textContent = 'PuriPhotoへ送る'
         }

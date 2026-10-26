@@ -1,4 +1,4 @@
-# FLEPURI v1.0.2 受入テスト
+# FLEPURI v1.0.3 受入テスト
 
 運営導入後、最低限以下を確認してください。
 
@@ -10,9 +10,10 @@
 - Renewed-Bankingのweazel会社口座がPASS表示される
 - DB schema / configがPASS表示される
 - 起動時にLuaエラー / NUIエラーが出ない
-- DBに `puribooth_booths` / `puribooth_events` / `puribooth_refunds` が自動作成される
+- DBに `puribooth_booths` / `puribooth_events` / `puribooth_refunds` / `puribooth_collections` が自動作成される
 - `puribooth_support` がエラーなく状態を表示する
 - `puribooth_refunds` が0件または既知の未解決返金だけを表示する
+- `puribooth_collections` が0件または既知の未解決売上回収だけを表示する
 - 再起動しても勝手にテスト台が生成されない
 
 ## 権限
@@ -47,7 +48,7 @@
 - 装飾リセットを複数回行ってもボタン操作が二重実行されない
 - Undo / Redo / Delete / Esc が動作する
 - 完成画像をPuriPhotoへ渡せる
-- PuriPhoto NUIが画像を取得するまでFLEPURI編集画面が閉じない
+- PuriPhoto NUIが画像を取得し、confirm receiptを返すまでFLEPURI編集画面が閉じない
 - PuriPhoto handoffを失敗させた場合、FLEPURI編集内容が保持される
 - PuriPhoto handoff成功後、FLEPURI編集画面が閉じてPuriPhotoへ切り替わる
 - PuriPhoto側の撮影場所がフレプリ台の場所になる
@@ -70,12 +71,20 @@
 - 回収後の未回収残高が0になる
 - Renewed-Bankingの取引履歴にFLEPURI売上が残る
 - Renewed-Banking入金失敗時は未回収残高が復元される
+- 売上回収時、台残高確保と回収台帳更新が同一DBトランザクションで処理される
+- `finalizing` 状態は `puribooth_collection_retry <collection_id>` で銀行へ再入金せずDB確定だけ再試行できる
+- `restoring` 状態は `puribooth_collection_retry <collection_id>` で台残高復元だけ再試行できる
+- `paying` 状態では新しい回収が停止し、Renewed-Banking照合後に `puribooth_collection_review <collection_id> <paid|notpaid>` で安全に解決できる
+- 未解決の会社売上回収がある間は新規回収と台撤去が停止する
 
 ## 保守確認
 - 正常撮影後、`puribooth_support <citizenid>` に session_charged → sale_recorded が残る
 - 撮影前返金後、refund_completed が残る
 - 未解決返金がない状態では `puribooth_selftest` の refunds がPASS(0)
 - `processing` 返金が発生した場合は自動再試行されず、手動照合対象になる
+- `puribooth_refund_review <session_id> <resolved|retry>` で照合済みprocessing返金をDB直接編集せず解決できる
+- 撮影完了 / キャンセル / 切断 / タイムアウトが競合しても、同一セッションで売上確定と返金が両方成立しない
+- `puribooth_selftest` が accounting / refunds / collections をすべてPASS表示する
 
 ## 合格基準
 上記に重大不具合がなく、サーバーコンソールに継続的なエラーが出ず、`puribooth_selftest` がPASSであること。

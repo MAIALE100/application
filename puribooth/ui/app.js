@@ -15,6 +15,7 @@
     const shootHudMain = document.getElementById('shootHudMain')
     const shootHudSecondary = document.getElementById('shootHudSecondary')
     const shootHudCountdown = document.getElementById('shootHudCountdown')
+    const shootSafeFrame = document.getElementById('shootSafeFrame')
     const shootHudTimers = {
         main: null,
         secondary: null,
@@ -1141,6 +1142,11 @@
 
         if (data.action === 'shootHudLine') {
             showShootHudLine(data.slot, data.text)
+            return
+        }
+
+        if (data.action === 'shootSafeFrame') {
+            shootSafeFrame?.classList.toggle('visible', data.visible === true)
             return
         }
 

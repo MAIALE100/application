@@ -909,6 +909,13 @@ local function drawText2d(text, x, y, scale)
     })
 end
 
+local function setCameraSafeFrame(visible)
+    SendNUIMessage({
+        action = "shootSafeFrame",
+        visible = visible == true
+    })
+end
+
 local function sessionMarker(booth)
     local c = booth.captureCenter
     local s = booth.captureSize
@@ -1153,6 +1160,7 @@ local function destroyPreviewCamera(transition)
     previewCam = nil
     previewBoothId = nil
     cameraPreviewActive = false
+    setCameraSafeFrame(false)
 
     DisplayRadar(true)
     TriggerEvent("lb-phone:toggleHud", false)
@@ -1168,6 +1176,7 @@ local function enterCameraPreview(boothId)
     previewBoothId = boothId
     cameraPreviewActive = true
     ownedSession.phase = "preview"
+    setCameraSafeFrame(true)
 
     DisplayRadar(false)
     TriggerEvent("lb-phone:toggleHud", true)
@@ -1183,6 +1192,7 @@ local function leaveCameraPreview()
         ownedSession.phase = "gathering"
     end
 
+    setCameraSafeFrame(false)
     destroyPreviewCamera(true)
 end
 
@@ -1363,7 +1373,7 @@ RegisterNetEvent("puribooth:client:countdown", function(boothId, shotIndex)
             end
 
             countdownDisplay =
-                ("%d枚目 / %d枚　%d")
+                ("%d枚目 / %d枚　あと%d秒")
                 :format(
                     shotIndex,
                     Config.ShotCount or 4,
@@ -1407,6 +1417,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
         ownedSession.phase = "capturing"
         captureInProgress = true
         captureCancelledByUser = false
+        setCameraSafeFrame(false)
 
         if not previewCam
             or not DoesCamExist(previewCam)
@@ -1433,6 +1444,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
                 poseShotIndex = shotIndex
                 poseAdvanceRequested = false
                 poseReadyForNextShot = true
+                setCameraSafeFrame(true)
 
                 while captureInProgress and not poseAdvanceRequested do
                     Wait(0)
@@ -1440,6 +1452,7 @@ RegisterNetEvent("puribooth:client:captureOwner", function(boothId)
 
                 poseReadyForNextShot = false
                 poseAdvanceRequested = false
+                setCameraSafeFrame(false)
 
                 if not captureInProgress then
                     failed = true
@@ -2078,6 +2091,7 @@ AddEventHandler("onResourceStop", function(resource)
     end
 
     SetNuiFocus(false, false)
+    setCameraSafeFrame(false)
     destroyPreviewCamera(false)
     cleanupPlacement()
     clearTheme()

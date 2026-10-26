@@ -73,6 +73,7 @@
         skinSmooth: 5,
         whiten: 5,
         rosy: 4,
+        previewOriginal: false,
         stickers: [],
         texts: [],
         strokes: [],
@@ -684,7 +685,7 @@
 
     const drawPhotos = () => {
         ctx.save()
-        ctx.filter = photoFilter()
+        ctx.filter = state.previewOriginal ? 'none' : photoFilter()
 
         if (state.layout === 'grid') {
             const cells = [
@@ -744,7 +745,7 @@
 
         ctx.restore()
 
-        if (state.warmth !== 0) {
+        if (!state.previewOriginal && state.warmth !== 0) {
             ctx.save()
             ctx.globalCompositeOperation = 'soft-light'
             ctx.globalAlpha = Math.min(.22, Math.abs(state.warmth) / 120)
@@ -753,7 +754,7 @@
             ctx.restore()
         }
 
-        if (state.glow > 0 && beautyBufferCtx) {
+        if (!state.previewOriginal && state.glow > 0 && beautyBufferCtx) {
             beautyBufferCtx.save()
             beautyBufferCtx.clearRect(
                 0,
@@ -773,7 +774,9 @@
             ctx.restore()
         }
 
-        applySkinBeauty()
+        if (!state.previewOriginal) {
+            applySkinBeauty()
+        }
     }
 
     const drawFrame = () => {
@@ -1024,6 +1027,7 @@
         state.skinSmooth = 5
         state.whiten = 5
         state.rosy = 4
+        state.previewOriginal = false
 
         document.querySelectorAll('[data-layout]').forEach(button => {
             button.classList.toggle(
@@ -1120,6 +1124,46 @@
     bindRange('skinSmooth', 'skinSmooth')
     bindRange('whiten', 'whiten')
     bindRange('rosy', 'rosy')
+
+    const compareBeautyButton =
+        document.getElementById('compareBeautyButton')
+
+    if (compareBeautyButton) {
+        const setOriginalPreview = value => {
+            state.previewOriginal = value
+            compareBeautyButton.classList.toggle(
+                'active',
+                value
+            )
+            compareBeautyButton.textContent =
+                value
+                    ? '補正前を表示中'
+                    : '押して補正前を確認'
+            render()
+        }
+
+        compareBeautyButton.addEventListener(
+            'pointerdown',
+            event => {
+                event.preventDefault()
+                compareBeautyButton.setPointerCapture?.(
+                    event.pointerId
+                )
+                setOriginalPreview(true)
+            }
+        )
+
+        ;[
+            'pointerup',
+            'pointercancel',
+            'pointerleave'
+        ].forEach(name => {
+            compareBeautyButton.addEventListener(
+                name,
+                () => setOriginalPreview(false)
+            )
+        })
+    }
 
     document.querySelectorAll('[data-preset]').forEach(button => {
         button.addEventListener('click', () => {

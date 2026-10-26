@@ -64,8 +64,10 @@ Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
 
 Write-Host "==> Staging puribooth" -ForegroundColor Cyan
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
-Copy-Item -LiteralPath $booth -Destination (Join-Path $stage "puribooth") -Recurse -Force
-Remove-Item -LiteralPath (Join-Path $stage "puribooth\RELEASE_CHECKLIST.md") -Force -ErrorAction SilentlyContinue
+$stageBooth = Join-Path $stage "puribooth"
+New-Item -ItemType Directory -Path $stageBooth -Force | Out-Null
+Copy-Item -Path (Join-Path $booth "*") -Destination $stageBooth -Recurse -Force
+Remove-Item -LiteralPath (Join-Path $stageBooth "RELEASE_CHECKLIST.md") -Force -ErrorAction SilentlyContinue
 
 Write-Host "==> Staging optional PuriPhoto compatibility patch" -ForegroundColor Cyan
 $patchRoot = Join-Path $stage "PuriPhoto_compat_patch\puriphoto"
@@ -128,7 +130,7 @@ Then run puribooth/ACCEPTANCE_TEST.md.
 Set-Content -LiteralPath (Join-Path $stage "INSTALL_FIRST.txt") -Value $installFirst -Encoding UTF8
 
 Write-Host "==> Creating ZIP" -ForegroundColor Cyan
-Compress-Archive -LiteralPath (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
+Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
 
 Write-Host "==> Re-extracting ZIP for verification" -ForegroundColor Cyan
 Expand-Archive -LiteralPath $zip -DestinationPath $verify -Force

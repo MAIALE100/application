@@ -999,6 +999,44 @@ RegisterCommand("puribooth", function(source, args)
     )
 end, false)
 
+local function recordCompletedSale(boothId, session, reason)
+    boothId = tostring(boothId)
+
+    if not session or session.saleRecorded then
+        return true
+    end
+
+    local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
+    local affected = MySQL.update.await([[
+        UPDATE puribooth_booths
+        SET
+            balance = balance + ?,
+            lifetime_sales = lifetime_sales + ?,
+            completed_sales = completed_sales + 1,
+            last_sale_at = NOW()
+        WHERE id = ?
+    ]], {
+        amount,
+        amount,
+        tonumber(boothId)
+    })
+
+    if not affected or affected < 1 then
+        print(
+            ("[puribooth] ERROR failed to record sale booth=%s amount=%d reason=%s")
+                :format(
+                    boothId,
+                    amount,
+                    tostring(reason or "capture-complete")
+                )
+        )
+        return false
+    end
+
+    session.saleRecorded = true
+    return true
+end
+
 RegisterNetEvent("puribooth:server:startSession", function(boothId)
     local source = source
     boothId = tostring(boothId)
@@ -1039,7 +1077,18 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         releaseSession(boothId)
     end
 
-    local price = math.max(0, math.floor(tonumber(Config.Price) or 0))
+    local price =
+        math.max(
+            tonumber(Config.MinPrice) or 0,
+            math.min(
+                tonumber(Config.MaxPrice) or 100000,
+                math.floor(
+                    tonumber(booth.price)
+                    or tonumber(Config.Price)
+                    or 0
+                )
+            )
+        )
     local paidWith = nil
 
     if price > 0 then
@@ -1197,6 +1246,7 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
     local session = sessions[boothId]
     if not session or session.owner ~= source or not session.capturing then return end
 
+    recordCompletedSale(boothId, session, "capture-complete")
     releaseSession(boothId)
 end)
 
@@ -1224,6 +1274,7 @@ RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
                 :format(session.paid)
         )
     elseif session.capturing then
+        recordCompletedSale(boothId, session, "user-cancel-after-capture-start")
         notify(
             source,
             "inform",
@@ -1287,6 +1338,23 @@ AddEventHandler("playerDropped", function()
 
     for boothId, session in pairs(sessions) do
         if session.owner == source then
+            if session.capturing then
+                recordCompletedSale(
+                    boothId,
+                    session,
+                    "player-dropped-after-capture-start"
+                )
+            elseif session.paid and session.paid > 0 then
+                pcall(function()
+                    exports.qbx_core:AddMoney(
+                        source,
+                        session.moneyType or "cash",
+                        session.paid,
+                        "puribooth-disconnect-refund"
+                    )
+                end)
+            end
+
             releaseSession(boothId)
         end
     end

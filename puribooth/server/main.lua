@@ -1340,7 +1340,7 @@ local function queueRefund(session, reason, errorText)
             ON DUPLICATE KEY UPDATE
                 reason = VALUES(reason),
                 last_error = VALUES(last_error),
-                status = IF(status = 'resolved', status, 'pending')
+                status = IF(status IN ('resolved', 'processing'), status, 'pending')
         ]], {
             sessionId,
             tonumber(session.boothId),
@@ -1429,10 +1429,14 @@ local function refundSession(session, fallbackSource, reason)
     if not session then return false end
     if session.refunded == true then return true end
     if session.refundQueued == true then return false end
+    if session.refundInProgress == true then return false end
+
+    session.refundInProgress = true
 
     local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
     if amount <= 0 then
         session.refunded = true
+        session.refundInProgress = false
         return true
     end
 
@@ -1443,11 +1447,13 @@ local function refundSession(session, fallbackSource, reason)
 
     if not identifier then
         queueRefund(session, reason, "missing-refund-identifier")
+        session.refundInProgress = false
         return false
     end
 
     if GetResourceState("qbx_core") ~= "started" then
         queueRefund(session, reason, "qbx_core-not-started")
+        session.refundInProgress = false
         return false
     end
 
@@ -1469,6 +1475,7 @@ local function refundSession(session, fallbackSource, reason)
             amount,
             reason
         )
+        session.refundInProgress = false
         return true
     end
 
@@ -1477,6 +1484,7 @@ local function refundSession(session, fallbackSource, reason)
         reason,
         ok and "qbx-addmoney-returned-false" or "qbx-addmoney-error"
     )
+    session.refundInProgress = false
     return false
 end
 
@@ -1821,13 +1829,34 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         lastCountdownAt = 0
     }
 
-    auditEvent(
+    local auditWritten = auditEvent(
         sessions[boothId],
         boothId,
         price > 0 and "session_charged" or "session_opened",
         price,
         paidWith or "free"
     )
+
+    if price > 0 and not auditWritten then
+        local session = sessions[boothId]
+        local refunded = refundSession(
+            session,
+            source,
+            "puribooth-audit-write-failed-refund"
+        )
+
+        releaseSession(boothId)
+        unlockSessionStart()
+
+        notify(
+            source,
+            "error",
+            refunded
+                and "保守記録を保存できなかったため課金を取り消しました。"
+                or "保守記録を保存できず、返金は自動再試行待ちです。"
+        )
+        return
+    end
 
     unlockSessionStart()
     broadcastState(boothId)

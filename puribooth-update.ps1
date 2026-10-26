@@ -66,6 +66,37 @@ if (-not $BoothOnly) {
     
             npm run build -- --emptyOutDir
             if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
+
+            $dist = Join-Path (Get-Location) "dist"
+            $distIndex = Join-Path $dist "index.html"
+            if (-not (Test-Path -LiteralPath $distIndex)) {
+                throw "PuriPhoto production build is missing dist/index.html"
+            }
+
+            $bundleFiles = Get-ChildItem -LiteralPath $dist -Filter "*.js" -File -Recurse
+            $hasBoothImportNotice = $false
+            $hasBoothImportCallback = $false
+
+            foreach ($bundle in $bundleFiles) {
+                $content = Get-Content -LiteralPath $bundle.FullName -Raw
+                if ($content.Contains("boothImportAvailable")) {
+                    $hasBoothImportNotice = $true
+                }
+                if ($content.Contains("puriphotoGetBoothImport")) {
+                    $hasBoothImportCallback = $true
+                }
+            }
+
+            if (-not $hasBoothImportNotice -or -not $hasBoothImportCallback) {
+                throw "PuriPhoto production bundle does not contain the FLEPURI booth-import bridge"
+            }
+
+            $distBytes = (
+                Get-ChildItem -LiteralPath $dist -File -Recurse |
+                Measure-Object -Property Length -Sum
+            ).Sum
+
+            Write-Host ("PuriPhoto dist verified: {0:N0} bytes, FLEPURI import bridge=PASS" -f $distBytes) -ForegroundColor Green
         }
         finally {
             Pop-Location

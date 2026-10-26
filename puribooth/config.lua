@@ -42,6 +42,7 @@ Config.Payout = {
 }
 Config.SessionTimeoutSeconds = 180
 Config.CaptureTimeoutSeconds = 600
+Config.PuriPhotoHandoffTimeoutMs = 12000
 Config.CountdownSeconds = 3
 Config.ShotCount = 4 -- v1.0編集UIは4枚固定。変更時はselftestをFAILにします。
 Config.ShotIntervalMs = 1800

@@ -369,7 +369,7 @@ end
 
 local function loadBooths()
     local rows = MySQL.query.await([[
-        SELECT id, label, model, x, y, z, heading
+        SELECT id, label, model, x, y, z, heading, price
         FROM puribooth_booths
         ORDER BY id ASC
     ]]) or {}
@@ -384,8 +384,8 @@ local function loadBooths()
         local seed = Config.LegacyBooth
         local insertedId = MySQL.insert.await([[
             INSERT INTO puribooth_booths
-                (label, model, x, y, z, heading, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (label, model, x, y, z, heading, price, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ]], {
             tostring(seed.label or "リージョンプリ"),
             tostring(seed.model or Config.DefaultModel),
@@ -393,6 +393,7 @@ local function loadBooths()
             tonumber(seed.y) or 0.0,
             tonumber(seed.z) or 0.0,
             tonumber(seed.heading) or 0.0,
+            math.floor(tonumber(Config.Price) or 0),
             "legacy-seed"
         })
 
@@ -406,7 +407,8 @@ local function loadBooths()
                     y = tonumber(seed.y) or 0.0,
                     z = tonumber(seed.z) or 0.0
                 },
-                heading = tonumber(seed.heading) or 0.0
+                heading = tonumber(seed.heading) or 0.0,
+                price = math.floor(tonumber(Config.Price) or 0)
             }
             booths[booth.id] = booth
         end
@@ -436,11 +438,43 @@ CreateThread(function()
             y DOUBLE NOT NULL,
             z DOUBLE NOT NULL,
             heading DOUBLE NOT NULL DEFAULT 0,
+            price INT UNSIGNED NULL,
+            balance BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            lifetime_sales BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            completed_sales INT UNSIGNED NOT NULL DEFAULT 0,
+            collected_total BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            last_sale_at DATETIME NULL,
+            last_collected_at DATETIME NULL,
             created_by VARCHAR(96) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         )
     ]])
+
+    -- Existing development databases are migrated in place.
+    MySQL.query.await([[
+        ALTER TABLE puribooth_booths
+            ADD COLUMN IF NOT EXISTS price INT UNSIGNED NULL,
+            ADD COLUMN IF NOT EXISTS balance BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS lifetime_sales BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS completed_sales INT UNSIGNED NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS collected_total BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS last_sale_at DATETIME NULL,
+            ADD COLUMN IF NOT EXISTS last_collected_at DATETIME NULL
+    ]])
+
+    MySQL.update.await(
+        "UPDATE puribooth_booths SET price = ? WHERE price IS NULL",
+        {
+            math.max(
+                tonumber(Config.MinPrice) or 0,
+                math.min(
+                    tonumber(Config.MaxPrice) or 100000,
+                    math.floor(tonumber(Config.Price) or 0)
+                )
+            )
+        }
+    )
 
     loadBooths()
 end)

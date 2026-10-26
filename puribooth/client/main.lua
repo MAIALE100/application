@@ -138,7 +138,19 @@ local function prepareBooth(raw, fallbackId)
             y = tonumber(raw.coords.y) or 0.0,
             z = tonumber(raw.coords.z) or 0.0
         },
-        heading = tonumber(raw.heading) or 0.0
+        heading = tonumber(raw.heading) or 0.0,
+        price =
+            math.max(
+                tonumber(Config.MinPrice) or 0,
+                math.min(
+                    tonumber(Config.MaxPrice) or 100000,
+                    math.floor(
+                        tonumber(raw.price)
+                        or tonumber(Config.Price)
+                        or 0
+                    )
+                )
+            )
     }
 
     local geometry = Config.Geometry or {}
@@ -382,7 +394,7 @@ local function renderInteractionMarker(booth, occupied, distance)
         drawWorldLabel(
             occupied
                 and "FLEPURI  IN USE"
-                or (("FLEPURI  $%s"):format(Config.Price or 0)),
+                or (("FLEPURI  $%s"):format(booth.price or Config.Price or 0)),
             labelPos,
             0.28,
             occupied and 255 or 210,
@@ -1046,7 +1058,7 @@ local function registerInteraction(boothId, booth)
             {
                 name = ("puribooth_%s"):format(boothId),
                 icon = "fa-solid fa-camera-retro",
-                label = ("フレプリを撮る $%s"):format(Config.Price or 0),
+                label = ("フレプリを撮る $%s"):format(booth.price or Config.Price or 0),
                 distance = Config.InteractDistance or 2.2,
                 canInteract = function()
                     return not sharedSessions[boothId]
@@ -1095,6 +1107,23 @@ RegisterNetEvent("puribooth:client:removeBooth", function(boothId)
     removeSpawnedBooth(boothId)
     dynamicBooths[boothId] = nil
     sharedSessions[boothId] = nil
+end)
+
+RegisterNetEvent("puribooth:client:updateBoothPrice", function(boothId, price)
+    boothId = tostring(boothId)
+    local booth = dynamicBooths[boothId]
+    if not booth then return end
+
+    booth.price =
+        math.max(
+            tonumber(Config.MinPrice) or 0,
+            math.min(
+                tonumber(Config.MaxPrice) or 100000,
+                math.floor(tonumber(price) or tonumber(Config.Price) or 0)
+            )
+        )
+
+    registerInteraction(boothId, booth)
 end)
 
 
@@ -2144,7 +2173,7 @@ CreateThread(function()
 
                     drawText2d(
                         ("フレプリ撮影  $%s   [E]")
-                            :format(Config.Price or 0),
+                            :format(booth.price or Config.Price or 0),
                         0.5,
                         0.86,
                         0.42

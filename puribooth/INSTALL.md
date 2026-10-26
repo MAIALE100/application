@@ -1,4 +1,4 @@
-# FLEPURI v1.0.4 導入手順
+# FLEPURI v1.0.5 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.4 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.5 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -47,6 +47,8 @@ ensure puribooth
 初回起動時に `puribooth_booths` / `puribooth_events` / `puribooth_refunds` / `puribooth_collections` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列と保守テーブルの存在まで確認します。
 
 ## 5. Weazel権限
+
+Weazel所属者に加えて、既定ではACE `group.admin` / `group.god` を持つ運営権限者も管理コマンドを実行できます。
 
 既定:
 

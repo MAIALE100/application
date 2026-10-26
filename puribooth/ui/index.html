@@ -90,6 +90,7 @@
                 <button data-tab="layout" class="active">レイアウト</button>
                 <button data-tab="photo">写真調整</button>
                 <button data-tab="beauty">盛り</button>
+                <button data-tab="face">顔盛り</button>
                 <button data-tab="frame">フレーム</button>
                 <button data-tab="stamp">スタンプ</button>
                 <button data-tab="text">文字</button>
@@ -151,6 +152,43 @@
                     <button data-preset="soft">ふわ盛り</button>
                     <button data-preset="cool">クール</button>
                     <button data-preset="night">夜補正</button>
+                </div>
+            </section>
+
+            <section class="tool-page" data-page="face">
+                <h2>顔盛り</h2>
+                <p>写真を選び、顔1〜6を選んでから写真内の顔をクリック。友達ごとに目・小顔・明るさ・血色を個別調整できます。</p>
+
+                <div class="choice-grid photo-shot-grid">
+                    <button class="choice active" data-face-shot="0">1枚目</button>
+                    <button class="choice" data-face-shot="1">2枚目</button>
+                    <button class="choice" data-face-shot="2">3枚目</button>
+                    <button class="choice" data-face-shot="3">4枚目</button>
+                </div>
+
+                <div class="choice-grid face-slot-grid">
+                    <button class="choice active" data-face-slot="0">顔1</button>
+                    <button class="choice" data-face-slot="1">顔2</button>
+                    <button class="choice" data-face-slot="2">顔3</button>
+                    <button class="choice" data-face-slot="3">顔4</button>
+                    <button class="choice" data-face-slot="4">顔5</button>
+                    <button class="choice" data-face-slot="5">顔6</button>
+                </div>
+
+                <button id="faceEnableButton" class="wide">この顔補正を使う</button>
+                <div id="faceStatus" class="photo-adjust-status">1枚目 / 顔1：未登録。写真内の顔をクリックしてください。</div>
+
+                <label class="range-row"><span>顔位置・左右</span><input id="faceX" type="range" min="0" max="100" value="50" /></label>
+                <label class="range-row"><span>顔位置・上下</span><input id="faceY" type="range" min="0" max="100" value="30" /></label>
+                <label class="range-row"><span>顔の範囲</span><input id="faceSize" type="range" min="8" max="45" value="22" /></label>
+                <label class="range-row"><span>目を大きく</span><input id="faceEye" type="range" min="0" max="40" value="0" /></label>
+                <label class="range-row"><span>小顔</span><input id="faceSlim" type="range" min="0" max="30" value="0" /></label>
+                <label class="range-row"><span>顔の明るさ</span><input id="faceBright" type="range" min="0" max="30" value="0" /></label>
+                <label class="range-row"><span>頬の血色</span><input id="faceRosy" type="range" min="0" max="30" value="0" /></label>
+
+                <div class="inline-row">
+                    <button id="facePuriPreset">プリクラ顔</button>
+                    <button id="faceResetCurrent">この顔をリセット</button>
                 </div>
             </section>
 

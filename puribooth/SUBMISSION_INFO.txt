@@ -1,10 +1,10 @@
-FLEPURI / フレプリ v1.0.4
+FLEPURI / フレプリ v1.0.5
 Flecity operator submission package
 Release date: 2026-10-27
-Package file: FLEPURI_v1.0.4_submission.zip
+Package file: FLEPURI_v1.0.5_submission.zip
 
 Primary resource:
-  puribooth v1.0.4
+  puribooth v1.0.5
 
 Compatible PuriPhoto runtime:
   puriphoto v1.1.1

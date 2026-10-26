@@ -1,4 +1,5 @@
 local sessions = {}
+local sessionLocks = {}
 local booths = {}
 local databaseReady = false
 local themeSerial = 0
@@ -6,6 +7,88 @@ local clearThemeRecipients
 
 local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
+end
+
+local function versionParts(value)
+    local parts = {}
+
+    for part in tostring(value or ""):gmatch("(%d+)") do
+        parts[#parts + 1] = tonumber(part) or 0
+        if #parts >= 4 then break end
+    end
+
+    return #parts > 0 and parts or nil
+end
+
+local function versionAtLeast(actual, minimum)
+    local actualParts = versionParts(actual)
+    local minimumParts = versionParts(minimum)
+
+    if not actualParts or not minimumParts then
+        return false
+    end
+
+    local count = math.max(#actualParts, #minimumParts)
+
+    for index = 1, count do
+        local current = actualParts[index] or 0
+        local required = minimumParts[index] or 0
+
+        if current > required then return true end
+        if current < required then return false end
+    end
+
+    return true
+end
+
+local function resourceVersion(name)
+    if GetResourceState(name) ~= "started" then return nil end
+
+    if name == "qbx_core" then
+        local ok, value = pcall(function()
+            return exports.qbx_core:GetCoreVersion(GetCurrentResourceName())
+        end)
+
+        if ok and type(value) == "string" and value ~= "" then
+            return value
+        end
+    end
+
+    local value = GetResourceMetadata(name, "version", 0)
+    if type(value) == "string" and value ~= "" then
+        return value
+    end
+
+    return nil
+end
+
+local function resourceCompatibilityState(name)
+    local state = GetResourceState(name)
+    if state ~= "started" then
+        return false, ("FAIL(state=%s)"):format(tostring(state)), nil
+    end
+
+    local minimum =
+        tostring(((Config.MinimumVersions or {})[name]) or "")
+
+    if minimum == "" then
+        return true, "PASS", resourceVersion(name)
+    end
+
+    local actual = resourceVersion(name)
+    if not actual then
+        return false, ("FAIL(version=unknown,min=%s)"):format(minimum), nil
+    end
+
+    if not versionAtLeast(actual, minimum) then
+        return false,
+            ("FAIL(v%s<v%s)"):format(actual, minimum),
+            actual
+    end
+
+    return true,
+        ("PASS(v%s>=v%s)"):format(actual, minimum),
+        actual
 end
 
 local function managementMinimumGrade(action)
@@ -1078,14 +1161,28 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         return
     end
 
+    local qbxCompatible, qbxState =
+        resourceCompatibilityState("qbx_core")
+    local puriphotoCompatible, puriphotoState =
+        resourceCompatibilityState("puriphoto")
+
     if GetResourceState("lb-phone") ~= "started"
-        or GetResourceState("qbx_core") ~= "started"
-        or GetResourceState("puriphoto") ~= "started" then
+        or not qbxCompatible
+        or not puriphotoCompatible then
+
+        print(
+            ("[puribooth] session blocked qbx_core=%s puriphoto=%s lb-phone=%s")
+                :format(
+                    qbxState,
+                    puriphotoState,
+                    GetResourceState("lb-phone")
+                )
+        )
 
         notify(
             source,
             "error",
-            "PuriPhoto連携が準備できていないため、現在は課金せず利用を停止しています。"
+            "FLEPURI連携の互換性を確認できないため、課金せず利用を停止しています。スタッフへお知らせください。"
         )
         return
     end
@@ -1120,6 +1217,19 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         releaseSession(boothId)
     end
 
+    if sessionLocks[boothId] then
+        notify(source, "error", "このフレプリ台は別の利用者が開始処理中です。")
+        return
+    end
+
+    sessionLocks[boothId] = source
+
+    local function unlockSessionStart()
+        if sessionLocks[boothId] == source then
+            sessionLocks[boothId] = nil
+        end
+    end
+
     local price =
         math.max(
             tonumber(Config.MinPrice) or 0,
@@ -1152,6 +1262,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         end
 
         if not paidWith then
+            unlockSessionStart()
             notify(source, "error", ("料金 $%s を支払えませんでした。"):format(price))
             return
         end
@@ -1169,6 +1280,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         themeRecipients = {}
     }
 
+    unlockSessionStart()
     broadcastState(boothId)
     TriggerClientEvent(
         "puribooth:client:sessionOpened",
@@ -1531,10 +1643,131 @@ local function payoutState()
 
     if mode == "renewed-banking" then
         local resource = tostring(payout.resource or "Renewed-Banking")
-        return resourceState(resource)
+        if GetResourceState(resource) ~= "started" then
+            return ("FAIL(%s=%s)")
+                :format(resource, GetResourceState(resource))
+        end
+
+        local account = tostring(
+            payout.account
+            or ((Config.Management or {}).job)
+            or ""
+        )
+
+        if account == "" then
+            return "FAIL(account=empty)"
+        end
+
+        local ok, balance = pcall(function()
+            return exports[resource]:getAccountMoney(account)
+        end)
+
+        if not ok then
+            return "FAIL(getAccountMoney)"
+        end
+
+        if balance == false or balance == nil then
+            return ("FAIL(account=%s)"):format(account)
+        end
+
+        return ("PASS(%s=$%s)")
+            :format(account, tostring(balance))
     end
 
     return "FAIL(mode=" .. mode .. ")"
+end
+
+local function databaseSchemaState()
+    if not databaseReady then
+        return "FAIL(not-ready)"
+    end
+
+    local ok, rows = pcall(function()
+        return MySQL.query.await([[
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'puribooth_booths'
+        ]])
+    end)
+
+    if not ok or type(rows) ~= "table" then
+        return "FAIL(schema-query)"
+    end
+
+    local found = {}
+    for _, row in ipairs(rows) do
+        found[tostring(row.COLUMN_NAME or row.column_name or "")] = true
+    end
+
+    local required = {
+        "id",
+        "label",
+        "model",
+        "x",
+        "y",
+        "z",
+        "heading",
+        "price",
+        "balance",
+        "lifetime_sales",
+        "completed_sales",
+        "collected_total",
+        "last_sale_at",
+        "last_collected_at",
+        "created_by",
+        "created_at"
+    }
+
+    local missing = {}
+    for _, column in ipairs(required) do
+        if not found[column] then
+            missing[#missing + 1] = column
+        end
+    end
+
+    if #missing > 0 then
+        return ("FAIL(missing=%s)")
+            :format(table.concat(missing, ","))
+    end
+
+    return "PASS"
+end
+
+local function configState()
+    local minPrice = math.floor(tonumber(Config.MinPrice) or 0)
+    local maxPrice = math.floor(tonumber(Config.MaxPrice) or 0)
+    local defaultPrice = math.floor(tonumber(Config.Price) or -1)
+
+    if minPrice < 0 or maxPrice < minPrice then
+        return "FAIL(price-range)"
+    end
+
+    if defaultPrice < minPrice or defaultPrice > maxPrice then
+        return "FAIL(default-price)"
+    end
+
+    if math.floor(tonumber(Config.ShotCount) or 0) ~= 4 then
+        return "FAIL(ShotCount-must-be-4)"
+    end
+
+    local hasPaymentMethod = false
+    for _, moneyType in ipairs(Config.PaymentMethods or {}) do
+        if moneyType == "cash" or moneyType == "bank" then
+            hasPaymentMethod = true
+            break
+        end
+    end
+
+    if not hasPaymentMethod then
+        return "FAIL(payment-methods)"
+    end
+
+    if tostring((Config.Management or {}).job or "") == "" then
+        return "FAIL(management-job)"
+    end
+
+    return "PASS"
 end
 
 RegisterCommand("puribooth_selftest", function(source)
@@ -1543,13 +1776,15 @@ RegisterCommand("puribooth_selftest", function(source)
         return
     end
 
-    local qbx = resourceState("qbx_core")
+    local _, qbx = resourceCompatibilityState("qbx_core")
     local phone = resourceState("lb-phone")
     local screenshot = resourceState("screenshot-basic")
     local mysql = resourceState("oxmysql")
-    local puriphoto = resourceState("puriphoto")
+    local _, puriphoto = resourceCompatibilityState("puriphoto")
     local job = managementJobState()
     local payout = payoutState()
+    local database = databaseSchemaState()
+    local config = configState()
 
     local payoutRequired =
         (Config.Payout or {}).enabled ~= false
@@ -1559,32 +1794,45 @@ RegisterCommand("puribooth_selftest", function(source)
         or payout:sub(1, 4) == "PASS"
 
     local overall =
-        qbx == "PASS"
+        qbx:sub(1, 4) == "PASS"
         and phone == "PASS"
         and screenshot == "PASS"
         and mysql == "PASS"
-        and puriphoto == "PASS"
+        and puriphoto:sub(1, 4) == "PASS"
         and job == "PASS"
         and payoutPass
-        and databaseReady
+        and database == "PASS"
+        and config == "PASS"
 
-    print(("[puribooth] selftest %s (qbx_core=%s, oxmysql=%s, lb-phone=%s, screenshot-basic=%s, puriphoto=%s, management_job=%s, payout=%s, database=%s, booths=%d)")
-        :format(
-            overall and "PASS" or "FAIL",
-            qbx,
-            mysql,
-            phone,
-            screenshot,
-            puriphoto,
-            job,
-            payout,
-            databaseReady and "PASS" or "FAIL",
-            boothCount()
-        ))
+    print(("[puribooth] selftest %s"):format(overall and "PASS" or "FAIL"))
+    print(("[puribooth]   qbx_core=%s"):format(qbx))
+    print(("[puribooth]   oxmysql=%s"):format(mysql))
+    print(("[puribooth]   lb-phone=%s"):format(phone))
+    print(("[puribooth]   screenshot-basic=%s"):format(screenshot))
+    print(("[puribooth]   puriphoto=%s"):format(puriphoto))
+    print(("[puribooth]   management_job=%s"):format(job))
+    print(("[puribooth]   payout=%s"):format(payout))
+    print(("[puribooth]   database=%s"):format(database))
+    print(("[puribooth]   config=%s"):format(config))
+    print(("[puribooth]   booths=%d"):format(boothCount()))
 end, false)
 
 CreateThread(function()
-    Wait(1000)
-    print(("[puribooth] v1.0.0 starting (price=$%d, shots=%d)")
-        :format(tonumber(Config.Price) or 0, tonumber(Config.ShotCount) or 4))
+    Wait(1500)
+
+    local _, qbx = resourceCompatibilityState("qbx_core")
+    local _, puriphoto = resourceCompatibilityState("puriphoto")
+
+    print(("[puribooth] v1.0.0 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+        :format(
+            tonumber(Config.Price) or 0,
+            tonumber(Config.ShotCount) or 4,
+            qbx,
+            puriphoto
+        ))
+
+    if qbx:sub(1, 4) ~= "PASS"
+        or puriphoto:sub(1, 4) ~= "PASS" then
+        print("[puribooth] WARNING incompatible dependency detected; paid sessions will remain blocked.")
+    end
 end)

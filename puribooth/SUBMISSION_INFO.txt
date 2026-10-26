@@ -1,0 +1,32 @@
+FLEPURI / フレプリ v1.0.0
+Flecity operator submission package
+Release date: 2026-10-27
+
+Resource folder:
+  puribooth
+
+Primary dependencies:
+  qbx_core
+  oxmysql
+  lb-phone
+  screenshot-basic
+  puriphoto
+  Renewed-Banking (default company-sales payout mode)
+
+Management:
+  Default job: weazel
+  Commands: /puribooth place|remove|list|price|sales|collect
+
+Database:
+  puribooth_booths is created/migrated automatically.
+  No manual SQL import is required.
+
+Fonts:
+  Font binaries are intentionally NOT included.
+  See README.md and INSTALL.md for official download sources and filenames.
+
+First verification after installation:
+  puribooth_selftest
+
+Acceptance test:
+  See ACCEPTANCE_TEST.md.

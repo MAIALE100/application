@@ -8,49 +8,130 @@ local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
 end
 
-local function getStableIdentifier(source)
-    local identifiers = GetPlayerIdentifiers(source)
+local function managementMinimumGrade(action)
+    local management = Config.Management or {}
 
-    for _, identifier in ipairs(identifiers) do
-        if identifier:sub(1, 8) == "license:" then
-            return identifier
+    if action == "place" then
+        return tonumber(management.placeMinGrade) or 0
+    elseif action == "remove" then
+        return tonumber(management.removeMinGrade) or 0
+    elseif action == "price" then
+        return tonumber(management.priceMinGrade) or 0
+    end
+
+    return tonumber(management.salesMinGrade) or 0
+end
+
+local function managementPlayer(source, action)
+    if source == 0 then
+        return {
+            job = "console",
+            grade = 999,
+            onduty = true
+        }
+    end
+
+    local management = Config.Management or {}
+
+    if management.allowAceOverride == true then
+        local ace = tostring(management.ace or "group.admin")
+        if IsPlayerAceAllowed(source, ace)
+            or IsPlayerAceAllowed(source, "group.god") then
+            return {
+                job = "ace",
+                grade = 999,
+                onduty = true
+            }
         end
     end
 
-    for _, identifier in ipairs(identifiers) do
-        if identifier:sub(1, 6) == "fivem:" then
-            return identifier
-        end
+    if GetResourceState("qbx_core") ~= "started" then
+        return nil
     end
 
-    return nil
+    local player = exports.qbx_core:GetPlayer(source)
+    local playerData = player and player.PlayerData
+    local job = playerData and playerData.job
+
+    if not job then return nil end
+
+    local requiredJob = tostring(management.job or "weazel")
+    if tostring(job.name or "") ~= requiredJob then
+        return nil
+    end
+
+    if management.requireOnDuty == true and job.onduty ~= true then
+        return nil
+    end
+
+    local grade =
+        tonumber(job.grade and job.grade.level)
+        or tonumber(playerData.jobs and playerData.jobs[requiredJob])
+        or 0
+
+    if grade < managementMinimumGrade(action) then
+        return nil
+    end
+
+    return {
+        player = player,
+        playerData = playerData,
+        job = requiredJob,
+        grade = grade,
+        onduty = job.onduty == true
+    }
 end
 
-local function isStoredAdmin(source)
-    if not databaseReady then return false end
-
-    local identifier = getStableIdentifier(source)
-    if not identifier then return false end
-
-    local exists = MySQL.scalar.await(
-        "SELECT 1 FROM puribooth_admins WHERE identifier = ? LIMIT 1",
-        { identifier }
-    )
-
-    return exists ~= nil
+local function hasManagementAccess(source, action)
+    return managementPlayer(source, action) ~= nil
 end
 
-local function isAdmin(source)
-    if source == 0 then return true end
-
-    local ace = Config.AdminAce or "group.admin"
-
-    if IsPlayerAceAllowed(source, ace)
-        or IsPlayerAceAllowed(source, "group.god") then
+local function requireManagementAccess(source, action)
+    if hasManagementAccess(source, action) then
         return true
     end
 
-    return isStoredAdmin(source)
+    local management = Config.Management or {}
+    notify(
+        source,
+        "error",
+        ("この操作は %s job の権限者だけ使用できます。")
+            :format(tostring(management.job or "weazel"))
+    )
+    return false
+end
+
+local function atSalesLocation(source)
+    if source == 0 then return true end
+
+    local management = Config.Management or {}
+    if management.salesRequireLocation ~= true then
+        return true
+    end
+
+    local coords = management.salesCoords or {}
+    local x = tonumber(coords.x)
+    local y = tonumber(coords.y)
+    local z = tonumber(coords.z)
+
+    if not x or not y or not z then
+        return false
+    end
+
+    local ped = GetPlayerPed(source)
+    if not ped or ped <= 0 then return false end
+
+    local maxDistance = tonumber(management.salesDistance) or 12.0
+    return #(GetEntityCoords(ped) - vector3(x, y, z)) <= maxDistance
+end
+
+local function requireSalesLocation(source)
+    if atSalesLocation(source) then
+        return true
+    end
+
+    notify(source, "error", "売上管理はWeazel本社の管理地点で行ってください。")
+    return false
 end
 
 local function boothCount()
@@ -72,7 +153,14 @@ local function normalizeBooth(row)
             y = tonumber(row.y) or 0.0,
             z = tonumber(row.z) or 0.0
         },
-        heading = tonumber(row.heading) or 0.0
+        heading = tonumber(row.heading) or 0.0,
+        price = math.max(
+            tonumber(Config.MinPrice) or 0,
+            math.min(
+                tonumber(Config.MaxPrice) or 100000,
+                math.floor(tonumber(row.price) or tonumber(Config.Price) or 0)
+            )
+        )
     }
 end
 

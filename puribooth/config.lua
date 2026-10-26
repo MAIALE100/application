@@ -52,6 +52,7 @@ Config.CountdownSyncDistance = 5.5
 Config.ThemeSyncBytesPerSecond = 750000
 Config.MaxThemeImageBytes = 4 * 1024 * 1024
 Config.ThemeUpdateCooldownMs = 1000
+Config.PuriPhotoHandoffTimeoutMs = 12000
 Config.Debug = false
 
 -- 返金exportが一時的に失敗した場合の自動復旧。

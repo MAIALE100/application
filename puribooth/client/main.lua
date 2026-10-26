@@ -39,6 +39,7 @@ local themeTextures = {
 }
 local sharedThemes = {}
 local sharedThemeTextures = {}
+local sharedThemeClearedVersions = {}
 
 
 
@@ -1640,7 +1641,11 @@ end
 
 RegisterNetEvent("puribooth:client:themeSync", function(boothId, theme, version)
     boothId = tostring(boothId)
+    version = tonumber(version) or 0
+
     if type(theme) ~= "table" then return end
+    if not sharedSessions[boothId] then return end
+    if version <= (sharedThemeClearedVersions[boothId] or -1) then return end
 
     -- The payer already has local full-quality textures. Do not rebuild them.
     if ownedSession
@@ -1651,7 +1656,7 @@ RegisterNetEvent("puribooth:client:themeSync", function(boothId, theme, version)
 
     local current = sharedThemes[boothId]
     if current
-        and tonumber(current.version) == tonumber(version) then
+        and tonumber(current.version) == version then
         return
     end
 
@@ -1687,7 +1692,7 @@ RegisterNetEvent("puribooth:client:themeSync", function(boothId, theme, version)
     end
 
     sharedThemes[boothId] = {
-        version = tonumber(version) or 0,
+        version = version,
         background = {
             enabled = background.enabled == true
         },
@@ -1697,7 +1702,13 @@ RegisterNetEvent("puribooth:client:themeSync", function(boothId, theme, version)
     }
 end)
 
-RegisterNetEvent("puribooth:client:themeClear", function(boothId)
+RegisterNetEvent("puribooth:client:themeClear", function(boothId, version)
+    boothId = tostring(boothId)
+    sharedThemeClearedVersions[boothId] =
+        math.max(
+            sharedThemeClearedVersions[boothId] or -1,
+            tonumber(version) or 0
+        )
     clearSharedTheme(boothId)
 end)
 
@@ -2614,6 +2625,7 @@ AddEventHandler("onResourceStop", function(resource)
     clearTheme()
     sharedThemes = {}
     sharedThemeTextures = {}
+    sharedThemeClearedVersions = {}
 
     for boothId in pairs(spawnedObjects) do
         removeSpawnedBooth(boothId)

@@ -3543,7 +3543,7 @@ RegisterCommand("puribooth_support", function(source, args)
 
     local refunds, pending, processing = refundQueueState()
     local collections = collectionQueueState()
-    print(("[puribooth] support version=1.0.3 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s collections=%s")
+    print(("[puribooth] support version=1.0.4 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s collections=%s")
         :format(
             databaseReady and "PASS" or "FAIL",
             boothCount(),

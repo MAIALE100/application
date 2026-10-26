@@ -150,10 +150,12 @@ if (-not $BoothOnly) { Write-Host "    restart puriphoto" }
 Write-Host "    restart puribooth"
 Write-Host "    puribooth_selftest"
 Write-Host ""
-Write-Host "Admin placement commands:" -ForegroundColor Yellow
-Write-Host "    /puribooth claimadmin # first player only; bootstrap PuriBooth admin"
+Write-Host "Weazel FLEPURI management commands:" -ForegroundColor Yellow
 Write-Host "    /puribooth place   # open translucent placement preview"
 Write-Host "      Arrows=move  Q/E=rotate  PgUp/PgDn=height  C=camera preview  Shift=fast"
 Write-Host "      Enter=place  Backspace=cancel"
-Write-Host "    /puribooth remove  # remove the nearest booth"
+Write-Host "    /puribooth remove  # remove the nearest booth (balance must be zero)"
+Write-Host "    /puribooth price <amount> [id] # change per-booth price"
+Write-Host "    /puribooth sales   # show all booth sales"
+Write-Host "    /puribooth collect <all|id> # collect stored sales"
 Write-Host "    /puribooth list    # show booth count"

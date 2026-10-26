@@ -1,5 +1,26 @@
 # PuriBooth Changelog
 
+## 1.0.1 - 2026-10-27
+
+### 本番安定化
+- qbx_core 2.5.4+ / PuriPhoto 1.1.0+ の実バージョン互換性チェックを追加
+- PuriPhotoのproduction index / 実ロードJS / CSS / client bridgeまで自己診断
+- 古いPuriPhoto production bundleでは課金開始前に利用を停止
+- PuriPhotoがNUIで完成画像を取得したreceiptを確認してからFLEPURI編集画面を閉じる方式へ変更
+- PuriPhotoへのhandoff失敗 / timeout時は完成画像と編集状態をFLEPURI側に保持
+- フレプリ台の実座標をPuriPhotoへ撮影場所として引き継ぐよう改善
+- 同一台・同一プレイヤーの同時課金開始をロック
+- qbx_core支払いexport失敗時は課金開始を中止
+- 背景同期payload上限 / 更新cooldownを追加
+- カウントダウン順序を1→2→3→4にサーバー側で強制
+- 4枚目まで進んでいないcaptureCompleteを拒否
+- Renewed-Bankingのweazel会社口座実在確認をselftestへ追加
+- 会社口座への売上回収時にFLEPURI売上の取引履歴を記録
+- DBスキーマ / 料金設定 / 支払い方法 / ShotCount=4をselftestで検証
+- フォント4書体の導入状況をOPTIONAL診断として表示
+- selftest失敗時に修正ヒントをコンソールへ表示
+- PuriPhoto production build後にFLEPURI bridgeの混入を検証するbuild guardを追加
+
 ## 1.0.0 - 2026-10-27
 
 ### 提出版

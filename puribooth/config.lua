@@ -50,6 +50,8 @@ Config.InteractDistance = 2.2
 Config.ThemeSyncDistance = 5.5
 Config.CountdownSyncDistance = 5.5
 Config.ThemeSyncBytesPerSecond = 750000
+Config.MaxThemeImageBytes = 4 * 1024 * 1024
+Config.ThemeUpdateCooldownMs = 1000
 Config.Debug = false
 
 Config.AdminRemoveDistance = 6.0

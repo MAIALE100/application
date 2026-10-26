@@ -790,12 +790,12 @@
             || { zoom: 1, panX: 0, panY: 0 }
 
         document.querySelectorAll('[data-photo-shot]').forEach(button => {
+            const buttonIndex = Number(button.dataset.photoShot)
             button.classList.toggle(
                 'active',
-                Number(button.dataset.photoShot) === index
+                buttonIndex === index
             )
-            button.disabled = !state.images[index]
-                && Number(button.dataset.photoShot) === index
+            button.disabled = !state.images[buttonIndex]
         })
 
         const zoom = document.getElementById('photoZoom')

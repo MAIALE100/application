@@ -291,11 +291,30 @@ local function drawWorldLabel(text, coords, scale, r, g, b, a)
     ClearDrawOrigin()
 end
 
+local function drawSolidQuad(a, b, c, d, r, g, bColor, alpha)
+    local function tri(p1, p2, p3)
+        DrawPoly(
+            p1.x, p1.y, p1.z,
+            p2.x, p2.y, p2.z,
+            p3.x, p3.y, p3.z,
+            r, g, bColor, alpha
+        )
+    end
+
+    tri(a, b, c)
+    tri(a, c, d)
+
+    -- Reverse winding so the temporary skin remains visible from both sides.
+    tri(c, b, a)
+    tri(d, c, a)
+end
+
 local function renderBoothExterior(booth, occupied, preview)
     local exterior = Config.Exterior or {}
     if exterior.enabled == false or not booth then return end
 
     local shell = exterior.shell or {}
+    local skin = exterior.skin or {}
     local sign = exterior.sign or {}
     local floor = exterior.floor or {}
     local light = exterior.light or {}
@@ -344,6 +363,118 @@ local function renderBoothExterior(booth, occupied, preview)
         g = occupied and 170 or 220,
         b = occupied and 190 or 255
     }
+
+    local function panelPoint(rightOffset, forwardOffset, zOffset)
+        return offsetFromBooth(
+            booth,
+            rightOffset,
+            forwardOffset,
+            zOffset
+        )
+    end
+
+    if not preview then
+        local skinFront = tonumber(skin.front) or 0.105
+        local skinHalfWidth = tonumber(skin.halfWidth) or 0.535
+        local headerBottom = tonumber(skin.headerBottomZ) or 1.56
+        local headerTop = tonumber(skin.headerTopZ) or 2.13
+        local lowerBottom = tonumber(skin.lowerBottomZ) or 0.10
+        local lowerTop = tonumber(skin.lowerTopZ) or 0.76
+        local sideBack = tonumber(skin.sideBack) or -0.40
+        local sideFront = tonumber(skin.sideFront) or 0.11
+
+        -- Top marquee: opaque enough to hide the Kitty CLAW branding.
+        local h1 = panelPoint(-skinHalfWidth, skinFront, headerBottom)
+        local h2 = panelPoint( skinHalfWidth, skinFront, headerBottom)
+        local h3 = panelPoint( skinHalfWidth, skinFront, headerTop)
+        local h4 = panelPoint(-skinHalfWidth, skinFront, headerTop)
+        drawSolidQuad(h1, h2, h3, h4, 245, 214, 239, 255)
+
+        -- White/pink inset creates a simple purikura marquee without texture files.
+        local inset = 0.055
+        local hi1 = panelPoint(-skinHalfWidth + inset, skinFront + 0.004, headerBottom + 0.055)
+        local hi2 = panelPoint( skinHalfWidth - inset, skinFront + 0.004, headerBottom + 0.055)
+        local hi3 = panelPoint( skinHalfWidth - inset, skinFront + 0.004, headerTop - 0.055)
+        local hi4 = panelPoint(-skinHalfWidth + inset, skinFront + 0.004, headerTop - 0.055)
+        drawSolidQuad(hi1, hi2, hi3, hi4, 255, 247, 253, 255)
+
+        -- Lower front cover hides the joystick/coin-door section.
+        local l1 = panelPoint(-skinHalfWidth, skinFront, lowerBottom)
+        local l2 = panelPoint( skinHalfWidth, skinFront, lowerBottom)
+        local l3 = panelPoint( skinHalfWidth, skinFront, lowerTop)
+        local l4 = panelPoint(-skinHalfWidth, skinFront, lowerTop)
+        drawSolidQuad(l1, l2, l3, l4, 255, 229, 243, 255)
+
+        local lowerInset = 0.065
+        local li1 = panelPoint(-skinHalfWidth + lowerInset, skinFront + 0.004, lowerBottom + 0.075)
+        local li2 = panelPoint( skinHalfWidth - lowerInset, skinFront + 0.004, lowerBottom + 0.075)
+        local li3 = panelPoint( skinHalfWidth - lowerInset, skinFront + 0.004, lowerTop - 0.075)
+        local li4 = panelPoint(-skinHalfWidth + lowerInset, skinFront + 0.004, lowerTop - 0.075)
+        drawSolidQuad(li1, li2, li3, li4, 233, 238, 255, 255)
+
+        -- Side sleeves hide the original cabinet artwork from oblique views.
+        local left1 = panelPoint(-skinHalfWidth, sideBack, lowerBottom)
+        local left2 = panelPoint(-skinHalfWidth, sideFront, lowerBottom)
+        local left3 = panelPoint(-skinHalfWidth, sideFront, headerTop)
+        local left4 = panelPoint(-skinHalfWidth, sideBack, headerTop)
+        drawSolidQuad(left1, left2, left3, left4, 255, 210, 235, 245)
+
+        local right1 = panelPoint(skinHalfWidth, sideFront, lowerBottom)
+        local right2 = panelPoint(skinHalfWidth, sideBack, lowerBottom)
+        local right3 = panelPoint(skinHalfWidth, sideBack, headerTop)
+        local right4 = panelPoint(skinHalfWidth, sideFront, headerTop)
+        drawSolidQuad(right1, right2, right3, right4, 215, 242, 255, 245)
+
+        -- Ring-light/camera motif centered over the shooting window.
+        local ringCenter = panelPoint(
+            tonumber(skin.ringRight) or 0.0,
+            tonumber(skin.ringForward) or 0.125,
+            tonumber(skin.ringZ) or 1.23
+        )
+        local ringRadius = tonumber(skin.ringRadius) or 0.17
+        local previous = nil
+        local first = nil
+        local segments = 28
+
+        for i = 0, segments do
+            local angle = (i / segments) * math.pi * 2.0
+            local p = vector3(
+                ringCenter.x + rightX * math.cos(angle) * ringRadius,
+                ringCenter.y + rightY * math.cos(angle) * ringRadius,
+                ringCenter.z + math.sin(angle) * ringRadius
+            )
+
+            if not first then first = p end
+            if previous then
+                DrawLine(
+                    previous.x, previous.y, previous.z,
+                    p.x, p.y, p.z,
+                    255, 255, 255, 245
+                )
+            end
+            previous = p
+        end
+
+        DrawMarker(
+            28,
+            ringCenter.x,
+            ringCenter.y,
+            ringCenter.z,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.055, 0.055, 0.055,
+            42, 31, 47, 245,
+            false, false, 2, false, nil, nil, false
+        )
+
+        local lowerLabel = panelPoint(0.0, skinFront + 0.01, 0.43)
+        drawWorldLabel(
+            "TOUCH  START",
+            lowerLabel,
+            0.22,
+            70, 54, 72, 245
+        )
+    end
 
     -- Double-line neon shell. The second dim line creates a cheap glow halo.
     for _, thicknessOffset in ipairs({ 0.0, 0.018 }) do

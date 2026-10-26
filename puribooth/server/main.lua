@@ -3543,7 +3543,7 @@ RegisterCommand("puribooth_support", function(source, args)
 
     local refunds, pending, processing = refundQueueState()
     local collections = collectionQueueState()
-    print(("[puribooth] support version=1.0.4 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s collections=%s")
+    print(("[puribooth] support version=1.0.5 database=%s booths=%d active_sessions=%d start_locks=%d refunds=%s collections=%s")
         :format(
             databaseReady and "PASS" or "FAIL",
             boothCount(),
@@ -4073,7 +4073,7 @@ CreateThread(function()
     local _, qbx = qbxCompatibilityState()
     local _, puriphoto = resourceCompatibilityState("puriphoto")
 
-    print(("[puribooth] v1.0.4 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+    print(("[puribooth] v1.0.5 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
         :format(
             tonumber(Config.Price) or 0,
             tonumber(Config.ShotCount) or 4,

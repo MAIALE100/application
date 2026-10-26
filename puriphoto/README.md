@@ -18,6 +18,7 @@ PuriPhoto v1.1.1 はFLEPURIから完成画像を受け取るため、以下を�
 - client export: `OpenBoothImport(image, metadata)`
 - client export: `CancelBoothImport(token)`
 - NUI callback: `puriphotoGetBoothImport`
+- NUI callback: `puriphotoConfirmBoothImport`
 - UI message: `boothImportAvailable`
 - local receipt event: `puriphoto:client:boothImportConsumed`
 
@@ -35,6 +36,7 @@ FLEPURI開発環境ではルートの `puribooth-update.ps1` がこの処理を�
 
 - `boothImportAvailable`
 - `puriphotoGetBoothImport`
+- `puriphotoConfirmBoothImport`
 
 が含まれることまで検証します。
 

@@ -26,3 +26,6 @@ Thumbs.db
 
 # VS Code local settings
 .vscode/
+# Local-only PuriBooth font imports
+# Keep font binaries out of GitHub; some fonts require separate embedding permission.
+puribooth/ui/fonts/

@@ -331,307 +331,66 @@ local function drawWorldLabel(text, coords, scale, r, g, b, a)
     ClearDrawOrigin()
 end
 
-local function drawSolidQuad(a, b, c, d, r, g, bColor, alpha)
-    local function tri(p1, p2, p3)
-        DrawPoly(
-            p1.x, p1.y, p1.z,
-            p2.x, p2.y, p2.z,
-            p3.x, p3.y, p3.z,
-            r, g, bColor, alpha
-        )
+local function renderInteractionMarker(booth, occupied, distance)
+    local marker = Config.InteractionMarker or {}
+    if marker.enabled == false or not booth then return end
+
+    local color = occupied and marker.occupied or marker.available
+    if not occupied
+        and distance <= (tonumber(marker.labelDistance) or 5.0) then
+        color = marker.nearby or color
     end
 
-    tri(a, b, c)
-    tri(a, c, d)
+    local radius = tonumber(marker.radius) or 1.18
+    local pulse =
+        1.0
+        + math.sin(GetGameTimer() * (tonumber(marker.pulseSpeed) or 0.0032))
+        * (tonumber(marker.pulseAmount) or 0.10)
 
-    -- Reverse winding so the temporary skin remains visible from both sides.
-    tri(c, b, a)
-    tri(d, c, a)
-end
+    local z = booth.coords.z + (tonumber(marker.zOffset) or 0.035)
 
-local function renderBoothExterior(booth, occupied, preview)
-    local exterior = Config.Exterior or {}
-    if exterior.enabled == false or not booth then return end
-
-    local shell = exterior.shell or {}
-    local skin = exterior.skin or {}
-    local sign = exterior.sign or {}
-    local floor = exterior.floor or {}
-    local light = exterior.light or {}
-
-    local forwardX, forwardY, rightX, rightY =
-        getBasis(booth.heading)
-
-    local halfWidth = tonumber(shell.halfWidth) or 0.82
-    local front = tonumber(shell.front) or 0.08
-    local bottomZ = tonumber(shell.bottomZ) or 0.08
-    local topZ = tonumber(shell.topZ) or 2.12
-
-    local leftBottom = offsetFromBooth(
-        booth,
-        -halfWidth,
-        front,
-        bottomZ
-    )
-    local rightBottom = offsetFromBooth(
-        booth,
-        halfWidth,
-        front,
-        bottomZ
-    )
-    local leftTop = offsetFromBooth(
-        booth,
-        -halfWidth,
-        front,
-        topZ
-    )
-    local rightTop = offsetFromBooth(
-        booth,
-        halfWidth,
-        front,
-        topZ
+    DrawMarker(
+        1,
+        booth.coords.x,
+        booth.coords.y,
+        z,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        radius * 2.0 * pulse,
+        radius * 2.0 * pulse,
+        tonumber(marker.height) or 0.055,
+        tonumber(color.r) or 82,
+        tonumber(color.g) or 218,
+        tonumber(color.b) or 255,
+        tonumber(color.a) or 92,
+        false,
+        false,
+        2,
+        false,
+        nil,
+        nil,
+        false
     )
 
-    local alpha = preview and 130 or (occupied and 125 or 235)
-    local pink = {
-        r = occupied and 180 or 255,
-        g = occupied and 90 or 72,
-        b = occupied and 160 or 178
-    }
-    local cyan = {
-        r = occupied and 100 or 86,
-        g = occupied and 170 or 220,
-        b = occupied and 190 or 255
-    }
-
-    local function panelPoint(rightOffset, forwardOffset, zOffset)
-        return offsetFromBooth(
-            booth,
-            rightOffset,
-            forwardOffset,
-            zOffset
-        )
-    end
-
-    if not preview then
-        local skinFront = tonumber(skin.front) or 0.105
-        local skinHalfWidth = tonumber(skin.halfWidth) or 0.535
-        local headerBottom = tonumber(skin.headerBottomZ) or 1.56
-        local headerTop = tonumber(skin.headerTopZ) or 2.13
-        local lowerBottom = tonumber(skin.lowerBottomZ) or 0.10
-        local lowerTop = tonumber(skin.lowerTopZ) or 0.76
-        local sideBack = tonumber(skin.sideBack) or -0.40
-        local sideFront = tonumber(skin.sideFront) or 0.11
-
-        -- Top marquee: opaque enough to hide the Kitty CLAW branding.
-        local h1 = panelPoint(-skinHalfWidth, skinFront, headerBottom)
-        local h2 = panelPoint( skinHalfWidth, skinFront, headerBottom)
-        local h3 = panelPoint( skinHalfWidth, skinFront, headerTop)
-        local h4 = panelPoint(-skinHalfWidth, skinFront, headerTop)
-        drawSolidQuad(h1, h2, h3, h4, 245, 214, 239, 255)
-
-        -- White/pink inset creates a simple purikura marquee without texture files.
-        local inset = 0.055
-        local hi1 = panelPoint(-skinHalfWidth + inset, skinFront + 0.004, headerBottom + 0.055)
-        local hi2 = panelPoint( skinHalfWidth - inset, skinFront + 0.004, headerBottom + 0.055)
-        local hi3 = panelPoint( skinHalfWidth - inset, skinFront + 0.004, headerTop - 0.055)
-        local hi4 = panelPoint(-skinHalfWidth + inset, skinFront + 0.004, headerTop - 0.055)
-        drawSolidQuad(hi1, hi2, hi3, hi4, 255, 247, 253, 255)
-
-        -- Lower front cover hides the joystick/coin-door section.
-        local l1 = panelPoint(-skinHalfWidth, skinFront, lowerBottom)
-        local l2 = panelPoint( skinHalfWidth, skinFront, lowerBottom)
-        local l3 = panelPoint( skinHalfWidth, skinFront, lowerTop)
-        local l4 = panelPoint(-skinHalfWidth, skinFront, lowerTop)
-        drawSolidQuad(l1, l2, l3, l4, 255, 229, 243, 255)
-
-        local lowerInset = 0.065
-        local li1 = panelPoint(-skinHalfWidth + lowerInset, skinFront + 0.004, lowerBottom + 0.075)
-        local li2 = panelPoint( skinHalfWidth - lowerInset, skinFront + 0.004, lowerBottom + 0.075)
-        local li3 = panelPoint( skinHalfWidth - lowerInset, skinFront + 0.004, lowerTop - 0.075)
-        local li4 = panelPoint(-skinHalfWidth + lowerInset, skinFront + 0.004, lowerTop - 0.075)
-        drawSolidQuad(li1, li2, li3, li4, 233, 238, 255, 255)
-
-        -- Side sleeves hide the original cabinet artwork from oblique views.
-        local left1 = panelPoint(-skinHalfWidth, sideBack, lowerBottom)
-        local left2 = panelPoint(-skinHalfWidth, sideFront, lowerBottom)
-        local left3 = panelPoint(-skinHalfWidth, sideFront, headerTop)
-        local left4 = panelPoint(-skinHalfWidth, sideBack, headerTop)
-        drawSolidQuad(left1, left2, left3, left4, 255, 210, 235, 245)
-
-        local right1 = panelPoint(skinHalfWidth, sideFront, lowerBottom)
-        local right2 = panelPoint(skinHalfWidth, sideBack, lowerBottom)
-        local right3 = panelPoint(skinHalfWidth, sideBack, headerTop)
-        local right4 = panelPoint(skinHalfWidth, sideFront, headerTop)
-        drawSolidQuad(right1, right2, right3, right4, 215, 242, 255, 245)
-
-        -- Ring-light/camera motif centered over the shooting window.
-        local ringCenter = panelPoint(
-            tonumber(skin.ringRight) or 0.0,
-            tonumber(skin.ringForward) or 0.125,
-            tonumber(skin.ringZ) or 1.23
-        )
-        local ringRadius = tonumber(skin.ringRadius) or 0.17
-        local previous = nil
-        local first = nil
-        local segments = 28
-
-        for i = 0, segments do
-            local angle = (i / segments) * math.pi * 2.0
-            local p = vector3(
-                ringCenter.x + rightX * math.cos(angle) * ringRadius,
-                ringCenter.y + rightY * math.cos(angle) * ringRadius,
-                ringCenter.z + math.sin(angle) * ringRadius
-            )
-
-            if not first then first = p end
-            if previous then
-                DrawLine(
-                    previous.x, previous.y, previous.z,
-                    p.x, p.y, p.z,
-                    255, 255, 255, 245
-                )
-            end
-            previous = p
-        end
-
-        DrawMarker(
-            28,
-            ringCenter.x,
-            ringCenter.y,
-            ringCenter.z,
-            0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-            0.055, 0.055, 0.055,
-            42, 31, 47, 245,
-            false, false, 2, false, nil, nil, false
+    if distance <= (tonumber(marker.labelDistance) or 5.0) then
+        local labelPos = vector3(
+            booth.coords.x,
+            booth.coords.y,
+            booth.coords.z + 1.20
         )
 
-        local lowerLabel = panelPoint(0.0, skinFront + 0.01, 0.43)
         drawWorldLabel(
-            "TOUCH  START",
-            lowerLabel,
-            0.22,
-            70, 54, 72, 245
+            occupied
+                and "FLEPURI  IN USE"
+                or (("FLEPURI  $%s"):format(Config.Price or 0)),
+            labelPos,
+            0.28,
+            occupied and 255 or 210,
+            occupied and 190 or 250,
+            occupied and 220 or 255,
+            235
         )
     end
-
-    -- Double-line neon shell. The second dim line creates a cheap glow halo.
-    for _, thicknessOffset in ipairs({ 0.0, 0.018 }) do
-        local zOffset = thicknessOffset
-        DrawLine(
-            leftBottom.x, leftBottom.y, leftBottom.z + zOffset,
-            leftTop.x, leftTop.y, leftTop.z + zOffset,
-            pink.r, pink.g, pink.b, alpha
-        )
-        DrawLine(
-            rightBottom.x, rightBottom.y, rightBottom.z + zOffset,
-            rightTop.x, rightTop.y, rightTop.z + zOffset,
-            cyan.r, cyan.g, cyan.b, alpha
-        )
-        DrawLine(
-            leftTop.x, leftTop.y, leftTop.z + zOffset,
-            rightTop.x, rightTop.y, rightTop.z + zOffset,
-            255, 210, 242, alpha
-        )
-    end
-
-    local signPos = offsetFromBooth(
-        booth,
-        tonumber(sign.right) or 0.0,
-        tonumber(sign.forward) or 0.03,
-        tonumber(sign.z) or 2.28
-    )
-
-    local signScale = tonumber(sign.scale) or 0.42
-
-    drawWorldLabel(
-        "FLEPURI",
-        signPos,
-        signScale,
-        255,
-        255,
-        255,
-        preview and 160 or 255
-    )
-
-    local subtitle = vector3(
-        signPos.x,
-        signPos.y,
-        signPos.z - 0.16
-    )
-
-    drawWorldLabel(
-        occupied
-            and "IN USE"
-            or (("PHOTO BOOTH  $%s"):format(Config.Price or 0)),
-        subtitle,
-        signScale * 0.48,
-        occupied and 255 or 255,
-        occupied and 190 or 225,
-        occupied and 210 or 244,
-        preview and 145 or 230
-    )
-
-    -- Small pink/cyan light pools make the cabinet read as a dedicated booth
-    -- at night without changing the photographed scene lighting.
-    local lightRange = tonumber(light.range) or 3.8
-    local intensity = tonumber(light.intensity) or 1.35
-
-    DrawLightWithRange(
-        leftTop.x,
-        leftTop.y,
-        leftTop.z - 0.25,
-        pink.r,
-        pink.g,
-        pink.b,
-        lightRange,
-        preview and intensity * 0.5 or intensity
-    )
-
-    DrawLightWithRange(
-        rightTop.x,
-        rightTop.y,
-        rightTop.z - 0.25,
-        cyan.r,
-        cyan.g,
-        cyan.b,
-        lightRange,
-        preview and intensity * 0.5 or intensity
-    )
-
-    -- Branded floor footprint. It is intentionally just an outline so it does
-    -- not fight the custom photo-floor surface during an active session.
-    local floorCenter = offsetFromBooth(
-        booth,
-        tonumber(floor.right) or 0.0,
-        tonumber(floor.forward) or 0.35,
-        tonumber(floor.z) or 0.025
-    )
-    local floorHalfWidth = tonumber(floor.halfWidth) or 0.92
-    local floorHalfDepth = tonumber(floor.halfDepth) or 0.72
-
-    local function floorPoint(rightOffset, forwardOffset)
-        return vector3(
-            floorCenter.x
-                + rightX * rightOffset
-                + forwardX * forwardOffset,
-            floorCenter.y
-                + rightY * rightOffset
-                + forwardY * forwardOffset,
-            floorCenter.z
-        )
-    end
-
-    local a = floorPoint(-floorHalfWidth, -floorHalfDepth)
-    local b1 = floorPoint(floorHalfWidth, -floorHalfDepth)
-    local c = floorPoint(floorHalfWidth, floorHalfDepth)
-    local d = floorPoint(-floorHalfWidth, floorHalfDepth)
-
-    DrawLine(a.x, a.y, a.z, b1.x, b1.y, b1.z, pink.r, pink.g, pink.b, alpha)
-    DrawLine(b1.x, b1.y, b1.z, c.x, c.y, c.z, cyan.r, cyan.g, cyan.b, alpha)
-    DrawLine(c.x, c.y, c.z, d.x, d.y, d.z, pink.r, pink.g, pink.b, alpha)
-    DrawLine(d.x, d.y, d.z, a.x, a.y, a.z, cyan.r, cyan.g, cyan.b, alpha)
 end
 
 local function renderPhotoLighting(booth)
@@ -2259,18 +2018,19 @@ CreateThread(function()
                 booth.coords.z
             )
 
-            local exterior = Config.Exterior or {}
-            local exteriorDistance =
-                tonumber(exterior.renderDistance) or 26.0
+            local marker = Config.InteractionMarker or {}
+            local boothDistance = #(coords - bc)
+            local markerDistance =
+                tonumber(marker.renderDistance) or 18.0
 
-            if exterior.enabled ~= false
-                and #(coords - bc) <= exteriorDistance then
+            if marker.enabled ~= false
+                and boothDistance <= markerDistance then
 
                 wait = 0
-                renderBoothExterior(
+                renderInteractionMarker(
                     booth,
                     state ~= nil,
-                    false
+                    boothDistance
                 )
             end
 
@@ -2490,11 +2250,6 @@ CreateThread(function()
 
                 local previewBooth = buildPlacementBooth()
                 drawPlacementZone(previewBooth)
-                renderBoothExterior(
-                    previewBooth,
-                    false,
-                    true
-                )
 
                 if placementCameraPreviewActive then
                     drawText2d(
@@ -2505,7 +2260,7 @@ CreateThread(function()
                     )
                 else
                     drawText2d(
-                        "ピンク枠＝撮影範囲　矢印＝移動　Q/E＝回転　PageUp/PageDown＝高さ",
+                        "ピンク枠＝撮影範囲　水色矢印＝撮影方向　Q/E＝回転　PageUp/PageDown＝高さ",
                         0.5,
                         0.80,
                         0.34

@@ -37,7 +37,7 @@
 - [x] Hachi Maru Pop identified as SIL OFL 1.1
 - [x] Hitori Gothic distribution page permits embedding and states SIL OFL
 - [x] replace Heisei Joshi Font with redistributable OFL alternatives
-- [ ] include required OFL/license/copyright files in release ZIP
+- [x] exclude font binaries from operator ZIP and provide official download links instead
 
 ## Final validation
 - [ ] verify non-weazel player cannot place / remove / change price / view sales
@@ -55,6 +55,7 @@
 - [ ] two-player shared background / floor test
 - [ ] two booths used simultaneously with different themes
 - [ ] booth remove / restart / persistence test
+- [ ] puribooth_selftest confirms management_job=PASS and payout=PASS
 - [ ] puribooth_selftest PASS on final operator-like environment
 - [ ] verify no legacy test booth appears after restart
 

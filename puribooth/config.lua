@@ -56,30 +56,30 @@ Config.Exterior = {
     -- Temporary branded shell around the stock cabinet.
     -- These values can stay when the final streamed FLEPURI model replaces it.
     shell = {
-        halfWidth = 0.82,
-        front = 0.08,
-        bottomZ = 0.08,
-        topZ = 2.12
+        halfWidth = 0.56,
+        front = 0.055,
+        bottomZ = 0.10,
+        topZ = 1.82
     },
 
     sign = {
         right = 0.0,
         forward = 0.03,
-        z = 2.28,
-        scale = 0.42
+        z = 1.94,
+        scale = 0.52
     },
 
     floor = {
         right = 0.0,
-        forward = 0.35,
-        halfWidth = 0.92,
-        halfDepth = 0.72,
+        forward = 0.18,
+        halfWidth = 0.62,
+        halfDepth = 0.46,
         z = 0.025
     },
 
     light = {
-        range = 3.8,
-        intensity = 1.35
+        range = 2.6,
+        intensity = 0.95
     }
 }
 

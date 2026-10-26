@@ -492,10 +492,332 @@ RegisterNetEvent("puribooth:server:requestSync", function()
     end
 end)
 
+local function nearestBooth(source, maxDistance)
+    local ped = GetPlayerPed(source)
+    if not ped or ped <= 0 then return nil end
+
+    local coords = GetEntityCoords(ped)
+    local nearestId = nil
+    local nearest = nil
+    local nearestDistance = tonumber(maxDistance) or 6.0
+
+    for boothId, booth in pairs(booths) do
+        local distance =
+            #(coords - vector3(
+                booth.coords.x,
+                booth.coords.y,
+                booth.coords.z
+            ))
+
+        if distance <= nearestDistance then
+            nearestId = tostring(boothId)
+            nearest = booth
+            nearestDistance = distance
+        end
+    end
+
+    return nearestId, nearest, nearestDistance
+end
+
+local function clampPrice(value)
+    local minimum = math.max(0, math.floor(tonumber(Config.MinPrice) or 0))
+    local maximum = math.max(
+        minimum,
+        math.floor(tonumber(Config.MaxPrice) or 100000)
+    )
+
+    local price = math.floor(tonumber(value) or -1)
+    if price < minimum or price > maximum then
+        return nil, minimum, maximum
+    end
+
+    return price, minimum, maximum
+end
+
+local function addCompanyMoney(source, amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount <= 0 then
+        return false, "回収額がありません。"
+    end
+
+    local payout = Config.Payout or {}
+    if payout.enabled == false then
+        return false, "会社口座への売上回収が無効です。"
+    end
+
+    local mode = tostring(payout.mode or "renewed-banking")
+
+    if mode == "renewed-banking" then
+        local resource = tostring(payout.resource or "Renewed-Banking")
+        if GetResourceState(resource) ~= "started" then
+            return false, ("%s が起動していません。"):format(resource)
+        end
+
+        local account = tostring(
+            payout.account
+            or ((Config.Management or {}).job)
+            or "weazel"
+        )
+
+        local ok, result = pcall(function()
+            return exports[resource]:addAccountMoney(account, amount)
+        end)
+
+        if not ok or result == false then
+            return false, "会社口座への入金に失敗しました。"
+        end
+
+        return true, account
+    end
+
+    if mode == "player-bank" then
+        local added = exports.qbx_core:AddMoney(
+            source,
+            "bank",
+            amount,
+            "puribooth-sales-collection"
+        )
+
+        if not added then
+            return false, "回収者の銀行口座へ入金できませんでした。"
+        end
+
+        return true, "player-bank"
+    end
+
+    return false, ("未対応の売上入金方式です: %s"):format(mode)
+end
+
+local function showSalesReport(source)
+    if not requireManagementAccess(source, "sales")
+        or not requireSalesLocation(source) then
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT
+            id,
+            label,
+            price,
+            balance,
+            lifetime_sales,
+            completed_sales,
+            collected_total,
+            last_sale_at,
+            last_collected_at
+        FROM puribooth_booths
+        ORDER BY id ASC
+    ]]) or {}
+
+    local totalBalance = 0
+    local totalLifetime = 0
+    local totalCount = 0
+
+    for _, row in ipairs(rows) do
+        totalBalance = totalBalance + (tonumber(row.balance) or 0)
+        totalLifetime = totalLifetime + (tonumber(row.lifetime_sales) or 0)
+        totalCount = totalCount + (tonumber(row.completed_sales) or 0)
+    end
+
+    notify(
+        source,
+        "inform",
+        ("FLEPURI売上: %d台 / 未回収 $%d / 累計 $%d / 撮影 %d回")
+            :format(#rows, totalBalance, totalLifetime, totalCount)
+    )
+
+    for _, row in ipairs(rows) do
+        notify(
+            source,
+            "inform",
+            ("#%s 料金$%d / 未回収$%d / 累計$%d / %d回")
+                :format(
+                    tostring(row.id),
+                    tonumber(row.price) or 0,
+                    tonumber(row.balance) or 0,
+                    tonumber(row.lifetime_sales) or 0,
+                    tonumber(row.completed_sales) or 0
+                )
+        )
+    end
+end
+
+local function collectSales(source, target)
+    if not requireManagementAccess(source, "sales")
+        or not requireSalesLocation(source) then
+        return
+    end
+
+    target = string.lower(tostring(target or ""))
+    if target == "" then
+        notify(
+            source,
+            "inform",
+            "回収: /puribooth collect all または /puribooth collect <台ID>"
+        )
+        return
+    end
+
+    local rows
+
+    if target == "all" then
+        rows = MySQL.query.await([[
+            SELECT id, balance
+            FROM puribooth_booths
+            WHERE balance > 0
+            ORDER BY id ASC
+        ]]) or {}
+    else
+        local numericId = tonumber(target)
+        if not numericId then
+            notify(source, "error", "台IDは数字で指定してください。")
+            return
+        end
+
+        rows = MySQL.query.await([[
+            SELECT id, balance
+            FROM puribooth_booths
+            WHERE id = ? AND balance > 0
+            LIMIT 1
+        ]], { numericId }) or {}
+    end
+
+    if #rows == 0 then
+        notify(source, "inform", "回収できる未回収売上はありません。")
+        return
+    end
+
+    local claimed = {}
+    local total = 0
+
+    for _, row in ipairs(rows) do
+        local boothId = tonumber(row.id)
+        local amount = math.max(0, math.floor(tonumber(row.balance) or 0))
+
+        if boothId and amount > 0 then
+            local affected = MySQL.update.await([[
+                UPDATE puribooth_booths
+                SET balance = balance - ?
+                WHERE id = ? AND balance >= ?
+            ]], {
+                amount,
+                boothId,
+                amount
+            })
+
+            if affected and affected > 0 then
+                claimed[#claimed + 1] = {
+                    id = boothId,
+                    amount = amount
+                }
+                total = total + amount
+            end
+        end
+    end
+
+    if total <= 0 then
+        notify(source, "inform", "他の担当者が先に売上を回収しました。")
+        return
+    end
+
+    local paid, destination = addCompanyMoney(source, total)
+
+    if not paid then
+        for _, item in ipairs(claimed) do
+            MySQL.update.await(
+                "UPDATE puribooth_booths SET balance = balance + ? WHERE id = ?",
+                { item.amount, item.id }
+            )
+        end
+
+        notify(
+            source,
+            "error",
+            ("売上回収を取り消しました: %s")
+                :format(tostring(destination or "入金失敗"))
+        )
+        return
+    end
+
+    for _, item in ipairs(claimed) do
+        MySQL.update.await([[
+            UPDATE puribooth_booths
+            SET
+                collected_total = collected_total + ?,
+                last_collected_at = NOW()
+            WHERE id = ?
+        ]], {
+            item.amount,
+            item.id
+        })
+    end
+
+    notify(
+        source,
+        "inform",
+        ("FLEPURI売上 $%d を %s へ回収しました。")
+            :format(total, tostring(destination))
+    )
+end
+
+local function changeBoothPrice(source, amountText, boothIdText)
+    if not requireManagementAccess(source, "price") then
+        return
+    end
+
+    local price, minimum, maximum = clampPrice(amountText)
+    if not price then
+        notify(
+            source,
+            "error",
+            ("料金は $%d ～ $%d で指定してください。")
+                :format(minimum, maximum)
+        )
+        return
+    end
+
+    local boothId
+    local booth
+
+    if boothIdText and tostring(boothIdText) ~= "" then
+        boothId = tostring(math.floor(tonumber(boothIdText) or -1))
+        booth = booths[boothId]
+    else
+        boothId, booth = nearestBooth(
+            source,
+            tonumber(Config.AdminRemoveDistance) or 6.0
+        )
+    end
+
+    if not boothId or not booth then
+        notify(source, "error", "料金を変更するフレプリ台が見つかりません。")
+        return
+    end
+
+    local affected = MySQL.update.await(
+        "UPDATE puribooth_booths SET price = ? WHERE id = ?",
+        { price, tonumber(boothId) }
+    )
+
+    if not affected or affected < 1 then
+        notify(source, "error", "料金を保存できませんでした。")
+        return
+    end
+
+    booth.price = price
+    broadcastBooths(-1)
+
+    notify(
+        source,
+        "inform",
+        ("フレプリ台 #%s の料金を $%d に変更しました。")
+            :format(boothId, price)
+    )
+end
+
 RegisterNetEvent("puribooth:server:adminPlace", function(data)
     local source = source
-    if not isAdmin(source) then
-        notify(source, "error", "この操作には管理権限が必要です。")
+    if not requireManagementAccess(source, "place") then
         return
     end
 
@@ -522,22 +844,25 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
     if not ped or ped <= 0 then return end
 
     local playerCoords = GetEntityCoords(ped)
-    local maxPlaceDistance = tonumber(Config.AdminPlaceMaxDistance) or 7.0
+    local maxPlaceDistance = tonumber(Config.AdminPlaceMaxDistance) or 15.0
     if #(playerCoords - vector3(x, y, z)) > maxPlaceDistance then
         notify(source, "error", "自分の現在地付近にだけ設置できます。")
         return
     end
 
     heading = heading % 360.0
+    local initialPrice =
+        math.floor(tonumber(Config.Price) or 0)
 
     local insertedId = MySQL.insert.await([[
         INSERT INTO puribooth_booths
-            (label, model, x, y, z, heading, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+            (label, model, x, y, z, heading, price, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
         "フレプリ",
         Config.DefaultModel,
         x, y, z, heading,
+        initialPrice,
         GetPlayerName(source) or ("source:" .. source)
     })
 
@@ -551,7 +876,8 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
         label = ("フレプリ #%d"):format(insertedId),
         model = Config.DefaultModel,
         coords = { x = x, y = y, z = z },
-        heading = heading
+        heading = heading,
+        price = initialPrice
     }
 
     MySQL.update.await(
@@ -561,29 +887,23 @@ RegisterNetEvent("puribooth:server:adminPlace", function(data)
 
     booths[booth.id] = booth
     broadcastBooths(-1)
-    notify(source, "inform", ("フレプリ台 #%d を設置しました。"):format(insertedId))
+    notify(
+        source,
+        "inform",
+        ("フレプリ台 #%d を設置しました。初期料金 $%d")
+            :format(insertedId, initialPrice)
+    )
 end)
 
 local function removeNearestBooth(source)
-    if not isAdmin(source) then
-        notify(source, "error", "この操作には管理権限が必要です。")
+    if not requireManagementAccess(source, "remove") then
         return
     end
 
-    local ped = GetPlayerPed(source)
-    if not ped or ped <= 0 then return end
-
-    local coords = GetEntityCoords(ped)
-    local nearestId = nil
-    local nearestDistance = tonumber(Config.AdminRemoveDistance) or 6.0
-
-    for boothId, booth in pairs(booths) do
-        local distance = #(coords - vector3(booth.coords.x, booth.coords.y, booth.coords.z))
-        if distance <= nearestDistance then
-            nearestId = boothId
-            nearestDistance = distance
-        end
-    end
+    local nearestId = nearestBooth(
+        source,
+        tonumber(Config.AdminRemoveDistance) or 6.0
+    )
 
     if not nearestId then
         notify(source, "error", "近くに撤去できるフレプリ台がありません。")
@@ -595,10 +915,24 @@ local function removeNearestBooth(source)
         return
     end
 
-    local numericId = tonumber(nearestId)
+    local balance = tonumber(MySQL.scalar.await(
+        "SELECT balance FROM puribooth_booths WHERE id = ?",
+        { tonumber(nearestId) }
+    )) or 0
+
+    if balance > 0 then
+        notify(
+            source,
+            "error",
+            ("台 #%s に未回収売上 $%d があります。先に回収してください。")
+                :format(nearestId, balance)
+        )
+        return
+    end
+
     local affected = MySQL.update.await(
         "DELETE FROM puribooth_booths WHERE id = ?",
-        { numericId }
+        { tonumber(nearestId) }
     )
 
     if not affected or affected < 1 then
@@ -611,74 +945,18 @@ local function removeNearestBooth(source)
     notify(source, "inform", ("フレプリ台 #%s を撤去しました。"):format(nearestId))
 end
 
-local function claimFirstAdmin(source)
-    if not Config.AllowFirstAdminClaim then
-        notify(source, "error", "初回管理者登録は無効です。")
-        return
-    end
-
-    if not databaseReady then
-        notify(source, "error", "フレプリ台データベースを準備中です。")
-        return
-    end
-
-    local adminCount = tonumber(MySQL.scalar.await(
-        "SELECT COUNT(*) FROM puribooth_admins"
-    )) or 0
-
-    if adminCount > 0 then
-        if isAdmin(source) then
-            notify(source, "inform", "すでにPuriBooth管理権限があります。")
-        else
-            notify(source, "error", "初回管理者はすでに登録済みです。")
-        end
-        return
-    end
-
-    local identifier = getStableIdentifier(source)
-    if not identifier then
-        notify(source, "error", "プレイヤー識別子を取得できませんでした。")
-        return
-    end
-
-    local inserted = MySQL.insert.await([[
-        INSERT INTO puribooth_admins
-            (identifier, player_name)
-        VALUES (?, ?)
-    ]], {
-        identifier,
-        GetPlayerName(source) or "unknown"
-    })
-
-    if not inserted then
-        notify(source, "error", "管理者登録に失敗しました。")
-        return
-    end
-
-    notify(source, "inform", "PuriBooth管理者として登録しました。")
-    print(("[puribooth] first admin claimed by source %d"):format(source))
-end
-
 RegisterCommand("puribooth", function(source, args)
     if source == 0 then
-        print("[puribooth] プレイヤー用: /puribooth place | remove | list")
+        print("[puribooth] place | remove | list | price <amount> [id] | sales | collect <all|id>")
         return
     end
 
     local action = string.lower(tostring(args[1] or ""))
 
-    if action == "claimadmin" then
-        claimFirstAdmin(source)
-        return
-    end
-
-    if not isAdmin(source) then
-        notify(source, "error", "このコマンドには管理権限が必要です。")
-        return
-    end
-
     if action == "place" then
-        TriggerClientEvent("puribooth:client:adminPlaceHere", source)
+        if requireManagementAccess(source, "place") then
+            TriggerClientEvent("puribooth:client:adminPlaceHere", source)
+        end
         return
     end
 
@@ -688,11 +966,37 @@ RegisterCommand("puribooth", function(source, args)
     end
 
     if action == "list" then
-        notify(source, "inform", ("設置済みフレプリ台: %d台"):format(boothCount()))
+        if requireManagementAccess(source, "sales") then
+            notify(
+                source,
+                "inform",
+                ("設置済みフレプリ台: %d台")
+                    :format(boothCount())
+            )
+        end
         return
     end
 
-    notify(source, "inform", "管理: /puribooth claimadmin　設置: /puribooth place　撤去: /puribooth remove　一覧: /puribooth list")
+    if action == "price" then
+        changeBoothPrice(source, args[2], args[3])
+        return
+    end
+
+    if action == "sales" then
+        showSalesReport(source)
+        return
+    end
+
+    if action == "collect" then
+        collectSales(source, args[2])
+        return
+    end
+
+    notify(
+        source,
+        "inform",
+        "FLEPURI: /puribooth place | remove | price <料金> [台ID] | sales | collect <all|台ID> | list"
+    )
 end, false)
 
 RegisterNetEvent("puribooth:server:startSession", function(boothId)

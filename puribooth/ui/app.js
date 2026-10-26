@@ -669,11 +669,11 @@
 
         ctx.restore()
 
-        if (state.warmth > 0) {
+        if (state.warmth !== 0) {
             ctx.save()
             ctx.globalCompositeOperation = 'soft-light'
-            ctx.globalAlpha = Math.min(.22, state.warmth / 120)
-            ctx.fillStyle = '#ff9a62'
+            ctx.globalAlpha = Math.min(.22, Math.abs(state.warmth) / 120)
+            ctx.fillStyle = state.warmth > 0 ? '#ff9a62' : '#74bfff'
             ctx.fillRect(0, 0, 1200, 900)
             ctx.restore()
         }
@@ -1048,12 +1048,12 @@
             const preset = button.dataset.preset
             const values = {
                 natural: [104, 103, 104, 0, 3, 0, 0, 0],
-                puri: [118, 102, 116, .6, 10, 14, 7, 5],
-                y2k: [112, 112, 135, .25, 13, 8, 4, 2],
-                mono: [108, 122, 0, .15, 0, 0, 2, 0],
-                soft: [116, 100, 112, .45, 9, 10, 6, 4],
-                cool: [110, 108, 116, .25, 0, 4, 3, 0],
-                night: [128, 110, 112, .35, 6, 10, 5, 3]
+                puri: [116, 104, 116, .35, 9, 10, 7, 5],
+                y2k: [109, 118, 140, .15, 12, 4, 3, 1],
+                mono: [106, 126, 0, .10, 0, 0, 1, 0],
+                soft: [114, 100, 110, .40, 7, 8, 6, 4],
+                cool: [106, 112, 112, .10, -14, 2, 2, 0],
+                night: [114, 116, 106, .15, 4, 5, 4, 2]
             }[preset]
             if (!values) return
             ;[

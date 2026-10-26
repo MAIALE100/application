@@ -1021,6 +1021,7 @@
         state.softness = .5
         state.warmth = 8
         state.glow = 8
+        state.skinSmooth = 5
         state.whiten = 5
         state.rosy = 4
 
@@ -1047,6 +1048,7 @@
             softness: .5,
             warmth: 8,
             glow: 8,
+            skinSmooth: 5,
             whiten: 5,
             rosy: 4
         }

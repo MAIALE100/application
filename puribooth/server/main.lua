@@ -1033,6 +1033,31 @@ local function recordCompletedSale(boothId, session, reason)
     return true
 end
 
+local function refundSession(session, fallbackSource, reason)
+    if not session then return false end
+
+    local amount = math.max(0, math.floor(tonumber(session.paid) or 0))
+    if amount <= 0 then return true end
+
+    local identifier =
+        session.refundIdentifier
+        or fallbackSource
+        or session.owner
+
+    if not identifier then return false end
+
+    local ok, added = pcall(function()
+        return exports.qbx_core:AddMoney(
+            identifier,
+            session.moneyType or "cash",
+            amount,
+            reason or "puribooth-refund"
+        )
+    end)
+
+    return ok and added == true
+end
+
 RegisterNetEvent("puribooth:server:startSession", function(boothId)
     local source = source
     boothId = tostring(boothId)
@@ -1063,6 +1088,28 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
             "PuriPhoto連携が準備できていないため、現在は課金せず利用を停止しています。"
         )
         return
+    end
+
+    local player = exports.qbx_core:GetPlayer(source)
+    local citizenid =
+        player
+        and player.PlayerData
+        and player.PlayerData.citizenid
+
+    if not citizenid then
+        notify(source, "error", "プレイヤーデータを確認できないため利用できません。")
+        return
+    end
+
+    for activeBoothId, activeSession in pairs(sessions) do
+        if activeSession.owner == source then
+            if activeSession.expiresAt > os.time() then
+                notify(source, "error", "すでに別のフレプリ撮影を開始しています。")
+                return
+            end
+
+            releaseSession(activeBoothId)
+        end
     end
 
     local existing = sessions[boothId]
@@ -1112,6 +1159,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
 
     sessions[boothId] = {
         owner = source,
+        refundIdentifier = citizenid,
         paid = price,
         moneyType = paidWith or "cash",
         capturing = false,
@@ -1242,7 +1290,25 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
     local session = sessions[boothId]
     if not session or session.owner ~= source or not session.capturing then return end
 
-    recordCompletedSale(boothId, session, "capture-complete")
+    local recorded =
+        recordCompletedSale(boothId, session, "capture-complete")
+
+    if not recorded then
+        local refunded = refundSession(
+            session,
+            source,
+            "puribooth-sale-record-failed-refund"
+        )
+
+        notify(
+            source,
+            "error",
+            refunded
+                and "売上記録に失敗したため料金を返金しました。"
+                or "売上記録と返金に失敗しました。スタッフへお知らせください。"
+        )
+    end
+
     releaseSession(boothId)
 end)
 
@@ -1256,26 +1322,49 @@ RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
     local refund = not session.capturing
 
     if refund and session.paid and session.paid > 0 then
-        exports.qbx_core:AddMoney(
+        local refunded = refundSession(
+            session,
             source,
-            session.moneyType or "cash",
-            session.paid,
             "puribooth-user-cancel-refund"
         )
 
         notify(
             source,
-            "inform",
-            ("撮影開始前のキャンセルなので $%s を返金しました。")
-                :format(session.paid)
+            refunded and "inform" or "error",
+            refunded
+                and ("撮影開始前のキャンセルなので $%s を返金しました。")
+                    :format(session.paid)
+                or "返金に失敗しました。スタッフへお知らせください。"
         )
     elseif session.capturing then
-        recordCompletedSale(boothId, session, "user-cancel-after-capture-start")
-        notify(
-            source,
-            "inform",
-            "撮影開始後のキャンセルのため料金は返金されません。"
-        )
+        local recorded =
+            recordCompletedSale(
+                boothId,
+                session,
+                "user-cancel-after-capture-start"
+            )
+
+        if recorded then
+            notify(
+                source,
+                "inform",
+                "撮影開始後のキャンセルのため料金は返金されません。"
+            )
+        else
+            local refunded = refundSession(
+                session,
+                source,
+                "puribooth-sale-record-failed-refund"
+            )
+
+            notify(
+                source,
+                "error",
+                refunded
+                    and "売上記録に失敗したため料金を返金しました。"
+                    or "売上記録と返金に失敗しました。スタッフへお知らせください。"
+            )
+        end
     end
 
     releaseSession(boothId)
@@ -1299,13 +1388,19 @@ RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
     if not session or session.owner ~= source or not session.capturing then return end
 
     if session.paid and session.paid > 0 then
-        exports.qbx_core:AddMoney(
+        local refunded = refundSession(
+            session,
             source,
-            session.moneyType or "cash",
-            session.paid,
             "puribooth-technical-refund"
         )
-        notify(source, "error", "撮影に失敗したため料金を返金しました。")
+
+        notify(
+            source,
+            "error",
+            refunded
+                and "撮影に失敗したため料金を返金しました。"
+                or "撮影に失敗し、返金にも失敗しました。スタッフへお知らせください。"
+        )
     end
 
     releaseSession(boothId)
@@ -1316,15 +1411,12 @@ AddEventHandler("onResourceStop", function(resource)
     if GetResourceState("qbx_core") ~= "started" then return end
 
     for _, session in pairs(sessions) do
-        if session.paid and session.paid > 0 and GetPlayerName(session.owner) then
-            pcall(function()
-                exports.qbx_core:AddMoney(
-                    session.owner,
-                    session.moneyType or "cash",
-                    session.paid,
-                    "puribooth-resource-restart-refund"
-                )
-            end)
+        if session.paid and session.paid > 0 then
+            refundSession(
+                session,
+                session.owner,
+                "puribooth-resource-restart-refund"
+            )
         end
     end
 end)
@@ -1335,20 +1427,26 @@ AddEventHandler("playerDropped", function()
     for boothId, session in pairs(sessions) do
         if session.owner == source then
             if session.capturing then
-                recordCompletedSale(
-                    boothId,
-                    session,
-                    "player-dropped-after-capture-start"
-                )
-            elseif session.paid and session.paid > 0 then
-                pcall(function()
-                    exports.qbx_core:AddMoney(
-                        source,
-                        session.moneyType or "cash",
-                        session.paid,
-                        "puribooth-disconnect-refund"
+                local recorded =
+                    recordCompletedSale(
+                        boothId,
+                        session,
+                        "player-dropped-after-capture-start"
                     )
-                end)
+
+                if not recorded then
+                    refundSession(
+                        session,
+                        source,
+                        "puribooth-sale-record-failed-refund"
+                    )
+                end
+            elseif session.paid and session.paid > 0 then
+                refundSession(
+                    session,
+                    source,
+                    "puribooth-disconnect-refund"
+                )
             end
 
             releaseSession(boothId)
@@ -1363,25 +1461,28 @@ CreateThread(function()
         local now = os.time()
         for boothId, session in pairs(sessions) do
             if session.expiresAt <= now then
-                if session.paid and session.paid > 0 and GetPlayerName(session.owner) then
-                    pcall(function()
-                        exports.qbx_core:AddMoney(
-                            session.owner,
-                            session.moneyType or "cash",
-                            session.paid,
-                            session.capturing
-                                and "puribooth-capture-timeout-refund"
-                                or "puribooth-setup-timeout-refund"
-                        )
-                    end)
-
-                    notify(
+                if session.paid and session.paid > 0 then
+                    local refunded = refundSession(
+                        session,
                         session.owner,
-                        "error",
                         session.capturing
-                            and "撮影セッションがタイムアウトしたため料金を返金しました。"
-                            or "撮影準備時間が終了したため料金を返金しました。"
+                            and "puribooth-capture-timeout-refund"
+                            or "puribooth-setup-timeout-refund"
                     )
+
+                    if GetPlayerName(session.owner) then
+                        notify(
+                            session.owner,
+                            refunded and "error" or "error",
+                            refunded
+                                and (
+                                    session.capturing
+                                        and "撮影セッションがタイムアウトしたため料金を返金しました。"
+                                        or "撮影準備時間が終了したため料金を返金しました。"
+                                )
+                                or "撮影セッションが終了しましたが返金に失敗しました。スタッフへお知らせください。"
+                        )
+                    end
                 end
 
                 releaseSession(boothId)

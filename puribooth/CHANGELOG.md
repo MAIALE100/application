@@ -1,5 +1,16 @@
 # PuriBooth Changelog
 
+## 1.0.4 - 2026-10-27
+
+### QBox互換性 / テスト環境修正
+- QBox全体のリリース番号 2.5.4 と qbx_core リソース版番号を誤比較していた互換性判定を修正
+- qbx_coreは版番号の固定比較ではなく GetJobs / GetJob / GetPlayer の必要exportsを実体確認する方式へ変更
+- qbx_core v1.24.0の正常環境を誤って課金停止する問題を解消
+- バニラQBoxにweazel jobがないテスト環境向けに、サーバーコンソール専用のruntime Weazel補助を追加
+- `puribooth_dev_weazel [server_id]` で不足時だけ仮jobを作成しテスターへ付与
+- `puribooth_dev_weazel_restore [server_id]` でテスト前のjobへ戻し、FLEPURIが作成したruntime jobを撤去
+- 本番の管理権限は引き続き `Config.Management.job = "weazel"` をサーバー側で検証
+
 ## 1.0.3 - 2026-10-27
 
 ### 提出前最終安定化

@@ -12,6 +12,14 @@
     beautyBuffer.width = canvas.width
     beautyBuffer.height = canvas.height
     const beautyBufferCtx = beautyBuffer.getContext('2d')
+
+    // Photo/beauty/frame rendering is expensive. Cache that static layer so
+    // decoration dragging and erasing only redraw the lightweight overlay.
+    const baseLayer = document.createElement('canvas')
+    baseLayer.width = canvas.width
+    baseLayer.height = canvas.height
+    const baseLayerCtx = baseLayer.getContext('2d')
+    let baseLayerValid = false
     const boothLabel = document.getElementById('boothLabel')
     const shotCount = document.getElementById('shotCount')
     const canvasHint = document.getElementById('canvasHint')
@@ -1520,6 +1528,13 @@
         }
     }
 
+    const cacheBaseLayer = () => {
+        if (!baseLayerCtx) return
+        baseLayerCtx.clearRect(0, 0, baseLayer.width, baseLayer.height)
+        baseLayerCtx.drawImage(canvas, 0, 0)
+        baseLayerValid = true
+    }
+
     const render = () => {
         ctx.save()
         ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -1527,8 +1542,31 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         drawPhotos()
         drawFrame()
+        cacheBaseLayer()
         drawDecorations()
         ctx.restore()
+    }
+
+    const renderDecorationsOnly = () => {
+        if (!baseLayerValid) {
+            render()
+            return
+        }
+
+        ctx.save()
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(baseLayer, 0, 0)
+        drawDecorations()
+        ctx.restore()
+    }
+
+    let decorationRenderFrame = 0
+    const scheduleDecorationRender = () => {
+        if (decorationRenderFrame) return
+        decorationRenderFrame = requestAnimationFrame(() => {
+            decorationRenderFrame = 0
+            renderDecorationsOnly()
+        })
     }
 
     const resetDecorations = (recordHistory = true) => {
@@ -2367,21 +2405,43 @@
         state.selectedDecoration = null
         updateHistoryButtons()
         toolStatus.textContent = '落書きを消しました'
-        render()
+        renderDecorationsOnly()
     })
 
-    const eraseStrokeAtPoint = point => {
+    const pointSegmentDistanceSq = (point, start, end) => {
+        const vx = end.x - start.x
+        const vy = end.y - start.y
+        const wx = point.x - start.x
+        const wy = point.y - start.y
+        const lengthSq = vx * vx + vy * vy
+
+        if (lengthSq <= .0001) {
+            return wx * wx + wy * wy
+        }
+
+        const t = Math.max(
+            0,
+            Math.min(1, (wx * vx + wy * vy) / lengthSq)
+        )
+        const dx = point.x - (start.x + vx * t)
+        const dy = point.y - (start.y + vy * t)
+        return dx * dx + dy * dy
+    }
+
+    const eraseStrokeSegment = (start, end) => {
         const radius =
             Math.max(
                 12,
                 Number(document.getElementById('drawWidth')?.value || 10) * 1.7
             )
-        const radiusSq = radius * radius
         let changed = false
         const nextStrokes = []
 
         state.strokes.forEach(stroke => {
             let current = []
+            const strokeRadius =
+                radius + Math.max(1, Number(stroke.width) || 1) * .55
+            const radiusSq = strokeRadius * strokeRadius
 
             const flush = () => {
                 if (current.length > 1) {
@@ -2394,13 +2454,17 @@
             }
 
             stroke.points.forEach(strokePoint => {
-                const dx = strokePoint.x - point.x
-                const dy = strokePoint.y - point.y
-                if ((dx * dx + dy * dy) <= radiusSq) {
+                if (
+                    pointSegmentDistanceSq(
+                        strokePoint,
+                        start,
+                        end
+                    ) <= radiusSq
+                ) {
                     changed = true
                     flush()
                 } else {
-                    current.push({ ...strokePoint })
+                    current.push(strokePoint)
                 }
             })
             flush()
@@ -2412,13 +2476,30 @@
         return changed
     }
 
-    let eraseRenderPending = false
-    const scheduleEraseRender = () => {
-        if (eraseRenderPending) return
-        eraseRenderPending = true
-        requestAnimationFrame(() => {
-            eraseRenderPending = false
-            render()
+    let lastEraserPoint = null
+    let pendingEraserPoint = null
+    let eraserFrame = 0
+
+    const flushEraser = () => {
+        if (!lastEraserPoint || !pendingEraserPoint) return false
+        const changed =
+            eraseStrokeSegment(
+                lastEraserPoint,
+                pendingEraserPoint
+            )
+        lastEraserPoint = pendingEraserPoint
+        pendingEraserPoint = null
+        if (changed) renderDecorationsOnly()
+        return changed
+    }
+
+    const scheduleEraser = point => {
+        pendingEraserPoint = point
+        if (eraserFrame) return
+
+        eraserFrame = requestAnimationFrame(() => {
+            eraserFrame = 0
+            flushEraser()
         })
     }
 
@@ -2447,9 +2528,11 @@
 
             if (state.drawStyle === 'eraser') {
                 state.activeStroke = { style: 'eraser', points: [point] }
-                eraseStrokeAtPoint(point)
+                lastEraserPoint = point
+                pendingEraserPoint = null
+                eraseStrokeSegment(point, point)
                 updateHistoryButtons()
-                render()
+                renderDecorationsOnly()
                 return
             }
 
@@ -2462,7 +2545,7 @@
             state.activeStroke = stroke
             state.strokes.push(stroke)
             updateHistoryButtons()
-            render()
+            renderDecorationsOnly()
             return
         }
 
@@ -2488,7 +2571,7 @@
                 ? 'スタンプを配置しました。連続配置中です'
                 : 'スタンプを配置しました。ドラッグで移動できます'
             updateHistoryButtons()
-            render()
+            renderDecorationsOnly()
             return
         }
 
@@ -2514,7 +2597,7 @@
                 }
                 toolStatus.textContent = '文字を配置しました。ドラッグで移動できます'
                 updateHistoryButtons()
-                render()
+                renderDecorationsOnly()
             }
             return
         }
@@ -2567,17 +2650,13 @@
                     : []
 
             if (stroke.style === 'eraser') {
-                let changed = false
-                if (events.length) {
-                    events.forEach(sample => {
-                        changed =
-                            eraseStrokeAtPoint(canvasPoint(sample))
-                            || changed
-                    })
-                } else {
-                    changed = eraseStrokeAtPoint(point)
-                }
-                if (changed) scheduleEraseRender()
+                // Only the latest pointer position matters. One RAF processes
+                // the whole traveled segment, preventing event-backlog lag.
+                const latest =
+                    events.length
+                        ? canvasPoint(events[events.length - 1])
+                        : point
+                scheduleEraser(latest)
                 return
             }
 
@@ -2614,12 +2693,24 @@
                 0,
                 Math.min(canvas.height, point.y - state.dragOffset.y)
             )
-            render()
+            scheduleDecorationRender()
         }
     })
 
     const finishStroke = event => {
         const finishedDrawing = state.drawing
+        const wasEraser = state.activeStroke?.style === 'eraser'
+
+        if (wasEraser) {
+            if (eraserFrame) {
+                cancelAnimationFrame(eraserFrame)
+                eraserFrame = 0
+            }
+            flushEraser()
+            lastEraserPoint = null
+            pendingEraserPoint = null
+        }
+
         state.drawing = false
         state.activeStroke = null
         state.draggingDecoration = false
@@ -2633,6 +2724,10 @@
 
         if (finishedDrawing) {
             render()
+        } else if (decorationRenderFrame) {
+            cancelAnimationFrame(decorationRenderFrame)
+            decorationRenderFrame = 0
+            renderDecorationsOnly()
         }
     }
     canvas.addEventListener('pointerup', finishStroke)
@@ -2757,7 +2852,7 @@
                 ? '選択した装飾を前面へ移動しました'
                 : '選択した装飾を背面へ移動しました'
         updateHistoryButtons()
-        render()
+        renderDecorationsOnly()
     }
 
     document.getElementById('sendBackwardButton').addEventListener('click', () => {
@@ -2781,7 +2876,7 @@
             ? '選択した装飾を小さくしました'
             : '選択した装飾を大きくしました'
         updateHistoryButtons()
-        render()
+        renderDecorationsOnly()
     }
 
     document.getElementById('shrinkSelectedButton').addEventListener('click', () => {
@@ -2825,7 +2920,7 @@
 
         updateHistoryButtons()
         toolStatus.textContent = '選択した装飾を複製しました'
-        render()
+        renderDecorationsOnly()
     })
 
     document.getElementById('deleteSelectedButton').addEventListener('click', () => {
@@ -2843,7 +2938,7 @@
         state.selectedDecoration = null
         updateHistoryButtons()
         toolStatus.textContent = '選択した装飾を削除しました'
-        render()
+        renderDecorationsOnly()
     })
 
     window.addEventListener('keydown', event => {

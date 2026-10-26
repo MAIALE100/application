@@ -1,6 +1,6 @@
 # FLEPURI / PuriBooth
 
-**Release: v1.0.0 (Flecity operator submission)**
+**Release: v1.0.1 (Flecity operator submission)**
 
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。

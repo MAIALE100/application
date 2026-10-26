@@ -917,19 +917,90 @@ local function drawPlacementZone(booth)
     local boothPos = GetEntityCoords(placementObject)
     local camPos = booth.camera.coords
 
-    DrawLine(
-        boothPos.x,
-        boothPos.y,
-        boothPos.z + 0.7,
-        center.x,
-        center.y,
-        z + 0.15,
-        255,
-        95,
-        180,
-        230
+    -- Strong cyan direction arrow: cabinet -> future capture area.
+    local arrowStart = vector3(
+        boothPos.x + forwardX * 0.45,
+        boothPos.y + forwardY * 0.45,
+        boothPos.z + 0.12
+    )
+    local arrowEnd = vector3(
+        center.x - forwardX * 0.35,
+        center.y - forwardY * 0.35,
+        z + 0.12
     )
 
+    local arrowHeadBack = 0.72
+    local arrowHeadWidth = 0.48
+    local arrowLeft = vector3(
+        arrowEnd.x
+            - forwardX * arrowHeadBack
+            + rightX * arrowHeadWidth,
+        arrowEnd.y
+            - forwardY * arrowHeadBack
+            + rightY * arrowHeadWidth,
+        arrowEnd.z
+    )
+    local arrowRight = vector3(
+        arrowEnd.x
+            - forwardX * arrowHeadBack
+            - rightX * arrowHeadWidth,
+        arrowEnd.y
+            - forwardY * arrowHeadBack
+            - rightY * arrowHeadWidth,
+        arrowEnd.z
+    )
+
+    -- Layer a few parallel lines so the direction remains obvious at distance.
+    for _, side in ipairs({ -0.035, 0.0, 0.035 }) do
+        DrawLine(
+            arrowStart.x + rightX * side,
+            arrowStart.y + rightY * side,
+            arrowStart.z,
+            arrowEnd.x + rightX * side,
+            arrowEnd.y + rightY * side,
+            arrowEnd.z,
+            82, 218, 255, 245
+        )
+    end
+
+    DrawLine(
+        arrowEnd.x, arrowEnd.y, arrowEnd.z,
+        arrowLeft.x, arrowLeft.y, arrowLeft.z,
+        82, 218, 255, 245
+    )
+    DrawLine(
+        arrowEnd.x, arrowEnd.y, arrowEnd.z,
+        arrowRight.x, arrowRight.y, arrowRight.z,
+        82, 218, 255, 245
+    )
+
+    -- Dotted path makes the arrow readable against bright pavement.
+    local dotCount = 7
+    for i = 1, dotCount do
+        local t = i / (dotCount + 1)
+        local px = arrowStart.x + (arrowEnd.x - arrowStart.x) * t
+        local py = arrowStart.y + (arrowEnd.y - arrowStart.y) * t
+        local pz = arrowStart.z + (arrowEnd.z - arrowStart.z) * t
+
+        DrawMarker(
+            28,
+            px, py, pz + 0.03,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.10, 0.10, 0.10,
+            82, 218, 255, 225,
+            false, false, 2, false, nil, nil, false
+        )
+    end
+
+    drawWorldLabel(
+        "SHOOT AREA",
+        vector3(center.x, center.y, z + 0.42),
+        0.25,
+        185, 245, 255, 245
+    )
+
+    -- Camera sight line remains white and separate from the direction arrow.
     DrawLine(
         camPos.x,
         camPos.y,
@@ -940,7 +1011,7 @@ local function drawPlacementZone(booth)
         255,
         255,
         255,
-        210
+        190
     )
 end
 

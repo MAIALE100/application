@@ -14,13 +14,15 @@ Flecity運営様向け 更新手順
 
 【更新作業】
 1. 念のため既存 puriphoto フォルダをバックアップ（推奨）
-2. 既存 puriphoto フォルダを、このZIP内の puriphoto フォルダで差し替え
+2. 既存 puriphoto フォルダは削除せず、このZIP内の puriphoto フォルダを上書き・マージ
 3. コンソールで
 
 refresh
 restart puriphoto
 
 を実行
+
+このZIPは更新差分のみですので、既存 puriphoto フォルダを先に削除しないでください。
 
 既存アルバム等のDBデータを削除する処理はありません。
 不足テーブル・不足列は起動時に自動作成・更新されます。

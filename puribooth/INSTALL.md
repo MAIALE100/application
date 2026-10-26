@@ -1,4 +1,4 @@
-# FLEPURI v1.0.0 導入手順
+# FLEPURI v1.0.1 導入手順
 
 ## 1. 配置
 提出ZIPを展開し、`puribooth` フォルダをFiveMサーバーのresources配下へ配置してください。

@@ -632,3 +632,52 @@ input[type="color"] {
     content: " ✓";
     font-weight: 900;
 }
+
+
+/* Purikura decoration controls */
+.mini-heading {
+    margin: 14px 0 8px;
+    font-size: 13px;
+    font-weight: 900;
+    color: #5a4755;
+}
+.text-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 10px 0 12px;
+}
+.text-quick-grid button,
+.text-style-grid button,
+.draw-style-grid button {
+    min-height: 38px;
+}
+.text-color-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin: 8px 0 12px;
+}
+.text-color-grid button {
+    width: 100%;
+    aspect-ratio: 1;
+    min-height: 28px;
+    padding: 0;
+    border-radius: 999px;
+    background: var(--swatch);
+    border: 3px solid rgba(36,21,33,.12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+}
+.text-color-grid button.active {
+    outline: 3px solid #ff4fa3;
+    outline-offset: 2px;
+}
+.micro-note {
+    margin-top: 8px !important;
+    font-size: 11px !important;
+    opacity: .72;
+}
+#stampRepeatButton.active {
+    background: #241521;
+    color: #fff;
+}

@@ -101,7 +101,7 @@
         armedStamp: null,
         armedText: false,
         textStyle: 'puri',
-        textFont: 'puriRound',
+        textFont: 'heisei',
         repeatStamp: false,
         drawing: false,
         drawEnabled: false,
@@ -1227,40 +1227,28 @@
     }
 
     const textFontPreset = value => {
-        const preset = String(value || 'puriRound')
+        const preset = String(value || 'heisei')
         const fonts = {
-            puriRound: {
-                family: '"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif',
-                weight: 900,
+            heisei: {
+                family: '"HeiseiJoshi","Yu Gothic","Meiryo",sans-serif',
+                weight: 400,
                 italic: false,
-                scaleX: 1.06
+                scaleX: 1
             },
-            handwritten: {
-                family: '"Segoe Print","Comic Sans MS","Yu Gothic","Meiryo",cursive',
-                weight: 700,
-                italic: true,
-                scaleX: 1.02
-            },
-            pop: {
-                family: '"Arial Rounded MT Bold","Arial Black","Yu Gothic","Meiryo",sans-serif',
-                weight: 900,
+            hitori: {
+                family: '"HitoriGothic","Yu Gothic","Meiryo",sans-serif',
+                weight: 400,
                 italic: false,
-                scaleX: 1.13
+                scaleX: 1
             },
-            y2k: {
-                family: '"Impact","Arial Black","Yu Gothic","Meiryo",sans-serif',
-                weight: 900,
-                italic: false,
-                scaleX: .92
-            },
-            simple: {
-                family: '"Noto Sans JP","Yu Gothic","Meiryo",sans-serif',
-                weight: 700,
+            hachi: {
+                family: '"HachiMaruPop","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif',
+                weight: 400,
                 italic: false,
                 scaleX: 1
             }
         }
-        return fonts[preset] || fonts.puriRound
+        return fonts[preset] || fonts.heisei
     }
 
     const setCanvasTextFont = (item, size) => {
@@ -1341,6 +1329,103 @@
         ctx.fillText(item.value, 0, 0)
     }
 
+    const configureStrokeContext = stroke => {
+        ctx.strokeStyle = stroke.color
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+
+        if (stroke.style === 'marker') {
+            ctx.globalAlpha = .48
+            ctx.lineWidth = stroke.width * 1.8
+        } else if (stroke.style === 'neon') {
+            ctx.lineWidth = stroke.width
+            ctx.shadowColor = stroke.color
+            ctx.shadowBlur = Math.max(10, stroke.width * 1.6)
+        } else {
+            ctx.lineWidth = stroke.width
+        }
+    }
+
+    const appendInterpolatedStrokePoint = (stroke, point) => {
+        const points = stroke.points
+        const last = points[points.length - 1]
+        if (!last) {
+            points.push(point)
+            return
+        }
+
+        const dx = point.x - last.x
+        const dy = point.y - last.y
+        const distance = Math.hypot(dx, dy)
+        if (distance < .2) return
+
+        const spacing = Math.max(
+            1.5,
+            Math.min(5, (Number(stroke.width) || 10) * .24)
+        )
+        const steps = Math.max(1, Math.ceil(distance / spacing))
+
+        for (let i = 1; i <= steps; i++) {
+            points.push({
+                x: last.x + dx * i / steps,
+                y: last.y + dy * i / steps
+            })
+        }
+    }
+
+    const drawStrokePath = stroke => {
+        const points = stroke.points
+        if (!points.length) return
+
+        ctx.save()
+        configureStrokeContext(stroke)
+        ctx.beginPath()
+
+        if (points.length === 1) {
+            ctx.moveTo(points[0].x, points[0].y)
+            ctx.lineTo(points[0].x + .01, points[0].y + .01)
+        } else {
+            ctx.moveTo(points[0].x, points[0].y)
+
+            for (let i = 1; i < points.length - 1; i++) {
+                const current = points[i]
+                const next = points[i + 1]
+                const midX = (current.x + next.x) / 2
+                const midY = (current.y + next.y) / 2
+                ctx.quadraticCurveTo(
+                    current.x,
+                    current.y,
+                    midX,
+                    midY
+                )
+            }
+
+            const last = points[points.length - 1]
+            ctx.lineTo(last.x, last.y)
+        }
+
+        ctx.stroke()
+        ctx.restore()
+    }
+
+    const drawStrokeIncrement = (stroke, fromIndex) => {
+        const points = stroke.points
+        if (points.length < 2) return
+
+        const start = Math.max(0, fromIndex - 1)
+        ctx.save()
+        configureStrokeContext(stroke)
+        ctx.beginPath()
+        ctx.moveTo(points[start].x, points[start].y)
+
+        for (let i = start + 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y)
+        }
+
+        ctx.stroke()
+        ctx.restore()
+    }
+
     const drawDecorations = () => {
         ctx.save()
         ctx.textAlign = 'center'
@@ -1364,32 +1449,7 @@
         })
         ctx.restore()
 
-        state.strokes.forEach(stroke => {
-            if (!stroke.points.length) return
-            ctx.save()
-            ctx.strokeStyle = stroke.color
-            ctx.lineCap = 'round'
-            ctx.lineJoin = 'round'
-
-            if (stroke.style === 'marker') {
-                ctx.globalAlpha = .48
-                ctx.lineWidth = stroke.width * 1.8
-            } else if (stroke.style === 'neon') {
-                ctx.lineWidth = stroke.width
-                ctx.shadowColor = stroke.color
-                ctx.shadowBlur = Math.max(10, stroke.width * 1.6)
-            } else {
-                ctx.lineWidth = stroke.width
-            }
-
-            ctx.beginPath()
-            stroke.points.forEach((point, index) => {
-                if (index === 0) ctx.moveTo(point.x, point.y)
-                else ctx.lineTo(point.x, point.y)
-            })
-            ctx.stroke()
-            ctx.restore()
-        })
+        state.strokes.forEach(drawStrokePath)
 
         const selected = selectedDecorationItem()
         if (selected) {
@@ -1474,7 +1534,7 @@
             button.classList.toggle('active', button.dataset.textStyle === 'puri')
         })
         document.querySelectorAll('[data-text-font]').forEach(button => {
-            button.classList.toggle('active', button.dataset.textFont === 'puriRound')
+            button.classList.toggle('active', button.dataset.textFont === 'heisei')
         })
         document.querySelectorAll('[data-draw-style]').forEach(button => {
             button.classList.toggle('active', button.dataset.drawStyle === 'pen')
@@ -2175,7 +2235,7 @@
 
     document.querySelectorAll('[data-text-font]').forEach(button => {
         button.addEventListener('click', () => {
-            state.textFont = button.dataset.textFont || 'puriRound'
+            state.textFont = button.dataset.textFont || 'heisei'
             document.querySelectorAll('[data-text-font]').forEach(item => {
                 item.classList.toggle('active', item === button)
             })
@@ -2351,7 +2411,7 @@
             const item = selectedDecorationItem()
             if (hit.type === 'text' && item) {
                 state.textStyle = item.style || 'puri'
-                state.textFont = item.font || 'puriRound'
+                state.textFont = item.font || 'heisei'
                 const textInput = document.getElementById('textInput')
                 const textSize = document.getElementById('textSize')
                 const textColor = document.getElementById('textColor')
@@ -2384,8 +2444,25 @@
         const point = canvasPoint(event)
 
         if (state.drawing && state.activeStroke) {
-            state.activeStroke.points.push(point)
-            render()
+            const stroke = state.activeStroke
+            const before = stroke.points.length
+            const events =
+                typeof event.getCoalescedEvents === 'function'
+                    ? event.getCoalescedEvents()
+                    : []
+
+            if (events.length) {
+                events.forEach(sample => {
+                    appendInterpolatedStrokePoint(
+                        stroke,
+                        canvasPoint(sample)
+                    )
+                })
+            } else {
+                appendInterpolatedStrokePoint(stroke, point)
+            }
+
+            drawStrokeIncrement(stroke, before)
             return
         }
 
@@ -2411,6 +2488,7 @@
     })
 
     const finishStroke = event => {
+        const finishedDrawing = state.drawing
         state.drawing = false
         state.activeStroke = null
         state.draggingDecoration = false
@@ -2420,6 +2498,10 @@
             && canvas.hasPointerCapture(event.pointerId)
         ) {
             canvas.releasePointerCapture(event.pointerId)
+        }
+
+        if (finishedDrawing) {
+            render()
         }
     }
     canvas.addEventListener('pointerup', finishStroke)
@@ -2733,4 +2815,8 @@
             app.classList.remove('hidden')
         }
     })
+
+    if (document.fonts?.ready) {
+        document.fonts.ready.then(() => render()).catch(() => {})
+    }
 })()

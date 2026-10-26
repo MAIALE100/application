@@ -17,6 +17,10 @@ local function managementMinimumGrade(action)
         return tonumber(management.removeMinGrade) or 0
     elseif action == "price" then
         return tonumber(management.priceMinGrade) or 0
+    elseif action == "rename" then
+        return tonumber(management.renameMinGrade)
+            or tonumber(management.priceMinGrade)
+            or 0
     end
 
     return tonumber(management.salesMinGrade) or 0
@@ -579,6 +583,142 @@ local function addCompanyMoney(source, amount)
     return false, ("未対応の売上入金方式です: %s"):format(mode)
 end
 
+local function managementSnapshot(source, silent)
+    if not hasManagementAccess(source, "sales") then
+        if not silent then requireManagementAccess(source, "sales") end
+        return nil
+    end
+
+    if not atSalesLocation(source) then
+        if not silent then requireSalesLocation(source) end
+        return nil
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT
+            id,
+            label,
+            price,
+            balance,
+            lifetime_sales,
+            completed_sales,
+            collected_total,
+            last_sale_at,
+            last_collected_at
+        FROM puribooth_booths
+        ORDER BY id ASC
+    ]]) or {}
+
+    local snapshot = {
+        booths = {},
+        totals = {
+            booths = #rows,
+            balance = 0,
+            lifetime = 0,
+            completed = 0,
+            collected = 0
+        },
+        permissions = {
+            price = hasManagementAccess(source, "price"),
+            rename = hasManagementAccess(source, "rename"),
+            sales = hasManagementAccess(source, "sales")
+        }
+    }
+
+    for _, row in ipairs(rows) do
+        local item = {
+            id = tonumber(row.id),
+            label = tostring(row.label or ("フレプリ #" .. tostring(row.id))),
+            price = tonumber(row.price) or 0,
+            balance = tonumber(row.balance) or 0,
+            lifetime = tonumber(row.lifetime_sales) or 0,
+            completed = tonumber(row.completed_sales) or 0,
+            collected = tonumber(row.collected_total) or 0,
+            lastSaleAt = row.last_sale_at,
+            lastCollectedAt = row.last_collected_at
+        }
+
+        snapshot.booths[#snapshot.booths + 1] = item
+        snapshot.totals.balance = snapshot.totals.balance + item.balance
+        snapshot.totals.lifetime = snapshot.totals.lifetime + item.lifetime
+        snapshot.totals.completed = snapshot.totals.completed + item.completed
+        snapshot.totals.collected = snapshot.totals.collected + item.collected
+    end
+
+    return snapshot
+end
+
+local function sendManagementSnapshot(source, silent)
+    local snapshot = managementSnapshot(source, silent)
+    if not snapshot then return false end
+
+    TriggerClientEvent(
+        "puribooth:client:managementSnapshot",
+        source,
+        snapshot
+    )
+    return true
+end
+
+local function openManagement(source)
+    local snapshot = managementSnapshot(source, false)
+    if not snapshot then return end
+
+    TriggerClientEvent(
+        "puribooth:client:openManagement",
+        source,
+        snapshot
+    )
+end
+
+local function renameBooth(source, boothIdText, labelText)
+    if not requireManagementAccess(source, "rename") then
+        return
+    end
+
+    local boothId = tostring(math.floor(tonumber(boothIdText) or -1))
+    local booth = booths[boothId]
+    if not booth then
+        notify(source, "error", "台名を変更するフレプリ台が見つかりません。")
+        return
+    end
+
+    local label = tostring(labelText or "")
+        :gsub("^%s+", "")
+        :gsub("%s+$", "")
+        :gsub("[%c]", " ")
+
+    if label == "" then
+        notify(source, "error", "台名を入力してください。")
+        return
+    end
+
+    if #label > 48 then
+        notify(source, "error", "台名は48文字以内で指定してください。")
+        return
+    end
+
+    local affected = MySQL.update.await(
+        "UPDATE puribooth_booths SET label = ? WHERE id = ?",
+        { label, tonumber(boothId) }
+    )
+
+    if not affected or affected < 1 then
+        notify(source, "error", "台名を保存できませんでした。")
+        return
+    end
+
+    booth.label = label
+    broadcastBooths(-1)
+    notify(
+        source,
+        "inform",
+        ("フレプリ台 #%s の台名を「%s」に変更しました。")
+            :format(boothId, label)
+    )
+    sendManagementSnapshot(source, true)
+end
+
 local function showSalesReport(source)
     if not requireManagementAccess(source, "sales")
         or not requireSalesLocation(source) then
@@ -749,6 +889,8 @@ local function collectSales(source, target)
         ("FLEPURI売上 $%d を %s へ回収しました。")
             :format(total, tostring(destination))
     )
+
+    sendManagementSnapshot(source, true)
 end
 
 local function changeBoothPrice(source, amountText, boothIdText)
@@ -809,6 +951,8 @@ local function changeBoothPrice(source, amountText, boothIdText)
         ("フレプリ台 #%s の料金を $%d に変更しました。")
             :format(boothId, price)
     )
+
+    sendManagementSnapshot(source, true)
 end
 
 RegisterNetEvent("puribooth:server:adminPlace", function(data)
@@ -943,7 +1087,7 @@ end
 
 RegisterCommand("puribooth", function(source, args)
     if source == 0 then
-        print("[puribooth] place | remove | list | price <amount> [id] | sales | collect <all|id>")
+        print("[puribooth] place | remove | list | manage | price <amount> [id] | rename <id> <name> | sales | collect <all|id>")
         return
     end
 
@@ -973,8 +1117,18 @@ RegisterCommand("puribooth", function(source, args)
         return
     end
 
+    if action == "manage" then
+        openManagement(source)
+        return
+    end
+
     if action == "price" then
         changeBoothPrice(source, args[2], args[3])
+        return
+    end
+
+    if action == "rename" then
+        renameBooth(source, args[2], table.concat(args, " ", 3))
         return
     end
 
@@ -991,9 +1145,25 @@ RegisterCommand("puribooth", function(source, args)
     notify(
         source,
         "inform",
-        "FLEPURI: /puribooth place | remove | price <料金> [台ID] | sales | collect <all|台ID> | list"
+        "FLEPURI: /puribooth manage | place | remove | price <料金> [台ID] | rename <台ID> <台名> | sales | collect <all|台ID> | list"
     )
 end, false)
+
+RegisterNetEvent("puribooth:server:managementRefresh", function()
+    sendManagementSnapshot(source, false)
+end)
+
+RegisterNetEvent("puribooth:server:managementPrice", function(boothId, price)
+    changeBoothPrice(source, price, boothId)
+end)
+
+RegisterNetEvent("puribooth:server:managementRename", function(boothId, label)
+    renameBooth(source, boothId, label)
+end)
+
+RegisterNetEvent("puribooth:server:managementCollect", function(target)
+    collectSales(source, target)
+end)
 
 local function recordCompletedSale(boothId, session, reason)
     boothId = tostring(boothId)

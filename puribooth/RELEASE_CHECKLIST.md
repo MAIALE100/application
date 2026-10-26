@@ -40,6 +40,14 @@
 - [ ] include required OFL/license/copyright files in release ZIP
 
 ## Final validation
+- [ ] verify non-weazel player cannot place / remove / change price / view sales
+- [ ] verify weazel player can place / remove / change price
+- [ ] verify each booth keeps an independent price after restart
+- [ ] verify successful capture increments only that booth's balance / lifetime / count
+- [ ] verify refunded sessions do not increment sales
+- [ ] verify /puribooth sales totals match per-booth totals
+- [ ] verify /puribooth collect all deposits once and clears only claimed balances
+- [ ] verify failed company-bank payout restores booth balances
 - [ ] fresh-install test with empty puribooth tables
 - [ ] one-player full flow: pay -> theme -> camera -> 4 shots -> edit -> PuriPhoto -> save
 - [ ] cancellation / refund test

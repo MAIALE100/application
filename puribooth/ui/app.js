@@ -1902,44 +1902,6 @@
         })
         state.textGradient = false
         applyTextStylePresetToControls('puri', true)
-        document.querySelectorAll('[data-text-effect-preset]').forEach(button => {
-        button.addEventListener('click', () => {
-            const preset =
-                textEffectPreset(button.dataset.textEffectPreset || 'puri')
-            setTextEffectControls(preset, true)
-
-            if (applyCurrentTextEffectsToSelection(true)) {
-                toolStatus.textContent = '選択中の文字加工を変更しました'
-            } else {
-                toolStatus.textContent = `${button.textContent.trim()}を選びました`
-            }
-        })
-    })
-
-    document.getElementById('textGradientToggle')?.addEventListener('click', () => {
-        state.textGradient = !state.textGradient
-        updateTextGradientButton()
-
-        if (applyCurrentTextEffectsToSelection(true)) {
-            toolStatus.textContent =
-                state.textGradient
-                    ? '選択中の文字を2色グラデーションにしました'
-                    : '選択中の文字を単色にしました'
-        }
-    })
-
-    ;[
-        'textColor',
-        'textSize',
-        ...textEffectControlIds
-    ].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', () => {
-            if (applyCurrentTextEffectsToSelection(true)) {
-                toolStatus.textContent = '選択中の文字加工を更新しました'
-            }
-        })
-    })
-
     document.querySelectorAll('[data-draw-style]').forEach(button => {
             button.classList.toggle('active', button.dataset.drawStyle === 'pen')
         })
@@ -1953,6 +1915,45 @@
         updateHistoryButtons()
         render()
     }
+
+    document.querySelectorAll('[data-text-effect-preset]').forEach(button => {
+    button.addEventListener('click', () => {
+        const preset =
+            textEffectPreset(button.dataset.textEffectPreset || 'puri')
+        setTextEffectControls(preset, true)
+
+        if (applyCurrentTextEffectsToSelection(true)) {
+            toolStatus.textContent = '選択中の文字加工を変更しました'
+        } else {
+            toolStatus.textContent = `${button.textContent.trim()}を選びました`
+        }
+    })
+})
+
+document.getElementById('textGradientToggle')?.addEventListener('click', () => {
+    state.textGradient = !state.textGradient
+    updateTextGradientButton()
+
+    if (applyCurrentTextEffectsToSelection(true)) {
+        toolStatus.textContent =
+            state.textGradient
+                ? '選択中の文字を2色グラデーションにしました'
+                : '選択中の文字を単色にしました'
+    }
+})
+
+;[
+    'textColor',
+    'textSize',
+    ...textEffectControlIds
+].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+        if (applyCurrentTextEffectsToSelection(true)) {
+            toolStatus.textContent = '選択中の文字加工を更新しました'
+        }
+    })
+})
+
 
     const setTab = tab => {
         state.activeTab = tab

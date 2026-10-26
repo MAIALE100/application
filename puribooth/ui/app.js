@@ -8,6 +8,10 @@
     const floorPreview = document.getElementById('floorPreview')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
+    const beautyBuffer = document.createElement('canvas')
+    beautyBuffer.width = canvas.width
+    beautyBuffer.height = canvas.height
+    const beautyBufferCtx = beautyBuffer.getContext('2d')
     const boothLabel = document.getElementById('boothLabel')
     const shotCount = document.getElementById('shotCount')
     const canvasHint = document.getElementById('canvasHint')
@@ -590,12 +594,23 @@
             ctx.restore()
         }
 
-        if (state.glow > 0) {
+        if (state.glow > 0 && beautyBufferCtx) {
+            beautyBufferCtx.save()
+            beautyBufferCtx.clearRect(
+                0,
+                0,
+                beautyBuffer.width,
+                beautyBuffer.height
+            )
+            beautyBufferCtx.drawImage(canvas, 0, 0)
+            beautyBufferCtx.restore()
+
             ctx.save()
             ctx.globalCompositeOperation = 'screen'
             ctx.globalAlpha = Math.min(.22, state.glow / 130)
-            ctx.filter = `blur(${Math.max(1, state.glow / 8)}px)`
-            ctx.drawImage(canvas, 0, 0)
+            ctx.filter =
+                `blur(${Math.max(1, state.glow / 8)}px)`
+            ctx.drawImage(beautyBuffer, 0, 0)
             ctx.restore()
         }
 
@@ -850,6 +865,57 @@
                 () => ({ zoom: 1, panX: 0, panY: 0 })
             )
         refreshPhotoTransformControls()
+    }
+
+
+    const resetEditorSessionState = () => {
+        state.layout = 'grid'
+        state.singleShot = 0
+        state.frame = 'pink'
+        state.brightness = 112
+        state.contrast = 102
+        state.saturation = 112
+        state.softness = .5
+        state.warmth = 8
+        state.glow = 8
+        state.whiten = 5
+        state.rosy = 4
+
+        document.querySelectorAll('[data-layout]').forEach(button => {
+            button.classList.toggle(
+                'active',
+                button.dataset.layout === 'grid'
+            )
+        })
+        document.querySelectorAll('[data-frame]').forEach(button => {
+            button.classList.toggle(
+                'active',
+                button.dataset.frame === 'pink'
+            )
+        })
+
+        const singleShot = document.getElementById('singleShot')
+        if (singleShot) singleShot.value = 0
+
+        const defaultRanges = {
+            brightness: 112,
+            contrast: 102,
+            saturation: 112,
+            softness: .5,
+            warmth: 8,
+            glow: 8,
+            whiten: 5,
+            rosy: 4
+        }
+
+        Object.entries(defaultRanges).forEach(([id, value]) => {
+            const input = document.getElementById(id)
+            if (input) input.value = value
+        })
+
+        setTab('layout')
+        resetPhotoTransforms()
+        resetDecorations(false)
     }
 
     document.querySelectorAll('[data-photo-shot]').forEach(button => {
@@ -1396,8 +1462,7 @@
 
         try {
             state.images = await Promise.all(state.shots.map(loadImage))
-            resetPhotoTransforms()
-            resetDecorations(false)
+            resetEditorSessionState()
             app.classList.remove('hidden')
             render()
         } catch (error) {

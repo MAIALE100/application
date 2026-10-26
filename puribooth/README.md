@@ -209,3 +209,17 @@ OFLに従い、運営提出ZIPへフォントを同梱する場合はライセ�
 - 同行者には参加中の1台の背景・床だけを一時同期
 - 撮影終了・範囲外移動で同期テーマを破棄
 - 撮影後のPuriBooth編集は台を占有しません
+
+
+## フォント配布リンク
+
+提出ZIPにはフォント本体を同梱せず、運営側で公式配布元から取得する方式にできます。
+その場合は取得したフォントを `puribooth/ui/fonts/` へ配置してください。
+
+- ポプらむ☆キウイ Telop: https://kiwi-kawagoto.com/poprumkiwi/index.html
+- ぎゃる文字ゴシックfree: https://booth.pm/ja/items/8088925
+- Hachi Maru Pop: https://github.com/noriokanisawa/HachiMaruPop
+- ひとりゴシック: README記載の公式配布元を使用
+
+この方式ならFLEPURI側がフォントファイル自体を再配布せずに済みます。
+各フォントの利用条件自体は引き続き各配布元の規約に従います。

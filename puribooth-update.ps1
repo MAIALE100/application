@@ -64,7 +64,7 @@ if (-not $BoothOnly) {
                 if ($LASTEXITCODE -ne 0) { throw "npm dependency install failed" }
             }
     
-            npm run build
+            npm run build -- --emptyOutDir
             if ($LASTEXITCODE -ne 0) { throw "PuriPhoto UI build failed" }
         }
         finally {

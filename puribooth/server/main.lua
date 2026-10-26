@@ -368,9 +368,18 @@ local function validThemeSurface(surface)
     end
 
     local image = surface.image
+    local maxBytes =
+        math.max(
+            256 * 1024,
+            math.floor(
+                tonumber(Config.MaxThemeImageBytes)
+                or (4 * 1024 * 1024)
+            )
+        )
+
     if type(image) ~= "string"
         or #image < 32
-        or #image > (8 * 1024 * 1024)
+        or #image > maxBytes
         or not image:sub(1, 32):lower():find("^data:image/jpeg;base64,") then
 
         return nil
@@ -1247,12 +1256,28 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
     if price > 0 then
         for _, moneyType in ipairs(Config.PaymentMethods or { "cash", "bank" }) do
             if moneyType == "cash" or moneyType == "bank" then
-                local paid = exports.qbx_core:RemoveMoney(
-                    source,
-                    moneyType,
-                    price,
-                    "puribooth-session"
-                )
+                local ok, paid = pcall(function()
+                    return exports.qbx_core:RemoveMoney(
+                        source,
+                        moneyType,
+                        price,
+                        "puribooth-session"
+                    )
+                end)
+
+                if not ok then
+                    unlockSessionStart()
+                    print(
+                        ("[puribooth] ERROR payment export failed source=%s booth=%s method=%s")
+                            :format(source, boothId, moneyType)
+                    )
+                    notify(
+                        source,
+                        "error",
+                        "支払い処理に失敗したため課金を開始しませんでした。スタッフへお知らせください。"
+                    )
+                    return
+                end
 
                 if paid then
                     paidWith = moneyType
@@ -1277,7 +1302,10 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         expiresAt = os.time() + math.max(30, tonumber(Config.SessionTimeoutSeconds) or 180),
         theme = nil,
         themeVersion = 0,
-        themeRecipients = {}
+        themeRecipients = {},
+        lastThemeUpdateAt = 0,
+        lastCountdownShot = 0,
+        lastCountdownAt = 0
     }
 
     unlockSessionStart()
@@ -1301,6 +1329,22 @@ RegisterNetEvent("puribooth:server:setTheme", function(boothId, theme)
     if session.capturing then return end
     if not playerNearBooth(source, booth, 12.0) then return end
     if type(theme) ~= "table" then return end
+
+    local now = GetGameTimer()
+    local cooldown =
+        math.max(
+            250,
+            math.floor(
+                tonumber(Config.ThemeUpdateCooldownMs)
+                or 1000
+            )
+        )
+
+    if now - (tonumber(session.lastThemeUpdateAt) or 0) < cooldown then
+        return
+    end
+
+    session.lastThemeUpdateAt = now
 
     local background = validThemeSurface(theme.background)
     local floor = validThemeSurface(theme.floor)
@@ -1347,6 +1391,8 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
 
     session.capturing = true
     session.captureStartedAt = os.time()
+    session.lastCountdownShot = 0
+    session.lastCountdownAt = 0
     session.expiresAt =
         os.time()
         + math.max(
@@ -1372,6 +1418,29 @@ RegisterNetEvent("puribooth:server:announceCountdown", function(boothId, shotInd
             math.floor(tonumber(shotIndex) or 1)
         )
     )
+
+    local expectedShot =
+        (tonumber(session.lastCountdownShot) or 0) + 1
+
+    if shotIndex ~= expectedShot then
+        return
+    end
+
+    local now = GetGameTimer()
+    local minimumInterval =
+        math.max(
+            1000,
+            (math.max(1, tonumber(Config.CountdownSeconds) or 3) * 1000)
+            + 250
+        )
+
+    if (tonumber(session.lastCountdownAt) or 0) > 0
+        and now - session.lastCountdownAt < minimumInterval then
+        return
+    end
+
+    session.lastCountdownShot = shotIndex
+    session.lastCountdownAt = now
 
     local booth = getBooth(boothId)
     local distance = tonumber(Config.CountdownSyncDistance) or 5.5
@@ -1401,6 +1470,22 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
 
     local session = sessions[boothId]
     if not session or session.owner ~= source or not session.capturing then return end
+
+    local requiredShots =
+        math.max(1, math.floor(tonumber(Config.ShotCount) or 4))
+
+    if (tonumber(session.lastCountdownShot) or 0) < requiredShots then
+        print(
+            ("[puribooth] WARN rejected premature captureComplete source=%s booth=%s progress=%s/%s")
+                :format(
+                    source,
+                    boothId,
+                    tostring(session.lastCountdownShot or 0),
+                    tostring(requiredShots)
+                )
+        )
+        return
+    end
 
     local recorded =
         recordCompletedSale(boothId, session, "capture-complete")

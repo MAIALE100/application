@@ -1,5 +1,26 @@
 # PuriBooth Changelog
 
+## 0.8.12 - 2026-10-27
+
+### Weazel企業運用
+- 設置 / 撤去 / 料金変更 / 売上確認 / 売上回収をConfig.Management.jobで制限
+- QBox PlayerData.jobをサーバー側で検証し、既定jobをweazelに設定
+- 旧claimadmin方式を廃止
+
+### 台ごとの料金・売上
+- 各フレプリ台に個別priceを永続化
+- 青円表示 / ox_target / Eキー案内も台ごとの価格を表示
+- 価格変更時は台オブジェクトを再生成せず表示だけ更新
+- 正常撮影完了時に未回収売上 / 累計売上 / 撮影回数を台単位で記録
+- 未回収売上がある台の撤去を禁止
+- /puribooth sales で全台と総計を確認
+- /puribooth collect all|ID で売上回収
+- Renewed-Banking会社口座への送金失敗時は未回収残高を復元
+- 本社座標限定モードをConfig.Management.salesRequireLocationで用意
+
+### 配布
+- 提出ZIPへフォント本体を同梱しない公式配布リンク方式をREADMEへ追記
+
 ## 0.8.11 - 2026-10-27
 
 ### プリクラ文字加工

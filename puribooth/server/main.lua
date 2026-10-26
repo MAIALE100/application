@@ -92,6 +92,23 @@ local function resourceCompatibilityState(name)
         actual
 end
 
+local function puriphotoUiState()
+    if GetResourceState("puriphoto") ~= "started" then
+        return false, "FAIL(resource)"
+    end
+
+    local index = LoadResourceFile(
+        "puriphoto",
+        "ui/dist/index.html"
+    )
+
+    if type(index) ~= "string" or #index < 100 then
+        return false, "FAIL(ui-dist)"
+    end
+
+    return true, ("PASS(index=%dB)"):format(#index)
+end
+
 local function managementMinimumGrade(action)
     local management = Config.Management or {}
 
@@ -1199,16 +1216,20 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         resourceCompatibilityState("qbx_core")
     local puriphotoCompatible, puriphotoState =
         resourceCompatibilityState("puriphoto")
+    local puriphotoUiReady, puriphotoUi =
+        puriphotoUiState()
 
     if GetResourceState("lb-phone") ~= "started"
         or not qbxCompatible
-        or not puriphotoCompatible then
+        or not puriphotoCompatible
+        or not puriphotoUiReady then
 
         print(
-            ("[puribooth] session blocked qbx_core=%s puriphoto=%s lb-phone=%s")
+            ("[puribooth] session blocked qbx_core=%s puriphoto=%s puriphoto_ui=%s lb-phone=%s")
                 :format(
                     qbxState,
                     puriphotoState,
+                    puriphotoUi,
                     GetResourceState("lb-phone")
                 )
         )
@@ -1909,6 +1930,7 @@ RegisterCommand("puribooth_selftest", function(source)
     local screenshot = resourceState("screenshot-basic")
     local mysql = resourceState("oxmysql")
     local _, puriphoto = resourceCompatibilityState("puriphoto")
+    local _, puriphotoUi = puriphotoUiState()
     local job = managementJobState()
     local payout = payoutState()
     local database = databaseSchemaState()
@@ -1927,6 +1949,7 @@ RegisterCommand("puribooth_selftest", function(source)
         and screenshot == "PASS"
         and mysql == "PASS"
         and puriphoto:sub(1, 4) == "PASS"
+        and puriphotoUi:sub(1, 4) == "PASS"
         and job == "PASS"
         and payoutPass
         and database == "PASS"
@@ -1938,6 +1961,7 @@ RegisterCommand("puribooth_selftest", function(source)
     print(("[puribooth]   lb-phone=%s"):format(phone))
     print(("[puribooth]   screenshot-basic=%s"):format(screenshot))
     print(("[puribooth]   puriphoto=%s"):format(puriphoto))
+    print(("[puribooth]   puriphoto_ui=%s"):format(puriphotoUi))
     print(("[puribooth]   management_job=%s"):format(job))
     print(("[puribooth]   payout=%s"):format(payout))
     print(("[puribooth]   database=%s"):format(database))

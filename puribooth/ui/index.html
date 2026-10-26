@@ -88,6 +88,7 @@
         <aside class="tools-panel">
             <nav class="tabs">
                 <button data-tab="layout" class="active">レイアウト</button>
+                <button data-tab="photo">写真調整</button>
                 <button data-tab="beauty">盛り</button>
                 <button data-tab="frame">フレーム</button>
                 <button data-tab="stamp">スタンプ</button>
@@ -110,6 +111,25 @@
                 </label>
             </section>
 
+            <section class="tool-page" data-page="photo">
+                <h2>写真調整</h2>
+                <p>各写真の拡大と位置を個別に調整できます。</p>
+                <div class="choice-grid photo-shot-grid">
+                    <button class="choice active" data-photo-shot="0">1枚目</button>
+                    <button class="choice" data-photo-shot="1">2枚目</button>
+                    <button class="choice" data-photo-shot="2">3枚目</button>
+                    <button class="choice" data-photo-shot="3">4枚目</button>
+                </div>
+                <label class="range-row"><span>拡大</span><input id="photoZoom" type="range" min="100" max="240" value="100" /></label>
+                <label class="range-row"><span>左右</span><input id="photoPanX" type="range" min="-100" max="100" value="0" /></label>
+                <label class="range-row"><span>上下</span><input id="photoPanY" type="range" min="-100" max="100" value="0" /></label>
+                <div class="inline-row">
+                    <button id="photoResetCurrent">この1枚をリセット</button>
+                    <button id="photoResetAll">4枚すべてリセット</button>
+                </div>
+                <div id="photoAdjustStatus" class="photo-adjust-status">1枚目：拡大 100% / 左右 0 / 上下 0</div>
+            </section>
+
             <section class="tool-page" data-page="beauty">
                 <h2>盛り</h2>
                 <p>プリクラらしい明るさ・色味・やわらかさを調整します。</p>
@@ -123,6 +143,9 @@
                     <button data-preset="puri">プリクラ</button>
                     <button data-preset="y2k">Y2K</button>
                     <button data-preset="mono">モノクロ</button>
+                    <button data-preset="soft">ふわ盛り</button>
+                    <button data-preset="cool">クール</button>
+                    <button data-preset="night">夜補正</button>
                 </div>
             </section>
 

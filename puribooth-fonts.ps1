@@ -98,18 +98,18 @@ $hitoriOk = Expand-FontZip -ZipFile $hitoriZip -FontPattern "*.ttf" -Destination
 $hachiOk = Expand-FontZip -ZipFile $hachiZip -FontPattern "HachiMaruPop-Regular.ttf" -DestinationName "HachiMaruPop-Regular.ttf" -LicensePattern "OFL.txt" -LicenseName "HachiMaruPop-OFL.txt"
 
 if ($heiseiOk) {
-    Write-Host "平成女児★ふぉんと: imported for local testing" -ForegroundColor Green
-    Write-Warning "平成女児★ふぉんとは、正式配布・アプリ埋め込み前に作者への連絡が必要です。GitHubにはフォント本体を保存しません。"
+    Write-Host "Heisei Joshi Font: imported for local testing" -ForegroundColor Green
+    Write-Warning "Heisei Joshi Font needs separate embedding permission before official distribution. The font binary is kept out of GitHub."
 }
 else {
-    Write-Warning "平成女児★ふぉんと: HeiseijyojiFont__15_.zip was not found in the common folders."
+    Write-Warning "Heisei Joshi Font: HeiseijyojiFont__15_.zip was not found in the common folders."
 }
 
 if ($hitoriOk) {
-    Write-Host "ひとりゴシック: imported" -ForegroundColor Green
+    Write-Host "Hitori Gothic: imported" -ForegroundColor Green
 }
 else {
-    Write-Warning "ひとりゴシック: HitoriGothic.zip was not found in the common folders."
+    Write-Warning "Hitori Gothic: HitoriGothic.zip was not found in the common folders."
 }
 
 if ($hachiOk) {

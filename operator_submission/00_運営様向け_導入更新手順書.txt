@@ -35,9 +35,13 @@ Flecity運営ご担当者様
 
 【1】PuriPhotoを更新してください
 
-既存の puriphoto リソースを、
+既存の puriphoto フォルダは削除せず、
 PuriPhoto_v1.1.1_Update_Flecity_Operator.zip 内の
-puriphoto フォルダで差し替えてください。
+puriphoto フォルダを同じ場所へ上書き・マージしてください。
+
+今回のPuriPhoto ZIPは、以前ご提出したPuriPhotoから変更された
+実行ファイルだけを収録した更新パッチ形式です。
+未変更のCSS・Webフォント・画像等は既存ファイルをそのまま利用します。
 
 既存アルバム等はDB側に保存されており、
 本更新に既存データを削除する処理は含めておりません。

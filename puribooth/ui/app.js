@@ -100,8 +100,11 @@
         strokes: [],
         armedStamp: null,
         armedText: false,
+        textStyle: 'puri',
+        repeatStamp: false,
         drawing: false,
         drawEnabled: false,
+        drawStyle: 'pen',
         activeStroke: null,
         history: [],
         future: [],
@@ -1178,9 +1181,116 @@
                 ctx.fillText(x % 180 === 42 ? '♡' : '♥', x, 62)
                 ctx.fillText(x % 180 === 42 ? '♥' : '♡', x, 878)
             }
+        } else if (state.frame === 'sparkle') {
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 900)
+            gradient.addColorStop(0, '#ff6fbe')
+            gradient.addColorStop(.35, '#8be9ff')
+            gradient.addColorStop(.7, '#ba8cff')
+            gradient.addColorStop(1, '#fff2a6')
+            ctx.strokeStyle = gradient
+            ctx.lineWidth = 34
+            ctx.strokeRect(17, 17, 1166, 866)
+            ctx.fillStyle = '#fff'
+            ctx.font = '42px sans-serif'
+            const stars = [
+                [58, 60, '✦'], [1140, 62, '✧'],
+                [64, 842, '✧'], [1135, 840, '✦'],
+                [600, 54, '✦'], [600, 846, '✧']
+            ]
+            stars.forEach(([x, y, mark]) => ctx.fillText(mark, x, y))
+        } else if (state.frame === 'polaroid') {
+            ctx.strokeStyle = '#fff'
+            ctx.lineWidth = 44
+            ctx.strokeRect(22, 22, 1156, 856)
+            ctx.fillStyle = '#fff'
+            ctx.fillRect(0, 815, 1200, 85)
+            ctx.fillStyle = '#5a4755'
+            ctx.font = '700 28px "Noto Sans JP",sans-serif'
+            ctx.textAlign = 'center'
+            ctx.fillText('FLECITY STREET PURI', 600, 858)
+        } else if (state.frame === 'ribbon') {
+            ctx.strokeStyle = '#ff9dca'
+            ctx.lineWidth = 32
+            ctx.strokeRect(16, 16, 1168, 868)
+            ctx.font = '54px "Apple Color Emoji","Segoe UI Emoji",sans-serif'
+            ctx.fillText('🎀', 62, 66)
+            ctx.fillText('🎀', 1138, 66)
+            ctx.fillText('🎀', 62, 848)
+            ctx.fillText('🎀', 1138, 848)
         }
 
         ctx.restore()
+    }
+
+    const drawStyledText = item => {
+        const style = item.style || 'puri'
+        const size = Number(item.size) || 64
+        ctx.font = `900 ${size}px "Noto Sans JP",sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        if (style === 'simple') {
+            ctx.fillStyle = item.color
+            ctx.fillText(item.value, 0, 0)
+            return
+        }
+
+        if (style === 'outline') {
+            ctx.lineJoin = 'round'
+            ctx.lineWidth = Math.max(7, size * .14)
+            ctx.strokeStyle = '#fff'
+            ctx.strokeText(item.value, 0, 0)
+            ctx.lineWidth = Math.max(2, size * .035)
+            ctx.strokeStyle = 'rgba(36,21,33,.35)'
+            ctx.strokeText(item.value, 0, 0)
+            ctx.fillStyle = item.color
+            ctx.fillText(item.value, 0, 0)
+            return
+        }
+
+        if (style === 'neon') {
+            ctx.lineJoin = 'round'
+            ctx.shadowColor = item.color
+            ctx.shadowBlur = Math.max(12, size * .28)
+            ctx.lineWidth = Math.max(5, size * .08)
+            ctx.strokeStyle = item.color
+            ctx.strokeText(item.value, 0, 0)
+            ctx.shadowBlur = Math.max(6, size * .12)
+            ctx.fillStyle = '#fff'
+            ctx.fillText(item.value, 0, 0)
+            return
+        }
+
+        if (style === 'y2k') {
+            const width = Math.max(size * 3, ctx.measureText(item.value).width)
+            const gradient = ctx.createLinearGradient(-width / 2, 0, width / 2, 0)
+            gradient.addColorStop(0, '#ff5dbb')
+            gradient.addColorStop(.34, '#65dcff')
+            gradient.addColorStop(.67, '#a98cff')
+            gradient.addColorStop(1, '#ffe878')
+            ctx.lineJoin = 'round'
+            ctx.lineWidth = Math.max(8, size * .14)
+            ctx.strokeStyle = '#fff'
+            ctx.strokeText(item.value, 0, 0)
+            ctx.fillStyle = gradient
+            ctx.fillText(item.value, 0, 0)
+            return
+        }
+
+        // Default purikura lettering: white sticker outline + soft pink shadow.
+        ctx.lineJoin = 'round'
+        ctx.shadowColor = 'rgba(255,65,151,.40)'
+        ctx.shadowBlur = Math.max(6, size * .11)
+        ctx.shadowOffsetY = Math.max(2, size * .035)
+        ctx.lineWidth = Math.max(9, size * .16)
+        ctx.strokeStyle = '#fff'
+        ctx.strokeText(item.value, 0, 0)
+        ctx.shadowColor = 'transparent'
+        ctx.lineWidth = Math.max(2, size * .035)
+        ctx.strokeStyle = 'rgba(255,255,255,.95)'
+        ctx.strokeText(item.value, 0, 0)
+        ctx.fillStyle = item.color
+        ctx.fillText(item.value, 0, 0)
     }
 
     const drawDecorations = () => {
@@ -1201,12 +1311,7 @@
             ctx.save()
             ctx.translate(item.x, item.y)
             ctx.rotate((Number(item.rotation) || 0) * Math.PI / 180)
-            ctx.font = `900 ${item.size}px "Noto Sans JP",sans-serif`
-            ctx.lineWidth = Math.max(4, item.size * .09)
-            ctx.strokeStyle = '#fff'
-            ctx.strokeText(item.value, 0, 0)
-            ctx.fillStyle = item.color
-            ctx.fillText(item.value, 0, 0)
+            drawStyledText(item)
             ctx.restore()
         })
         ctx.restore()
@@ -1215,9 +1320,20 @@
             if (!stroke.points.length) return
             ctx.save()
             ctx.strokeStyle = stroke.color
-            ctx.lineWidth = stroke.width
             ctx.lineCap = 'round'
             ctx.lineJoin = 'round'
+
+            if (stroke.style === 'marker') {
+                ctx.globalAlpha = .48
+                ctx.lineWidth = stroke.width * 1.8
+            } else if (stroke.style === 'neon') {
+                ctx.lineWidth = stroke.width
+                ctx.shadowColor = stroke.color
+                ctx.shadowBlur = Math.max(10, stroke.width * 1.6)
+            } else {
+                ctx.lineWidth = stroke.width
+            }
+
             ctx.beginPath()
             stroke.points.forEach((point, index) => {
                 if (index === 0) ctx.moveTo(point.x, point.y)
@@ -1291,7 +1407,10 @@
         state.strokes = []
         state.armedStamp = null
         state.armedText = false
+        state.textStyle = 'puri'
+        state.repeatStamp = false
         state.drawEnabled = false
+        state.drawStyle = 'pen'
         state.selectedDecoration = null
         state.draggingDecoration = false
         state.dragHistoryCaptured = false
@@ -1302,6 +1421,14 @@
         }
 
         document.querySelectorAll('[data-stamp]').forEach(button => button.classList.remove('active'))
+        document.querySelectorAll('[data-text-style]').forEach(button => {
+            button.classList.toggle('active', button.dataset.textStyle === 'puri')
+        })
+        document.querySelectorAll('[data-draw-style]').forEach(button => {
+            button.classList.toggle('active', button.dataset.drawStyle === 'pen')
+        })
+        const stampRepeatButton = document.getElementById('stampRepeatButton')
+        if (stampRepeatButton) stampRepeatButton.textContent = '連続配置：OFF'
         document.getElementById('drawToggle').textContent = 'ペン：オン'
         toolStatus.textContent = recordHistory ? '装飾をリセットしました' : '編集できます'
         updateHistoryButtons()
@@ -1929,6 +2056,78 @@
         })
     })
 
+    const stampRepeatButton = document.getElementById('stampRepeatButton')
+    stampRepeatButton?.addEventListener('click', () => {
+        state.repeatStamp = !state.repeatStamp
+        stampRepeatButton.classList.toggle('active', state.repeatStamp)
+        stampRepeatButton.textContent =
+            state.repeatStamp ? '連続配置：ON' : '連続配置：OFF'
+        toolStatus.textContent =
+            state.repeatStamp ? '同じスタンプを続けて配置できます' : 'スタンプは1回ずつ配置します'
+    })
+
+    document.querySelectorAll('[data-text-value]').forEach(button => {
+        button.addEventListener('click', () => {
+            document.getElementById('textInput').value =
+                button.dataset.textValue || ''
+            toolStatus.textContent = '定型メッセージを入力しました'
+        })
+    })
+
+    document.querySelectorAll('[data-text-preset="date"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const now = new Date()
+            const text =
+                `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`
+            document.getElementById('textInput').value = text
+            toolStatus.textContent = '今日の日付を入力しました'
+        })
+    })
+
+    document.querySelectorAll('[data-text-color]').forEach(button => {
+        button.addEventListener('click', () => {
+            const color = button.dataset.textColor
+            document.getElementById('textColor').value = color
+            document.querySelectorAll('[data-text-color]').forEach(item => {
+                item.classList.toggle('active', item === button)
+            })
+            const item = selectedDecorationItem()
+            if (state.selectedDecoration?.type === 'text' && item) {
+                pushDecorationHistory()
+                item.color = color
+                updateHistoryButtons()
+                render()
+            }
+        })
+    })
+
+    document.querySelectorAll('[data-text-style]').forEach(button => {
+        button.addEventListener('click', () => {
+            state.textStyle = button.dataset.textStyle || 'puri'
+            document.querySelectorAll('[data-text-style]').forEach(item => {
+                item.classList.toggle('active', item === button)
+            })
+            const item = selectedDecorationItem()
+            if (state.selectedDecoration?.type === 'text' && item) {
+                pushDecorationHistory()
+                item.style = state.textStyle
+                updateHistoryButtons()
+                toolStatus.textContent = '選択中の文字スタイルを変更しました'
+                render()
+            }
+        })
+    })
+
+    document.querySelectorAll('[data-draw-style]').forEach(button => {
+        button.addEventListener('click', () => {
+            state.drawStyle = button.dataset.drawStyle || 'pen'
+            document.querySelectorAll('[data-draw-style]').forEach(item => {
+                item.classList.toggle('active', item === button)
+            })
+            toolStatus.textContent = `${button.textContent.trim()}で落書きできます`
+        })
+    })
+
     document.getElementById('armTextButton').addEventListener('click', () => {
         const value = document.getElementById('textInput').value.trim()
         if (!value) {
@@ -1984,6 +2183,7 @@
             const stroke = {
                 color: document.getElementById('drawColor').value,
                 width: Number(document.getElementById('drawWidth').value),
+                style: state.drawStyle,
                 points: [point]
             }
             state.activeStroke = stroke
@@ -2002,13 +2202,17 @@
                 size: Number(document.getElementById('stampSize').value),
                 rotation: 0
             })
-            state.armedStamp = null
+            if (!state.repeatStamp) {
+                state.armedStamp = null
+                document.querySelectorAll('[data-stamp]').forEach(item => item.classList.remove('active'))
+            }
             state.selectedDecoration = {
                 type: 'sticker',
                 index: state.stickers.length - 1
             }
-            document.querySelectorAll('[data-stamp]').forEach(item => item.classList.remove('active'))
-            toolStatus.textContent = 'スタンプを配置しました。ドラッグで移動できます'
+            toolStatus.textContent = state.repeatStamp
+                ? 'スタンプを配置しました。連続配置中です'
+                : 'スタンプを配置しました。ドラッグで移動できます'
             updateHistoryButtons()
             render()
             return
@@ -2024,6 +2228,7 @@
                     y: point.y,
                     size: Number(document.getElementById('textSize').value),
                     color: document.getElementById('textColor').value,
+                    style: state.textStyle,
                     rotation: 0
                 })
                 state.armedText = false

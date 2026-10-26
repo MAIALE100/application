@@ -4,6 +4,11 @@
 
 ## 起動
 - `puribooth_selftest` がPASS
+- qbx_coreが2.5.4+としてPASS表示される
+- PuriPhoto versionとproduction UIがPASS表示される
+- PuriPhoto UIのJS / CSS / client bridgeが実体検査を通る
+- Renewed-Bankingのweazel会社口座がPASS表示される
+- DB schema / configがPASS表示される
 - 起動時にLuaエラー / NUIエラーが出ない
 - DBに `puribooth_booths` が自動作成される
 - 再起動しても勝手にテスト台が生成されない
@@ -38,6 +43,18 @@
 - 装飾リセットを複数回行ってもボタン操作が二重実行されない
 - Undo / Redo / Delete / Esc が動作する
 - 完成画像をPuriPhotoへ渡せる
+- PuriPhoto NUIが画像を取得するまでFLEPURI編集画面が閉じない
+- PuriPhoto handoffを失敗させた場合、FLEPURI編集内容が保持される
+- PuriPhoto handoff成功後、FLEPURI編集画面が閉じてPuriPhotoへ切り替わる
+- PuriPhoto側の撮影場所がフレプリ台の場所になる
+
+## 同時実行 / 不正イベント耐性
+- 同じ台へ2人が同時開始しても二重課金されない
+- 1人が別々の2台を同時開始しても二重課金されない
+- カウントダウンを2→4など順不同で送っても進行しない
+- 4枚目まで進行していないcaptureCompleteでは売上確定しない
+- 背景テーマ連打がcooldownで抑制される
+- JPEG以外の背景共有payloadが拒否される
 
 ## 売上
 - 正常撮影1回で対象台だけの未回収売上・累計売上・撮影回数が増える
@@ -46,6 +63,7 @@
 - `/puribooth collect <ID>` で指定台だけ回収できる
 - `/puribooth collect all` で全台を一括回収できる
 - 回収後の未回収残高が0になる
+- Renewed-Bankingの取引履歴にFLEPURI売上が残る
 - Renewed-Banking入金失敗時は未回収残高が復元される
 
 ## 合格基準

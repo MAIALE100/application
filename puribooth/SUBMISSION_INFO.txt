@@ -1,32 +1,53 @@
-FLEPURI / フレプリ v1.0.0
+FLEPURI / フレプリ v1.0.1
 Flecity operator submission package
 Release date: 2026-10-27
 
-Resource folder:
-  puribooth
+Primary resource:
+  puribooth v1.0.1
 
-Primary dependencies:
-  qbx_core
+Compatible PuriPhoto runtime:
+  puriphoto v1.1.1
+  production bundle: ui/dist/assets/puriphoto-v1.1.1-flepri.js
+
+Required runtime:
+  qbx_core 2.5.4+
   oxmysql
   lb-phone
   screenshot-basic
-  puriphoto
+  puriphoto 1.1.0+ with FLEPURI booth-import bridge
   Renewed-Banking (default company-sales payout mode)
+
+Safety:
+  No payment starts when qbx_core / PuriPhoto compatibility cannot be verified.
+  PuriPhoto production JS/CSS/client bridge are checked by puribooth_selftest.
+  FLEPURI closes its editor only after PuriPhoto NUI confirms image consumption.
+  Failed handoff keeps the completed image and edit state in FLEPURI.
+  Per-booth and per-player start locks prevent duplicate start charging.
+  Sale-record failure falls back to refund.
+  Pre-capture disconnect refunds by citizenid.
 
 Management:
   Default job: weazel
   Commands: /puribooth place|remove|list|price|sales|collect
 
+Sales:
+  Per-booth price / pending balance / lifetime sales / completed count.
+  Renewed-Banking payout account: weazel.
+  Successful collections are also recorded in bank transaction history.
+
 Database:
   puribooth_booths is created/migrated automatically.
   No manual SQL import is required.
+  puribooth_selftest checks required schema columns.
 
 Fonts:
   Font binaries are intentionally NOT included.
-  See README.md and INSTALL.md for official download sources and filenames.
+  Missing optional fonts use fallback fonts.
 
-First verification after installation:
+First verification:
   puribooth_selftest
 
-Acceptance test:
-  See ACCEPTANCE_TEST.md.
+Operator docs:
+  INSTALL.md
+  PURIPHOTO_COMPAT.md
+  ACCEPTANCE_TEST.md

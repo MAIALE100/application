@@ -1,0 +1,33 @@
+FLEPURI（フレプリ）v1.0.4
+Flecity運営様向け 導入メモ
+
+このZIPは、新規導入する「puribooth」リソース一式です。
+
+【運営様にお願いしたい作業】
+1. ZIP内の puribooth フォルダを resources 配下へ配置
+2. server.cfgで puriphoto より後に「ensure puribooth」を追加
+3. QBoxに永続的な weazel job が存在することを確認
+4. Renewed-Bankingに会社口座「weazel」を用意し、weazel jobと紐づけ
+5. コンソールで下記を実行
+
+refresh
+ensure puribooth
+puribooth_selftest
+
+selftest PASS で導入完了です。
+
+FLEPURIはDBテーブルを自動作成・自動更新します。
+手動SQLは不要です。
+Node.js / npmによるビルドも不要です。
+
+売上入金先:
+Renewed-Banking account = weazel
+
+本番環境の口座IDが異なる場合は、口座IDだけお知らせください。
+こちらで設定を合わせますので、運営様側でLuaを編集いただく必要はございません。
+
+不具合時も運営様側でコード・DB修正は不要です。
+ログまたはスクリーンショットをご共有いただければ、こちらで対応いたします。
+
+※プリクラ用追加フォントは再配布していません。
+  未導入でもフォールバック書体で正常動作します。

@@ -607,9 +607,9 @@
 
             ctx.save()
             ctx.globalCompositeOperation = 'screen'
-            ctx.globalAlpha = Math.min(.22, state.glow / 130)
+            ctx.globalAlpha = Math.min(.5, state.glow / 60)
             ctx.filter =
-                `blur(${Math.max(1, state.glow / 8)}px)`
+                `blur(${Math.max(1.5, state.glow / 5)}px)`
             ctx.drawImage(beautyBuffer, 0, 0)
             ctx.restore()
         }
@@ -617,7 +617,7 @@
         if (state.whiten > 0) {
             ctx.save()
             ctx.globalCompositeOperation = 'screen'
-            ctx.globalAlpha = Math.min(.16, state.whiten / 150)
+            ctx.globalAlpha = Math.min(.35, state.whiten / 70)
             ctx.fillStyle = '#fff8fb'
             ctx.fillRect(0, 0, 1200, 900)
             ctx.restore()
@@ -626,7 +626,7 @@
         if (state.rosy > 0) {
             ctx.save()
             ctx.globalCompositeOperation = 'soft-light'
-            ctx.globalAlpha = Math.min(.14, state.rosy / 140)
+            ctx.globalAlpha = Math.min(.28, state.rosy / 80)
             ctx.fillStyle = '#ff6f9f'
             ctx.fillRect(0, 0, 1200, 900)
             ctx.restore()
@@ -979,13 +979,13 @@
         button.addEventListener('click', () => {
             const preset = button.dataset.preset
             const values = {
-                natural: [104, 103, 104, 0, 3, 2, 1, 1],
-                puri: [118, 102, 116, .6, 10, 16, 8, 7],
-                y2k: [112, 112, 135, .25, 13, 12, 5, 4],
-                mono: [108, 122, 0, .15, 0, 4, 2, 0],
-                soft: [124, 96, 118, 1.1, 12, 22, 10, 8],
-                cool: [110, 108, 116, .25, 0, 6, 4, 0],
-                night: [128, 110, 112, .35, 6, 14, 7, 4]
+                natural: [104, 103, 104, 0, 3, 0, 0, 0],
+                puri: [118, 102, 116, .6, 10, 14, 7, 5],
+                y2k: [112, 112, 135, .25, 13, 8, 4, 2],
+                mono: [108, 122, 0, .15, 0, 0, 2, 0],
+                soft: [124, 96, 118, 1.1, 12, 18, 8, 5],
+                cool: [110, 108, 116, .25, 0, 4, 3, 0],
+                night: [128, 110, 112, .35, 6, 10, 5, 3]
             }[preset]
             if (!values) return
             ;[

@@ -1,4 +1,4 @@
-# FLEPURI v1.0.1 導入手順
+# FLEPURI v1.0.2 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.1 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.2 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -44,7 +44,7 @@ ensure puribooth
 
 手動SQLは不要です。
 
-初回起動時に `puribooth_booths` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列が全て存在するかまで確認します。
+初回起動時に `puribooth_booths` / `puribooth_events` / `puribooth_refunds` を自動作成し、既存DBへ不足列があれば自動追加します。selftestは必要列と保守テーブルの存在まで確認します。
 
 ## 5. Weazel権限
 
@@ -133,3 +133,18 @@ weazel job:
 ```
 
 最後に `ACCEPTANCE_TEST.md` の実機テストを実施してください。
+
+
+## 10. 保守コマンド
+
+不具合・返金問い合わせ時はサーバーコンソールで:
+
+```
+puribooth_support
+puribooth_support <session_id または citizenid>
+puribooth_refunds
+puribooth_retry_refunds
+```
+
+`pending` 返金は通常60秒ごとに自動再試行されます。
+`processing` は「QBoxへの返金呼び出し後、DB確定前に異常終了した可能性」があるため、自動再試行せず手動照合してください。

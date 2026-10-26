@@ -1051,7 +1051,7 @@
                 puri: [118, 102, 116, .6, 10, 14, 7, 5],
                 y2k: [112, 112, 135, .25, 13, 8, 4, 2],
                 mono: [108, 122, 0, .15, 0, 0, 2, 0],
-                soft: [124, 96, 118, 1.1, 12, 18, 8, 5],
+                soft: [116, 100, 112, .45, 9, 10, 6, 4],
                 cool: [110, 108, 116, .25, 0, 4, 3, 0],
                 night: [128, 110, 112, .35, 6, 10, 5, 3]
             }[preset]
@@ -1078,7 +1078,7 @@
             ].forEach((id, i) => {
                 document.getElementById(id).value = values[i]
             })
-            toolStatus.textContent = `${preset.toUpperCase()} を適用しました`
+            toolStatus.textContent = `${button.textContent.trim()} を適用しました`
             render()
         })
     })

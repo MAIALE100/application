@@ -194,7 +194,7 @@ local function validThemeImage(value)
     if #value < 32 or #value > (8 * 1024 * 1024) then return nil end
 
     local lower = value:sub(1, 32):lower()
-    if lower:find("^data:image/") then
+    if lower:find("^data:image/jpeg;base64,") then
         return value
     end
 

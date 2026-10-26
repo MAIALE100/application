@@ -263,11 +263,12 @@
 
                 <h3 class="mini-heading">フォント</h3>
                 <div class="text-font-grid">
-                    <button class="active font-heisei" data-text-font="heisei">平成女児★</button>
+                    <button class="active font-poprum" data-text-font="poprum">ポプらむ☆キウイ</button>
+                    <button class="font-gal" data-text-font="gal">ぎゃる文字</button>
                     <button class="font-hitori" data-text-font="hitori">ひとりゴシック</button>
                     <button class="font-hachi" data-text-font="hachi">Hachi Maru Pop</button>
                 </div>
-                <p class="micro-note">配置済みの文字を選んでから押すと、その文字だけフォントを変更できます。</p>
+                <p class="micro-note">ぎゃる文字freeは漢字が少ないため、ひらがな・カタカナ・英数字の短い文字向けです。</p>
 
                 <h3 class="mini-heading">色</h3>
                 <div class="text-color-grid">
@@ -287,6 +288,33 @@
                     <button id="updateSelectedTextButton">選択文字を更新</button>
                 </div>
                 <label class="range-row"><span>文字サイズ</span><input id="textSize" type="range" min="28" max="150" value="64" /></label>
+
+                <h3 class="mini-heading">文字加工</h3>
+                <div class="text-effect-preset-grid">
+                    <button data-text-effect-preset="puri">プリ盛り</button>
+                    <button data-text-effect-preset="neonPink">ピンクネオン</button>
+                    <button data-text-effect-preset="neonBlue">水色ネオン</button>
+                    <button data-text-effect-preset="gradient">2色グラデ</button>
+                    <button data-text-effect-preset="outline">極太ふち</button>
+                    <button data-text-effect-preset="shadow">影あり</button>
+                </div>
+
+                <div class="text-effect-controls">
+                    <div class="text-effect-color-row">
+                        <label><span>2色目</span><input id="textColor2" type="color" value="#55cfff" /></label>
+                        <button id="textGradientToggle">グラデーション：OFF</button>
+                    </div>
+                    <div class="text-effect-color-row">
+                        <label><span>縁取り色</span><input id="textOutlineColor" type="color" value="#ffffff" /></label>
+                        <label><span>発光色</span><input id="textGlowColor" type="color" value="#ff4fa3" /></label>
+                        <label><span>影色</span><input id="textShadowColor" type="color" value="#5b2048" /></label>
+                    </div>
+                    <label class="range-row"><span>縁取り太さ</span><input id="textOutlineWidth" type="range" min="0" max="24" value="10" /></label>
+                    <label class="range-row"><span>ネオン発光</span><input id="textGlowStrength" type="range" min="0" max="40" value="8" /></label>
+                    <label class="range-row"><span>影のぼかし</span><input id="textShadowStrength" type="range" min="0" max="30" value="5" /></label>
+                    <label class="range-row"><span>影の距離</span><input id="textShadowOffset" type="range" min="0" max="20" value="3" /></label>
+                </div>
+                <p class="micro-note">縁取り・発光・影は0でOFF。配置済み文字を選択して変更できます。</p>
                 <p class="micro-note">配置後もドラッグ・回転・拡大縮小・削除できます。</p>
             </section>
 

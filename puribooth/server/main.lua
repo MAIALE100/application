@@ -952,6 +952,6 @@ end, false)
 
 CreateThread(function()
     Wait(1000)
-    print(("[puribooth] v0.8.9 starting (price=$%d, shots=%d)")
+    print(("[puribooth] v0.8.10 starting (price=$%d, shots=%d)")
         :format(tonumber(Config.Price) or 0, tonumber(Config.ShotCount) or 4))
 end)

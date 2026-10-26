@@ -791,6 +791,7 @@
         const shrink = document.getElementById('shrinkSelectedButton')
         const grow = document.getElementById('growSelectedButton')
         const rotateRight = document.getElementById('rotateRightButton')
+        const duplicate = document.getElementById('duplicateSelectedButton')
         const del = document.getElementById('deleteSelectedButton')
         const hasSelection = Boolean(state.selectedDecoration)
 
@@ -800,6 +801,7 @@
         if (shrink) shrink.disabled = !hasSelection
         if (grow) grow.disabled = !hasSelection
         if (rotateRight) rotateRight.disabled = !hasSelection
+        if (duplicate) duplicate.disabled = !hasSelection
         if (del) del.disabled = !hasSelection
     }
 
@@ -1428,7 +1430,10 @@
             button.classList.toggle('active', button.dataset.drawStyle === 'pen')
         })
         const stampRepeatButton = document.getElementById('stampRepeatButton')
-        if (stampRepeatButton) stampRepeatButton.textContent = '連続配置：OFF'
+        if (stampRepeatButton) {
+            stampRepeatButton.textContent = '連続配置：OFF'
+            stampRepeatButton.classList.remove('active')
+        }
         document.getElementById('drawToggle').textContent = 'ペン：オン'
         toolStatus.textContent = recordHistory ? '装飾をリセットしました' : '編集できます'
         updateHistoryButtons()
@@ -2140,6 +2145,30 @@
         toolStatus.textContent = '文字を置く場所を写真上でクリック'
     })
 
+    document.getElementById('updateSelectedTextButton').addEventListener('click', () => {
+        const selected = state.selectedDecoration
+        const item = selectedDecorationItem()
+        const value = document.getElementById('textInput').value.trim()
+
+        if (selected?.type !== 'text' || !item) {
+            toolStatus.textContent = '先に写真上の文字を選択してください'
+            return
+        }
+        if (!value) {
+            toolStatus.textContent = '更新する文字を入力してください'
+            return
+        }
+
+        pushDecorationHistory()
+        item.value = value
+        item.color = document.getElementById('textColor').value
+        item.size = Number(document.getElementById('textSize').value)
+        item.style = state.textStyle
+        updateHistoryButtons()
+        toolStatus.textContent = '選択中の文字を更新しました'
+        render()
+    })
+
     document.getElementById('drawToggle').addEventListener('click', event => {
         state.drawEnabled = !state.drawEnabled
         state.armedStamp = null
@@ -2431,6 +2460,40 @@
 
     document.getElementById('growSelectedButton').addEventListener('click', () => {
         resizeSelectedDecoration(1.16)
+    })
+
+    document.getElementById('duplicateSelectedButton').addEventListener('click', () => {
+        const selected = state.selectedDecoration
+        const item = selectedDecorationItem()
+        if (!selected || !item) return
+
+        pushDecorationHistory()
+
+        if (selected.type === 'sticker') {
+            state.stickers.push({
+                ...item,
+                x: Math.min(canvas.width, item.x + 36),
+                y: Math.min(canvas.height, item.y + 36)
+            })
+            state.selectedDecoration = {
+                type: 'sticker',
+                index: state.stickers.length - 1
+            }
+        } else if (selected.type === 'text') {
+            state.texts.push({
+                ...item,
+                x: Math.min(canvas.width, item.x + 36),
+                y: Math.min(canvas.height, item.y + 36)
+            })
+            state.selectedDecoration = {
+                type: 'text',
+                index: state.texts.length - 1
+            }
+        }
+
+        updateHistoryButtons()
+        toolStatus.textContent = '選択した装飾を複製しました'
+        render()
     })
 
     document.getElementById('deleteSelectedButton').addEventListener('click', () => {

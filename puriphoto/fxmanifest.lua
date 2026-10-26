@@ -4,7 +4,7 @@ game "gta5"
 title "PuriPhoto"
 description "Purikura-style photo editor app for LB Phone."
 author "PuriPhoto"
-version "1.1.0"
+version "1.1.1"
 
 shared_script "config.lua"
 

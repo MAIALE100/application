@@ -5,10 +5,11 @@ Config.MinPrice = 0
 Config.MaxPrice = 100000
 Config.PaymentMethods = { "cash", "bank" }
 
--- FLEPURI v1.0 compatibility floor.
--- 起動中リソースがこれ未満の場合は、課金開始前に利用を止めます。
+-- Version floors are used only where the upstream resource exposes a
+-- directly comparable resource version. qbx_core is capability-checked
+-- separately because QBox framework release numbers and qbx_core resource
+-- versions are different version streams.
 Config.MinimumVersions = {
-    qbx_core = "2.5.4",
     puriphoto = "1.1.0"
 }
 

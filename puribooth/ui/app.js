@@ -555,7 +555,7 @@
                 beautyBufferCtx.filter =
                     `blur(${Math.max(
                         .75,
-                        state.skinSmooth / 4.5
+                        state.skinSmooth / 6
                     )}px)`
                 beautyBufferCtx.drawImage(canvas, 0, 0)
                 beautyBufferCtx.restore()
@@ -576,7 +576,7 @@
             Math.max(
                 0,
                 Math.min(1, state.skinSmooth / 30)
-            ) * .78
+            ) * .62
         const whitenStrength =
             Math.max(0, Math.min(1, state.whiten / 25)) * .34
         const rosyStrength =
@@ -605,8 +605,9 @@
                 && cb <= 132
                 && cr >= 128
                 && cr <= 184
-                && r > g * .90
-                && r > b * .95
+                && (cr - cb) >= 10
+                && r > g + 3
+                && r > b + 7
 
             if (!isSkin) continue
 
@@ -620,12 +621,12 @@
                     + Math.abs(b - sb)
 
                 const edgeGuard =
-                    detailDelta > 150
-                        ? .28
-                        : detailDelta > 95
-                            ? .58
+                    detailDelta > 135
+                        ? .12
+                        : detailDelta > 90
+                            ? .38
                             : detailDelta > 55
-                                ? .82
+                                ? .68
                                 : 1
                 const mix =
                     smoothStrength * edgeGuard

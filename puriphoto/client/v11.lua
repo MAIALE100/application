@@ -170,6 +170,7 @@ end)
 
 
 local pendingBoothImport = nil
+local boothImportSerial = 0
 
 local function openBoothImport(image, metadata)
     if type(image) ~= "string"
@@ -197,7 +198,17 @@ local function openBoothImport(image, metadata)
         x, y, z = current.x, current.y, current.z
     end
 
+    boothImportSerial = boothImportSerial + 1
+    local token =
+        ("%d:%d:%d")
+            :format(
+                GetGameTimer(),
+                PlayerId(),
+                boothImportSerial
+            )
+
     pendingBoothImport = {
+        token = token,
         image = image,
         location = {
             label = tostring(metadata.label or "フレプリ"),
@@ -240,7 +251,7 @@ local function openBoothImport(image, metadata)
         end
     end)
 
-    return true
+    return true, token
 end
 
 exports("OpenBoothImport", openBoothImport)
@@ -270,6 +281,14 @@ RegisterNUICallback("puriphotoGetBoothImport", function(_, cb)
 
     cb({
         ok = true,
-        import = payload
+        import = {
+            image = payload.image,
+            location = payload.location
+        }
     })
+
+    TriggerEvent(
+        "puriphoto:client:boothImportConsumed",
+        payload.token
+    )
 end)

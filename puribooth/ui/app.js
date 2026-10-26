@@ -3024,41 +3024,6 @@
         }
     })
 
-    window.addEventListener('keydown', event => {
-        const tag = document.activeElement?.tagName
-        const typing =
-            tag === 'INPUT'
-            || tag === 'TEXTAREA'
-
-        if ((event.ctrlKey || event.metaKey) && !typing) {
-            const key = event.key.toLowerCase()
-
-            if (key === 'z' && !event.shiftKey) {
-                event.preventDefault()
-                undoDecoration()
-                return
-            }
-
-            if (key === 'y' || (key === 'z' && event.shiftKey)) {
-                event.preventDefault()
-                redoDecoration()
-                return
-            }
-        }
-
-        if (event.key === 'Delete' && !typing && state.selectedDecoration) {
-            event.preventDefault()
-            document.getElementById('deleteSelectedButton').click()
-        }
-
-        if (event.key === 'Escape' && !typing) {
-            state.selectedDecoration = null
-            state.draggingDecoration = false
-            updateHistoryButtons()
-            render()
-        }
-    })
-
     window.addEventListener('message', async event => {
         const data = event.data
         if (!data) return

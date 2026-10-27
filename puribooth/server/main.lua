@@ -3045,7 +3045,17 @@ local function managementJobState()
 
     local jobName = tostring((Config.Management or {}).job or "weazel")
     local job = exports.qbx_core:GetJob(jobName)
-    return job and "PASS" or ("FAIL(" .. jobName .. ")")
+
+    if not job then
+        return "FAIL(" .. jobName .. ")"
+    end
+
+    local highest = highestManagementJobGrade()
+    if highest == nil then
+        return "FAIL(owner_grade)"
+    end
+
+    return ("PASS(owner_grade=%d)"):format(highest)
 end
 
 local function developmentTarget(explicit)

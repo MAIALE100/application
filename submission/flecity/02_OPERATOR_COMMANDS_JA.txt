@@ -1,17 +1,22 @@
-FLEPURI v1.0.5
+FLEPURI v1.0.6
 Flecity運営様向け コマンド一覧
 
 ────────────────────────
 ■ 権限
 ────────────────────────
 
-以下の管理コマンドは、いずれかの条件を満たす方が使用できます。
+設置・撤去・料金変更・売上確認等の管理コマンドは、
+以下のいずれかの条件を満たす方が使用できます。
 
 ・QBox job = weazel
 ・ACE group.admin
 ・ACE group.god
 
-運営権限者様はWeazelへjob変更せず、そのまま管理可能です。
+運営権限者様はWeazelへjob変更せず管理可能です。
+
+【重要】
+売上回収だけは例外で、QBox job = weazel の最上位grade（オーナー）のみ実行できます。
+ACE group.admin / group.god では売上回収できません。
 
 ────────────────────────
 ■ ゲーム内 管理コマンド
@@ -53,9 +58,13 @@ Flecity運営様向け コマンド一覧
 
 /puribooth collect all
   全台の未回収売上をRenewed-Banking会社口座へ回収します。
+  Weazel jobの最上位grade（オーナー）のみ使用できます。
 
 /puribooth collect <台ID>
   指定した1台のみ売上を回収します。
+  Weazel jobの最上位grade（オーナー）のみ使用できます。
+
+  ※一般Weazel、group.admin、group.godでは回収できません。
 
 ────────────────────────
 ■ サーバーコンソール 診断・保守

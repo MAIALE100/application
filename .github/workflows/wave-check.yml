@@ -6,6 +6,13 @@ on:
       - wave/dev
     paths:
       - 'wave-package.part*'
+      - 'wave-v022-app.part*'
+      - 'wave-v030-patchb64.part00'
+      - 'wave-v030-patchb64.part01'
+      - 'wave-v030-patchb64.part02'
+      - 'wave-v030-patchb64.part03'
+      - 'wave-v030-patchb64.part04'
+      - 'wave-v030-patchb64.part05'
       - 'wave-update.ps1'
       - 'wave-update.cmd'
       - '.github/workflows/wave-check.yml'
@@ -17,26 +24,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct WAVE package
+      - name: Reconstruct WAVE v0.3.0
         shell: bash
         run: |
+          set -euo pipefail
           cat wave-package.part00 wave-package.part01 wave-package.part02 wave-package.part03 \
               wave-package.part04 wave-package.part05 wave-package.part06 \
               wave-package.part07a wave-package.part07b wave-package.part07c wave-package.part07d \
               wave-package.part07e wave-package.part07f wave-package.part07g wave-package.part08 \
-              | base64 -d > wave-v0.2.0-test.zip
-          echo "34a84f4575f09ced45a58ef390272f9794f4d7cdcc548024a48fe5f899e16850  wave-v0.2.0-test.zip" | sha256sum -c -
-          unzip -t wave-v0.2.0-test.zip
-          unzip -q wave-v0.2.0-test.zip -d wave-check
+              | base64 -d > wave-base.zip
+          echo "34a84f4575f09ced45a58ef390272f9794f4d7cdcc548024a48fe5f899e16850  wave-base.zip" | sha256sum -c -
+          unzip -q wave-base.zip -d wave-check
+          cat wave-v022-app.part00 wave-v022-app.part01 wave-v022-app.part02 | base64 -d | gzip -d > wave-check/wave/web/app.js
+          echo "1ce2c985ab072db4f1c2b9c3d2194525ef619ff8456b154ae2de18f513602262  wave-check/wave/web/app.js" | sha256sum -c -
+          cat wave-v030-patchb64.part00 wave-v030-patchb64.part01 wave-v030-patchb64.part02 \
+              wave-v030-patchb64.part03 wave-v030-patchb64.part04 wave-v030-patchb64.part05 \
+              | base64 -d > wave-v030.patch
+          (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030.patch && git apply --whitespace=nowarn ../../wave-v030.patch)
 
       - name: Check PowerShell updater syntax
         shell: pwsh
         run: |
           $null = [ScriptBlock]::Create((Get-Content -Raw wave-update.ps1))
 
-      - name: Check JavaScript syntax
+      - name: Check JavaScript and LB Phone constraints
         shell: bash
-        run: node --check wave-check/wave/web/app.js
+        run: |
+          set -euo pipefail
+          node --check wave-check/wave/web/app.js
+          ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
+          ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
+          grep -q "version '0.3.0-test'" wave-check/wave/fxmanifest.lua
+          grep -q 'WAVE_PUBLISH_DIAGNOSTICS_V023' wave-check/wave/web/app.js
+          grep -q 'requestId' wave-check/wave/web/app.js
+          grep -q 'SchemaVersion = 3' wave-check/wave/config/shared.lua
+          grep -q 'wave_schema_meta' wave-check/wave/server/main.lua
+          grep -q "wave:listOwnTracks" wave-check/wave/server/main.lua
+          grep -q "wave:updateOwnTrack" wave-check/wave/server/main.lua
 
       - name: Install Lua
         shell: bash
@@ -46,13 +70,14 @@ jobs:
 
       - name: Check Lua syntax
         shell: bash
-        run: find wave-check/wave -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+        run: |
+          find wave-check/wave -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
 
-      - name: Check WAVE wiring
+      - name: Check required files
         shell: bash
         run: |
-          grep -q "version '0.2.0-test'" wave-check/wave/fxmanifest.lua
-          ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
           test -f wave-check/wave/client/main.lua
           test -f wave-check/wave/server/main.lua
+          test -f wave-check/wave/config/shared.lua
           test -f wave-check/wave/web/index.html
+          test -f wave-check/wave/web/icon.svg

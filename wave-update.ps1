@@ -31,6 +31,7 @@ $BackupRoot = Join-Path $RepoRoot '.wave-backups'
 $DeploymentStarted = $false
 $DeploymentComplete = $false
 $ActiveBackup = $null
+$CriticalFiles = @('fxmanifest.lua','config\shared.lua','client\main.lua','server\main.lua','web\index.html','web\app.js','web\app.css','web\icon.svg')
 
 function Step([string]$Message) { Write-Host ''; Write-Host ('==> ' + $Message) -ForegroundColor Cyan }
 function Invoke-RepoGit([string[]]$GitArgs) {
@@ -94,7 +95,7 @@ try {
     } finally { Set-Location $oldLocation }
 
     Step 'Running WAVE safety checks'
-    foreach($required in @('fxmanifest.lua','config\shared.lua','client\main.lua','server\main.lua','web\index.html','web\app.js','web\app.css','web\icon.svg')) {
+    foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
     }
     $manifest=[IO.File]::ReadAllText((Join-Path $Source 'fxmanifest.lua'))
@@ -132,7 +133,7 @@ try {
     if (Test-Path -LiteralPath $Destination) {
         Step 'Backing up current WAVE resource'
         New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
-        $backup=Join-Path $BackupRoot (Get-Date -Format 'yyyyMMdd-HHmmss')
+        $backup=Join-Path $BackupRoot ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,8))
         Copy-Item -LiteralPath $Destination -Destination $backup -Recurse -Force
         $ActiveBackup=$backup
         Get-ChildItem -LiteralPath $BackupRoot -Directory | Sort-Object Name -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -143,8 +144,19 @@ try {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
     if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
     Move-Item -LiteralPath $StagePath -Destination $Destination
+
+    Step 'Verifying deployed WAVE resource'
+    foreach($relative in $CriticalFiles) {
+        $sourceFile=Join-Path $Source $relative
+        $deployedFile=Join-Path $Destination $relative
+        if (-not (Test-Path -LiteralPath $deployedFile)) { throw ('Deployed WAVE file missing: ' + $relative) }
+        $sourceHash=(Get-FileHash -LiteralPath $sourceFile -Algorithm SHA256).Hash
+        $deployedHash=(Get-FileHash -LiteralPath $deployedFile -Algorithm SHA256).Hash
+        if ($sourceHash -ne $deployedHash) { throw ('Deployed WAVE file verification failed: ' + $relative) }
+    }
     @('branch=' + $Branch,'commit=' + $head,'base_sha256=' + $baseHash,'version=' + $ExpectedVersion,'installed=' + (Get-Date -Format o)) | Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Encoding UTF8
     $DeploymentComplete=$true
+    Write-Host 'Deployment verification: PASS' -ForegroundColor Green
 
     Step 'WAVE deployment complete'
     Write-Host ('Installed: ' + $Destination) -ForegroundColor Green

@@ -14,6 +14,7 @@ $ExpectedBaseSha256 = '34A84F4575F09CED45A58EF390272F9794F4D7CDCC548024A48FE5F89
 $ExpectedAppSha256 = '1CE2C985AB072DB4F1C2B9C3D2194525EF619FF8456B154AE2DE18F513602262'
 $ExpectedPatchSha256 = '6A91D4CDEFA0332119D00A1F72B6E3FDA0E54EDBF4564A716DDF0DC9AC65FAFE'
 $ExpectedAtomicPatchSha256 = 'BDD7CAF2EE949A52E208E4E9035C37771F22CF504EF460D3096FFE41CB0D6508'
+$ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C26EDC0A7189E9'
 $ExpectedVersion = '0.3.0-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
@@ -30,6 +31,7 @@ $TempRoot = Join-Path ([IO.Path]::GetTempPath()) ('wave-update-' + [guid]::NewGu
 $ZipPath = Join-Path $TempRoot 'wave.zip'
 $PatchPath = Join-Path $TempRoot 'wave-v030.patch'
 $AtomicPatchPath = Join-Path $TempRoot 'wave-v030-atomic-status.patch'
+$SavePatchPath = Join-Path $TempRoot 'wave-v030-idempotent-saves.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
@@ -117,6 +119,21 @@ try {
     } finally { Set-Location $oldLocation }
     Write-Host 'Atomic release-state patch: PASS' -ForegroundColor Green
 
+    Step 'Applying WAVE idempotent-save patch'
+    $savePatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-idempotent-saves.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    [IO.File]::WriteAllText($SavePatchPath,$savePatchText,(New-Object Text.UTF8Encoding($false)))
+    $savePatchHash=(Get-FileHash -LiteralPath $SavePatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($savePatchHash -ne $ExpectedSavePatchSha256) { throw ('WAVE save patch hash mismatch: ' + $savePatchHash) }
+    $oldLocation=Get-Location
+    try {
+        Set-Location $Source
+        & git apply --check --whitespace=nowarn $SavePatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE save patch preflight failed' }
+        & git apply --whitespace=nowarn $SavePatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE save patch failed' }
+    } finally { Set-Location $oldLocation }
+    Write-Host 'Idempotent-save patch: PASS' -ForegroundColor Green
+
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -129,6 +146,7 @@ try {
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }
+    if ($server -notmatch 'A no-op UPDATE can report zero affected rows' -or $server -notmatch 'Re-saving unchanged metadata') { throw 'WAVE idempotent-save patch missing' }
     $config=[IO.File]::ReadAllText((Join-Path $Source 'config\shared.lua'))
     if ($config -notmatch 'SchemaVersion\s*=\s*3') { throw 'WAVE schema version mismatch' }
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))

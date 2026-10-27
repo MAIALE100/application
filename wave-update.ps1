@@ -15,6 +15,7 @@ $ExpectedAppSha256 = '1CE2C985AB072DB4F1C2B9C3D2194525EF619FF8456B154AE2DE18F513
 $ExpectedPatchSha256 = '6A91D4CDEFA0332119D00A1F72B6E3FDA0E54EDBF4564A716DDF0DC9AC65FAFE'
 $ExpectedAtomicPatchSha256 = 'BDD7CAF2EE949A52E208E4E9035C37771F22CF504EF460D3096FFE41CB0D6508'
 $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C26EDC0A7189E9'
+$ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedVersion = '0.3.0-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
@@ -32,6 +33,7 @@ $ZipPath = Join-Path $TempRoot 'wave.zip'
 $PatchPath = Join-Path $TempRoot 'wave-v030.patch'
 $AtomicPatchPath = Join-Path $TempRoot 'wave-v030-atomic-status.patch'
 $SavePatchPath = Join-Path $TempRoot 'wave-v030-idempotent-saves.patch'
+$RatePatchPath = Join-Path $TempRoot 'wave-v030-rate-limit.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
@@ -134,6 +136,21 @@ try {
     } finally { Set-Location $oldLocation }
     Write-Host 'Idempotent-save patch: PASS' -ForegroundColor Green
 
+    Step 'Applying WAVE rate-limit rollover patch'
+    $ratePatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-rate-limit.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    [IO.File]::WriteAllText($RatePatchPath,$ratePatchText,(New-Object Text.UTF8Encoding($false)))
+    $ratePatchHash=(Get-FileHash -LiteralPath $RatePatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($ratePatchHash -ne $ExpectedRatePatchSha256) { throw ('WAVE rate-limit patch hash mismatch: ' + $ratePatchHash) }
+    $oldLocation=Get-Location
+    try {
+        Set-Location $Source
+        & git apply --check --whitespace=nowarn $RatePatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE rate-limit patch preflight failed' }
+        & git apply --whitespace=nowarn $RatePatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE rate-limit patch failed' }
+    } finally { Set-Location $oldLocation }
+    Write-Host 'Rate-limit rollover patch: PASS' -ForegroundColor Green
+
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -147,6 +164,7 @@ try {
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }
     if ($server -notmatch 'A no-op UPDATE can report zero affected rows' -or $server -notmatch 'Re-saving unchanged metadata') { throw 'WAVE idempotent-save patch missing' }
+    if ($server -notmatch 'A new caller must not be throttled at uptime zero') { throw 'WAVE rate-limit patch missing' }
     $config=[IO.File]::ReadAllText((Join-Path $Source 'config\shared.lua'))
     if ($config -notmatch 'SchemaVersion\s*=\s*3') { throw 'WAVE schema version mismatch' }
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))

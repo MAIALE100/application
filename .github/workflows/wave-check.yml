@@ -15,6 +15,7 @@ on:
       - 'wave-v030-patchb64.part05'
       - 'wave-update.ps1'
       - 'wave-update.cmd'
+      - 'wave-security-smoke.py'
       - '.github/workflows/wave-check.yml'
   workflow_dispatch:
 
@@ -86,3 +87,7 @@ jobs:
           test -f wave-check/wave/config/shared.lua
           test -f wave-check/wave/web/index.html
           test -f wave-check/wave/web/icon.svg
+
+      - name: Check WAVE security invariants
+        shell: bash
+        run: python3 wave-security-smoke.py wave-check/wave

@@ -15,10 +15,12 @@ on:
       - 'wave-v030-patchb64.part05'
       - 'wave-v030-atomic-status.patch'
       - 'wave-v030-idempotent-saves.patch'
+      - 'wave-v030-rate-limit.patch'
       - 'wave-update.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
+      - 'wave-rate-limit-test.lua'
       - '.github/workflows/wave-check.yml'
   workflow_dispatch:
 
@@ -51,6 +53,8 @@ jobs:
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-atomic-status.patch && git apply --whitespace=nowarn ../../wave-v030-atomic-status.patch)
           echo "86f20ce3f4c47954930edbb1ef6f6c207d4b855692b542dbf4c26edc0a7189e9  wave-v030-idempotent-saves.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-idempotent-saves.patch && git apply --whitespace=nowarn ../../wave-v030-idempotent-saves.patch)
+          echo "1aea1cb697e45917dbb001eeaf6a48eb40288a28cdc6233524fcd506b730340a  wave-v030-rate-limit.patch" | sha256sum -c -
+          (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-rate-limit.patch && git apply --whitespace=nowarn ../../wave-v030-rate-limit.patch)
 
       - name: Check PowerShell updater syntax
         shell: pwsh
@@ -76,6 +80,7 @@ jobs:
           grep -q 'ERROR_TEXT.TRACK_STATE_CHANGED' wave-check/wave/web/app.js
           grep -q 'A no-op UPDATE can report zero affected rows' wave-check/wave/server/main.lua
           grep -q 'Re-saving unchanged metadata' wave-check/wave/server/main.lua
+          grep -q 'A new caller must not be throttled at uptime zero' wave-check/wave/server/main.lua
           grep -q "wave:listOwnTracks" wave-check/wave/server/main.lua
           grep -q "wave:updateOwnTrack" wave-check/wave/server/main.lua
 
@@ -93,6 +98,10 @@ jobs:
       - name: Run WAVE Lua save regression tests
         shell: bash
         run: lua5.4 wave-save-idempotency-test.lua wave-check/wave
+
+      - name: Run WAVE rate-limit regression tests
+        shell: bash
+        run: lua5.4 wave-rate-limit-test.lua wave-check/wave
 
       - name: Check required files
         shell: bash

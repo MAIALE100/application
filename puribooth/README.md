@@ -1,6 +1,6 @@
 # FLEPURI / PuriBooth
 
-**Release: v1.0.5 (Flecity operator submission)**
+**Release: v1.0.6 (Flecity operator submission)**
 
 Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影リソースです。
 物理プリクラ台で料金を支払い、背景・床を選択し、固定カメラで4枚撮影した後、専用編集画面を経由してPuriPhotoへ渡します。
@@ -88,7 +88,7 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 管理系操作はサーバー側でQBoxの現在jobを確認します。
 既定では `Config.Management.job = "weazel"` のため、weazel以外は実行できません。
 
-加えて、運営権限を持つ方が管理作業を行えるよう、既定ではACE `group.admin`（および `group.god`）も管理操作を許可します。Weazel jobの通常運用と運営作業を両立できます。
+加えて、運営権限を持つ方が管理作業を行えるよう、既定ではACE `group.admin`（および `group.god`）も管理操作を許可します。Weazel jobの通常運用と運営作業を両立できます。ただし、**売上回収だけはACEで回避できず、Weazel jobの最上位grade（オーナー）のみ実行可能**です。
 
 ### コマンド
 
@@ -138,7 +138,7 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 /puribooth collect all
 /puribooth collect 3
 ```
-未回収売上を会社口座へ回収します。
+未回収売上を会社口座へ回収します。**この操作はWeazel jobの最上位grade（オーナー）のみ実行できます。group.admin / group.godでも回収権限は付与されません。**
 
 ```
 /puribooth list
@@ -158,7 +158,7 @@ Config.Management.salesCoords = { x = ..., y = ..., z = ... }
 
 ### job / grade
 
-`Config.Management` でコマンドごとの最低gradeを変更できます。
+`Config.Management` で売上回収以外の管理コマンドの最低gradeを変更できます。売上回収は設定値に関係なく、Weazel job定義上の最上位grade（オーナー）に固定されています。
 
 - `placeMinGrade`
 - `removeMinGrade`

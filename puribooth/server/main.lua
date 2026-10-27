@@ -321,6 +321,100 @@ local function hasManagementAccess(source, action)
     return managementPlayer(source, action) ~= nil
 end
 
+local function highestManagementJobGrade()
+    if GetResourceState("qbx_core") ~= "started" then
+        return nil
+    end
+
+    local management = Config.Management or {}
+    local requiredJob = tostring(management.job or "weazel")
+
+    local ok, jobDefinition = pcall(function()
+        return exports.qbx_core:GetJob(requiredJob)
+    end)
+
+    if not ok or type(jobDefinition) ~= "table" then
+        return nil
+    end
+
+    local grades = jobDefinition.grades
+    if type(grades) ~= "table" then
+        return nil
+    end
+
+    local highest = nil
+
+    for key, gradeData in pairs(grades) do
+        local level = tonumber(key)
+
+        if not level and type(gradeData) == "table" then
+            level = tonumber(gradeData.level)
+        end
+
+        if level and (not highest or level > highest) then
+            highest = level
+        end
+    end
+
+    return highest
+end
+
+local function requireCollectionOwnerAccess(source)
+    if source == 0 then
+        print("[puribooth] 売上回収はゲーム内のWeazelオーナーのみ実行できます。")
+        return false
+    end
+
+    if GetResourceState("qbx_core") ~= "started" then
+        notify(source, "error", "QBoxを確認できないため売上回収を停止しました。")
+        return false
+    end
+
+    local management = Config.Management or {}
+    local requiredJob = tostring(management.job or "weazel")
+    local player = exports.qbx_core:GetPlayer(source)
+    local playerData = player and player.PlayerData
+    local job = playerData and playerData.job
+
+    if not job or tostring(job.name or "") ~= requiredJob then
+        notify(source, "error", "売上回収はWeazelオーナーのみ実行できます。")
+        return false
+    end
+
+    if management.requireOnDuty == true and job.onduty ~= true then
+        notify(source, "error", "勤務中のWeazelオーナーのみ売上回収できます。")
+        return false
+    end
+
+    local grade =
+        tonumber(job.grade and job.grade.level)
+        or tonumber(playerData.jobs and playerData.jobs[requiredJob])
+        or 0
+
+    local highest = highestManagementJobGrade()
+
+    if highest == nil then
+        notify(
+            source,
+            "error",
+            "Weazelの最上位グレードを確認できないため売上回収を停止しました。"
+        )
+        return false
+    end
+
+    if grade ~= highest then
+        notify(
+            source,
+            "error",
+            ("売上回収はWeazelオーナー（最上位グレード %d）のみ実行できます。")
+                :format(highest)
+        )
+        return false
+    end
+
+    return true
+end
+
 local function requireManagementAccess(source, action)
     if hasManagementAccess(source, action) then
         return true
@@ -1126,7 +1220,7 @@ local function collectSales(source, target)
     collectionProcessRunning = true
 
     local ok, err = xpcall(function()
-        if not requireManagementAccess(source, "sales")
+        if not requireCollectionOwnerAccess(source)
             or not requireSalesLocation(source) then
             return
         end
@@ -4073,7 +4167,7 @@ CreateThread(function()
     local _, qbx = qbxCompatibilityState()
     local _, puriphoto = resourceCompatibilityState("puriphoto")
 
-    print(("[puribooth] v1.0.5 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+    print(("[puribooth] v1.0.6 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
         :format(
             tonumber(Config.Price) or 0,
             tonumber(Config.ShotCount) or 4,

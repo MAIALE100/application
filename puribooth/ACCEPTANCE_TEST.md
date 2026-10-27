@@ -1,4 +1,4 @@
-# FLEPURI v1.0.5 受入テスト
+# FLEPURI v1.0.6 受入テスト
 
 運営導入後、最低限以下を確認してください。
 
@@ -17,8 +17,10 @@
 - 再起動しても勝手にテスト台が生成されない
 
 ## 権限
-- weazel以外は `place / remove / price / sales / collect` を実行できない
-- weazelは設定grade以上で管理操作できる
+- weazel以外は通常の `place / remove / price / sales` を実行できない（ACE管理権限者を除く）
+- weazelは設定grade以上で通常の管理操作を実行できる
+- **`collect` はWeazel jobの最上位grade（オーナー）だけが実行できる**
+- **一般WeazelおよびACE `group.admin` / `group.god` では `collect` が拒否される**
 - `requireOnDuty=true` にした場合、非勤務中は管理操作できない
 
 ## 台の管理
@@ -66,8 +68,9 @@
 - 正常撮影1回で対象台だけの未回収売上・累計売上・撮影回数が増える
 - 撮影前返金 / 技術返金では売上が増えない
 - `/puribooth sales` の全台合計が各台合計と一致する
-- `/puribooth collect <ID>` で指定台だけ回収できる
-- `/puribooth collect all` で全台を一括回収できる
+- Weazelオーナーが `/puribooth collect <ID>` で指定台だけ回収できる
+- Weazelオーナーが `/puribooth collect all` で全台を一括回収できる
+- 一般WeazelおよびACE管理者が同じ回収コマンドを実行しても拒否され、台残高・会社口座残高が変化しない
 - 回収後の未回収残高が0になる
 - Renewed-Bankingの取引履歴にFLEPURI売上が残る
 - Renewed-Banking入金失敗時は未回収残高が復元される

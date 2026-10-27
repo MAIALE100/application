@@ -37,6 +37,7 @@ jobs:
           unzip -q wave-base.zip -d wave-check
           cat wave-v022-app.part00 wave-v022-app.part01 wave-v022-app.part02 | base64 -d | gzip -d > wave-check/wave/web/app.js
           echo "1ce2c985ab072db4f1c2b9c3d2194525ef619ff8456b154ae2de18f513602262  wave-check/wave/web/app.js" | sha256sum -c -
+          sed -i "s/version '0.2.0-test'/version '0.2.2-test'/" wave-check/wave/fxmanifest.lua
           cat wave-v030-patchb64.part00 wave-v030-patchb64.part01 wave-v030-patchb64.part02 \
               wave-v030-patchb64.part03 wave-v030-patchb64.part04 wave-v030-patchb64.part05 \
               | base64 -d > wave-v030.patch

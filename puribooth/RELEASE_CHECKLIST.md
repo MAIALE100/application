@@ -46,6 +46,9 @@
 - [ ] verify successful capture increments only that booth's balance / lifetime / count
 - [ ] verify refunded sessions do not increment sales
 - [ ] verify /puribooth sales totals match per-booth totals
+- [ ] verify highest-grade weazel owner can run /puribooth collect all
+- [ ] verify normal weazel cannot run /puribooth collect
+- [ ] verify ACE group.admin / group.god cannot bypass collection restriction
 - [ ] verify /puribooth collect all deposits once and clears only claimed balances
 - [ ] verify failed company-bank payout restores booth balances
 - [ ] fresh-install test with empty puribooth tables

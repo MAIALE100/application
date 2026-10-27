@@ -131,9 +131,116 @@ try {
     }
     Write-Host 'v0.2.2 app.js SHA256: PASS' -ForegroundColor Green
 
+    Step 'Applying WAVE v0.2.3 publish diagnostics'
+    $appText = [IO.File]::ReadAllText($appJsPath).Replace("`r`n","`n")
+    $publishStart = $appText.IndexOf("$('publishTrack').onclick = async () => {")
+    if ($publishStart -lt 0) { throw 'Could not locate WAVE publish handler start.' }
+    $publishEnd = $appText.IndexOf("`n`nfunction renderTrackList", $publishStart)
+    if ($publishEnd -lt 0) { throw 'Could not locate WAVE publish handler end.' }
+    $publishBlock = @'
+function setPublishFeedback(text = '', bad = false) {
+  let el = $('publishFeedback');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'publishFeedback';
+    el.className = 'muted';
+    el.style.marginTop = '.55rem';
+    $('publishTrack').insertAdjacentElement('afterend', el);
+  }
+  el.textContent = text;
+  el.style.color = bad ? '#fda4af' : '#bae6fd';
+}
+
+function syncReleasePriceUi() {
+  const paid = $('accessMode').value === 'purchase' || $('accessMode').value === 'both';
+  $('releasePrice').disabled = !paid;
+  $('releasePrice').style.opacity = paid ? '1' : '.45';
+  $('releasePrice').title = paid ? '販売価格' : '無料公開では価格は使用しません';
+}
+$('accessMode').addEventListener('change', syncReleasePriceUi);
+syncReleasePriceUi();
+
+$('publishTrack').onclick = async () => {
+  const button = $('publishTrack');
+  const originalText = button.textContent;
+  setPublishFeedback('');
+
+  if (!$('rightsConfirm').checked) {
+    setPublishFeedback('権利確認にチェックしてください。', true);
+    status('権利確認にチェックしてください', true);
+    return;
+  }
+  if (!state.bootstrap?.artist || state.bootstrap.artist.status !== 'active') {
+    setPublishFeedback('公開可能なアーティストプロフィールが必要です。', true);
+    status('公開可能なアーティストプロフィールが必要です', true);
+    return;
+  }
+  const title = $('releaseTitle').value.trim();
+  if (!title) {
+    setPublishFeedback('曲名を入力してください。', true);
+    status('曲名を入力してください', true);
+    return;
+  }
+
+  const p = ensureProject();
+  button.disabled = true;
+  button.textContent = '公開中…';
+  setPublishFeedback('WAVEへ公開処理を送信しています…');
+  status('公開中…');
+
+  try {
+    const r = await bridge('publishTrack', {
+      projectId: state.projectId,
+      title,
+      description: $('releaseDescription').value,
+      genre: $('releaseGenre').value,
+      accessMode: $('accessMode').value,
+      price: Number($('releasePrice').value) || 0,
+      rightsConfirmed: true,
+      rights: {
+        personal: true,
+        ringtone: $('rightRingtone').checked,
+        notification: $('rightNotification').checked,
+        storeBgm: $('rightStore').checked,
+        event: $('rightEvent').checked,
+        remix: $('rightRemix').checked
+      },
+      project: p
+    });
+
+    if (r?.ok) {
+      $('rightsConfirm').checked = false;
+      setPublishFeedback('公開しました。HOMEの新着へ反映します。');
+      status('公開しました');
+      await refreshHome();
+    } else {
+      const code = r?.error || 'UNKNOWN_ERROR';
+      const message = errorText(code);
+      setPublishFeedback('公開失敗: ' + message + ' [' + code + ']', true);
+      status('公開失敗: ' + message, true);
+    }
+  } catch (error) {
+    const detail = String(error?.message || error || 'UNKNOWN_ERROR');
+    setPublishFeedback('公開処理でエラーが発生しました: ' + detail, true);
+    status('公開処理エラー', true);
+    console.error('[WAVE] publishTrack failed', error);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+};
+'@
+    $appText = '// WAVE_PUBLISH_DIAGNOSTICS_V023' + "`n" + $appText.Substring(0,$publishStart) + $publishBlock.TrimEnd("`r","`n") + $appText.Substring($publishEnd)
+    [IO.File]::WriteAllText($appJsPath,$appText,(New-Object Text.UTF8Encoding($false)))
+    $publishHash = (Get-FileHash $appJsPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($publishHash -ne '86BB89C13F25ACA36957DBB6EE179F017B508031BB39E366DDCBE9366729EAE1') {
+        throw ('WAVE v0.2.3 app.js hash mismatch: ' + $publishHash)
+    }
+    Write-Host 'v0.2.3 publish diagnostics SHA256: PASS' -ForegroundColor Green
+
     $manifestPath = Join-Path $Source 'fxmanifest.lua'
     $manifestText = [IO.File]::ReadAllText($manifestPath)
-    $manifestText = $manifestText.Replace("version '0.2.0-test'", "version '0.2.2-test'")
+    $manifestText = $manifestText.Replace("version '0.2.0-test'", "version '0.2.3-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
 
     Step 'Running WAVE safety checks'
@@ -147,7 +254,7 @@ try {
     }
 
     $manifest = Get-Content $manifestPath -Raw
-    if ($manifest -notmatch "version\s+'0\.2\.2-test'") {
+    if ($manifest -notmatch "version\s+'0\.2\.3-test'") {
         throw 'Unexpected WAVE version in fxmanifest.lua'
     }
 
@@ -209,7 +316,7 @@ try {
         'branch=' + $Branch,
         'commit=' + $head,
         'base_sha256=' + $packageHash,
-        'app_sha256=' + $appHash,
+        'app_sha256=' + $publishHash,
         'installed=' + (Get-Date -Format o)
     ) -join [Environment]::NewLine
     Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Value $status -Encoding UTF8

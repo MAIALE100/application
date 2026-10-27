@@ -32,38 +32,22 @@ function Invoke-RepoGit {
         [string[]]$GitArgs
     )
 
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = 'git'
-    $psi.WorkingDirectory = $RepoRoot
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
-
-    [void]$psi.ArgumentList.Add('-C')
-    [void]$psi.ArgumentList.Add($RepoRoot)
-    foreach ($arg in $GitArgs) {
-        [void]$psi.ArgumentList.Add([string]$arg)
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & git -C $RepoRoot @GitArgs 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
 
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-    [void]$process.Start()
-
-    $stdout = $process.StandardOutput.ReadToEnd()
-    $stderr = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
-
-    if ($process.ExitCode -ne 0) {
-        $details = @($stdout.Trim(), $stderr.Trim()) | Where-Object { $_ }
-        throw "git $($GitArgs -join ' ') failed (exit $($process.ExitCode)):`n$($details -join [Environment]::NewLine)"
+    if ($exitCode -ne 0) {
+        $details = @($output | ForEach-Object { $_.ToString() })
+        throw "git $($GitArgs -join ' ') failed (exit $exitCode):`n$($details -join [Environment]::NewLine)"
     }
 
-    if ($stdout) {
-        return @($stdout -split "\r?\n" | Where-Object { $_ -ne '' })
-    }
-
-    return @()
+    return @($output | ForEach-Object { $_.ToString() })
 }
 
 try {

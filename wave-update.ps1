@@ -13,6 +13,7 @@ $Destination = Join-Path $Resources '[lb-phone]\wave'
 $ExpectedBaseSha256 = '34A84F4575F09CED45A58EF390272F9794F4D7CDCC548024A48FE5F899E16850'
 $ExpectedAppSha256 = '1CE2C985AB072DB4F1C2B9C3D2194525EF619FF8456B154AE2DE18F513602262'
 $ExpectedPatchSha256 = '6A91D4CDEFA0332119D00A1F72B6E3FDA0E54EDBF4564A716DDF0DC9AC65FAFE'
+$ExpectedAtomicPatchSha256 = 'BDD7CAF2EE949A52E208E4E9035C37771F22CF504EF460D3096FFE41CB0D6508'
 $ExpectedVersion = '0.3.0-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
@@ -28,6 +29,7 @@ $PatchParts = @(
 $TempRoot = Join-Path ([IO.Path]::GetTempPath()) ('wave-update-' + [guid]::NewGuid().ToString('N'))
 $ZipPath = Join-Path $TempRoot 'wave.zip'
 $PatchPath = Join-Path $TempRoot 'wave-v030.patch'
+$AtomicPatchPath = Join-Path $TempRoot 'wave-v030-atomic-status.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
@@ -100,6 +102,21 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'WAVE v0.3.0 patch failed' }
     } finally { Set-Location $oldLocation }
 
+    Step 'Applying WAVE atomic release-state patch'
+    $atomicPatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-atomic-status.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    [IO.File]::WriteAllText($AtomicPatchPath,$atomicPatchText,(New-Object Text.UTF8Encoding($false)))
+    $atomicPatchHash=(Get-FileHash -LiteralPath $AtomicPatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($atomicPatchHash -ne $ExpectedAtomicPatchSha256) { throw ('WAVE atomic patch hash mismatch: ' + $atomicPatchHash) }
+    $oldLocation=Get-Location
+    try {
+        Set-Location $Source
+        & git apply --check --whitespace=nowarn $AtomicPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE atomic patch preflight failed' }
+        & git apply --whitespace=nowarn $AtomicPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE atomic patch failed' }
+    } finally { Set-Location $oldLocation }
+    Write-Host 'Atomic release-state patch: PASS' -ForegroundColor Green
+
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -111,6 +128,7 @@ try {
     if ($app -notmatch 'WAVE_PUBLISH_DIAGNOSTICS_V023' -or $app -notmatch 'requestId') { throw 'Publish diagnostics wiring missing' }
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
+    if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }
     $config=[IO.File]::ReadAllText((Join-Path $Source 'config\shared.lua'))
     if ($config -notmatch 'SchemaVersion\s*=\s*3') { throw 'WAVE schema version mismatch' }
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))

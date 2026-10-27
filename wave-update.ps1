@@ -26,10 +26,15 @@ function Step([string]$Message) {
     Write-Host ('==> ' + $Message) -ForegroundColor Cyan
 }
 
-function Run-Git([string[]]$Args) {
-    $output = & git -C $RepoRoot @Args 2>&1
+function Invoke-RepoGit {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$GitArgs
+    )
+
+    $output = & git -C $RepoRoot @GitArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "git $($Args -join ' ') failed:`n$($output -join [Environment]::NewLine)"
+        throw "git $($GitArgs -join ' ') failed:`n$($output -join [Environment]::NewLine)"
     }
     return @($output)
 }
@@ -41,18 +46,18 @@ try {
 
     if (-not $NoFetch) {
         Step 'Fetching latest WAVE build'
-        Run-Git @('fetch','origin',$Branch) | Out-Null
+        Invoke-RepoGit -GitArgs @('fetch','origin',$Branch) | Out-Null
     }
 
     $remoteRef = "origin/$Branch"
-    $head = (Run-Git @('rev-parse',$remoteRef) | Select-Object -First 1).Trim()
+    $head = (Invoke-RepoGit -GitArgs @('rev-parse',$remoteRef) | Select-Object -First 1).Trim()
     Write-Host ("WAVE source: {0}" -f $head.Substring(0,12)) -ForegroundColor DarkGray
 
     Step 'Reconstructing validated package'
     New-Item -ItemType Directory -Force -Path $TempRoot,$ExtractPath,$StagePath | Out-Null
     $builder = New-Object System.Text.StringBuilder
     foreach ($path in $PackageParts) {
-        $text = (Run-Git @('show',"${remoteRef}:$path")) -join ''
+        $text = (Invoke-RepoGit -GitArgs @('show',"${remoteRef}:$path")) -join ''
         $text = $text.Trim()
         if ($text -notmatch '^[A-Za-z0-9+/=]+$') { throw "Invalid package data in $path" }
         [void]$builder.Append($text)

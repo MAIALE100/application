@@ -14,6 +14,7 @@ on:
       - 'wave-v030-patchb64.part04'
       - 'wave-v030-patchb64.part05'
       - 'wave-v030-atomic-status.patch'
+      - 'wave-v030-idempotent-saves.patch'
       - 'wave-update.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
@@ -47,6 +48,8 @@ jobs:
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030.patch && git apply --whitespace=nowarn ../../wave-v030.patch)
           echo "bdd7caf2ee949a52e208e4e9035c37771f22cf504ef460d3096ffe41cb0d6508  wave-v030-atomic-status.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-atomic-status.patch && git apply --whitespace=nowarn ../../wave-v030-atomic-status.patch)
+          echo "86f20ce3f4c47954930edbb1ef6f6c207d4b855692b542dbf4c26edc0a7189e9  wave-v030-idempotent-saves.patch" | sha256sum -c -
+          (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-idempotent-saves.patch && git apply --whitespace=nowarn ../../wave-v030-idempotent-saves.patch)
 
       - name: Check PowerShell updater syntax
         shell: pwsh
@@ -70,6 +73,8 @@ jobs:
           grep -q 'wave_schema_meta' wave-check/wave/server/main.lua
           grep -q 'Atomic status predicates' wave-check/wave/server/main.lua
           grep -q 'ERROR_TEXT.TRACK_STATE_CHANGED' wave-check/wave/web/app.js
+          grep -q 'A no-op UPDATE can report zero affected rows' wave-check/wave/server/main.lua
+          grep -q 'Re-saving unchanged metadata' wave-check/wave/server/main.lua
           grep -q "wave:listOwnTracks" wave-check/wave/server/main.lua
           grep -q "wave:updateOwnTrack" wave-check/wave/server/main.lua
 

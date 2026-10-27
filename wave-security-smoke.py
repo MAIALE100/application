@@ -49,6 +49,20 @@ check('Purchase debits bank and atomically writes WAVE ledger',
 check('Creator withdrawal uses balance compare-and-swap and compensating rollback',
       all(token in body('cbWithdraw') for token in
           ('balance=? AND frozen=0', "AddMoney('bank'", 'balance=balance+?', 'WALLET_FROZEN')))
+check('Unchanged project save is idempotent and still checks ownership',
+      all(token in body('cbSaveProject') for token in (
+          'if changed == 0 then',
+          'SELECT COUNT(*) FROM wave_projects',
+          'WHERE id=? AND citizenid=? AND deleted_at IS NULL',
+          "PROJECT_NOT_FOUND',",
+          "DB_TRANSACTION_FAILED'")))
+check('Unchanged playlist save is idempotent and still checks ownership',
+      all(token in body('cbSavePlaylist') for token in (
+          'if changed == 0 then',
+          'SELECT COUNT(*) FROM wave_playlists',
+          'WHERE id=? AND citizenid=? AND deleted_at IS NULL',
+          "PLAYLIST_NOT_FOUND',",
+          "DB_TRANSACTION_FAILED'")))
 check('Publication requires rights, active artist and normalized project',
       all(token in body('cbPublishTrack') for token in
           ('rightsConfirmed', 'getArtist(citizenid)', 'encodeProject(', 'PUBLISH_DB_FAILED')))

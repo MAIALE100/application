@@ -1,4 +1,4 @@
-# FLEPURI v1.0.5 導入手順
+# FLEPURI v1.0.6 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.5 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.6 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -48,7 +48,7 @@ ensure puribooth
 
 ## 5. Weazel権限
 
-Weazel所属者に加えて、既定ではACE `group.admin` / `group.god` を持つ運営権限者も管理コマンドを実行できます。
+Weazel所属者に加えて、既定ではACE `group.admin` / `group.god` を持つ運営権限者も管理コマンドを実行できます。ただし、**売上回収だけはWeazel jobの最上位grade（オーナー）のみ**実行でき、ACEでは回避できません。
 
 既定:
 
@@ -82,6 +82,8 @@ Config.Payout = {
 ```
 
 selftestはRenewed-Bankingの起動だけでなく、`weazel` 口座が実際に取得できることも確認します。
+
+`/puribooth collect all` / `/puribooth collect <台ID>` は、QBoxのWeazel job定義から最上位gradeを動的に判定し、そのオーナーgradeだけに許可します。
 
 回収時は会社口座残高へ加算し、銀行取引履歴にもFLEPURI売上として記録します。残高加算に失敗した場合は、確保した未回収売上を各台へ戻します。
 

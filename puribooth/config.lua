@@ -19,12 +19,14 @@ Config.Management = {
     job = "weazel",
     requireOnDuty = false,
     allowAceOverride = true,
-    ace = "group.admin" -- 運営ACE。group.godも常に許可,
+    ace = "group.admin", -- 運営ACE。group.godも常に許可
 
     placeMinGrade = 0,
     removeMinGrade = 0,
     priceMinGrade = 0,
     salesMinGrade = 0,
+
+    -- 売上回収はWeazelの最上位grade（オーナー）のみ。ACEでは回避不可。
 
     -- 本社の座標が決まったら true にして coords を指定できます。
     salesRequireLocation = false,

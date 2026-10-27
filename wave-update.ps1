@@ -28,6 +28,9 @@ $PatchPath = Join-Path $TempRoot 'wave-v030.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
+$DeploymentStarted = $false
+$DeploymentComplete = $false
+$ActiveBackup = $null
 
 function Step([string]$Message) { Write-Host ''; Write-Host ('==> ' + $Message) -ForegroundColor Cyan }
 function Invoke-RepoGit([string[]]$GitArgs) {
@@ -107,6 +110,18 @@ try {
     if ($css -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') { throw 'CSS contains px units while LB Phone fixBlur is enabled' }
     $node=Get-Command node -ErrorAction SilentlyContinue
     if ($node) { & $node.Source --check $appPath; if ($LASTEXITCODE -ne 0) { throw 'WAVE JavaScript syntax check failed' }; Write-Host 'JavaScript syntax: PASS' -ForegroundColor Green }
+    else { Write-Host 'JavaScript syntax: SKIPPED (node not found)' -ForegroundColor Yellow }
+
+    $lua=Get-Command luac54 -ErrorAction SilentlyContinue
+    if (-not $lua) { $lua=Get-Command luac5.4 -ErrorAction SilentlyContinue }
+    if (-not $lua) { $lua=Get-Command luac -ErrorAction SilentlyContinue }
+    if ($lua) {
+        Get-ChildItem -LiteralPath $Source -Recurse -Filter '*.lua' -File | ForEach-Object {
+            & $lua.Source -p $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw ('WAVE Lua syntax check failed: ' + $_.FullName) }
+        }
+        Write-Host 'Lua syntax: PASS' -ForegroundColor Green
+    } else { Write-Host 'Lua syntax: SKIPPED (luac not found; CI validates Lua)' -ForegroundColor Yellow }
 
     Step 'Checking duplicate WAVE resources'
     $duplicates=Get-ChildItem -LiteralPath $Resources -Recurse -Filter fxmanifest.lua -File -ErrorAction SilentlyContinue | Where-Object {$_.Directory.Name -eq 'wave' -and $_.Directory.FullName -ne $Destination} | Select-Object -ExpandProperty DirectoryName -Unique
@@ -119,18 +134,35 @@ try {
         New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
         $backup=Join-Path $BackupRoot (Get-Date -Format 'yyyyMMdd-HHmmss')
         Copy-Item -LiteralPath $Destination -Destination $backup -Recurse -Force
+        $ActiveBackup=$backup
         Get-ChildItem -LiteralPath $BackupRoot -Directory | Sort-Object Name -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     Step 'Deploying WAVE to the test server'
+    $DeploymentStarted=$true
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
     if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
     Move-Item -LiteralPath $StagePath -Destination $Destination
     @('branch=' + $Branch,'commit=' + $head,'base_sha256=' + $baseHash,'version=' + $ExpectedVersion,'installed=' + (Get-Date -Format o)) | Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Encoding UTF8
+    $DeploymentComplete=$true
 
     Step 'WAVE deployment complete'
     Write-Host ('Installed: ' + $Destination) -ForegroundColor Green
     Write-Host 'txAdmin: refresh ; restart wave ; wave_selftest' -ForegroundColor Cyan
     exit 0
-} catch { Write-Host ''; Write-Host ('WAVE UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red; exit 1 }
+} catch {
+    Write-Host ''
+    Write-Host ('WAVE UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    if ($DeploymentStarted -and -not $DeploymentComplete -and $ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
+        Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
+        try {
+            if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+            Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
+            Write-Host 'Previous WAVE resource restored.' -ForegroundColor Green
+        } catch {
+            Write-Host ('ROLLBACK FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+        }
+    }
+    exit 1
+}
 finally { if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue } }

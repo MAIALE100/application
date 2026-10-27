@@ -18,6 +18,7 @@ on:
       - 'wave-update.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
+      - 'wave-save-idempotency-test.lua'
       - '.github/workflows/wave-check.yml'
   workflow_dispatch:
 
@@ -88,6 +89,10 @@ jobs:
         shell: bash
         run: |
           find wave-check/wave -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+
+      - name: Run WAVE Lua save regression tests
+        shell: bash
+        run: lua5.4 wave-save-idempotency-test.lua wave-check/wave
 
       - name: Check required files
         shell: bash

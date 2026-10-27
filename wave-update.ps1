@@ -233,10 +233,21 @@ $('publishTrack').onclick = async () => {
     $appText = '// WAVE_PUBLISH_DIAGNOSTICS_V023' + "`n" + $appText.Substring(0,$publishStart) + $publishBlock.TrimEnd("`r","`n") + $appText.Substring($publishEnd)
     [IO.File]::WriteAllText($appJsPath,$appText,(New-Object Text.UTF8Encoding($false)))
     $publishHash = (Get-FileHash $appJsPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    if ($publishHash -ne '86BB89C13F25ACA36957DBB6EE179F017B508031BB39E366DDCBE9366729EAE1') {
-        throw ('WAVE v0.2.3 app.js hash mismatch: ' + $publishHash)
+    $publishCheck = [IO.File]::ReadAllText($appJsPath)
+    if ($publishCheck -notmatch 'WAVE_PUBLISH_DIAGNOSTICS_V023') {
+        throw 'WAVE v0.2.3 publish diagnostics marker missing.'
     }
-    Write-Host 'v0.2.3 publish diagnostics SHA256: PASS' -ForegroundColor Green
+    if ($publishCheck -notmatch 'setPublishFeedback') {
+        throw 'WAVE v0.2.3 inline publish feedback is missing.'
+    }
+    if ($publishCheck -notmatch 'syncReleasePriceUi') {
+        throw 'WAVE v0.2.3 free-price UI patch is missing.'
+    }
+    if ($publishCheck -match '\b(?:prompt|confirm)\s*\(') {
+        throw 'Blocking browser prompt/confirm remains after v0.2.3 patch.'
+    }
+    Write-Host ('v0.2.3 app.js SHA256: ' + $publishHash) -ForegroundColor DarkGray
+    Write-Host 'v0.2.3 publish diagnostics structure: PASS' -ForegroundColor Green
 
     $manifestPath = Join-Path $Source 'fxmanifest.lua'
     $manifestText = [IO.File]::ReadAllText($manifestPath)

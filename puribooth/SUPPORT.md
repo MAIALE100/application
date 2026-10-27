@@ -1,4 +1,4 @@
-# FLEPURI v1.0.3 保守・不具合対応
+# FLEPURI v1.0.6 保守・不具合対応
 
 FLEPURIのコード修正・不具合対応は開発側で行います。
 運営側にLua / NUI / DB修正を依頼する前提ではありません。
@@ -43,6 +43,12 @@ puribooth_collections
 puribooth_refund_review <session_id> resolved
 puribooth_refund_review <session_id> retry
 ```
+
+## 売上回収権限
+
+通常の管理操作とは別に、`/puribooth collect` はWeazel jobの最上位grade（オーナー）のみに限定しています。
+`group.admin` / `group.god` のACE権限では回収できません。
+最上位gradeは固定番号ではなく、QBoxのWeazel job定義から動的に判定します。
 
 ## 会社売上回収事故
 

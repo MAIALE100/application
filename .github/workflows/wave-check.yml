@@ -1,0 +1,58 @@
+name: WAVE Static Check
+
+on:
+  push:
+    branches:
+      - wave/dev
+    paths:
+      - 'wave-package.part*'
+      - 'wave-update.ps1'
+      - 'wave-update.cmd'
+      - '.github/workflows/wave-check.yml'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct WAVE package
+        shell: bash
+        run: |
+          cat wave-package.part00 wave-package.part01 wave-package.part02 wave-package.part03 \
+              wave-package.part04 wave-package.part05 wave-package.part06 \
+              wave-package.part07a wave-package.part07b wave-package.part07c wave-package.part07d \
+              wave-package.part07e wave-package.part07f wave-package.part07g wave-package.part08 \
+              | base64 -d > wave-v0.2.0-test.zip
+          echo "34a84f4575f09ced45a58ef390272f9794f4d7cdcc548024a48fe5f899e16850  wave-v0.2.0-test.zip" | sha256sum -c -
+          unzip -t wave-v0.2.0-test.zip
+          unzip -q wave-v0.2.0-test.zip -d wave-check
+
+      - name: Check PowerShell updater syntax
+        shell: pwsh
+        run: |
+          $null = [ScriptBlock]::Create((Get-Content -Raw wave-update.ps1))
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: node --check wave-check/wave/web/app.js
+
+      - name: Install Lua
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+
+      - name: Check Lua syntax
+        shell: bash
+        run: find wave-check/wave -type f -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+
+      - name: Check WAVE wiring
+        shell: bash
+        run: |
+          grep -q "version '0.2.0-test'" wave-check/wave/fxmanifest.lua
+          ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
+          test -f wave-check/wave/client/main.lua
+          test -f wave-check/wave/server/main.lua
+          test -f wave-check/wave/web/index.html

@@ -1,0 +1,106 @@
+n:.65rem 0}.playlist-add-row{display:grid;grid-template-columns:1fr auto;gap:.45rem;margin:.65rem 0}.artist-stats{display:flex;gap:.75rem;color:var(--muted);font-size:.68rem;margin:.45rem 0 .7rem}.playlist-track{display:grid;grid-template-columns:1fr auto;gap:.45rem;align-items:center;background:var(--panel);border-radius:.75rem;padding:.6rem;margin:.4rem 0}.playlist-track strong,.playlist-track span{display:block}.playlist-track span{color:var(--muted);font-size:.64rem}.playlist-track button{padding:.45rem .55rem}.track-meta.clickable{cursor:pointer}
+ #albumManager input,#albumManager textarea,#albumManager select{margin:.35rem 0}.album-track-choices{display:grid;gap:.35rem;max-height:12rem;overflow:auto;margin:.55rem 0}.album-choice{display:flex;align-items:center;gap:.45rem;background:#0d1728;border-radius:.65rem;padding:.55rem;font-size:.68rem;color:#dbeafe}.album-choice input{width:auto;margin:0}.album-chip{position:relative;min-width:8.5rem;background:#0d1728;color:#f8fafc;text-align:left}.album-chip strong,.album-chip span{display:block}.album-chip span{font-size:.62rem;color:var(--muted);margin-top:.15rem}.album-list{display:flex;gap:.45rem;overflow:auto;margin:.55rem 0}.album-public-chip{min-width:8rem;background:var(--panel);color:#fff;text-align:left}.album-public-chip strong,.album-public-chip span{display:block}.album-public-chip span{font-size:.62rem;color:var(--muted);margin-top:.2rem}
+ .bar-tools{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem}.bar-tools button{padding:.5rem .65rem}.studio-actions{flex-wrap:wrap}.transport .switch-row{align-self:center}.transport .switch-row input{width:auto}
++
++.studio-title{min-width:0;flex:1}.project-title-input{border:0;background:transparent;padding:.12rem 0;font-size:1.25rem;font-weight:800;color:#fff;border-radius:0}.project-title-input:focus{outline:none;border-bottom:.08rem solid var(--accent)}.publish-feedback{margin-top:.55rem;padding:.55rem .65rem;border-radius:.65rem;background:rgba(34,211,238,.08);color:#bae6fd}.publish-feedback.bad{background:rgba(251,113,133,.09);color:#fecdd3}.publish-card button:disabled{opacity:.55;cursor:default}
++
++.release-manager-list{display:grid;gap:.45rem}.release-manager-row{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:center;background:#0d1728;border-radius:.75rem;padding:.6rem}.release-manager-row strong,.release-manager-row span{display:block}.release-manager-row span{font-size:.62rem;color:var(--muted);margin-top:.15rem}.release-manager-actions{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}.release-manager-actions button{padding:.45rem .55rem;font-size:.64rem}
+diff --git a/web/app.js b/web/app.js
+index 633f242..e739f7a 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -1,3 +1,4 @@
++// WAVE_PUBLISH_DIAGNOSTICS_V023
+ // WAVE_SAFE_DIALOG_V022
+ const state = {
+   bootstrap: null,
+@@ -9,6 +10,7 @@ const state = {
+   playlists: [],
+   albums: [],
+   albumTracks: [],
++  ownReleases: [],
+   project: null,
+   projectId: null,
+   selectedTrack: 0,
+@@ -29,7 +31,8 @@ const state = {
+   schedulerTimer: null,
+   reportTrackId: null,
+   dirty: false,
+-  localDraftTimer: null
++  localDraftTimer: null,
++  publishing: false
+ };
+ 
+ function hasFetchNui() {
+@@ -128,9 +131,13 @@ const ERROR_TEXT = {
+   TOO_MANY_TRACKS: 'トラック数が上限を超えています。',
+   TOO_MANY_NOTES: '1トラックのノート数が上限を超えています。',
+   PROJECT_NOTE_LIMIT: '曲全体のノート数が上限を超えています。',
++  PROJECT_EMPTY: 'ノートが1つもないため公開できません。',
++  PUBLISH_DB_FAILED: '公開データの保存に失敗しました。もう一度お試しください。',
+   INSUFFICIENT_FUNDS: '銀行残高が足りません。',
+   NOTHING_TO_WITHDRAW: '出金できる残高がありません。',
+   TRACK_NOT_FOUND: '曲が見つからないか、現在利用できません。',
++  TRACK_SUSPENDED: 'この曲は管理者により公開停止されています。',
++  INVALID_ACTION: 'この操作は現在の状態では実行できません。',
+   ARTIST_NOT_FOUND: 'アーティストが見つかりません。',
+   OWN_ARTIST: '自分自身のアーティストはフォローできません。',
+   PLAYLIST_NAME_REQUIRED: 'プレイリスト名を入力してください。',
+@@ -166,7 +173,7 @@ function showView(name) {
+   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+   if (name === 'library') loadLibrary();
+-  if (name === 'profile') { renderProfile(); loadOwnAlbums(); }
++  if (name === 'profile') { renderProfile(); loadOwnReleases(); loadOwnAlbums(); }
+   if (name === 'admin') loadAdmin();
+ }
+ 
+@@ -213,24 +220,20 @@ function waveDialog(message, defaultValue = '', inputMode = false) {
+ const waveConfirm = message => waveDialog(message, '', false);
+ const wavePrompt = (message, value = '') => waveDialog(message, value, true);
+ 
+-$('projectHeading').setAttribute('contenteditable', 'true');
+-$('projectHeading').setAttribute('role', 'textbox');
+-$('projectHeading').setAttribute('aria-label', 'プロジェクト名');
+-$('projectHeading').spellcheck = false;
+-$('projectHeading').addEventListener('keydown', event => {
+-  if (event.key === 'Enter') {
+-    event.preventDefault();
+-    event.currentTarget.blur();
+-  }
+-});
+-$('projectHeading').addEventListener('blur', event => {
++$('projectTitleInput').addEventListener('input', event => {
+   const p = ensureProject();
+-  const title = event.currentTarget.textContent.trim().slice(0, 80) || 'Untitled';
++  const title = String(event.currentTarget.value || '').slice(0, 80);
+   if (p.title !== title) {
+     p.title = title;
+     markDirty();
+   }
+-  event.currentTarget.textContent = p.title;
++});
++$('projectTitleInput').addEventListener('blur', event => {
++  const p = ensureProject();
++  const title = String(event.currentTarget.value || '').trim().slice(0, 80) || 'Untitled';
++  p.title = title;
++  event.currentTarget.value = title;
++  if (!$('releaseTitle').value.trim()) $('releaseTitle').value = title === 'Untitled' ? '' : title;
+ });
+ 
+ function blankProject() {
+@@ -360,7 +363,7 @@ function renderStudio() {
+   $('octaveSelect').value = String(state.octave);
+   $('barsInput').max = String(maxBars);
+   $('barsInput').value = p.bars;
+-  $('projectHeading').textContent = p.title || 'Untitled';
++  $('projectTitleInput').value = p.title || 'Untitled';
+   $('barSelect').innerHTML = '';
+   for (let i = 0; i < p.bars; i++) {
+     const option = document.createElement('option');
+@@ -665,8 +668,10 @@ $('stopProject').onclick = () => stopAudio();
+ 
+ $('saveProject').onclick = async () => {
+   const p = ensureProject();
+-  const title = String($('projectHeading').textContent || p.title || 'Untitled').trim().slice(0, 80) || 'Untitled';
++  const title = String($('projectTitleInput').value || p.title 

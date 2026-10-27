@@ -155,7 +155,7 @@ function syncReleasePriceUi() {
   const paid = $('accessMode').value === 'purchase' || $('accessMode').value === 'both';
   $('releasePrice').disabled = !paid;
   $('releasePrice').style.opacity = paid ? '1' : '.45';
-  $('releasePrice').title = paid ? '販売価格' : '無料公開では価格は使用しません';
+  $('releasePrice').title = paid ? '\u8ca9\u58f2\u4fa1\u683c' : '\u7121\u6599\u516c\u958b\u3067\u306f\u4fa1\u683c\u306f\u4f7f\u7528\u3057\u307e\u305b\u3093';
 }
 $('accessMode').addEventListener('change', syncReleasePriceUi);
 syncReleasePriceUi();
@@ -166,27 +166,27 @@ $('publishTrack').onclick = async () => {
   setPublishFeedback('');
 
   if (!$('rightsConfirm').checked) {
-    setPublishFeedback('権利確認にチェックしてください。', true);
-    status('権利確認にチェックしてください', true);
+    setPublishFeedback('\u6a29\u5229\u78ba\u8a8d\u306b\u30c1\u30a7\u30c3\u30af\u3057\u3066\u304f\u3060\u3055\u3044\u3002', true);
+    status('\u6a29\u5229\u78ba\u8a8d\u306b\u30c1\u30a7\u30c3\u30af\u3057\u3066\u304f\u3060\u3055\u3044', true);
     return;
   }
   if (!state.bootstrap?.artist || state.bootstrap.artist.status !== 'active') {
-    setPublishFeedback('公開可能なアーティストプロフィールが必要です。', true);
-    status('公開可能なアーティストプロフィールが必要です', true);
+    setPublishFeedback('\u516c\u958b\u53ef\u80fd\u306a\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u304c\u5fc5\u8981\u3067\u3059\u3002', true);
+    status('\u516c\u958b\u53ef\u80fd\u306a\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u304c\u5fc5\u8981\u3067\u3059', true);
     return;
   }
   const title = $('releaseTitle').value.trim();
   if (!title) {
-    setPublishFeedback('曲名を入力してください。', true);
-    status('曲名を入力してください', true);
+    setPublishFeedback('\u66f2\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002', true);
+    status('\u66f2\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044', true);
     return;
   }
 
   const p = ensureProject();
   button.disabled = true;
-  button.textContent = '公開中…';
-  setPublishFeedback('WAVEへ公開処理を送信しています…');
-  status('公開中…');
+  button.textContent = '\u516c\u958b\u4e2d\u2026';
+  setPublishFeedback('WAVE\u3078\u516c\u958b\u51e6\u7406\u3092\u9001\u4fe1\u3057\u3066\u3044\u307e\u3059\u2026');
+  status('\u516c\u958b\u4e2d\u2026');
 
   try {
     const r = await bridge('publishTrack', {
@@ -210,19 +210,19 @@ $('publishTrack').onclick = async () => {
 
     if (r?.ok) {
       $('rightsConfirm').checked = false;
-      setPublishFeedback('公開しました。HOMEの新着へ反映します。');
-      status('公開しました');
+      setPublishFeedback('\u516c\u958b\u3057\u307e\u3057\u305f\u3002HOME\u306e\u65b0\u7740\u3078\u53cd\u6620\u3057\u307e\u3059\u3002');
+      status('\u516c\u958b\u3057\u307e\u3057\u305f');
       await refreshHome();
     } else {
       const code = r?.error || 'UNKNOWN_ERROR';
       const message = errorText(code);
-      setPublishFeedback('公開失敗: ' + message + ' [' + code + ']', true);
-      status('公開失敗: ' + message, true);
+      setPublishFeedback('\u516c\u958b\u5931\u6557: ' + message + ' [' + code + ']', true);
+      status('\u516c\u958b\u5931\u6557: ' + message, true);
     }
   } catch (error) {
     const detail = String(error?.message || error || 'UNKNOWN_ERROR');
-    setPublishFeedback('公開処理でエラーが発生しました: ' + detail, true);
-    status('公開処理エラー', true);
+    setPublishFeedback('\u516c\u958b\u51e6\u7406\u3067\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f: ' + detail, true);
+    status('\u516c\u958b\u51e6\u7406\u30a8\u30e9\u30fc', true);
     console.error('[WAVE] publishTrack failed', error);
   } finally {
     button.disabled = false;

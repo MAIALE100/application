@@ -1,0 +1,14 @@
+--- a/server/main.lua
++++ b/server/main.lua
+@@ -76,8 +76,9 @@
+ local function limited(source, key, ms)
+     local now = GetGameTimer()
+     local id = ('%s:%s'):format(source, key)
+-    local last = rate[id] or 0
+-    if now - last < ms then return true end
++    local last = rate[id]
++    -- A new caller must not be throttled at uptime zero; timer wrap resets the window.
++    if last ~= nil and now >= last and now - last < ms then return true end
+     rate[id] = now
+     return false
+ end

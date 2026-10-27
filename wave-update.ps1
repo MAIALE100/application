@@ -108,6 +108,115 @@ async function bridge(action, payload = {}) {
         [IO.File]::WriteAllText($appJsPath, $appJs, (New-Object Text.UTF8Encoding($false)))
     }
 
+    Step 'Applying WAVE v0.2.2 save/dialog hotfix'
+    $payloadParts = @('wave-v022-app.part00','wave-v022-app.part01','wave-v022-app.part02')
+    $payloadBuilder = New-Object System.Text.StringBuilder
+    foreach ($payloadPart in $payloadParts) {
+        $payloadText = (Invoke-RepoGit -GitArgs @('show',"${remoteRef}:$payloadPart")) -join ''
+        $payloadText = $payloadText.Trim()
+        if ($payloadText -notmatch '^[A-Za-z0-9+/=]+    $manifestText = [IO.File]::ReadAllText($manifestPath)
+    $manifestText = $manifestText.Replace("version '0.2.0-test'", "version '0.2.1-test'").Replace("version '0.2.1-test'", "version '0.2.2-test'")
+    [IO.File]::WriteAllText($manifestPath, $manifestText, (New-Object Text.UTF8Encoding($false)))
+    foreach ($required in @(
+        'fxmanifest.lua','config\shared.lua','client\main.lua','server\main.lua',
+        'web\index.html','web\app.js','web\app.css','web\icon.svg'
+    )) {
+        if (-not (Test-Path (Join-Path $Source $required))) { throw "Missing required WAVE file: $required" }
+    }
+
+    $manifest = Get-Content (Join-Path $Source 'fxmanifest.lua') -Raw
+    if ($manifest -notmatch "version\s+'0\.2\.2-test'") { throw 'Unexpected WAVE version in fxmanifest.lua' }
+    $finalAppJs = Get-Content (Join-Path $Source 'web\app.js') -Raw
+    if ($finalAppJs -notmatch 'WAVE_SAFE_DIALOG_V022') { throw 'WAVE v0.2.2 app hotfix was not applied.' }
+    if ($finalAppJs -match '\b(?:prompt|confirm)\s*\(') { throw 'Blocking browser prompt/confirm remains in WAVE.' }
+    $css = Get-Content (Join-Path $Source 'web\app.css') -Raw
+    if ($css -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') { throw 'CSS contains px units while LB Phone fixBlur is enabled.' }
+
+    Step 'Checking duplicate WAVE resources'
+    $duplicates = Get-ChildItem -LiteralPath $Resources -Recurse -Filter fxmanifest.lua -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Directory.Name -eq 'wave' -and $_.Directory.FullName -ne $Destination } |
+        Select-Object -ExpandProperty DirectoryName -Unique
+    if ($duplicates) {
+        Write-Host 'WARNING: duplicate WAVE resource folders found:' -ForegroundColor Yellow
+        $duplicates | ForEach-Object { Write-Host ('  ' + $_) -ForegroundColor Yellow }
+        throw 'Remove or rename duplicate WAVE resources before installing.'
+    }
+
+    Step 'Staging WAVE resource'
+    $StageWave = Join-Path $StagePath 'wave'
+    Copy-Item -LiteralPath $Source -Destination $StageWave -Recurse -Force
+
+    if (Test-Path -LiteralPath $Destination) {
+        Step 'Backing up current WAVE resource'
+        New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $backup = Join-Path $BackupRoot $stamp
+        Copy-Item -LiteralPath $Destination -Destination $backup -Recurse -Force
+        Write-Host ("Backup: {0}" -f $backup) -ForegroundColor DarkGray
+    }
+
+    Step 'Deploying WAVE to the test server'
+    $parent = Split-Path -Parent $Destination
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+    Move-Item -LiteralPath $StageWave -Destination $Destination
+
+    $status = @(
+        "branch=$Branch",
+        "commit=$head",
+        "sha256=$actualHash",
+        "installed=$(Get-Date -Format o)"
+    ) -join [Environment]::NewLine
+    Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Value $status -Encoding UTF8
+
+    Step 'WAVE deployment complete'
+    Write-Host ("Installed: {0}" -f $Destination) -ForegroundColor Green
+    Write-Host ''
+    Write-Host 'Run these in txAdmin:' -ForegroundColor Cyan
+    Write-Host '  refresh'
+    Write-Host '  ensure wave'
+    Write-Host '  wave_selftest'
+    Write-Host ''
+    Write-Host 'Expected: [WAVE] SELFTEST PASS' -ForegroundColor Green
+    exit 0
+}
+catch {
+    Write-Host ''
+    Write-Host ('WAVE UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
+    exit 1
+}
+finally {
+    if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue }
+}
+) { throw "Invalid WAVE v0.2.2 payload data in $payloadPart" }
+        [void]$payloadBuilder.Append($payloadText)
+    }
+    $compressedApp = [Convert]::FromBase64String($payloadBuilder.ToString())
+    $inputStream = New-Object IO.MemoryStream(,$compressedApp)
+    $gzipStream = New-Object IO.Compression.GzipStream($inputStream,[IO.Compression.CompressionMode]::Decompress)
+    $outputStream = New-Object IO.MemoryStream
+    try {
+        $gzipStream.CopyTo($outputStream)
+        $appBytes = $outputStream.ToArray()
+    }
+    finally {
+        $gzipStream.Dispose()
+        $inputStream.Dispose()
+        $outputStream.Dispose()
+    }
+    [IO.File]::WriteAllBytes($appJsPath,$appBytes)
+    $appHash = (Get-FileHash $appJsPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($appHash -ne '1CE2C985AB072DB4F1C2B9C3D2194525EF619FF8456B154AE2DE18F513602262') {
+        throw "WAVE v0.2.2 app.js hash mismatch: $appHash"
+    }
+    $patchedAppJs = [IO.File]::ReadAllText($appJsPath)
+    if ($patchedAppJs -notmatch 'WAVE_SAFE_DIALOG_V022') { throw 'WAVE v0.2.2 marker missing.' }
+    if ($patchedAppJs -match '\b(?:prompt|confirm)\s*\(') { throw 'Blocking browser prompt/confirm remains in WAVE v0.2.2.' }
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    if ($node) {
+        & $node.Source --check $appJsPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE v0.2.2 JavaScript syntax check failed.' }
+    }
     $manifestPath = Join-Path $Source 'fxmanifest.lua'
     $manifestText = [IO.File]::ReadAllText($manifestPath)
     $manifestText = $manifestText.Replace("version '0.2.0-test'", "version '0.2.1-test'")

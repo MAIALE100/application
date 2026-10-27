@@ -1,5 +1,14 @@
 # PuriBooth Changelog
 
+## 1.0.6 - 2026-10-27
+
+### 売上回収権限の厳格化
+- `/puribooth collect all` / `/puribooth collect <台ID>` をWeazel jobの最上位grade（オーナー）のみに限定
+- 最上位gradeは固定値ではなくQBoxのWeazel job定義から動的に判定
+- `group.admin` / `group.god` のACE権限でも売上回収だけはバイパス不可
+- 設置・撤去・料金変更・売上確認など、売上回収以外の管理権限は従来どおり維持
+- `Config.Management.ace` 行の区切りカンマ位置を修正し、Lua構文を正常化
+
 ## 1.0.5 - 2026-10-27
 
 ### Flecity運営提出向け

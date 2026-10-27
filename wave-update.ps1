@@ -133,7 +133,7 @@ try {
 
     Step 'Applying WAVE v0.2.3 publish diagnostics'
     $appText = [IO.File]::ReadAllText($appJsPath).Replace("`r`n","`n")
-    $publishStart = $appText.IndexOf("$('publishTrack').onclick = async () => {")
+    $publishStart = $appText.IndexOf('$(''publishTrack'').onclick = async () => {')
     if ($publishStart -lt 0) { throw 'Could not locate WAVE publish handler start.' }
     $publishEnd = $appText.IndexOf("`n`nfunction renderTrackList", $publishStart)
     if ($publishEnd -lt 0) { throw 'Could not locate WAVE publish handler end.' }

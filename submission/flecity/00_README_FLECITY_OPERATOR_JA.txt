@@ -12,7 +12,7 @@ Flecity運営ご担当者様
 ■ ご提出内容
 ────────────────────────
 
-1. FLEPURI v1.0.5
+1. FLEPURI v1.0.6
    リソース名: puribooth
 
 2. PuriPhoto v1.1.1 更新版
@@ -113,9 +113,12 @@ FLEPURI側では、会社口座の存在確認まで自動で行います。
 ■ 運営権限での管理コマンド
 ────────────────────────
 
-FLEPURI v1.0.5では、通常のWeazel所属者に加え、
+FLEPURI v1.0.6では、通常のWeazel所属者に加え、
 ACE group.admin または group.god をお持ちの運営権限者様も
-管理コマンドをご使用いただけるようにしております。
+設置・撤去・料金変更・売上確認等の管理コマンドをご使用いただけます。
+
+ただし、売上回収だけはWeazel jobの最上位grade（オーナー）のみに限定しており、
+group.admin / group.god のACE権限でも回収はできません。
 
 ゲーム内:
 
@@ -125,6 +128,8 @@ ACE group.admin または group.god をお持ちの運営権限者様も
   /puribooth list
   /puribooth price <料金> [台ID]
   /puribooth sales
+
+Weazelオーナーのみ:
   /puribooth collect <all|台ID>
 
 詳細は同梱の
@@ -186,7 +191,7 @@ FLEPURI自体の起動・撮影・会計機能には影響ございません。
 ■ 動作確認済み環境
 ────────────────────────
 
-FLEPURI v1.0.5
+FLEPURI v1.0.6
 PuriPhoto v1.1.1
 qbx_core v1.24.0
 oxmysql v2.14.3

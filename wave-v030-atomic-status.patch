@@ -1,0 +1,35 @@
+--- a/server/main.lua
++++ b/server/main.lua
+@@ -815,17 +815,23 @@
+     if row.status == 'suspended' then return {ok=false,error='TRACK_SUSPENDED'} end
+     if row.status == 'deleted' then return {ok=false,error='TRACK_NOT_FOUND'} end
+ 
++    -- Atomic status predicates prevent a stale owner action from undoing moderation.
+     if action == 'unpublish' then
+         if row.status ~= 'public' then return {ok=false,error='INVALID_ACTION'} end
+-        MySQL.update.await("UPDATE wave_tracks SET status='private' WHERE id=? AND artist_id=?",{trackId,artist.id})
++        local changed = MySQL.update.await("UPDATE wave_tracks SET status='private' WHERE id=? AND artist_id=? AND status='public'",{trackId,artist.id})
++        if not changed or changed < 1 then return {ok=false,error='TRACK_STATE_CHANGED'} end
+         return {ok=true,status='private'}
+     elseif action == 'publish' then
+         if artist.status ~= 'active' then return {ok=false,error='ARTIST_SUSPENDED'} end
+         if row.status ~= 'private' then return {ok=false,error='INVALID_ACTION'} end
+-        MySQL.update.await("UPDATE wave_tracks SET status='public',published_at=COALESCE(published_at,NOW()) WHERE id=? AND artist_id=?",{trackId,artist.id})
++        local changed = MySQL.update.await([[UPDATE wave_tracks SET status='public',published_at=COALESCE(published_at,NOW())
++            WHERE id=? AND artist_id=? AND status='private'
++              AND EXISTS (SELECT 1 FROM wave_artists WHERE id=? AND status='active')]],{trackId,artist.id,artist.id})
++        if not changed or changed < 1 then return {ok=false,error='TRACK_STATE_CHANGED'} end
+         return {ok=true,status='public'}
+     elseif action == 'delete' then
+-        MySQL.update.await("UPDATE wave_tracks SET status='deleted' WHERE id=? AND artist_id=?",{trackId,artist.id})
++        local changed = MySQL.update.await("UPDATE wave_tracks SET status='deleted' WHERE id=? AND artist_id=? AND status IN ('public','private')",{trackId,artist.id})
++        if not changed or changed < 1 then return {ok=false,error='TRACK_STATE_CHANGED'} end
+         return {ok=true,status='deleted'}
+     end
+     return {ok=false,error='INVALID_ACTION'}
+--- a/web/app.js
++++ b/web/app.js
+@@ -153,2 +153,3 @@
+ };
++ERROR_TEXT.TRACK_STATE_CHANGED = '\u64cd\u4f5c\u4e2d\u306b\u66f2\u306e\u72b6\u614b\u304c\u5909\u308f\u308a\u307e\u3057\u305f\u3002\u518d\u8aad\u307f\u8fbc\u307f\u3057\u3066\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
+ 

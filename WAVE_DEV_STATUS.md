@@ -1,7 +1,43 @@
-# WAVE development branch
+# WAVE development status
 
-This branch is reserved for WAVE development.
+Branch: `wave/dev`
+Test resource version: `0.3.0-test`
 
-Current validated test package: `WAVE_v0.1.1_Test_2026-10-27.zip` generated in the ChatGPT development session on 2026-10-27.
+## Build and deployment
 
-Do not deploy this branch until the WAVE source tree is committed here; the ZIP package is the current test source of truth.
+Run `wave-update.cmd` from the existing `D:\FiveM_Dev\application` checkout.
+The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstructs
+the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
+`wave-v030-atomic-status.patch` safety patch, checks syntax where local
+runtimes are available, stages, backs up, deploys, and verifies file hashes.
+A failed deployment attempts to restore the previous resource.
+
+This branch currently stores its test resource as validated base64 parts plus
+patches, not a complete source tree. Do not edit a deployed resource as the
+source of truth. Future changes must update the reproducible build pipeline.
+
+## Security invariants
+
+- Only authorized server admins and Weazel bosses can access admin callbacks.
+- Public track data must not expose the creator citizenid.
+- Purchases debit QBox bank; earnings accrue to WAVE DB wallets.
+- Creator payouts transfer to QBox bank only on explicit withdrawal.
+- Artist-owned release actions must never override a concurrent admin suspension
+  or restore a deleted release. The atomic-status patch adds SQL state predicates.
+- Published tracks require a confirmed rights declaration and a valid project.
+
+## Verification
+
+Local extracted-package checks completed for the atomic-status patch:
+`git apply --check`, `node --check`, Lua 5.3 syntax parsing for four Lua
+files, and 13 static security/compatibility assertions. The CI workflow
+also requests PowerShell parsing, JavaScript syntax, Lua 5.4 syntax and
+security assertions, but GitHub Actions jobs have been failing before any
+steps start. A passing CI result is not yet available.
+
+Next in-game test after a successful `wave-update.cmd`:
+`refresh`, `restart wave`, `wave_selftest`; publish one track and check
+owner unpublish/republish. Verify that an admin-suspended track cannot be
+republished or deleted by its creator.
+
+Do not deploy to production until the in-game checks pass.

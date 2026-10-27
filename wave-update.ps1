@@ -1,15 +1,18 @@
 param(
     [string]$ServerBase = 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base',
+    [string]$RepoRoot = '',
     [switch]$NoFetch
 )
 
 $ErrorActionPreference = 'Stop'
-$RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
+$RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 $Branch = 'wave/dev'
 $Resources = Join-Path $ServerBase 'resources'
 $Destination = Join-Path $Resources '[lb-phone]\wave'
 $ExpectedBaseSha256 = '34A84F4575F09CED45A58EF390272F9794F4D7CDCC548024A48FE5F899E16850'
 $ExpectedAppSha256 = '1CE2C985AB072DB4F1C2B9C3D2194525EF619FF8456B154AE2DE18F513602262'
+$ExpectedPatchSha256 = '6A91D4CDEFA0332119D00A1F72B6E3FDA0E54EDBF4564A716DDF0DC9AC65FAFE'
 $ExpectedVersion = '0.3.0-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
@@ -85,6 +88,9 @@ try {
 
     Step 'Applying WAVE v0.3.0 patch'
     [IO.File]::WriteAllBytes($PatchPath,[Convert]::FromBase64String((Read-RemoteParts $remoteRef $PatchParts)))
+    $patchHash=(Get-FileHash -LiteralPath $PatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($patchHash -ne $ExpectedPatchSha256) { throw ('WAVE v0.3.0 patch hash mismatch: ' + $patchHash) }
+    Write-Host 'v0.3.0 patch SHA256: PASS' -ForegroundColor Green
     $oldLocation=Get-Location
     try {
         Set-Location $Source
@@ -129,6 +135,7 @@ try {
     if ($duplicates) { $duplicates | ForEach-Object {Write-Host ('  ' + $_) -ForegroundColor Yellow}; throw 'Duplicate WAVE resource found' }
 
     Step 'Staging WAVE resource'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $StagePath) | Out-Null
     Copy-Item -LiteralPath $Source -Destination $StagePath -Recurse -Force
     if (Test-Path -LiteralPath $Destination) {
         Step 'Backing up current WAVE resource'
@@ -136,7 +143,6 @@ try {
         $backup=Join-Path $BackupRoot ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,8))
         Copy-Item -LiteralPath $Destination -Destination $backup -Recurse -Force
         $ActiveBackup=$backup
-        Get-ChildItem -LiteralPath $BackupRoot -Directory | Sort-Object Name -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     Step 'Deploying WAVE to the test server'
@@ -146,16 +152,24 @@ try {
     Move-Item -LiteralPath $StagePath -Destination $Destination
 
     Step 'Verifying deployed WAVE resource'
-    foreach($relative in $CriticalFiles) {
-        $sourceFile=Join-Path $Source $relative
+    $sourceFiles=@(Get-ChildItem -LiteralPath $Source -Recurse -File)
+    $deployedFiles=@(Get-ChildItem -LiteralPath $Destination -Recurse -File)
+    if ($sourceFiles.Count -ne $deployedFiles.Count) { throw 'Deployed WAVE file count mismatch' }
+    foreach($sourceFile in $sourceFiles) {
+        $relative=$sourceFile.FullName.Substring($Source.Length + 1)
         $deployedFile=Join-Path $Destination $relative
         if (-not (Test-Path -LiteralPath $deployedFile)) { throw ('Deployed WAVE file missing: ' + $relative) }
-        $sourceHash=(Get-FileHash -LiteralPath $sourceFile -Algorithm SHA256).Hash
+        $sourceHash=(Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash
         $deployedHash=(Get-FileHash -LiteralPath $deployedFile -Algorithm SHA256).Hash
         if ($sourceHash -ne $deployedHash) { throw ('Deployed WAVE file verification failed: ' + $relative) }
     }
     @('branch=' + $Branch,'commit=' + $head,'base_sha256=' + $baseHash,'version=' + $ExpectedVersion,'installed=' + (Get-Date -Format o)) | Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Encoding UTF8
     $DeploymentComplete=$true
+    if (Test-Path -LiteralPath $BackupRoot) {
+        Get-ChildItem -LiteralPath $BackupRoot -Directory |
+            Sort-Object Name -Descending | Select-Object -Skip 5 |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Write-Host 'Deployment verification: PASS' -ForegroundColor Green
 
     Step 'WAVE deployment complete'
@@ -165,12 +179,17 @@ try {
 } catch {
     Write-Host ''
     Write-Host ('WAVE UPDATE FAILED: ' + $_.Exception.Message) -ForegroundColor Red
-    if ($DeploymentStarted -and -not $DeploymentComplete -and $ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
-        Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
+    if ($DeploymentStarted -and -not $DeploymentComplete) {
         try {
-            if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
-            Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
-            Write-Host 'Previous WAVE resource restored.' -ForegroundColor Green
+            if ($ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
+                Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
+                if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+                Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
+                Write-Host 'Previous WAVE resource restored.' -ForegroundColor Green
+            } elseif (Test-Path -LiteralPath $Destination) {
+                Write-Host 'Removing incomplete first installation...' -ForegroundColor Yellow
+                Remove-Item -LiteralPath $Destination -Recurse -Force
+            }
         } catch {
             Write-Host ('ROLLBACK FAILED: ' + $_.Exception.Message) -ForegroundColor Red
         }

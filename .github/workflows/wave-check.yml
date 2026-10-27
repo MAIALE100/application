@@ -41,12 +41,16 @@ jobs:
           cat wave-v030-patchb64.part00 wave-v030-patchb64.part01 wave-v030-patchb64.part02 \
               wave-v030-patchb64.part03 wave-v030-patchb64.part04 wave-v030-patchb64.part05 \
               | base64 -d > wave-v030.patch
+          echo "6a91d4cdefa0332119d00a1f72b6e3fda0e54edbf4564a716ddf0dc9ac65fafe  wave-v030.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030.patch && git apply --whitespace=nowarn ../../wave-v030.patch)
 
       - name: Check PowerShell updater syntax
         shell: pwsh
         run: |
-          $null = [ScriptBlock]::Create((Get-Content -Raw wave-update.ps1))
+          $script = Get-Content -Raw wave-update.ps1
+          $null = [ScriptBlock]::Create($script)
+          if ($script -match '[^\x00-\x7F]') { throw 'WAVE updater must remain ASCII for Windows PowerShell 5.1' }
+          if ($script -notmatch 'ExpectedPatchSha256') { throw 'Patch integrity check missing' }
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

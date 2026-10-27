@@ -1,7 +1,7 @@
 FLEPURI + PuriPhoto
 Flecity運営様向け 提出内容
 
-・FLEPURI v1.0.5 新規導入版
+・FLEPURI v1.0.6 新規導入版
 ・PuriPhoto v1.1.1 機能追加アップデート版
 ・運営様向け導入手順
 ・運営様向けコマンド一覧
@@ -17,3 +17,7 @@ SQL・npm build・コード編集は不要です。
 
 FLEPURI管理コマンドは、
 weazel jobに加えてACE group.admin / group.godでも使用できます。
+
+権限仕様:
+・設置・撤去・料金変更・売上確認: Weazel または運営ACE
+・売上回収: Weazel jobの最上位grade（オーナー）のみ

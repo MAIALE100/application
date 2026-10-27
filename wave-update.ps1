@@ -84,6 +84,34 @@ try {
 
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $ExtractPath -Force
     $Source = Join-Path $ExtractPath 'wave'
+
+    Step 'Applying WAVE v0.2.1 LB Phone bridge hotfix'
+    $appJsPath = Join-Path $Source 'web\app.js'
+    $appJs = [IO.File]::ReadAllText($appJsPath)
+    if ($appJs -notmatch 'WAVE_BRIDGE_WAIT_V021') {
+        $bridgeNeedle = "async function bridge(action, payload = {}) {`n  try {"
+        $bridgeReplacement = @"
+async function bridge(action, payload = {}) {
+  // WAVE_BRIDGE_WAIT_V021: LB Phone injects fetchNui after the custom-app iframe starts.
+  if (!hasFetchNui() && typeof GetParentResourceName !== 'function') {
+    const started = performance.now();
+    while (!hasFetchNui() && typeof GetParentResourceName !== 'function' && performance.now() - started < 5000) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+  try {
+"@
+        if (-not $appJs.Contains($bridgeNeedle)) {
+            throw 'Could not locate WAVE bridge insertion point.'
+        }
+        $appJs = $appJs.Replace($bridgeNeedle, $bridgeReplacement.TrimEnd("`r","`n"))
+        [IO.File]::WriteAllText($appJsPath, $appJs, (New-Object Text.UTF8Encoding($false)))
+    }
+
+    $manifestPath = Join-Path $Source 'fxmanifest.lua'
+    $manifestText = [IO.File]::ReadAllText($manifestPath)
+    $manifestText = $manifestText.Replace("version '0.2.0-test'", "version '0.2.1-test'")
+    [IO.File]::WriteAllText($manifestPath, $manifestText, (New-Object Text.UTF8Encoding($false)))
     foreach ($required in @(
         'fxmanifest.lua','config\shared.lua','client\main.lua','server\main.lua',
         'web\index.html','web\app.js','web\app.css','web\icon.svg'
@@ -92,7 +120,8 @@ try {
     }
 
     $manifest = Get-Content (Join-Path $Source 'fxmanifest.lua') -Raw
-    if ($manifest -notmatch "version\s+'0\.2\.0-test'") { throw 'Unexpected WAVE version in fxmanifest.lua' }
+    if ($manifest -notmatch "version\s+'0\.2\.1-test'") { throw 'Unexpected WAVE version in fxmanifest.lua' }
+    if ((Get-Content (Join-Path $Source 'web\app.js') -Raw) -notmatch 'WAVE_BRIDGE_WAIT_V021') { throw 'WAVE LB Phone bridge hotfix was not applied.' }
     $css = Get-Content (Join-Path $Source 'web\app.css') -Raw
     if ($css -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') { throw 'CSS contains px units while LB Phone fixBlur is enabled.' }
 

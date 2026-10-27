@@ -74,6 +74,10 @@ try {
     finally { $gzip.Dispose(); $input.Dispose(); $output.Dispose() }
     $appHash=(Get-FileHash $appPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($appHash -ne $ExpectedAppSha256) { throw ('WAVE v0.2.2 app hash mismatch: ' + $appHash) }
+    $manifestPath=Join-Path $Source 'fxmanifest.lua'
+    $manifestText=[IO.File]::ReadAllText($manifestPath)
+    $manifestText=$manifestText.Replace("version '0.2.0-test'","version '0.2.2-test'")
+    [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
 
     Step 'Applying WAVE v0.3.0 patch'
     [IO.File]::WriteAllBytes($PatchPath,[Convert]::FromBase64String((Read-RemoteParts $remoteRef $PatchParts)))

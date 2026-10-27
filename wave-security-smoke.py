@@ -55,6 +55,15 @@ check('Publication requires rights, active artist and normalized project',
 check('Owner release management blocks suspended tracks',
       all(token in body('cbUpdateOwnTrack') for token in
           ("row.status == 'suspended'", 'artist_id=?', "artist.status ~= 'active'")))
+check('Owner release changes are atomic and cannot override moderation',
+      all(token in body('cbUpdateOwnTrack') for token in (
+          "AND status='public'",
+          "AND status='private'",
+          "status IN ('public','private')",
+          "EXISTS (SELECT 1 FROM wave_artists WHERE id=? AND status='active')",
+          "TRACK_STATE_CHANGED"))
+      and body('cbUpdateOwnTrack').count('if not changed or changed < 1') == 3
+      and 'ERROR_TEXT.TRACK_STATE_CHANGED' in app)
 check('Public tracks only show active artists and public releases',
       "t.status='public' AND a.status='active'" in body('publicTracks'))
 check('Schema version and diagnostic endpoint exist',

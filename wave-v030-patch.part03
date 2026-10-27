@@ -1,0 +1,186 @@
+|| 'Untitled').trim().slice(0, 80) || 'Untitled';
+   p.title = title;
++  $('projectTitleInput').value = title;
++  if (!$('releaseTitle').value.trim() && title !== 'Untitled') $('releaseTitle').value = title;
+   status('保存中…');
+   const r = await bridge('saveProject', { id: state.projectId, title, project: p });
+   if (r.ok) {
+@@ -678,36 +683,128 @@ $('saveProject').onclick = async () => {
+   } else status('保存失敗: ' + errorText(r.error), true);
+ };
+ 
++function setPublishFeedback(text = '', bad = false) {
++  let el = $('publishFeedback');
++  if (!el) {
++    el = document.createElement('div');
++    el.id = 'publishFeedback';
++    el.className = 'publish-feedback muted';
++    $('publishTrack').insertAdjacentElement('afterend', el);
++  }
++  el.textContent = text;
++  el.classList.toggle('bad', bad);
++}
++
++function syncReleasePriceUi() {
++  const paid = $('accessMode').value === 'purchase' || $('accessMode').value === 'both';
++  $('releasePrice').disabled = !paid;
++  $('releasePrice').classList.toggle('hidden', !paid);
++  $('releasePrice').title = paid ? '販売価格' : '無料公開では価格は使用しません';
++}
++$('accessMode').addEventListener('change', syncReleasePriceUi);
++syncReleasePriceUi();
++
++async function saveProjectForPublish() {
++  const p = ensureProject();
++  const title = String($('projectTitleInput').value || p.title || 'Untitled').trim().slice(0, 80) || 'Untitled';
++  p.title = title;
++  $('projectTitleInput').value = title;
++
++  if (state.projectId && !state.dirty) return { ok: true, id: state.projectId };
++
++  setPublishFeedback('公開前にプロジェクトを保存しています…');
++  const saved = await bridge('saveProject', { id: state.projectId, title, project: p });
++  if (!saved?.ok) return saved || { ok: false, error: 'EMPTY_RESPONSE' };
++
++  state.projectId = saved.id;
++  state.dirty = false;
++  saveLocalDraft();
++  renderStudio();
++  return saved;
++}
++
+ $('publishTrack').onclick = async () => {
+-  if (!$('rightsConfirm').checked) return status('権利確認にチェックしてください', true);
+-  if (!state.bootstrap?.artist || state.bootstrap.artist.status !== 'active') return status('公開可能なアーティストプロフィールが必要です', true);
++  if (state.publishing) return;
++  const button = $('publishTrack');
++  const originalText = button.textContent;
++  setPublishFeedback('');
++
++  if (!$('rightsConfirm').checked) {
++    setPublishFeedback('権利確認にチェックしてください。', true);
++    return status('権利確認にチェックしてください', true);
++  }
++  if (!state.bootstrap?.artist || state.bootstrap.artist.status !== 'active') {
++    setPublishFeedback('公開可能なアーティストプロフィールが必要です。', true);
++    return status('公開可能なアーティストプロフィールが必要です', true);
++  }
++
+   const title = $('releaseTitle').value.trim();
+-  if (!title) return status('曲名を入力してください', true);
+-  const p = ensureProject();
+-  status('公開中…');
+-  const r = await bridge('publishTrack', {
+-    projectId: state.projectId,
+-    title,
+-    description: $('releaseDescription').value,
+-    genre: $('releaseGenre').value,
+-    accessMode: $('accessMode').value,
+-    price: Number($('releasePrice').value) || 0,
+-    rightsConfirmed: true,
+-    rights: {
+-      personal: true,
+-      ringtone: $('rightRingtone').checked,
+-      notification: $('rightNotification').checked,
+-      storeBgm: $('rightStore').checked,
+-      event: $('rightEvent').checked,
+-      remix: $('rightRemix').checked
+-    },
+-    project: p
+-  });
+-  if (r.ok) {
+-    $('rightsConfirm').checked = false;
+-    status('公開しました');
+-    await refreshHome();
+-  } else status('公開失敗: ' + errorText(r.error), true);
++  if (!title) {
++    setPublishFeedback('曲名を入力してください。', true);
++    return status('曲名を入力してください', true);
++  }
++
++  state.publishing = true;
++  button.disabled = true;
++  button.textContent = '公開中…';
++
++  try {
++    const saved = await saveProjectForPublish();
++    if (!saved?.ok) {
++      const code = saved?.error || 'UNKNOWN_ERROR';
++      const message = errorText(code);
++      setPublishFeedback('保存失敗: ' + message + ' [' + code + ']', true);
++      return status('公開前の保存に失敗しました: ' + message, true);
++    }
++
++    const p = ensureProject();
++    setPublishFeedback('WAVEへ公開処理を送信しています…');
++    status('公開中…');
++
++    const requestId = 'pub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
++    const r = await bridge('publishTrack', {
++      requestId,
++      projectId: state.projectId,
++      title,
++      description: $('releaseDescription').value,
++      genre: $('releaseGenre').value,
++      accessMode: $('accessMode').value,
++      price: Number($('releasePrice').value) || 0,
++      rightsConfirmed: true,
++      rights: {
++        personal: true,
++        ringtone: $('rightRingtone').checked,
++        notification: $('rightNotification').checked,
++        storeBgm: $('rightStore').checked,
++        event: $('rightEvent').checked,
++        remix: $('rightRemix').checked
++      },
++      project: p
++    });
++
++    if (r?.ok) {
++      $('rightsConfirm').checked = false;
++      setPublishFeedback('公開しました。HOMEの新着へ反映しました。');
++      status('公開しました');
++      await refreshHome();
++      await loadLibrary();
++      await loadOwnReleases();
++    } else {
++      const code = r?.error || 'UNKNOWN_ERROR';
++      const message = errorText(code);
++      setPublishFeedback('公開失敗: ' + message + ' [' + code + ']', true);
++      status('公開失敗: ' + message, true);
++    }
++  } catch (error) {
++    const detail = String(error?.message || error || 'UNKNOWN_ERROR');
++    setPublishFeedback('公開処理でエラーが発生しました: ' + detail, true);
++    status('公開処理エラー', true);
++    console.error('[WAVE] publishTrack failed', error);
++  } finally {
++    state.publishing = false;
++    button.disabled = false;
++    button.textContent = originalText;
++  }
+ };
+ 
+ function renderTrackList(el, tracks) {
+@@ -1107,6 +1204,75 @@ $('sendReport').onclick = async () => {
+   } else status('通報失敗: ' + errorText(r.error), true);
+ };
+ 
++async function loadOwnReleases() {
++  const r = await bridge('listOwnTracks');
++  if (!r?.ok) {
++    $('ownReleases').innerHTML = '<div class="muted">リリース情報を取得できませんでした。</div>';
++    return;
++  }
++  state.ownReleases = r.tracks || [];
++  renderOwnReleases();
++}
++
++function renderOwnReleases() {
++  const el = $('ownReleases');
++  el.innerHTML = '';
++  if (!state.bootstrap?.artist) {
++    el.innerHTML = '<div class="muted">アーティストプロフィール作成後に利用できます。</div>';
++    return;
++  }
++  if (!state.ownReleases.length) {

@@ -17,6 +17,7 @@ on:
       - 'wave-v030-idempotent-saves.patch'
       - 'wave-v030-rate-limit.patch'
       - 'wave-update.ps1'
+      - 'wave-update-noop-test.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
@@ -65,6 +66,11 @@ jobs:
           if ($script -notmatch 'ExpectedPatchSha256') { throw 'Patch integrity check missing' }
           if ($script -notmatch 'function Test-DeploymentMatches' -or $script -notmatch 'Deployment verification: PASS \(unchanged\)') { throw 'No-op deployment guard missing' }
           if ($script -notmatch 'Get-FileHash -LiteralPath \$installed') { throw 'No-op guard must compare deployed file hashes' }
+
+      - name: Test no-op deployment safety
+        shell: pwsh
+        run: |
+          ./wave-update-noop-test.ps1
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

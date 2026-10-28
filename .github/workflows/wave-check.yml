@@ -19,6 +19,8 @@ on:
       - 'wave-v031-release-feedback.patch.b64'
       - 'wave-v032-publish-guard.patch'
       - 'wave-v033-studio-extras.js'
+      - 'wave-v035-score-tools.js'
+      - 'wave-v035-score-tools-test.js'
       - 'wave-v033-integrity-test.py'
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
@@ -139,6 +141,36 @@ jobs:
           manifest.write_text(content, encoding="utf-8")
           PY
 
+      - name: Apply WAVE long-score quick navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee  wave-v035-score-tools.js" | sha256sum -c -
+          cp wave-v035-score-tools.js wave-check/wave/web/score-tools.js
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("wave-check/wave")
+          css = root / "web/app.css"
+          extra = """
+          .wave-score-quick{display:flex;flex-direction:column;gap:.38rem;margin-top:.5rem}
+          .wave-score-quick-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:center}
+          .wave-score-quick-row:nth-child(2){grid-template-columns:auto minmax(0,1fr) auto}
+          .wave-score-quick-row label{font-size:.68rem}
+          .wave-score-quick-row input{min-width:0;max-width:100%;box-sizing:border-box}
+          #waveScoreEstimate,#waveScoreMessage{font-size:.66rem;line-height:1.4}
+          """
+          css.write_text(css.read_text(encoding="utf-8") + extra, encoding="utf-8")
+          html = root / "web/index.html"
+          content = html.read_text(encoding="utf-8")
+          anchor = "<script src='studio-extras.js'></script>"
+          assert content.count(anchor) == 1
+          html.write_text(content.replace(anchor,anchor + "\n  <script src='score-tools.js'></script>"), encoding="utf-8")
+          manifest = root / "fxmanifest.lua"
+          text = manifest.read_text(encoding="utf-8")
+          assert "version '0.3.4-test'" in text
+          manifest.write_text(text.replace("version '0.3.4-test'", "version '0.3.5-test'"), encoding="utf-8")
+          PY
+
       - name: Check PowerShell updater syntax
         shell: pwsh
         run: |
@@ -193,9 +225,13 @@ jobs:
           set -euo pipefail
           node --check wave-check/wave/web/app.js
           node --check wave-check/wave/web/studio-extras.js
+          node --check wave-check/wave/web/score-tools.js
+          node wave-v035-score-tools-test.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
           ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
-          grep -q "version '0.3.4-test'" wave-check/wave/fxmanifest.lua
+          grep -q "version '0.3.5-test'" wave-check/wave/fxmanifest.lua
+          grep -q 'WAVE_LONG_SCORE_TOOLS_V035' wave-check/wave/web/score-tools.js
+          grep -q 'score-tools.js' wave-check/wave/web/index.html
           grep -q 'WAVE_BAR_NAVIGATOR_V034' wave-check/wave/web/studio-extras.js
           grep -qF '*::-webkit-scrollbar{width:0!important}' wave-check/wave/web/app.css
           grep -q 'WAVE_STUDIO_PRESETS_V033' wave-check/wave/web/studio-extras.js

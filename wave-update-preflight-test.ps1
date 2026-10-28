@@ -56,6 +56,32 @@ try {
         throw 'Concurrent installation was overwritten'
     }
     Write-Host 'PASS concurrent first installation is preserved'
+
+    # Failed moves must never delete a resource created by another process.
+    # Even successful moves must preserve unexpected later modifications.
+    $firstInstall = Join-Path $root 'first-install'
+    Copy-Item -LiteralPath $installed -Destination $firstInstall -Recurse -Force
+    if (Test-FirstInstallRollbackSafe $installed $firstInstall $false) {
+        throw 'Failed move was incorrectly allowed to delete a first install'
+    }
+    if (-not (Test-FirstInstallRollbackSafe $installed $firstInstall $true)) {
+        throw 'Updater-owned unchanged first install should permit rollback cleanup'
+    }
+    [IO.File]::WriteAllText((Join-Path $firstInstall 'fxmanifest.lua'), 'newer first-install content')
+    if (Test-FirstInstallRollbackSafe $installed $firstInstall $true) {
+        throw 'Modified first-install resource was incorrectly allowed to be deleted'
+    }
+    [IO.File]::WriteAllText((Join-Path $firstInstall 'fxmanifest.lua'), 'concurrent install')
+    [IO.File]::WriteAllText((Join-Path $firstInstall 'extra.lua'), 'concurrent file')
+    if (Test-FirstInstallRollbackSafe $installed $firstInstall $true) {
+        throw 'New first-install file was incorrectly allowed to be deleted'
+    }
+    Remove-Item -LiteralPath (Join-Path $firstInstall 'extra.lua') -Force
+    [IO.File]::WriteAllText((Join-Path $firstInstall '.wave-build.txt'), 'incomplete metadata')
+    if (Test-FirstInstallRollbackSafe $installed $firstInstall $true) {
+        throw 'Unverified first-install metadata was incorrectly allowed to be deleted'
+    }
+    Write-Host 'PASS first-install rollback preserves unowned, modified and extra files'
     Write-Host 'WAVE deployment preflight regression: PASS'
 } finally {
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue

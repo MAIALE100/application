@@ -6,17 +6,17 @@
 <div class="home-top-safe" aria-hidden="true"></div>
 <section id="status" class="status app-status" role="status" aria-live="polite" aria-atomic="true">読み込み中…</section>
 <section id="home" class="play-home">
-  <div id="dailyCard" class="card stack hidden daily-feature home-feature"><div class="section-head daily-head"><div><div class="kicker">TODAY'S CHALLENGE</div><div class="daily-title-row"><span id="dailyIcon" class="daily-game-icon" aria-hidden="true"></span><div><h2 id="dailyGame">---</h2><div id="dailyDate" class="muted"></div></div></div></div><button id="dailyPlay" class="compact-button daily-cta">挑戦する</button></div><div id="dailyBest" class="status compact-status">まだ記録がありません。</div><div id="dailyRanking" class="players"></div></div>
+  <div id="dailyCard" class="card stack hidden daily-feature home-feature"><div class="section-head daily-head"><div><div class="kicker">今日のチャレンジ</div><div class="daily-title-row"><span id="dailyIcon" class="daily-game-icon" aria-hidden="true"></span><div><h2 id="dailyGame">---</h2><div id="dailyDate" class="muted"></div></div></div></div><button id="dailyPlay" class="compact-button daily-cta">挑戦する</button></div><div id="dailyBest" class="status compact-status">まだ記録がありません。</div><div id="dailyRanking" class="players"></div></div>
   <div id="continueCard" class="card stack hidden home-strip-card">
-    <div class="section-head"><div><div class="kicker">CONTINUE</div><h2>続きから</h2></div><span id="continueCount" class="count-badge">0</span></div>
+    <div class="section-head"><div><div class="kicker">続きから遊ぶ</div><h2>続きから</h2></div><span id="continueCount" class="count-badge">0</span></div>
     <div id="continueGames" class="quick-actions home-scroll-row"></div>
   </div>
-  <div id="recentCard" class="card stack hidden recent-feature home-strip-card"><div class="section-head"><div><div class="kicker">RECENT</div><h2>最近遊んだゲーム</h2></div><span id="recentCount" class="count-badge">0</span></div><div id="recentGames" class="quick-actions recent-games home-scroll-row"></div></div>
-  <div class="home-section library-feature"><div class="section-head library-section-head"><div><div class="kicker">GAME LIBRARY</div><h2>ゲームを選ぶ</h2></div><div class="library-head-actions"><button id="randomPlay" class="secondary compact-button library-random">おまかせ</button><span id="gameCount" class="count-badge">0</span></div></div><div id="libraryFilters" class="library-filters" role="group" aria-label="ゲームカテゴリ"><button class="library-filter active" data-filter="all">すべて</button><button class="library-filter" data-filter="favorites">★ お気に入り</button><button class="library-filter" data-filter="quick">クイック</button><button class="library-filter" data-filter="arcade">アーケード</button><button class="library-filter" data-filter="endless">エンドレス</button><button class="library-filter" data-filter="puzzle">パズル</button></div><div id="games" class="game-sections"></div></div>
-  <div class="home-utility-label"><span>PROFILE</span><span>記録・ランキング・設定</span></div>
-  <div class="card stack compact-card utility-card records-card"><div class="kicker">YOUR RECORDS</div><div class="stat-grid"><div class="stat-tile"><span>プレイ回数</span><strong id="statPlays">0</strong></div><div class="stat-tile"><span>プレイ時間</span><strong id="statTime">0m</strong></div></div><details class="record-details"><summary><span>ゲーム別記録</span><span class="summary-chevron">⌄</span></summary><div id="gameStatRows" class="players"></div></details><details class="record-details"><summary><span>実績 <span id="achievementCount" class="inline-count">0/0</span></span><span class="summary-chevron">⌄</span></summary><div id="achievementRows" class="players"></div></details></div>
-  <div class="card stack compact-card utility-card ranking-card"><div class="kicker">RANKING</div><div class="row"><select id="rankingGame" aria-label="ランキングゲーム"></select><select id="rankingPeriod" aria-label="ランキング期間"><option value="today">今日</option><option value="week">7日間</option><option value="all">全期間</option></select></div><div id="rankingSelf" class="status compact-status">ゲームを選択してください。</div><button id="rankingLoad" class="secondary">ランキングを見る</button><div id="rankingRows" class="players"></div></div>
-  <details class="card settings-card utility-card"><summary><span><span class="kicker">SETTINGS</span><strong>設定</strong></span><span class="summary-chevron">⌄</span></summary><div class="settings-body"><label class="setting-row"><span>サウンド</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>動きを抑える</span><input id="settingMotion" type="checkbox"></label></div></details>
+  <div id="recentCard" class="card stack hidden recent-feature home-strip-card"><div class="section-head"><div><div class="kicker">最近遊んだゲーム</div><h2>最近遊んだゲーム</h2></div><span id="recentCount" class="count-badge">0</span></div><div id="recentGames" class="quick-actions recent-games home-scroll-row"></div></div>
+  <div class="home-section library-feature"><div class="section-head library-section-head"><div><div class="kicker">ゲーム一覧</div><h2>ゲームを選ぶ</h2></div><div class="library-head-actions"><button id="randomPlay" class="secondary compact-button library-random">おまかせ</button><span id="gameCount" class="count-badge">0</span></div></div><div id="libraryFilters" class="library-filters" role="group" aria-label="ゲームカテゴリ"><button class="library-filter active" data-filter="all">すべて</button><button class="library-filter" data-filter="favorites">★ お気に入り</button><button class="library-filter" data-filter="quick">クイック</button><button class="library-filter" data-filter="arcade">アーケード</button><button class="library-filter" data-filter="endless">エンドレス</button><button class="library-filter" data-filter="puzzle">パズル</button></div><div id="games" class="game-sections"></div></div>
+  <div class="home-utility-label"><span>プレイ記録</span><span>ランキング・設定</span></div>
+  <div class="card stack compact-card utility-card records-card"><div class="kicker">あなたの記録</div><div class="stat-grid"><div class="stat-tile"><span>プレイ回数</span><strong id="statPlays">0</strong></div><div class="stat-tile"><span>プレイ時間</span><strong id="statTime">0m</strong></div></div><details class="record-details"><summary><span>ゲーム別記録</span><span class="summary-chevron">⌄</span></summary><div id="gameStatRows" class="players"></div></details><details class="record-details"><summary><span>実績 <span id="achievementCount" class="inline-count">0/0</span></span><span class="summary-chevron">⌄</span></summary><div id="achievementRows" class="players"></div></details></div>
+  <div class="card stack compact-card utility-card ranking-card"><div class="kicker">みんなのランキング</div><strong class="ranking-top-title">選んだゲームの上位5人</strong><div class="row"><select id="rankingGame" aria-label="ランキングゲーム"></select><select id="rankingPeriod" aria-label="ランキング期間"><option value="today">今日</option><option value="week">7日間</option><option value="all">全期間</option></select></div><div id="rankingSelf" class="status compact-status">ゲームを選択してください。</div><button id="rankingLoad" class="secondary compact-button">ランキングを更新</button><div id="rankingRows" class="players"></div></div>
+  <details class="card settings-card utility-card"><summary><span><span class="kicker">設定</span><strong>設定</strong></span><span class="summary-chevron">⌄</span></summary><div class="settings-body"><label class="setting-row"><span>サウンド</span><input id="settingSound" type="checkbox" checked></label><label class="setting-row"><span>動きを抑える</span><input id="settingMotion" type="checkbox"></label></div></details>
 </section>
 <section id="quickTap" class="card hidden"><div class="big-center"><div class="kicker">QUICK TAP FOCUS</div><div class="game-tip">7回の合図に反応。3ライフ、フライングはライフ減少＋最終記録に+0.4秒。</div><div id="tapBest" class="game-meta">BEST ---</div><div id="tapRunMeta" class="game-meta">HIT 0 / 7 · ♥♥♥ · FALSE 0</div><div id="tapMessage" class="big-number">準備OK?</div><button id="tapButton">RUN開始</button><button id="tapBack" class="secondary">戻る</button></div></section>
 <section id="stopGame" class="card hidden"><div class="big-center"><div class="kicker">STOP! RUSH</div><div class="game-tip">成功するたびに加速。光るゾーン内で止め続け、1ミスまでのスコアを競う。</div><div id="stopBest" class="game-meta">BEST ---</div><div id="stopRunMeta" class="game-meta stop-run-meta">ROUND 1 · SPEED ×1.00 · ZONE 8.0%</div><div id="stopMessage" class="big-number">準備OK?</div><div class="stop-track"><div id="stopTarget" class="stop-target"></div><div id="stopMarker" class="stop-marker"></div></div><button id="stopButton">スタート</button><button id="stopBack" class="secondary">戻る</button></div></section>
@@ -34,13 +34,13 @@
   </div>
 </section>
 <section id="fallGame" class="hidden">
-  <div class="card row"><div><div class="kicker">FALL</div><div id="fallScore" class="big-number small-number">0</div><div id="fallMeta" class="game-meta">LINES 0 · PIECES 0 · COMBO 0</div><div id="fallBest" class="game-meta">BEST ---</div></div><button id="fallBack" class="secondary">戻る</button></div>
-  <div class="game-tip card-tip fall-tip">自動落下。画面ボタンに加え、十字キーの←→で移動・↑で回転・↓でソフト落下できます。</div>
+  <div class="card row"><div><div class="kicker">テトリス</div><div id="fallScore" class="big-number small-number">0</div><div id="fallMeta" class="game-meta">LINES 0 · PIECES 0 · COMBO 0</div><div id="fallBest" class="game-meta">BEST ---</div></div><button id="fallBack" class="secondary">戻る</button></div>
+  <div class="game-tip card-tip fall-tip">← →で左右移動、↑で回転、↓長押しでゆっくり落下。画面の十字キーとキーボードの両方に対応。</div>
   <div class="card fall-board-card"><div id="fallBoard" class="fall-board" aria-label="FALL board"></div></div>
   <div class="card stack fall-panel">
     <div class="fall-preview-row"><div><div class="kicker">NEXT 3</div><div id="fallNext" class="fall-next" aria-label="Next three pieces"></div></div></div>
     <div class="fall-hold-row"><div><div class="kicker">HOLD</div><div id="fallHoldPreview" class="fall-hold-preview" aria-label="Held piece"></div></div><button id="fallHold" class="secondary">HOLD</button></div>
-    <div class="fall-controls"><button id="fallLeft" class="secondary">←</button><button id="fallRotate" class="secondary">↻ 回転</button><button id="fallRight" class="secondary">→</button><button id="fallSoft" class="secondary">↓ SOFT</button><button id="fallDrop">HARD DROP</button></div>
+    <div class="fall-controls fall-dpad" aria-label="テトリスの十字キー"><button id="fallLeft" class="secondary" aria-label="左へ移動">←</button><button id="fallRotate" class="secondary" aria-label="回転">↑ 回転</button><button id="fallRight" class="secondary" aria-label="右へ移動">→</button><button id="fallSoft" class="secondary" aria-label="押している間ゆっくり落下">↓ 落下</button><button id="fallDrop">一気に落とす</button></div>
     <div class="row"><button id="fallNew" class="secondary">新しく始める</button><button id="fallFinish" class="danger">終了して記録</button></div>
   </div>
 </section>
@@ -121,7 +121,7 @@
 </main>
 <div id="confirmOverlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="confirm-card">
-    <div class="kicker">CONFIRM</div>
+    <div class="kicker">確認</div>
     <h2 id="confirmTitle">確認</h2>
     <p id="confirmMessage" class="muted"></p>
     <div class="row"><button id="confirmCancel" class="secondary">キャンセル</button><button id="confirmAccept" class="danger">続ける</button></div>
@@ -129,6 +129,7 @@
 </div>
 <script src="../shared/errors.js"></script>
 <script src="../shared/bridge.js"></script>
+<script src="../shared/controls.js"></script>
 <script>
 (()=>{
   let loaded=false;

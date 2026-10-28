@@ -19,7 +19,10 @@ After validation and duplicate-resource checks, the updater compares every gener
 file with the installed resource using SHA256 (ignoring only `.wave-build.txt`).
 If all files already match, it exits successfully **without copying files,
 creating a backup, or requiring a resource restart**. A mismatch follows the
-normal verified deployment and rollback path.
+normal verified deployment and rollback path. The updater now rejects
+symlinks/junctions inside the installed resource and at the backup root
+before copying or deleting anything, including broken links. The guard is
+also rechecked before replacing or restoring a resource.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the
@@ -42,7 +45,9 @@ and rate-limit patches: `git apply --check`, `node --check`, Lua 5.3 parsing
 of four Lua files, ten rate-limit cases, eight save cases, 33 callback-map
 entries, and fifteen static security/compatibility assertions all passed.
 The updater, bootstrap, and PowerShell regression tests are ASCII-only. Source
-commit pinning has a dedicated regression test. The no-op regression now
+commit pinning has a dedicated regression test. The path-safety guard has
+its own PowerShell regression for ordinary trees, nested links, dangling links,
+linked resource roots, and linked backup roots. The no-op regression now
 also covers strict backup verification and metadata integrity. Native PowerShell
 syntax and these cases still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.

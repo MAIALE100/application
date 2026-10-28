@@ -61,6 +61,29 @@ function Enter-UpdateLock([string]$LockPath) {
         throw 'Another WAVE update is running, or the update lock is unavailable. Retry after it finishes.'
     }
 }
+function Assert-SafeResourceTree([string]$Path,[bool]$InspectChildren = $true) {
+    # Enumerate direct children instead of following directory links recursively.
+    # This also detects broken links whose targets do not pass Test-Path.
+    $parent = Split-Path -Parent $Path
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) { return }
+    $leaf = Split-Path -Leaf $Path
+    $rootItem = Get-ChildItem -LiteralPath $parent -Force |
+        Where-Object { $_.Name -eq $leaf } | Select-Object -First 1
+    if (-not $rootItem) { return }
+    $pending = New-Object System.Collections.Stack
+    $pending.Push($rootItem)
+    while ($pending.Count -gt 0) {
+        $item = $pending.Pop()
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw ('Unsafe WAVE path (reparse point): ' + $item.FullName)
+        }
+        if ($InspectChildren -and $item.PSIsContainer) {
+            foreach ($child in @(Get-ChildItem -LiteralPath $item.FullName -Force)) {
+                $pending.Push($child)
+            }
+        }
+    }
+}
 function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination,[bool]$IgnoreBuildMetadata = $true) {
     if (-not (Test-Path -LiteralPath $InstalledDestination -PathType Container)) { return $false }
     $builtFiles=@(Get-ChildItem -LiteralPath $BuiltSource -Recurse -File -Force)
@@ -238,6 +261,10 @@ try {
         Write-Host 'Lua syntax: PASS' -ForegroundColor Green
     } else { Write-Host 'Lua syntax: SKIPPED (luac not found; CI validates Lua)' -ForegroundColor Yellow }
 
+    Step 'Checking WAVE path safety'
+    Assert-SafeResourceTree $Destination
+    Assert-SafeResourceTree $BackupRoot $false
+
     Step 'Checking duplicate WAVE resources'
     $duplicates=Get-ChildItem -LiteralPath $Resources -Recurse -Filter fxmanifest.lua -File -ErrorAction SilentlyContinue | Where-Object {$_.Directory.Name -eq 'wave' -and $_.Directory.FullName -ne $Destination} | Select-Object -ExpandProperty DirectoryName -Unique
     if ($duplicates) { $duplicates | ForEach-Object {Write-Host ('  ' + $_) -ForegroundColor Yellow}; throw 'Duplicate WAVE resource found' }
@@ -272,7 +299,10 @@ try {
     Step 'Deploying WAVE to the test server'
     $DeploymentStarted=$true
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
-    if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+    if (Test-Path -LiteralPath $Destination) {
+        Assert-SafeResourceTree $Destination
+        Remove-Item -LiteralPath $Destination -Recurse -Force
+    }
     Move-Item -LiteralPath $StagePath -Destination $Destination
 
     Step 'Verifying deployed WAVE resource'
@@ -309,7 +339,10 @@ try {
         try {
             if ($ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
                 Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
-                if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+                if (Test-Path -LiteralPath $Destination) {
+                    Assert-SafeResourceTree $Destination
+                    Remove-Item -LiteralPath $Destination -Recurse -Force
+                }
                 Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
                 if (-not (Test-DeploymentMatches $ActiveBackup $Destination $false)) {
                     throw 'Restored WAVE resource failed hash verification'

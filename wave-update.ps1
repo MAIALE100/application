@@ -396,6 +396,9 @@ try {
                 Write-Host 'Previous WAVE resource restored and verified.' -ForegroundColor Green
             } elseif (Test-Path -LiteralPath $Destination) {
                 Write-Host 'Removing incomplete first installation...' -ForegroundColor Yellow
+                # First-install rollback has no backup; still reject a destination
+                # replaced by a junction/link before recursive removal.
+                Assert-SafeResourceTree $Destination
                 Remove-Item -LiteralPath $Destination -Recurse -Force
             }
         } catch {

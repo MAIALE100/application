@@ -19,7 +19,7 @@ $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C2
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
 $ExpectedPublishGuardPatchSha256 = '1E1D038401DE09EFAEB3FE73D3C88BF719572AE687BE63A992223B7723487F4B'
-$ExpectedVersion = '0.3.5-test'
+$ExpectedVersion = '0.3.6-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -419,7 +419,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     # The existing manifest registers all web assets via 'web/**/*'. No per-file entry needed.
     if (-not $manifestText.Contains("'web/**/*'")) { throw 'WAVE manifest web asset glob missing' }
     if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
-    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.5-test'")
+    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.6-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'WAVE v0.3.3 studio templates and cleaner library: PASS' -ForegroundColor Green
 
@@ -437,7 +437,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     $extras=[IO.File]::ReadAllText((Join-Path $Source 'web\studio-extras.js'))
     if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres' -or $extras -notmatch 'WAVE_BAR_NAVIGATOR_V034') { throw 'WAVE studio templates, bar navigation or timbre enhancement missing' }
     $scoreTools=[IO.File]::ReadAllText($scoreToolsPath)
-    if ($scoreTools -notmatch 'WAVE_LONG_SCORE_TOOLS_V035' -or $scoreTools -notmatch 'durationLabel') { throw 'WAVE long score tools missing' }
+    if ($scoreTools -notmatch 'WAVE_LONG_SCORE_TOOLS_V035' -or $scoreTools -notmatch 'durationLabel' -or $scoreTools -notmatch 'WAVE_RANGE_EDIT_V036') { throw 'WAVE long score tools missing' }
     $html=[IO.File]::ReadAllText((Join-Path $Source 'web\index.html'))
     if ($html -notmatch 'studio-extras.js' -or $html -notmatch 'score-tools.js') { throw 'WAVE score tools scripts not loaded in HTML' }
     if (-not $manifest.Contains("'web/**/*'")) { throw 'WAVE manifest does not cover studio extras script' }

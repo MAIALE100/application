@@ -65,6 +65,8 @@ if ":wave-v035-score-tools.js" not in updater:
     raise SystemExit("FAIL: Windows updater does not load pinned score tools source")
 if "cp wave-v035-score-tools.js wave-check/wave/web/score-tools.js" not in workflow:
     raise SystemExit("FAIL: CI does not deploy the pinned score tools source")
+if "WAVE_RANGE_EDIT_V036" not in score_asset.read_text(encoding="utf-8"):
+    raise SystemExit("FAIL: WAVE 4/8-bar range editing missing from score tools")
 if "node wave-v035-score-tools-test.js" not in workflow:
     raise SystemExit("FAIL: score tools regression is not wired into CI")
 

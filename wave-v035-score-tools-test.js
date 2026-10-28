@@ -34,4 +34,38 @@ assert.equal(durationSeconds(1,999),2);
 assert.equal(durationSeconds(1,170),2);
 assert.equal(durationSeconds(15,119),31);
 
-console.log('WAVE long-score tools: PASS');
+
+const { rangeBounds, copyRange, pasteRange, clearRange } = require('./wave-v035-score-tools.js');
+const source = [
+  { step: 0, pitch: 60, length: 2, velocity: 0.8 },
+  { step: 63, pitch: 64, length: 1, velocity: 0.7 },
+  { step: 64, pitch: 67, length: 1, velocity: 0.6 },
+  { step: 127, pitch: 72, length: 1, velocity: 0.5 },
+  { step: 128, pitch: 74, length: 1, velocity: 0.4 }
+];
+assert.deepEqual(rangeBounds(0,4,8),{start:0,end:64});
+assert.equal(rangeBounds(5,4,8),null);
+assert.equal(rangeBounds(0,3,8),null);
+assert.equal(rangeBounds(-1,4,8),null);
+assert.equal(copyRange(source,5,4,8),null);
+const clip4 = copyRange(source,0,4,16);
+assert.deepEqual(clip4.notes.map(n=>n.step),[0,63]);
+assert.equal(clip4.bars,4);
+assert.equal(source[0].step,0);
+const pasted = pasteRange(source,clip4,4,16);
+assert.deepEqual(pasted.map(n=>n.step),[0,63,128,64,127]);
+assert.deepEqual(pasted.slice(-2).map(n=>n.pitch),[60,64]);
+assert.equal(source.length,5);
+assert.equal(pasteRange(source,clip4,13,16),null);
+assert.equal(pasteRange(source,{bars:4,notes:[{step:64}]},0,16),null);
+const empty = copyRange([],0,8,16);
+assert.deepEqual(pasteRange(source,empty,0,16).map(n=>n.step),[128]);
+assert.deepEqual(clearRange(source,0,8,16).map(n=>n.step),[128]);
+assert.equal(clearRange(source,9,8,16),null);
+const clip8 = copyRange(source,0,8,16);
+assert.deepEqual(clip8.notes.map(n=>n.step),[0,63,64,127]);
+assert.deepEqual(pasteRange([],clip8,8,16).map(n=>n.step),[128,191,192,255]);
+assert.equal(pasteRange([],clip8,9,16),null);
+assert.equal(copyRange(Array(8193).fill({step:0,pitch:60}),0,4,16),null);
+
+console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

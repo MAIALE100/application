@@ -28,6 +28,9 @@ now also rejects existing and dangling symlinks/junctions in ancestor folders
 Backup retention
 now inspects each expired backup's entire tree and skips candidates containing
 nested junctions/symlinks instead of risking recursive deletion through a link.
+It also rechecks the backup root at cleanup time and before each deletion to
+reject a root replaced with a symlink/junction after deployment preflight.
+A regression test checks that a linked backup root cannot prune external data.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the

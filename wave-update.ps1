@@ -115,6 +115,14 @@ function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Kee
     foreach ($candidate in $candidates) {
         if ($recent -contains $candidate.FullName -or
             ($ProtectedBackup -and $candidate.FullName -eq $ProtectedBackup)) { continue }
+        # A backup can acquire a nested junction/link after creation. Never
+        # recurse into a candidate until its entire tree has been inspected.
+        try {
+            Assert-SafeResourceTree $candidate.FullName
+        } catch {
+            Write-Host ('Skipping unsafe WAVE backup: ' + $candidate.FullName + ' (' + $_.Exception.Message + ')') -ForegroundColor Yellow
+            continue
+        }
         Remove-Item -LiteralPath $candidate.FullName -Recurse -Force -ErrorAction Stop
     }
 }

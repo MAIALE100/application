@@ -331,7 +331,7 @@ end
 
 local function roundTimeoutSeconds(gameId)
     local limits={
-        code_break=120,reversi=0,gomoku=0,connect4=60,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
+        code_break=120,reversi=0,gomoku=0,connect4=0,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
         tic_tac=45,mini_shogi=0,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
     }
     return limits[tostring(gameId or '')] or 90

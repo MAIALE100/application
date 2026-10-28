@@ -109,7 +109,8 @@ jobs:
           /* WAVE_STUDIO_PRESETS_V033 */
           html,body,#app,.view,.app,.screen,.content,.page,.card{scrollbar-width:none}
           html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-webkit-scrollbar,.app::-webkit-scrollbar,.screen::-webkit-scrollbar,.content::-webkit-scrollbar,.page::-webkit-scrollbar,.card::-webkit-scrollbar{width:0;display:none}
-          *::-webkit-scrollbar:vertical{width:0;display:none}
+          *::-webkit-scrollbar{width:0!important}
+          *::-webkit-scrollbar:vertical{width:0!important;display:none}
           *::-webkit-scrollbar-thumb:vertical{background:transparent}
           .wave-bar-navigator{margin-bottom:.55rem}
           .wave-bar-head{display:flex;justify-content:space-between;gap:.35rem;align-items:center}
@@ -134,7 +135,7 @@ jobs:
           # The base manifest uses 'web/**/*' and already includes all JS files.
           assert "'web/**/*'" in content
           assert "version '0.3.2-test'" in content
-          content = content.replace("version '0.3.2-test'", "version '0.3.3-test'")
+          content = content.replace("version '0.3.2-test'", "version '0.3.4-test'")
           manifest.write_text(content, encoding="utf-8")
           PY
 
@@ -194,7 +195,9 @@ jobs:
           node --check wave-check/wave/web/studio-extras.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
           ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
-          grep -q "version '0.3.3-test'" wave-check/wave/fxmanifest.lua
+          grep -q "version '0.3.4-test'" wave-check/wave/fxmanifest.lua
+          grep -q 'WAVE_BAR_NAVIGATOR_V034' wave-check/wave/web/studio-extras.js
+          grep -qF '*::-webkit-scrollbar{width:0!important}' wave-check/wave/web/app.css
           grep -q 'WAVE_STUDIO_PRESETS_V033' wave-check/wave/web/studio-extras.js
           grep -q 'studio-extras.js' wave-check/wave/web/index.html
           grep -qF "'web/**/*'" wave-check/wave/fxmanifest.lua

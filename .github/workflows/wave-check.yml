@@ -23,6 +23,7 @@ on:
       - 'wave-update-retention-test.ps1'
       - 'wave-update-path-safety-test.ps1'
       - 'wave-update-preflight-test.ps1'
+      - 'wave-update-rollback-test.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
@@ -104,6 +105,11 @@ jobs:
         shell: pwsh
         run: |
           ./wave-update-preflight-test.ps1
+
+      - name: Test existing-install rollback ownership
+        shell: pwsh
+        run: |
+          ./wave-update-rollback-test.ps1
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

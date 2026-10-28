@@ -73,7 +73,7 @@ try {
     $blocked = $false
     try { Invoke-BackupRetention $linkedRoot '' 0 }
     catch {
-        if ($_.Exception.Message -match 'Unsafe WAVE path \\(reparse point\\)') { $blocked = $true }
+        if ($_.Exception.Message -match 'Unsafe WAVE path \(reparse point\)') { $blocked = $true }
         else { throw }
     }
     if (-not $blocked) { throw 'Linked backup root was accepted' }

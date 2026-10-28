@@ -168,7 +168,7 @@ jobs:
           manifest = root / "fxmanifest.lua"
           text = manifest.read_text(encoding="utf-8")
           assert "version '0.3.4-test'" in text
-          manifest.write_text(text.replace("version '0.3.4-test'", "version '0.3.5-test'"), encoding="utf-8")
+          manifest.write_text(text.replace("version '0.3.4-test'", "version '0.3.6-test'"), encoding="utf-8")
           PY
 
       - name: Check PowerShell updater syntax
@@ -229,8 +229,9 @@ jobs:
           node wave-v035-score-tools-test.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
           ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
-          grep -q "version '0.3.5-test'" wave-check/wave/fxmanifest.lua
+          grep -q "version '0.3.6-test'" wave-check/wave/fxmanifest.lua
           grep -q 'WAVE_LONG_SCORE_TOOLS_V035' wave-check/wave/web/score-tools.js
+          grep -q 'WAVE_RANGE_EDIT_V036' wave-check/wave/web/score-tools.js
           grep -q 'score-tools.js' wave-check/wave/web/index.html
           grep -q 'WAVE_BAR_NAVIGATOR_V034' wave-check/wave/web/studio-extras.js
           grep -qF '*::-webkit-scrollbar{width:0!important}' wave-check/wave/web/app.css

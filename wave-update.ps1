@@ -351,7 +351,7 @@ try {
     Write-Host 'Duplicate-release prevention patch: PASS' -ForegroundColor Green
 
     Step 'Applying WAVE v0.3.3 studio and library improvements'
-    $extrasText=((Invoke-RepoGit @('show',($head + ':wave-v033-studio-extras.js'))) -join [Environment]::NewLine).TrimEnd([char]13,[char]10) + [Environment]::NewLine
+    $extrasText=((Invoke-RepoGit @('show',($head + ':wave-v033-studio-extras.js'))) -join ([string][char]10)).TrimEnd([char]13,[char]10) + ([string][char]10)
     $extrasPath=Join-Path $Source 'web\studio-extras.js'
     [IO.File]::WriteAllText($extrasPath,$extrasText,(New-Object Text.UTF8Encoding($false)))
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()

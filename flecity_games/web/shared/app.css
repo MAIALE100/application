@@ -2032,3 +2032,54 @@ body.play-app .ranking-self-caption{
   body.play-app .ranking-place{font-size:.72rem}
   body.play-app .game-rank-shortcut{font-size:.69rem}
 }
+
+/* LOOP / LINK: same on-screen direction-pad layout and touch target sizes. */
+.fall-controls.fall-dpad{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(2.7rem,auto));
+  justify-items:stretch;
+  align-items:stretch;
+  gap:.35rem;
+  margin-inline:auto;
+  width:min(100%,17.5rem);
+}
+.fall-dpad #fallRotate,.fall-dpad #fallBattleRotate{
+  grid-column:2;
+  grid-row:1;
+}
+.fall-dpad #fallLeft,.fall-dpad #fallBattleLeft{
+  grid-column:1;
+  grid-row:2;
+}
+.fall-dpad #fallSoft,.fall-dpad #fallBattleSoft{
+  grid-column:2;
+  grid-row:2;
+  touch-action:none;
+}
+.fall-dpad #fallRight,.fall-dpad #fallBattleRight{
+  grid-column:3;
+  grid-row:2;
+}
+.fall-dpad #fallDrop,.fall-dpad #fallBattleDrop{
+  grid-column:1 / 4;
+  grid-row:3;
+}
+.fall-dpad button{
+  min-width:0;
+  min-height:2.7rem;
+  grid-column:auto;
+  padding:.4rem .2rem;
+  white-space:normal;
+  font-size:.76rem;
+}
+.fall-dpad button:focus-visible{
+  outline:.13rem solid #daecff;
+  outline-offset:0;
+}
+body.play-app .ranking-help{
+  font-size:.74rem;
+  color:#c2d3e9;
+  line-height:1.4;
+  margin:.25rem 0;
+}

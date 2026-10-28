@@ -178,14 +178,14 @@ function showHome(){
 function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
 function formatGameScore(game,value){
  const n=Number(value);if(!Number.isFinite(n))return '---';
- if(game&&['stack','stop'].includes(game.id))return Math.round(n).toLocaleString()+' pts';
- return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+' s':n.toFixed(3)+' ms'):String(n);
+ if(game&&['stack','stop'].includes(game.id))return Math.round(n).toLocaleString()+'点';
+ return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+'秒':n.toFixed(3)+'ミリ秒'):Math.round(n).toLocaleString()+'点';
 }
 function formatDuration(ms){
  const total=Math.max(0,Math.floor(Number(ms)||0)),seconds=Math.floor(total/1000),minutes=Math.floor(seconds/60),hours=Math.floor(minutes/60);
- if(hours>0)return hours+'h '+(minutes%60)+'m';
- if(minutes>0)return minutes+'m '+(seconds%60)+'s';
- return seconds+'s';
+ if(hours>0)return hours+'時間'+(minutes%60)+'分';
+ if(minutes>0)return minutes+'分'+(seconds%60)+'秒';
+ return seconds+'秒';
 }
 function personalBestText(gameId){
  const game=gameById(gameId),row=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
@@ -217,7 +217,7 @@ const screenBestIds={
 function refreshScreenBests(){
  Object.entries(screenBestIds).forEach(([gameId,elementId])=>{
    const el=document.getElementById(elementId);
-   if(el)el.textContent=(activeDailyGame(gameId)?'TODAY BEST '+dailyBestText(gameId):'BEST '+personalBestText(gameId));
+   if(el)el.textContent=(activeDailyGame(gameId)?'今日のベスト '+dailyBestText(gameId):'自己ベスト '+personalBestText(gameId));
  });
 }
 function competitionRank(rows,index){
@@ -609,9 +609,9 @@ function rankingPeriodLabel(period){
 function renderRankingSelf(){
  const gameId=rankingGame.value,game=gameById(gameId),period=rankingPeriod.value;
  if(!game){rankingSelf.textContent='ゲームを選択してください。';return;}
- if(period!=='all'){rankingSelf.textContent='あなたの'+rankingPeriodLabel(period)+'BEST · ランキングを見ると表示します';return;}
+ if(period!=='all'){rankingSelf.textContent='あなたの'+rankingPeriodLabel(period)+'のベスト · ランキングを見ると表示します';return;}
  const best=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
- rankingSelf.textContent=best?'あなたの全期間BEST · '+formatGameScore(game,best.score):'あなたの全期間BEST · まだ記録がありません';
+ rankingSelf.textContent=best?'全期間の自己ベスト · '+formatGameScore(game,best.score):'全期間の自己ベスト · まだ記録がありません';
 }
 function populateRankingGames(games){
  const current=rankingGame.value;rankingGame.innerHTML='';
@@ -650,7 +650,7 @@ async function loadRanking(){
  }
  const game=gameById(gameId),self=res.self||{},rows=Array.isArray(res.rows)?res.rows:[];
  const hasSelf=Number.isFinite(Number(self.score))&&self.score!==null&&self.score!==undefined;
- rankingSelf.textContent=hasSelf?'あなたの'+rankingPeriodLabel(period)+'BEST · '+formatGameScore(game,self.score)+(Number(self.rank)>0?' · '+Number(self.rank)+'位':''):
+ rankingSelf.textContent=hasSelf?'あなたの'+rankingPeriodLabel(period)+'のベスト · '+formatGameScore(game,self.score)+(Number(self.rank)>0?' · '+Number(self.rank)+'位':''):
    'あなたの'+rankingPeriodLabel(period)+'BEST · まだ記録がありません';
  const title=document.createElement('div');title.className='ranking-list-heading';title.textContent=game?game.name+' · '+rankingPeriodLabel(period)+' TOP5':'TOP5';
  rankingRows.appendChild(title);
@@ -774,7 +774,7 @@ async function finishQuickRun(result){
  if(result&&result.failed){
    await cancelPlaySession(game.sessionToken);
    if(tapSession===game){
-     tapState='idle';tapSession=null;setQuickVisual('false-start');tapMessage.textContent='GAME OVER';
+     tapState='idle';tapSession=null;setQuickVisual('false-start');tapMessage.textContent='ゲーム終了';
      tapRunMeta.textContent='3回フライング · 記録なし';tapButton.textContent='もう一度';tapButton.disabled=false;tone(180,100);
    }
    return;
@@ -876,7 +876,7 @@ function updateStopRoundUi(){
  }
  const speed=stopSpeedMultiplier(ch),zone=Math.max(1,Number(ch.tolerancePct)||8);
  const round=Number(ch.round)||game.cleared+1,rush=Math.max(1,Math.floor((round-1)/5)+1);
- stopRunMeta.textContent='ROUND '+String(round)+' · RUSH '+String(rush)+' · SPEED ×'+speed.toFixed(2)+' · ZONE '+zone.toFixed(1)+'% · SCORE '+String(game.score||0)+(round%5===0?' · RUSH ROUND':'');
+ stopRunMeta.textContent='第'+String(round)+'回'+' · RUSH '+String(rush)+' · SPEED ×'+speed.toFixed(2)+' · ZONE '+zone.toFixed(1)+'% · SCORE '+String(game.score||0)+(round%5===0?' · RUSH ROUND':'');
  stopTarget.style.left=String(Number(ch.targetPct)||50)+'%';
  stopTarget.style.width=String(Math.min(24,zone*2))+'%';
  stopEl.dataset.tier=round>=30?'insane':(round>=20?'extreme':(round>=10?'fast':'normal'));
@@ -1558,7 +1558,7 @@ function renderFall(){
  refreshScreenBests();fallScore.textContent=String(game.score);
  const pressure=fallPressure(game);
  const level=1+Math.floor((Number(game.lines)||0)/5),nextLevelIn=5-((Number(game.lines)||0)%5),gravity=(fallGravityDelay(game)/1000).toFixed(2);
- fallMeta.textContent='LEVEL '+level+' · DROP '+gravity+'s · NEXT +'+String(nextLevelIn)+' · LINES '+String(game.lines)+' · COMBO '+String(game.combo)+' · '+pressure.label+(game.ended?' · GAME OVER':'');
+ fallMeta.textContent='LEVEL '+level+' · DROP '+gravity+'s · NEXT +'+String(nextLevelIn)+' · 消したライン '+String(game.lines)+' · 連続消し '+String(game.combo)+' · '+pressure.label+(game.ended?' · ゲーム終了':'');
  fallBoard.classList.toggle('fall-tight',pressure.label==='TIGHT');
  fallBoard.classList.toggle('fall-danger',pressure.label==='DANGER');
  fallBoard.classList.toggle('fall-grounded',game.groundedAt!=null&&!game.ended);
@@ -1738,7 +1738,7 @@ async function finishFall(gameOver=false){
  game.finalizing=false;game.busy=false;
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.fall;
-   if(fallGame===game){showScoreResult('fall',res,(gameOver?'GAME OVER · ':'')+'FALL '+res.score+'点 · '+game.lines+' LINES');renderFall();}
+   if(fallGame===game){showScoreResult('fall',res,(gameOver?'ゲーム終了 · ':'')+'FALL '+res.score+'点 · '+game.lines+' LINES');renderFall();}
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;
@@ -2052,7 +2052,7 @@ function renderStack(){
  stackScore.textContent=Math.round(stackGame.score).toLocaleString();
  const tension=stackGame.width<=22?'DANGER':(stackGame.width<=38?'TIGHT':'STABLE');
  const speedTier=stackGame.speed>=165?'TURBO':(stackGame.speed>=130?'FAST':(stackGame.speed>=95?'UP':'NORMAL'));
- stackMeta.textContent='HEIGHT '+String(stackGame.layerCount)+' · PERFECT ×'+String(stackGame.perfectStreak)+' · SPEED '+speedTier+' · 幅 '+stackGame.width.toFixed(1)+'% · '+tension;
+ stackMeta.textContent='HEIGHT '+String(stackGame.layerCount)+' · PERFECT ×'+String(stackGame.perfectStreak)+' · 速度 '+speedTier+' · 幅 '+stackGame.width.toFixed(1)+'% · '+tension;
  stackArena.classList.toggle('tower-fever',stackGame.perfectStreak>=3);
  stackArena.classList.toggle('tower-tight',tension==='TIGHT');
  stackArena.classList.toggle('tower-danger',tension==='DANGER');
@@ -2712,7 +2712,7 @@ function renderColorMatch(){
  }
  const round=colorMatch.rounds[colorMatch.index];
  const stage=Math.min(4,Math.floor(colorMatch.index/5)+1);
- colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+' · STAGE '+stage+'/4 · '+'♥'.repeat(Math.max(0,colorMatch.lives))+(colorMatch.streak>=2?' · STREAK '+colorMatch.streak:'')+(colorMatch.streak>=5?' · FEVER':'');
+ colorMatchProgress.textContent=String(Math.min(colorMatch.index+1,colorMatch.rounds.length))+' / '+String(colorMatch.rounds.length)+' · STAGE '+stage+'/4 · '+'♥'.repeat(Math.max(0,colorMatch.lives))+(colorMatch.streak>=2?' · 連続正解 '+colorMatch.streak:'')+(colorMatch.streak>=5?' · FEVER':'');
  colorMatchWord.textContent=COLOR_MATCH_COLORS[round.word].name;
  colorMatchWord.style.color=COLOR_MATCH_COLORS[round.ink].css;
  colorMatchChoiceOrder(colorMatch.seed,colorMatch.index).forEach(index=>{
@@ -2758,11 +2758,11 @@ async function answerColorMatch(choice){
    if(game.sessionToken)await cancelPlaySession(game.sessionToken);game.sessionToken=null;
    if(colorMatch===game){
      const elapsedMs=Math.max(0,Math.round(performance.now()-game.startedAt));
-     colorMatchChoices.innerHTML='';colorMatchWord.textContent='GAME OVER';colorMatchWord.style.color='';
+     colorMatchChoices.innerHTML='';colorMatchWord.textContent='ゲーム終了';colorMatchWord.style.color='';
      colorMatchProgress.textContent=String(game.index)+' / '+String(game.rounds.length)+' · LIFE 0';
      colorMatchTime.textContent=(elapsedMs/1000).toFixed(1)+'s';
      colorMatchStart.classList.remove('hidden');colorMatchStart.disabled=false;colorMatchStart.textContent='もう一度';colorMatchNew.classList.add('hidden');
-     setStatus('GAME OVER · '+game.index+'/'+game.rounds.length+' ROUND · MISS '+game.misses+' · MAX STREAK '+game.maxStreak+' · RETRY!','warn');
+     setStatus('ゲーム終了 · '+game.index+'/'+game.rounds.length+' ROUND · MISS '+game.misses+' · MAX STREAK '+game.maxStreak+' · RETRY!','warn');
    }
    return;
  }
@@ -2964,7 +2964,7 @@ function renderHighLow(){
  const difficulty=gap<=8?'TIGHT':(gap<=18?'TRICKY':'OPEN'),bounty=Math.max(0,45-Math.min(45,gap))*3;
  highLowCard.dataset.difficulty=difficulty.toLowerCase();
  highLowEl.dataset.pressure=highLow.lives===1?'last-life':(highLow.lives<=0?'out':'normal');
- highLowMeta.textContent='ROUND '+String(round)+' / '+String(highLow.maxRounds)+' · STREAK '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+' · BOUNTY +'+String(bounty)+(highLow.lives===1&&!highLow.finished?' · LAST LIFE':'')+(highLow.finished?' · GAME OVER':'');
+ highLowMeta.textContent='第'+String(round)+'回'+' / '+String(highLow.maxRounds)+' · 連続正解 '+String(highLow.streak)+' · ×'+String(multiplier)+' · '+difficulty+' · BOUNTY +'+String(bounty)+(highLow.lives===1&&!highLow.finished?' · LAST LIFE':'')+(highLow.finished?' · ゲーム終了':'');
  highLowLower.textContent='LOW < '+String(highLow.pivot);
  highLowHigher.textContent='HIGH > '+String(highLow.pivot);
  highLowHigher.disabled=!highLow.running||highLow.busy;highLowLower.disabled=!highLow.running||highLow.busy;
@@ -3031,7 +3031,7 @@ async function guessHighLow(guess){
    tone(700+Math.min(250,game.streak*15),32);
    const mult=Math.max(1,Number(res.multiplier)||1),gain=Math.max(0,Number(res.gained)||0),difficultyBonus=Math.max(0,Number(res.difficultyBonus)||0),speedBonus=Math.max(0,Number(res.speedBonus)||0);
    const bonus=difficultyBonus>0?' · TIGHT +'+difficultyBonus:'';
-   setStatus(rankUp+'CORRECT · +'+gain+' · ×'+mult+' · STREAK '+game.streak+bonus+(speedBonus>=80?' · FAST':'')+(game.lives===1?' · CLUTCH':''),'good');
+   setStatus(rankUp+'CORRECT · +'+gain+' · ×'+mult+' · 連続正解 '+game.streak+bonus+(speedBonus>=80?' · FAST':'')+(game.lives===1?' · CLUTCH':''),'good');
  }else{
    highLowEl.classList.add(res.timedOut?'range-timeout':'guess-wrong','life-lost');
    tone(150,90);
@@ -3093,7 +3093,7 @@ function renderSimon(){
  simonRound.textContent=String(game.cleared);
  const speedStage=game.round>=21?'TURBO':(game.round>=16?'FAST':(game.round>=11?'UP':(game.round>=6?'WARM':'NORMAL')));
  simonBoard.dataset.speed=speedStage.toLowerCase();
- simonMeta.textContent=(game.daily?'DAILY · ':'')+'ROUND '+String(game.round)+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · SPEED '+speedStage+(game.round%5===0&&game.round<game.maxRounds?' · CHECKPOINT':'');
+ simonMeta.textContent=(game.daily?'DAILY · ':'')+'第'+String(game.round)+'回'+' / '+String(game.maxRounds)+' · CLEAR '+String(game.cleared)+' · 速度 '+speedStage+(game.round%5===0&&game.round<game.maxRounds?' · CHECKPOINT':'');
  simonPads.forEach(p=>p.disabled=!game.accepting||game.submitting);
 }
 function flashSimonPad(index,duration){
@@ -3156,7 +3156,7 @@ async function finishSimon(clearedAll=false){
  const res=await submitScoreWithRetry({sessionToken:game.sessionToken,score:game.cleared,durationMs});
  game.finalizing=false;
  if(res.ok){
-   game.sessionToken=null;simonBoard.dataset.phase=clearedAll?'clear':'over';simonMessage.textContent=clearedAll?'ALL CLEAR!':'GAME OVER';
+   game.sessionToken=null;simonBoard.dataset.phase=clearedAll?'clear':'over';simonMessage.textContent=clearedAll?'全問クリア！':'ゲーム終了';
    showScoreResult('simon',res,(res.daily?'デイリー · ':'')+(clearedAll?'30 ROUND CLEAR · ':'')+'SIMON '+res.score+'ラウンド');
    await refreshPlatform();
  }else{

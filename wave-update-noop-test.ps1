@@ -16,7 +16,8 @@ function Assert-Match([bool]$Expected, [string]$Label) {
     Write-Host ('PASS ' + $Label)
 }
 try {
-    New-Item -ItemType Directory -Force -Path (Join-Path $source 'web'),(Join-Path $target 'web') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $source 'web') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $target 'web') | Out-Null
     [IO.File]::WriteAllText((Join-Path $source 'fxmanifest.lua'), 'version test')
     [IO.File]::WriteAllText((Join-Path $source 'web/app.js'), 'const test = true;')
     [IO.File]::WriteAllText((Join-Path $target 'fxmanifest.lua'), 'version test')

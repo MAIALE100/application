@@ -790,12 +790,12 @@ async function finishQuickRun(result){
      setQuickVisual('result-'+grade.state);tapMessage.textContent=average.toFixed(1)+' ms AVG';
      tapRunMeta.textContent='7 / 7 · FALSE '+String(Number(res.details&&res.details.falseStarts)||0)+' · BEST '+Number(res.details&&res.details.bestReactionMs||average).toFixed(1)+' ms';
      tone(grade.tone,90);
-     showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+'QUICK TAP FOCUS · AVG '+average.toFixed(1)+' ms · SCORE '+Number(res.score).toFixed(1)+' ms · MAX FOCUS ×'+String(game.maxFocusStreak||0));
+     showScoreResult('quick_tap',res,(res.daily?'デイリー · ':'')+'反射神経チャレンジ · 平均 '+average.toFixed(1)+' ms · SCORE '+Number(res.score).toFixed(1)+' ms · MAX FOCUS ×'+String(game.maxFocusStreak||0));
    }
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);
-   if(stillHere){tapMessage.textContent='保存できませんでした';setStatus('QUICK TAP FOCUSの記録を保存できませんでした: '+FlecityErrors.text(res.error),'error');}
+   if(stillHere){tapMessage.textContent='保存できませんでした';setStatus('反射神経チャレンジの記録を保存できませんでした: '+FlecityErrors.text(res.error),'error');}
  }
  if(stillHere){tapState='idle';tapSession=null;tapButton.textContent='もう一度';tapButton.disabled=false;}
 }
@@ -808,7 +808,7 @@ async function resolveQuickTap(){
  if(tapSession!==game)return;
  if(!res.ok){
    await cancelPlaySession(game.sessionToken);tapSession=null;tapState='idle';tapButton.disabled=false;tapButton.textContent='もう一度';
-   tapMessage.textContent='判定できませんでした';setStatus('QUICK TAP FOCUSの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
+   tapMessage.textContent='判定できませんでした';setStatus('反射神経チャレンジの判定に失敗しました: '+FlecityErrors.text(res.error),'error');return;
  }
  const responseHits=Number(res.hits),responseFalseStarts=Number(res.falseStarts),responseLives=Number(res.lives);
  if(Number.isFinite(responseHits))game.hits=Math.max(0,responseHits);
@@ -835,14 +835,14 @@ tapButton.onclick=async()=>{
  if(tapState!=='idle')return;
  tapButton.disabled=true;
  const res=await startSessionWithRetry({gameId:'quick_tap',daily:tapDaily});
- if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('QUICK TAP FOCUSを開始できません: '+FlecityErrors.text(res.error),'error');return;}
+ if(!res.ok){tapButton.disabled=false;if(res.error!=='APP_SUSPENDED')setStatus('反射神経チャレンジを開始できません: '+FlecityErrors.text(res.error),'error');return;}
  tapSession={sessionToken:res.sessionToken,currentChallenge:res.challenge,daily:res.daily===true,hits:0,targetHits:Number(res.challenge&&res.challenge.targetHits)||7,lives:Number(res.challenge&&res.challenge.lives)||3,falseStarts:0,focusStreak:0,maxFocusStreak:0};
  tapRunStartedAt=performance.now();tapStartedAt=tapRunStartedAt;beginQuickRound(res.challenge);
 };
 tapBack.onclick=async()=>{
- if(tapState==='submitting'){setStatus('QUICK TAP FOCUSの記録を保存中です…','warn');return;}
+ if(tapState==='submitting'){setStatus('反射神経チャレンジの記録を保存中です…','warn');return;}
  if(tapSession&&['waiting','shown','checking','transition'].includes(tapState)){
-   const ok=await confirmAction('QUICK TAP FOCUSを終了しますか？','現在のRUNは記録されず終了します。','終了する');
+   const ok=await confirmAction('反射神経チャレンジを終了しますか？','現在のRUNは記録されず終了します。','終了する');
    if(!ok)return;
  }
  clearTimeout(tapTimer);
@@ -1617,27 +1617,27 @@ async function persistFall(showError=false,syncLive=true){
    if(syncLive&&fallGame===game&&game.history.length===snapshotLength)syncFallCanonical(game,canonical);
    return true;
  }
- if(showError&&fallGame===game)setStatus('FALLの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
+ if(showError&&fallGame===game)setStatus('テトリスの保存に失敗しました: '+FlecityErrors.text(res.error),'error');
  return false;
 }
 async function openFall(forceNew=false){
  hideAll();fallEl.classList.remove('hidden');
  const saved=!forceNew&&saves.fall,payload={gameId:'fall'};if(saved)payload.resume=true;
  const session=await startSessionWithRetry(payload);
- if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('FALLを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('テトリスを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Math.max(6,Number(session.challenge&&session.challenge.width)||10),height=Math.max(12,Number(session.challenge&&session.challenge.height)||18);
  if(saved&&saved.state&&Array.isArray(saved.state.board)&&saved.state.board.length===height){
    fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:1,heldPiece:0,holdUsed:false,pieceRngState:Number(session.seed)||1,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:Number(session.baseElapsedMs||0),startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:true,ended:false};
    if(!syncFallCanonical(fallGame,saved.state)){
-     await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('FALLの途中保存を読み込めませんでした。','error');showHome();return;
+     await cancelPlaySession(session.sessionToken);fallGame=null;setStatus('テトリスの途中保存を読み込めませんでした。','error');showHome();return;
    }
-   setStatus(fallGame.ended?'FALLのゲームオーバー状態を再開しました。記録を確定します。':'FALLを途中保存から再開しました。','good');
+   setStatus(fallGame.ended?'テトリスのゲームオーバー状態を再開しました。記録を確定します。':'テトリスを途中保存から再開しました。','good');
  }else{
    const firstState=fallPieceStateFor(session.seed,0),firstPiece=Number(session.challenge&&session.challenge.firstPiece)||firstState.type;
    fallGame={width,height,board:emptyFallBoard(width,height),score:0,lines:0,combo:0,pieces:0,history:[],nextPiece:firstPiece,heldPiece:0,holdUsed:false,pieceRngState:firstState.state,x:0,y:0,rotation:0,groundedAt:null,lastGravityAt:performance.now(),
      elapsedBase:0,startedAt:performance.now(),sessionToken:session.sessionToken,seed:Number(session.seed)||1,finished:false,finalizing:false,busy:false,progressed:false,ended:false};
-   fallResetCursor();setStatus('新しいFALLを開始しました。','good');
+   fallResetCursor();setStatus('新しくテトリスを開始しました。','good');
  }
  renderFall();
  if(fallGame&&!fallGame.ended)startFallGravity();
@@ -1685,7 +1685,7 @@ function holdFallPiece(){
  }
  game.holdUsed=true;
  if(!fallResetCursor()){
-   stopFallGravity();renderFall();setStatus('HOLD後のピースを置けません。FALL終了。','warn');void finishFall(true);return;
+   stopFallGravity();renderFall();setStatus('保留後のブロックを置けません。ゲーム終了。','warn');void finishFall(true);return;
  }
  tone(610,32);setStatus('HOLD · 次の配置まで再使用できません','good');renderFall();
 }
@@ -1719,8 +1719,8 @@ async function dropFall(autoLock=false){
    const saved=await persistFall(true,true);game.busy=false;
    if(fallGame!==game)return;
    renderFall();
-   if(saved){setStatus('置ける場所がありません。FALL終了。','warn');await finishFall(true);}
-   else setStatus('FALL終了。保存に失敗したため「終了して記録」で再試行してください。','error');
+   if(saved){setStatus('置ける場所がありません。ゲーム終了。','warn');await finishFall(true);}
+   else setStatus('テトリス終了。保存に失敗したため「終了して記録」で再試行してください。','error');
  }else if(applied.cleared>0||game.pieces%3===0){
    void persistFall(false,false).catch(()=>{});
  }
@@ -1738,11 +1738,11 @@ async function finishFall(gameOver=false){
  game.finalizing=false;game.busy=false;
  if(res.ok){
    game.finished=true;game.sessionToken=null;delete saves.fall;
-   if(fallGame===game){showScoreResult('fall',res,(gameOver?'ゲーム終了 · ':'')+'FALL '+res.score+'点 · '+game.lines+' LINES');renderFall();}
+   if(fallGame===game){showScoreResult('fall',res,(gameOver?'ゲーム終了 · ':'')+'テトリス '+res.score+'点 · '+game.lines+'ライン');renderFall();}
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;
-   if(fallGame===game){setStatus('FALLの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderFall();}
+   if(fallGame===game){setStatus('テトリスの記録を保存できませんでした。途中保存は残っています。ホームから再開してください。','error');renderFall();}
  }
 }
 function fallPointerPoint(event){return {x:Number(event.clientX)||0,y:Number(event.clientY)||0};}
@@ -1788,7 +1788,7 @@ FlecityGamesControls.bindArrowKeys({
  onDownEnd:stopFallSoftDrop
 });
 fallBack.onclick=async()=>{
- if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ if(fallGame&&fallGame.finalizing){setStatus('テトリスの記録を保存中です…','warn');return;}
  stopFallGravity();stopFallSoftDrop();
  if(fallGame&&!fallGame.finished&&fallGame.sessionToken){
    await saveQueue.catch(()=>{});
@@ -1799,7 +1799,7 @@ fallBack.onclick=async()=>{
 };
 fallNew.onclick=async()=>{
  if(fallNew.disabled)return;
- if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
+ if(fallGame&&fallGame.finalizing){setStatus('テトリスの記録を保存中です…','warn');return;}
  const destructive=!!saves.fall||!!(fallGame&&!fallGame.finished);
  if(destructive){
    const ok=await confirmAction('FALLを新しく始めますか？','現在の途中保存は削除されます。','新しく始める');
@@ -1810,7 +1810,7 @@ fallNew.onclick=async()=>{
    await saveQueue.catch(()=>{});
    if(fallGame&&fallGame.sessionToken)await cancelPlaySession(fallGame.sessionToken);
    const reset=await FlecityBridge.call('playResetSave',{gameId:'fall'});
-   if(!reset.ok){setStatus('FALLの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');if(fallGame&&!fallGame.ended&&fallGame.sessionToken)startFallGravity();return;}
+   if(!reset.ok){setStatus('テトリスの保存をリセットできません: '+FlecityErrors.text(reset.error),'error');if(fallGame&&!fallGame.ended&&fallGame.sessionToken)startFallGravity();return;}
    delete saves.fall;fallGame=null;await openFall(true);
  }finally{fallNew.disabled=false;}
 };
@@ -2086,11 +2086,11 @@ function stackLoop(now){
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
  const session=await startSessionWithRetry({gameId:'stack'});
- if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('TOWERを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
+ if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('タワー積みを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
  stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,cameraOffset:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
- stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('TOWER START · PERFECTをつないで倍率を上げよう。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
+ stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('タワー積み開始 · ぴったり重ねるほど高得点です。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){
  const game=stackGame;if(!game||game.finished||game.finalizing)return;
@@ -2102,13 +2102,13 @@ async function finishStack(){
    game.sessionToken=null;
    if(stackGame===game){
      const layers=Number(res.details&&res.details.layers)||game.layerCount,maxStreak=Number(res.details&&res.details.maxPerfectStreak)||game.maxPerfectStreak;
-     showScoreResult('stack',res,'TOWER '+Number(res.score).toLocaleString()+' pts · HEIGHT '+layers+' · PERFECT ×'+maxStreak);
+     showScoreResult('stack',res,'タワー積み '+Number(res.score).toLocaleString()+'点 · 高さ '+layers+'段 · 連続成功 ×'+maxStreak);
      renderStack();
    }
    await refreshPlatform();
  }else{
    await cancelPlaySession(game.sessionToken);game.sessionToken=null;
-   if(stackGame===game)setStatus('TOWERスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');
+   if(stackGame===game)setStatus('タワー積みのスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');
  }
 }
 async function dropStackBlock(){
@@ -2158,8 +2158,8 @@ async function dropStackBlock(){
 stackDrop.onclick=()=>{void dropStackBlock();};
 stackArena.onclick=()=>{void dropStackBlock();};
 stackArena.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void dropStackBlock();}};
-stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
-stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('TOWERの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('TOWERをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
+stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('タワー積みの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('タワー積みを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
+stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('タワー積みの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('タワー積みをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
 
 /* NONOGRAM */
 const NONOGRAM_PATTERNS_5=[

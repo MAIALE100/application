@@ -17,7 +17,8 @@ $ExpectedPatchSha256 = '6A91D4CDEFA0332119D00A1F72B6E3FDA0E54EDBF4564A716DDF0DC9
 $ExpectedAtomicPatchSha256 = 'BDD7CAF2EE949A52E208E4E9035C37771F22CF504EF460D3096FFE41CB0D6508'
 $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C26EDC0A7189E9'
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
-$ExpectedVersion = '0.3.0-test'
+$ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
+$ExpectedVersion = '0.3.1-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -35,6 +36,7 @@ $PatchPath = Join-Path $TempRoot 'wave-v030.patch'
 $AtomicPatchPath = Join-Path $TempRoot 'wave-v030-atomic-status.patch'
 $SavePatchPath = Join-Path $TempRoot 'wave-v030-idempotent-saves.patch'
 $RatePatchPath = Join-Path $TempRoot 'wave-v030-rate-limit.patch'
+$ReleaseFeedbackPatchPath = Join-Path $TempRoot 'wave-v031-release-feedback.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
@@ -310,6 +312,23 @@ try {
     } finally { Set-Location $oldLocation }
     Write-Host 'Rate-limit rollover patch: PASS' -ForegroundColor Green
 
+    Step 'Applying WAVE release-action feedback fix'
+    [IO.File]::WriteAllBytes($ReleaseFeedbackPatchPath,[Convert]::FromBase64String((Read-RemoteParts $head @('wave-v031-release-feedback.patch.b64'))))
+    $feedbackHash=(Get-FileHash -LiteralPath $ReleaseFeedbackPatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($feedbackHash -ne $ExpectedReleaseFeedbackPatchSha256) { throw ('WAVE release feedback patch hash mismatch: ' + $feedbackHash) }
+    $oldLocation=Get-Location
+    try {
+        Set-Location $Source
+        & git apply --check --whitespace=nowarn $ReleaseFeedbackPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE release feedback patch preflight failed' }
+        & git apply --whitespace=nowarn $ReleaseFeedbackPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE release feedback patch failed' }
+    } finally { Set-Location $oldLocation }
+    $manifestText=[IO.File]::ReadAllText($manifestPath)
+    if (-not $manifestText.Contains("version '0.3.0-test'")) { throw 'Unexpected WAVE version before release feedback update' }
+    $manifestText=$manifestText.Replace("version '0.3.0-test'", "version '0.3.1-test'")
+    [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
+    Write-Host 'Release-action feedback patch: PASS' -ForegroundColor Green
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -319,6 +338,7 @@ try {
     $app=[IO.File]::ReadAllText($appPath)
     if ($app -match '\b(?:prompt|confirm)\s*\(') { throw 'Blocking browser prompt/confirm found in WAVE app.js' }
     if ($app -notmatch 'WAVE_PUBLISH_DIAGNOSTICS_V023' -or $app -notmatch 'requestId') { throw 'Publish diagnostics wiring missing' }
+    if ($app -notmatch 'WAVE_RELEASE_ACTION_FEEDBACK_V031' -or $app -notmatch 'ownReleaseFeedback') { throw 'Own-release feedback wiring missing' }
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }

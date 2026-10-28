@@ -403,6 +403,22 @@ try {
     if ($playIndexText -notmatch 'componentsLoaded' -or $playIndexText -notmatch 'devMode=!window.invokeNative' -or $playIndexText -match 'setTimeout\(loadApp') { throw 'PLAY component-gated loader check failed.' }
     if ($playIndexText -notmatch 'id="recentCard"' -or $playIndexText -notmatch 'id="libraryFilters"' -or $playIndexText -notmatch 'id="randomPlay"') { throw 'PLAY library navigation DOM check failed.' }
     if ($playAppText -notmatch 'renderRecent' -or $playAppText -notmatch 'filteredLibraryGames' -or $playAppText -notmatch 'randomPlay\.onclick') { throw 'PLAY library navigation client check failed.' }
+
+    $sharedControlsPath = Join-Path $DestinationForValidation 'web\shared\controls.js'
+    if (-not (Test-Path -LiteralPath $sharedControlsPath)) { throw 'Shared LOOP/LINK controls file missing.' }
+    $sharedControlsText = Get-Content $sharedControlsPath -Raw
+    if ($sharedControlsText -notmatch 'function bindArrowKeys' -or $playIndexText -notmatch '\.\./shared/controls\.js' -or $partyIndexText -notmatch '\.\./shared/controls\.js' -or $playAppText -notmatch 'FlecityGamesControls\.bindArrowKeys' -or $partyAppText -notmatch 'PartyFallBattle') {
+        throw 'LOOP / LINK shared keyboard compatibility check failed.'
+    }
+    $partyFallUiPath = Join-Path $DestinationForValidation 'web\party\fall_battle.js'
+    if (-not (Test-Path -LiteralPath $partyFallUiPath)) { throw 'LINK Tetris battle script missing.' }
+    if ((Get-Content -LiteralPath $partyFallUiPath -Raw) -notmatch 'FlecityGamesControls\.bindArrowKeys' -or $playIndexText -notmatch 'fall-dpad' -or $partyIndexText -notmatch 'fall-dpad' -or $cssText -notmatch '\.fall-controls\.fall-dpad') {
+        throw 'Shared LOOP / LINK Tetris direction-pad validation failed.'
+    }
+    if ($playAppText -notmatch 'function openGameRanking' -or $playAppText -notmatch 'ranking-top-five' -or $playAppText -notmatch 'game-rank-shortcut' -or $playIndexText -notmatch 'class="play-app"' -or $cssText -notmatch 'ranking-medal-1') {
+        throw 'LOOP top-five ranking quick-access validation failed.'
+    }
+
     if ($playCoreText -notmatch 'MAX\(created_at\) AS last_played_at' -or $playCoreText -notmatch 'lastPlayedAt=row\.last_played_at') { throw 'PLAY recent-game timestamp check failed.' }
     if ($playAppText -notmatch 'toggleFavorite' -or $playAppText -notmatch 'favorite-toggle' -or $playIndexText -notmatch 'data-filter="favorites"') { throw 'PLAY favorites UI check failed.' }
     if ($profileCoreText -notmatch 'normalizeFavorites' -or $profileCoreText -notmatch 'if data\.favorites~=nil' -or $profileCoreText -notmatch 'if data\.sound~=nil') { throw 'PLAY favorites profile persistence check failed.' }

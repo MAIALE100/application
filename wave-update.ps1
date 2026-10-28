@@ -299,8 +299,8 @@ try {
     Step 'Deploying WAVE to the test server'
     $DeploymentStarted=$true
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
+    Assert-SafeResourceTree $Destination
     if (Test-Path -LiteralPath $Destination) {
-        Assert-SafeResourceTree $Destination
         Remove-Item -LiteralPath $Destination -Recurse -Force
     }
     Move-Item -LiteralPath $StagePath -Destination $Destination
@@ -339,8 +339,9 @@ try {
         try {
             if ($ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
                 Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
+                Assert-SafeResourceTree $ActiveBackup
+                Assert-SafeResourceTree $Destination
                 if (Test-Path -LiteralPath $Destination) {
-                    Assert-SafeResourceTree $Destination
                     Remove-Item -LiteralPath $Destination -Recurse -Force
                 }
                 Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force

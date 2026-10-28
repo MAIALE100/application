@@ -2,6 +2,10 @@
 # Run: pwsh -NoProfile -File ./wave-update-path-safety-test.ps1
 $ErrorActionPreference = 'Stop'
 $updater = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wave-update.ps1'))
+if (([regex]::Matches($updater, 'Assert-SafeResourceTree \$Destination')).Count -lt 3 -or
+    -not $updater.Contains('Assert-SafeResourceTree $ActiveBackup')) {
+    throw 'Deployment or rollback path safety guard missing'
+}
 $start = $updater.IndexOf('function Assert-SafeResourceTree(')
 $end = $updater.IndexOf('function Test-DeploymentMatches(', $start)
 if ($start -lt 0 -or $end -le $start) { throw 'WAVE path safety helper not found' }

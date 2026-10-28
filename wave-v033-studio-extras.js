@@ -34,7 +34,11 @@
       '<div class="wave-bar-steps" id="waveBarSteps" aria-label="\u5c0f\u7bc0\u3092\u9078\u629e"></div>',
       '<p class="wave-bar-hint">\u9078\u3093\u3060\u5c0f\u7bc0\u3092\u97f3\u7b26\u30b0\u30ea\u30c3\u30c9\u3067\u7de8\u96c6\u3057\u307e\u3059\u3002\u97f3\u7b26\u306f\u5c0f\u7bc0\u3054\u3068\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002</p>'
     ].join('');
-    transport.insertAdjacentElement('afterend', host);
+    // Put the navigator directly after the template card so it is visible
+    // before the transport controls; the existing BAR dropdown still works.
+    const templates = document.getElementById('waveTemplatePresets');
+    if (templates) templates.insertAdjacentElement('afterend', host);
+    else transport.insertAdjacentElement('beforebegin', host);
     const counter = host.querySelector('#waveBarCounter');
     const range = host.querySelector('#waveBarRange');
     const prev = host.querySelector('#waveBarPrev');
@@ -80,7 +84,17 @@
       counter.textContent = range.value + ' / ' + maxBars() + ' \u5c0f\u7bc0';
     });
     range.addEventListener('change', () => jump(Number(range.value) - 1));
-    barSelect.addEventListener('change', () => queueMicrotask(render));
+    barSelect.addEventListener('change', () => {
+      // BAR is the current editing position, not the total score length.
+      // Synchronize even if the core app's listener order changes.
+      queueMicrotask(() => {
+        const selected = Number(barSelect.value);
+        if (Number.isFinite(selected) && selected >= 0 && selected < maxBars()) {
+          if (Number(state.bar) !== selected) state.bar = selected;
+        }
+        render();
+      });
+    });
     const barsInput = document.getElementById('barsInput');
     if (barsInput) barsInput.addEventListener('change', () => queueMicrotask(render));
     // renderStudio() rebuilds the BAR select whenever the project changes.
@@ -120,6 +134,9 @@
     controls.append(select, button);
     host.append(title, controls, info);
     transport.insertAdjacentElement('beforebegin', host);
+    // Studio may be rendered before this optional script executes.
+    // Mount the navigator immediately rather than relying on a later refresh.
+    bootBarNavigator();
 
     button.addEventListener('click', () => {
       try {

@@ -48,6 +48,26 @@
     return { bars: count, notes: selected.map(n => ({ ...n, step: n.step - bounds.start })) };
   }
 
+  // Compare the target's actual note data, not just its note count.
+  // A self-paste or identical destination must not dirty the project.
+  function sameRange(notes, clipboard, bounds) {
+    let seen = 0;
+    for (const note of notes) {
+      if (!note || !Number.isInteger(note.step) ||
+          note.step < bounds.start || note.step >= bounds.end) continue;
+      const copied = clipboard.notes[seen++];
+      if (!copied) return false;
+      const keys = Object.keys(note);
+      if (keys.length !== Object.keys(copied).length) return false;
+      for (const key of keys) {
+        if (!Object.prototype.hasOwnProperty.call(copied, key) ||
+            (key === 'step' ? note.step - bounds.start !== copied.step :
+              !Object.is(note[key], copied[key]))) return false;
+      }
+    }
+    return seen === clipboard.notes.length;
+  }
+
   function pasteRange(notes, clipboard, startBar, totalBars) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
@@ -59,9 +79,9 @@
     // The clipboard limit alone is insufficient: pasted notes plus the rest
     // of a long song must also stay within the editor's 8192-note safety cap.
     if (remaining.length + clipboard.notes.length > 8192) return null;
-    // An empty clipboard pasted onto an empty range is not an edit.
-    // Preserve the original array so callers can skip Undo and dirty flags.
-    if (remaining.length === notes.length && clipboard.notes.length === 0) return notes;
+    // Preserve the original array for all content-identical pastes.
+    // The UI uses this identity to avoid redundant Undo and dirty flags.
+    if (sameRange(notes, clipboard, bounds)) return notes;
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
   }
 
@@ -86,7 +106,7 @@
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,
       totalAfter, withinLimit: totalAfter <= 8192,
-      wouldChange: summary.notes > 0 || clipboard.notes.length > 0 };
+      wouldChange: !sameRange(notes, clipboard, rangeBounds(startBar, clipboard.bars, totalBars)) };
   }
 
   function clearRange(notes, startBar, count, totalBars) {

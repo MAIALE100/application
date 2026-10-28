@@ -107,4 +107,21 @@ assert.deepEqual(erased.map(n=>n.step),[64,127,128]);
 assert.equal(rangePreview(emptyTrack,oneNoteClip,0,16).wouldChange,true);
 assert.notEqual(pasteRange(emptyTrack,oneNoteClip,0,16),emptyTrack);
 
+
+// Copying onto the same unchanged region, or an identical destination, is a no-op.
+const selfClip = copyRange(source, 0, 4, 16);
+assert.equal(rangePreview(source, selfClip, 0, 16).wouldChange, false);
+assert.equal(pasteRange(source, selfClip, 0, 16), source);
+const identicalTarget = [
+  { step: 0, pitch: 60, length: 2, velocity: 0.8 },
+  { step: 64, pitch: 60, length: 2, velocity: 0.8 }
+];
+const identicalClip = copyRange(identicalTarget, 0, 4, 16);
+assert.equal(rangePreview(identicalTarget, identicalClip, 4, 16).wouldChange, false);
+assert.equal(pasteRange(identicalTarget, identicalClip, 4, 16), identicalTarget);
+const changedVelocity = identicalTarget.map(n => ({ ...n }));
+changedVelocity[1].velocity = 0.2;
+assert.equal(rangePreview(changedVelocity, identicalClip, 4, 16).wouldChange, true);
+assert.notEqual(pasteRange(changedVelocity, identicalClip, 4, 16), changedVelocity);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

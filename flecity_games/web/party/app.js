@@ -603,8 +603,8 @@ function setupConnect4(room){
    }
    board.forEach((mark,index)=>{
      const c=document.createElement('div');
-     c.className='connect4-cell'+(winningCells.has(index+1)?' connect4-winning':'');
-     c.textContent=mark==='R'?'●':(mark==='Y'?'○':'');
+     c.className='connect4-cell'+(mark==='R'?' connect4-red':(mark==='Y'?' connect4-yellow':''))+(winningCells.has(index+1)?' connect4-winning':'');
+     c.setAttribute('aria-label',mark==='R'?'赤':(mark==='Y'?'黄':'空き'));
      connect4Board.appendChild(c);
    });
  };
@@ -633,8 +633,9 @@ function setupConnect4(room){
  }
 
  renderBoard(false);
- connect4Status.textContent=rs.isCurrent?'あなたの手番 · '+(rs.mark==='R'?'●':'○'):'相手の手番';
- connect4Meta.textContent='7×6 · 4つ並べる · '+Number(rs.moves||0)+'手';
+ const selfColor=rs.mark==='R'?'赤':(rs.mark==='Y'?'黄':'未設定');
+ connect4Status.textContent=(rs.isCurrent?'あなたの手番':'相手の手番')+' · 自分は'+selfColor;
+ connect4Meta.textContent='赤 vs 黄 · 7×6 · 4つ並べる · '+Number(rs.moves||0)+'手';
 }
 function setupMajority(room){
  const rs=room.roundState,isMinority=rs.gameId==='minority';hideRoundGames();majorityPanel.classList.remove('hidden');resultsPanel.classList.add('hidden');beginRoundToken(rs);

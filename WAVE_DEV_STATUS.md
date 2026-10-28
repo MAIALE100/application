@@ -137,3 +137,13 @@ when the copied range would overrun the song. This is a UI-only change with
 no modification to save JSON, server, financial, publish, or undo behavior.
 The preview refreshes on toolbar focus/hover after track selection changes.
 Regression tests cover invalid targets and the 8192-note boundary.
+
+## Empty-range clear refinement (2026-10-29)
+
+The selected-track 4/8-bar clear button is disabled when its window contains
+no notes. The pure clear helper returns the original notes array for empty
+windows, avoiding unnecessary allocations and preserving no-op identity.
+This does not change the project save schema, Undo behavior for actual edits,
+or any banking, permission or release code. Regression cases cover empty and
+nonempty windows. No additional in-game action is required beyond the existing
+range-edit smoke test after the next successful normal update.

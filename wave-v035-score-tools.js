@@ -112,6 +112,11 @@
   function clearRange(notes, startBar, count, totalBars) {
     const bounds = rangeBounds(startBar, count, totalBars);
     if (!bounds || !Array.isArray(notes)) return null;
+    // Empty windows are common in long scores: preserve array identity and
+    // avoid allocating a replacement array when nothing will be deleted.
+    const hasNotes = notes.some(n => n && Number.isInteger(n.step) &&
+      n.step >= bounds.start && n.step < bounds.end);
+    if (!hasNotes) return notes;
     return notes.filter(n => !n || !Number.isInteger(n.step) ||
       n.step < bounds.start || n.step >= bounds.end);
   }
@@ -194,7 +199,7 @@
       const pasteTarget = track && rangeClipboard &&
         rangePreview(track.notes, rangeClipboard, index, bars);
       rangeCopy.disabled = !selectedRange;
-      rangeClear.disabled = !selectedRange;
+      rangeClear.disabled = !selectedRange || selectedRange.notes === 0;
       rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit || !pasteTarget.wouldChange;
       preview.textContent = selectedRange
         ? selectedRange.startBar + '〜' + selectedRange.endBar + '小節：' + selectedRange.notes + '音符。'
@@ -288,7 +293,7 @@
         message.textContent = 'この位置では範囲を削除できません。';
         return;
       }
-      if (next.length === track.notes.length) {
+      if (next === track.notes) {
         message.textContent = '選択範囲に音符はありません。';
         return;
       }

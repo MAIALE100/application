@@ -70,6 +70,15 @@ const empty = copyRange([],0,8,16);
 assert.deepEqual(pasteRange(source,empty,0,16).map(n=>n.step),[128]);
 assert.deepEqual(clearRange(source,0,8,16).map(n=>n.step),[128]);
 assert.equal(clearRange(source,9,8,16),null);
+// Clearing an already empty window must not allocate, dirty, or create Undo.
+const emptyWindow = [ { step: 128, pitch: 70 } ];
+assert.equal(rangeSummary(emptyWindow,0,4,16).notes,0);
+assert.equal(clearRange(emptyWindow,0,4,16),emptyWindow);
+assert.equal(clearRange([],0,4,16).length,0);
+const changedWindow = clearRange(source,0,4,16);
+assert.notEqual(changedWindow,source);
+assert.deepEqual(changedWindow.map(n=>n.step),[64,127,128]);
+assert.equal(source.length,5);
 const clip8 = copyRange(source,0,8,16);
 assert.deepEqual(clip8.notes.map(n=>n.step),[0,63,64,127]);
 assert.deepEqual(pasteRange([],clip8,8,16).map(n=>n.step),[128,191,192,255]);

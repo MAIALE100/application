@@ -22,7 +22,9 @@ creating a backup, or requiring a resource restart**. A mismatch follows the
 normal verified deployment and rollback path. The updater now rejects
 symlinks/junctions inside the installed resource and at the backup root
 before copying or deleting anything, including broken links. The guard is
-also rechecked before replacing or restoring a resource.
+also rechecked before replacing or restoring a resource. Backup retention
+now inspects each expired backup's entire tree and skips candidates containing
+nested junctions/symlinks instead of risking recursive deletion through a link.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the
@@ -48,7 +50,9 @@ The updater, bootstrap, and PowerShell regression tests are ASCII-only. Source
 commit pinning has a dedicated regression test. The path-safety guard has
 its own PowerShell regression for ordinary trees, nested links, dangling links,
 linked resource roots, and linked backup roots. The no-op regression now
-also covers strict backup verification and metadata integrity. Native PowerShell
+also covers strict backup verification and metadata integrity. The backup-retention
+regression now covers nested symlink candidates and verifies that unrelated
+targets are preserved while ordinary expired backups are pruned. Native PowerShell
 syntax and these cases still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.
 

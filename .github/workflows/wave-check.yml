@@ -118,8 +118,12 @@ jobs:
           html.write_text(content.replace("</body>", "  <script src='studio-extras.js'></script>\n</body>"), encoding="utf-8")
           manifest = root / "fxmanifest.lua"
           content = manifest.read_text(encoding="utf-8")
-          assert "'web/app.js'," in content
-          content = content.replace("'web/app.js',", "'web/app.js',\n    'web/studio-extras.js',")
+          import re
+          files_block = re.search(r"\bfiles\s*\{[^}]*\}", content, re.S)
+          assert files_block, "Lua files block missing"
+          assert "'web/studio-extras.js'" not in files_block.group()
+          updated = files_block.group().replace("{", "{\n    'web/studio-extras.js',", 1)
+          content = content[:files_block.start()] + updated + content[files_block.end():]
           assert "version '0.3.2-test'" in content
           content = content.replace("version '0.3.2-test'", "version '0.3.3-test'")
           manifest.write_text(content, encoding="utf-8")

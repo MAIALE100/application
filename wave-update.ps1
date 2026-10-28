@@ -122,6 +122,20 @@ function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestinati
     }
     return $true
 }
+function Assert-DeploymentPreconditions([string]$InstalledDestination,[string]$VerifiedBackup) {
+    # Refuse to overwrite changes made after the backup was verified.
+    # Check before setting DeploymentStarted so a failed preflight cannot
+    # trigger rollback and overwrite those newer files.
+    Assert-SafeResourceTree $InstalledDestination
+    if ($VerifiedBackup) {
+        Assert-SafeResourceTree $VerifiedBackup
+        if (-not (Test-DeploymentMatches $VerifiedBackup $InstalledDestination $false)) {
+            throw 'Installed WAVE changed since backup; deployment aborted'
+        }
+    } elseif (Test-Path -LiteralPath $InstalledDestination) {
+        throw 'WAVE destination appeared after preflight; deployment aborted'
+    }
+}
 function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Keep = 5) {
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return }
     # Recheck the backup root at cleanup time, not only at deployment preflight.
@@ -328,9 +342,9 @@ try {
     }
 
     Step 'Deploying WAVE to the test server'
-    $DeploymentStarted=$true
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
-    Assert-SafeResourceTree $Destination
+    Assert-DeploymentPreconditions $Destination $ActiveBackup
+    $DeploymentStarted=$true
     if (Test-Path -LiteralPath $Destination) {
         Remove-Item -LiteralPath $Destination -Recurse -Force
     }

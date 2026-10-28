@@ -66,6 +66,27 @@ check('Unchanged playlist save is idempotent and still checks ownership',
 check('Publication requires rights, active artist and normalized project',
       all(token in body('cbPublishTrack') for token in
           ('rightsConfirmed', 'getArtist(citizenid)', 'encodeProject(', 'PUBLISH_DB_FAILED')))
+check('Duplicate release guard is owner-scoped, serialized and released on every outcome',
+      all(token in body('cbPublishTrack') for token in (
+          'if not projectId or projectId < 1 or projectId % 1 ~= 0',
+          'tostring(artist.id)',
+          'publishingProjects[key] = true',
+          'publishingProjects[key] = nil',
+          'MySQL.single.await',
+          'artist_id=? AND project_id=?',
+          "status IN ('public','private','suspended')",
+          "'PROJECT_ALREADY_RELEASED'",
+          "'PUBLISH_IN_PROGRESS'",
+          "'PROJECT_NOT_SAVED'",
+      ))
+      and 'local publishingProjects = {}' in server
+      and body('cbPublishTrack').index('publishingProjects[key] = true')
+         < body('cbPublishTrack').index('MySQL.single.await')
+         < body('cbPublishTrack').index('MySQL.insert.await')
+         < body('cbPublishTrack').index('publishingProjects[key] = nil')
+      and all(('ERROR_TEXT.' + code) in app for code in
+          ('PROJECT_ALREADY_RELEASED', 'PUBLISH_IN_PROGRESS', 'PROJECT_NOT_SAVED')))
+
 check('Owner release management blocks suspended tracks',
       all(token in body('cbUpdateOwnTrack') for token in
           ("row.status == 'suspended'", 'artist_id=?', "artist.status ~= 'active'")))

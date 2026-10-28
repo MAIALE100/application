@@ -32,6 +32,10 @@ local poseShotIndex = 0
 local captureCancelledByUser = false
 local captureGuideVisible = true
 
+-- 攻撃・照準・リロード・近接攻撃を撮影中だけ無効化します。
+local boothCombatControls = {24, 25, 45, 140, 141, 142, 257, 263, 264}
+
+
 local themeRuntimeNonce = ("%d_%d"):format(GetGameTimer(), PlayerId())
 local themeTextureGeneration = 0
 local themeTextures = {
@@ -2560,11 +2564,28 @@ CreateThread(function()
             if booth then
                 local phase = ownedSession.phase or "gathering"
 
+                -- 撮影者が操作中に誤って近くの人を殴らないようにします。
+                -- 撮影が終了・キャンセルされると、この制御は自動で解除されます。
+                if phase == "gathering" or phase == "preview"
+                    or phase == "starting" or phase == "capturing" then
+                    wait = 0
+                    DisablePlayerFiring(PlayerId(), true)
+                    for _, control in ipairs(boothCombatControls) do
+                        DisableControlAction(0, control, true)
+                    end
+                end
+
+                -- Hは撮影時の背景・床の再選択専用キーです。
+                -- 車両ライトなどのGTA標準操作をこの間は抑止します。
+                if phase == "gathering" or phase == "preview" then
+                    DisableControlAction(0, 74, true)
+                end
+
                 if phase == "gathering" then
                     wait = 0
 
                     drawText2d(
-                        "手順 1/2　[E] カメラ確認　[R] 背景・床　[G] ガイド　[BACKSPACE] 中止",
+                        "手順 1/2　[E] カメラ確認　[H] 背景・床　[G] ガイド　[BACKSPACE] 中止",
                         0.5,
                         0.82,
                         0.42
@@ -2572,7 +2593,7 @@ CreateThread(function()
 
                     if IsControlJustReleased(0, 38) then
                         enterCameraPreview(ownedSession.boothId)
-                    elseif IsControlJustReleased(0, 45) then
+                    elseif IsDisabledControlJustReleased(0, 74) then
                         reopenThemeSelection()
                     elseif IsControlJustReleased(0, 177) then
                         TriggerServerEvent(
@@ -2588,7 +2609,7 @@ CreateThread(function()
                     wait = 0
 
                     drawText2d(
-                        "手順 2/2　[E] 撮影開始　[R] 背景・床　[G] ガイド　[BACKSPACE] 戻る",
+                        "手順 2/2　[E] 撮影開始　[H] 背景・床　[G] ガイド　[BACKSPACE] 戻る",
                         0.5,
                         0.82,
                         0.44
@@ -2601,7 +2622,7 @@ CreateThread(function()
                             "puribooth:server:beginCapture",
                             ownedSession.boothId
                         )
-                    elseif IsControlJustReleased(0, 45) then
+                    elseif IsDisabledControlJustReleased(0, 74) then
                         reopenThemeSelection()
                     elseif IsControlJustReleased(0, 177) then
                         leaveCameraPreview()

@@ -6,6 +6,13 @@ if (([regex]::Matches($updater, 'Assert-SafeResourceTree \$Destination')).Count 
     -not $updater.Contains('Assert-SafeResourceTree $ActiveBackup')) {
     throw 'Deployment or rollback path safety guard missing'
 }
+# The no-backup rollback path also removes a directory. Ensure it checks
+# for a swapped junction/link immediately before that recursive removal.
+$firstInstallRollbackGuard = '(?s)elseif \(Test-Path -LiteralPath \$Destination\) \{\s*Write-Host ''Removing incomplete first installation\.\.\.''' +
+    '[^\r\n]*\r?\n(?:\s*\#[^\r\n]*\r?\n)*\s*Assert-SafeResourceTree \$Destination\s*\r?\n\s*Remove-Item -LiteralPath \$Destination -Recurse -Force'
+if ($updater -notmatch $firstInstallRollbackGuard) {
+    throw 'First-install rollback must validate destination before recursive deletion'
+}
 $start = $updater.IndexOf('function Assert-SafeResourceTree(')
 $end = $updater.IndexOf('function Test-DeploymentMatches(', $start)
 if ($start -lt 0 -or $end -le $start) { throw 'WAVE path safety helper not found' }

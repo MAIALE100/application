@@ -13,6 +13,8 @@ runtimes are available, stages, backs up, deploys, and verifies file hashes.
 Before replacing the installed resource, staging and the backup are SHA256-verified
 against their source trees (including build metadata). A failed deployment
 attempts to restore the previous resource and verifies the restored files.
+The CMD and updater now pin the bootstrap script, base package, app and patches to
+one immutable Git commit, avoiding mixed-version builds if another process fetches.
 After validation and duplicate-resource checks, the updater compares every generated
 file with the installed resource using SHA256 (ignoring only `.wave-build.txt`).
 If all files already match, it exits successfully **without copying files,
@@ -39,7 +41,8 @@ Offline checks on the extracted v0.3.0 resource plus atomic-status, idempotent-s
 and rate-limit patches: `git apply --check`, `node --check`, Lua 5.3 parsing
 of four Lua files, ten rate-limit cases, eight save cases, 33 callback-map
 entries, and fifteen static security/compatibility assertions all passed.
-The updater and no-op regression are ASCII-only. The no-op regression now
+The updater, bootstrap, and PowerShell regression tests are ASCII-only. Source
+commit pinning has a dedicated regression test. The no-op regression now
 also covers strict backup verification and metadata integrity. Native PowerShell
 syntax and these cases still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.

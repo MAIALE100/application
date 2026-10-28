@@ -1,6 +1,7 @@
 param(
     [string]$ServerBase = 'D:\FiveM_Test_Server\txData\Qbox_D233FD.base',
     [string]$RepoRoot = '',
+    [string]$SourceCommit = '',
     [switch]$NoFetch
 )
 
@@ -97,12 +98,20 @@ try {
     if (-not (Test-Path $Resources)) { throw ('Test server resources folder not found: ' + $Resources) }
     if (-not $NoFetch) { Step 'Fetching latest WAVE build'; Invoke-RepoGit @('fetch','origin',$Branch) | Out-Null }
     $remoteRef='origin/' + $Branch
-    $head=(Invoke-RepoGit @('rev-parse',$remoteRef) | Select-Object -First 1).Trim()
+    # Pin every package and patch read to one immutable commit. A concurrent fetch
+    # must not mix artifacts from different versions of origin/wave/dev.
+    if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
+        $head=(Invoke-RepoGit @('rev-parse',$remoteRef) | Select-Object -First 1).Trim()
+    } else {
+        $head=$SourceCommit.Trim()
+    }
+    if ($head -notmatch '^[0-9a-fA-F]{40}$') { throw 'Invalid WAVE source commit SHA' }
+    Invoke-RepoGit @('cat-file','-e',($head + '^{commit}')) | Out-Null
     Write-Host ('WAVE source: ' + $head.Substring(0,12)) -ForegroundColor DarkGray
 
     Step 'Reconstructing validated WAVE base'
     New-Item -ItemType Directory -Force -Path $TempRoot,$ExtractPath | Out-Null
-    [IO.File]::WriteAllBytes($ZipPath,[Convert]::FromBase64String((Read-RemoteParts $remoteRef $BaseParts)))
+    [IO.File]::WriteAllBytes($ZipPath,[Convert]::FromBase64String((Read-RemoteParts $head $BaseParts)))
     $baseHash=(Get-FileHash $ZipPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($baseHash -ne $ExpectedBaseSha256) { throw ('WAVE base package hash mismatch: ' + $baseHash) }
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $ExtractPath -Force
@@ -110,7 +119,7 @@ try {
 
     Step 'Applying validated WAVE v0.2.2 app'
     $appPath=Join-Path $Source 'web\app.js'
-    $compressed=[Convert]::FromBase64String((Read-RemoteParts $remoteRef $AppParts))
+    $compressed=[Convert]::FromBase64String((Read-RemoteParts $head $AppParts))
     $input=New-Object IO.MemoryStream(,$compressed)
     $gzip=New-Object IO.Compression.GzipStream($input,[IO.Compression.CompressionMode]::Decompress)
     $output=New-Object IO.MemoryStream
@@ -124,7 +133,7 @@ try {
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
 
     Step 'Applying WAVE v0.3.0 patch'
-    [IO.File]::WriteAllBytes($PatchPath,[Convert]::FromBase64String((Read-RemoteParts $remoteRef $PatchParts)))
+    [IO.File]::WriteAllBytes($PatchPath,[Convert]::FromBase64String((Read-RemoteParts $head $PatchParts)))
     $patchHash=(Get-FileHash -LiteralPath $PatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($patchHash -ne $ExpectedPatchSha256) { throw ('WAVE v0.3.0 patch hash mismatch: ' + $patchHash) }
     Write-Host 'v0.3.0 patch SHA256: PASS' -ForegroundColor Green
@@ -138,7 +147,7 @@ try {
     } finally { Set-Location $oldLocation }
 
     Step 'Applying WAVE atomic release-state patch'
-    $atomicPatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-atomic-status.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    $atomicPatchText=((Invoke-RepoGit @('show',($head + ':wave-v030-atomic-status.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
     [IO.File]::WriteAllText($AtomicPatchPath,$atomicPatchText,(New-Object Text.UTF8Encoding($false)))
     $atomicPatchHash=(Get-FileHash -LiteralPath $AtomicPatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($atomicPatchHash -ne $ExpectedAtomicPatchSha256) { throw ('WAVE atomic patch hash mismatch: ' + $atomicPatchHash) }
@@ -153,7 +162,7 @@ try {
     Write-Host 'Atomic release-state patch: PASS' -ForegroundColor Green
 
     Step 'Applying WAVE idempotent-save patch'
-    $savePatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-idempotent-saves.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    $savePatchText=((Invoke-RepoGit @('show',($head + ':wave-v030-idempotent-saves.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
     [IO.File]::WriteAllText($SavePatchPath,$savePatchText,(New-Object Text.UTF8Encoding($false)))
     $savePatchHash=(Get-FileHash -LiteralPath $SavePatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($savePatchHash -ne $ExpectedSavePatchSha256) { throw ('WAVE save patch hash mismatch: ' + $savePatchHash) }
@@ -168,7 +177,7 @@ try {
     Write-Host 'Idempotent-save patch: PASS' -ForegroundColor Green
 
     Step 'Applying WAVE rate-limit rollover patch'
-    $ratePatchText=((Invoke-RepoGit @('show',($remoteRef + ':wave-v030-rate-limit.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    $ratePatchText=((Invoke-RepoGit @('show',($head + ':wave-v030-rate-limit.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
     [IO.File]::WriteAllText($RatePatchPath,$ratePatchText,(New-Object Text.UTF8Encoding($false)))
     $ratePatchHash=(Get-FileHash -LiteralPath $RatePatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($ratePatchHash -ne $ExpectedRatePatchSha256) { throw ('WAVE rate-limit patch hash mismatch: ' + $ratePatchHash) }

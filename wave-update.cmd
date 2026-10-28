@@ -8,11 +8,16 @@ echo.
 echo ==> Fetching latest WAVE updater
 git fetch origin wave/dev
 if errorlevel 1 goto :fetchfailed
+rem Pin the updater and all build parts to the same fetched commit.
+set "WAVE_HEAD="
+set "UPDATER_TEMP="
+for /f "delims=" %%H in ('git rev-parse origin/wave/dev 2^>nul') do set "WAVE_HEAD=%%H"
+if not defined WAVE_HEAD goto :updaterfailed
 set "UPDATER_TEMP=%TEMP%\wave-updater-%RANDOM%-%RANDOM%.ps1"
-git show origin/wave/dev:wave-update.ps1 > "%UPDATER_TEMP%"
+git show %WAVE_HEAD%:wave-update.ps1 > "%UPDATER_TEMP%"
 if errorlevel 1 goto :updaterfailed
 for %%I in ("%UPDATER_TEMP%") do if %%~zI EQU 0 goto :updaterfailed
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%UPDATER_TEMP%" -RepoRoot "%~dp0." -NoFetch
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%UPDATER_TEMP%" -RepoRoot "%~dp0." -SourceCommit "%WAVE_HEAD%" -NoFetch
 set "RC=%ERRORLEVEL%"
 del /q "%UPDATER_TEMP%" >nul 2>&1
 goto :result

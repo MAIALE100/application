@@ -19,6 +19,7 @@ on:
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
       - 'wave-update-lock-test.ps1'
+      - 'wave-update-source-pin-test.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
@@ -80,6 +81,11 @@ jobs:
         shell: pwsh
         run: |
           ./wave-update-lock-test.ps1
+
+      - name: Test immutable source commit pinning
+        shell: pwsh
+        run: |
+          ./wave-update-source-pin-test.ps1
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

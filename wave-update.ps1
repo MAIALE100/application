@@ -242,6 +242,20 @@ try {
     $patchHash=(Get-FileHash -LiteralPath $PatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($patchHash -ne $ExpectedPatchSha256) { throw ('WAVE v0.3.0 patch hash mismatch: ' + $patchHash) }
     Write-Host 'v0.3.0 patch SHA256: PASS' -ForegroundColor Green
+    # The historical v0.3.0 patch contains two incorrect CSS context selectors
+    # (.album-public-chip spanp{). The validated v0.2.0 archive uses span{.
+    # Correct only these two known context tokens after verifying the ORIGINAL SHA.
+    # Do not modify the packaged source CSS or accept any unrecognized patch.
+    $patchText=[IO.File]::ReadAllText($PatchPath)
+    $badCssContext='.album-public-chip spanp{'
+    $goodCssContext='.album-public-chip span{'
+    $contextCount=([regex]::Matches($patchText,[regex]::Escape($badCssContext))).Count
+    if ($contextCount -ne 2) {
+        throw ('Unexpected WAVE CSS patch context; expected 2 known corrections, got ' + $contextCount)
+    }
+    $patchText=$patchText.Replace($badCssContext,$goodCssContext)
+    [IO.File]::WriteAllText($PatchPath,$patchText,(New-Object Text.UTF8Encoding($false)))
+    Write-Host 'v0.3.0 CSS context correction: PASS' -ForegroundColor Green
     $oldLocation=Get-Location
     try {
         Set-Location $Source

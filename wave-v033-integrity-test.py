@@ -25,4 +25,19 @@ if "WAVE_BAR_NAVIGATOR_V034" not in asset.read_text(encoding="utf-8"):
     raise SystemExit("FAIL: WAVE bar navigator missing from studio asset")
 if "python3 wave-v033-integrity-test.py" not in workflow:
     raise SystemExit("FAIL: studio integrity regression not wired into CI")
-print("WAVE studio extras integrity pins: PASS (" + actual + ")")
+
+# Verify that the Windows deployment and CI build add the same CSS rules.
+# Ignore comments and indentation, but reject missing, extra or reordered rules.
+updater_css = re.search(r"\$extraCss=@'\r?\n(.*?)\r?\n'@", updater, re.S)
+ci_css = re.search(r'(?ms)^\s*extra = """\r?\n(.*?)^\s*"""', workflow)
+if not updater_css or not ci_css:
+    raise SystemExit("FAIL: studio CSS block missing in updater or CI")
+
+def declarations(block: str) -> list[str]:
+    without_comments = re.sub(r"/\*.*?\*/", "", block, flags=re.S)
+    return [re.sub(r"\s+", "", line) for line in without_comments.splitlines() if line.strip()]
+
+if declarations(updater_css.group(1)) != declarations(ci_css.group(1)):
+    raise SystemExit("FAIL: WAVE studio CSS differs between Windows updater and CI")
+
+print("WAVE studio integrity pins and deployment CSS parity: PASS (" + actual + ")")

@@ -63,6 +63,8 @@ jobs:
           $null = [ScriptBlock]::Create($script)
           if ($script -match '[^\x00-\x7F]') { throw 'WAVE updater must remain ASCII for Windows PowerShell 5.1' }
           if ($script -notmatch 'ExpectedPatchSha256') { throw 'Patch integrity check missing' }
+          if ($script -notmatch 'function Test-DeploymentMatches' -or $script -notmatch 'Deployment verification: PASS \(unchanged\)') { throw 'No-op deployment guard missing' }
+          if ($script -notmatch 'Get-FileHash -LiteralPath \$installed') { throw 'No-op guard must compare deployed file hashes' }
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

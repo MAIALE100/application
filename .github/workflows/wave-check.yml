@@ -18,6 +18,7 @@ on:
       - 'wave-v030-rate-limit.patch'
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
+      - 'wave-update-lock-test.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
@@ -68,11 +69,17 @@ jobs:
           if ($script -notmatch 'Get-FileHash -LiteralPath \$installed') { throw 'No-op guard must compare deployed file hashes' }
           if ($script -notmatch 'Staging verification: PASS' -or $script -notmatch 'Backup verification: PASS') { throw 'Pre-deployment copy verification missing' }
           if ($script -notmatch 'Restored WAVE resource failed hash verification') { throw 'Rollback integrity verification missing' }
+          if ($script -notmatch 'function Enter-UpdateLock' -or $script -notmatch '\$UpdateLock\.Dispose\(\)') { throw 'Exclusive updater lock missing' }
 
       - name: Test no-op deployment safety
         shell: pwsh
         run: |
           ./wave-update-noop-test.ps1
+
+      - name: Test exclusive update lock
+        shell: pwsh
+        run: |
+          ./wave-update-lock-test.ps1
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

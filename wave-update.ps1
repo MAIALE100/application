@@ -40,6 +40,8 @@ $BackupRoot = Join-Path $RepoRoot '.wave-backups'
 $DeploymentStarted = $false
 $DeploymentComplete = $false
 $ActiveBackup = $null
+$UpdateLock = $null
+$UpdateLockPath = Join-Path ([IO.Path]::GetTempPath()) 'flecity-wave-update.lock'
 $CriticalFiles = @('fxmanifest.lua','config\shared.lua','client\main.lua','server\main.lua','web\index.html','web\app.js','web\app.css','web\icon.svg')
 
 function Step([string]$Message) { Write-Host ''; Write-Host ('==> ' + $Message) -ForegroundColor Cyan }
@@ -49,6 +51,14 @@ function Invoke-RepoGit([string[]]$GitArgs) {
     finally { $ErrorActionPreference=$old }
     if ($code -ne 0) { throw ('git ' + ($GitArgs -join ' ') + ' failed: ' + (($out | ForEach-Object {$_.ToString()}) -join [Environment]::NewLine)) }
     return @($out | ForEach-Object {$_.ToString()})
+}
+function Enter-UpdateLock([string]$LockPath) {
+    # FileShare.None excludes concurrent updater processes; a crashed process releases its handle.
+    try {
+        return [IO.File]::Open($LockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    } catch [IO.IOException] {
+        throw 'Another WAVE update is running, or the update lock is unavailable. Retry after it finishes.'
+    }
 }
 function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination,[bool]$IgnoreBuildMetadata = $true) {
     if (-not (Test-Path -LiteralPath $InstalledDestination -PathType Container)) { return $false }
@@ -81,6 +91,7 @@ function Read-RemoteParts([string]$RemoteRef,[string[]]$Parts) {
 }
 
 try {
+    $UpdateLock = Enter-UpdateLock $UpdateLockPath
     Step 'Checking repository and test server'
     if (-not (Test-Path (Join-Path $RepoRoot '.git'))) { throw 'Git repository not found' }
     if (-not (Test-Path $Resources)) { throw ('Test server resources folder not found: ' + $Resources) }
@@ -289,4 +300,7 @@ try {
     }
     exit 1
 }
-finally { if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue } }
+finally {
+    if ($UpdateLock) { $UpdateLock.Dispose() }
+    if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue }
+}

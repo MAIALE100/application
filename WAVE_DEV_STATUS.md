@@ -11,6 +11,11 @@ the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
 `wave-v030-atomic-status.patch` safety patch, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
 A failed deployment attempts to restore the previous resource.
+After validation and duplicate-resource checks, the updater compares every generated
+file with the installed resource using SHA256 (ignoring only `.wave-build.txt`).
+If all files already match, it exits successfully **without copying files,
+creating a backup, or requiring a resource restart**. A mismatch follows the
+normal verified deployment and rollback path.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the

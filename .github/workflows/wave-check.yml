@@ -22,6 +22,7 @@ on:
       - 'wave-update-source-pin-test.ps1'
       - 'wave-update-retention-test.ps1'
       - 'wave-update-path-safety-test.ps1'
+      - 'wave-update-preflight-test.ps1'
       - 'wave-update.cmd'
       - 'wave-security-smoke.py'
       - 'wave-save-idempotency-test.lua'
@@ -98,6 +99,11 @@ jobs:
         shell: pwsh
         run: |
           ./wave-update-path-safety-test.ps1
+
+      - name: Test deployment preflight against concurrent changes
+        shell: pwsh
+        run: |
+          ./wave-update-preflight-test.ps1
 
       - name: Check JavaScript and LB Phone constraints
         shell: bash

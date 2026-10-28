@@ -40,6 +40,7 @@ $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
 $DeploymentStarted = $false
 $DeploymentComplete = $false
+$FirstInstallMoved = $false
 $ActiveBackup = $null
 $UpdateLock = $null
 $UpdateLockPath = Join-Path ([IO.Path]::GetTempPath()) 'flecity-wave-update.lock'
@@ -135,6 +136,13 @@ function Assert-DeploymentPreconditions([string]$InstalledDestination,[string]$V
     } elseif (Test-Path -LiteralPath $InstalledDestination) {
         throw 'WAVE destination appeared after preflight; deployment aborted'
     }
+}
+function Test-FirstInstallRollbackSafe([string]$BuiltSource,[string]$InstalledDestination,[bool]$MoveCompleted) {
+    # A failed Move-Item can leave a destination created by another process.
+    # Delete only if our move completed and the files still match our build.
+    if (-not $MoveCompleted) { return $false }
+    Assert-SafeResourceTree $InstalledDestination
+    return (Test-DeploymentMatches $BuiltSource $InstalledDestination $false)
 }
 function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Keep = 5) {
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return }
@@ -349,6 +357,7 @@ try {
         Remove-Item -LiteralPath $Destination -Recurse -Force
     }
     Move-Item -LiteralPath $StagePath -Destination $Destination
+    if (-not $ActiveBackup) { $FirstInstallMoved = $true }
 
     Step 'Verifying deployed WAVE resource'
     $sourceFiles=@(Get-ChildItem -LiteralPath $Source -Recurse -File -Force)
@@ -395,11 +404,15 @@ try {
                 }
                 Write-Host 'Previous WAVE resource restored and verified.' -ForegroundColor Green
             } elseif (Test-Path -LiteralPath $Destination) {
-                Write-Host 'Removing incomplete first installation...' -ForegroundColor Yellow
-                # First-install rollback has no backup; still reject a destination
-                # replaced by a junction/link before recursive removal.
+                # Preserve another process's files if the move failed or if
+                # installed content changed before rollback could complete.
                 Assert-SafeResourceTree $Destination
-                Remove-Item -LiteralPath $Destination -Recurse -Force
+                if (Test-FirstInstallRollbackSafe $Source $Destination $FirstInstallMoved) {
+                    Write-Host 'Removing incomplete first installation...' -ForegroundColor Yellow
+                    Remove-Item -LiteralPath $Destination -Recurse -Force
+                } else {
+                    Write-Host 'Preserving first-install destination (ownership/content not verified).' -ForegroundColor Yellow
+                }
             }
         } catch {
             Write-Host ('ROLLBACK FAILED: ' + $_.Exception.Message) -ForegroundColor Red

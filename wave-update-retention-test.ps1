@@ -62,8 +62,30 @@ try {
     if (Test-Path -LiteralPath $safeOld) { throw 'Safe old backup was not pruned' }
     if (-not (Test-Path -LiteralPath (Join-Path $outside 'sentinel.txt'))) { throw 'External symlink target was modified' }
     Write-Host 'PASS nested symlink backup skipped; ordinary old backup pruned'
+
+    # A backup root redirected through a directory link must never prune an
+    # unrelated folder, even if that folder contains updater-shaped names.
+    $linkedRoot = $root + '-linked'
+    $outsideBackup = Join-Path $outside '20261018-010101-00000000'
+    New-Item -ItemType Directory -Force -Path $outsideBackup | Out-Null
+    [IO.File]::WriteAllText((Join-Path $outsideBackup 'sentinel.txt'), 'keep')
+    New-Item -ItemType SymbolicLink -Path $linkedRoot -Target $outside | Out-Null
+    $blocked = $false
+    try { Invoke-BackupRetention $linkedRoot '' 0 }
+    catch {
+        if ($_.Exception.Message -match 'Unsafe WAVE path \\(reparse point\\)') { $blocked = $true }
+        else { throw }
+    }
+    if (-not $blocked) { throw 'Linked backup root was accepted' }
+    if (-not (Test-Path -LiteralPath (Join-Path $outsideBackup 'sentinel.txt'))) {
+        throw 'Linked backup root caused external data loss'
+    }
+    Write-Host 'PASS linked backup root rejected; external backup preserved'
     Write-Host 'WAVE safe backup retention regression: PASS'
 } finally {
+    if ($linkedRoot -and (Test-Path -LiteralPath $linkedRoot)) {
+        Remove-Item -LiteralPath $linkedRoot -Force -ErrorAction SilentlyContinue
+    }
     if (Test-Path -LiteralPath $unsafeLink) {
         Remove-Item -LiteralPath $unsafeLink -Force -ErrorAction SilentlyContinue
     }

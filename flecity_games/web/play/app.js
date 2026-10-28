@@ -317,10 +317,10 @@ function personalBestGainText(gameId,score,daily){
 }
 function showScoreResult(gameId,res,message){
  const parts=[],rank=rankForScore(gameId,res.score),isNewBest=scoreBeatsPrevious(gameId,res.score,res.daily===true);
- if(rank)parts.push(rank+' RANK');
+ if(rank)parts.push(rank+'ランク');
  if(isNewBest){
    const gain=personalBestGainText(gameId,res.score,res.daily===true);
-   parts.push('NEW BEST'+(gain?' · PB +'+gain:''));
+   parts.push('自己ベスト更新'+(gain?' · 更新幅 '+gain:''));
  }
  parts.push(String(message||'記録を保存しました。'));
  const unlocked=Array.isArray(res.unlocked)?res.unlocked:[];
@@ -352,7 +352,7 @@ function renderPlatform(data){
    const unlocked=unlockedIds.has(id);
    const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
    d.className='player achievement-row'+(unlocked?' unlocked':' locked');
-   left.textContent=String(label);right.textContent=unlocked?'✓':'LOCK';
+   left.textContent=String(label);right.textContent=unlocked?'✓':'未達成';
    d.append(left,right);achievementRows.appendChild(d);
  });
  const daily=data&&data.daily;
@@ -368,7 +368,7 @@ function renderPlatform(data){
  dailyDate.textContent=dailyCategory+' · '+String(daily.date||'')+' · '+streakText;
  if(daily.selfBest){
    const dailyRank=rankForScore(daily.gameId,daily.selfBest.score),goal=nextRankGoal(daily.gameId,daily.selfBest.score);
-   dailyBest.textContent='あなたの今日BEST · '+formatGameScore(game,daily.selfBest.score)+(dailyRank?' · '+dailyRank+' RANK':'')+(daily.selfRank?' · #'+String(daily.selfRank):'')+(goal&&!goal.done?' · NEXT '+goal.rank+' '+formatGameScore(game,goal.target):' · MAX RANK');
+   dailyBest.textContent='今日の自己ベスト · '+formatGameScore(game,daily.selfBest.score)+(dailyRank?' · '+dailyRank+' RANK':'')+(daily.selfRank?' · #'+String(daily.selfRank):'')+(goal&&!goal.done?' · 次の目標 '+goal.rank+' '+formatGameScore(game,goal.target):' · 最高ランク');
  }else dailyBest.textContent='今日はまだ挑戦していません。最初の記録を残そう。';
  dailyRanking.innerHTML='';
  const dailyTop=(daily.ranking||[]).slice(0,5);
@@ -446,7 +446,7 @@ function renderRecent(games){
    const top=document.createElement('span'),icon=document.createElement('span'),text=document.createElement('span'),meta=document.createElement('span');
    top.className='continue-top';icon.className='continue-icon';setGameIcon(icon,visual);text.textContent=String(game.name||game.id);meta.className='muted';
    const best=Number.isFinite(Number(stat.bestScore))?formatGameScore(game,stat.bestScore):'---';
-   meta.textContent=String(stat.playCount||0)+'回プレイ · BEST '+best;
+   meta.textContent=String(stat.playCount||0)+'回プレイ · 自己ベスト '+best;
    top.append(icon,text);button.append(top,meta);button.onclick=()=>launchGame(game.id);recentGames.appendChild(button);
  });
 }
@@ -559,7 +559,7 @@ function renderGames(games){
    const section=document.createElement('section');section.className='game-category';
    const head=document.createElement('div');head.className='category-head';
    const title=document.createElement('strong');title.textContent=categoryLabels[category]||category.toUpperCase();
-   const count=document.createElement('span');count.className='muted';count.textContent=String(groups.get(category).length)+' GAMES';
+   const count=document.createElement('span');count.className='muted';count.textContent=String(groups.get(category).length)+'種類';
    head.append(title,count);
    const grid=document.createElement('div');grid.className='grid';
    groups.get(category).forEach(game=>{
@@ -567,27 +567,36 @@ function renderGames(games){
      const hasSave=!!saves[game.id],visual=gameVisuals[game.id]||{symbol:'•',eyebrow:'LOOP'};
      const top=document.createElement('span'),icon=document.createElement('span'),tag=document.createElement('span'),favorite=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span'),bestLine=document.createElement('span'),meta=document.createElement('span');
      top.className='game-card-top';icon.className='game-icon';tag.className='tag';favorite.className='favorite-toggle'+(isFavoriteGame(game.id)?' active':'');description.className='muted';bestLine.className='game-best';meta.className='game-card-meta';
-     setGameIcon(icon,visual);tag.textContent=hasSave?'CONTINUE':(game.supportsDaily?'DAILY':visual.eyebrow);
+     setGameIcon(icon,visual);tag.textContent=hasSave?'続きから':(game.supportsDaily?'今日のお題あり':(visual.eyebrow||'ゲーム'));
      favorite.textContent=isFavoriteGame(game.id)?'★':'☆';favorite.title=isFavoriteGame(game.id)?'お気に入りから外す':'お気に入りに追加';favorite.setAttribute('aria-label',favorite.title);
      favorite.onclick=event=>{event.preventDefault();event.stopPropagation();void toggleFavorite(game.id);};
      top.append(icon,tag,favorite);
-     name.textContent=String(game.name||game.id||'GAME');
+     name.textContent=String(game.name||game.id||'ゲーム');
      description.textContent=String(game.description||'');
      const personalBest=bootstrapData&&bootstrapData.best&&bootstrapData.best[game.id],rank=personalBest?rankForScore(game.id,personalBest.score):null;
      if(game.supportsRanking){
-       bestLine.textContent=personalBest?'BEST · '+formatGameScore(game,personalBest.score):'BEST · ---';
+       bestLine.textContent=personalBest?'自己ベスト · '+formatGameScore(game,personalBest.score):'自己ベスト · ---';
        if(rank){
          const badge=document.createElement('span');badge.className='rank-badge '+rankClass(rank);badge.textContent=rank;bestLine.append(' ',badge);
        }
      }else bestLine.textContent='';
-     const traits=[];if(game.supportsResume)traits.push('SAVE');
+     const traits=[];if(game.supportsResume)traits.push('途中保存対応');
      const goal=nextRankGoal(game.id,personalBest&&personalBest.score);
      if(game.supportsRanking&&goal){
-       if(goal.done)traits.push('MAX RANK');
-       else traits.push('NEXT '+goal.rank+' · '+formatGameScore(game,goal.target));
+       if(goal.done)traits.push('最高ランク達成');
+       else traits.push('次の目標 '+goal.rank+' · '+formatGameScore(game,goal.target));
      }
      meta.textContent=traits.join(' · ');
-     btn.append(top,name,description,bestLine,meta);btn.onclick=()=>launchGame(game.id);grid.appendChild(btn);
+     btn.append(top,name,description,bestLine,meta);btn.onclick=()=>launchGame(game.id);
+     const tile=document.createElement('div');tile.className='game-tile';tile.appendChild(btn);
+     if(game.supportsRanking){
+       const rankButton=document.createElement('button');rankButton.className='game-rank-shortcut';
+       rankButton.type='button';rankButton.textContent='🏆 このゲームのTOP5を見る';
+       rankButton.setAttribute('aria-label',String(game.name||'ゲーム')+'のランキング上位5人を見る');
+       rankButton.onclick=()=>openGameRanking(game.id);
+       tile.appendChild(rankButton);
+     }
+     grid.appendChild(tile);
    });
    section.append(head,grid);gamesEl.appendChild(section);
  });
@@ -678,6 +687,16 @@ async function loadRanking(){
    rankingRows.appendChild(caption);
    rankingRows.appendChild(rankingRow({score:self.score},Number(self.rank),game,true,false));
  }
+}
+function openGameRanking(gameId){
+ if(!rankingGame.querySelector('option[value="'+String(gameId).replace(/[^a-z0-9_]/gi,'')+'"]'))return;
+ rankingGame.value=gameId;
+ rankingPeriod.value='all';
+ ++rankingRequestId;
+ clearTimeout(rankingDebounce);rankingDebounce=null;
+ const rankingCard=document.querySelector('.ranking-card');
+ if(rankingCard)rankingCard.scrollIntoView({behavior:appSettings.reducedMotion?'auto':'smooth',block:'start'});
+ void loadRanking();
 }
 function scheduleRankingReload(){
  ++rankingRequestId;

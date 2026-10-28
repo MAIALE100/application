@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "ed96420fa6d21df972a304d37081d0897553619d23718fd88f1671e8d4b10209  wave-v033-studio-extras.js" | sha256sum -c -
+          echo "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b  wave-v033-studio-extras.js" | sha256sum -c -
           cp wave-v033-studio-extras.js wave-check/wave/web/studio-extras.js
           python3 - <<'PY'
           from pathlib import Path
@@ -107,7 +107,16 @@ jobs:
           css = root / "web/app.css"
           extra = """
           /* WAVE_STUDIO_PRESETS_V033 */
-          *::-webkit-scrollbar:vertical{display:none;width:0}
+          html,body,#app,.view,.app,.screen,.content,.page,.card{scrollbar-width:none}
+          html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-webkit-scrollbar,.app::-webkit-scrollbar,.screen::-webkit-scrollbar,.content::-webkit-scrollbar,.page::-webkit-scrollbar,.card::-webkit-scrollbar{width:0;display:none}
+          *::-webkit-scrollbar:vertical{width:0;display:none}
+          *::-webkit-scrollbar-thumb:vertical{background:transparent}
+          .wave-bar-navigator{margin-bottom:.55rem}
+          .wave-bar-head{display:flex;justify-content:space-between;gap:.35rem;align-items:center}
+          .wave-bar-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.35rem}
+          .wave-bar-steps{display:flex;gap:.22rem;flex-wrap:wrap;margin-top:.35rem}
+          .wave-bar-step{min-width:1.8rem}
+          .wave-bar-hint{font-size:.63rem;margin-top:.35rem}
           html,body,.view{scrollbar-width:none}
           .wave-template-card{margin-bottom:.55rem}
           .wave-template-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}

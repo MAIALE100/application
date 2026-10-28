@@ -46,6 +46,13 @@ the absence of extra files. If another process creates the destination during
 the move, or changes files before rollback, the updater preserves the directory
 instead of deleting data it cannot prove it owns. The deployment preflight
 regression covers both owned and unowned first-install rollback cases.
+Existing-install rollback now checks whether the destination is still the verified
+previous resource or the updater's staged build. An intact previous resource is
+left alone; a missing destination or unchanged staged build can be restored.
+If files were changed or added after deployment began, rollback preserves the
+destination rather than deleting data it cannot prove it owns. This is a
+best-effort check, not an atomic filesystem operation; such a failed update
+may require manual recovery from the verified backup.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the
@@ -76,7 +83,7 @@ also covers strict backup verification and metadata integrity. The backup-retent
 regression now covers nested symlink candidates and verifies that unrelated
 targets are preserved while ordinary expired backups are pruned. Native PowerShell
 syntax and these cases, including the new deployment preflight regression,
-still need a working `pwsh` runner. GitHub Actions currently fails before
+and the existing-install rollback ownership regression still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.
 
 Next in-game test after a successful `wave-update.cmd`:

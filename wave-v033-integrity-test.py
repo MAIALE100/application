@@ -29,15 +29,17 @@ if "python3 wave-v033-integrity-test.py" not in workflow:
 # Verify that the Windows deployment and CI build add the same CSS rules.
 # Ignore comments and indentation, but reject missing, extra or reordered rules.
 updater_css = re.search(r"\$extraCss=@'\r?\n(.*?)\r?\n'@", updater, re.S)
-ci_css = re.search(r'(?ms)^\s*extra = """\r?\n(.*?)^\s*"""', workflow)
-if not updater_css or not ci_css:
+# CI has separate CSS append blocks for studio presets and score tools.
+# Compare their combined ordered rules with the single Windows CSS block.
+ci_css_blocks = re.findall(r'(?ms)^\s*extra = """\r?\n(.*?)^\s*"""', workflow)
+if not updater_css or not ci_css_blocks:
     raise SystemExit("FAIL: studio CSS block missing in updater or CI")
 
 def declarations(block: str) -> list[str]:
     without_comments = re.sub(r"/\*.*?\*/", "", block, flags=re.S)
     return [re.sub(r"\s+", "", line) for line in without_comments.splitlines() if line.strip()]
 
-if declarations(updater_css.group(1)) != declarations(ci_css.group(1)):
+if declarations(updater_css.group(1)) != declarations('\n'.join(ci_css_blocks)):
     raise SystemExit("FAIL: WAVE studio CSS differs between Windows updater and CI")
 
 

@@ -390,8 +390,14 @@ html,body,.view{scrollbar-width:none}
     [IO.File]::WriteAllText($htmlPath,$htmlText,(New-Object Text.UTF8Encoding($false)))
 
     $manifestText=[IO.File]::ReadAllText($manifestPath)
-    if (-not $manifestText.Contains("'web/app.js',")) { throw 'WAVE manifest files list needs manual review' }
-    $manifestText=$manifestText.Replace("'web/app.js',","'web/app.js'," + [Environment]::NewLine + "    'web/studio-extras.js',")
+    # Register the new asset directly in the Lua files table. The existing
+    # manifest may use web/*.js globs or place app.js without a trailing comma.
+    $filesBlock=[regex]::Match($manifestText,'(?s)\bfiles\s*\{[^}]*\}')
+    if (-not $filesBlock.Success) { throw 'WAVE manifest files block missing' }
+    if ($filesBlock.Value.Contains("'web/studio-extras.js'")) { throw 'WAVE studio extras already registered' }
+    $openBrace=$filesBlock.Value.IndexOf('{')
+    $updatedFilesBlock=$filesBlock.Value.Insert($openBrace+1,(([string][char]10) + "    'web/studio-extras.js',"))
+    $manifestText=$manifestText.Substring(0,$filesBlock.Index) + $updatedFilesBlock + $manifestText.Substring($filesBlock.Index+$filesBlock.Length)
     if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
     $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.3-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))

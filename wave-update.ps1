@@ -52,8 +52,8 @@ function Invoke-RepoGit([string[]]$GitArgs) {
 }
 function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination) {
     if (-not (Test-Path -LiteralPath $InstalledDestination -PathType Container)) { return $false }
-    $builtFiles=@(Get-ChildItem -LiteralPath $BuiltSource -Recurse -File)
-    $installedFiles=@(Get-ChildItem -LiteralPath $InstalledDestination -Recurse -File |
+    $builtFiles=@(Get-ChildItem -LiteralPath $BuiltSource -Recurse -File -Force)
+    $installedFiles=@(Get-ChildItem -LiteralPath $InstalledDestination -Recurse -File -Force |
         Where-Object { $_.FullName -ne (Join-Path $InstalledDestination '.wave-build.txt') })
     if ($builtFiles.Count -ne $installedFiles.Count) { return $false }
     foreach($file in $builtFiles) {
@@ -230,8 +230,8 @@ try {
     Move-Item -LiteralPath $StagePath -Destination $Destination
 
     Step 'Verifying deployed WAVE resource'
-    $sourceFiles=@(Get-ChildItem -LiteralPath $Source -Recurse -File)
-    $deployedFiles=@(Get-ChildItem -LiteralPath $Destination -Recurse -File)
+    $sourceFiles=@(Get-ChildItem -LiteralPath $Source -Recurse -File -Force)
+    $deployedFiles=@(Get-ChildItem -LiteralPath $Destination -Recurse -File -Force)
     if ($sourceFiles.Count -ne $deployedFiles.Count) { throw 'Deployed WAVE file count mismatch' }
     foreach($sourceFile in $sourceFiles) {
         $relative=$sourceFile.FullName.Substring($Source.Length + 1)

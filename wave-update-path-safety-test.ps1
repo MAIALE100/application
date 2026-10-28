@@ -8,10 +8,11 @@ if (([regex]::Matches($updater, 'Assert-SafeResourceTree \$Destination')).Count 
 }
 # The no-backup rollback path also removes a directory. Ensure it checks
 # for a swapped junction/link immediately before that recursive removal.
-$firstInstallRollbackGuard = '(?s)elseif \(Test-Path -LiteralPath \$Destination\) \{\s*Write-Host ''Removing incomplete first installation\.\.\.''' +
-    '[^\r\n]*\r?\n(?:\s*\#[^\r\n]*\r?\n)*\s*Assert-SafeResourceTree \$Destination\s*\r?\n\s*Remove-Item -LiteralPath \$Destination -Recurse -Force'
+$firstInstallRollbackGuard = '(?s)elseif \(Test-Path -LiteralPath \$Destination\) \{(?:\s*\#[^\r\n]*\r?\n)*\s*Assert-SafeResourceTree \$Destination\s*' +
+    'if \(Test-FirstInstallRollbackSafe \$Source \$Destination \$FirstInstallMoved\) \{\s*Write-Host ''Removing incomplete first installation\.\.\.''' +
+    '[^\r\n]*\r?\n\s*Remove-Item -LiteralPath \$Destination -Recurse -Force'
 if ($updater -notmatch $firstInstallRollbackGuard) {
-    throw 'First-install rollback must validate destination before recursive deletion'
+    throw 'First-install rollback must validate path and ownership before recursive deletion'
 }
 $start = $updater.IndexOf('function Assert-SafeResourceTree(')
 $end = $updater.IndexOf('function Test-DeploymentMatches(', $start)

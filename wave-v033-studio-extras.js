@@ -9,6 +9,87 @@
     { id: 'song5', label: '\u697d\u66f2\u30fb\u7d045\u5206', bars: 125, bpm: 100 }
   ];
 
+
+  // WAVE_BAR_NAVIGATOR_V034: the sequencer edits one bar at a time.
+  // Make the entire 1-128 bar score navigable without changing project data.
+  function bootBarNavigator() {
+    const view = document.getElementById('view-studio');
+    const transport = view?.querySelector('.transport');
+    const barSelect = document.getElementById('barSelect');
+    if (!view || !transport || !barSelect || document.getElementById('waveBarNavigator')) return;
+
+    const host = document.createElement('section');
+    host.id = 'waveBarNavigator';
+    host.className = 'card wave-bar-navigator';
+    host.innerHTML = [
+      '<div class="wave-bar-head">',
+      ' <strong>\u5c0f\u7bc0\u30ca\u30d3\u30b2\u30fc\u30bf\u30fc</strong>',
+      ' <span id="waveBarCounter">1 / 1</span>',
+      '</div>',
+      '<div class="wave-bar-controls">',
+      ' <button type="button" class="secondary" id="waveBarPrev" aria-label="\u524d\u306e\u5c0f\u7bc0">\u25c0</button>',
+      ' <input type="range" id="waveBarRange" min="1" max="1" value="1" step="1" aria-label="\u5c0f\u7bc0\u306e\u4f4d\u7f6e">',
+      ' <button type="button" class="secondary" id="waveBarNext" aria-label="\u6b21\u306e\u5c0f\u7bc0">\u25b6</button>',
+      '</div>',
+      '<div class="wave-bar-steps" id="waveBarSteps" aria-label="\u5c0f\u7bc0\u3092\u9078\u629e"></div>',
+      '<p class="wave-bar-hint">\u9078\u3093\u3060\u5c0f\u7bc0\u3092\u97f3\u7b26\u30b0\u30ea\u30c3\u30c9\u3067\u7de8\u96c6\u3057\u307e\u3059\u3002\u97f3\u7b26\u306f\u5c0f\u7bc0\u3054\u3068\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002</p>'
+    ].join('');
+    transport.insertAdjacentElement('afterend', host);
+    const counter = host.querySelector('#waveBarCounter');
+    const range = host.querySelector('#waveBarRange');
+    const prev = host.querySelector('#waveBarPrev');
+    const next = host.querySelector('#waveBarNext');
+    const steps = host.querySelector('#waveBarSteps');
+    const maxBars = () => {
+      const p = typeof ensureProject === 'function' ? ensureProject() : null;
+      return Math.max(1, Math.min(128, Math.floor(Number(p?.bars) || 1)));
+    };
+    const current = () => Math.max(0, Math.min(maxBars() - 1, Math.floor(Number(state.bar) || 0)));
+    const jump = target => {
+      const index = Math.max(0, Math.min(maxBars() - 1, Math.floor(target)));
+      state.bar = index;
+      if (typeof renderStudio === 'function') renderStudio();
+      render();
+    };
+    function render() {
+      if (!host.isConnected) return;
+      const total = maxBars(), index = current();
+      counter.textContent = (index + 1) + ' / ' + total + ' \u5c0f\u7bc0';
+      range.max = String(total);
+      range.value = String(index + 1);
+      range.disabled = total <= 1;
+      prev.disabled = index <= 0;
+      next.disabled = index + 1 >= total;
+      // A compact 8-bar window prevents the DOM from growing with a 5-minute score.
+      const first = Math.floor(index / 8) * 8;
+      steps.replaceChildren();
+      for (let i = first; i < Math.min(first + 8, total); i++) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = i === index ? 'wave-bar-step active' : 'wave-bar-step secondary';
+        item.textContent = String(i + 1);
+        item.title = '\u5c0f\u7bc0 ' + (i + 1);
+        item.setAttribute('aria-pressed', String(i === index));
+        item.addEventListener('click', () => jump(i));
+        steps.appendChild(item);
+      }
+    }
+    prev.addEventListener('click', () => jump(current() - 1));
+    next.addEventListener('click', () => jump(current() + 1));
+    range.addEventListener('input', () => {
+      counter.textContent = range.value + ' / ' + maxBars() + ' \u5c0f\u7bc0';
+    });
+    range.addEventListener('change', () => jump(Number(range.value) - 1));
+    barSelect.addEventListener('change', () => queueMicrotask(render));
+    const barsInput = document.getElementById('barsInput');
+    if (barsInput) barsInput.addEventListener('change', () => queueMicrotask(render));
+    // renderStudio() rebuilds the BAR select whenever the project changes.
+    if (typeof MutationObserver === 'function') {
+      new MutationObserver(render).observe(barSelect, { childList: true });
+    }
+    render();
+  }
+
   function bootPresets() {
     const barsInput = document.getElementById('barsInput');
     const transport = document.querySelector('#view-studio .transport');
@@ -126,6 +207,7 @@
 
   function init() {
     bootPresets();
+    bootBarNavigator();
     enhanceTimbres();
   }
   if (document.readyState === 'loading') {

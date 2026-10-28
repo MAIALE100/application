@@ -390,14 +390,8 @@ html,body,.view{scrollbar-width:none}
     [IO.File]::WriteAllText($htmlPath,$htmlText,(New-Object Text.UTF8Encoding($false)))
 
     $manifestText=[IO.File]::ReadAllText($manifestPath)
-    # Register the new asset directly in the Lua files table. The existing
-    # manifest may use web/*.js globs or place app.js without a trailing comma.
-    $filesBlock=[regex]::Match($manifestText,'(?s)\bfiles\s*\{[^}]*\}')
-    if (-not $filesBlock.Success) { throw 'WAVE manifest files block missing' }
-    if ($filesBlock.Value.Contains("'web/studio-extras.js'")) { throw 'WAVE studio extras already registered' }
-    $openBrace=$filesBlock.Value.IndexOf('{')
-    $updatedFilesBlock=$filesBlock.Value.Insert($openBrace+1,(([string][char]10) + "    'web/studio-extras.js',"))
-    $manifestText=$manifestText.Substring(0,$filesBlock.Index) + $updatedFilesBlock + $manifestText.Substring($filesBlock.Index+$filesBlock.Length)
+    # The existing manifest registers all web assets via 'web/**/*'. No per-file entry needed.
+    if (-not $manifestText.Contains("'web/**/*'")) { throw 'WAVE manifest web asset glob missing' }
     if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
     $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.3-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
@@ -418,7 +412,7 @@ html,body,.view{scrollbar-width:none}
     if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres') { throw 'WAVE studio templates or timbre enhancement missing' }
     $html=[IO.File]::ReadAllText((Join-Path $Source 'web\index.html'))
     if ($html -notmatch 'studio-extras.js') { throw 'WAVE studio extras script not loaded in HTML' }
-    if ($manifest -notmatch 'web/studio-extras.js') { throw 'WAVE studio extras missing from manifest' }
+    if (-not $manifest.Contains("'web/**/*'")) { throw 'WAVE manifest does not cover studio extras script' }
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }

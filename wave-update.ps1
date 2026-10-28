@@ -81,6 +81,20 @@ function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestinati
     }
     return $true
 }
+function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Keep = 5) {
+    if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return }
+    # Only remove updater-created backups. Never prune unrelated folders or junctions.
+    $candidates = @(Get-ChildItem -LiteralPath $Root -Directory -Force | Where-Object {
+        $_.Name -match '^\d{8}-\d{6}-[0-9a-fA-F]{8}$' -and
+        -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
+    } | Sort-Object Name -Descending)
+    $recent = @($candidates | Select-Object -First $Keep | ForEach-Object { $_.FullName })
+    foreach ($candidate in $candidates) {
+        if ($recent -contains $candidate.FullName -or
+            ($ProtectedBackup -and $candidate.FullName -eq $ProtectedBackup)) { continue }
+        Remove-Item -LiteralPath $candidate.FullName -Recurse -Force -ErrorAction Stop
+    }
+}
 function Read-RemoteParts([string]$RemoteRef,[string[]]$Parts) {
     $builder=New-Object Text.StringBuilder
     foreach($part in $Parts) {
@@ -275,10 +289,12 @@ try {
     }
     @('branch=' + $Branch,'commit=' + $head,'base_sha256=' + $baseHash,'version=' + $ExpectedVersion,'installed=' + (Get-Date -Format o)) | Set-Content -LiteralPath (Join-Path $Destination '.wave-build.txt') -Encoding UTF8
     $DeploymentComplete=$true
-    if (Test-Path -LiteralPath $BackupRoot) {
-        Get-ChildItem -LiteralPath $BackupRoot -Directory |
-            Sort-Object Name -Descending | Select-Object -Skip 5 |
-            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    # Retention is housekeeping: a cleanup error must never turn a verified
+    # deployment into a false failure. Preserve the rollback source in any case.
+    try {
+        Invoke-BackupRetention $BackupRoot $ActiveBackup 5
+    } catch {
+        Write-Host ('Backup cleanup skipped: ' + $_.Exception.Message) -ForegroundColor Yellow
     }
     Write-Host 'Deployment verification: PASS' -ForegroundColor Green
 

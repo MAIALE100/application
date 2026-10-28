@@ -14,6 +14,7 @@ on:
       - 'wave-v030-patchb64.part04'
       - 'wave-v030-patchb64.part05'
       - 'wave-v030-atomic-status.patch'
+      - 'wave-v030-patch-chain-test.py'
       - 'wave-v030-idempotent-saves.patch'
       - 'wave-v030-rate-limit.patch'
       - 'wave-v031-release-feedback.patch.b64'
@@ -47,6 +48,10 @@ jobs:
         shell: bash
         run: python3 wave-v033-integrity-test.py
 
+      - name: Test historical patch chain
+        shell: bash
+        run: python3 wave-v030-patch-chain-test.py
+
       - name: Reconstruct WAVE base and v0.3.0
         shell: bash
         run: |
@@ -69,7 +74,7 @@ jobs:
           test "$(grep -oF '.album-public-chip spanp{' wave-v030.patch | wc -l)" -eq 2
           sed -i 's/\.album-public-chip spanp{/\.album-public-chip span{/g' wave-v030.patch
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030.patch && git apply --whitespace=nowarn ../../wave-v030.patch)
-          echo "bdd7caf2ee949a52e208e4e9035c37771f22cf504ef460d3096ffe41cb0d6508  wave-v030-atomic-status.patch" | sha256sum -c -
+          echo "c722057b935c55593f29ee574ff2bf68ac2b02ea4e8895230c8f0dd6c5f66609  wave-v030-atomic-status.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-atomic-status.patch && git apply --whitespace=nowarn ../../wave-v030-atomic-status.patch)
           echo "86f20ce3f4c47954930edbb1ef6f6c207d4b855692b542dbf4c26edc0a7189e9  wave-v030-idempotent-saves.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-idempotent-saves.patch && git apply --whitespace=nowarn ../../wave-v030-idempotent-saves.patch)

@@ -117,7 +117,6 @@ jobs:
           .wave-bar-steps{display:flex;gap:.22rem;flex-wrap:wrap;margin-top:.35rem}
           .wave-bar-step{min-width:1.8rem}
           .wave-bar-hint{font-size:.63rem;margin-top:.35rem}
-          html,body,.view{scrollbar-width:none}
           .wave-template-card{margin-bottom:.55rem}
           .wave-template-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}
           .wave-template-controls select{min-width:0}

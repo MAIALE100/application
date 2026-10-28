@@ -118,12 +118,8 @@ jobs:
           html.write_text(content.replace("</body>", "  <script src='studio-extras.js'></script>\n</body>"), encoding="utf-8")
           manifest = root / "fxmanifest.lua"
           content = manifest.read_text(encoding="utf-8")
-          import re
-          files_block = re.search(r"\bfiles\s*\{[^}]*\}", content, re.S)
-          assert files_block, "Lua files block missing"
-          assert "'web/studio-extras.js'" not in files_block.group()
-          updated = files_block.group().replace("{", "{\n    'web/studio-extras.js',", 1)
-          content = content[:files_block.start()] + updated + content[files_block.end():]
+          # The base manifest uses 'web/**/*' and already includes all JS files.
+          assert "'web/**/*'" in content
           assert "version '0.3.2-test'" in content
           content = content.replace("version '0.3.2-test'", "version '0.3.3-test'")
           manifest.write_text(content, encoding="utf-8")
@@ -188,7 +184,7 @@ jobs:
           grep -q "version '0.3.3-test'" wave-check/wave/fxmanifest.lua
           grep -q 'WAVE_STUDIO_PRESETS_V033' wave-check/wave/web/studio-extras.js
           grep -q 'studio-extras.js' wave-check/wave/web/index.html
-          grep -q 'studio-extras.js' wave-check/wave/fxmanifest.lua
+          grep -qF "'web/**/*'" wave-check/wave/fxmanifest.lua
           grep -q "track.status !== 'deleted'" wave-check/wave/web/app.js
           grep -q 'publishingProjects\[key\] = nil' wave-check/wave/server/main.lua
           grep -q 'ERROR_TEXT.PROJECT_ALREADY_RELEASED' wave-check/wave/web/app.js

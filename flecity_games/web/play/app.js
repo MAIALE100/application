@@ -1708,28 +1708,16 @@ fallSoft.onpointerup=event=>{stopFallSoftDrop();try{fallSoft.releasePointerCaptu
 fallSoft.onpointercancel=()=>stopFallSoftDrop();
 fallSoft.onpointerleave=event=>{if(event.buttons===0)stopFallSoftDrop();};
 fallDrop.onclick=()=>{stopFallSoftDrop();void dropFall(false);};
-// Keyboard directional controls work alongside the existing on-screen buttons.
-// Ignore editable inputs and confirmation dialogs to avoid hijacking other UI.
-function handleFallArrowKeys(event){
- if(event.type==='keyup'){
-   if(event.key==='ArrowDown')stopFallSoftDrop();
-   return;
- }
- if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
- if(!fallGame||fallEl.classList.contains('hidden')||document.hidden||confirmResolver)return;
- const target=event.target;
- if(target&&(target.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target.tagName)))return;
- if(event.altKey||event.ctrlKey||event.metaKey)return;
- event.preventDefault();
- if(fallGame.finished||fallGame.finalizing||fallGame.busy||fallGame.ended)return;
- if(event.key==='ArrowLeft')moveFallHorizontal(-1);
- else if(event.key==='ArrowRight')moveFallHorizontal(1);
- else if(event.key==='ArrowUp'){if(!event.repeat)rotateFall();}
- else if(event.key==='ArrowDown'&&!event.repeat)startFallSoftDrop();
-}
-window.addEventListener('keydown',handleFallArrowKeys);
-window.addEventListener('keyup',handleFallArrowKeys);
-window.addEventListener('blur',stopFallSoftDrop);
+// LOOP / LINK share keyboard filtering and key-release handling.
+FlecityGamesControls.bindArrowKeys({
+ isActive:()=>!!fallGame&&!fallEl.classList.contains('hidden')&&!confirmResolver&&
+   !fallGame.finished&&!fallGame.finalizing&&!fallGame.busy&&!fallGame.ended,
+ onLeft:()=>moveFallHorizontal(-1),
+ onRight:()=>moveFallHorizontal(1),
+ onUp:rotateFall,
+ onDownStart:startFallSoftDrop,
+ onDownEnd:stopFallSoftDrop
+});
 fallBack.onclick=async()=>{
  if(fallGame&&fallGame.finalizing){setStatus('FALLの記録を保存中です…','warn');return;}
  stopFallGravity();stopFallSoftDrop();

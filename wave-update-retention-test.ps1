@@ -29,7 +29,7 @@ try {
     }
     Invoke-BackupRetention $root $protected 5
     foreach ($name in $names) {
-        $shouldExist = ($name -eq $names[0]) -or ($name -in $names[4..8])
+        $shouldExist = ($name -eq $names[0]) -or ($name -in $names[2..8])
         $exists = Test-Path -LiteralPath (Join-Path $root $name) -PathType Container
         if ($exists -ne $shouldExist) {
             throw ('Retention mismatch for ' + $name + ': expected ' + $shouldExist)

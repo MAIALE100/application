@@ -31,6 +31,11 @@ nested junctions/symlinks instead of risking recursive deletion through a link.
 It also rechecks the backup root at cleanup time and before each deletion to
 reject a root replaced with a symlink/junction after deployment preflight.
 A regression test checks that a linked backup root cannot prune external data.
+Deployment now rechecks the installed resource against its verified backup
+immediately before replacement. If a file changed after backup, or a destination
+appeared during a first install, the update aborts before setting the rollback
+flag; newer files are not overwritten by an unnecessary restore. This is a
+best-effort preflight, not a cross-process filesystem transaction.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the
@@ -60,7 +65,8 @@ ancestor directories. The no-op regression now
 also covers strict backup verification and metadata integrity. The backup-retention
 regression now covers nested symlink candidates and verifies that unrelated
 targets are preserved while ordinary expired backups are pruned. Native PowerShell
-syntax and these cases still need a working `pwsh` runner. GitHub Actions currently fails before
+syntax and these cases, including the new deployment preflight regression,
+still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.
 
 Next in-game test after a successful `wave-update.cmd`:

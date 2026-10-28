@@ -19,7 +19,7 @@ $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C2
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
 $ExpectedPublishGuardPatchSha256 = '1E1D038401DE09EFAEB3FE73D3C88BF719572AE687BE63A992223B7723487F4B'
-$ExpectedVersion = '0.3.3-test'
+$ExpectedVersion = '0.3.4-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -375,7 +375,8 @@ try {
    Hide only vertical tracks; keep horizontal piano-roll navigation functional. */
 html,body,#app,.view,.app,.screen,.content,.page,.card{scrollbar-width:none}
 html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-webkit-scrollbar,.app::-webkit-scrollbar,.screen::-webkit-scrollbar,.content::-webkit-scrollbar,.page::-webkit-scrollbar,.card::-webkit-scrollbar{width:0;display:none}
-*::-webkit-scrollbar:vertical{width:0;display:none}
+*::-webkit-scrollbar{width:0!important}
+*::-webkit-scrollbar:vertical{width:0!important;display:none}
 *::-webkit-scrollbar-thumb:vertical{background:transparent}
 .wave-bar-navigator{margin-bottom:.55rem}
 .wave-bar-head{display:flex;justify-content:space-between;gap:.35rem;align-items:center}
@@ -403,7 +404,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     # The existing manifest registers all web assets via 'web/**/*'. No per-file entry needed.
     if (-not $manifestText.Contains("'web/**/*'")) { throw 'WAVE manifest web asset glob missing' }
     if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
-    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.3-test'")
+    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.4-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'WAVE v0.3.3 studio templates and cleaner library: PASS' -ForegroundColor Green
 
@@ -419,7 +420,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     if ($app -notmatch 'WAVE_RELEASE_ACTION_FEEDBACK_V031' -or $app -notmatch 'ownReleaseFeedback') { throw 'Own-release feedback wiring missing' }
     if ($app -notmatch "track.status !== 'deleted'") { throw 'Deleted releases are still visible in the owner library' }
     $extras=[IO.File]::ReadAllText((Join-Path $Source 'web\studio-extras.js'))
-    if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres') { throw 'WAVE studio templates or timbre enhancement missing' }
+    if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres' -or $extras -notmatch 'WAVE_BAR_NAVIGATOR_V034') { throw 'WAVE studio templates, bar navigation or timbre enhancement missing' }
     $html=[IO.File]::ReadAllText((Join-Path $Source 'web\index.html'))
     if ($html -notmatch 'studio-extras.js') { throw 'WAVE studio extras script not loaded in HTML' }
     if (-not $manifest.Contains("'web/**/*'")) { throw 'WAVE manifest does not cover studio extras script' }
@@ -433,6 +434,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     if ($config -notmatch 'SchemaVersion\s*=\s*3') { throw 'WAVE schema version mismatch' }
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))
     if ($css -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') { throw 'CSS contains px units while LB Phone fixBlur is enabled' }
+    if ($css -notmatch '\*::\-webkit-scrollbar\{width:0!important\}') { throw 'WAVE scrollbar hiding is missing' }
     $node=Get-Command node -ErrorAction SilentlyContinue
     if ($node) {
         & $node.Source --check $appPath

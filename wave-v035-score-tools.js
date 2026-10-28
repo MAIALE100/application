@@ -1,5 +1,5 @@
 // WAVE_LONG_SCORE_TOOLS_V035
-// Navigation only: never mutate notes, project data or saved releases.
+// Navigation and selected-track range edits; preserve the existing project save format.
 (function (root) {
   'use strict';
 
@@ -54,9 +54,12 @@
     const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
     if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
         n.step < 0 || n.step >= clipboard.bars * 16)) return null;
-    return notes.filter(n => !n || !Number.isInteger(n.step) ||
-      n.step < bounds.start || n.step >= bounds.end)
-      .concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
+    const remaining = notes.filter(n => !n || !Number.isInteger(n.step) ||
+      n.step < bounds.start || n.step >= bounds.end);
+    // The clipboard limit alone is insufficient: pasted notes plus the rest
+    // of a long song must also stay within the editor's 8192-note safety cap.
+    if (remaining.length + clipboard.notes.length > 8192) return null;
+    return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
   }
 
   function clearRange(notes, startBar, count, totalBars) {
@@ -196,7 +199,7 @@
         pasteRange(track.notes, rangeClipboard, current(), totals().bars);
       if (!next || typeof pushUndo !== 'function' ||
           typeof markDirty !== 'function' || typeof renderStudio !== 'function') {
-        message.textContent = '貼り付けできません。曲の範囲とコピー元を確認してください。';
+        message.textContent = '貼り付けできません。曲の範囲・コピー元・音符数の上限を確認してください。';
         return;
       }
       pushUndo();

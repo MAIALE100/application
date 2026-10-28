@@ -68,4 +68,19 @@ assert.deepEqual(pasteRange([],clip8,8,16).map(n=>n.step),[128,191,192,255]);
 assert.equal(pasteRange([],clip8,9,16),null);
 assert.equal(copyRange(Array(8193).fill({step:0,pitch:60}),0,4,16),null);
 
+
+// A small clipboard must not push a long track past the same 8192-note cap.
+// Reject before allocating a new track and leave the existing notes untouched.
+const almostFull = Array.from({ length: 8191 }, (_, i) => ({ step: 128 + (i % 16), pitch: 60 }));
+const full = almostFull.concat({ step: 129, pitch: 64 });
+const oneNoteClip = { bars: 4, notes: [{ step: 0, pitch: 70 }] };
+assert.equal(pasteRange(full, oneNoteClip, 0, 16), null);
+assert.equal(full.length, 8192);
+assert.equal(full[8191].pitch, 64);
+const atLimit = pasteRange(almostFull, oneNoteClip, 0, 16);
+assert.equal(atLimit.length, 8192);
+assert.equal(atLimit[8191].pitch, 70);
+assert.equal(almostFull.length, 8191);
+assert.deepEqual(pasteRange([], oneNoteClip, 0, 16), [{ step: 0, pitch: 70 }]);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

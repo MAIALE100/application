@@ -19,7 +19,7 @@ $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C2
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
 $ExpectedPublishGuardPatchSha256 = '1E1D038401DE09EFAEB3FE73D3C88BF719572AE687BE63A992223B7723487F4B'
-$ExpectedVersion = '0.3.4-test'
+$ExpectedVersion = '0.3.5-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -354,6 +354,13 @@ try {
     $extrasText=((Invoke-RepoGit @('show',($head + ':wave-v033-studio-extras.js'))) -join ([string][char]10)).TrimEnd([char]13,[char]10) + ([string][char]10)
     $extrasPath=Join-Path $Source 'web\studio-extras.js'
     [IO.File]::WriteAllText($extrasPath,$extrasText,(New-Object Text.UTF8Encoding($false)))
+    $scoreToolsText=((Invoke-RepoGit @('show',($head + ':wave-v035-score-tools.js'))) -join ([string][char]10)).TrimEnd([char]13,[char]10) + ([string][char]10)
+    $scoreToolsPath=Join-Path $Source 'web\score-tools.js'
+    [IO.File]::WriteAllText($scoreToolsPath,$scoreToolsText,(New-Object Text.UTF8Encoding($false)))
+    $scoreToolsHash=(Get-FileHash -LiteralPath $scoreToolsPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($scoreToolsHash -ne '80681C31CF043501A0FB1A390AB50F4336B387105E477004BBA11D66022FA0EE') {
+        throw ('WAVE long score tools SHA mismatch: ' + $scoreToolsHash)
+    }
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($extrasHash -ne '689AE752C16F91F9CB11E95A74204043A210BF24658802B50A0543A7308DA27B') {
         throw ('WAVE studio template script SHA mismatch: ' + $extrasHash)
@@ -390,6 +397,12 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
 .wave-template-controls button{white-space:nowrap}
 .wave-template-info{font-size:.66rem;margin-top:.35rem}
 .wave-template-warning{color:#fecdd3}
+.wave-score-quick{display:flex;flex-direction:column;gap:.38rem;margin-top:.5rem}
+.wave-score-quick-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:center}
+.wave-score-quick-row:nth-child(2){grid-template-columns:auto minmax(0,1fr) auto}
+.wave-score-quick-row label{font-size:.68rem}
+.wave-score-quick-row input{min-width:0;max-width:100%;box-sizing:border-box}
+#waveScoreEstimate,#waveScoreMessage{font-size:.66rem;line-height:1.4}
 '@
     if ($cssText.Contains('WAVE_STUDIO_PRESETS_V033')) { throw 'WAVE studio stylesheet is already patched' }
     [IO.File]::WriteAllText($cssPath,($cssText + $extraCss),(New-Object Text.UTF8Encoding($false)))
@@ -398,13 +411,15 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     $htmlText=[IO.File]::ReadAllText($htmlPath)
     if (-not $htmlText.Contains('</body>')) { throw 'Cannot find WAVE document footer' }
     $htmlText=$htmlText.Replace('</body>',"  <script src='studio-extras.js'></script>" + [Environment]::NewLine + '</body>')
+    if (-not $htmlText.Contains("<script src='studio-extras.js'></script>")) { throw 'WAVE studio extras script reference missing' }
+    $htmlText=$htmlText.Replace("<script src='studio-extras.js'></script>","<script src='studio-extras.js'></script>" + [Environment]::NewLine + "  <script src='score-tools.js'></script>")
     [IO.File]::WriteAllText($htmlPath,$htmlText,(New-Object Text.UTF8Encoding($false)))
 
     $manifestText=[IO.File]::ReadAllText($manifestPath)
     # The existing manifest registers all web assets via 'web/**/*'. No per-file entry needed.
     if (-not $manifestText.Contains("'web/**/*'")) { throw 'WAVE manifest web asset glob missing' }
     if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
-    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.4-test'")
+    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.5-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'WAVE v0.3.3 studio templates and cleaner library: PASS' -ForegroundColor Green
 
@@ -421,8 +436,10 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
     if ($app -notmatch "track.status !== 'deleted'") { throw 'Deleted releases are still visible in the owner library' }
     $extras=[IO.File]::ReadAllText((Join-Path $Source 'web\studio-extras.js'))
     if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres' -or $extras -notmatch 'WAVE_BAR_NAVIGATOR_V034') { throw 'WAVE studio templates, bar navigation or timbre enhancement missing' }
+    $scoreTools=[IO.File]::ReadAllText($scoreToolsPath)
+    if ($scoreTools -notmatch 'WAVE_LONG_SCORE_TOOLS_V035' -or $scoreTools -notmatch 'durationLabel') { throw 'WAVE long score tools missing' }
     $html=[IO.File]::ReadAllText((Join-Path $Source 'web\index.html'))
-    if ($html -notmatch 'studio-extras.js') { throw 'WAVE studio extras script not loaded in HTML' }
+    if ($html -notmatch 'studio-extras.js' -or $html -notmatch 'score-tools.js') { throw 'WAVE score tools scripts not loaded in HTML' }
     if (-not $manifest.Contains("'web/**/*'")) { throw 'WAVE manifest does not cover studio extras script' }
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
@@ -441,6 +458,8 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-
         if ($LASTEXITCODE -ne 0) { throw 'WAVE JavaScript syntax check failed' }
         & $node.Source --check $extrasPath
         if ($LASTEXITCODE -ne 0) { throw 'WAVE studio extras JavaScript syntax check failed' }
+        & $node.Source --check $scoreToolsPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE score tools JavaScript syntax check failed' }
         Write-Host 'JavaScript syntax: PASS' -ForegroundColor Green
     }
     else { Write-Host 'JavaScript syntax: SKIPPED (node not found)' -ForegroundColor Yellow }

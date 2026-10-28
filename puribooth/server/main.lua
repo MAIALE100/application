@@ -4177,7 +4177,7 @@ CreateThread(function()
     local _, qbx = qbxCompatibilityState()
     local _, puriphoto = resourceCompatibilityState("puriphoto")
 
-    print(("[puribooth] v1.0.6 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
+    print(("[puribooth] v1.0.7 starting (price=$%d, shots=%d, qbx_core=%s, puriphoto=%s)")
         :format(
             tonumber(Config.Price) or 0,
             tonumber(Config.ShotCount) or 4,

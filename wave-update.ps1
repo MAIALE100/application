@@ -50,6 +50,22 @@ function Invoke-RepoGit([string[]]$GitArgs) {
     if ($code -ne 0) { throw ('git ' + ($GitArgs -join ' ') + ' failed: ' + (($out | ForEach-Object {$_.ToString()}) -join [Environment]::NewLine)) }
     return @($out | ForEach-Object {$_.ToString()})
 }
+function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination) {
+    if (-not (Test-Path -LiteralPath $InstalledDestination -PathType Container)) { return $false }
+    $builtFiles=@(Get-ChildItem -LiteralPath $BuiltSource -Recurse -File)
+    $installedFiles=@(Get-ChildItem -LiteralPath $InstalledDestination -Recurse -File |
+        Where-Object { $_.FullName -ne (Join-Path $InstalledDestination '.wave-build.txt') })
+    if ($builtFiles.Count -ne $installedFiles.Count) { return $false }
+    foreach($file in $builtFiles) {
+        $relative=$file.FullName.Substring($BuiltSource.Length + 1)
+        $installed=Join-Path $InstalledDestination $relative
+        if (-not (Test-Path -LiteralPath $installed -PathType Leaf)) { return $false }
+        $builtHash=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+        $installedHash=(Get-FileHash -LiteralPath $installed -Algorithm SHA256).Hash
+        if ($builtHash -ne $installedHash) { return $false }
+    }
+    return $true
+}
 function Read-RemoteParts([string]$RemoteRef,[string[]]$Parts) {
     $builder=New-Object Text.StringBuilder
     foreach($part in $Parts) {
@@ -187,6 +203,14 @@ try {
     Step 'Checking duplicate WAVE resources'
     $duplicates=Get-ChildItem -LiteralPath $Resources -Recurse -Filter fxmanifest.lua -File -ErrorAction SilentlyContinue | Where-Object {$_.Directory.Name -eq 'wave' -and $_.Directory.FullName -ne $Destination} | Select-Object -ExpandProperty DirectoryName -Unique
     if ($duplicates) { $duplicates | ForEach-Object {Write-Host ('  ' + $_) -ForegroundColor Yellow}; throw 'Duplicate WAVE resource found' }
+
+    Step 'Checking whether WAVE is already current'
+    if (Test-DeploymentMatches $Source $Destination) {
+        Write-Host 'Deployment verification: PASS (unchanged)' -ForegroundColor Green
+        Step 'WAVE already up to date'
+        Write-Host 'No resource replacement, backup or server restart needed.' -ForegroundColor Green
+        exit 0
+    }
 
     Step 'Staging WAVE resource'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $StagePath) | Out-Null

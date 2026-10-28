@@ -18,6 +18,7 @@ on:
       - 'wave-v030-rate-limit.patch'
       - 'wave-v031-release-feedback.patch.b64'
       - 'wave-v032-publish-guard.patch'
+      - 'wave-v033-studio-extras.js'
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
       - 'wave-update-lock-test.ps1'
@@ -84,6 +85,46 @@ jobs:
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v032-publish-guard.patch && git apply --whitespace=nowarn ../../wave-v032-publish-guard.patch)
           sed -i "s/version '0.3.1-test'/version '0.3.2-test'/" wave-check/wave/fxmanifest.lua
 
+      - name: Apply WAVE v0.3.3 studio and library updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "1f8c7c37e6b57c80a464f124bc066d9c1372a63dbd93156788f6b07eea3ba62c  wave-v033-studio-extras.js" | sha256sum -c -
+          cp wave-v033-studio-extras.js wave-check/wave/web/studio-extras.js
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("wave-check/wave")
+          app = root / "web/app.js"
+          text = app.read_text(encoding="utf-8")
+          old = "state.ownReleases = r.tracks || [];"
+          assert text.count(old) == 1, "Cannot safely hide deleted releases"
+          app.write_text(text.replace(old, "state.ownReleases = (r.tracks || []).filter(track => track.status !== 'deleted');"), encoding="utf-8")
+          css = root / "web/app.css"
+          extra = """
+          /* WAVE_STUDIO_PRESETS_V033 */
+          *::-webkit-scrollbar:vertical{display:none;width:0}
+          html,body,.view{scrollbar-width:none}
+          .wave-template-card{margin-bottom:.55rem}
+          .wave-template-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}
+          .wave-template-controls select{min-width:0}
+          .wave-template-controls button{white-space:nowrap}
+          .wave-template-info{font-size:.66rem;margin-top:.35rem}
+          .wave-template-warning{color:#fecdd3}
+          """
+          css.write_text(css.read_text(encoding="utf-8") + extra, encoding="utf-8")
+          html = root / "web/index.html"
+          content = html.read_text(encoding="utf-8")
+          assert "</body>" in content
+          html.write_text(content.replace("</body>", "  <script src='studio-extras.js'></script>\n</body>"), encoding="utf-8")
+          manifest = root / "fxmanifest.lua"
+          content = manifest.read_text(encoding="utf-8")
+          assert "'web/app.js'," in content
+          content = content.replace("'web/app.js',", "'web/app.js',\n    'web/studio-extras.js',")
+          assert "version '0.3.2-test'" in content
+          content = content.replace("version '0.3.2-test'", "version '0.3.3-test'")
+          manifest.write_text(content, encoding="utf-8")
+          PY
+
       - name: Check PowerShell updater syntax
         shell: pwsh
         run: |
@@ -137,9 +178,14 @@ jobs:
         run: |
           set -euo pipefail
           node --check wave-check/wave/web/app.js
+          node --check wave-check/wave/web/studio-extras.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
           ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
-          grep -q "version '0.3.2-test'" wave-check/wave/fxmanifest.lua
+          grep -q "version '0.3.3-test'" wave-check/wave/fxmanifest.lua
+          grep -q 'WAVE_STUDIO_PRESETS_V033' wave-check/wave/web/studio-extras.js
+          grep -q 'studio-extras.js' wave-check/wave/web/index.html
+          grep -q 'studio-extras.js' wave-check/wave/fxmanifest.lua
+          grep -q "track.status !== 'deleted'" wave-check/wave/web/app.js
           grep -q 'publishingProjects\[key\] = nil' wave-check/wave/server/main.lua
           grep -q 'ERROR_TEXT.PROJECT_ALREADY_RELEASED' wave-check/wave/web/app.js
           grep -q 'WAVE_RELEASE_ACTION_FEEDBACK_V031' wave-check/wave/web/app.js

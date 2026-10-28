@@ -18,7 +18,8 @@ $ExpectedAtomicPatchSha256 = 'BDD7CAF2EE949A52E208E4E9035C37771F22CF504EF460D309
 $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C26EDC0A7189E9'
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
-$ExpectedVersion = '0.3.1-test'
+$ExpectedPublishGuardPatchSha256 = '1E1D038401DE09EFAEB3FE73D3C88BF719572AE687BE63A992223B7723487F4B'
+$ExpectedVersion = '0.3.2-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -37,6 +38,7 @@ $AtomicPatchPath = Join-Path $TempRoot 'wave-v030-atomic-status.patch'
 $SavePatchPath = Join-Path $TempRoot 'wave-v030-idempotent-saves.patch'
 $RatePatchPath = Join-Path $TempRoot 'wave-v030-rate-limit.patch'
 $ReleaseFeedbackPatchPath = Join-Path $TempRoot 'wave-v031-release-feedback.patch'
+$PublishGuardPatchPath = Join-Path $TempRoot 'wave-v032-publish-guard.patch'
 $ExtractPath = Join-Path $TempRoot 'extract'
 $StagePath = Join-Path $TempRoot 'stage\wave'
 $BackupRoot = Join-Path $RepoRoot '.wave-backups'
@@ -329,6 +331,24 @@ try {
     $manifestText=$manifestText.Replace("version '0.3.0-test'", "version '0.3.1-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'Release-action feedback patch: PASS' -ForegroundColor Green
+    Step 'Applying WAVE duplicate-release prevention'
+    $guardText=((Invoke-RepoGit @('show',($head + ':wave-v032-publish-guard.patch'))) -join "`n").TrimEnd("`r","`n") + "`n"
+    [IO.File]::WriteAllText($PublishGuardPatchPath,$guardText,(New-Object Text.UTF8Encoding($false)))
+    $guardHash=(Get-FileHash -LiteralPath $PublishGuardPatchPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($guardHash -ne $ExpectedPublishGuardPatchSha256) { throw ('WAVE publish guard patch hash mismatch: ' + $guardHash) }
+    $oldLocation=Get-Location
+    try {
+        Set-Location $Source
+        & git apply --check --whitespace=nowarn $PublishGuardPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE duplicate-release patch preflight failed' }
+        & git apply --whitespace=nowarn $PublishGuardPatchPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE duplicate-release patch failed' }
+    } finally { Set-Location $oldLocation }
+    $manifestText=[IO.File]::ReadAllText($manifestPath)
+    if (-not $manifestText.Contains("version '0.3.1-test'")) { throw 'Unexpected WAVE version before duplicate-release fix' }
+    $manifestText=$manifestText.Replace("version '0.3.1-test'", "version '0.3.2-test'")
+    [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
+    Write-Host 'Duplicate-release prevention patch: PASS' -ForegroundColor Green
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -344,6 +364,7 @@ try {
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }
     if ($server -notmatch 'A no-op UPDATE can report zero affected rows' -or $server -notmatch 'Re-saving unchanged metadata') { throw 'WAVE idempotent-save patch missing' }
     if ($server -notmatch 'A new caller must not be throttled at uptime zero') { throw 'WAVE rate-limit patch missing' }
+    if ($server -notmatch 'PROJECT_ALREADY_RELEASED' -or $server -notmatch 'publishingProjects\[key\] = nil' -or $app -notmatch 'ERROR_TEXT.PROJECT_ALREADY_RELEASED') { throw 'WAVE duplicate-release protection missing' }
     $config=[IO.File]::ReadAllText((Join-Path $Source 'config\shared.lua'))
     if ($config -notmatch 'SchemaVersion\s*=\s*3') { throw 'WAVE schema version mismatch' }
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))

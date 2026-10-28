@@ -25,7 +25,25 @@ try {
         throw 'BASE packaging script was not found on base/workspace-dev.'
     }
 
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -OutputDirectory $OutputDirectory
+    # Windows PowerShell 5.1 reads UTF-8-without-BOM scripts as the local ANSI codepage.
+    # Copy the operator script with a BOM so Japanese release docs remain intact.
+    $scriptText = [IO.File]::ReadAllText($script, [Text.Encoding]::UTF8)
+    $scriptWithBom = Join-Path $Temp 'base-package-run.ps1'
+    [IO.File]::WriteAllText($scriptWithBom, $scriptText, (New-Object System.Text.UTF8Encoding($true)))
+
+    $parseTokens = $null
+    $parseErrors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile(
+        $scriptWithBom, [ref]$parseTokens, [ref]$parseErrors
+    ) | Out-Null
+    if ($parseErrors.Count -gt 0) {
+        foreach ($errorEntry in $parseErrors) {
+            Write-Host ('PowerShell parser: ' + $errorEntry.Message) -ForegroundColor Red
+        }
+        throw 'BASE packaging script syntax check failed.'
+    }
+
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptWithBom -OutputDirectory $OutputDirectory
     if ($LASTEXITCODE -ne 0) {
         throw 'BASE submission build failed. No ZIP should be submitted.'
     }

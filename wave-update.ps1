@@ -137,6 +137,21 @@ function Assert-DeploymentPreconditions([string]$InstalledDestination,[string]$V
         throw 'WAVE destination appeared after preflight; deployment aborted'
     }
 }
+function Get-ExistingInstallRollbackAction([string]$BuiltSource,[string]$InstalledDestination,[string]$VerifiedBackup) {
+    # An existing-install rollback must not delete changes made by another
+    # process after deployment began. A missing destination is safe to restore.
+    Assert-SafeResourceTree $InstalledDestination
+    if (-not (Test-Path -LiteralPath $InstalledDestination)) { return 'restore' }
+    if (Test-DeploymentMatches $VerifiedBackup $InstalledDestination $false) {
+        return 'unchanged'
+    }
+    # The updater owns a complete copy of its staged build. Build metadata
+    # may have been written just before an error, so ignore only that file.
+    if (Test-DeploymentMatches $BuiltSource $InstalledDestination) {
+        return 'restore'
+    }
+    return 'preserve'
+}
 function Test-FirstInstallRollbackSafe([string]$BuiltSource,[string]$InstalledDestination,[bool]$MoveCompleted) {
     # A failed Move-Item can leave a destination created by another process.
     # Delete only if our move completed and the files still match our build.
@@ -392,17 +407,24 @@ try {
     if ($DeploymentStarted -and -not $DeploymentComplete) {
         try {
             if ($ActiveBackup -and (Test-Path -LiteralPath $ActiveBackup)) {
-                Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
                 Assert-SafeResourceTree $ActiveBackup
-                Assert-SafeResourceTree $Destination
-                if (Test-Path -LiteralPath $Destination) {
-                    Remove-Item -LiteralPath $Destination -Recurse -Force
+                $rollbackAction = Get-ExistingInstallRollbackAction $Source $Destination $ActiveBackup
+                if ($rollbackAction -eq 'unchanged') {
+                    Write-Host 'Previous WAVE resource is already intact; rollback not needed.' -ForegroundColor Green
+                } elseif ($rollbackAction -eq 'preserve') {
+                    Write-Host 'Preserving changed WAVE destination; automatic rollback would overwrite unverified files.' -ForegroundColor Yellow
+                } else {
+                    Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
+                    Assert-SafeResourceTree $Destination
+                    if (Test-Path -LiteralPath $Destination) {
+                        Remove-Item -LiteralPath $Destination -Recurse -Force
+                    }
+                    Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
+                    if (-not (Test-DeploymentMatches $ActiveBackup $Destination $false)) {
+                        throw 'Restored WAVE resource failed hash verification'
+                    }
+                    Write-Host 'Previous WAVE resource restored and verified.' -ForegroundColor Green
                 }
-                Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
-                if (-not (Test-DeploymentMatches $ActiveBackup $Destination $false)) {
-                    throw 'Restored WAVE resource failed hash verification'
-                }
-                Write-Host 'Previous WAVE resource restored and verified.' -ForegroundColor Green
             } elseif (Test-Path -LiteralPath $Destination) {
                 # Preserve another process's files if the move failed or if
                 # installed content changed before rollback could complete.

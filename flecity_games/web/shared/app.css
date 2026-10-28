@@ -33,7 +33,9 @@ p{line-height:1.5}.muted{opacity:.65}.card{background:#171a20;border:0.0625rem s
 .mines-cell.flagged{outline:0.0625rem solid #fff}
 @media(max-width:22.5rem){.mines-board{gap:0.1875rem}.mines-cell{font-size:.72rem}}
 .stack-arena{position:relative;height:16.25rem;border-radius:0.875rem;background:#11141a;border:0.0625rem solid #303641;overflow:hidden;touch-action:manipulation;user-select:none;cursor:pointer}
-.stack-base,.stack-mover,.stack-layer{position:absolute;height:1.125rem;border-radius:0.3125rem;will-change:left,width,bottom}
+.stack-base,.stack-mover,.stack-layer{position:absolute;height:1.125rem;border-radius:0.3125rem}
+.stack-mover{will-change:left;pointer-events:none}
+.stack-base,.stack-layer{will-change:auto;pointer-events:none}
 .stack-base,.stack-mover{background:#f3f3f3}
 .stack-arena:active{filter:brightness(1.04)}
 body.reduced-motion .stack-arena:active{filter:none}

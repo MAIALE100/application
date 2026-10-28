@@ -2048,28 +2048,66 @@ minesNew.onclick=async()=>{
 /* TOWER */
 function elapsedStack(){return stackGame?performance.now()-stackGame.startedAt:0;}
 function stackCameraTarget(game){return Math.max(0,(Number(game&&game.layerCount)||0)-5);}
+// Reuse a small pool of visible tower layers instead of rebuilding the DOM on every frame.
+const STACK_VISIBLE_LAYERS=18;
 function renderStack(){
- if(!stackGame)return;
- stackScore.textContent=Math.round(stackGame.score).toLocaleString();
- const tension=stackGame.width<=22?'DANGER':(stackGame.width<=38?'TIGHT':'STABLE');
- const speedTier=stackGame.speed>=165?'TURBO':(stackGame.speed>=130?'FAST':(stackGame.speed>=95?'UP':'NORMAL'));
- stackMeta.textContent='高さ '+String(stackGame.layerCount)+' · 連続成功 ×'+String(stackGame.perfectStreak)+' · 速度 '+speedTier+' · 幅 '+stackGame.width.toFixed(1)+'% · '+tension;
- stackArena.classList.toggle('tower-fever',stackGame.perfectStreak>=3);
- stackArena.classList.toggle('tower-tight',tension==='TIGHT');
- stackArena.classList.toggle('tower-danger',tension==='DANGER');
- const targetCamera=stackCameraTarget(stackGame),currentCamera=Number(stackGame.cameraOffset)||0;
- stackGame.cameraOffset=appSettings.reducedMotion?targetCamera:(Math.abs(targetCamera-currentCamera)<.01?targetCamera:currentCamera+(targetCamera-currentCamera)*.14);
- const camera=stackGame.cameraOffset,baseBottom=1.125,step=1.25,startIndex=Math.max(0,Math.floor(camera)-1);
- stackArena.dataset.camera=targetCamera>0?'follow':'base';
- stackArena.querySelectorAll('.stack-layer').forEach(n=>n.remove());
- for(let layerIndex=startIndex;layerIndex<stackGame.layers.length-1;layerIndex++){
-   const layer=stackGame.layers[layerIndex],bottom=baseBottom+(layerIndex-camera)*step;
-   if(bottom<-1.5||bottom>16.5)continue;
-   const d=document.createElement('div');d.className='stack-layer'+(layer.perfect?' perfect-layer':'');d.style.left=layer.x+'%';d.style.width=layer.width+'%';d.style.bottom=bottom+'rem';stackArena.insertBefore(d,stackMover);
+ const game=stackGame;if(!game)return;
+ const hudChanged=game.renderedLayerCount!==game.layerCount||game.renderedScore!==game.score;
+ if(hudChanged){
+   stackScore.textContent=Math.round(game.score).toLocaleString();
+   const tension=game.width<=22?'DANGER':(game.width<=38?'TIGHT':'STABLE');
+   const speedTier=game.speed>=165?'TURBO':(game.speed>=130?'FAST':(game.speed>=95?'UP':'NORMAL'));
+   stackMeta.textContent='高さ '+String(game.layerCount)+' · 連続成功 ×'+String(game.perfectStreak)+' · 速度 '+speedTier+' · 幅 '+game.width.toFixed(1)+'% · '+tension;
+   stackArena.classList.toggle('tower-fever',game.perfectStreak>=3);
+   stackArena.classList.toggle('tower-tight',tension==='TIGHT');
+   stackArena.classList.toggle('tower-danger',tension==='DANGER');
+   stackArena.dataset.camera=stackCameraTarget(game)>0?'follow':'base';
+   game.renderedLayerCount=game.layerCount;
+   game.renderedScore=game.score;
  }
- const topIndex=stackGame.layers.length-1,top=stackGame.layers[topIndex],topBottom=baseBottom+(topIndex-camera)*step;
- stackBase.style.left=top.x+'%';stackBase.style.width=top.width+'%';stackBase.style.bottom=topBottom+'rem';
- stackMover.style.left=stackGame.x+'%';stackMover.style.width=stackGame.width+'%';stackMover.style.bottom=(topBottom+step)+'rem';
+ if(!game.layerNodes){
+   game.layerNodes=[];
+   for(let i=0;i<STACK_VISIBLE_LAYERS;i++){
+     const node=document.createElement('div');
+     node.className='stack-layer';
+     node.style.display='none';
+     stackArena.insertBefore(node,stackMover);
+     game.layerNodes.push(node);
+   }
+ }
+ const targetCamera=stackCameraTarget(game),currentCamera=Number(game.cameraOffset)||0;
+ game.cameraOffset=appSettings.reducedMotion?targetCamera:(Math.abs(targetCamera-currentCamera)<.01?targetCamera:currentCamera+(targetCamera-currentCamera)*.14);
+ const camera=game.cameraOffset,baseBottom=1.125,step=1.25;
+ if(game.renderedCamera!==camera||hudChanged){
+   const startIndex=Math.max(0,Math.floor(camera)-1);
+   let visible=0;
+   for(let layerIndex=startIndex;layerIndex<game.layers.length-1&&visible<game.layerNodes.length;layerIndex++){
+     const layer=game.layers[layerIndex],bottom=baseBottom+(layerIndex-camera)*step;
+     if(bottom<-1.5||bottom>19.5)continue;
+     const node=game.layerNodes[visible++];
+     if(node.dataset.layerIndex!==String(layerIndex)){
+       node.dataset.layerIndex=String(layerIndex);
+       node.className='stack-layer'+(layer.perfect?' perfect-layer':'');
+       node.style.left=layer.x+'%';
+       node.style.width=layer.width+'%';
+     }
+     node.style.bottom=bottom+'rem';
+     if(node.style.display==='none')node.style.display='';
+   }
+   for(let i=visible;i<game.layerNodes.length;i++){
+     const node=game.layerNodes[i];
+     if(node.style.display!=='none')node.style.display='none';
+   }
+   const top=game.layers[game.layers.length-1],topBottom=baseBottom+((game.layers.length-1)-camera)*step;
+   stackBase.style.left=top.x+'%';
+   stackBase.style.width=top.width+'%';
+   stackBase.style.bottom=topBottom+'rem';
+   stackMover.style.width=game.width+'%';
+   stackMover.style.bottom=(topBottom+step)+'rem';
+   game.renderedCamera=camera;
+ }
+ // The moving block is the only element that must change on every animation frame.
+ stackMover.style.left=game.x+'%';
 }
 function stackPosition(elapsedMs,width,speed,reverse){
  const w=Math.max(.1,Math.min(100,Number(width)||72)),max=Math.max(0,100-w);
@@ -2086,11 +2124,13 @@ function stackLoop(now){
 }
 async function openStack(){
  hideAll();stackEl.classList.remove('hidden');cancelAnimationFrame(stackRaf);
+ stackArena.querySelectorAll('.stack-layer').forEach(node=>node.remove());
+ stackArena.classList.remove('tower-fall','perfect-hit','nice-hit','tower-score-pop');
  const session=await startSessionWithRetry({gameId:'stack'});
  if(!session.ok){if(session.error!=='APP_SUSPENDED'){setStatus('タワー積みを開始できません: '+FlecityErrors.text(session.error),'error');showHome();}return;}
  const width=Number(session.challenge&&session.challenge.initialWidthPct)||72;
  const startedAt=performance.now();
- stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,cameraOffset:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false};
+ stackGame={sessionToken:session.sessionToken,startedAt,layerStartedAt:startedAt,layers:[{x:(100-width)/2,width,perfect:false}],layerCount:0,cameraOffset:0,x:0,width,score:0,perfectStreak:0,maxPerfectStreak:0,speed:Number(session.challenge&&session.challenge.speedPctPerSec)||65,reverse:false,history:[],finished:false,layerNodes:null,renderedLayerCount:-1,renderedCamera:null,renderedScore:null};
  stackDrop.disabled=false;stackDrop.textContent='DROP';setStatus('タワー積み開始 · ぴったり重ねるほど高得点です。','good');renderStack();stackRaf=requestAnimationFrame(stackLoop);
 }
 async function finishStack(){
@@ -2112,9 +2152,17 @@ async function finishStack(){
    if(stackGame===game)setStatus('タワー積みのスコアを保存できませんでした: '+FlecityErrors.text(res.error),'error');
  }
 }
-async function dropStackBlock(){
+// Input events carry their own timestamp. Preserve it when a loaded client processes an
+// event late, but cap the adjustment so very old/synthetic events cannot move a block far.
+function stackInputTime(event){
+ const now=performance.now(),raw=Number(event&&event.timeStamp);
+ if(!Number.isFinite(raw)||raw<=0)return now;
+ const stamp=raw>1e12?raw-performance.timeOrigin:raw;
+ return Number.isFinite(stamp)&&stamp>=0&&stamp<=now+5?Math.max(now-160,Math.min(now,stamp)):now;
+}
+async function dropStackBlock(inputTime){
  if(!stackGame||stackGame.finished||stackGame.finalizing)return;
- const now=performance.now();
+ const now=Math.min(performance.now(),Number.isFinite(inputTime)?inputTime:performance.now());
  // Ignore touch/click bounce after a placement so one physical tap cannot drop the next layer too.
  // 140ms is short enough to stay below any meaningful TOWER timing window while covering mobile double-fire.
  if(now-stackGame.layerStartedAt<140)return;
@@ -2137,7 +2185,7 @@ async function dropStackBlock(){
  stackGame.layers.push({x:left,width:overlap,perfect});
  stackGame.layerCount+=1;stackGame.score+=placementScore;stackGame.width=overlap;
  const rankUp=liveRankUpPrefix('stack',scoreBefore,stackGame.score);
- stackArena.classList.remove('perfect-hit','nice-hit','tower-score-pop');void stackArena.offsetWidth;stackArena.classList.add('tower-score-pop');
+ stackArena.classList.remove('perfect-hit','nice-hit','tower-score-pop');stackArena.classList.add('tower-score-pop');
  if(perfect){
    stackArena.classList.add('perfect-hit');
    setStatus(rankUp+'PERFECT ×'+stackGame.perfectStreak+' · +'+placementScore+' pts','good');
@@ -2156,9 +2204,25 @@ async function dropStackBlock(){
  stackGame.x=stackPosition(0,stackGame.width,stackGame.speed,stackGame.reverse);
  renderStack();
 }
-stackDrop.onclick=()=>{void dropStackBlock();};
-stackArena.onclick=()=>{void dropStackBlock();};
-stackArena.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void dropStackBlock();}};
+function stackPointerDown(event){
+ if(!event.isPrimary||event.button!==0)return;
+ // Placing on pointerdown avoids the variable touch-release delay on slower devices.
+ event.preventDefault();
+ void dropStackBlock(stackInputTime(event));
+}
+stackDrop.onpointerdown=stackPointerDown;
+stackArena.onpointerdown=stackPointerDown;
+// Keyboard and accessibility clicks are synthesized with detail=0.
+// Pointer-generated clicks have already been handled above.
+stackDrop.onclick=event=>{if(event.detail===0)void dropStackBlock();};
+stackArena.onclick=event=>{if(event.detail===0)void dropStackBlock();};
+stackArena.onkeydown=event=>{
+ if(event.key==='Enter'||event.key===' '){
+   event.preventDefault();
+   if(event.repeat)return;
+   void dropStackBlock();
+ }
+};
 stackBack.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('タワー積みの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('タワー積みを終了しますか？','現在のRunは記録されず終了します。','終了する');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;showHome();};
 stackNew.onclick=async()=>{if(stackGame&&stackGame.finalizing){setStatus('タワー積みの記録を保存中です…','warn');return;}if(stackGame&&!stackGame.finished){const ok=await confirmAction('タワー積みをやり直しますか？','現在のRunは記録されず、新しく始めます。','やり直す');if(!ok)return;}cancelAnimationFrame(stackRaf);if(stackGame&&!stackGame.finished&&stackGame.sessionToken)await cancelPlaySession(stackGame.sessionToken);stackGame=null;await openStack();};
 

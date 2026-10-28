@@ -55,6 +55,9 @@ jobs:
               wave-v030-patchb64.part03 wave-v030-patchb64.part04 wave-v030-patchb64.part05 \
               | base64 -d > wave-v030.patch
           echo "6a91d4cdefa0332119d00a1f72b6e3fda0e54edbf4564a716ddf0dc9ac65fafe  wave-v030.patch" | sha256sum -c -
+          # Mirror Windows updater's correction of exactly two malformed CSS hunk context tokens.
+          test "$(grep -oF '.album-public-chip spanp{' wave-v030.patch | wc -l)" -eq 2
+          sed -i 's/\.album-public-chip spanp{/\.album-public-chip span{/g' wave-v030.patch
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030.patch && git apply --whitespace=nowarn ../../wave-v030.patch)
           echo "bdd7caf2ee949a52e208e4e9035c37771f22cf504ef460d3096ffe41cb0d6508  wave-v030-atomic-status.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-atomic-status.patch && git apply --whitespace=nowarn ../../wave-v030-atomic-status.patch)

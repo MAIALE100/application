@@ -62,6 +62,24 @@ function Enter-UpdateLock([string]$LockPath) {
     }
 }
 function Assert-SafeResourceTree([string]$Path,[bool]$InspectChildren = $true) {
+    # A safe resource leaf is not enough: a parent (for example [lb-phone])
+    # may itself be a junction pointing outside the server directory.
+    # Inspect each path component via its parent's directory listing so that
+    # dangling ancestor links are detected even when Test-Path returns false.
+    $ancestor = $Path
+    while ($true) {
+        $ancestorParent = Split-Path -Parent $ancestor
+        if ([string]::IsNullOrWhiteSpace($ancestorParent) -or $ancestorParent -eq $ancestor) { break }
+        if (Test-Path -LiteralPath $ancestorParent -PathType Container) {
+            $ancestorLeaf = Split-Path -Leaf $ancestor
+            $ancestorItem = Get-ChildItem -LiteralPath $ancestorParent -Force |
+                Where-Object { $_.Name -eq $ancestorLeaf } | Select-Object -First 1
+            if ($ancestorItem -and ($ancestorItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw ('Unsafe WAVE path (reparse point): ' + $ancestorItem.FullName)
+            }
+        }
+        $ancestor = $ancestorParent
+    }
     # Enumerate direct children instead of following directory links recursively.
     # This also detects broken links whose targets do not pass Test-Path.
     $parent = Split-Path -Parent $Path

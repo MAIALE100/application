@@ -1,14 +1,14 @@
 # WAVE development status
 
 Branch: `wave/dev`
-Test resource version: `0.3.0-test`
+Test resource version: `0.3.1-test`
 
 ## Build and deployment
 
 Run `wave-update.cmd` from the existing `D:\FiveM_Dev\application` checkout.
 The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstructs
 the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
-`wave-v030-atomic-status.patch` safety patch, checks syntax where local
+`wave-v030-atomic-status.patch` safety patch and the v0.3.1 release-action feedback patch, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
 Before replacing the installed resource, staging and the backup are SHA256-verified
 against their source trees (including build metadata). A failed deployment
@@ -83,12 +83,16 @@ also covers strict backup verification and metadata integrity. The backup-retent
 regression now covers nested symlink candidates and verifies that unrelated
 targets are preserved while ordinary expired backups are pruned. Native PowerShell
 syntax and these cases, including the new deployment preflight regression,
-and the existing-install rollback ownership regression still need a working `pwsh` runner. GitHub Actions currently fails before
+and the existing-install rollback ownership regression still need a working `pwsh` runner.
+The rollback test now uses a literal PowerShell search string for the
+`$rollbackAction -eq 'preserve'` guard; its previous double-quoted string
+expanded the variable and caused a false failure. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.
 
 Next in-game test after a successful `wave-update.cmd`:
 `refresh`, `restart wave`, `wave_selftest`; publish one track and check
-owner unpublish/republish. Verify that an admin-suspended track cannot be
+owner unpublish/republish and confirm that each action shows an inline
+success/error result. Verify that an admin-suspended track cannot be
 republished or deleted by its creator.
 
 Do not deploy to production until the in-game checks pass.

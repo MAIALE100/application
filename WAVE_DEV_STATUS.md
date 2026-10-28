@@ -1,14 +1,14 @@
 # WAVE development status
 
 Branch: `wave/dev`
-Test resource version: `0.3.3-test`
+Test resource version: `0.3.5-test`
 
 ## Build and deployment
 
 Run `wave-update.cmd` from the existing `D:\FiveM_Dev\application` checkout.
 The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstructs
 the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
-`wave-v030-atomic-status.patch` safety patch, v0.3.1 release-action feedback, v0.3.2 duplicate-release guard, and v0.3.3 studio extras, checks syntax where local
+`wave-v030-atomic-status.patch` safety patch, v0.3.1 release-action feedback, v0.3.2 duplicate-release guard, v0.3.3/0.3.4 studio extras and v0.3.5 long-score navigation, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
 Before replacing the installed resource, staging and the backup are SHA256-verified
 against their source trees (including build metadata). A failed deployment
@@ -70,7 +70,7 @@ source of truth. Future changes must update the reproducible build pipeline.
 
 ## Verification
 
-The v0.3.3 studio extras SHA256 is pinned in both the Windows updater and GitHub Actions. The `wave-v033-integrity-test.py` regression checks both pins against the actual asset, preventing a UI-only edit from making `wave-update.cmd` fail before deployment. The bar navigator is UI-only and does not change saved project format.
+The studio extras and v0.3.5 score-tools SHA256 values are pinned in both the Windows updater and GitHub Actions. The `wave-v033-integrity-test.py` regression checks both source hashes, verifies that score-tools is deployed and tested in CI, and compares the combined ordered CSS rules from both CI append steps against the Windows updater. This prevents stale hashes or split CSS blocks from silently breaking updates. Navigation controls do not change saved project format.
 
 
 Offline checks on the extracted v0.3.0 resource plus atomic-status, idempotent-save,

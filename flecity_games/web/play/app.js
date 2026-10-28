@@ -230,11 +230,11 @@ function competitionRank(rows,index){
 const categoryLabels={quick:'クイック',arcade:'アーケード',endless:'エンドレス',puzzle:'パズル'};
 const categoryOrder=['quick','arcade','endless','puzzle'];
 const gameVisuals={
- quick_tap:{icon:'icons/quick-tap.svg',symbol:'⚡',eyebrow:'REFLEX'},stop:{icon:'icons/stop.svg',symbol:'◎',eyebrow:'TIMING'},
- color_match:{icon:'icons/color-match.svg',symbol:'A',eyebrow:'FOCUS'},number_rush:{icon:'icons/number-rush.svg',symbol:'25',eyebrow:'SPEED'},
- stack:{icon:'icons/tower.svg',symbol:'▤',eyebrow:'PRECISION'},high_low:{icon:'icons/range-rush.svg',symbol:'↕',eyebrow:'SPEED'},simon:{icon:'icons/simon.svg',symbol:'◆',eyebrow:'MEMORY'},
- block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'BUILD'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'MERGE'},fall:{icon:'icons/fall.svg',symbol:'▣',eyebrow:'ENDLESS'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'LOGIC'},
- nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'PUZZLE'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'PAIR'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'SORT'},slide:{icon:'icons/slide.svg',symbol:'15',eyebrow:'SLIDE'}
+ quick_tap:{icon:'icons/quick-tap.svg',symbol:'⚡',eyebrow:'反射'},stop:{icon:'icons/stop.svg',symbol:'◎',eyebrow:'タイミング'},
+ color_match:{icon:'icons/color-match.svg',symbol:'A',eyebrow:'集中力'},number_rush:{icon:'icons/number-rush.svg',symbol:'25',eyebrow:'スピード'},
+ stack:{icon:'icons/tower.svg',symbol:'▤',eyebrow:'積み重ね'},high_low:{icon:'icons/range-rush.svg',symbol:'↕',eyebrow:'スピード'},simon:{icon:'icons/simon.svg',symbol:'◆',eyebrow:'記憶力'},
+ block:{icon:'icons/block.svg',symbol:'▦',eyebrow:'組み立て'},merge:{icon:'icons/merge.svg',symbol:'2ⁿ',eyebrow:'合体'},fall:{icon:'icons/fall.svg',symbol:'▣',eyebrow:'じっくり'},mines:{icon:'icons/mines.svg',symbol:'✹',eyebrow:'推理'},
+ nonogram:{icon:'icons/nonogram.svg',symbol:'▩',eyebrow:'パズル'},memory:{icon:'icons/memory.svg',symbol:'◈',eyebrow:'絵合わせ'},sort:{icon:'icons/sort.svg',symbol:'⇅',eyebrow:'色分け'},slide:{icon:'icons/slide.svg',symbol:'15',eyebrow:'数字並べ'}
 };
 function setGameIcon(el,visual){
  el.replaceChildren();
@@ -276,22 +276,22 @@ function liveRankUpPrefix(gameId,beforeScore,afterScore){
  return (order[after]||0)>(order[before]||0)?'RANK UP '+after+' · ':'';
 }
 const achievementLabels={
- first_play:'FIRST PLAY · 初めて記録を残す',
- '100_games':'100 GAMES · 100回プレイ',
- lightning:'LIGHTNING · QUICK TAP 200ms以下',
- stack_master:'TOWER MASTER · TOWER 25段以上',
- block_master:'BLOCK MASTER · BLOCK 5,000点以上',
- perfect_memory:'PERFECT MEMORY · MEMORYを8手でクリア',
- number_rush_ace:'NUMBER ACE · NUMBER RUSHをノーミス16秒以内',
- high_low_streak:'RANGE MASTER · RANGE RUSH 10問連続正解',
- bullseye:'BULLSEYE · STOP!でBULLSEYEを1回',
- merge_master:'MERGE MASTER · 2048タイル到達',
- mines_sprinter:'MINES SPRINTER · 60秒以内クリア',
- nonogram_solver:'LOGIC SOLVER · NONOGRAM 60秒以内',
- color_focus:'COLOR FOCUS · COLOR MATCHをノーミス14秒以内',
- simon_master:'SIMON MASTER · 15ラウンド到達',
- slide_master:'SLIDE MASTER · 90秒・120手以内でクリア',
- fall_master:'FALL MASTER · 20ライン以上消して記録'
+ first_play:'初めての記録 · 初めて記録を残す',
+ '100_games':'100回プレイ · たくさん遊んだ証',
+ lightning:'電光石火 · 反射神経チャレンジで200ミリ秒以下',
+ stack_master:'タワー名人 · タワー積みで25段以上',
+ block_master:'ブロック名人 · ブロックパズルで5,000点以上',
+ perfect_memory:'記憶の達人 · 神経衰弱を8手でクリア',
+ number_rush_ace:'数字の達人 · 数字タッチをノーミス16秒以内',
+ high_low_streak:'予想名人 · ハイ＆ローで10問連続正解',
+ bullseye:'ど真ん中 · タイミングストップで中心を捉える',
+ merge_master:'合体名人 · 2048タイル到達',
+ mines_sprinter:'地雷処理名人 · 60秒以内にクリア',
+ nonogram_solver:'お絵かき名人 · お絵かきロジック60秒以内',
+ color_focus:'色の達人 · 色あてラッシュをノーミス14秒以内',
+ simon_master:'光の記憶名人 · 15ラウンド到達',
+ slide_master:'15パズル名人 · 90秒・120手以内でクリア',
+ fall_master:'テトリス名人 · 20ライン以上消して記録'
 };
 function previousBestRow(gameId,daily){
  return daily?(bootstrapData&&bootstrapData.daily&&bootstrapData.daily.selfBest):(bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId]);

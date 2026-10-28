@@ -16,6 +16,7 @@ on:
       - 'wave-v030-atomic-status.patch'
       - 'wave-v030-idempotent-saves.patch'
       - 'wave-v030-rate-limit.patch'
+      - 'wave-v031-release-feedback.patch.b64'
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
       - 'wave-update-lock-test.ps1'
@@ -66,6 +67,14 @@ jobs:
           echo "1aea1cb697e45917dbb001eeaf6a48eb40288a28cdc6233524fcd506b730340a  wave-v030-rate-limit.patch" | sha256sum -c -
           (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v030-rate-limit.patch && git apply --whitespace=nowarn ../../wave-v030-rate-limit.patch)
 
+      - name: Apply release feedback diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d < wave-v031-release-feedback.patch.b64 > wave-v031-feedback.patch
+          echo "2c9f73d757b0c04d7698cf48396eeccf4cad54a2ee38247fdb917ef0e6dd0c6c  wave-v031-feedback.patch" | sha256sum -c -
+          (cd wave-check/wave && git apply --check --whitespace=nowarn ../../wave-v031-feedback.patch && git apply --whitespace=nowarn ../../wave-v031-feedback.patch)
+          sed -i "s/version '0.3.0-test'/version '0.3.1-test'/" wave-check/wave/fxmanifest.lua
       - name: Check PowerShell updater syntax
         shell: pwsh
         run: |
@@ -121,7 +130,9 @@ jobs:
           node --check wave-check/wave/web/app.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js
           ! grep -P '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b' wave-check/wave/web/app.css
-          grep -q "version '0.3.0-test'" wave-check/wave/fxmanifest.lua
+          grep -q "version '0.3.1-test'" wave-check/wave/fxmanifest.lua
+          grep -q 'WAVE_RELEASE_ACTION_FEEDBACK_V031' wave-check/wave/web/app.js
+          grep -q 'ownReleaseFeedback' wave-check/wave/web/app.js
           grep -q 'WAVE_PUBLISH_DIAGNOSTICS_V023' wave-check/wave/web/app.js
           grep -q 'requestId' wave-check/wave/web/app.js
           grep -q 'SchemaVersion = 3' wave-check/wave/config/shared.lua

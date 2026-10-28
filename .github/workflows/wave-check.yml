@@ -145,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee  wave-v035-score-tools.js" | sha256sum -c -
+          echo "f90bffda98e46066654a3c131e80be57c90aed3bbc0e35197f3af085aa9cd2ad  wave-v035-score-tools.js" | sha256sum -c -
           cp wave-v035-score-tools.js wave-check/wave/web/score-tools.js
           python3 - <<'PY'
           from pathlib import Path

@@ -99,3 +99,14 @@ success/error result. Verify that an admin-suspended track cannot be
 republished or deleted by its creator.
 
 Do not deploy to production until the in-game checks pass.
+
+## Navigation refinement (2026-10-29)
+
+Studio quick navigation now offers four- and eight-bar jumps. Jumps are
+clamped to the existing 1-128-bar range and do not modify notes or saved
+projects. Estimated duration rounds up to whole seconds, matching the
+server's published-track duration calculation. Pure navigation boundary
+regressions are covered by `wave-v035-score-tools-test.js`.
+
+After the next normal `wave-update.cmd`, check the four- and eight-bar
+buttons near the first and last bar; no new server commands are needed.

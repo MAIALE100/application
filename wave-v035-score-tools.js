@@ -13,10 +13,16 @@
     return Number.isFinite(n) ? Math.max(0, Math.min(validBars(bars) - 1, n)) : 0;
   }
 
+  function jumpTarget(index, bars, delta) {
+    const change = Number(delta);
+    const offset = Number.isFinite(change) ? Math.trunc(change) : 0;
+    return validIndex(validIndex(index, bars) + offset, bars);
+  }
+
   function durationSeconds(bars, bpm) {
     const tempo = Number(bpm);
     const safeTempo = Number.isFinite(tempo) && tempo >= 60 && tempo <= 200 ? tempo : 120;
-    return Math.round(validBars(bars) * 4 * 60 / safeTempo);
+    return Math.ceil(validBars(bars) * 4 * 60 / safeTempo);
   }
 
   function durationLabel(bars, bpm) {
@@ -25,7 +31,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, durationSeconds, durationLabel };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -40,6 +46,8 @@
     host.className = 'wave-score-quick';
     host.innerHTML = [
       '<div class="wave-score-quick-row">',
+      '  <button type="button" class="secondary" id="waveSkipPrevFour">\u25c0 4\u5c0f\u7bc0</button>',
+      '  <button type="button" class="secondary" id="waveSkipNextFour">4\u5c0f\u7bc0 \u25b6</button>',
       '  <button type="button" class="secondary" id="waveSkipPrev">\u25c0 8\u5c0f\u7bc0</button>',
       '  <button type="button" class="secondary" id="waveSkipNext">8\u5c0f\u7bc0 \u25b6</button>',
       '</div>',
@@ -55,6 +63,8 @@
     if (hint) hint.insertAdjacentElement('beforebegin', host);
     else navigator.appendChild(host);
 
+    const previousFour = host.querySelector('#waveSkipPrevFour');
+    const nextFour = host.querySelector('#waveSkipNextFour');
     const previous = host.querySelector('#waveSkipPrev');
     const next = host.querySelector('#waveSkipNext');
     const input = host.querySelector('#waveBarJump');
@@ -79,6 +89,8 @@
       input.max = String(bars);
       // Do not overwrite a typed target while the input has focus.
       if (document.activeElement !== input) input.value = String(index + 1);
+      previousFour.disabled = index === 0;
+      nextFour.disabled = index === bars - 1;
       previous.disabled = index === 0;
       next.disabled = index === bars - 1;
       estimate.textContent = '\u5168' + bars + '\u5c0f\u7bc0 / \u63a8\u5b9a\u518d\u751f\u6642\u9593 ' +
@@ -101,8 +113,10 @@
       refresh();
     }
 
-    previous.addEventListener('click', () => jump(Math.max(0, current() - 8)));
-    next.addEventListener('click', () => jump(Math.min(totals().bars - 1, current() + 8)));
+    previousFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, -4)));
+    nextFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, 4)));
+    previous.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, -8)));
+    next.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, 8)));
     go.addEventListener('click', () => {
       const numeric = Number(input.value);
       if (!Number.isInteger(numeric)) return jump(NaN);

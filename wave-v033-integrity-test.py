@@ -40,4 +40,30 @@ def declarations(block: str) -> list[str]:
 if declarations(updater_css.group(1)) != declarations(ci_css.group(1)):
     raise SystemExit("FAIL: WAVE studio CSS differs between Windows updater and CI")
 
-print("WAVE studio integrity pins and deployment CSS parity: PASS (" + actual + ")")
+
+# Verify v0.3.5 quick-navigation assets cannot drift between the source,
+# Windows deployment and CI. A stale pin makes wave-update.cmd fail before
+# deployment, while an unpinned CI copy could conceal the mismatch.
+score_asset = ROOT / "wave-v035-score-tools.js"
+score_hash = hashlib.sha256(score_asset.read_bytes()).hexdigest()
+score_updater_match = re.search(
+    r"if \(\$scoreToolsHash -ne '([0-9A-Fa-f]{64})'\)", updater
+)
+score_workflow_match = re.search(
+    r'echo "([0-9a-fA-F]{64})  wave-v035-score-tools\.js" \| sha256sum -c -',
+    workflow,
+)
+if not score_updater_match or not score_workflow_match:
+    raise SystemExit("FAIL: WAVE score tools SHA256 pin missing in updater or CI")
+if score_updater_match.group(1).lower() != score_hash:
+    raise SystemExit("FAIL: updater WAVE score tools SHA256 differs from source")
+if score_workflow_match.group(1).lower() != score_hash:
+    raise SystemExit("FAIL: CI WAVE score tools SHA256 differs from source")
+if ":wave-v035-score-tools.js" not in updater:
+    raise SystemExit("FAIL: Windows updater does not load pinned score tools source")
+if "cp wave-v035-score-tools.js wave-check/wave/web/score-tools.js" not in workflow:
+    raise SystemExit("FAIL: CI does not deploy the pinned score tools source")
+if "node wave-v035-score-tools-test.js" not in workflow:
+    raise SystemExit("FAIL: score tools regression is not wired into CI")
+
+print("WAVE studio/score tools integrity pins and deployment CSS parity: PASS (" + actual + ")")

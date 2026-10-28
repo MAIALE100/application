@@ -1,14 +1,14 @@
 # WAVE development status
 
 Branch: `wave/dev`
-Test resource version: `0.3.1-test`
+Test resource version: `0.3.3-test`
 
 ## Build and deployment
 
 Run `wave-update.cmd` from the existing `D:\FiveM_Dev\application` checkout.
 The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstructs
 the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
-`wave-v030-atomic-status.patch` safety patch and the v0.3.1 release-action feedback patch, checks syntax where local
+`wave-v030-atomic-status.patch` safety patch, v0.3.1 release-action feedback, v0.3.2 duplicate-release guard, and v0.3.3 studio extras, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
 Before replacing the installed resource, staging and the backup are SHA256-verified
 against their source trees (including build metadata). A failed deployment
@@ -69,6 +69,9 @@ source of truth. Future changes must update the reproducible build pipeline.
 - Published tracks require a confirmed rights declaration and a valid project.
 
 ## Verification
+
+The v0.3.3 studio extras SHA256 is pinned in both the Windows updater and GitHub Actions. The `wave-v033-integrity-test.py` regression checks both pins against the actual asset, preventing a UI-only edit from making `wave-update.cmd` fail before deployment. The bar navigator is UI-only and does not change saved project format.
+
 
 Offline checks on the extracted v0.3.0 resource plus atomic-status, idempotent-save,
 and rate-limit patches: `git apply --check`, `node --check`, Lua 5.3 parsing

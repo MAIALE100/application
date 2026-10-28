@@ -355,7 +355,7 @@ try {
     $extrasPath=Join-Path $Source 'web\studio-extras.js'
     [IO.File]::WriteAllText($extrasPath,$extrasText,(New-Object Text.UTF8Encoding($false)))
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    if ($extrasHash -ne '1F8C7C37E6B57C80A464F124BC066D9C1372A63DBD93156788F6B07EEA3BA62C') {
+    if ($extrasHash -ne 'ED96420FA6D21DF972A304D37081D0897553619D23718FD88F1671E8D4B10209') {
         throw ('WAVE studio template script SHA mismatch: ' + $extrasHash)
     }
 

@@ -19,6 +19,7 @@ on:
       - 'wave-v031-release-feedback.patch.b64'
       - 'wave-v032-publish-guard.patch'
       - 'wave-v033-studio-extras.js'
+      - 'wave-v033-integrity-test.py'
       - 'wave-update.ps1'
       - 'wave-update-noop-test.ps1'
       - 'wave-update-lock-test.ps1'
@@ -39,6 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify studio extras integrity pins
+        shell: bash
+        run: python3 wave-v033-integrity-test.py
 
       - name: Reconstruct WAVE base and v0.3.0
         shell: bash
@@ -89,7 +94,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "1f8c7c37e6b57c80a464f124bc066d9c1372a63dbd93156788f6b07eea3ba62c  wave-v033-studio-extras.js" | sha256sum -c -
+          echo "ed96420fa6d21df972a304d37081d0897553619d23718fd88f1671e8d4b10209  wave-v033-studio-extras.js" | sha256sum -c -
           cp wave-v033-studio-extras.js wave-check/wave/web/studio-extras.js
           python3 - <<'PY'
           from pathlib import Path

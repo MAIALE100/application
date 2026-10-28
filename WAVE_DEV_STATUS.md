@@ -1,14 +1,14 @@
 # WAVE development status
 
 Branch: `wave/dev`
-Test resource version: `0.3.5-test`
+Test resource version: `0.3.6-test`
 
 ## Build and deployment
 
 Run `wave-update.cmd` from the existing `D:\FiveM_Dev\application` checkout.
 The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstructs
 the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
-`wave-v030-atomic-status.patch` safety patch, v0.3.1 release-action feedback, v0.3.2 duplicate-release guard, v0.3.3/0.3.4 studio extras and v0.3.5 long-score navigation, checks syntax where local
+`wave-v030-atomic-status.patch` safety patch, v0.3.1 release-action feedback, v0.3.2 duplicate-release guard, v0.3.3/0.3.4 studio extras and v0.3.5 long-score navigation and v0.3.6 selected-track range editing, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
 Before replacing the installed resource, staging and the backup are SHA256-verified
 against their source trees (including build metadata). A failed deployment
@@ -110,3 +110,20 @@ regressions are covered by `wave-v035-score-tools-test.js`.
 
 After the next normal `wave-update.cmd`, check the four- and eight-bar
 buttons near the first and last bar; no new server commands are needed.
+
+## Range editing (2026-10-29)
+
+Studio supports 4/8-bar copy, paste and range clear on the selected track.
+The clipboard is in-memory and scoped to the current project; switching
+projects invalidates it. A paste that would exceed the song length is
+rejected without truncating notes. Edits use the existing undo stack and
+local-draft saving, with no change to project JSON or server financial flows.
+The new pure-function regression covers overlapping ranges, empty clips,
+end-of-song boundaries, immutable source notes and invalid inputs.
+
+Next in-game check: run `wave-update.cmd` once, open a test project of at
+least 12 bars, copy 4 bars, paste into a different 4-bar region, undo,
+then repeat with 8 bars and check the last bar rejects overflow.
+Only restart the WAVE resource if the updater reports deployed changes;
+no full server reboot is required. Do not use an irreplaceable project for
+this first UI test.

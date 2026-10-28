@@ -355,7 +355,7 @@ try {
     $extrasPath=Join-Path $Source 'web\studio-extras.js'
     [IO.File]::WriteAllText($extrasPath,$extrasText,(New-Object Text.UTF8Encoding($false)))
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    if ($extrasHash -ne 'ED96420FA6D21DF972A304D37081D0897553619D23718FD88F1671E8D4B10209') {
+    if ($extrasHash -ne '689AE752C16F91F9CB11E95A74204043A210BF24658802B50A0543A7308DA27B') {
         throw ('WAVE studio template script SHA mismatch: ' + $extrasHash)
     }
 
@@ -371,8 +371,18 @@ try {
     $extraCss=@'
 
 /* WAVE_STUDIO_PRESETS_V033: scrollbar hidden, scrolling retained. */
-*::-webkit-scrollbar:vertical{display:none;width:0}
-html,body,.view{scrollbar-width:none}
+/* CEF/Chrome uses WebKit scrollbar geometry on the document and nested scroll regions.
+   Hide only vertical tracks; keep horizontal piano-roll navigation functional. */
+html,body,#app,.view,.app,.screen,.content,.page,.card{scrollbar-width:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar,#app::-webkit-scrollbar,.view::-webkit-scrollbar,.app::-webkit-scrollbar,.screen::-webkit-scrollbar,.content::-webkit-scrollbar,.page::-webkit-scrollbar,.card::-webkit-scrollbar{width:0;display:none}
+*::-webkit-scrollbar:vertical{width:0;display:none}
+*::-webkit-scrollbar-thumb:vertical{background:transparent}
+.wave-bar-navigator{margin-bottom:.55rem}
+.wave-bar-head{display:flex;justify-content:space-between;gap:.35rem;align-items:center}
+.wave-bar-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.35rem}
+.wave-bar-steps{display:flex;gap:.22rem;flex-wrap:wrap;margin-top:.35rem}
+.wave-bar-step{min-width:1.8rem}
+.wave-bar-hint{font-size:.63rem;margin-top:.35rem}
 .wave-template-card{margin-bottom:.55rem}
 .wave-template-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}
 .wave-template-controls select{min-width:0}

@@ -2381,7 +2381,7 @@ function renderSort(){
  if(!sortGame)return;
  refreshScreenBests();sortBoard.innerHTML='';sortMoves.textContent=String(sortGame.moves);
  const completeCount=sortGame.tubes.filter(sortTubeComplete).length;
- sortMeta.textContent=String(sortGame.moves)+'手 · '+String(completeCount)+'/4本完成'+(completeCount>=2&&!sortGame.finished?' · 連続成功 '+String(completeCount):'')+(sortGame.finished?' · CLEAR':'');
+ sortMeta.textContent=String(sortGame.moves)+'手 · '+String(completeCount)+'/4本完成'+(completeCount>=2&&!sortGame.finished?' · 連続成功 '+String(completeCount):'')+(sortGame.finished?' · クリア':'');
  sortGame.tubes.forEach((tube,index)=>{
    const button=document.createElement('button');
    button.className='sort-tube'+(sortGame.selected===index?' selected':'')+(sortTubeComplete(tube)?' complete':'');
@@ -3252,7 +3252,7 @@ function renderMemory(){
  if(!memory)return;
  memoryBoard.innerHTML='';updateMemoryTime();
  refreshScreenBests();const memoryPairs=memory.matched.size/2;
- memoryMeta.textContent=memory.previewing?((memory.daily?'今日のお題 · ':'')+'記憶中…'):((memory.daily?'今日のお題 · ':'')+String(memoryPairs)+' / 8組 · '+String(memory.moves)+' MOVES'+(memory.streak>=2?' · 連続成功 ×'+memory.streak:'')+(memoryPairs>=4&&!memory.finished?' · '+(memoryPairs>=6?'FINAL PUSH':'HALFWAY'):''));
+ memoryMeta.textContent=memory.previewing?((memory.daily?'今日のお題 · ':'')+'記憶中…'):((memory.daily?'今日のお題 · ':'')+String(memoryPairs)+' / 8組 · '+String(memory.moves)+'手'+(memory.streak>=2?' · 連続成功 ×'+memory.streak:'')+(memoryPairs>=4&&!memory.finished?' · '+(memoryPairs>=6?'あと少し':'折り返し'):''));
  for(let i=0;i<memory.deck.length;i++){
    const b=document.createElement('button');
    const shown=memory.previewing||memory.revealed.includes(i),matched=memory.matched.has(i);

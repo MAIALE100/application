@@ -40,6 +40,12 @@ First-install rollback now also validates the destination for reparse points
 immediately before removing an incomplete installation, so a swapped junction
 or symlink is rejected rather than recursively deleted. The path-safety regression
 asserts this rollback guard is present and ordered before deletion.
+First-install rollback now also requires proof that the updater's Move-Item
+completed and that the destination still matches the validated build, including
+the absence of extra files. If another process creates the destination during
+the move, or changes files before rollback, the updater preserves the directory
+instead of deleting data it cannot prove it owns. The deployment preflight
+regression covers both owned and unowned first-install rollback cases.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the

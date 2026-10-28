@@ -610,38 +610,88 @@ function populateRankingGames(games){
  if([...rankingGame.options].some(o=>o.value===current))rankingGame.value=current;
  renderRankingSelf();
 }
+let rankingRequestId=0,rankingDebounce=null;
+function rankingRow(data,rank,game,isSelf,isTop){
+ const row=document.createElement('div');
+ row.className='ranking-entry'+(isTop?' ranking-featured':'')+(isSelf?' self-rank-row':'')+
+   (rank<=3&&isTop?' ranking-medal ranking-medal-'+rank:'');
+ const place=document.createElement('span'),name=document.createElement('span'),score=document.createElement('strong');
+ place.className='ranking-place';place.textContent=String(rank)+'位';
+ name.className='ranking-name';name.textContent=isSelf?'あなた':String(data.display_name||'プレイヤー');
+ score.className='ranking-score';score.textContent=formatGameScore(game,data.score);
+ row.append(place,name,score);
+ return row;
+}
 async function loadRanking(){
- const gameId=rankingGame.value;if(!gameId)return;
- rankingLoad.disabled=true;rankingRows.innerHTML='<div class="muted">読み込み中…</div>';
- const res=await FlecityBridge.call('playRanking',{gameId,period:rankingPeriod.value});
- rankingLoad.disabled=false;rankingRows.innerHTML='';
- if(!res.ok){rankingRows.innerHTML='<div class="status error">ランキング取得失敗: '+FlecityErrors.text(res.error)+'</div>';return;}
- const game=(bootstrapData&&bootstrapData.games||[]).find(g=>g.id===gameId);
- const self=res.self||{};
- if(Number.isFinite(Number(self.score))){
-   rankingSelf.textContent='あなたの'+rankingPeriodLabel(res.period)+'BEST · '+formatGameScore(game,self.score)+(Number(self.rank)>0?' · #'+String(self.rank):'');
- }else{
-   rankingSelf.textContent='あなたの'+rankingPeriodLabel(res.period)+'BEST · まだ記録がありません';
+ clearTimeout(rankingDebounce);rankingDebounce=null;
+ const gameId=rankingGame.value,period=rankingPeriod.value;
+ if(!gameId)return;
+ const requestId=++rankingRequestId;
+ rankingLoad.disabled=true;
+ rankingRows.replaceChildren();
+ const loading=document.createElement('div');loading.className='ranking-placeholder';loading.textContent='ランキングを読み込み中…';
+ rankingRows.appendChild(loading);
+ let res;
+ try{res=await FlecityBridge.call('playRanking',{gameId,period});}
+ catch(error){res={ok:false,error:'NUI_REQUEST_FAILED'};}
+ if(requestId!==rankingRequestId||gameId!==rankingGame.value||period!==rankingPeriod.value)return;
+ rankingLoad.disabled=false;rankingRows.replaceChildren();
+ if(!res.ok){
+   const error=document.createElement('div');error.className='status error';error.textContent='ランキング取得失敗: '+FlecityErrors.text(res.error);rankingRows.appendChild(error);return;
  }
- if(!(res.rows||[]).length){rankingRows.innerHTML='<div class="muted">まだ記録がありません。</div>';return;}
- let selfVisible=false;
- res.rows.forEach((r,i)=>{
-   const d=document.createElement('div');
-   const isSelf=Number(r.is_self)===1;selfVisible=selfVisible||isSelf;
-   d.className='player'+(isSelf?' self-rank-row':'');
-   const left=document.createElement('span'),right=document.createElement('strong');
-   left.textContent='#'+competitionRank(res.rows,i)+' '+(isSelf?'あなた':String(r.display_name||'Player'));
-   right.textContent=formatGameScore(game,r.score);
-   d.append(left,right);rankingRows.appendChild(d);
- });
- if(Number.isFinite(Number(self.score))&&Number(self.rank)>0&&!selfVisible){
-   const d=document.createElement('div'),left=document.createElement('span'),right=document.createElement('strong');
-   d.className='player self-rank-row';left.textContent='#'+String(self.rank)+' あなた';right.textContent=formatGameScore(game,self.score);d.append(left,right);rankingRows.appendChild(d);
+ const game=gameById(gameId),self=res.self||{},rows=Array.isArray(res.rows)?res.rows:[];
+ const hasSelf=Number.isFinite(Number(self.score))&&self.score!==null&&self.score!==undefined;
+ rankingSelf.textContent=hasSelf?'あなたの'+rankingPeriodLabel(period)+'BEST · '+formatGameScore(game,self.score)+(Number(self.rank)>0?' · '+Number(self.rank)+'位':''):
+   'あなたの'+rankingPeriodLabel(period)+'BEST · まだ記録がありません';
+ const title=document.createElement('div');title.className='ranking-list-heading';title.textContent=game?game.name+' · '+rankingPeriodLabel(period)+' TOP5':'TOP5';
+ rankingRows.appendChild(title);
+ const top=document.createElement('div');top.className='ranking-top-five';
+ let selfInTop=false,selfInOther=false;
+ for(let i=0;i<5;i++){
+   if(i<rows.length){
+     const r=rows[i],isSelf=Number(r.is_self)===1;
+     selfInTop=selfInTop||isSelf;
+     top.appendChild(rankingRow(r,competitionRank(rows,i),game,isSelf,true));
+   }else{
+     const empty=document.createElement('div'),place=document.createElement('span'),label=document.createElement('span');
+     empty.className='ranking-entry ranking-empty';
+     place.className='ranking-place';place.textContent=(i+1)+'位';
+     label.className='ranking-name';label.textContent='まだ記録がありません';
+     empty.append(place,label);
+     top.appendChild(empty);
+   }
+ }
+ rankingRows.appendChild(top);
+ if(rows.length>5){
+   const more=document.createElement('details');more.className='ranking-more';
+   const summary=document.createElement('summary');summary.textContent='6位以下を見る（'+(rows.length-5)+'人）';
+   const list=document.createElement('div');list.className='ranking-other-list';
+   rows.slice(5).forEach((r,i)=>{
+     const isSelf=Number(r.is_self)===1;selfInOther=selfInOther||isSelf;
+     list.appendChild(rankingRow(r,competitionRank(rows,i+5),game,isSelf,false));
+   });
+   more.append(summary,list);rankingRows.appendChild(more);
+ }
+ if(hasSelf&&Number(self.rank)>0&&!selfInTop){
+   const caption=document.createElement('div');caption.className='ranking-self-caption';
+   caption.textContent=selfInOther?'あなたの順位（6位以下にも表示）':'あなたの順位';
+   rankingRows.appendChild(caption);
+   rankingRows.appendChild(rankingRow({score:self.score},Number(self.rank),game,true,false));
  }
 }
-rankingLoad.onclick=loadRanking;
-rankingGame.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
-rankingPeriod.onchange=()=>{renderRankingSelf();rankingRows.innerHTML='';};
+function scheduleRankingReload(){
+ ++rankingRequestId;
+ clearTimeout(rankingDebounce);
+ rankingLoad.disabled=false;
+ renderRankingSelf();
+ rankingRows.replaceChildren();
+ const notice=document.createElement('div');notice.className='ranking-placeholder';notice.textContent='ランキングを更新しています…';
+ rankingRows.appendChild(notice);
+ rankingDebounce=setTimeout(()=>{void loadRanking();},650);
+}
+rankingLoad.onclick=()=>{void loadRanking();};
+rankingGame.onchange=scheduleRankingReload;
+rankingPeriod.onchange=scheduleRankingReload;
 async function bootstrap(){
  const bridge=await FlecityBridge.call('bridgePing',{});
  if(!bridge.ok){
@@ -661,7 +711,7 @@ async function bootstrap(){
    setStatus('LOOPを起動できませんでした。アプリを開き直してもう一度お試しください。','error');
    return;
  }
- bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('LOOP 準備完了 · v'+String(res.version||'unknown'),'good');
+ bootstrapData=res;saves={};(res.saves||[]).forEach(s=>saves[s.game_id]=s);renderGames(res.games);populateRankingGames(res.games);renderPlatform(res);await loadSettings();setStatus('LOOP 準備完了 · v'+String(res.version||'unknown'),'good');void loadRanking();
 }
 
 /* QUICK TAP */

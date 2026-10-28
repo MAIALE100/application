@@ -60,9 +60,9 @@
      <div class="row"><strong id="fallBattleScore">0 pt</strong><span id="fallBattleMeta" class="muted">LINES 0</span></div>
      <div class="fall-board-card"><div id="fallBattleBoard" class="fall-board" aria-label="FALL BATTLE board"></div></div>
      <div class="fall-hold-row"><div><strong>HOLD</strong><span class="muted">1配置1回</span></div><button id="fallBattleHold" class="secondary">HOLD</button></div>
-     <div class="fall-controls">
-       <button id="fallBattleLeft" class="secondary">←</button><button id="fallBattleRotate" class="secondary">↻</button><button id="fallBattleRight" class="secondary">→</button>
-       <button id="fallBattleSoft" class="secondary">▼</button><button id="fallBattleDrop">DROP</button>
+     <div class="fall-controls fall-dpad" aria-label="対戦テトリスの十字キー">
+       <button id="fallBattleLeft" class="secondary" aria-label="左へ移動">←</button><button id="fallBattleRotate" class="secondary" aria-label="回転">↑ 回転</button><button id="fallBattleRight" class="secondary" aria-label="右へ移動">→</button>
+       <button id="fallBattleSoft" class="secondary" aria-label="ゆっくり落下">↓ 落下</button><button id="fallBattleDrop">一気に落とす</button>
      </div>
      <p id="fallBattleHint" class="muted">全員同じピース列で90秒勝負。</p>
    </div>
@@ -74,6 +74,7 @@
 </main>
 <script src="../shared/errors.js"></script>
 <script src="../shared/bridge.js"></script>
+<script src="../shared/controls.js"></script>
 <script>
 (()=>{
   let loaded=false;

@@ -56,7 +56,7 @@ assert.deepEqual(rangeSummary(source,0,4,16),{startBar:1,endBar:4,notes:2,total:
 assert.deepEqual(rangeSummary(source,4,4,16),{startBar:5,endBar:8,notes:2,total:5});
 assert.equal(rangeSummary(source,13,4,16),null);
 assert.deepEqual(rangePreview(source,clip4,4,16),{
-  startBar:5,endBar:8,overwritten:2,inserted:2,totalAfter:5,withinLimit:true
+  startBar:5,endBar:8,overwritten:2,inserted:2,totalAfter:5,withinLimit:true,wouldChange:true
 });
 assert.equal(rangePreview(source,clip4,13,16),null);
 assert.equal(rangePreview(source,{bars:4,notes:[{step:64}]},0,16),null);
@@ -83,6 +83,7 @@ const almostFull = Array.from({ length: 8191 }, (_, i) => ({ step: 128 + (i % 16
 const full = almostFull.concat({ step: 129, pitch: 64 });
 const oneNoteClip = { bars: 4, notes: [{ step: 0, pitch: 70 }] };
 assert.equal(rangePreview(full,oneNoteClip,0,16).withinLimit,false);
+assert.equal(rangePreview(full,oneNoteClip,0,16).wouldChange,true);
 assert.equal(rangePreview(full,oneNoteClip,0,16).totalAfter,8193);
 assert.equal(rangePreview(almostFull,oneNoteClip,0,16).withinLimit,true);
 assert.equal(pasteRange(full, oneNoteClip, 0, 16), null);
@@ -93,5 +94,17 @@ assert.equal(atLimit.length, 8192);
 assert.equal(atLimit[8191].pitch, 70);
 assert.equal(almostFull.length, 8191);
 assert.deepEqual(pasteRange([], oneNoteClip, 0, 16), [{ step: 0, pitch: 70 }]);
+
+// Empty-to-empty paste must not create a redundant Undo/dirty state.
+const emptyTrack = [];
+const emptyClipboard = copyRange(emptyTrack,0,4,16);
+assert.equal(rangePreview(emptyTrack,emptyClipboard,0,16).wouldChange,false);
+assert.equal(pasteRange(emptyTrack,emptyClipboard,0,16),emptyTrack);
+assert.equal(rangePreview(source,emptyClipboard,0,16).wouldChange,true);
+const erased = pasteRange(source,emptyClipboard,0,16);
+assert.notEqual(erased,source);
+assert.deepEqual(erased.map(n=>n.step),[64,127,128]);
+assert.equal(rangePreview(emptyTrack,oneNoteClip,0,16).wouldChange,true);
+assert.notEqual(pasteRange(emptyTrack,oneNoteClip,0,16),emptyTrack);
 
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

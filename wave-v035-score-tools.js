@@ -59,6 +59,9 @@
     // The clipboard limit alone is insufficient: pasted notes plus the rest
     // of a long song must also stay within the editor's 8192-note safety cap.
     if (remaining.length + clipboard.notes.length > 8192) return null;
+    // An empty clipboard pasted onto an empty range is not an edit.
+    // Preserve the original array so callers can skip Undo and dirty flags.
+    if (remaining.length === notes.length && clipboard.notes.length === 0) return notes;
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
   }
 
@@ -82,7 +85,8 @@
     const totalAfter = summary.total - summary.notes + clipboard.notes.length;
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,
-      totalAfter, withinLimit: totalAfter <= 8192 };
+      totalAfter, withinLimit: totalAfter <= 8192,
+      wouldChange: summary.notes > 0 || clipboard.notes.length > 0 };
   }
 
   function clearRange(notes, startBar, count, totalBars) {
@@ -171,7 +175,7 @@
         rangePreview(track.notes, rangeClipboard, index, bars);
       rangeCopy.disabled = !selectedRange;
       rangeClear.disabled = !selectedRange;
-      rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit;
+      rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit || !pasteTarget.wouldChange;
       preview.textContent = selectedRange
         ? selectedRange.startBar + '〜' + selectedRange.endBar + '小節：' + selectedRange.notes + '音符。'
         : 'この位置では選択範囲を編集できません。';
@@ -182,6 +186,7 @@
           preview.textContent += ' コピー済み' + rangeClipboard.bars + '小節：既存' +
             pasteTarget.overwritten + '音符を置換し、' + pasteTarget.inserted + '音符を配置。';
           if (!pasteTarget.withinLimit) preview.textContent += ' 音符上限（8192）を超えるため貼り付け不可。';
+          else if (!pasteTarget.wouldChange) preview.textContent += ' 変更対象の音符がないため貼り付け不要。';
         }
       }
       input.max = String(bars);
@@ -239,6 +244,11 @@
       if (!next || typeof pushUndo !== 'function' ||
           typeof markDirty !== 'function' || typeof renderStudio !== 'function') {
         message.textContent = '貼り付けできません。曲の範囲・コピー元・音符数の上限を確認してください。';
+        return;
+      }
+      if (next === track.notes) {
+        message.textContent = '貼り付け先に変更はありません。';
+        refresh();
         return;
       }
       pushUndo();

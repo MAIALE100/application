@@ -178,6 +178,7 @@ function showHome(){
 function gameById(id){return (bootstrapData&&bootstrapData.games||[]).find(g=>g.id===id);}
 function formatGameScore(game,value){
  const n=Number(value);if(!Number.isFinite(n))return '---';
+ if(game&&game.id==='simon')return Math.round(n).toLocaleString()+'回';
  if(game&&['stack','stop'].includes(game.id))return Math.round(n).toLocaleString()+'点';
  return game&&game.rankingOrder==='asc'?(n>=1000?(n/1000).toFixed(3)+'秒':n.toFixed(3)+'ミリ秒'):Math.round(n).toLocaleString()+'点';
 }
@@ -681,7 +682,7 @@ async function loadRanking(){
    });
    more.append(summary,list);rankingRows.appendChild(more);
  }
- if(hasSelf&&Number(self.rank)>0&&!selfInTop){
+ if(hasSelf&&Number(self.rank)>0&&!selfInTop&&!selfInOther){
    const caption=document.createElement('div');caption.className='ranking-self-caption';
    caption.textContent=selfInOther?'あなたの順位（6位以下にも表示）':'あなたの順位';
    rankingRows.appendChild(caption);

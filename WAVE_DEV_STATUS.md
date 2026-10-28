@@ -36,6 +36,10 @@ immediately before replacement. If a file changed after backup, or a destination
 appeared during a first install, the update aborts before setting the rollback
 flag; newer files are not overwritten by an unnecessary restore. This is a
 best-effort preflight, not a cross-process filesystem transaction.
+First-install rollback now also validates the destination for reparse points
+immediately before removing an incomplete installation, so a swapped junction
+or symlink is rejected rather than recursively deleted. The path-safety regression
+asserts this rollback guard is present and ordered before deletion.
 
 This branch currently stores its test resource as validated base64 parts plus
 patches, not a complete source tree. Do not edit a deployed resource as the

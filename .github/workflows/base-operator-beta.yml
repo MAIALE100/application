@@ -51,56 +51,56 @@ jobs:
           subprocess.run(['node','--check',str(output/'web/app.js')],check=True)
           (stage/'はじめにお読みください.txt').write_text("""BASE | 運営様への初回提出（先行公開β版）
 
-こちらはLB Phone用共有管理アプリ「BASE」の単独導入パッケージです。
-LOOPやLINKは含まれません。
+          こちらはLB Phone用共有管理アプリ「BASE」の単独導入パッケージです。
+          LOOPやLINKは含まれません。
 
-メモ・在庫の記録・タスク・会計の記録・計算ツールを、
-個人／企業／グループ内で共有することができます。
-メンバー招待、OWNER / MANAGER / MEMBERの権限があります。
+          メモ・在庫の記録・タスク・会計の記録・計算ツールを、
+          個人／企業／グループ内で共有することができます。
+          メンバー招待、OWNER / MANAGER / MEMBERの権限があります。
 
-会計・在庫はBASE内だけの記録で、
-実際の銀行口座やox_inventoryのアイテムは変更しません。
-既存のQBox、LB Phone、他アプリのファイルも変更しません。
+          会計・在庫はBASE内だけの記録で、
+          実際の銀行口座やox_inventoryのアイテムは変更しません。
+          既存のQBox、LB Phone、他アプリのファイルも変更しません。
 
-β公開後に住民からの不具合・改善要望を集めて改善する予定です。
-詳細は同梱の「運営向け導入手順.txt」をご覧ください。
-""",'utf-8')
+          β公開後に住民からの不具合・改善要望を集めて改善する予定です。
+          詳細は同梱の「運営向け導入手順.txt」をご覧ください。
+          """,'utf-8')
           (stage/'運営向け導入手順.txt').write_text("""BASE | 運営様向け導入手順
 
-対象環境：Flecity QBox 2.5.4 / oxmysql / LB Phone 2.9.0
-プレイヤー識別：citizenid
+          対象環境：Flecity QBox 2.5.4 / oxmysql / LB Phone 2.9.0
+          プレイヤー識別：citizenid
 
-1. ZIP内の「flecity_base」フォルダをresources配下へ配置します。
-2. qbx_core / oxmysql / lb-phoneの起動より後に、
-   server.cfgへ次の1行を追加してください。
+          1. ZIP内の「flecity_base」フォルダをresources配下へ配置します。
+          2. qbx_core / oxmysql / lb-phoneの起動より後に、
+             server.cfgへ次の1行を追加してください。
 
-ensure flecity_base
+          ensure flecity_base
 
-3. 初回導入でサーバーを稼働させている場合は
-   txAdmin Live Consoleで次を実行してください。
+          3. 初回導入でサーバーを稼働させている場合は
+             txAdmin Live Consoleで次を実行してください。
 
-refresh
-ensure flecity_base
+          refresh
+          ensure flecity_base
 
-4. 続けて以下の確認用コマンドを実行してください。
+          4. 続けて以下の確認用コマンドを実行してください。
 
-base_selftest
+          base_selftest
 
-PASSの確認と、LB Phone App Storeで「BASE」が無料表示されることを
-確認できれば基本導入は完了です。サーバー全体の再起動は原則不要です。
+          PASSの確認と、LB Phone App Storeで「BASE」が無料表示されることを
+          確認できれば基本導入は完了です。サーバー全体の再起動は原則不要です。
 
-・DBテーブルは起動時に自動作成・移行します。
-・実際の銀行残高やインベントリは操作しません。
-・WEAZELサポート権限は初期OFFです。
-・管理ACEは任意です。詳細はflecity_base/ACCESS.mdをご参照ください。
-  例：add_ace group.admin flecity.base.admin allow
+          ・DBテーブルは起動時に自動作成・移行します。
+          ・実際の銀行残高やインベントリは操作しません。
+          ・WEAZELサポート権限は初期OFFです。
+          ・管理ACEは任意です。詳細はflecity_base/ACCESS.mdをご参照ください。
+            例：add_ace group.admin flecity.base.admin allow
 
-停止する場合は「stop flecity_base」を実行し、
-server.cfgの「ensure flecity_base」を削除・コメントアウトしてください。
-既存のBASE記録は自動で消去されません。
+          停止する場合は「stop flecity_base」を実行し、
+          server.cfgの「ensure flecity_base」を削除・コメントアウトしてください。
+          既存のBASE記録は自動で消去されません。
 
-初回提出・β公開として住民の意見を受け、修正版を別途提出します。
-""",'utf-8')
+          初回提出・β公開として住民の意見を受け、修正版を別途提出します。
+          """,'utf-8')
           commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           (stage/'ビルド情報.txt').write_text(f'BASE {release}\nSource commit: {commit}\nBeta operator submission\nDebug: disabled\n','utf-8')
           path=dist/f'BASE-v{release}-運営提出用.zip'

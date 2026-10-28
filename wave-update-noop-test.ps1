@@ -10,8 +10,8 @@ if ($start -lt 0 -or $end -le $start) { throw 'No-op guard function not found' }
 $root = Join-Path ([IO.Path]::GetTempPath()) ('wave-noop-test-' + [guid]::NewGuid().ToString('N'))
 $source = Join-Path $root 'source'
 $target = Join-Path $root 'installed'
-function Assert-Match([bool]$Expected, [string]$Label) {
-    $actual = Test-DeploymentMatches $source $target
+function Assert-Match([bool]$Expected, [string]$Label, [bool]$IgnoreBuildMetadata = $true) {
+    $actual = Test-DeploymentMatches $source $target $IgnoreBuildMetadata
     if ($actual -ne $Expected) { throw ('FAIL ' + $Label + ': expected ' + $Expected + ', got ' + $actual) }
     Write-Host ('PASS ' + $Label)
 }
@@ -35,7 +35,21 @@ try {
     Assert-Match $false 'missing installed file'
     Remove-Item -LiteralPath $target -Recurse -Force
     Assert-Match $false 'missing installation'
-    Write-Host 'WAVE no-op deployment regression: PASS'
+
+    New-Item -ItemType Directory -Force -Path (Join-Path $source 'web'),(Join-Path $target 'web') | Out-Null
+    [IO.File]::WriteAllText((Join-Path $source 'fxmanifest.lua'), 'version test')
+    [IO.File]::WriteAllText((Join-Path $target 'fxmanifest.lua'), 'version test')
+    [IO.File]::WriteAllText((Join-Path $source 'web/app.js'), 'const test = true;')
+    [IO.File]::WriteAllText((Join-Path $target 'web/app.js'), 'const test = true;')
+    [IO.File]::WriteAllText((Join-Path $source '.wave-build.txt'), 'build one')
+    [IO.File]::WriteAllText((Join-Path $target '.wave-build.txt'), 'build one')
+    Assert-Match $true 'verified backup includes build metadata' $false
+    [IO.File]::WriteAllText((Join-Path $target '.wave-build.txt'), 'build two')
+    Assert-Match $false 'backup detects modified build metadata' $false
+    Assert-Match $false 'source metadata is not silently excluded'
+    Remove-Item -LiteralPath (Join-Path $source '.wave-build.txt') -Force
+    Assert-Match $true 'deployment no-op ignores installed metadata'
+    Write-Host 'WAVE no-op and backup verification regression: PASS'
 } finally {
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }

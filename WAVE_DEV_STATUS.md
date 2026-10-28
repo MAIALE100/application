@@ -10,7 +10,9 @@ The CMD fetches the latest updater from `origin/wave/dev`; the updater reconstru
 the SHA-verified base/app, applies the SHA-verified v0.3 patch and the
 `wave-v030-atomic-status.patch` safety patch, checks syntax where local
 runtimes are available, stages, backs up, deploys, and verifies file hashes.
-A failed deployment attempts to restore the previous resource.
+Before replacing the installed resource, staging and the backup are SHA256-verified
+against their source trees (including build metadata). A failed deployment
+attempts to restore the previous resource and verifies the restored files.
 After validation and duplicate-resource checks, the updater compares every generated
 file with the installed resource using SHA256 (ignoring only `.wave-build.txt`).
 If all files already match, it exits successfully **without copying files,
@@ -37,9 +39,9 @@ Offline checks on the extracted v0.3.0 resource plus atomic-status, idempotent-s
 and rate-limit patches: `git apply --check`, `node --check`, Lua 5.3 parsing
 of four Lua files, ten rate-limit cases, eight save cases, 33 callback-map
 entries, and fifteen static security/compatibility assertions all passed.
-The updater and the no-op test are ASCII-only and passed lexical delimiter
-checks. Native PowerShell syntax and the five-case no-op regression still
-need a working `pwsh` runner. GitHub Actions currently fails before
+The updater and no-op regression are ASCII-only. The no-op regression now
+also covers strict backup verification and metadata integrity. Native PowerShell
+syntax and these cases still need a working `pwsh` runner. GitHub Actions currently fails before
 starting any steps; it must not be represented as passing CI.
 
 Next in-game test after a successful `wave-update.cmd`:

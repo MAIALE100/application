@@ -66,6 +66,8 @@ jobs:
           if ($script -notmatch 'ExpectedPatchSha256') { throw 'Patch integrity check missing' }
           if ($script -notmatch 'function Test-DeploymentMatches' -or $script -notmatch 'Deployment verification: PASS \(unchanged\)') { throw 'No-op deployment guard missing' }
           if ($script -notmatch 'Get-FileHash -LiteralPath \$installed') { throw 'No-op guard must compare deployed file hashes' }
+          if ($script -notmatch 'Staging verification: PASS' -or $script -notmatch 'Backup verification: PASS') { throw 'Pre-deployment copy verification missing' }
+          if ($script -notmatch 'Restored WAVE resource failed hash verification') { throw 'Rollback integrity verification missing' }
 
       - name: Test no-op deployment safety
         shell: pwsh

@@ -50,11 +50,15 @@ function Invoke-RepoGit([string[]]$GitArgs) {
     if ($code -ne 0) { throw ('git ' + ($GitArgs -join ' ') + ' failed: ' + (($out | ForEach-Object {$_.ToString()}) -join [Environment]::NewLine)) }
     return @($out | ForEach-Object {$_.ToString()})
 }
-function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination) {
+function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestination,[bool]$IgnoreBuildMetadata = $true) {
     if (-not (Test-Path -LiteralPath $InstalledDestination -PathType Container)) { return $false }
     $builtFiles=@(Get-ChildItem -LiteralPath $BuiltSource -Recurse -File -Force)
-    $installedFiles=@(Get-ChildItem -LiteralPath $InstalledDestination -Recurse -File -Force |
-        Where-Object { $_.FullName -ne (Join-Path $InstalledDestination '.wave-build.txt') })
+    $installedFiles=@(Get-ChildItem -LiteralPath $InstalledDestination -Recurse -File -Force)
+    if ($IgnoreBuildMetadata) {
+        $installedFiles=@($installedFiles | Where-Object {
+            $_.FullName -ne (Join-Path $InstalledDestination '.wave-build.txt')
+        })
+    }
     if ($builtFiles.Count -ne $installedFiles.Count) { return $false }
     foreach($file in $builtFiles) {
         $relative=$file.FullName.Substring($BuiltSource.Length + 1)
@@ -215,12 +219,20 @@ try {
     Step 'Staging WAVE resource'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $StagePath) | Out-Null
     Copy-Item -LiteralPath $Source -Destination $StagePath -Recurse -Force
+    if (-not (Test-DeploymentMatches $Source $StagePath $false)) {
+        throw 'Staged WAVE files do not match validated build'
+    }
+    Write-Host 'Staging verification: PASS' -ForegroundColor Green
     if (Test-Path -LiteralPath $Destination) {
         Step 'Backing up current WAVE resource'
         New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
         $backup=Join-Path $BackupRoot ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,8))
         Copy-Item -LiteralPath $Destination -Destination $backup -Recurse -Force
+        if (-not (Test-DeploymentMatches $Destination $backup $false)) {
+            throw 'Backup WAVE files do not match installed resource; deployment aborted'
+        }
         $ActiveBackup=$backup
+        Write-Host 'Backup verification: PASS' -ForegroundColor Green
     }
 
     Step 'Deploying WAVE to the test server'
@@ -263,7 +275,10 @@ try {
                 Write-Host 'Restoring previous WAVE resource...' -ForegroundColor Yellow
                 if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
                 Copy-Item -LiteralPath $ActiveBackup -Destination $Destination -Recurse -Force
-                Write-Host 'Previous WAVE resource restored.' -ForegroundColor Green
+                if (-not (Test-DeploymentMatches $ActiveBackup $Destination $false)) {
+                    throw 'Restored WAVE resource failed hash verification'
+                }
+                Write-Host 'Previous WAVE resource restored and verified.' -ForegroundColor Green
             } elseif (Test-Path -LiteralPath $Destination) {
                 Write-Host 'Removing incomplete first installation...' -ForegroundColor Yellow
                 Remove-Item -LiteralPath $Destination -Recurse -Force

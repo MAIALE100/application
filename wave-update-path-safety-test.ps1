@@ -51,8 +51,32 @@ try {
     $backupLink = Join-Path $root '.wave-backups'
     New-Item -ItemType SymbolicLink -Path $backupLink -Target $external | Out-Null
     Assert-Rejected $backupLink $false
+    Remove-Item -LiteralPath $backupLink -Force
     Write-Host 'PASS backup root link rejected'
+
+    # A link in an ancestor directory is just as dangerous as a linked
+    # resource root, even if the requested resource does not exist yet.
+    $linkedParent = Join-Path $root 'linked-parent'
+    New-Item -ItemType SymbolicLink -Path $linkedParent -Target $external | Out-Null
+    Assert-Rejected (Join-Path $linkedParent 'wave') $false
+    Remove-Item -LiteralPath $linkedParent -Force
+    Write-Host 'PASS linked ancestor rejected'
+
+    $brokenParent = Join-Path $root 'broken-parent'
+    New-Item -ItemType SymbolicLink -Path $brokenParent -Target (Join-Path $root 'missing-parent-target') | Out-Null
+    Assert-Rejected (Join-Path $brokenParent 'wave') $false
+    Remove-Item -LiteralPath $brokenParent -Force
+    Write-Host 'PASS dangling ancestor rejected'
     Write-Host 'WAVE path safety regression: PASS'
 } finally {
+    # Remove links explicitly before recursive test cleanup.
+    foreach ($linkName in @('linked-parent','broken-parent','.wave-backups')) {
+        $linkPath = Join-Path $root $linkName
+        $linkItem = Get-ChildItem -LiteralPath $root -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -eq $linkName } | Select-Object -First 1
+        if ($linkItem -and ($linkItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            Remove-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
+        }
+    }
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }

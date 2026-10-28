@@ -19,7 +19,7 @@ $ExpectedSavePatchSha256 = '86F20CE3F4C47954930EDBB1EF6F6C207D4B855692B542DBF4C2
 $ExpectedRatePatchSha256 = '1AEA1CB697E45917DBB001EEAF6A48EB40288A28CDC6233524FCD506B730340A'
 $ExpectedReleaseFeedbackPatchSha256 = '2C9F73D757B0C04D7698CF48396EECCF4CAD54A2EE38247FDB917EF0E6DD0C6C'
 $ExpectedPublishGuardPatchSha256 = '1E1D038401DE09EFAEB3FE73D3C88BF719572AE687BE63A992223B7723487F4B'
-$ExpectedVersion = '0.3.2-test'
+$ExpectedVersion = '0.3.3-test'
 $BaseParts = @(
     'wave-package.part00','wave-package.part01','wave-package.part02','wave-package.part03',
     'wave-package.part04','wave-package.part05','wave-package.part06',
@@ -349,6 +349,54 @@ try {
     $manifestText=$manifestText.Replace("version '0.3.1-test'", "version '0.3.2-test'")
     [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'Duplicate-release prevention patch: PASS' -ForegroundColor Green
+
+    Step 'Applying WAVE v0.3.3 studio and library improvements'
+    $extrasText=((Invoke-RepoGit @('show',($head + ':wave-v033-studio-extras.js'))) -join [Environment]::NewLine).TrimEnd([char]13,[char]10) + [Environment]::NewLine
+    $extrasPath=Join-Path $Source 'web\studio-extras.js'
+    [IO.File]::WriteAllText($extrasPath,$extrasText,(New-Object Text.UTF8Encoding($false)))
+    $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($extrasHash -ne '1F8C7C37E6B57C80A464F124BC066D9C1372A63DBD93156788F6B07EEA3BA62C') {
+        throw ('WAVE studio template script SHA mismatch: ' + $extrasHash)
+    }
+
+    $appText=[IO.File]::ReadAllText($appPath)
+    $deletedContext='state.ownReleases = r.tracks || [];'
+    if (-not $appText.Contains($deletedContext)) { throw 'WAVE deleted release list context missing' }
+    if ($appText.Split([string[]]@($deletedContext),[StringSplitOptions]::None).Length -ne 2) { throw 'Ambiguous WAVE deleted release list context' }
+    $appText=$appText.Replace($deletedContext,"state.ownReleases = (r.tracks || []).filter(track => track.status !== 'deleted');")
+    [IO.File]::WriteAllText($appPath,$appText,(New-Object Text.UTF8Encoding($false)))
+
+    $cssPath=Join-Path $Source 'web\app.css'
+    $cssText=[IO.File]::ReadAllText($cssPath)
+    $extraCss=@'
+
+/* WAVE_STUDIO_PRESETS_V033: scrollbar hidden, scrolling retained. */
+*::-webkit-scrollbar:vertical{display:none;width:0}
+html,body,.view{scrollbar-width:none}
+.wave-template-card{margin-bottom:.55rem}
+.wave-template-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}
+.wave-template-controls select{min-width:0}
+.wave-template-controls button{white-space:nowrap}
+.wave-template-info{font-size:.66rem;margin-top:.35rem}
+.wave-template-warning{color:#fecdd3}
+'@
+    if ($cssText.Contains('WAVE_STUDIO_PRESETS_V033')) { throw 'WAVE studio stylesheet is already patched' }
+    [IO.File]::WriteAllText($cssPath,($cssText + $extraCss),(New-Object Text.UTF8Encoding($false)))
+
+    $htmlPath=Join-Path $Source 'web\index.html'
+    $htmlText=[IO.File]::ReadAllText($htmlPath)
+    if (-not $htmlText.Contains('</body>')) { throw 'Cannot find WAVE document footer' }
+    $htmlText=$htmlText.Replace('</body>',"  <script src='studio-extras.js'></script>" + [Environment]::NewLine + '</body>')
+    [IO.File]::WriteAllText($htmlPath,$htmlText,(New-Object Text.UTF8Encoding($false)))
+
+    $manifestText=[IO.File]::ReadAllText($manifestPath)
+    if (-not $manifestText.Contains("'web/app.js',")) { throw 'WAVE manifest files list needs manual review' }
+    $manifestText=$manifestText.Replace("'web/app.js',","'web/app.js'," + [Environment]::NewLine + "    'web/studio-extras.js',")
+    if (-not $manifestText.Contains("version '0.3.2-test'")) { throw 'WAVE manifest version before studio update is unexpected' }
+    $manifestText=$manifestText.Replace("version '0.3.2-test'","version '0.3.3-test'")
+    [IO.File]::WriteAllText($manifestPath,$manifestText,(New-Object Text.UTF8Encoding($false)))
+    Write-Host 'WAVE v0.3.3 studio templates and cleaner library: PASS' -ForegroundColor Green
+
     Step 'Running WAVE safety checks'
     foreach($required in $CriticalFiles) {
         if (-not (Test-Path (Join-Path $Source $required))) { throw ('Missing required WAVE file: ' + $required) }
@@ -359,6 +407,12 @@ try {
     if ($app -match '\b(?:prompt|confirm)\s*\(') { throw 'Blocking browser prompt/confirm found in WAVE app.js' }
     if ($app -notmatch 'WAVE_PUBLISH_DIAGNOSTICS_V023' -or $app -notmatch 'requestId') { throw 'Publish diagnostics wiring missing' }
     if ($app -notmatch 'WAVE_RELEASE_ACTION_FEEDBACK_V031' -or $app -notmatch 'ownReleaseFeedback') { throw 'Own-release feedback wiring missing' }
+    if ($app -notmatch "track.status !== 'deleted'") { throw 'Deleted releases are still visible in the owner library' }
+    $extras=[IO.File]::ReadAllText((Join-Path $Source 'web\studio-extras.js'))
+    if ($extras -notmatch 'WAVE_STUDIO_PRESETS_V033' -or $extras -notmatch 'enhanceTimbres') { throw 'WAVE studio templates or timbre enhancement missing' }
+    $html=[IO.File]::ReadAllText((Join-Path $Source 'web\index.html'))
+    if ($html -notmatch 'studio-extras.js') { throw 'WAVE studio extras script not loaded in HTML' }
+    if ($manifest -notmatch 'web/studio-extras.js') { throw 'WAVE studio extras missing from manifest' }
     $server=[IO.File]::ReadAllText((Join-Path $Source 'server\main.lua'))
     if ($server -notmatch 'wave_schema_meta' -or $server -notmatch 'wave:listOwnTracks' -or $server -notmatch 'wave:updateOwnTrack') { throw 'WAVE v0.3.0 server wiring missing' }
     if ($server -notmatch 'Atomic status predicates' -or $app -notmatch 'ERROR_TEXT.TRACK_STATE_CHANGED') { throw 'WAVE release-state safety patch missing' }
@@ -370,7 +424,13 @@ try {
     $css=[IO.File]::ReadAllText((Join-Path $Source 'web\app.css'))
     if ($css -match '(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b') { throw 'CSS contains px units while LB Phone fixBlur is enabled' }
     $node=Get-Command node -ErrorAction SilentlyContinue
-    if ($node) { & $node.Source --check $appPath; if ($LASTEXITCODE -ne 0) { throw 'WAVE JavaScript syntax check failed' }; Write-Host 'JavaScript syntax: PASS' -ForegroundColor Green }
+    if ($node) {
+        & $node.Source --check $appPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE JavaScript syntax check failed' }
+        & $node.Source --check $extrasPath
+        if ($LASTEXITCODE -ne 0) { throw 'WAVE studio extras JavaScript syntax check failed' }
+        Write-Host 'JavaScript syntax: PASS' -ForegroundColor Green
+    }
     else { Write-Host 'JavaScript syntax: SKIPPED (node not found)' -ForegroundColor Yellow }
 
     $lua=Get-Command luac54 -ErrorAction SilentlyContinue

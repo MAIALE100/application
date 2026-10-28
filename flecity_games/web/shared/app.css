@@ -1888,3 +1888,147 @@ body.party-app .code-break-palette .peg{
   border-color:rgba(255,255,255,.3)!important;
   box-shadow:inset 0 .1rem .14rem rgba(255,255,255,.18),0 .14rem .28rem rgba(52,69,82,.18)!important;
 }
+
+/* Shared game-card layout and LOOP top-five leaderboard readability. */
+body.play-app .game-tile{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  background:#181f28;
+  border:.0625rem solid #35404e;
+  border-radius:1rem;
+  overflow:hidden;
+}
+body.play-app .game-tile .game{
+  width:100%;
+  flex:1;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+body.play-app .game-rank-shortcut{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:2.65rem;
+  width:100%;
+  padding:.5rem .35rem;
+  background:#223043;
+  border-radius:0;
+  border-top:.0625rem solid #42536a;
+  color:#d9eafa;
+  font-size:.74rem;
+  font-weight:850;
+}
+body.play-app .game-rank-shortcut:focus-visible{
+  outline:.125rem solid #c7e3ff;
+  outline-offset:-.1875rem;
+}
+body.play-app .ranking-card{
+  scroll-margin-top:4.4rem;
+  border-color:#415773;
+  background:linear-gradient(150deg,#1b283a,#151d29);
+  padding:.875rem;
+}
+body.play-app .ranking-card .ranking-top-title{
+  font-size:1.04rem;
+  color:#f0f5ff;
+}
+body.play-app .ranking-list-heading{
+  font-size:.84rem;
+  font-weight:850;
+  color:#e6f0ff;
+  padding:.25rem 0 .4rem;
+}
+body.play-app .ranking-top-five{
+  display:flex;
+  flex-direction:column;
+  gap:.42rem;
+}
+body.play-app .ranking-entry{
+  display:grid;
+  grid-template-columns:2.9rem minmax(0,1fr) auto;
+  align-items:center;
+  gap:.4rem;
+  padding:.69rem .55rem;
+  min-height:3.1rem;
+  border:.0625rem solid #354456;
+  border-radius:.7rem;
+  background:#172131;
+  color:#e5ebf4;
+}
+body.play-app .ranking-place{
+  color:#bdd3ef;
+  font-size:.8rem;
+  font-weight:900;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+body.play-app .ranking-name{
+  font-size:.84rem;
+  font-weight:750;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+body.play-app .ranking-score{
+  font-size:.83rem;
+  font-weight:900;
+  color:#f4f9ff;
+  text-align:right;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+body.play-app .ranking-top-five .ranking-entry:first-child{
+  border-color:#988044;
+  background:linear-gradient(115deg,#39341f,#272a28);
+}
+body.play-app .ranking-medal-1 .ranking-place{color:#ffe38b}
+body.play-app .ranking-medal-2 .ranking-place{color:#dbe6f0}
+body.play-app .ranking-medal-3 .ranking-place{color:#edba91}
+body.play-app .ranking-medal-2{border-color:#60778c}
+body.play-app .ranking-medal-3{border-color:#80634b}
+body.play-app .ranking-entry.self-rank-row{
+  outline:.1rem solid #7ebcdb;
+  background:#25384d;
+}
+body.play-app .ranking-entry.ranking-empty{
+  opacity:.56;
+  min-height:2.6rem;
+}
+body.play-app .ranking-placeholder{
+  padding:.85rem;
+  background:#172131;
+  border-radius:.7rem;
+  color:#d0dded;
+  font-size:.8rem;
+}
+body.play-app .ranking-more{
+  margin-top:.65rem;
+  border:.0625rem solid #34475b;
+  border-radius:.65rem;
+  overflow:hidden;
+}
+body.play-app .ranking-more summary{
+  padding:.65rem .75rem;
+  font-weight:800;
+  font-size:.8rem;
+  cursor:pointer;
+}
+body.play-app .ranking-other-list{
+  padding:.5rem;
+  display:flex;
+  flex-direction:column;
+  gap:.4rem;
+}
+body.play-app .ranking-self-caption{
+  padding:.65rem .2rem .3rem;
+  color:#b9d3ea;
+  font-weight:800;
+  font-size:.76rem;
+}
+@media(max-width:22.5rem){
+  body.play-app .ranking-entry{grid-template-columns:2.3rem minmax(0,1fr) auto;padding:.57rem .45rem;gap:.3rem}
+  body.play-app .ranking-name,body.play-app .ranking-score{font-size:.76rem}
+  body.play-app .ranking-place{font-size:.72rem}
+  body.play-app .game-rank-shortcut{font-size:.69rem}
+}

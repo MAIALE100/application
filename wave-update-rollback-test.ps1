@@ -10,7 +10,7 @@ if ($start -lt 0 -or $end -le $start) { throw 'Existing-install rollback helpers
 # Ensure the real catch path decides whether it owns the destination before deletion.
 $catchStart = $updater.IndexOf('} catch {', $updater.IndexOf("    Step 'WAVE deployment complete'"))
 $decision = $updater.IndexOf('Get-ExistingInstallRollbackAction $Source $Destination $ActiveBackup', $catchStart)
-$preserve = $updater.IndexOf("if ($rollbackAction -eq 'preserve')", $decision)
+$preserve = $updater.IndexOf('if ($rollbackAction -eq ''preserve'')', $decision)
 $delete = $updater.IndexOf('Remove-Item -LiteralPath $Destination -Recurse -Force', $decision)
 if ($catchStart -lt 0 -or $decision -le $catchStart -or $preserve -le $decision -or $delete -le $preserve) {
     throw 'Rollback must check destination ownership before removing it'

@@ -30,8 +30,44 @@
     return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
   }
 
+
+  // WAVE_RANGE_EDIT_V036: selected-track edits only; unchanged save format.
+  function rangeBounds(startBar, count, totalBars) {
+    if (!Number.isInteger(startBar) || (count !== 4 && count !== 8)) return null;
+    const bars = validBars(totalBars);
+    if (startBar < 0 || startBar + count > bars) return null;
+    return { start: startBar * 16, end: (startBar + count) * 16 };
+  }
+
+  function copyRange(notes, startBar, count, totalBars) {
+    const bounds = rangeBounds(startBar, count, totalBars);
+    if (!bounds || !Array.isArray(notes)) return null;
+    const selected = notes.filter(n => n && Number.isInteger(n.step) &&
+      n.step >= bounds.start && n.step < bounds.end);
+    if (selected.length > 8192) return null;
+    return { bars: count, notes: selected.map(n => ({ ...n, step: n.step - bounds.start })) };
+  }
+
+  function pasteRange(notes, clipboard, startBar, totalBars) {
+    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
+        !Array.isArray(notes)) return null;
+    const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
+    if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
+        n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    return notes.filter(n => !n || !Number.isInteger(n.step) ||
+      n.step < bounds.start || n.step >= bounds.end)
+      .concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
+  }
+
+  function clearRange(notes, startBar, count, totalBars) {
+    const bounds = rangeBounds(startBar, count, totalBars);
+    if (!bounds || !Array.isArray(notes)) return null;
+    return notes.filter(n => !n || !Number.isInteger(n.step) ||
+      n.step < bounds.start || n.step >= bounds.end);
+  }
+
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -56,6 +92,13 @@
       '  <input id="waveBarJump" type="number" inputmode="numeric" step="1" min="1" max="128" value="1" />',
       '  <button type="button" id="waveBarJumpGo">\u79fb\u52d5</button>',
       '</div>',
+      '<div class="wave-score-quick-row" id="waveRangeTools">',
+      '  <label for="waveRangeBars">範囲</label>',
+      '  <select id="waveRangeBars" aria-label="編集する小節数"><option value="4">4小節</option><option value="8">8小節</option></select>',
+      '  <button type="button" class="secondary" id="waveRangeCopy">コピー</button>',
+      '  <button type="button" class="secondary" id="waveRangePaste">貼り付け</button>',
+      '  <button type="button" class="secondary" id="waveRangeClear">範囲削除</button>',
+      '</div>',
       '<div id="waveScoreEstimate" class="muted" aria-live="polite"></div>',
       '<div id="waveScoreMessage" class="muted" role="status"></div>'
     ].join('');
@@ -71,6 +114,12 @@
     const go = host.querySelector('#waveBarJumpGo');
     const estimate = host.querySelector('#waveScoreEstimate');
     const message = host.querySelector('#waveScoreMessage');
+    const rangeSelect = host.querySelector('#waveRangeBars');
+    const rangeCopy = host.querySelector('#waveRangeCopy');
+    const rangePaste = host.querySelector('#waveRangePaste');
+    const rangeClear = host.querySelector('#waveRangeClear');
+    let rangeClipboard = null;
+    let rangeProject = null;
     const project = () => (typeof ensureProject === 'function' ? ensureProject() : null);
 
     function totals() {
@@ -86,6 +135,13 @@
       if (!host.isConnected) return;
       const { bars, bpm } = totals();
       const index = current();
+      if (rangeProject !== project()) { rangeClipboard = null; rangeProject = null; }
+      const selectedCount = Number(rangeSelect.value);
+      const selectedFits = !!rangeBounds(index, selectedCount, bars);
+      rangeCopy.disabled = !selectedFits;
+      rangeClear.disabled = !selectedFits;
+      rangePaste.disabled = !rangeClipboard ||
+        !rangeBounds(index, rangeClipboard.bars, bars);
       input.max = String(bars);
       // Do not overwrite a typed target while the input has focus.
       if (document.activeElement !== input) input.value = String(index + 1);
@@ -112,6 +168,66 @@
       renderStudio();
       refresh();
     }
+
+
+    function selectedNotes() {
+      if (typeof getTrack !== 'function') return null;
+      const track = getTrack();
+      return track && Array.isArray(track.notes) ? track : null;
+    }
+
+    rangeCopy.addEventListener('click', () => {
+      const track = selectedNotes();
+      const count = Number(rangeSelect.value);
+      const clip = track && copyRange(track.notes, current(), count, totals().bars);
+      if (!clip) {
+        message.textContent = 'この位置では範囲をコピーできません。';
+        return;
+      }
+      rangeClipboard = clip;
+      rangeProject = project();
+      message.textContent = count + '小節をコピーしました（' + clip.notes.length + '音符）。';
+      refresh();
+    });
+
+    rangePaste.addEventListener('click', () => {
+      const track = selectedNotes();
+      const next = track && rangeProject === project() &&
+        pasteRange(track.notes, rangeClipboard, current(), totals().bars);
+      if (!next || typeof pushUndo !== 'function' ||
+          typeof markDirty !== 'function' || typeof renderStudio !== 'function') {
+        message.textContent = '貼り付けできません。曲の範囲とコピー元を確認してください。';
+        return;
+      }
+      pushUndo();
+      track.notes = next;
+      markDirty();
+      renderStudio();
+      message.textContent = rangeClipboard.bars + '小節を貼り付けました。元に戻すこともできます。';
+      refresh();
+    });
+
+    rangeClear.addEventListener('click', () => {
+      const track = selectedNotes();
+      const count = Number(rangeSelect.value);
+      const next = track && clearRange(track.notes, current(), count, totals().bars);
+      if (!next || typeof pushUndo !== 'function' ||
+          typeof markDirty !== 'function' || typeof renderStudio !== 'function') {
+        message.textContent = 'この位置では範囲を削除できません。';
+        return;
+      }
+      if (next.length === track.notes.length) {
+        message.textContent = '選択範囲に音符はありません。';
+        return;
+      }
+      pushUndo();
+      track.notes = next;
+      markDirty();
+      renderStudio();
+      message.textContent = count + '小節の音符を削除しました。元に戻すこともできます。';
+      refresh();
+    });
+    rangeSelect.addEventListener('change', refresh);
 
     previousFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, -4)));
     nextFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, 4)));

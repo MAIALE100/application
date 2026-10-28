@@ -33,12 +33,14 @@ source of truth. Future changes must update the reproducible build pipeline.
 
 ## Verification
 
-Local extracted-package checks completed for the atomic-status patch:
-`git apply --check`, `node --check`, Lua 5.3 syntax parsing for four Lua
-files, and 13 static security/compatibility assertions. The CI workflow
-also requests PowerShell parsing, JavaScript syntax, Lua 5.4 syntax and
-security assertions, but GitHub Actions jobs have been failing before any
-steps start. A passing CI result is not yet available.
+Offline checks on the extracted v0.3.0 resource plus atomic-status, idempotent-save,
+and rate-limit patches: `git apply --check`, `node --check`, Lua 5.3 parsing
+of four Lua files, ten rate-limit cases, eight save cases, 33 callback-map
+entries, and fifteen static security/compatibility assertions all passed.
+The updater and the no-op test are ASCII-only and passed lexical delimiter
+checks. Native PowerShell syntax and the five-case no-op regression still
+need a working `pwsh` runner. GitHub Actions currently fails before
+starting any steps; it must not be represented as passing CI.
 
 Next in-game test after a successful `wave-update.cmd`:
 `refresh`, `restart wave`, `wave_selftest`; publish one track and check

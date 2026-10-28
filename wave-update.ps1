@@ -124,6 +124,9 @@ function Test-DeploymentMatches([string]$BuiltSource,[string]$InstalledDestinati
 }
 function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Keep = 5) {
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return }
+    # Recheck the backup root at cleanup time, not only at deployment preflight.
+    # A linked root could otherwise redirect retention into an unrelated tree.
+    Assert-SafeResourceTree $Root $false
     # Only remove updater-created backups. Never prune unrelated folders or junctions.
     $candidates = @(Get-ChildItem -LiteralPath $Root -Directory -Force | Where-Object {
         $_.Name -match '^\d{8}-\d{6}-[0-9a-fA-F]{8}$' -and
@@ -136,6 +139,8 @@ function Invoke-BackupRetention([string]$Root,[string]$ProtectedBackup,[int]$Kee
         # A backup can acquire a nested junction/link after creation. Never
         # recurse into a candidate until its entire tree has been inspected.
         try {
+            # Check again immediately before deletion in case the root changed.
+            Assert-SafeResourceTree $Root $false
             Assert-SafeResourceTree $candidate.FullName
         } catch {
             Write-Host ('Skipping unsafe WAVE backup: ' + $candidate.FullName + ' (' + $_.Exception.Message + ')') -ForegroundColor Yellow

@@ -62,6 +62,29 @@
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
   }
 
+  // Read-only preview; never modifies the project or its clipboard.
+  function rangeSummary(notes, startBar, count, totalBars) {
+    const bounds = rangeBounds(startBar, count, totalBars);
+    if (!bounds || !Array.isArray(notes)) return null;
+    let selected = 0;
+    for (const note of notes) {
+      if (note && Number.isInteger(note.step) &&
+          note.step >= bounds.start && note.step < bounds.end) selected++;
+    }
+    return { startBar: startBar + 1, endBar: startBar + count, notes: selected, total: notes.length };
+  }
+
+  function rangePreview(notes, clipboard, startBar, totalBars) {
+    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192) return null;
+    const summary = rangeSummary(notes, startBar, clipboard.bars, totalBars);
+    if (!summary || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
+        n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    const totalAfter = summary.total - summary.notes + clipboard.notes.length;
+    return { startBar: summary.startBar, endBar: summary.endBar,
+      overwritten: summary.notes, inserted: clipboard.notes.length,
+      totalAfter, withinLimit: totalAfter <= 8192 };
+  }
+
   function clearRange(notes, startBar, count, totalBars) {
     const bounds = rangeBounds(startBar, count, totalBars);
     if (!bounds || !Array.isArray(notes)) return null;
@@ -70,7 +93,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -102,6 +125,7 @@
       '  <button type="button" class="secondary" id="waveRangePaste">貼り付け</button>',
       '  <button type="button" class="secondary" id="waveRangeClear">範囲削除</button>',
       '</div>',
+      '<div id="waveRangePreview" class="muted" aria-label="範囲編集のプレビュー"></div>',
       '<div id="waveScoreEstimate" class="muted" aria-live="polite"></div>',
       '<div id="waveScoreMessage" class="muted" role="status"></div>'
     ].join('');
@@ -121,6 +145,7 @@
     const rangeCopy = host.querySelector('#waveRangeCopy');
     const rangePaste = host.querySelector('#waveRangePaste');
     const rangeClear = host.querySelector('#waveRangeClear');
+    const preview = host.querySelector('#waveRangePreview');
     let rangeClipboard = null;
     let rangeProject = null;
     const project = () => (typeof ensureProject === 'function' ? ensureProject() : null);
@@ -140,11 +165,25 @@
       const index = current();
       if (rangeProject !== project()) { rangeClipboard = null; rangeProject = null; }
       const selectedCount = Number(rangeSelect.value);
-      const selectedFits = !!rangeBounds(index, selectedCount, bars);
-      rangeCopy.disabled = !selectedFits;
-      rangeClear.disabled = !selectedFits;
-      rangePaste.disabled = !rangeClipboard ||
-        !rangeBounds(index, rangeClipboard.bars, bars);
+      const track = selectedNotes();
+      const selectedRange = track && rangeSummary(track.notes, index, selectedCount, bars);
+      const pasteTarget = track && rangeClipboard &&
+        rangePreview(track.notes, rangeClipboard, index, bars);
+      rangeCopy.disabled = !selectedRange;
+      rangeClear.disabled = !selectedRange;
+      rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit;
+      preview.textContent = selectedRange
+        ? selectedRange.startBar + '〜' + selectedRange.endBar + '小節：' + selectedRange.notes + '音符。'
+        : 'この位置では選択範囲を編集できません。';
+      if (rangeClipboard) {
+        if (!pasteTarget) {
+          preview.textContent += ' コピー済み' + rangeClipboard.bars + '小節はここに貼り付けできません。';
+        } else {
+          preview.textContent += ' コピー済み' + rangeClipboard.bars + '小節：既存' +
+            pasteTarget.overwritten + '音符を置換し、' + pasteTarget.inserted + '音符を配置。';
+          if (!pasteTarget.withinLimit) preview.textContent += ' 音符上限（8192）を超えるため貼り付け不可。';
+        }
+      }
       input.max = String(bars);
       // Do not overwrite a typed target while the input has focus.
       if (document.activeElement !== input) input.value = String(index + 1);
@@ -231,6 +270,9 @@
       refresh();
     });
     rangeSelect.addEventListener('change', refresh);
+    // Track changes may not update the bar counter; refresh on interaction.
+    host.addEventListener('focusin', refresh);
+    host.addEventListener('pointerenter', refresh);
 
     previousFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, -4)));
     nextFour.addEventListener('click', () => jump(jumpTarget(current(), totals().bars, 4)));

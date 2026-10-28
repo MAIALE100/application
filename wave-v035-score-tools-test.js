@@ -35,7 +35,7 @@ assert.equal(durationSeconds(1,170),2);
 assert.equal(durationSeconds(15,119),31);
 
 
-const { rangeBounds, copyRange, pasteRange, clearRange } = require('./wave-v035-score-tools.js');
+const { rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview } = require('./wave-v035-score-tools.js');
 const source = [
   { step: 0, pitch: 60, length: 2, velocity: 0.8 },
   { step: 63, pitch: 64, length: 1, velocity: 0.7 },
@@ -52,6 +52,14 @@ const clip4 = copyRange(source,0,4,16);
 assert.deepEqual(clip4.notes.map(n=>n.step),[0,63]);
 assert.equal(clip4.bars,4);
 assert.equal(source[0].step,0);
+assert.deepEqual(rangeSummary(source,0,4,16),{startBar:1,endBar:4,notes:2,total:5});
+assert.deepEqual(rangeSummary(source,4,4,16),{startBar:5,endBar:8,notes:2,total:5});
+assert.equal(rangeSummary(source,13,4,16),null);
+assert.deepEqual(rangePreview(source,clip4,4,16),{
+  startBar:5,endBar:8,overwritten:2,inserted:2,totalAfter:5,withinLimit:true
+});
+assert.equal(rangePreview(source,clip4,13,16),null);
+assert.equal(rangePreview(source,{bars:4,notes:[{step:64}]},0,16),null);
 const pasted = pasteRange(source,clip4,4,16);
 assert.deepEqual(pasted.map(n=>n.step),[0,63,128,64,127]);
 assert.deepEqual(pasted.slice(-2).map(n=>n.pitch),[60,64]);
@@ -74,6 +82,9 @@ assert.equal(copyRange(Array(8193).fill({step:0,pitch:60}),0,4,16),null);
 const almostFull = Array.from({ length: 8191 }, (_, i) => ({ step: 128 + (i % 16), pitch: 60 }));
 const full = almostFull.concat({ step: 129, pitch: 64 });
 const oneNoteClip = { bars: 4, notes: [{ step: 0, pitch: 70 }] };
+assert.equal(rangePreview(full,oneNoteClip,0,16).withinLimit,false);
+assert.equal(rangePreview(full,oneNoteClip,0,16).totalAfter,8193);
+assert.equal(rangePreview(almostFull,oneNoteClip,0,16).withinLimit,true);
 assert.equal(pasteRange(full, oneNoteClip, 0, 16), null);
 assert.equal(full.length, 8192);
 assert.equal(full[8191].pitch, 64);

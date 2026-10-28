@@ -127,3 +127,13 @@ then repeat with 8 bars and check the last bar rejects overflow.
 Only restart the WAVE resource if the updater reports deployed changes;
 no full server reboot is required. Do not use an irreplaceable project for
 this first UI test.
+
+## Range-edit paste preview (2026-10-29)
+
+The selected 4/8-bar window now displays its note count, and the paste target
+previews how many notes will be overwritten and inserted. Paste is disabled
+with an explanation when the resulting track would exceed 8192 notes, or
+when the copied range would overrun the song. This is a UI-only change with
+no modification to save JSON, server, financial, publish, or undo behavior.
+The preview refreshes on toolbar focus/hover after track selection changes.
+Regression tests cover invalid targets and the 8192-note boundary.

@@ -168,7 +168,20 @@ async function submit(){
    else if(res.error==='ROUND_COMPLETE'||res.error==='ALREADY_SUBMITTED'){game.submitted=true;stopClocks();drawBoard();}
  }finally{if(game)game.submitting=false;}
 }
+let keyboardBound=false;
 function bind(){
+ if(!keyboardBound&&globalThis.FlecityGamesControls){
+   keyboardBound=true;
+   FlecityGamesControls.bindArrowKeys({
+     isActive:()=>!!game&&!game.submitted&&!game.ended&&
+       !!el('fallBattlePanel')&&!el('fallBattlePanel').classList.contains('hidden'),
+     onLeft:()=>move(-1),
+     onRight:()=>move(1),
+     onUp:rotate,
+     onDownStart:softDrop,
+     onDownRepeat:softDrop
+   });
+ }
  const map={fallBattleLeft:()=>move(-1),fallBattleRight:()=>move(1),fallBattleRotate:rotate,fallBattleSoft:softDrop,fallBattleDrop:hardDrop,fallBattleHold:hold};
  Object.entries(map).forEach(([id,fn])=>{const b=el(id);if(b&&!b.dataset.bound){b.dataset.bound='1';b.onclick=fn;}});
  const board=el('fallBattleBoard');

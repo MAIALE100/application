@@ -42,11 +42,11 @@ def apply_patch(wave, patch_path, name):
             server = (wave / 'server/main.lua').read_text(encoding='utf-8')
             at = server.find('local function cbUpdateOwnTrack')
             context = server[at:at+2500] if at >= 0 else 'cbUpdateOwnTrack not found'
-            raise AssertionError(f'{name} git apply {args} failed:\\n{proc.stderr}\\nCurrent owner-action context:\\n{context}')
+            raise AssertionError(f'{name} git apply {args} failed:\n{proc.stderr}\nCurrent owner-action context:\n{context}')
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='wave-patch-chain-') as tmp:
+    with tempfile.TemporaryDirectory(prefix='wave-patch-chain-', dir=ROOT) as tmp:
         temp = Path(tmp)
         zip_data = verify(encoded(BASE_PARTS), 'base')
         with zipfile.ZipFile(io.BytesIO(zip_data)) as archive:

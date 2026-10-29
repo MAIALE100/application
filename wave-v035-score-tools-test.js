@@ -600,4 +600,27 @@ assert.equal(inheritedLimitPreview.withinLimit,true);
 assert.deepEqual(pasteRange(inheritedAtLimit,sparseLimitClip,0,125),
   [{step:128,pitch:62},{step:128,pitch:64},{step:0,pitch:70}]);
 
+
+// Short sparse tracks must report exact post-paste counts too, not their
+// allocated array length. A second full-track scan is unnecessary.
+const shortSparse = new Array(32);
+shortSparse[31] = {step:128,pitch:65};
+const shortSparseClip = {bars:4,notes:[{step:0,pitch:70}]};
+assert.equal(rangePreview(shortSparse,shortSparseClip,0,125).totalAfter,2);
+assert.equal(rangeEditPreview(shortSparse,0,8,125,shortSparseClip).pasteTarget.totalAfter,2);
+assert.equal(pasteRange(shortSparse,shortSparseClip,0,125).length,2);
+// Explicit undefined and inherited slots survive filter() and must count.
+const explicitUndefinedTrack = [undefined,{step:128,pitch:65}];
+assert.equal(rangePreview(explicitUndefinedTrack,shortSparseClip,0,125).totalAfter,3);
+assert.deepEqual(pasteRange(explicitUndefinedTrack,shortSparseClip,0,125),
+  [undefined,{step:128,pitch:65},{step:0,pitch:70}]);
+const shortInherited = new Array(32);
+const shortInheritedProto = Object.create(Array.prototype);
+shortInheritedProto[1] = {step:128,pitch:62};
+Object.setPrototypeOf(shortInherited,shortInheritedProto);
+shortInherited[31] = {step:128,pitch:65};
+assert.equal(rangePreview(shortInherited,shortSparseClip,0,125).totalAfter,3);
+assert.equal(rangeEditPreview(shortInherited,0,8,125,shortSparseClip).pasteTarget.totalAfter,3);
+assert.equal(pasteRange(shortInherited,shortSparseClip,0,125).length,3);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

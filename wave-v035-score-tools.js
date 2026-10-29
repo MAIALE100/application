@@ -123,13 +123,19 @@
   function scanRange(notes, clipboard, bounds) {
     let overwritten = 0;
     let ordered = true;
+    let occupied = 0;
+    let slot = 0;
     for (const note of notes) {
+      // for...of yields undefined for holes. Count real slots without
+      // paying for an 'in' lookup on ordinary, dense note objects.
+      if (note !== undefined || slot in notes) occupied++;
+      slot++;
       if (!note || !Number.isInteger(note.step) ||
           note.step < bounds.start || note.step >= bounds.end) continue;
       if (ordered && !equivalentNote(note, clipboard.notes[overwritten], bounds.start)) ordered = false;
       overwritten++;
     }
-    return { overwritten, ordered: ordered && overwritten === clipboard.notes.length };
+    return { overwritten, ordered: ordered && overwritten === clipboard.notes.length, occupied };
   }
 
   // Array.some() skips sparse holes. Reject them explicitly so malformed
@@ -144,17 +150,10 @@
     return false;
   }
 
-  // Array.filter() drops holes but retains inherited array entries. On a
-  // near-limit paste, length alone can falsely reject a sparse legacy track.
-  // Keep dense/common previews allocation-free; only count occupied slots
-  // when the conservative upper bound would otherwise exceed 8192.
-  function postPasteCount(notes, overwritten, inserted) {
-    const upperBound = notes.length - overwritten + inserted;
-    if (upperBound <= 8192) return upperBound;
-    let occupied = 0;
-    for (let i = 0; i < notes.length; i++) {
-      if (i in notes) occupied++;
-    }
+  // The scan already counted slots retained by Array.filter(), including
+  // inherited entries and explicit undefined values, but not sparse holes.
+  // Reuse that count for exact previews without a second track traversal.
+  function postPasteCount(occupied, overwritten, inserted) {
     return occupied - overwritten + inserted;
   }
 
@@ -165,9 +164,9 @@
     if (!bounds || invalidClipboardNotes(clipboard)) return null;
     // Count overwritten notes without allocating a replacement array. This
     // keeps rejected and identical pastes allocation-free on long scores.
-    const { overwritten, ordered } = scanRange(notes, clipboard, bounds);
+    const { overwritten, ordered, occupied } = scanRange(notes, clipboard, bounds);
     // Preserve the existing 8192-note cap, including malformed legacy notes.
-    if (postPasteCount(notes, overwritten, clipboard.notes.length) > 8192) return null;
+    if (postPasteCount(occupied, overwritten, clipboard.notes.length) > 8192) return null;
     // Differing note counts cannot be identical; skip the second track scan.
     // The UI uses unchanged array identity to avoid redundant Undo/dirty flags.
     if (overwritten === clipboard.notes.length && (ordered || sameRange(notes, clipboard, bounds))) return notes;
@@ -199,7 +198,8 @@
     const scan = precomputedSummary ? null : scanRange(notes, clipboard, bounds);
     const summary = precomputedSummary || { startBar: startBar + 1,
       endBar: startBar + clipboard.bars, notes: scan.overwritten, total: notes.length };
-    const totalAfter = postPasteCount(notes, summary.notes, clipboard.notes.length);
+    const totalAfter = postPasteCount(scan ? scan.occupied : precomputedSummary.occupied,
+      summary.notes, clipboard.notes.length);
     const ordered = scan ? scan.ordered : precomputedSummary.ordered === true;
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,
@@ -241,8 +241,12 @@
     if (Array.isArray(notes) && selectedBounds && pasteBounds && clipboard.bars !== count) {
       let selected = 0;
       let overwritten = 0;
+      let occupied = 0;
+      let slot = 0;
       let pasteOrdered = Array.isArray(clipboard.notes);
       for (const note of notes) {
+        if (note !== undefined || slot in notes) occupied++;
+        slot++;
         if (!note || !Number.isInteger(note.step)) continue;
         if (note.step >= selectedBounds.start && note.step < selectedBounds.end) selected++;
         if (note.step >= pasteBounds.start && note.step < pasteBounds.end) {
@@ -253,7 +257,7 @@
       const selectedRange = { startBar: startBar + 1, endBar: startBar + count,
         notes: selected, total: notes.length };
       const pasteSummary = { startBar: startBar + 1, endBar: startBar + clipboard.bars,
-        notes: overwritten, total: notes.length,
+        notes: overwritten, total: notes.length, occupied,
         ordered: pasteOrdered && overwritten === clipboard.notes.length };
       return { selectedRange,
         pasteTarget: previewValidatedRange(notes, clipboard, startBar, pasteBounds, pasteSummary) };

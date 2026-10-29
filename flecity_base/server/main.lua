@@ -65,6 +65,16 @@ end
 local supportSessions = {}
 local supportSourceCitizen = {}
 
+local function clearSupportForSource(playerSource)
+    local src = tonumber(playerSource)
+    if not src then return end
+    local citizenid = supportSourceCitizen[src]
+    if citizenid then
+        supportSessions[tostring(citizenid)] = nil
+        supportSourceCitizen[src] = nil
+    end
+end
+
 local function aceAllowed(source, ace)
     ace = tostring(ace or '')
     return ace ~= '' and IsPlayerAceAllowed(tonumber(source), ace) == true
@@ -92,6 +102,12 @@ end
 local function sourceContext(source)
     local citizenid = FlecityBaseFramework.GetIdentifier(source)
     if not citizenid then return nil, {ok=false, error='PLAYER_NOT_READY'} end
+
+    -- A player source can survive character switching without disconnecting.
+    local src = tonumber(source)
+    if src and supportSourceCitizen[src] and supportSourceCitizen[src] ~= citizenid then
+        clearSupportForSource(src)
+    end
 
     local admin = isAdminSource(source)
     local supportEligible = isWeazelSupportEligible(source)
@@ -142,8 +158,10 @@ local function workspaceAccess(ctx, workspaceId)
     local id = integer(workspaceId, 1)
     local row = membership(id, ctx.citizenid)
     if row then
-        row.access_mode = 'member'
-        row.global_access = 0
+        -- Maintenance privileges do not disappear just because the maintainer
+        -- also happens to be an ordinary member of this particular BASE.
+        row.access_mode = ctx.globalMode or 'member'
+        row.global_access = ctx.globalMode and 1 or 0
         return row
     end
 
@@ -1470,11 +1488,16 @@ end)
 
 
 
+-- Character switching does not necessarily disconnect the player.
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(playerSource)
+    clearSupportForSource(playerSource)
+end)
+
+-- A changed job invalidates an already granted WEAZEL maintenance session.
+AddEventHandler('QBCore:Server:OnJobUpdate', function(playerSource)
+    clearSupportForSource(playerSource)
+end)
+
 AddEventHandler('playerDropped', function()
-    local src = tonumber(source)
-    local citizenid = src and supportSourceCitizen[src] or nil
-    if citizenid then
-        supportSessions[tostring(citizenid)] = nil
-        supportSourceCitizen[src] = nil
-    end
+    clearSupportForSource(source)
 end)

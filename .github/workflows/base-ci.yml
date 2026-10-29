@@ -38,6 +38,9 @@ jobs:
       - name: Check BASE JavaScript syntax
         run: node --check flecity_base/web/app.js
 
+      - name: Check BASE source regression guards
+        run: node flecity_base/tests/source-regression.mjs
+
       - name: Enforce LB Phone fixBlur CSS safety
         run: |
           if grep -nE '[0-9]+([.][0-9]+)?px' flecity_base/web/app.css; then

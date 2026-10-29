@@ -94,14 +94,14 @@ function F.WriteValues(query, workspaceId, itemId, updates)
     return true
 end
 
-function F.LoadValues(workspaceId)
+function F.LoadValues(workspaceId, includeHidden)
     return MySQL.query.await([[
         SELECT v.item_id, v.field_id, v.field_value
         FROM flecity_base_stock_values v
         JOIN flecity_base_stock_items i ON i.id=v.item_id AND i.workspace_id=?
         JOIN flecity_base_stock_fields f ON f.id=v.field_id AND f.workspace_id=?
-        WHERE v.workspace_id=?
-    ]], {workspaceId, workspaceId, workspaceId}) or {}
+        WHERE v.workspace_id=? AND (?=1 OR f.visible=1)
+    ]], {workspaceId, workspaceId, workspaceId, includeHidden and 1 or 0}) or {}
 end
 
 function F.CreateField(workspaceId, label, kind)

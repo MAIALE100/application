@@ -220,4 +220,19 @@ const countMismatchPaste = onePassNotes([{step:0,pitch:60},{step:1,pitch:61}]);
 assert.deepEqual(pasteRange(countMismatchPaste.notes,oneNoteClip,0,16),[{step:0,pitch:70}]);
 assert.equal(countMismatchPaste.scans(),1);
 
+// The UI's combined preview must not rescan a long track when the chosen
+// range matches the clipboard size; different sizes keep independent bounds.
+const { rangeEditPreview } = require('./wave-v035-score-tools.js');
+const combinedOnePass = onePassNotes([{step:0,pitch:60},{step:1,pitch:61}]);
+const combined = rangeEditPreview(combinedOnePass.notes,0,4,16,oneNoteClip);
+assert.deepEqual(combined.selectedRange,{startBar:1,endBar:4,notes:2,total:2});
+assert.equal(combined.pasteTarget.wouldChange,true);
+assert.equal(combinedOnePass.scans(),1);
+assert.deepEqual(rangeEditPreview(source,0,8,16,clip4).selectedRange,
+  {startBar:1,endBar:8,notes:4,total:5});
+assert.deepEqual(rangeEditPreview(source,0,4,16,null).selectedRange,
+  rangeSummary(source,0,4,16));
+assert.equal(rangeEditPreview(source,13,4,16,clip4).selectedRange,null);
+assert.equal(rangeEditPreview(source,13,4,16,clip4).pasteTarget,null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

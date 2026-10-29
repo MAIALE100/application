@@ -14,6 +14,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/framework.lua',
     'server/database.lua',
+    'server/custom_fields.lua',
     'server/main.lua'
 }
 

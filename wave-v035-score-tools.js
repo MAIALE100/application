@@ -171,6 +171,17 @@
         !sameRange(notes, clipboard, rangeBounds(startBar, clipboard.bars, totalBars)) };
   }
 
+  // Combine selected-range and paste previews so the common 4/8-bar case
+  // reuses the paste scan instead of scanning the whole track a second time.
+  function rangeEditPreview(notes, startBar, count, totalBars, clipboard) {
+    const pasteTarget = clipboard ? rangePreview(notes, clipboard, startBar, totalBars) : null;
+    const selectedRange = pasteTarget && clipboard.bars === count
+      ? { startBar: pasteTarget.startBar, endBar: pasteTarget.endBar,
+          notes: pasteTarget.overwritten, total: notes.length }
+      : rangeSummary(notes, startBar, count, totalBars);
+    return { selectedRange, pasteTarget };
+  }
+
   function clearRange(notes, startBar, count, totalBars) {
     const bounds = rangeBounds(startBar, count, totalBars);
     if (!bounds || !Array.isArray(notes)) return null;
@@ -184,7 +195,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -257,9 +268,8 @@
       if (rangeProject !== project()) { rangeClipboard = null; rangeProject = null; }
       const selectedCount = Number(rangeSelect.value);
       const track = selectedNotes();
-      const selectedRange = track && rangeSummary(track.notes, index, selectedCount, bars);
-      const pasteTarget = track && rangeClipboard &&
-        rangePreview(track.notes, rangeClipboard, index, bars);
+      const { selectedRange, pasteTarget } = rangeEditPreview(
+        track && track.notes, index, selectedCount, bars, rangeClipboard);
       rangeCopy.disabled = !selectedRange;
       rangeClear.disabled = !selectedRange || selectedRange.notes === 0;
       rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit || !pasteTarget.wouldChange;

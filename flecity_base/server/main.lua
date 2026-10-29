@@ -881,8 +881,17 @@ handlers.stockCreate = function(source, data)
     if not extras then return {ok=false, error=extraErr} end
     -- The item and its initial movement must commit together. A failed history
     -- INSERT must not leave behind a stock record with undocumented quantity.
-    local id
+    local id, failure
     local committed = MySQL.startTransaction(function(query)
+        -- Serialize stock creations against the workspace row so the per-BASE
+        -- item limit holds even if two managers submit at the same time.
+        local lock = query('SELECT id FROM flecity_base_workspaces WHERE id=? FOR UPDATE', {workspace.id})
+        if not lock or not lock[1] then return false end
+        local counts = query('SELECT COUNT(*) AS total FROM flecity_base_stock_items WHERE workspace_id=?', {workspace.id})
+        if (tonumber(counts and counts[1] and counts[1].total) or 0) >= L.stockItemsPerWorkspace then
+            failure = 'STOCK_LIMIT'
+            return false
+        end
         local created = query([[
             INSERT INTO flecity_base_stock_items
             (workspace_id, name, category, quantity, minimum_quantity, unit, created_by, created_by_name)
@@ -901,7 +910,8 @@ handlers.stockCreate = function(source, data)
         end
         return FlecityBaseCustom.WriteValues(query, workspace.id, id, extras)
     end)
-    return {ok=committed == true, id=committed and id or nil}
+    if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
+    return {ok=true, id=id}
 end
 
 handlers.stockAdjust = function(source, data)

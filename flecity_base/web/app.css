@@ -126,3 +126,11 @@ pre.note-body{white-space:pre-wrap;font:inherit;margin:.7rem 0 0;line-height:1.5
 .overview-row time{font-size:.62rem;color:#829088;white-space:nowrap}
 .overview-value{font-size:.72rem;font-weight:850;white-space:nowrap;color:#35604f}
 .overview-value.expense{color:#8a4a4a}
+
+/* Optional BASE stock fields, kept collapsed to fit LB Phone screens. */
+.stock-extras{margin:.75rem 0;border:.0625rem solid #d6e3d9;border-radius:.9rem;background:#edf4ef}
+.stock-extras summary{cursor:pointer;padding:.75rem .85rem;font-size:.78rem;font-weight:800;color:#355a47}
+.stock-extras-body{padding:0 .85rem .65rem}
+.stock-extra-summary{margin-top:.4rem;line-height:1.5;overflow-wrap:anywhere}
+.field .check-row{display:flex;align-items:center;gap:.65rem;min-height:2.4rem}
+.field .check-row input{width:auto;flex:none;min-width:1rem;min-height:1rem}

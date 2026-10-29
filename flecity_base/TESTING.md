@@ -139,7 +139,7 @@ These checks can be completed by one tester on the test server.
 
 ## Safety / persistence
 
-- Run `base_selftest` after an update and confirm all 7 checks pass, including `validators` and `stock_txn`.
+- Run `base_selftest` after an update and confirm all 8 checks pass, including `validators`, `stock_txn`, and `custom_fields`.
 - Restart only `flecity_base` and confirm existing data remains.
 - Create several BASE workspaces and switch between them.
 - Refresh the app repeatedly and confirm no duplicate MY SPACE is created.
@@ -222,3 +222,18 @@ These should not block solo development.
 ## Automation scope
 
 GitHub Actions checks Lua syntax, JavaScript syntax, CSS compatibility, packaging files, and static source regression guards. These cannot prove SQL row-lock behavior, complete transaction rollback, or correctness with two real FiveM players; the above live checks remain required.
+
+## Custom stock field smoke test (v0.11.0-dev; test server only)
+
+1. After running `base-update.cmd` and restarting only `flecity_base`, run `base_selftest` and verify **8/8 PASS**.
+2. In LB Phone, open BASE → an existing BASE or MY SPACE → 在庫 → 項目設定.
+3. Create the fields `保管場所` (文字), `単価` (数値), `入荷日` (日付), `確認済み` (チェック).
+4. Create an item with initial quantity 5 and custom values. Confirm the item card displays all extra fields and stock movement history shows initial 5.
+5. Open item 設定 and edit every extra value. Switch BASEs, return, and confirm data is retained.
+6. Hide `単価`, verify it disappears for regular members; show it again and verify the saved value reappears.
+7. Restart only `flecity_base` and confirm all values, field definitions, and visibility survive.
+8. On a disposable BASE, test invalid dates, numbers above the range, more than 2 decimal places, a seventh field, duplicate field names, and other users' workspace IDs.
+9. Two connected testers should adjust the same stock item concurrently; quantity and movement history must agree. A second tester invited as MEMBER can view custom fields but cannot define or hide them.
+10. Do not run destructive DB fault-injection on the main Flecity server. Restore test data or delete disposable workspaces only after checking their contents.
+
+Release remains **on hold** until live FiveM/MariaDB testing and CI status are resolved.

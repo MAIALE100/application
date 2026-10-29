@@ -476,56 +476,116 @@ handlers.workspaceInvite = function(source, data)
 
     local invitee = clean(data.citizenid, 64)
     if invitee == '' or invitee == ctx.citizenid then return {ok=false, error='INVALID_INVITEE'} end
-    local memberCount = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_members WHERE workspace_id=?', {workspace.id}) or 0)
-    if memberCount >= L.membersPerWorkspace then return {ok=false, error='MEMBER_LIMIT'} end
-    local already = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_members WHERE workspace_id=? AND citizenid=?', {workspace.id, invitee}) or 0) > 0
-    if already then return {ok=false, error='ALREADY_MEMBER'} end
-
-    MySQL.update.await([[
-        UPDATE flecity_base_invites
-        SET status='cancelled'
-        WHERE workspace_id=? AND invitee_citizenid=? AND status='pending'
-    ]], {workspace.id, invitee})
-
-    local pendingCount = tonumber(MySQL.scalar.await([[
-        SELECT COUNT(*) FROM flecity_base_invites
-        WHERE workspace_id=? AND status='pending' AND expires_at>NOW()
-    ]], {workspace.id}) or 0)
-    if pendingCount >= L.pendingInvitesPerWorkspace then
-        return {ok=false, error='INVITE_LIMIT'}
-    end
-
     local expiryHours = integer(C.InviteExpiryHours, 1, 720)
     local inviteSql = ([[
         INSERT INTO flecity_base_invites
         (workspace_id, invitee_citizenid, inviter_citizenid, status, expires_at)
         VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL %d HOUR))
     ]]):format(expiryHours)
-    local id = MySQL.insert.await(inviteSql, {workspace.id, invitee, ctx.citizenid})
-    return {ok=id ~= nil, inviteId=tonumber(id)}
+
+    local id, failure
+    local committed = MySQL.startTransaction(function(query)
+        -- All invitations/acceptances for the workspace serialize on this row.
+        local locked = query('SELECT id FROM flecity_base_workspaces WHERE id=? FOR UPDATE', {workspace.id})
+        if not locked or not locked[1] then return false end
+
+        local counts = query('SELECT COUNT(*) AS total FROM flecity_base_members WHERE workspace_id=?', {workspace.id})
+        if (tonumber(counts and counts[1] and counts[1].total) or 0) >= L.membersPerWorkspace then
+            failure = 'MEMBER_LIMIT'
+            return false
+        end
+        local already = query('SELECT citizenid FROM flecity_base_members WHERE workspace_id=? AND citizenid=? LIMIT 1', {workspace.id, invitee})
+        if already and already[1] then
+            failure = 'ALREADY_MEMBER'
+            return false
+        end
+
+        local cancelled = query([[
+            UPDATE flecity_base_invites SET status='cancelled'
+            WHERE workspace_id=? AND invitee_citizenid=? AND status='pending'
+        ]], {workspace.id, invitee})
+        if not cancelled then return false end
+
+        local pending = query([[
+            SELECT COUNT(*) AS total FROM flecity_base_invites
+            WHERE workspace_id=? AND status='pending' AND expires_at>NOW()
+        ]], {workspace.id})
+        if (tonumber(pending and pending[1] and pending[1].total) or 0) >= L.pendingInvitesPerWorkspace then
+            failure = 'INVITE_LIMIT'
+            return false
+        end
+        local created = query(inviteSql, {workspace.id, invitee, ctx.citizenid})
+        id = created and tonumber(created.insertId) or nil
+        return id ~= nil and id > 0
+    end)
+    if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
+    return {ok=true, inviteId=id}
 end
 
 handlers.inviteAccept = function(source, data)
     local ctx, err = sourceContext(source)
     if not ctx then return err end
     data = type(data) == 'table' and data or {}
-    local invite = MySQL.single.await([[
-        SELECT i.id, i.workspace_id, i.inviter_citizenid
-        FROM flecity_base_invites i
-        WHERE i.id=? AND i.invitee_citizenid=? AND i.status='pending' AND i.expires_at>NOW()
-        LIMIT 1
-    ]], {integer(data.inviteId, 1), ctx.citizenid})
-    if not invite then return {ok=false, error='INVITE_NOT_FOUND'} end
+    local inviteId = integer(data.inviteId, 1)
+    local failure
+    local committed = MySQL.startTransaction(function(query)
+        local rows = query([[
+            SELECT workspace_id FROM flecity_base_invites
+            WHERE id=? AND invitee_citizenid=? AND status='pending' AND expires_at>NOW()
+            LIMIT 1
+        ]], {inviteId, ctx.citizenid})
+        local initial = rows and rows[1]
+        if not initial then
+            failure = 'INVITE_NOT_FOUND'
+            return false
+        end
 
-    local memberCount = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_members WHERE workspace_id=?', {invite.workspace_id}) or 0)
-    if memberCount >= L.membersPerWorkspace then return {ok=false, error='MEMBER_LIMIT'} end
+        -- Same lock order as workspaceInvite: lock workspace before modifying
+        -- invitation/member rows. This also serializes concurrent acceptances.
+        local locked = query('SELECT id FROM flecity_base_workspaces WHERE id=? FOR UPDATE', {initial.workspace_id})
+        if not locked or not locked[1] then
+            failure = 'INVITE_NOT_FOUND'
+            return false
+        end
+        local invites = query([[
+            SELECT id, workspace_id, inviter_citizenid FROM flecity_base_invites
+            WHERE id=? AND invitee_citizenid=? AND status='pending' AND expires_at>NOW()
+            LIMIT 1 FOR UPDATE
+        ]], {inviteId, ctx.citizenid})
+        local invite = invites and invites[1]
+        if not invite then
+            failure = 'INVITE_NOT_FOUND'
+            return false
+        end
+        local counts = query('SELECT COUNT(*) AS total FROM flecity_base_members WHERE workspace_id=?', {invite.workspace_id})
+        if (tonumber(counts and counts[1] and counts[1].total) or 0) >= L.membersPerWorkspace then
+            failure = 'MEMBER_LIMIT'
+            return false
+        end
+        local members = query('SELECT citizenid FROM flecity_base_members WHERE workspace_id=? AND citizenid=? LIMIT 1', {invite.workspace_id, ctx.citizenid})
+        if members and members[1] then
+            failure = 'ALREADY_MEMBER'
+            return false
+        end
 
-    MySQL.insert.await([[
-        INSERT IGNORE INTO flecity_base_members
-        (workspace_id, citizenid, display_name, role, invited_by)
-        VALUES (?, ?, ?, 'member', ?)
-    ]], {invite.workspace_id, ctx.citizenid, ctx.name, invite.inviter_citizenid})
-    MySQL.update.await("UPDATE flecity_base_invites SET status='accepted' WHERE id=?", {invite.id})
+        local inserted = query([[
+            INSERT INTO flecity_base_members
+            (workspace_id, citizenid, display_name, role, invited_by)
+            VALUES (?, ?, ?, 'member', ?)
+        ]], {invite.workspace_id, ctx.citizenid, ctx.name, invite.inviter_citizenid})
+        if not inserted or tonumber(inserted.affectedRows) ~= 1 then return false end
+
+        local accepted = query([[
+            UPDATE flecity_base_invites SET status='accepted'
+            WHERE id=? AND invitee_citizenid=? AND status='pending' AND expires_at>NOW()
+        ]], {inviteId, ctx.citizenid})
+        if not accepted or tonumber(accepted.affectedRows) ~= 1 then
+            failure = 'INVITE_NOT_FOUND'
+            return false
+        end
+        return true
+    end)
+    if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
     return {ok=true, workspaces=listWorkspaces(ctx), invites=listInvites(ctx)}
 end
 

@@ -450,4 +450,52 @@ assert.equal(invalidBarTrack.scans(),1);
 assert.equal(rangePreview(source,invalidBarClipboard,0,16),null);
 assert.equal(pasteRange(source,invalidBarClipboard,0,16),null);
 
+
+// At the 125-bar project boundary, 4/8-bar edits must use the last full
+// window and reject partial windows without changing the source track.
+assert.deepEqual(rangeBounds(117,8,125),{start:1872,end:2000});
+assert.deepEqual(rangeBounds(121,4,125),{start:1936,end:2000});
+assert.equal(rangeBounds(118,8,125),null);
+assert.equal(rangeBounds(122,4,125),null);
+const finalBars = [{step:1872,pitch:60},{step:1999,pitch:64}];
+const finalClip = copyRange(finalBars,117,8,125);
+assert.deepEqual(finalClip.notes.map(note=>note.step),[0,127]);
+assert.equal(rangePreview(finalBars,finalClip,117,125).wouldChange,false);
+assert.equal(pasteRange(finalBars,finalClip,117,125),finalBars);
+assert.equal(pasteRange(finalBars,finalClip,118,125),null);
+
+// Deterministic differential regression: the optimized combined 4/8-bar
+// preview must always agree with independent selection and paste previews.
+// Exercise empty windows, chord duplicates, reordered notes and end bounds.
+let previewSeed = 0x57415645;
+function previewRandom(limit) {
+  previewSeed = (Math.imul(previewSeed,1664525) + 1013904223) >>> 0;
+  return previewSeed % limit;
+}
+for (let trial = 0; trial < 256; trial++) {
+  const bars = 8 + previewRandom(118);
+  const selectedBars = previewRandom(2) ? 4 : 8;
+  const copiedBars = previewRandom(2) ? 4 : 8;
+  const start = previewRandom(bars + 3) - 1;
+  const track = Array.from({length:previewRandom(48)}, () => ({
+    step:previewRandom(bars * 16), pitch:48 + previewRandom(36),
+    velocity:previewRandom(5) / 4
+  }));
+  const from = previewRandom(bars);
+  const clipboard = copyRange(track,from,copiedBars,bars) || {bars:copiedBars,notes:[]};
+  const combinedPreview = rangeEditPreview(track,start,selectedBars,bars,clipboard);
+  assert.deepEqual(combinedPreview.selectedRange,rangeSummary(track,start,selectedBars,bars));
+  assert.deepEqual(combinedPreview.pasteTarget,rangePreview(track,clipboard,start,bars));
+  const originalTrack = track.map(note=>({...note}));
+  const pastedTrack = pasteRange(track,clipboard,start,bars);
+  assert.deepEqual(track,originalTrack);
+  if (!combinedPreview.pasteTarget) {
+    assert.equal(pastedTrack,null);
+  } else {
+    assert.equal(pastedTrack !== null,true);
+    assert.equal(pastedTrack.length,combinedPreview.pasteTarget.totalAfter);
+    assert.equal(pastedTrack === track,!combinedPreview.pasteTarget.wouldChange);
+  }
+}
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

@@ -144,6 +144,20 @@
     return false;
   }
 
+  // Array.filter() drops holes but retains inherited array entries. On a
+  // near-limit paste, length alone can falsely reject a sparse legacy track.
+  // Keep dense/common previews allocation-free; only count occupied slots
+  // when the conservative upper bound would otherwise exceed 8192.
+  function postPasteCount(notes, overwritten, inserted) {
+    const upperBound = notes.length - overwritten + inserted;
+    if (upperBound <= 8192) return upperBound;
+    let occupied = 0;
+    for (let i = 0; i < notes.length; i++) {
+      if (i in notes) occupied++;
+    }
+    return occupied - overwritten + inserted;
+  }
+
   function pasteRange(notes, clipboard, startBar, totalBars) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
@@ -153,7 +167,7 @@
     // keeps rejected and identical pastes allocation-free on long scores.
     const { overwritten, ordered } = scanRange(notes, clipboard, bounds);
     // Preserve the existing 8192-note cap, including malformed legacy notes.
-    if (notes.length - overwritten + clipboard.notes.length > 8192) return null;
+    if (postPasteCount(notes, overwritten, clipboard.notes.length) > 8192) return null;
     // Differing note counts cannot be identical; skip the second track scan.
     // The UI uses unchanged array identity to avoid redundant Undo/dirty flags.
     if (overwritten === clipboard.notes.length && (ordered || sameRange(notes, clipboard, bounds))) return notes;
@@ -185,7 +199,7 @@
     const scan = precomputedSummary ? null : scanRange(notes, clipboard, bounds);
     const summary = precomputedSummary || { startBar: startBar + 1,
       endBar: startBar + clipboard.bars, notes: scan.overwritten, total: notes.length };
-    const totalAfter = summary.total - summary.notes + clipboard.notes.length;
+    const totalAfter = postPasteCount(notes, summary.notes, clipboard.notes.length);
     const ordered = scan ? scan.ordered : precomputedSummary.ordered === true;
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,

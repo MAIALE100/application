@@ -571,4 +571,33 @@ assert.deepEqual(
 );
 assert.equal(rangePreview(full,oneNoteClip,0,16,forgedLimitSummary).withinLimit,false);
 
+// Sparse legacy track arrays can have a length at the note cap while
+// containing very few actual entries. filter() discards holes on paste;
+// preview and paste must agree on the resulting count at the 8192 limit.
+const sparseAtLimit = new Array(8192);
+sparseAtLimit[8191] = {step:128,pitch:65};
+const sparseLimitClip = {bars:4,notes:[{step:0,pitch:70}]};
+const sparseLimitPreview = rangePreview(sparseAtLimit,sparseLimitClip,0,125);
+assert.equal(sparseLimitPreview.totalAfter,2);
+assert.equal(sparseLimitPreview.withinLimit,true);
+assert.equal(sparseLimitPreview.wouldChange,true);
+const sparseLimitCombined = rangeEditPreview(sparseAtLimit,0,8,125,sparseLimitClip);
+assert.deepEqual(sparseLimitCombined.pasteTarget,sparseLimitPreview);
+const sparseLimitPasted = pasteRange(sparseAtLimit,sparseLimitClip,0,125);
+assert.deepEqual(sparseLimitPasted,[{step:128,pitch:65},{step:0,pitch:70}]);
+assert.equal(sparseAtLimit.length,8192);
+assert.equal(sparseAtLimit[8191].pitch,65);
+// Inherited slots are visited by filter(), unlike holes. The fallback
+// must count them as retained entries and preserve them after the paste.
+const inheritedAtLimit = new Array(8192);
+const inheritedAtLimitProto = Object.create(Array.prototype);
+inheritedAtLimitProto[1] = {step:128,pitch:62};
+Object.setPrototypeOf(inheritedAtLimit,inheritedAtLimitProto);
+inheritedAtLimit[8191] = {step:128,pitch:64};
+const inheritedLimitPreview = rangePreview(inheritedAtLimit,sparseLimitClip,0,125);
+assert.equal(inheritedLimitPreview.totalAfter,3);
+assert.equal(inheritedLimitPreview.withinLimit,true);
+assert.deepEqual(pasteRange(inheritedAtLimit,sparseLimitClip,0,125),
+  [{step:128,pitch:62},{step:128,pitch:64},{step:0,pitch:70}]);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

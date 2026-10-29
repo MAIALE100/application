@@ -470,7 +470,7 @@ assert.equal(pasteRange(finalBars,finalClip,118,125),null);
 let previewSeed = 0x57415645;
 function previewRandom(limit) {
   previewSeed = (Math.imul(previewSeed,1664525) + 1013904223) >>> 0;
-  return previewSeed % limit;
+  return Math.floor((previewSeed / 4294967296) * limit);
 }
 for (let trial = 0; trial < 256; trial++) {
   const bars = 8 + previewRandom(118);

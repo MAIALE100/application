@@ -208,15 +208,17 @@
     // Reject invalid bar counts and oversized/non-array clipboards before
     // reading any note slots or comparing track fields.
     // Keep the selected-window summary available without changing the song.
-    if (clipboard && ((clipboard.bars !== 4 && clipboard.bars !== 8) ||
-        !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
-        invalidClipboardNotes(clipboard))) {
+    // Check the destination bounds before walking clipboard notes. Near the
+    // end of a long score, a 4/8-bar clip may not fit; skip potentially
+    // thousands of clipboard reads when paste is impossible.
+    const selectedBounds = rangeBounds(startBar, count, totalBars);
+    const pasteBounds = clipboard && rangeBounds(startBar, clipboard.bars, totalBars);
+    if (clipboard && (!pasteBounds || !Array.isArray(clipboard.notes) ||
+        clipboard.notes.length > 8192 || invalidClipboardNotes(clipboard))) {
       return { selectedRange: rangeSummary(notes, startBar, count, totalBars), pasteTarget: null };
     }
     // A copied 4-bar region can be previewed while the editor selects 8 bars
     // (and vice versa). Count both windows in one track scan rather than two.
-    const selectedBounds = rangeBounds(startBar, count, totalBars);
-    const pasteBounds = clipboard && rangeBounds(startBar, clipboard.bars, totalBars);
     if (Array.isArray(notes) && selectedBounds && pasteBounds && clipboard.bars !== count) {
       let selected = 0;
       let overwritten = 0;

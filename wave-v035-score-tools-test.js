@@ -498,4 +498,37 @@ for (let trial = 0; trial < 256; trial++) {
   }
 }
 
+// Near the end of a 125-bar score, an 8-bar clip cannot fit at bar 121.
+// Do not inspect thousands of clipboard notes before rejecting that target.
+// The valid 4-bar selection must still be summarized with a single scan.
+let unreachableClipboardReads = 0;
+const unreachableClipboardNotes = new Proxy([{step:0,pitch:70}], {
+  get(target,key,receiver) {
+    if (key === '0') {
+      unreachableClipboardReads++;
+      throw new Error('out-of-bounds clipboard must not be inspected');
+    }
+    return Reflect.get(target,key,receiver);
+  }
+});
+const unreachableClipboard = {bars:8,notes:unreachableClipboardNotes};
+const endWindowTrack = onePassNotes([{step:1920,pitch:60}]);
+const endWindowPreview = rangeEditPreview(endWindowTrack.notes,120,4,125,unreachableClipboard);
+assert.deepEqual(endWindowPreview.selectedRange,
+  {startBar:121,endBar:124,notes:1,total:1});
+assert.equal(endWindowPreview.pasteTarget,null);
+assert.equal(unreachableClipboardReads,0);
+assert.equal(endWindowTrack.scans(),1);
+// When neither window fits, skip both the track and clipboard scans.
+const invalidEndTrack = onePassNotes([{step:1999,pitch:60}]);
+const invalidEndPreview = rangeEditPreview(invalidEndTrack.notes,124,4,125,unreachableClipboard);
+assert.equal(invalidEndPreview.selectedRange,null);
+assert.equal(invalidEndPreview.pasteTarget,null);
+assert.equal(unreachableClipboardReads,0);
+assert.equal(invalidEndTrack.scans(),0);
+// An in-bounds target still performs the normal exact no-op comparison.
+const validEndPreview = rangeEditPreview([{step:1872,pitch:60}],117,8,125,
+  {bars:8,notes:[{step:0,pitch:60}]});
+assert.equal(validEndPreview.pasteTarget.wouldChange,false);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

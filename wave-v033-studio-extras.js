@@ -203,6 +203,7 @@
       // Keep references so partial voice construction can be cleaned up.
       let oscillator = null;
       let envelope = null;
+      let started = false;
       try {
         oscillator = ctx.createOscillator();
         envelope = ctx.createGain();
@@ -218,12 +219,17 @@
         envelope.gain.linearRampToValueAtTime(vol, attackEnd);
         envelope.gain.exponentialRampToValueAtTime(0.0001, end);
         oscillator.onended = () => {
-          try { oscillator.disconnect(); envelope.disconnect(); } catch (_) {}
+          // A disconnect failure on one node must not retain the other node.
+          try { oscillator.disconnect(); } catch (_) {}
+          try { envelope.disconnect(); } catch (_) {}
         };
         oscillator.start(t);
+        started = true;
         oscillator.stop(end + 0.02);
       } catch (error) {
-        // A failed start/stop/connection must not retain a partial audio graph.
+        // If scheduling stop failed after start, make one best-effort stop
+        // before disconnecting. Never interfere with the original voice.
+        if (started) { try { oscillator.stop(); } catch (_) {} }
         try { if (oscillator) oscillator.disconnect(); } catch (_) {}
         try { if (envelope) envelope.disconnect(); } catch (_) {}
         console.warn('[WAVE] harmonic layer unavailable', error);

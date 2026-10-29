@@ -125,6 +125,73 @@ try {
     assert.equal(gainDisconnects, 1);
     assert.equal(warnings.length, 2);
     assert.equal(originalCalls, 12);
+
+    // stop() may throw after start() succeeds. Retry once to avoid a
+    // running, disconnected oscillator consuming CPU indefinitely.
+    let stopAttempts = 0;
+    let failedStopDisconnects = 0;
+    const failedStopCtx = {
+      destination: {},
+      createOscillator() {
+        return {
+          frequency: { value: 0 },
+          connect() {},
+          disconnect() { failedStopDisconnects++; },
+          start() {},
+          stop() {
+            stopAttempts++;
+            if (stopAttempts === 1) throw new Error('scheduled stop unavailable');
+          }
+        };
+      },
+      createGain() {
+        return {
+          connect() {},
+          disconnect() {},
+          gain: {
+            setValueAtTime() {},
+            linearRampToValueAtTime() {},
+            exponentialRampToValueAtTime() {}
+          }
+        };
+      }
+    };
+    assert.equal(enhanced(failedStopCtx, 'piano', 69, 1, 1, 1), originalResult);
+    assert.equal(stopAttempts, 2);
+    assert.equal(failedStopDisconnects, 1);
+    assert.equal(warnings.length, 3);
+
+    // An onended disconnect error must not skip envelope cleanup.
+    let endedOscillator;
+    let endedGainDisconnects = 0;
+    const endedCtx = {
+      destination: {},
+      createOscillator() {
+        endedOscillator = {
+          frequency: { value: 0 },
+          connect() {},
+          disconnect() { throw new Error('oscillator already disconnected'); },
+          start() {},
+          stop() {}
+        };
+        return endedOscillator;
+      },
+      createGain() {
+        return {
+          connect() {},
+          disconnect() { endedGainDisconnects++; },
+          gain: {
+            setValueAtTime() {},
+            linearRampToValueAtTime() {},
+            exponentialRampToValueAtTime() {}
+          }
+        };
+      }
+    };
+    assert.equal(enhanced(endedCtx, 'piano', 69, 1, 1, 1), originalResult);
+    endedOscillator.onended();
+    assert.equal(endedGainDisconnects, 1);
+    assert.equal(originalCalls, 14);
   } finally {
     console.warn = previousWarn;
   }

@@ -83,6 +83,21 @@ const clip8 = copyRange(source,0,8,16);
 assert.deepEqual(clip8.notes.map(n=>n.step),[0,63,64,127]);
 assert.deepEqual(pasteRange([],clip8,8,16).map(n=>n.step),[128,191,192,255]);
 assert.equal(pasteRange([],clip8,9,16),null);
+
+// Copy must avoid intermediate filter/map arrays and preserve source notes.
+const noArrayHelpers = new Proxy(source, {
+  get(target, key, receiver) {
+    if (key === 'filter' || key === 'map') throw new Error('copy must not allocate intermediate arrays');
+    return Reflect.get(target, key, receiver);
+  }
+});
+const efficientCopy = copyRange(noArrayHelpers, 0, 4, 16);
+assert.deepEqual(efficientCopy, clip4);
+assert.notEqual(efficientCopy.notes[0], source[0]);
+assert.equal(source[0].step, 0);
+// The cap is inclusive; reject the next selected note without cloning any.
+const copyExactlyFull = copyRange(Array.from({length:8192}, () => ({step:0,pitch:60})),0,4,16);
+assert.equal(copyExactlyFull.notes.length,8192);
 assert.equal(copyRange(Array(8193).fill({step:0,pitch:60}),0,4,16),null);
 
 

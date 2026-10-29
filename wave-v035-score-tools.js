@@ -42,10 +42,20 @@
   function copyRange(notes, startBar, count, totalBars) {
     const bounds = rangeBounds(startBar, count, totalBars);
     if (!bounds || !Array.isArray(notes)) return null;
-    const selected = notes.filter(n => n && Number.isInteger(n.step) &&
-      n.step >= bounds.start && n.step < bounds.end);
-    if (selected.length > 8192) return null;
-    return { bars: count, notes: selected.map(n => ({ ...n, step: n.step - bounds.start })) };
+    // Select once, then replace references with cloned relative-step notes.
+    // This avoids a second array and never clones an oversized selection.
+    const selected = [];
+    for (const note of notes) {
+      if (!note || !Number.isInteger(note.step) ||
+          note.step < bounds.start || note.step >= bounds.end) continue;
+      if (selected.length === 8192) return null;
+      selected.push(note);
+    }
+    for (let i = 0; i < selected.length; i++) {
+      const note = selected[i];
+      selected[i] = { ...note, step: note.step - bounds.start };
+    }
+    return { bars: count, notes: selected };
   }
 
   // Compare the target's actual note data, not just its note count.

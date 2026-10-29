@@ -143,3 +143,17 @@ function F.SetVisibility(workspaceId, fieldId, visible)
     ]], {visible and 1 or 0, fieldId, workspaceId})
     return (tonumber(changed) or 0) > 0
 end
+
+-- Pure validation checks; database and multiplayer behavior are tested separately.
+function F.Selftest()
+    return normalizeValue('text', '日本語メモ') == '日本語メモ'
+        and normalizeValue('text', string.rep('x', 121)) == nil
+        and normalizeValue('number', '120.50') == '120.50'
+        and normalizeValue('number', '12.345') == false
+        and normalizeValue('number', '1000000001') == false
+        and normalizeValue('date', '2028-02-29') == '2028-02-29'
+        and normalizeValue('date', '2027-02-29') == false
+        and normalizeValue('check', true) == '1'
+        and normalizeValue('check', '0') == '0'
+        and normalizeValue('check', 'invalid') == false
+end

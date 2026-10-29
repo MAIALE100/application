@@ -481,6 +481,7 @@ handlers.workspaceDelete = function(source, data)
         return {ok=false, error='DELETE_CONFIRM_MISMATCH'}
     end
     local changed = MySQL.update.await('DELETE FROM flecity_base_workspaces WHERE id=?', {workspace.id})
+    if (tonumber(changed) or 0) > 0 then auditAccess(ctx, 'workspace_delete', workspace) end
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -911,6 +912,7 @@ handlers.stockCreate = function(source, data)
         return FlecityBaseCustom.WriteValues(query, workspace.id, id, extras)
     end)
     if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
+    auditAccess(ctx, 'stock_create', workspace)
     return {ok=true, id=id}
 end
 
@@ -975,6 +977,7 @@ handlers.stockAdjust = function(source, data)
     if committed ~= true then
         return {ok=false, error=failure or 'SERVER_ERROR'}
     end
+    auditAccess(ctx, 'stock_adjust', workspace)
     return {ok=true, quantity=after, delta=delta}
 end
 
@@ -1011,6 +1014,7 @@ handlers.stockConfigure = function(source, data)
         return FlecityBaseCustom.WriteValues(query, workspace.id, itemId, extras)
     end)
     if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
+    auditAccess(ctx, 'stock_configure', workspace)
     return {ok=true}
 end
 
@@ -1031,6 +1035,7 @@ handlers.stockFieldCreate = function(source, data)
     if not workspace then return accessErr end
     local id, reason = FlecityBaseCustom.CreateField(workspace.id, data.label, data.fieldType)
     if not id then return {ok=false, error=reason} end
+    auditAccess(ctx, 'stock_field_create', workspace)
     return {ok=true, fieldId=id}
 end
 
@@ -1050,7 +1055,9 @@ handlers.stockFieldToggle = function(source, data)
     end
     if not found then return {ok=false, error='INVALID_CUSTOM_FIELD'} end
     if (tonumber(found.visible) == 1) == data.visible then return {ok=true} end
-    return {ok=FlecityBaseCustom.SetVisibility(workspace.id, fieldId, data.visible)}
+    local changed = FlecityBaseCustom.SetVisibility(workspace.id, fieldId, data.visible)
+    if changed then auditAccess(ctx, 'stock_field_toggle', workspace) end
+    return {ok=changed}
 end
 
 handlers.stockDelete = function(source, data)
@@ -1074,6 +1081,7 @@ handlers.stockDelete = function(source, data)
         'DELETE FROM flecity_base_stock_items WHERE id=? AND workspace_id=?',
         {itemId, workspace.id}
     )
+    if (tonumber(changed) or 0) > 0 then auditAccess(ctx, 'stock_delete', workspace) end
     return {ok=(tonumber(changed) or 0) > 0}
 end
 

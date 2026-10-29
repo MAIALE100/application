@@ -41,7 +41,7 @@ const num = (v) => Number(v || 0);
 const yen = (v) => "$" + num(v).toLocaleString("ja-JP");
 
 const UI_LIMITS = {
-  title:120, name:120, category:64, tags:255, unit:32, note:180,
+  title:120, name:120, label:40, category:64, tags:255, unit:32, note:180,
   citizenid:64, icon:32, resultLabel:64, resultUnit:32,
   fieldLabel1:64, fieldLabel2:64, fieldLabel3:64, fieldLabel4:64,
   fieldLabel5:64, fieldLabel6:64, fieldLabel7:64, fieldLabel8:64,

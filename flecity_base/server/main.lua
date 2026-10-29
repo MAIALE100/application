@@ -1517,6 +1517,7 @@ RegisterCommand('base_selftest', function(source)
         {'lb-phone', GetResourceState('lb-phone') == 'started'},
         {'oxmysql', GetResourceState('oxmysql') == 'started'},
         {'stock_txn', type(MySQL.startTransaction) == 'function'},
+        {'custom_fields', FlecityBaseCustom.Selftest()},
         {'database', dbOk},
         {'callbacks', registeredCallbacks == callbackCount()},
         {'validators', validatorsOk}

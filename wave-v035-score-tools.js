@@ -138,8 +138,9 @@
     }
     // Preserve the existing 8192-note cap, including malformed legacy notes.
     if (notes.length - overwritten + clipboard.notes.length > 8192) return null;
+    // Differing note counts cannot be identical; skip the second track scan.
     // The UI uses unchanged array identity to avoid redundant Undo/dirty flags.
-    if (sameRange(notes, clipboard, bounds)) return notes;
+    if (overwritten === clipboard.notes.length && sameRange(notes, clipboard, bounds)) return notes;
     const remaining = notes.filter(n => !n || !Number.isInteger(n.step) ||
       n.step < bounds.start || n.step >= bounds.end);
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
@@ -166,7 +167,8 @@
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,
       totalAfter, withinLimit: totalAfter <= 8192,
-      wouldChange: !sameRange(notes, clipboard, rangeBounds(startBar, clipboard.bars, totalBars)) };
+      wouldChange: totalAfter > 8192 || summary.notes !== clipboard.notes.length ||
+        !sameRange(notes, clipboard, rangeBounds(startBar, clipboard.bars, totalBars)) };
   }
 
   function clearRange(notes, startBar, count, totalBars) {

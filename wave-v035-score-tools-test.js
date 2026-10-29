@@ -192,4 +192,32 @@ assert.equal(rangePreview(specialTarget,specialClip,4,16).wouldChange,false);
 assert.equal(pasteRange(specialTarget,specialClip,4,16),specialTarget);
 assert.equal(rangePreview(specialTarget,{bars:4,notes:[{step:0,pitch:60,velocity:0},{step:1,pitch:61,velocity:NaN}]},4,16).wouldChange,true);
 
+
+// Long scores: preview and paste must not scan the track again when the
+// overwritten count differs, or when the final count exceeds the hard cap.
+function onePassNotes(notes) {
+  let scans = 0;
+  return {
+    notes: new Proxy(notes, {
+      get(target, key, receiver) {
+        if (key === Symbol.iterator) return function* () {
+          if (++scans > 1) throw new Error('unnecessary full-track rescan');
+          yield* target;
+        };
+        return Reflect.get(target, key, receiver);
+      }
+    }),
+    scans: () => scans
+  };
+}
+const countMismatchPreview = onePassNotes([{step:0,pitch:60},{step:1,pitch:61}]);
+assert.equal(rangePreview(countMismatchPreview.notes,oneNoteClip,0,16).wouldChange,true);
+assert.equal(countMismatchPreview.scans(),1);
+const capExceededPreview = onePassNotes(full);
+assert.equal(rangePreview(capExceededPreview.notes,oneNoteClip,0,16).withinLimit,false);
+assert.equal(capExceededPreview.scans(),1);
+const countMismatchPaste = onePassNotes([{step:0,pitch:60},{step:1,pitch:61}]);
+assert.deepEqual(pasteRange(countMismatchPaste.notes,oneNoteClip,0,16),[{step:0,pitch:70}]);
+assert.equal(countMismatchPaste.scans(),1);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

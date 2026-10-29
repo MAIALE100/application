@@ -1,6 +1,6 @@
 FlecityBaseConfig = {}
 
-FlecityBaseConfig.Debug = true
+FlecityBaseConfig.Debug = false
 FlecityBaseConfig.Framework = 'qbox'
 
 FlecityBaseConfig.App = {

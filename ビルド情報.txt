@@ -1,0 +1,5 @@
+BASE v0.10.0-beta.1
+Source: MAIALE100/application branch base/workspace-dev
+Source tree commit: cec87539b337a480b1c086fb6f2d0ca6f60de70a
+Release: 初回提出・β公開
+Debug: false

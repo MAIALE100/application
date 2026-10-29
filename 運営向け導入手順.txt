@@ -1,0 +1,30 @@
+BASE｜運営様向け導入手順
+対応環境：Flecity QBox 2.5.4 / oxmysql / LB Phone 2.9.0
+プレイヤー識別：citizenid
+
+1. 同梱の「flecity_base」フォルダをサーバーresources内へ設置してください。
+2. server.cfgのqbx_core、oxmysql、lb-phoneより後に下記を追加してください。
+
+ensure flecity_base
+
+3. サーバー稼働中の初回導入時はtxAdmin Live Consoleで実行してください。
+
+refresh
+ensure flecity_base
+
+4. 起動確認：
+
+base_selftest
+
+すべてPASSとなり、LB PhoneのApp StoreでBASEが無料アプリとして表示されれば基本導入完了です。
+通常、サーバー全体の再起動は不要です。
+
+DB：BASE専用テーブルを起動時に自動作成・移行します。通常SQL手動実行不要ですが、DBユーザーにCREATE/ALTER権限が必要です。
+管理権限：WEAZELサポートは初期OFFです。admin全体管理用ACEを利用する場合のみ下記を追加してください。
+
+add_ace group.admin flecity.base.admin allow
+
+任意のACE設定や詳細権限はflecity_base/ACCESS.mdをご覧ください。
+
+注意：BASE内の会計・在庫は記録用で、実際の銀行残高／インベントリには連動しません。
+停止する場合は「stop flecity_base」を実行し、server.cfgからensure行を外してください。保存データは自動削除しません。

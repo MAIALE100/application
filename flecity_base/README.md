@@ -14,6 +14,8 @@ It is designed for businesses, crews, teams, projects, informal groups, and pers
 - Invite / accept / decline / leave / remove member
 - Shared memo with pinning, category, tags, search, and sorting
 - Inventory ledger with creator/operator attribution and movement history
+- Transaction-locked inventory creation/adjustments: quantity and movement log commit or roll back together
+- Serialized workspace invitation/acceptance to preserve membership limits under concurrent use
 - Task management with assignee, due date, priority, filters, search, and sorting
 - Accounting ledger with creator attribution, summaries, search, filters, sorting, and non-destructive voids
 - User-defined calculators saved per workspace
@@ -31,7 +33,7 @@ Accounting and stock are internal ledgers. This keeps the resource portable and 
 ## Runtime
 
 - QBox
-- oxmysql
+- oxmysql **v2.12.0 or newer** (development build uses the experimental `MySQL.startTransaction` API; validate compatibility before deployment)
 - LB Phone
 - citizenid identity
 
@@ -43,7 +45,7 @@ From the server console:
 base_selftest
 ```
 
-Expected result: all checks PASS.
+Expected result: all checks PASS (including `stock_txn` for the transaction API). Static CI guards do not replace a live MariaDB / multiplayer test.
 
 ## Access model
 

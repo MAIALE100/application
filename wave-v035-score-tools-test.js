@@ -405,4 +405,32 @@ assert.equal(noClipboardMap.notes[0].step, 0);
 assert.equal(originalPasteTrack[0].pitch, 60);
 assert.equal(appendedPaste.length, 3);
 
+// Invalid mixed-size clipboards must be rejected before comparing track fields.
+const hostileSelectedNote = new Proxy({step:0,pitch:60}, {
+  ownKeys() { throw new Error('invalid clipboard must not compare note fields'); }
+});
+const malformedMixedClip = {bars:4,notes:[{step:0,pitch:60}, ,]};
+const malformedMixedResult = rangeEditPreview([hostileSelectedNote],0,8,16,malformedMixedClip);
+assert.deepEqual(malformedMixedResult.selectedRange,
+  {startBar:1,endBar:8,notes:1,total:1});
+assert.equal(malformedMixedResult.pasteTarget,null);
+// Do not read clipboard slots once for comparison and again for validation.
+let malformedReads = 0;
+const countedMalformedNotes = new Proxy([{step:0,pitch:60}, ,], {
+  get(target,key,receiver) {
+    if (key === '0') malformedReads++;
+    return Reflect.get(target,key,receiver);
+  }
+});
+const countedMalformed = rangeEditPreview([{step:0,pitch:60}],0,8,16,
+  {bars:4,notes:countedMalformedNotes});
+assert.equal(countedMalformed.pasteTarget,null);
+assert.equal(countedMalformed.selectedRange.notes,1);
+assert.equal(malformedReads,1);
+const validMixedResult = rangeEditPreview([{step:0,pitch:60}],0,8,16,
+  {bars:4,notes:[{step:0,pitch:60}]});
+assert.equal(validMixedResult.pasteTarget.wouldChange,false);
+assert.equal(validMixedResult.pasteTarget.withinLimit,true);
+assert.equal(rangePreview([{step:0,pitch:60}],malformedMixedClip,0,16),null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

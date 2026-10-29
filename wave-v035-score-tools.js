@@ -179,11 +179,9 @@
     return { startBar: startBar + 1, endBar: startBar + count, notes: selected, total: notes.length };
   }
 
-  function rangePreview(notes, clipboard, startBar, totalBars, precomputedSummary) {
-    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
-        !Array.isArray(notes)) return null;
-    const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
-    if (!bounds || invalidClipboardNotes(clipboard)) return null;
+  // Validate clipboards before inspecting track note fields. Combined previews
+  // can reuse this private helper without validating the same clipboard twice.
+  function previewValidatedRange(notes, clipboard, startBar, bounds, precomputedSummary) {
     const scan = precomputedSummary ? null : scanRange(notes, clipboard, bounds);
     const summary = precomputedSummary || { startBar: startBar + 1,
       endBar: startBar + clipboard.bars, notes: scan.overwritten, total: notes.length };
@@ -196,13 +194,22 @@
         !(ordered || sameRange(notes, clipboard, bounds)) };
   }
 
+  function rangePreview(notes, clipboard, startBar, totalBars, precomputedSummary) {
+    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
+        !Array.isArray(notes)) return null;
+    const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
+    if (!bounds || invalidClipboardNotes(clipboard)) return null;
+    return previewValidatedRange(notes, clipboard, startBar, bounds, precomputedSummary);
+  }
+
   // Combine selected-range and paste previews so the common 4/8-bar case
   // reuses the paste scan instead of scanning the whole track a second time.
   function rangeEditPreview(notes, startBar, count, totalBars, clipboard) {
     // Reject oversized or non-array clipboards before mixed 4/8-bar scans.
     // An invalid clipboard must not read its note slots during preview;
     // keep the selected-window summary available without changing the song.
-    if (clipboard && (!Array.isArray(clipboard.notes) || clipboard.notes.length > 8192)) {
+    if (clipboard && (!Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
+        invalidClipboardNotes(clipboard))) {
       return { selectedRange: rangeSummary(notes, startBar, count, totalBars), pasteTarget: null };
     }
     // A copied 4-bar region can be previewed while the editor selects 8 bars
@@ -227,9 +234,10 @@
         notes: overwritten, total: notes.length,
         ordered: pasteOrdered && overwritten === clipboard.notes.length };
       return { selectedRange,
-        pasteTarget: rangePreview(notes, clipboard, startBar, totalBars, pasteSummary) };
+        pasteTarget: previewValidatedRange(notes, clipboard, startBar, pasteBounds, pasteSummary) };
     }
-    const pasteTarget = clipboard ? rangePreview(notes, clipboard, startBar, totalBars) : null;
+    const pasteTarget = clipboard && Array.isArray(notes) && pasteBounds
+      ? previewValidatedRange(notes, clipboard, startBar, pasteBounds) : null;
     const selectedRange = pasteTarget && clipboard.bars === count
       ? { startBar: pasteTarget.startBar, endBar: pasteTarget.endBar,
           notes: pasteTarget.overwritten, total: notes.length }

@@ -273,4 +273,25 @@ assert.equal(mixedUnchangedResult.pasteTarget.wouldChange, false);
 assert.equal(mixedUnchanged.scans(), 1);
 assert.equal(rangeEditPreview([], 0, 8, 16, { bars: 4, notes: null }).pasteTarget, null);
 
+
+
+// Sparse clipboard arrays are malformed even though Array.some() skips holes.
+// Never propagate holes into a project track or advertise the paste as valid.
+const sparseClip = { bars: 4, notes: new Array(2) };
+sparseClip.notes[1] = { step: 1, pitch: 60 };
+assert.equal(rangePreview([], sparseClip, 0, 16), null);
+assert.equal(pasteRange([], sparseClip, 0, 16), null);
+const sparseMixedPreview = rangeEditPreview(source, 0, 8, 16, sparseClip);
+assert.deepEqual(sparseMixedPreview.selectedRange, rangeSummary(source, 0, 8, 16));
+assert.equal(sparseMixedPreview.pasteTarget, null);
+// Empty but dense clipboards remain valid, including no-op pastes.
+assert.equal(rangePreview([], { bars: 4, notes: [] }, 0, 16).wouldChange, false);
+// A prototype-inherited note is not an owned array entry and is also rejected.
+const inheritedNotes = new Array(1);
+const inheritedPrototype = Object.create(Array.prototype);
+inheritedPrototype[0] = { step: 0, pitch: 60 };
+Object.setPrototypeOf(inheritedNotes, inheritedPrototype);
+assert.equal(rangePreview([], { bars: 4, notes: inheritedNotes }, 0, 16), null);
+assert.equal(pasteRange([], { bars: 4, notes: inheritedNotes }, 0, 16), null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

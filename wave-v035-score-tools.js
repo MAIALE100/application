@@ -138,12 +138,23 @@
     return { overwritten, ordered: ordered && overwritten === clipboard.notes.length };
   }
 
+  // Array.some() skips sparse holes. Reject them explicitly so malformed
+  // clipboards cannot insert missing note entries into saved tracks.
+  function invalidClipboardNotes(clipboard) {
+    for (let i = 0; i < clipboard.notes.length; i++) {
+      if (!Object.prototype.hasOwnProperty.call(clipboard.notes, i)) return true;
+      const note = clipboard.notes[i];
+      if (!note || !Number.isInteger(note.step) ||
+          note.step < 0 || note.step >= clipboard.bars * 16) return true;
+    }
+    return false;
+  }
+
   function pasteRange(notes, clipboard, startBar, totalBars) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
     const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
-    if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
-        n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    if (!bounds || invalidClipboardNotes(clipboard)) return null;
     // Count overwritten notes without allocating a replacement array. This
     // keeps rejected and identical pastes allocation-free on long scores.
     const { overwritten, ordered } = scanRange(notes, clipboard, bounds);
@@ -173,8 +184,7 @@
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
     const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
-    if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
-        n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    if (!bounds || invalidClipboardNotes(clipboard)) return null;
     const scan = precomputedSummary ? null : scanRange(notes, clipboard, bounds);
     const summary = precomputedSummary || { startBar: startBar + 1,
       endBar: startBar + clipboard.bars, notes: scan.overwritten, total: notes.length };

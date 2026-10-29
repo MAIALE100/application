@@ -1,10 +1,7 @@
 name: BASE Operator Beta ZIP
+# Explicitly paused while the user is developing BASE; do not build operator
+# submission artifacts automatically for every development commit.
 on:
-  push:
-    branches: [base/workspace-dev]
-    paths:
-      - 'flecity_base/**'
-      - '.github/workflows/base-operator-beta.yml'
   workflow_dispatch:
 permissions:
   contents: read

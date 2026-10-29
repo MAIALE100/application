@@ -18,6 +18,7 @@ It is designed for businesses, crews, teams, projects, informal groups, and pers
 - Serialized workspace invitation/acceptance to preserve membership limits under concurrent use
 - Task management with assignee, due date, priority, filters, search, and sorting
 - Accounting ledger with creator attribution, summaries, search, filters, sorting, and non-destructive voids
+- Optional per-BASE stock fields (text / number / date / check; max six); hidden fields preserve saved values
 - User-defined calculators saved per workspace
 - Incremental list rendering for large datasets
 - Automatic database creation and migrations
@@ -64,3 +65,7 @@ See `OPERATOR_GUIDE.md`.
 ## Large-list behavior
 
 Memo, stock, task, and ledger pages support search/filter/sort controls and incremental rendering so the phone UI does not create hundreds of cards at once.
+
+## Hybrid development status
+
+The v0.11.0-dev branch adds stock custom field definitions and values to dedicated tables; standard stock fields remain unchanged. This is a **test candidate**, not a submitted or production-verified release. Run the dedicated custom stock test checklist in `TESTING.md` before rollout.

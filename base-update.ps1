@@ -68,6 +68,15 @@ try {
         throw "Safety check failed: server/main.lua disconnect cleanup count is $PlayerDroppedCount (expected 1)."
     }
 
+    $CustomSource = Join-Path $Source "server\custom_fields.lua"
+    $SchemaSource = Join-Path $Source "sql\schema.sql"
+    $RegressionTest = Join-Path $Source "tests\source-regression.mjs"
+    foreach ($file in @($CustomSource, $SchemaSource, $RegressionTest)) {
+        if (-not (Test-Path -LiteralPath $file)) {
+            throw "BASE hybrid source missing: $file"
+        }
+    }
+
     $LuaCompiler = Get-Command luac5.4 -ErrorAction SilentlyContinue
     if (-not $LuaCompiler) { $LuaCompiler = Get-Command luac -ErrorAction SilentlyContinue }
     if ($LuaCompiler) {
@@ -84,6 +93,12 @@ try {
         Write-Host "==> Checking JavaScript syntax"
         & $Node.Source --check $WebJs
         if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: web/app.js" }
+
+        Write-Host "==> Running BASE source regression guards"
+        & $Node.Source (Join-Path $Source "tests\source-regression.mjs")
+        if ($LASTEXITCODE -ne 0) {
+            throw "BASE source regression guards failed; keeping the current test-server build."
+        }
     }
 
     $Css = Join-Path $Source "web\app.css"

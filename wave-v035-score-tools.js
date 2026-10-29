@@ -205,10 +205,11 @@
   // Combine selected-range and paste previews so the common 4/8-bar case
   // reuses the paste scan instead of scanning the whole track a second time.
   function rangeEditPreview(notes, startBar, count, totalBars, clipboard) {
-    // Reject oversized or non-array clipboards before mixed 4/8-bar scans.
-    // An invalid clipboard must not read its note slots during preview;
-    // keep the selected-window summary available without changing the song.
-    if (clipboard && (!Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
+    // Reject invalid bar counts and oversized/non-array clipboards before
+    // reading any note slots or comparing track fields.
+    // Keep the selected-window summary available without changing the song.
+    if (clipboard && ((clipboard.bars !== 4 && clipboard.bars !== 8) ||
+        !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         invalidClipboardNotes(clipboard))) {
       return { selectedRange: rangeSummary(notes, startBar, count, totalBars), pasteTarget: null };
     }

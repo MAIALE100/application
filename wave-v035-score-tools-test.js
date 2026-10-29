@@ -433,4 +433,21 @@ assert.equal(validMixedResult.pasteTarget.wouldChange,false);
 assert.equal(validMixedResult.pasteTarget.withinLimit,true);
 assert.equal(rangePreview([{step:0,pitch:60}],malformedMixedClip,0,16),null);
 
+// A malformed clipboard bar count must be rejected before reading its slots.
+ // Valid 4/8-bar selection counts must remain visible without a paste target.
+const invalidBarNotes = new Proxy([{step:0,pitch:60}], {
+  get(target,key,receiver) {
+    if (key === '0') throw new Error('invalid bar count must not read clipboard slots');
+    return Reflect.get(target,key,receiver);
+  }
+});
+const invalidBarClipboard = {bars:6,notes:invalidBarNotes};
+const invalidBarTrack = onePassNotes([{step:0,pitch:60},{step:64,pitch:62}]);
+const invalidBarCombined = rangeEditPreview(invalidBarTrack.notes,0,8,16,invalidBarClipboard);
+assert.deepEqual(invalidBarCombined.selectedRange,{startBar:1,endBar:8,notes:2,total:2});
+assert.equal(invalidBarCombined.pasteTarget,null);
+assert.equal(invalidBarTrack.scans(),1);
+assert.equal(rangePreview(source,invalidBarClipboard,0,16),null);
+assert.equal(pasteRange(source,invalidBarClipboard,0,16),null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

@@ -12,6 +12,7 @@ const state = {
   memoSort: "updated_desc",
   memoLimit: 40,
   stock: [],
+  stockFields: [],
   stockRecent: [],
   stockFilter: "all",
   stockCategory: "all",
@@ -105,6 +106,10 @@ const errors = {
   INVALID_STOCK_QUANTITY:"在庫数は0〜1,000,000の整数で入力してください。",
   INVALID_STOCK_DELTA:"在庫の増減数は-1,000,000〜1,000,000の整数で入力してください。",
   STOCK_OUT_OF_RANGE:"変更後の在庫数が0〜1,000,000の範囲を超えます。",
+  INVALID_CUSTOM_FIELD:"この追加項目は使用できません。",
+  INVALID_CUSTOM_VALUES:"追加項目の入力を確認してください。",
+  CUSTOM_FIELD_LIMIT:"追加項目は6つまで登録できます。",
+  CUSTOM_FIELD_DUPLICATE:"同じ名前の項目が既にあります。",
   ZERO_DELTA:"増減数は0以外を入力してください。",
   NO_CHANGE:"在庫数は変更されませんでした。",
   INVALID_AMOUNT:"金額は1〜1,000,000,000の整数で入力してください。",
@@ -322,7 +327,7 @@ async function bootstrap(preferredId){
 
 function resetListViews(){
   state.memoQuery=""; state.memoCategory="all"; state.memoLimit=40;
-  state.stockQuery=""; state.stockFilter="all"; state.stockCategory="all"; state.stockLimit=50;
+  state.stockQuery=""; state.stockFilter="all"; state.stockCategory="all"; state.stockLimit=50; state.stockFields=[];
   state.taskQuery=""; state.taskFilter="all"; state.showCompleted=false; state.taskLimit=50;
   state.moneyQuery=""; state.moneyType="all"; state.moneyCategory="all"; state.showVoidedMoney=false; state.moneyLimit=50;
 }
@@ -349,7 +354,7 @@ async function loadTab(){
   }else if(state.tab==="memo"){
     const d=await api("notesList",{workspaceId:id}); state.notes=d.notes||[]; renderMemo();
   }else if(state.tab==="stock"){
-    const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; state.stockRecent=d.recent||[]; renderStock();
+    const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; state.stockFields=d.customFields||[]; state.stockRecent=d.recent||[]; renderStock();
   }else if(state.tab==="tasks"){
     const d=await api("tasksList",{workspaceId:id}); state.tasks=d.tasks||[]; renderTasks();
   }else if(state.tab==="money"){
@@ -566,6 +571,56 @@ function confirmNoteDelete(note){
     "削除");
 }
 
+function activeExtras(){return (state.stockFields||[]).filter(f=>Number(f.visible)===1);}
+
+function extraForm(item=null){
+  const fields=activeExtras(), values=item?.custom_values||{};
+  if(!fields.length)return "";
+  return `<details class="stock-extras"><summary>追加項目（任意）</summary><div class="stock-extras-body">${fields.map(f=>{
+    const key="custom_"+Number(f.id),value=String(values[String(f.id)]??"");
+    if(f.field_type==="check")return `<div class="field"><label class="check-row"><input type="checkbox" name="${key}" value="1" ${value==="1"?"checked":""}>${esc(f.label)}</label></div>`;
+    const type=f.field_type==="date"?"date":f.field_type==="number"?"number":"text";
+    const extra=type==="number"?'min="-1000000000" max="1000000000" step="0.01"':type==="text"?'maxlength="120"':"";
+    return `<div class="field"><label>${esc(f.label)}</label><input name="${key}" type="${type}" value="${esc(value)}" ${extra}></div>`;
+  }).join("")}</div></details>`;
+}
+
+function extraValues(fd){
+  const values={};
+  for(const f of activeExtras()){
+    const v=fd.get("custom_"+f.id);
+    values[String(f.id)]=f.field_type==="check"?(v==="1"?"1":"0"):String(v??"");
+  }
+  return values;
+}
+
+function extraSummary(item){
+  const values=item.custom_values||{};
+  return activeExtras().filter(f=>values[String(f.id)]!==undefined&&values[String(f.id)]!=="").map(f=>{
+    const v=String(values[String(f.id)]);
+    return `${esc(f.label)}：${f.field_type==="check"?(v==="1"?"はい":"いいえ"):esc(v)}`;
+  }).join(" ・ ");
+}
+
+function addExtraDefinition(){
+  modal("在庫の追加項目を作成",field("label","項目名（40文字以内）")+
+    `<div class="field"><label>入力形式</label><select name="type"><option value="text">文字</option><option value="number">数値</option><option value="date">日付</option><option value="check">チェック</option></select></div><div class="muted">1つのBASEにつき最大6項目。非表示にしても登録値は残ります。</div>`,
+    async fd=>{await api("stockFieldCreate",{workspaceId:selectedWorkspaceId(),label:fd.get("label"),fieldType:fd.get("type")});await loadTab();return true;});
+}
+
+function manageExtras(){
+  const fields=state.stockFields||[];
+  viewModal("在庫の追加項目",`<div class="muted">OWNER/MANAGERが項目を設定できます。非表示にしてもデータは消えません。</div>
+    ${fields.map(f=>`<article class="card compact-card"><div class="row between"><div><strong>${esc(f.label)}</strong><div class="muted">${esc({text:"文字",number:"数値",date:"日付",check:"チェック"}[f.field_type]||f.field_type)}</div></div><button type="button" class="secondary small" data-field-toggle="${Number(f.id)}" data-visible="${Number(f.visible)===1?"0":"1"}">${Number(f.visible)===1?"非表示":"再表示"}</button></div></article>`).join("")||'<div class="empty">追加項目はまだありません。</div>'}
+    <button id="addStockField" type="button" class="primary" ${fields.length>=6?"disabled":""}>＋ 項目を追加 ${fields.length>=6?"（上限）":""}</button>`);
+  $("#addStockField").onclick=()=>{$("#modal").close();addExtraDefinition();};
+  document.querySelectorAll("[data-field-toggle]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{await api("stockFieldToggle",{workspaceId:selectedWorkspaceId(),fieldId:Number(b.dataset.fieldToggle),visible:b.dataset.visible==="1"});await loadTab();manageExtras();}
+    catch(e){b.disabled=false;}
+  });
+}
+
 function renderStock(){
   const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort(textCompare);
   const query=state.stockQuery.trim().toLowerCase();
@@ -591,7 +646,7 @@ function renderStock(){
 
   const visible=rows.slice(0,state.stockLimit);
   $("#content").innerHTML=`
-    <div class="row between"><h2>在庫</h2>${canManage()?'<button class="primary" data-action="new-stock">＋ 追加</button>':""}</div>
+    <div class="row between"><h2>在庫</h2>${canManage()?'<span class="row"><button class="secondary small" data-action="manage-stock-fields">項目設定</button><button class="primary" data-action="new-stock">＋ 追加</button></span>':""}</div>
     <div class="toolbar">
       <input id="stockSearch" class="search-input" placeholder="在庫を検索" value="${esc(state.stockQuery)}">
       <div class="filter-group">
@@ -613,6 +668,7 @@ function renderStock(){
     ${listMeta(state.stock.length,rows.length,visible.length)}
     ${visible.length?visible.map(i=>{
       const low=num(i.quantity)<=num(i.minimum_quantity);
+      const customInfo=extraSummary(i);
       return `<article class="card">
         <div class="row between">
           <div>
@@ -620,6 +676,7 @@ function renderStock(){
             <div class="row"><span class="badge">${esc(i.category||"general")}</span>${low?'<span class="badge warn">在庫不足</span>':'<span class="badge good">在庫OK</span>'}</div>
             <div class="muted">最低在庫 ${num(i.minimum_quantity).toLocaleString()} ${esc(i.unit)}</div>
             <div class="muted">登録: ${esc(personLabel(i.created_by_name,i.created_by))}</div>
+            ${customInfo?`<div class="muted stock-extra-summary">${customInfo}</div>`:""}
           </div>
           <div class="stock-count">${num(i.quantity).toLocaleString()} <small>${esc(i.unit)}</small></div>
         </div>
@@ -660,8 +717,8 @@ function renderStock(){
 function newStock(){
   modal("在庫品目を追加",
     field("name","品名")+field("category","カテゴリ","general")+
-    `<div class="split">${field("quantity","初期数量","0","number",'min="0" max="1000000" step="1"')}${field("minimum","最低在庫","0","number",'min="0" max="1000000" step="1"')}</div>`+field("unit","単位","個"),
-    async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),category:fd.get("category"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+    `<div class="split">${field("quantity","初期数量","0","number",'min="0" max="1000000" step="1"')}${field("minimum","最低在庫","0","number",'min="0" max="1000000" step="1"')}</div>`+field("unit","単位","個")+extraForm(),
+    async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),category:fd.get("category"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit"),customValues:extraValues(fd)});await loadTab();return true;});
 }
 
 async function adjustStock(item,delta,note=""){
@@ -676,8 +733,8 @@ function customStock(item){
 }
 
 function configStock(item){
-  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number",'min="0" max="1000000" step="1"')}${field("unit","単位",item.unit)}</div>`,
-    async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit")});await loadTab();return true;});
+  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number",'min="0" max="1000000" step="1"')}${field("unit","単位",item.unit)}</div>`+extraForm(item),
+    async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit"),customValues:extraValues(fd)});await loadTab();return true;});
 }
 
 function deleteStock(item){
@@ -1414,6 +1471,7 @@ function bindContent(){
       else if(a==="pin-note"){await api("notePin",{workspaceId:selectedWorkspaceId(),id,pinned:b.dataset.pinned==="1"});await loadTab();}
       else if(a==="delete-note") confirmNoteDelete(state.notes.find(x=>Number(x.id)===id));
       else if(a==="new-stock") newStock();
+      else if(a==="manage-stock-fields") manageExtras();
       else if(a==="stock-adjust") await adjustStock(state.stock.find(x=>Number(x.id)===id),Number(b.dataset.delta));
       else if(a==="stock-custom") customStock(state.stock.find(x=>Number(x.id)===id));
       else if(a==="stock-config") configStock(state.stock.find(x=>Number(x.id)===id));

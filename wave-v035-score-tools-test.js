@@ -361,4 +361,27 @@ Object.setPrototypeOf(inheritedClear,inheritedClearProto);
 inheritedClear[1] = {step:128,pitch:61};
 assert.deepEqual(clearRange(inheritedClear,0,4,16),[{step:128,pitch:61}]);
 
+
+// A corrupt/oversized clipboard must not be dereferenced by the combined
+// 4/8-bar preview. A malformed clip is not pasteable, but the selected
+// range should still be displayed after exactly one scan of a long track.
+const oversizedPreviewNotes = new Proxy(new Array(8193), {
+  get(target, key, receiver) {
+    if (typeof key === 'string' && /^[0-9]+$/.test(key)) {
+      throw new Error('oversized clipboard notes must not be inspected');
+    }
+    return Reflect.get(target, key, receiver);
+  }
+});
+const oversizedPreviewTrack = onePassNotes([{step:0,pitch:60},{step:64,pitch:61}]);
+const oversizedMixed = rangeEditPreview(oversizedPreviewTrack.notes,0,8,16,
+  {bars:4,notes:oversizedPreviewNotes});
+assert.deepEqual(oversizedMixed.selectedRange,
+  {startBar:1,endBar:8,notes:2,total:2});
+assert.equal(oversizedMixed.pasteTarget,null);
+assert.equal(oversizedPreviewTrack.scans(),1);
+const invalidTypeMixed = rangeEditPreview(source,0,8,16,{bars:4,notes:'invalid'});
+assert.deepEqual(invalidTypeMixed.selectedRange,rangeSummary(source,0,8,16));
+assert.equal(invalidTypeMixed.pasteTarget,null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

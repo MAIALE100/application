@@ -139,7 +139,7 @@ These checks can be completed by one tester on the test server.
 
 ## Safety / persistence
 
-- Run `base_selftest` after an update and confirm all 6 checks pass, including `validators`.
+- Run `base_selftest` after an update and confirm all 7 checks pass, including `validators` and `stock_txn`.
 - Restart only `flecity_base` and confirm existing data remains.
 - Create several BASE workspaces and switch between them.
 - Refresh the app repeatedly and confirm no duplicate MY SPACE is created.
@@ -178,7 +178,14 @@ These should not block solo development.
 
 ## Concurrent access
 
+- The development build requires oxmysql v2.12.0+ with `MySQL.startTransaction` support (`base_selftest` reports `stock_txn PASS`).
 - Two users updating the same stock item never silently overwrite each other.
+- Run simultaneous +1 and -1 adjustments on the same item; final quantity matches the sum of successful operations and each movement has the correct before/after chain.
+- Force a movement insert failure on a disposable test DB: the stock quantity change must roll back. Do not intentionally break the production database.
+- Create an item with nonzero initial quantity; its initial movement must exist, otherwise item creation must roll back.
+- Simultaneously accept invitations when a workspace has only one free slot: at most one acceptance may succeed, and no workspace exceeds the configured member cap.
+- Simultaneously invite multiple citizenids near the pending-invite cap; the cap must not be exceeded.
+- Repeatedly accept the same invite: exactly one membership is created, with the invite ending in accepted status.
 - Forged workspace IDs return NOT_A_MEMBER.
 - Assignee restrictions work for another citizenid.
 
@@ -191,6 +198,8 @@ These should not block solo development.
 - Reconnect resets WEAZEL SUPPORT to OFF.
 - Non-member global workspace opens are written to `flecity_base_access_audit`.
 - WEAZEL SUPPORT ON/OFF changes are written to `flecity_base_access_audit`.
+- An ADMIN or WEAZEL maintainer who is also a normal member retains their global maintenance permissions while the global mode is active.
+- Character unload or WEAZEL job change clears active support access without requiring a disconnect.
 
 # Deferred integrations
 
@@ -209,3 +218,7 @@ These should not block solo development.
 - Packaged `config.lua` uses `FlecityBaseConfig.Debug = false`.
 - `OPERATOR_GUIDE.md` and `ACCESS.md` are included.
 - The package passes Lua/JavaScript/CSS safety checks when the corresponding local tools are available.
+
+## Automation scope
+
+GitHub Actions checks Lua syntax, JavaScript syntax, CSS compatibility, packaging files, and static source regression guards. These cannot prove SQL row-lock behavior, complete transaction rollback, or correctness with two real FiveM players; the above live checks remain required.

@@ -193,6 +193,11 @@
       const midi = Number(pitch), t = Number(when), d = Number(duration);
       if (!Number.isFinite(midi) || !Number.isFinite(t) || !Number.isFinite(d)) return result;
       if (midi < 24 || midi > 108 || d <= 0) return result;
+      // A zero-velocity note is intentionally silent. The previous || fallback
+      // treated 0 as 0.7 and added an audible harmonic to muted notes.
+      const rawVelocity = velocity == null ? 0.7 : Number(velocity);
+      const level = Number.isFinite(rawVelocity) ? Math.max(0, Math.min(1, rawVelocity)) : 0.7;
+      if (level === 0) return result;
 
       try {
         const oscillator = ctx.createOscillator();
@@ -202,7 +207,7 @@
         oscillator.frequency.value = frequency * profile.ratio;
         oscillator.connect(envelope);
         envelope.connect(ctx.destination);
-        const vol = Math.max(0.0001, Math.min(1, Number(velocity) || 0.7)) * profile.volume;
+        const vol = level * profile.volume;
         const attackEnd = t + profile.attack;
         const end = Math.min(t + 2.5, t + Math.max(0.06, d) + profile.release);
         envelope.gain.setValueAtTime(0.0001, t);

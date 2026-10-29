@@ -362,7 +362,7 @@ try {
         throw ('WAVE long score tools SHA mismatch: ' + $scoreToolsHash)
     }
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    if ($extrasHash -ne '689AE752C16F91F9CB11E95A74204043A210BF24658802B50A0543A7308DA27B') {
+    if ($extrasHash -ne 'B2F5CAC8E2DB3BC94D959130199C35F2974300F7C527802FD770BF84FE85D52F') {
         throw ('WAVE studio template script SHA mismatch: ' + $extrasHash)
     }
 

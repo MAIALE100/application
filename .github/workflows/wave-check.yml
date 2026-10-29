@@ -20,6 +20,7 @@ on:
       - 'wave-v031-release-feedback.patch.b64'
       - 'wave-v032-publish-guard.patch'
       - 'wave-v033-studio-extras.js'
+      - 'wave-v033-studio-extras-test.js'
       - 'wave-v035-score-tools.js'
       - 'wave-v035-score-tools-test.js'
       - 'wave-v033-integrity-test.py'
@@ -101,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b  wave-v033-studio-extras.js" | sha256sum -c -
+          echo "b2f5cac8e2db3bc94d959130199c35f2974300f7c527802fd770bf84fe85d52f  wave-v033-studio-extras.js" | sha256sum -c -
           cp wave-v033-studio-extras.js wave-check/wave/web/studio-extras.js
           python3 - <<'PY'
           from pathlib import Path
@@ -230,6 +231,8 @@ jobs:
           set -euo pipefail
           node --check wave-check/wave/web/app.js
           node --check wave-check/wave/web/studio-extras.js
+          node --check wave-v033-studio-extras-test.js
+          node wave-v033-studio-extras-test.js
           node --check wave-check/wave/web/score-tools.js
           node wave-v035-score-tools-test.js
           ! grep -P '\b(prompt|confirm)\s*\(' wave-check/wave/web/app.js

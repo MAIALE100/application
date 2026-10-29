@@ -123,6 +123,21 @@
     return true;
   }
 
+  // Count and check ordered identity in the same pass. The common unchanged
+  // paste/preview now avoids a second scan of a long track. Reordered chords
+  // still use the exact multiset fallback in sameRange().
+  function scanRange(notes, clipboard, bounds) {
+    let overwritten = 0;
+    let ordered = true;
+    for (const note of notes) {
+      if (!note || !Number.isInteger(note.step) ||
+          note.step < bounds.start || note.step >= bounds.end) continue;
+      if (ordered && !equivalentNote(note, clipboard.notes[overwritten], bounds.start)) ordered = false;
+      overwritten++;
+    }
+    return { overwritten, ordered: ordered && overwritten === clipboard.notes.length };
+  }
+
   function pasteRange(notes, clipboard, startBar, totalBars) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
@@ -131,16 +146,12 @@
         n.step < 0 || n.step >= clipboard.bars * 16)) return null;
     // Count overwritten notes without allocating a replacement array. This
     // keeps rejected and identical pastes allocation-free on long scores.
-    let overwritten = 0;
-    for (const note of notes) {
-      if (note && Number.isInteger(note.step) &&
-          note.step >= bounds.start && note.step < bounds.end) overwritten++;
-    }
+    const { overwritten, ordered } = scanRange(notes, clipboard, bounds);
     // Preserve the existing 8192-note cap, including malformed legacy notes.
     if (notes.length - overwritten + clipboard.notes.length > 8192) return null;
     // Differing note counts cannot be identical; skip the second track scan.
     // The UI uses unchanged array identity to avoid redundant Undo/dirty flags.
-    if (overwritten === clipboard.notes.length && sameRange(notes, clipboard, bounds)) return notes;
+    if (overwritten === clipboard.notes.length && (ordered || sameRange(notes, clipboard, bounds))) return notes;
     const remaining = notes.filter(n => !n || !Number.isInteger(n.step) ||
       n.step < bounds.start || n.step >= bounds.end);
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
@@ -159,16 +170,21 @@
   }
 
   function rangePreview(notes, clipboard, startBar, totalBars, precomputedSummary) {
-    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192) return null;
-    const summary = precomputedSummary || rangeSummary(notes, startBar, clipboard.bars, totalBars);
-    if (!summary || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
+    if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
+        !Array.isArray(notes)) return null;
+    const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
+    if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
         n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    const scan = precomputedSummary ? null : scanRange(notes, clipboard, bounds);
+    const summary = precomputedSummary || { startBar: startBar + 1,
+      endBar: startBar + clipboard.bars, notes: scan.overwritten, total: notes.length };
     const totalAfter = summary.total - summary.notes + clipboard.notes.length;
+    const ordered = scan ? scan.ordered : precomputedSummary.ordered === true;
     return { startBar: summary.startBar, endBar: summary.endBar,
       overwritten: summary.notes, inserted: clipboard.notes.length,
       totalAfter, withinLimit: totalAfter <= 8192,
       wouldChange: totalAfter > 8192 || summary.notes !== clipboard.notes.length ||
-        !sameRange(notes, clipboard, rangeBounds(startBar, clipboard.bars, totalBars)) };
+        !(ordered || sameRange(notes, clipboard, bounds)) };
   }
 
   // Combine selected-range and paste previews so the common 4/8-bar case
@@ -181,15 +197,20 @@
     if (Array.isArray(notes) && selectedBounds && pasteBounds && clipboard.bars !== count) {
       let selected = 0;
       let overwritten = 0;
+      let pasteOrdered = Array.isArray(clipboard.notes);
       for (const note of notes) {
         if (!note || !Number.isInteger(note.step)) continue;
         if (note.step >= selectedBounds.start && note.step < selectedBounds.end) selected++;
-        if (note.step >= pasteBounds.start && note.step < pasteBounds.end) overwritten++;
+        if (note.step >= pasteBounds.start && note.step < pasteBounds.end) {
+          if (pasteOrdered && !equivalentNote(note, clipboard.notes[overwritten], pasteBounds.start)) pasteOrdered = false;
+          overwritten++;
+        }
       }
       const selectedRange = { startBar: startBar + 1, endBar: startBar + count,
         notes: selected, total: notes.length };
       const pasteSummary = { startBar: startBar + 1, endBar: startBar + clipboard.bars,
-        notes: overwritten, total: notes.length };
+        notes: overwritten, total: notes.length,
+        ordered: pasteOrdered && overwritten === clipboard.notes.length };
       return { selectedRange,
         pasteTarget: rangePreview(notes, clipboard, startBar, totalBars, pasteSummary) };
     }

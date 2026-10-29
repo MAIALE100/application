@@ -256,4 +256,21 @@ assert.equal(mixedEightToFour.scans(),1);
 assert.equal(rangeEditPreview(source,13,4,16,eightNoteClip).selectedRange,null);
 assert.equal(rangeEditPreview(source,13,4,16,eightNoteClip).pasteTarget,null);
 
+
+// Identical ordered regions should preview and paste in one track iteration,
+// including a mixed 4/8-bar selector. Reordered chords still use the fallback.
+const unchangedClip = { bars: 4, notes: [{ step: 0, pitch: 60 }] };
+const unchangedPreview = onePassNotes([{ step: 0, pitch: 60 }]);
+assert.equal(rangePreview(unchangedPreview.notes, unchangedClip, 0, 16).wouldChange, false);
+assert.equal(unchangedPreview.scans(), 1);
+const unchangedPaste = onePassNotes([{ step: 0, pitch: 60 }]);
+assert.equal(pasteRange(unchangedPaste.notes, unchangedClip, 0, 16), unchangedPaste.notes);
+assert.equal(unchangedPaste.scans(), 1);
+const mixedUnchanged = onePassNotes([{ step: 0, pitch: 60 }, { step: 64, pitch: 70 }]);
+const mixedUnchangedResult = rangeEditPreview(mixedUnchanged.notes, 0, 8, 16, unchangedClip);
+assert.equal(mixedUnchangedResult.selectedRange.notes, 2);
+assert.equal(mixedUnchangedResult.pasteTarget.wouldChange, false);
+assert.equal(mixedUnchanged.scans(), 1);
+assert.equal(rangeEditPreview([], 0, 8, 16, { bars: 4, notes: null }).pasteTarget, null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

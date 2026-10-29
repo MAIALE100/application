@@ -786,19 +786,29 @@ handlers.stockCreate = function(source, data)
     if quantity == nil or minimum == nil then return {ok=false, error='INVALID_STOCK_QUANTITY'} end
     local unit = clean(data.unit or '個', 32)
     if unit == '' then unit = '個' end
-    local id = MySQL.insert.await([[
-        INSERT INTO flecity_base_stock_items
-        (workspace_id, name, category, quantity, minimum_quantity, unit, created_by, created_by_name)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, name, category, quantity, minimum, unit, ctx.citizenid, ctx.name})
-    if id and quantity ~= 0 then
-        MySQL.insert.await([[
-            INSERT INTO flecity_base_stock_movements
-            (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
-            VALUES (?, ?, ?, ?, ?, 0, ?, '初期在庫')
-        ]], {workspace.id, id, ctx.citizenid, ctx.name, quantity, quantity})
-    end
-    return {ok=id ~= nil, id=tonumber(id)}
+    -- The item and its initial movement must commit together. A failed history
+    -- INSERT must not leave behind a stock record with undocumented quantity.
+    local id
+    local committed = MySQL.startTransaction(function(query)
+        local created = query([[
+            INSERT INTO flecity_base_stock_items
+            (workspace_id, name, category, quantity, minimum_quantity, unit, created_by, created_by_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ]], {workspace.id, name, category, quantity, minimum, unit, ctx.citizenid, ctx.name})
+        id = created and tonumber(created.insertId) or nil
+        if not id or id < 1 then return false end
+
+        if quantity ~= 0 then
+            local recorded = query([[
+                INSERT INTO flecity_base_stock_movements
+                (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
+                VALUES (?, ?, ?, ?, ?, 0, ?, '初期在庫')
+            ]], {workspace.id, id, ctx.citizenid, ctx.name, quantity, quantity})
+            if not recorded or tonumber(recorded.affectedRows) ~= 1 then return false end
+        end
+        return true
+    end)
+    return {ok=committed == true, id=committed and id or nil}
 end
 
 handlers.stockAdjust = function(source, data)
@@ -807,30 +817,62 @@ handlers.stockAdjust = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireMember(ctx, data.workspaceId)
     if not workspace then return accessErr end
-    local item = MySQL.single.await([[
-        SELECT id, quantity FROM flecity_base_stock_items
-        WHERE id=? AND workspace_id=? LIMIT 1
-    ]], {integer(data.id, 1), workspace.id})
-    if not item then return {ok=false, error='ITEM_NOT_FOUND'} end
-    local requested = strictInteger(data.delta, -L.stockQuantity, L.stockQuantity)
-    if requested == nil then return {ok=false, error='INVALID_STOCK_DELTA'} end
-    if requested == 0 then return {ok=false, error='ZERO_DELTA'} end
-    local before = strictInteger(item.quantity, 0, L.stockQuantity)
-    if before == nil then return {ok=false, error='INVALID_STOCK_QUANTITY'} end
-    local after = before + requested
-    if after < 0 or after > L.stockQuantity then return {ok=false, error='STOCK_OUT_OF_RANGE'} end
-    local actual = requested
-    local changed = MySQL.update.await([[
-        UPDATE flecity_base_stock_items SET quantity=?, updated_at=NOW()
-        WHERE id=? AND workspace_id=? AND quantity=?
-    ]], {after, item.id, workspace.id, before})
-    if (tonumber(changed) or 0) == 0 then return {ok=false, error='STOCK_CHANGED_RETRY'} end
-    MySQL.insert.await([[
-        INSERT INTO flecity_base_stock_movements
-        (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ]], {workspace.id, item.id, ctx.citizenid, ctx.name, actual, before, after, clean(data.note, L.shortText)})
-    return {ok=true, quantity=after, delta=actual}
+
+    local itemId = integer(data.id, 1)
+    local delta = strictInteger(data.delta, -L.stockQuantity, L.stockQuantity)
+    if delta == nil then return {ok=false, error='INVALID_STOCK_DELTA'} end
+    if delta == 0 then return {ok=false, error='ZERO_DELTA'} end
+    local note = clean(data.note, L.shortText)
+
+    local after, failure
+    local committed = MySQL.startTransaction(function(query)
+        -- Lock the actual item row; parallel adjustments must not both read the
+        -- same starting quantity. The lock lives until the movement is written.
+        local items = query([[
+            SELECT quantity FROM flecity_base_stock_items
+            WHERE id=? AND workspace_id=? FOR UPDATE
+        ]], {itemId, workspace.id})
+        local item = items and items[1] or nil
+        if not item then
+            failure = 'ITEM_NOT_FOUND'
+            return false
+        end
+
+        local before = strictInteger(item.quantity, 0, L.stockQuantity)
+        if before == nil then
+            failure = 'INVALID_STOCK_QUANTITY'
+            return false
+        end
+        after = before + delta
+        if after < 0 or after > L.stockQuantity then
+            failure = 'STOCK_OUT_OF_RANGE'
+            return false
+        end
+
+        local changed = query([[
+            UPDATE flecity_base_stock_items SET quantity=?, updated_at=NOW()
+            WHERE id=? AND workspace_id=? AND quantity=?
+        ]], {after, itemId, workspace.id, before})
+        if not changed or tonumber(changed.affectedRows) ~= 1 then
+            failure = 'STOCK_CHANGED_RETRY'
+            return false
+        end
+
+        local recorded = query([[
+            INSERT INTO flecity_base_stock_movements
+            (workspace_id, item_id, actor_citizenid, actor_name, delta, before_quantity, after_quantity, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ]], {workspace.id, itemId, ctx.citizenid, ctx.name, delta, before, after, note})
+        if not recorded or tonumber(recorded.affectedRows) ~= 1 then
+            return false
+        end
+        return true
+    end)
+
+    if committed ~= true then
+        return {ok=false, error=failure or 'SERVER_ERROR'}
+    end
+    return {ok=true, quantity=after, delta=delta}
 end
 
 handlers.stockConfigure = function(source, data)
@@ -1324,6 +1366,7 @@ RegisterCommand('base_selftest', function(source)
         {'qbx_core', FlecityBaseFramework.IsReady()},
         {'lb-phone', GetResourceState('lb-phone') == 'started'},
         {'oxmysql', GetResourceState('oxmysql') == 'started'},
+        {'stock_txn', type(MySQL.startTransaction) == 'function'},
         {'database', dbOk},
         {'callbacks', registeredCallbacks == callbackCount()},
         {'validators', validatorsOk}

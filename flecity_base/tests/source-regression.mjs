@@ -53,4 +53,32 @@ for (const table of ["flecity_base_stock_items", "flecity_base_stock_movements",
   assert(database.includes("CREATE TABLE IF NOT EXISTS " + table), "Missing auto-created table: " + table);
   assert(schema.includes("CREATE TABLE IF NOT EXISTS " + table), "Missing SQL reference table: " + table);
 }
+
+// New hybrid-stock regression guards (static checks, not runtime behavior).
+const customService = readFileSync(join(root, "server/custom_fields.lua"), "utf8");
+const clientBridge = readFileSync(join(root, "client/main.lua"), "utf8");
+const webApp = readFileSync(join(root, "web/app.js"), "utf8");
+const expectedCustomHandlers = ["stockFieldsList", "stockFieldCreate", "stockFieldToggle"];
+for (const name of expectedCustomHandlers) {
+  requires(new RegExp("handlers\\." + name + " = function"), main, "Missing server handler " + name);
+  assert(main.includes("['flecity_base:" + name + "'] = handlers." + name), "Missing registered callback " + name);
+  assert(clientBridge.includes(name + " = 'flecity_base:" + name + "'"), "Missing NUI bridge " + name);
+}
+for (const table of ["flecity_base_stock_fields", "flecity_base_stock_values"]) {
+  assert(database.includes("CREATE TABLE IF NOT EXISTS " + table), "Missing DB bootstrap table " + table);
+  assert(schema.includes("CREATE TABLE IF NOT EXISTS " + table), "Missing SQL reference table " + table);
+}
+requires(/server\/custom_fields\.lua/, manifest, "Missing service manifest entry");
+requires(/function F\.ValidateValues/, customService, "Missing server-side value validation");
+requires(/function F\.Selftest/, customService, "Missing pure input validator test");
+requires(/MAX_FIELDS = 6/, customService, "Custom field limit changed without review");
+requires(/FlecityBaseCustom\.WriteValues\(query, workspace\.id, id, extras\)/, create, "New stock values not saved atomically");
+requires(/FlecityBaseCustom\.WriteValues\(query, workspace\.id, itemId, extras\)/, handler("stockConfigure"), "Configured stock values not saved atomically");
+requires(/FlecityBaseCustom\.ListFields\(workspace\.id, showHidden\)/, handler("stockList"), "Missing visibility-aware field reads");
+requires(/FlecityBaseCustom\.LoadValues\(workspace\.id, showHidden\)/, handler("stockList"), "Missing visibility-aware value reads");
+requires(/stockFieldCreate/, webApp, "Missing custom stock field creation UI");
+requires(/stockFieldToggle/, webApp, "Missing custom stock field visibility UI");
+requires(/customValues:extraValues\(fd\)/, webApp, "Missing client serialization of custom stock values");
+requires(/stock-extras/, readFileSync(join(root, "web/app.css"), "utf8"), "Missing collapsible stock field styles");
+assert(!main.includes("\nend\nend\n\nhandlers."), "Stray top-level Lua end near a handler");
 console.log("BASE source regression guards: PASS");

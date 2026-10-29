@@ -70,4 +70,4 @@ jobs:
           test -f flecity_base/web/index.html
           test -f flecity_base/web/app.css
           test -f flecity_base/web/app.js
-          test -f flecity_base/web/icon.svg
+          test -f flecity_base/web/icon.webp

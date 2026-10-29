@@ -235,4 +235,25 @@ assert.deepEqual(rangeEditPreview(source,0,4,16,null).selectedRange,
 assert.equal(rangeEditPreview(source,13,4,16,clip4).selectedRange,null);
 assert.equal(rangeEditPreview(source,13,4,16,clip4).pasteTarget,null);
 
+
+// Switching the 4/8-bar selector while a differently sized clip is held
+// must also count both windows in one pass on long scores.
+const mixedFourToEight = onePassNotes([{step:0,pitch:60},{step:1,pitch:61},{step:64,pitch:62}]);
+const mixedFourToEightPreview = rangeEditPreview(mixedFourToEight.notes,0,8,16,oneNoteClip);
+assert.deepEqual(mixedFourToEightPreview.selectedRange,
+  {startBar:1,endBar:8,notes:3,total:3});
+assert.equal(mixedFourToEightPreview.pasteTarget.overwritten,2);
+assert.equal(mixedFourToEightPreview.pasteTarget.wouldChange,true);
+assert.equal(mixedFourToEight.scans(),1);
+const eightNoteClip = {bars:8,notes:[{step:0,pitch:70}]};
+const mixedEightToFour = onePassNotes([{step:0,pitch:60},{step:64,pitch:61}]);
+const mixedEightToFourPreview = rangeEditPreview(mixedEightToFour.notes,0,4,16,eightNoteClip);
+assert.deepEqual(mixedEightToFourPreview.selectedRange,
+  {startBar:1,endBar:4,notes:1,total:2});
+assert.equal(mixedEightToFourPreview.pasteTarget.overwritten,2);
+assert.equal(mixedEightToFourPreview.pasteTarget.wouldChange,true);
+assert.equal(mixedEightToFour.scans(),1);
+assert.equal(rangeEditPreview(source,13,4,16,eightNoteClip).selectedRange,null);
+assert.equal(rangeEditPreview(source,13,4,16,eightNoteClip).pasteTarget,null);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

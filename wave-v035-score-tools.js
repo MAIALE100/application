@@ -158,9 +158,9 @@
     return { startBar: startBar + 1, endBar: startBar + count, notes: selected, total: notes.length };
   }
 
-  function rangePreview(notes, clipboard, startBar, totalBars) {
+  function rangePreview(notes, clipboard, startBar, totalBars, precomputedSummary) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192) return null;
-    const summary = rangeSummary(notes, startBar, clipboard.bars, totalBars);
+    const summary = precomputedSummary || rangeSummary(notes, startBar, clipboard.bars, totalBars);
     if (!summary || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
         n.step < 0 || n.step >= clipboard.bars * 16)) return null;
     const totalAfter = summary.total - summary.notes + clipboard.notes.length;
@@ -174,6 +174,25 @@
   // Combine selected-range and paste previews so the common 4/8-bar case
   // reuses the paste scan instead of scanning the whole track a second time.
   function rangeEditPreview(notes, startBar, count, totalBars, clipboard) {
+    // A copied 4-bar region can be previewed while the editor selects 8 bars
+    // (and vice versa). Count both windows in one track scan rather than two.
+    const selectedBounds = rangeBounds(startBar, count, totalBars);
+    const pasteBounds = clipboard && rangeBounds(startBar, clipboard.bars, totalBars);
+    if (Array.isArray(notes) && selectedBounds && pasteBounds && clipboard.bars !== count) {
+      let selected = 0;
+      let overwritten = 0;
+      for (const note of notes) {
+        if (!note || !Number.isInteger(note.step)) continue;
+        if (note.step >= selectedBounds.start && note.step < selectedBounds.end) selected++;
+        if (note.step >= pasteBounds.start && note.step < pasteBounds.end) overwritten++;
+      }
+      const selectedRange = { startBar: startBar + 1, endBar: startBar + count,
+        notes: selected, total: notes.length };
+      const pasteSummary = { startBar: startBar + 1, endBar: startBar + clipboard.bars,
+        notes: overwritten, total: notes.length };
+      return { selectedRange,
+        pasteTarget: rangePreview(notes, clipboard, startBar, totalBars, pasteSummary) };
+    }
     const pasteTarget = clipboard ? rangePreview(notes, clipboard, startBar, totalBars) : null;
     const selectedRange = pasteTarget && clipboard.bars === count
       ? { startBar: pasteTarget.startBar, endBar: pasteTarget.endBar,

@@ -1040,7 +1040,6 @@ handlers.stockFieldToggle = function(source, data)
     if (tonumber(found.visible) == 1) == data.visible then return {ok=true} end
     return {ok=FlecityBaseCustom.SetVisibility(workspace.id, fieldId, data.visible)}
 end
-end
 
 handlers.stockDelete = function(source, data)
     local ctx, err = sourceContext(source)

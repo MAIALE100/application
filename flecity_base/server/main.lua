@@ -822,13 +822,14 @@ handlers.stockList = function(source, data)
         ORDER BY m.created_at DESC, m.id DESC
         LIMIT 12
     ]], {workspace.id}) or {}
-    local fieldList = FlecityBaseCustom.ListFields(workspace.id, true)
+    local showHidden = hasManagerPower(workspace)
+    local fieldList = FlecityBaseCustom.ListFields(workspace.id, showHidden)
     local byId = {}
     for _, item in ipairs(items) do
         item.custom_values = {}
         byId[tonumber(item.id)] = item
     end
-    for _, value in ipairs(FlecityBaseCustom.LoadValues(workspace.id)) do
+    for _, value in ipairs(FlecityBaseCustom.LoadValues(workspace.id, showHidden)) do
         local item = byId[tonumber(value.item_id)]
         if item then
             item.custom_values[tostring(value.field_id)] = tostring(value.field_value or '')
@@ -999,7 +1000,8 @@ handlers.stockConfigure = function(source, data)
         if not changed then return false end
         return FlecityBaseCustom.WriteValues(query, workspace.id, itemId, extras)
     end)
-    return {ok=committed == true, error=committed and nil or (failure or 'SERVER_ERROR')}
+    if committed ~= true then return {ok=false, error=failure or 'SERVER_ERROR'} end
+    return {ok=true}
 end
 
 handlers.stockFieldsList = function(source, data)

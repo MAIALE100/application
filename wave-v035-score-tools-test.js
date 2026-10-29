@@ -21,6 +21,20 @@ assert.equal(jumpTarget(124,125,-8),116);
 assert.equal(jumpTarget(10,125,NaN),10);
 assert.equal(jumpTarget(127,999,4),127);
 
+// The final full 4/8-bar window is not the final single bar.
+// A 125-bar song should land on bar 122 or 118 (one-based).
+const { lastRangeStart } = require('./wave-v035-score-tools.js');
+assert.equal(lastRangeStart(125,4),121);
+assert.equal(lastRangeStart(125,8),117);
+assert.equal(lastRangeStart(128,8),120);
+assert.equal(lastRangeStart(8,8),0);
+assert.equal(lastRangeStart(4,4),0);
+assert.equal(lastRangeStart(4,8),null);
+assert.equal(lastRangeStart(3,4),null);
+assert.equal(lastRangeStart(125,6),null);
+assert.equal(lastRangeStart(125,'4'),null);
+assert.equal(lastRangeStart(0,4),null);
+
 // Four beats per bar, 16 steps/bar.  The values agree with existing presets.
 assert.equal(durationSeconds(15,120),30);
 assert.equal(durationLabel(15,120),'0:30');
@@ -43,6 +57,8 @@ const source = [
   { step: 127, pitch: 72, length: 1, velocity: 0.5 },
   { step: 128, pitch: 74, length: 1, velocity: 0.4 }
 ];
+assert.deepEqual(rangeBounds(lastRangeStart(125,8),8,125),{start:1872,end:2000});
+assert.deepEqual(rangeBounds(lastRangeStart(125,4),4,125),{start:1936,end:2000});
 assert.deepEqual(rangeBounds(0,4,8),{start:0,end:64});
 assert.equal(rangeBounds(5,4,8),null);
 assert.equal(rangeBounds(0,3,8),null);

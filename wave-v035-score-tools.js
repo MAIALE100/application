@@ -31,6 +31,14 @@
   }
 
 
+  // Jump directly to the final complete 4/8-bar edit window, not the last
+  // single bar where a range operation would be out of bounds.
+  function lastRangeStart(totalBars, count) {
+    if (count !== 4 && count !== 8) return null;
+    const bars = validBars(totalBars);
+    return bars >= count ? bars - count : null;
+  }
+
   // WAVE_RANGE_EDIT_V036: selected-track edits only; unchanged save format.
   function rangeBounds(startBar, count, totalBars) {
     if (!Number.isInteger(startBar) || (count !== 4 && count !== 8)) return null;
@@ -297,7 +305,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -325,6 +333,7 @@
       '<div class="wave-score-quick-row" id="waveRangeTools">',
       '  <label for="waveRangeBars">範囲</label>',
       '  <select id="waveRangeBars" aria-label="編集する小節数"><option value="4">4小節</option><option value="8">8小節</option></select>',
+      '  <button type="button" class="secondary" id="waveRangeLast">末尾の範囲へ</button>',
       '  <button type="button" class="secondary" id="waveRangeCopy">コピー</button>',
       '  <button type="button" class="secondary" id="waveRangePaste">貼り付け</button>',
       '  <button type="button" class="secondary" id="waveRangeClear">範囲削除</button>',
@@ -346,6 +355,7 @@
     const estimate = host.querySelector('#waveScoreEstimate');
     const message = host.querySelector('#waveScoreMessage');
     const rangeSelect = host.querySelector('#waveRangeBars');
+    const rangeLast = host.querySelector('#waveRangeLast');
     const rangeCopy = host.querySelector('#waveRangeCopy');
     const rangePaste = host.querySelector('#waveRangePaste');
     const rangeClear = host.querySelector('#waveRangeClear');
@@ -372,6 +382,7 @@
       const track = selectedNotes();
       const { selectedRange, pasteTarget } = rangeEditPreview(
         track && track.notes, index, selectedCount, bars, rangeClipboard);
+      rangeLast.disabled = lastRangeStart(bars, selectedCount) === null;
       rangeCopy.disabled = !selectedRange;
       rangeClear.disabled = !selectedRange || selectedRange.notes === 0;
       rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit || !pasteTarget.wouldChange;
@@ -421,6 +432,11 @@
       const track = getTrack();
       return track && Array.isArray(track.notes) ? track : null;
     }
+
+    rangeLast.addEventListener('click', () => {
+      const last = lastRangeStart(totals().bars, Number(rangeSelect.value));
+      if (last !== null) jump(last);
+    });
 
     rangeCopy.addEventListener('click', () => {
       const track = selectedNotes();

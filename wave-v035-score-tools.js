@@ -74,14 +74,19 @@
     const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
     if (!bounds || clipboard.notes.some(n => !n || !Number.isInteger(n.step) ||
         n.step < 0 || n.step >= clipboard.bars * 16)) return null;
+    // Count overwritten notes without allocating a replacement array. This
+    // keeps rejected and identical pastes allocation-free on long scores.
+    let overwritten = 0;
+    for (const note of notes) {
+      if (note && Number.isInteger(note.step) &&
+          note.step >= bounds.start && note.step < bounds.end) overwritten++;
+    }
+    // Preserve the existing 8192-note cap, including malformed legacy notes.
+    if (notes.length - overwritten + clipboard.notes.length > 8192) return null;
+    // The UI uses unchanged array identity to avoid redundant Undo/dirty flags.
+    if (sameRange(notes, clipboard, bounds)) return notes;
     const remaining = notes.filter(n => !n || !Number.isInteger(n.step) ||
       n.step < bounds.start || n.step >= bounds.end);
-    // The clipboard limit alone is insufficient: pasted notes plus the rest
-    // of a long song must also stay within the editor's 8192-note safety cap.
-    if (remaining.length + clipboard.notes.length > 8192) return null;
-    // Preserve the original array for all content-identical pastes.
-    // The UI uses this identity to avoid redundant Undo and dirty flags.
-    if (sameRange(notes, clipboard, bounds)) return notes;
     return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
   }
 

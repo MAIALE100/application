@@ -133,4 +133,20 @@ changedVelocity[1].velocity = 0.2;
 assert.equal(rangePreview(changedVelocity, identicalClip, 4, 16).wouldChange, true);
 assert.notEqual(pasteRange(changedVelocity, identicalClip, 4, 16), changedVelocity);
 
+
+// Long-score no-op and rejected pastes must not allocate a filtered array.
+const forbidFilter = array => new Proxy(array, {
+  get(target, key, receiver) {
+    if (key === 'filter') throw new Error('paste must not allocate a filtered array');
+    return Reflect.get(target, key, receiver);
+  }
+});
+const identicalNoAllocation = forbidFilter(identicalTarget);
+assert.equal(pasteRange(identicalNoAllocation, identicalClip, 4, 16), identicalNoAllocation);
+const overLimitNoAllocation = forbidFilter(full);
+assert.equal(pasteRange(overLimitNoAllocation, oneNoteClip, 0, 16), null);
+// Over-limit source tracks may still be repaired by replacing a dense region.
+const denseReplace = Array.from({ length: 8193 }, () => ({ step: 0, pitch: 60 }));
+assert.deepEqual(pasteRange(denseReplace, oneNoteClip, 0, 16), [{ step: 0, pitch: 70 }]);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

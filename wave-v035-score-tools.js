@@ -58,24 +58,69 @@
     return { bars: count, notes: selected };
   }
 
-  // Compare the target's actual note data, not just its note count.
-  // A self-paste or identical destination must not dirty the project.
+  // A range is unchanged even if the track stores equivalent notes in a
+  // different array order (e.g. after editing chords or loading a draft).
+  // Keep the common ordered case allocation-free; only build a multiset when
+  // the order differs. Compare all own fields with Object.is semantics.
+  function equivalentNote(note, copied, origin) {
+    if (!copied) return false;
+    const keys = Object.keys(note);
+    if (keys.length !== Object.keys(copied).length) return false;
+    for (const key of keys) {
+      if (!Object.prototype.hasOwnProperty.call(copied, key) ||
+          !Object.is(key === 'step' ? note.step - origin : note[key], copied[key])) return false;
+    }
+    return true;
+  }
+
   function sameRange(notes, clipboard, bounds) {
     let seen = 0;
+    let ordered = true;
     for (const note of notes) {
       if (!note || !Number.isInteger(note.step) ||
           note.step < bounds.start || note.step >= bounds.end) continue;
       const copied = clipboard.notes[seen++];
       if (!copied) return false;
-      const keys = Object.keys(note);
-      if (keys.length !== Object.keys(copied).length) return false;
-      for (const key of keys) {
-        if (!Object.prototype.hasOwnProperty.call(copied, key) ||
-            (key === 'step' ? note.step - bounds.start !== copied.step :
-              !Object.is(note[key], copied[key]))) return false;
-      }
+      if (ordered && !equivalentNote(note, copied, bounds.start)) ordered = false;
     }
-    return seen === clipboard.notes.length;
+    if (seen !== clipboard.notes.length) return false;
+    if (ordered) return true;
+
+    // Nested Maps provide exact, order-independent counts, including duplicate
+    // chord notes. Unlike JSON serialization, they retain object identity,
+    // undefined, NaN and signed-zero distinctions from Object.is.
+    const negativeZero = Symbol('negative zero');
+    const countKey = Symbol('count');
+    const counts = new Map();
+    function adjust(note, origin, delta) {
+      const keys = Object.keys(note).sort();
+      const parts = [keys.length];
+      for (const key of keys) {
+        parts.push(key, key === 'step' ? note.step - origin : note[key]);
+      }
+      let node = counts;
+      for (const part of parts) {
+        const token = typeof part === 'number' && Object.is(part, -0) ? negativeZero : part;
+        let next = node.get(token);
+        if (!next) {
+          if (delta < 0) return false;
+          next = new Map();
+          node.set(token, next);
+        }
+        node = next;
+      }
+      const count = node.get(countKey) || 0;
+      if (count + delta < 0) return false;
+      node.set(countKey, count + delta);
+      return true;
+    }
+    for (const copied of clipboard.notes) adjust(copied, 0, 1);
+    for (const note of notes) {
+      if (note && Number.isInteger(note.step) &&
+          note.step >= bounds.start && note.step < bounds.end &&
+          !adjust(note, bounds.start, -1)) return false;
+    }
+    return true;
   }
 
   function pasteRange(notes, clipboard, startBar, totalBars) {

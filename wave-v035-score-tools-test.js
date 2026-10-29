@@ -164,4 +164,32 @@ assert.equal(pasteRange(overLimitNoAllocation, oneNoteClip, 0, 16), null);
 const denseReplace = Array.from({ length: 8193 }, () => ({ step: 0, pitch: 60 }));
 assert.deepEqual(pasteRange(denseReplace, oneNoteClip, 0, 16), [{ step: 0, pitch: 70 }]);
 
+
+
+// Note order is not part of the project format. Reordered chords with the
+// same notes are a no-op; a changed duplicate must still produce an edit.
+const reorderedTarget = [
+  { step: 65, pitch: 64, velocity: 0.8 },
+  { step: 64, pitch: 60, velocity: 0.7 },
+  { step: 64, pitch: 60, velocity: 0.7 }
+];
+const reorderedClip = { bars: 4, notes: [
+  { step: 0, pitch: 60, velocity: 0.7 },
+  { step: 1, pitch: 64, velocity: 0.8 },
+  { step: 0, pitch: 60, velocity: 0.7 }
+]};
+assert.equal(rangePreview(reorderedTarget,reorderedClip,4,16).wouldChange,false);
+assert.equal(pasteRange(reorderedTarget,reorderedClip,4,16),reorderedTarget);
+assert.equal(rangePreview(reorderedTarget,{...reorderedClip,notes:[...reorderedClip.notes].reverse()},4,16).wouldChange,false);
+const differentDuplicate = reorderedTarget.map(n => ({...n}));
+differentDuplicate[2].velocity = 0.9;
+assert.equal(rangePreview(differentDuplicate,reorderedClip,4,16).wouldChange,true);
+assert.notEqual(pasteRange(differentDuplicate,reorderedClip,4,16),differentDuplicate);
+// Object.is equality must not collapse signed zero or NaN when notes reorder.
+const specialTarget = [{step:65,pitch:61,velocity:NaN},{step:64,pitch:60,velocity:-0}];
+const specialClip = {bars:4,notes:[{step:0,pitch:60,velocity:-0},{step:1,pitch:61,velocity:NaN}]};
+assert.equal(rangePreview(specialTarget,specialClip,4,16).wouldChange,false);
+assert.equal(pasteRange(specialTarget,specialClip,4,16),specialTarget);
+assert.equal(rangePreview(specialTarget,{bars:4,notes:[{step:0,pitch:60,velocity:0},{step:1,pitch:61,velocity:NaN}]},4,16).wouldChange,true);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

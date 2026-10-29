@@ -147,3 +147,14 @@ This does not change the project save schema, Undo behavior for actual edits,
 or any banking, permission or release code. Regression cases cover empty and
 nonempty windows. No additional in-game action is required beyond the existing
 range-edit smoke test after the next successful normal update.
+
+## Order-independent range paste (2026-10-29)
+
+Equivalent notes stored in a different order within the selected 4/8-bar
+window are now treated as an unchanged paste. The common ordered path avoids
+allocations; reordered notes are compared as an exact multiset, including
+chord duplicates and every note field. This prevents unnecessary Undo entries
+and dirty drafts without changing note data, saved JSON, banking, release
+state, or updater rollback behavior. The score-tools SHA256 pins in the Windows
+updater and CI were updated together. After a successful normal update, test
+a reordered chord window and Undo in a disposable project.

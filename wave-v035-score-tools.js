@@ -207,6 +207,9 @@
   // Combine selected-range and paste previews so the common 4/8-bar case
   // reuses the paste scan instead of scanning the whole track a second time.
   function rangeEditPreview(notes, startBar, count, totalBars, clipboard) {
+    // With no selected track there is no range to preview or paste into.
+    // Avoid inspecting up to 8192 clipboard notes on every STUDIO refresh.
+    if (!Array.isArray(notes)) return { selectedRange: null, pasteTarget: null };
     // Reject invalid bar counts and oversized/non-array clipboards before
     // reading any note slots or comparing track fields.
     // Keep the selected-window summary available without changing the song.

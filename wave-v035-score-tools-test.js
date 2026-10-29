@@ -273,6 +273,28 @@ assert.equal(rangeEditPreview(source,13,4,16,clip4).selectedRange,null);
 assert.equal(rangeEditPreview(source,13,4,16,clip4).pasteTarget,null);
 
 
+// When no track is selected, even a large clipboard must not be inspected.
+// This also avoids accessing malformed clipboards while STUDIO switches tracks.
+let noTrackClipboardReads = 0;
+const noTrackClipboard = {bars:8,notes:new Proxy(Array(8192).fill({step:0,pitch:60}),{
+  get(target,key,receiver) {
+    if (key === '0') {
+      noTrackClipboardReads++;
+      throw new Error('no selected track must not read clipboard notes');
+    }
+    return Reflect.get(target,key,receiver);
+  }
+})};
+assert.deepEqual(rangeEditPreview(null,0,4,125,noTrackClipboard),
+  {selectedRange:null,pasteTarget:null});
+assert.deepEqual(rangeEditPreview(undefined,0,8,125,noTrackClipboard),
+  {selectedRange:null,pasteTarget:null});
+assert.deepEqual(rangeEditPreview('invalid',0,4,125,noTrackClipboard),
+  {selectedRange:null,pasteTarget:null});
+assert.equal(noTrackClipboardReads,0);
+assert.deepEqual(rangeEditPreview(null,0,4,125,null),
+  {selectedRange:null,pasteTarget:null});
+
 // Switching the 4/8-bar selector while a differently sized clip is held
 // must also count both windows in one pass on long scores.
 const mixedFourToEight = onePassNotes([{step:0,pitch:60},{step:1,pitch:61},{step:64,pitch:62}]);

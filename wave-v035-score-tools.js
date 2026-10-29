@@ -159,7 +159,12 @@
     if (overwritten === clipboard.notes.length && (ordered || sameRange(notes, clipboard, bounds))) return notes;
     const remaining = notes.filter(n => !n || !Number.isInteger(n.step) ||
       n.step < bounds.start || n.step >= bounds.end);
-    return remaining.concat(clipboard.notes.map(n => ({ ...n, step: bounds.start + n.step })));
+    // Append clones directly: avoid a second temporary array on successful pastes.
+    // Keep filter() semantics for sparse/inherited source slots and note order.
+    for (const note of clipboard.notes) {
+      remaining.push({ ...note, step: bounds.start + note.step });
+    }
+    return remaining;
   }
 
   // Read-only preview; never modifies the project or its clipboard.

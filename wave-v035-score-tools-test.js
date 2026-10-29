@@ -384,4 +384,25 @@ const invalidTypeMixed = rangeEditPreview(source,0,8,16,{bars:4,notes:'invalid'}
 assert.deepEqual(invalidTypeMixed.selectedRange,rangeSummary(source,0,8,16));
 assert.equal(invalidTypeMixed.pasteTarget,null);
 
+// Successful pastes should append clipboard clones without building an extra
+// temporary map() array, preserving order, source notes and Undo semantics.
+const noClipboardMap = { bars: 4, notes: new Proxy([
+  { step: 0, pitch: 70 }, { step: 1, pitch: 72 }
+], {
+  get(target, key, receiver) {
+    if (key === 'map') throw new Error('clipboard map() must not allocate a temporary array');
+    return Reflect.get(target, key, receiver);
+  }
+}) };
+const originalPasteTrack = [{ step: 0, pitch: 60 }, { step: 128, pitch: 65 }];
+const appendedPaste = pasteRange(originalPasteTrack, noClipboardMap, 0, 16);
+assert.deepEqual(appendedPaste, [
+  { step: 128, pitch: 65 }, { step: 0, pitch: 70 }, { step: 1, pitch: 72 }
+]);
+assert.notEqual(appendedPaste, originalPasteTrack);
+assert.notEqual(appendedPaste[1], noClipboardMap.notes[0]);
+assert.equal(noClipboardMap.notes[0].step, 0);
+assert.equal(originalPasteTrack[0].pitch, 60);
+assert.equal(appendedPaste.length, 3);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

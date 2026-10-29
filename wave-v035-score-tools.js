@@ -194,12 +194,14 @@
         !(ordered || sameRange(notes, clipboard, bounds)) };
   }
 
-  function rangePreview(notes, clipboard, startBar, totalBars, precomputedSummary) {
+  function rangePreview(notes, clipboard, startBar, totalBars) {
     if (!clipboard || !Array.isArray(clipboard.notes) || clipboard.notes.length > 8192 ||
         !Array.isArray(notes)) return null;
     const bounds = rangeBounds(startBar, clipboard.bars, totalBars);
     if (!bounds || invalidClipboardNotes(clipboard)) return null;
-    return previewValidatedRange(notes, clipboard, startBar, bounds, precomputedSummary);
+    // Only the combined preview may reuse a summary generated from its own scan.
+    // Public previews must never trust a stale or caller-supplied summary.
+    return previewValidatedRange(notes, clipboard, startBar, bounds);
   }
 
   // Combine selected-range and paste previews so the common 4/8-bar case

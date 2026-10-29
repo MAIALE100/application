@@ -531,4 +531,22 @@ const validEndPreview = rangeEditPreview([{step:1872,pitch:60}],117,8,125,
   {bars:8,notes:[{step:0,pitch:60}]});
 assert.equal(validEndPreview.pasteTarget.wouldChange,false);
 
+
+// A public preview must never trust a stale/caller-supplied summary.
+// The combined preview alone owns its internally computed summary.
+const forgedEmptySummary = {startBar:1,endBar:4,notes:0,total:0,ordered:true};
+const summaryTrack = [{step:0,pitch:60}];
+const summaryClip = {bars:4,notes:[]};
+assert.deepEqual(
+  rangePreview(summaryTrack,summaryClip,0,16,forgedEmptySummary),
+  rangePreview(summaryTrack,summaryClip,0,16)
+);
+assert.equal(rangePreview(summaryTrack,summaryClip,0,16,forgedEmptySummary).wouldChange,true);
+const forgedLimitSummary = {startBar:1,endBar:4,notes:0,total:0,ordered:false};
+assert.deepEqual(
+  rangePreview(full,oneNoteClip,0,16,forgedLimitSummary),
+  rangePreview(full,oneNoteClip,0,16)
+);
+assert.equal(rangePreview(full,oneNoteClip,0,16,forgedLimitSummary).withinLimit,false);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

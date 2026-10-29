@@ -97,6 +97,35 @@ CREATE TABLE IF NOT EXISTS flecity_base_stock_movements (
     REFERENCES flecity_base_stock_items(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS flecity_base_stock_fields (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  label VARCHAR(40) NOT NULL,
+  field_type VARCHAR(16) NOT NULL,
+  visible TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_base_stock_field_label (workspace_id, label),
+  KEY idx_base_stock_field_workspace (workspace_id),
+  CONSTRAINT fk_base_stock_field_workspace FOREIGN KEY (workspace_id)
+    REFERENCES flecity_base_workspaces(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS flecity_base_stock_values (
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
+  field_id BIGINT UNSIGNED NOT NULL,
+  field_value VARCHAR(180) NOT NULL,
+  PRIMARY KEY (item_id, field_id),
+  KEY idx_base_stock_value_workspace (workspace_id, field_id),
+  CONSTRAINT fk_base_stock_value_workspace FOREIGN KEY (workspace_id)
+    REFERENCES flecity_base_workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_base_stock_value_item FOREIGN KEY (item_id)
+    REFERENCES flecity_base_stock_items(id) ON DELETE CASCADE,
+  CONSTRAINT fk_base_stock_value_field FOREIGN KEY (field_id)
+    REFERENCES flecity_base_stock_fields(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS flecity_base_tasks (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   workspace_id BIGINT UNSIGNED NOT NULL,

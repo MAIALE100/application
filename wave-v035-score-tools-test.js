@@ -294,4 +294,34 @@ Object.setPrototypeOf(inheritedNotes, inheritedPrototype);
 assert.equal(rangePreview([], { bars: 4, notes: inheritedNotes }, 0, 16), null);
 assert.equal(pasteRange([], { bars: 4, notes: inheritedNotes }, 0, 16), null);
 
+
+// Avoid a second full-track scan when clearing an early 4/8-bar window.
+const clearNoHelpers = new Proxy([{step:0,pitch:60},{step:128,pitch:61}], {
+  get(target,key,receiver) {
+    if (key === 'some' || key === 'filter') throw new Error('redundant range scan');
+    return Reflect.get(target,key,receiver);
+  }
+});
+assert.deepEqual(clearRange(clearNoHelpers,0,4,16),[{step:128,pitch:61}]);
+const longClearSource = Array.from({length:8192},(_,i) => ({step:i===0?0:128,pitch:60}));
+let longClearReads = 0;
+const longClearTrack = new Proxy(longClearSource,{
+  get(target,key,receiver) {
+    if (typeof key === 'string' && /^[0-9]+$/.test(key)) longClearReads++;
+    return Reflect.get(target,key,receiver);
+  }
+});
+assert.equal(clearRange(longClearTrack,0,4,16).length,8191);
+assert.equal(longClearReads,8192);
+const sparseClear = [{step:0,pitch:60}, , {step:128,pitch:61}];
+assert.deepEqual(clearRange(sparseClear,0,4,16),[{step:128,pitch:61}]);
+const sparseUnchanged = [, {step:128,pitch:61}];
+assert.equal(clearRange(sparseUnchanged,0,4,16),sparseUnchanged);
+const inheritedClear = new Array(2);
+const inheritedClearProto = Object.create(Array.prototype);
+inheritedClearProto[0] = {step:0,pitch:60};
+Object.setPrototypeOf(inheritedClear,inheritedClearProto);
+inheritedClear[1] = {step:128,pitch:61};
+assert.deepEqual(clearRange(inheritedClear,0,4,16),[{step:128,pitch:61}]);
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

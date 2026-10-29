@@ -235,13 +235,26 @@
   function clearRange(notes, startBar, count, totalBars) {
     const bounds = rangeBounds(startBar, count, totalBars);
     if (!bounds || !Array.isArray(notes)) return null;
-    // Empty windows are common in long scores: preserve array identity and
-    // avoid allocating a replacement array when nothing will be deleted.
-    const hasNotes = notes.some(n => n && Number.isInteger(n.step) &&
-      n.step >= bounds.start && n.step < bounds.end);
-    if (!hasNotes) return notes;
-    return notes.filter(n => !n || !Number.isInteger(n.step) ||
-      n.step < bounds.start || n.step >= bounds.end);
+    // Preserve the input array when the range is empty. Once a matching
+    // note is found, copy the untouched prefix and stream the remainder
+    // instead of rescanning the full track with filter().
+    // The "in" check matches Array.filter's sparse/inherited-slot behavior.
+    let remaining = null;
+    for (let i = 0; i < notes.length; i++) {
+      if (!(i in notes)) continue;
+      const note = notes[i];
+      const selected = note && Number.isInteger(note.step) &&
+        note.step >= bounds.start && note.step < bounds.end;
+      if (selected && remaining === null) {
+        remaining = [];
+        for (let j = 0; j < i; j++) {
+          if (j in notes) remaining.push(notes[j]);
+        }
+      } else if (!selected && remaining !== null) {
+        remaining.push(note);
+      }
+    }
+    return remaining === null ? notes : remaining;
   }
 
   // Pure functions exportable to Node tests, no browser dependency.

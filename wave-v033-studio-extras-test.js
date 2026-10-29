@@ -73,6 +73,61 @@ try {
   enhanced(ctx, 'piano', 69, 1, 0, 1);
   assert.equal(oscillators, 4);
   assert.equal(originalCalls, 10);
+
+  // Failed Web Audio operations must release partial harmonic graphs without
+  // affecting the original voice or changing normal successful playback.
+  const previousWarn = console.warn;
+  const warnings = [];
+  console.warn = (...args) => warnings.push(args);
+  try {
+    let oscillatorDisconnects = 0;
+    let gainDisconnects = 0;
+    const failedStartCtx = {
+      destination: {},
+      createOscillator() {
+        return {
+          frequency: { value: 0 },
+          connect() {},
+          disconnect() { oscillatorDisconnects++; },
+          start() { throw new Error('audio start unavailable'); },
+          stop() {}
+        };
+      },
+      createGain() {
+        return {
+          connect() {},
+          disconnect() { gainDisconnects++; },
+          gain: {
+            setValueAtTime() {},
+            linearRampToValueAtTime() {},
+            exponentialRampToValueAtTime() {}
+          }
+        };
+      }
+    };
+    assert.equal(enhanced(failedStartCtx, 'piano', 69, 1, 1, 1), originalResult);
+    assert.equal(oscillatorDisconnects, 1);
+    assert.equal(gainDisconnects, 1);
+
+    const failedGainCtx = {
+      destination: {},
+      createOscillator() {
+        return {
+          frequency: { value: 0 },
+          connect() {},
+          disconnect() { oscillatorDisconnects++; }
+        };
+      },
+      createGain() { throw new Error('audio gain unavailable'); }
+    };
+    assert.equal(enhanced(failedGainCtx, 'piano', 69, 1, 1, 1), originalResult);
+    assert.equal(oscillatorDisconnects, 2);
+    assert.equal(gainDisconnects, 1);
+    assert.equal(warnings.length, 2);
+    assert.equal(originalCalls, 12);
+  } finally {
+    console.warn = previousWarn;
+  }
 } finally {
   if (previousDocument === undefined) delete global.document;
   else global.document = previousDocument;

@@ -199,9 +199,13 @@
       const level = Number.isFinite(rawVelocity) ? Math.max(0, Math.min(1, rawVelocity)) : 0.7;
       if (level === 0) return result;
 
+      // Web Audio can fail after one or both nodes have been allocated.
+      // Keep references so partial voice construction can be cleaned up.
+      let oscillator = null;
+      let envelope = null;
       try {
-        const oscillator = ctx.createOscillator();
-        const envelope = ctx.createGain();
+        oscillator = ctx.createOscillator();
+        envelope = ctx.createGain();
         const frequency = 440 * Math.pow(2, (midi - 69) / 12);
         oscillator.type = 'sine';
         oscillator.frequency.value = frequency * profile.ratio;
@@ -219,6 +223,9 @@
         oscillator.start(t);
         oscillator.stop(end + 0.02);
       } catch (error) {
+        // A failed start/stop/connection must not retain a partial audio graph.
+        try { if (oscillator) oscillator.disconnect(); } catch (_) {}
+        try { if (envelope) envelope.disconnect(); } catch (_) {}
         console.warn('[WAVE] harmonic layer unavailable', error);
       }
       return result;

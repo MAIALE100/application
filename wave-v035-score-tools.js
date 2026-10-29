@@ -74,18 +74,9 @@
   }
 
   function sameRange(notes, clipboard, bounds) {
-    let seen = 0;
-    let ordered = true;
-    for (const note of notes) {
-      if (!note || !Number.isInteger(note.step) ||
-          note.step < bounds.start || note.step >= bounds.end) continue;
-      const copied = clipboard.notes[seen++];
-      if (!copied) return false;
-      if (ordered && !equivalentNote(note, copied, bounds.start)) ordered = false;
-    }
-    if (seen !== clipboard.notes.length) return false;
-    if (ordered) return true;
-
+    // scanRange already checked ordered equality and note count. On the
+    // reordered fallback, build the multiset directly rather than repeating
+    // that full-track scan before the count comparison below.
     // Nested Maps provide exact, order-independent counts, including duplicate
     // chord notes. Unlike JSON serialization, they retain object identity,
     // undefined, NaN and signed-zero distinctions from Object.is.
@@ -115,12 +106,15 @@
       return true;
     }
     for (const copied of clipboard.notes) adjust(copied, 0, 1);
+    let seen = 0;
     for (const note of notes) {
       if (note && Number.isInteger(note.step) &&
-          note.step >= bounds.start && note.step < bounds.end &&
-          !adjust(note, bounds.start, -1)) return false;
+          note.step >= bounds.start && note.step < bounds.end) {
+        seen++;
+        if (!adjust(note, bounds.start, -1)) return false;
+      }
     }
-    return true;
+    return seen === clipboard.notes.length;
   }
 
   // Count and check ordered identity in the same pass. The common unchanged

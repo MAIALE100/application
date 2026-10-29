@@ -210,6 +210,43 @@ function onePassNotes(notes) {
     scans: () => scans
   };
 }
+// Reordered chords used to scan a long track three times: initial ordered
+// check, another ordered check in sameRange, and the multiset comparison.
+// Keep the exact duplicate-note semantics while requiring only two passes.
+function twoPassNotes(notes) {
+  let scans = 0;
+  return {
+    notes: new Proxy(notes, {
+      get(target, key, receiver) {
+        if (key === Symbol.iterator) return function* () {
+          if (++scans > 2) throw new Error('reordered paste scanned track more than twice');
+          yield* target;
+        };
+        return Reflect.get(target, key, receiver);
+      }
+    }),
+    scans: () => scans
+  };
+}
+const reorderedPreviewTwoPass = twoPassNotes(reorderedTarget);
+assert.equal(rangePreview(reorderedPreviewTwoPass.notes,reorderedClip,4,16).wouldChange,false);
+assert.equal(reorderedPreviewTwoPass.scans(),2);
+const reorderedPasteTwoPass = twoPassNotes(reorderedTarget);
+assert.equal(pasteRange(reorderedPasteTwoPass.notes,reorderedClip,4,16),reorderedPasteTwoPass.notes);
+assert.equal(reorderedPasteTwoPass.scans(),2);
+const reorderedDifferentTwoPass = twoPassNotes(differentDuplicate);
+assert.equal(rangePreview(reorderedDifferentTwoPass.notes,reorderedClip,4,16).wouldChange,true);
+assert.equal(reorderedDifferentTwoPass.scans(),2);
+const longReordered = Array.from({length:8190},(_,i)=>({step:128+(i%16),pitch:60}));
+longReordered.unshift({step:1,pitch:64},{step:0,pitch:60});
+const longReorderedClip = {bars:4,notes:[{step:0,pitch:60},{step:1,pitch:64}]};
+const longReorderedPreview = twoPassNotes(longReordered);
+assert.equal(rangePreview(longReorderedPreview.notes,longReorderedClip,0,16).wouldChange,false);
+assert.equal(longReorderedPreview.scans(),2);
+const longReorderedPaste = twoPassNotes(longReordered);
+assert.equal(pasteRange(longReorderedPaste.notes,longReorderedClip,0,16),longReorderedPaste.notes);
+assert.equal(longReorderedPaste.scans(),2);
+
 const countMismatchPreview = onePassNotes([{step:0,pitch:60},{step:1,pitch:61}]);
 assert.equal(rangePreview(countMismatchPreview.notes,oneNoteClip,0,16).wouldChange,true);
 assert.equal(countMismatchPreview.scans(),1);

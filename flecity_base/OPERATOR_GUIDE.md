@@ -71,3 +71,7 @@ Database migrations run automatically on resource startup.
 ## Removal
 
 Stopping or removing the resource does not automatically drop BASE database tables. This is intentional to avoid accidental data loss.
+
+## Beta operator package
+
+The BASE operator beta archive is generated from this branch by the `BASE Operator Beta ZIP` GitHub Actions workflow. It includes only `flecity_base` and the Japanese first-install documents. Verify `base_selftest` on a staging server before community rollout.

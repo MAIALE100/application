@@ -822,7 +822,19 @@ handlers.stockList = function(source, data)
         ORDER BY m.created_at DESC, m.id DESC
         LIMIT 12
     ]], {workspace.id}) or {}
-    return {ok=true, items=items, recent=recent}
+    local fieldList = FlecityBaseCustom.ListFields(workspace.id, true)
+    local byId = {}
+    for _, item in ipairs(items) do
+        item.custom_values = {}
+        byId[tonumber(item.id)] = item
+    end
+    for _, value in ipairs(FlecityBaseCustom.LoadValues(workspace.id)) do
+        local item = byId[tonumber(value.item_id)]
+        if item then
+            item.custom_values[tostring(value.field_id)] = tostring(value.field_value or '')
+        end
+    end
+    return {ok=true, items=items, recent=recent, customFields=fieldList}
 end
 
 handlers.stockHistory = function(source, data)
@@ -864,6 +876,8 @@ handlers.stockCreate = function(source, data)
     if quantity == nil or minimum == nil then return {ok=false, error='INVALID_STOCK_QUANTITY'} end
     local unit = clean(data.unit or '個', 32)
     if unit == '' then unit = '個' end
+    local extras, extraErr = FlecityBaseCustom.ValidateValues(workspace.id, data.customValues)
+    if not extras then return {ok=false, error=extraErr} end
     -- The item and its initial movement must commit together. A failed history
     -- INSERT must not leave behind a stock record with undocumented quantity.
     local id
@@ -884,7 +898,7 @@ handlers.stockCreate = function(source, data)
             ]], {workspace.id, id, ctx.citizenid, ctx.name, quantity, quantity})
             if not recorded or tonumber(recorded.affectedRows) ~= 1 then return false end
         end
-        return true
+        return FlecityBaseCustom.WriteValues(query, workspace.id, id, extras)
     end)
     return {ok=committed == true, id=committed and id or nil}
 end
@@ -966,12 +980,66 @@ handlers.stockConfigure = function(source, data)
     local minimum = strictInteger(data.minimumQuantity, 0, L.stockQuantity)
     if minimum == nil then return {ok=false, error='INVALID_STOCK_QUANTITY'} end
     local unit = clean(data.unit or '個', 32)
-    local changed = MySQL.update.await([[
-        UPDATE flecity_base_stock_items
-        SET name=?, category=?, minimum_quantity=?, unit=?, updated_at=NOW()
-        WHERE id=? AND workspace_id=?
-    ]], {name, category, minimum, unit ~= '' and unit or '個', integer(data.id, 1), workspace.id})
-    return {ok=(tonumber(changed) or 0) > 0}
+    if unit == '' then unit = '個' end
+    local extras, extraErr = FlecityBaseCustom.ValidateValues(workspace.id, data.customValues)
+    if not extras then return {ok=false, error=extraErr} end
+    local itemId = integer(data.id, 1)
+    local failure
+    local committed = MySQL.startTransaction(function(query)
+        local item = query('SELECT id FROM flecity_base_stock_items WHERE id=? AND workspace_id=? FOR UPDATE', {itemId, workspace.id})
+        if not item or not item[1] then
+            failure = 'ITEM_NOT_FOUND'
+            return false
+        end
+        local changed = query([[
+            UPDATE flecity_base_stock_items
+            SET name=?, category=?, minimum_quantity=?, unit=?, updated_at=NOW()
+            WHERE id=? AND workspace_id=?
+        ]], {name, category, minimum, unit, itemId, workspace.id})
+        if not changed then return false end
+        return FlecityBaseCustom.WriteValues(query, workspace.id, itemId, extras)
+    end)
+    return {ok=committed == true, error=committed and nil or (failure or 'SERVER_ERROR')}
+end
+
+handlers.stockFieldsList = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireMember(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    return {ok=true, fields=FlecityBaseCustom.ListFields(workspace.id, hasManagerPower(workspace))}
+end
+
+handlers.stockFieldCreate = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    local id, reason = FlecityBaseCustom.CreateField(workspace.id, data.label, data.fieldType)
+    if not id then return {ok=false, error=reason} end
+    return {ok=true, fieldId=id}
+end
+
+handlers.stockFieldToggle = function(source, data)
+    local ctx, err = sourceContext(source)
+    if not ctx then return err end
+    data = type(data) == 'table' and data or {}
+    local workspace, accessErr = requireManager(ctx, data.workspaceId)
+    if not workspace then return accessErr end
+    if type(data.visible) ~= 'boolean' then return {ok=false, error='INVALID_CUSTOM_VALUES'} end
+    local fieldId = strictInteger(data.fieldId, 1)
+    if not fieldId then return {ok=false, error='INVALID_CUSTOM_FIELD'} end
+    local fields = FlecityBaseCustom.ListFields(workspace.id, true)
+    local found
+    for _, field in ipairs(fields) do
+        if tonumber(field.id) == fieldId then found = field break end
+    end
+    if not found then return {ok=false, error='INVALID_CUSTOM_FIELD'} end
+    if (tonumber(found.visible) == 1) == data.visible then return {ok=true} end
+    return {ok=FlecityBaseCustom.SetVisibility(workspace.id, fieldId, data.visible)}
+end
 end
 
 handlers.stockDelete = function(source, data)
@@ -1368,6 +1436,9 @@ local callbacks = {
     ['flecity_base:noteDelete'] = handlers.noteDelete,
     ['flecity_base:notePin'] = handlers.notePin,
     ['flecity_base:stockList'] = handlers.stockList,
+    ['flecity_base:stockFieldsList'] = handlers.stockFieldsList,
+    ['flecity_base:stockFieldCreate'] = handlers.stockFieldCreate,
+    ['flecity_base:stockFieldToggle'] = handlers.stockFieldToggle,
     ['flecity_base:stockHistory'] = handlers.stockHistory,
     ['flecity_base:stockCreate'] = handlers.stockCreate,
     ['flecity_base:stockAdjust'] = handlers.stockAdjust,

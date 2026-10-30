@@ -35,6 +35,21 @@ assert.equal(lastRangeStart(125,6),null);
 assert.equal(lastRangeStart(125,'4'),null);
 assert.equal(lastRangeStart(0,4),null);
 
+
+// Jump straight back to the first complete selection without scanning
+// intermediate bars, including after visiting the 125-bar tail.
+const { firstRangeStart } = require('./wave-v035-score-tools.js');
+assert.equal(firstRangeStart(125,4),0);
+assert.equal(firstRangeStart(125,8),0);
+assert.equal(firstRangeStart(128,8),0);
+assert.equal(firstRangeStart(8,8),0);
+assert.equal(firstRangeStart(4,4),0);
+assert.equal(firstRangeStart(4,8),null);
+assert.equal(firstRangeStart(3,4),null);
+assert.equal(firstRangeStart(0,4),null);
+assert.equal(firstRangeStart(125,6),null);
+assert.equal(firstRangeStart(125,'4'),null);
+
 // Range-specific navigation must land only on complete 4/8-bar windows.
 // General 4/8-bar navigation remains free to reach any single bar.
 const { rangeStepTarget } = require('./wave-v035-score-tools.js');

@@ -748,4 +748,57 @@ assert.equal(rangePreview(shortInherited,shortSparseClip,0,125).totalAfter,3);
 assert.equal(rangeEditPreview(shortInherited,0,8,125,shortSparseClip).pasteTarget.totalAfter,3);
 assert.equal(pasteRange(shortInherited,shortSparseClip,0,125).length,3);
 
+// Deterministic sparse/legacy long-score differential regression.
+// Dense-only fuzzing misses holes, inherited entries and explicit undefined,
+// which must agree between read-only previews and actual 4/8-bar edits.
+let sparseSeed = 0x53a9b125;
+function sparseRandom(limit) {
+  sparseSeed = (Math.imul(sparseSeed, 1664525) + 1013904223) >>> 0;
+  return sparseSeed % limit;
+}
+for (let trial = 0; trial < 256; trial++) {
+  const bars = [8, 125, 128][sparseRandom(3)];
+  const selectedBars = sparseRandom(2) ? 4 : 8;
+  const copiedBars = sparseRandom(2) ? 4 : 8;
+  const start = [0, bars - selectedBars, bars - 1, sparseRandom(bars)][sparseRandom(4)];
+  const notes = new Array(8 + sparseRandom(96));
+  for (let i = 0; i < notes.length; i++) {
+    if (sparseRandom(4) === 0) {
+      notes[i] = { step: sparseRandom(bars * 16), pitch: 48 + sparseRandom(36) };
+    } else if (sparseRandom(11) === 0) {
+      notes[i] = undefined; // Own undefined entries survive Array.filter().
+    } else if (sparseRandom(13) === 0) {
+      notes[i] = null;
+    }
+  }
+  if (notes.length > 1 && trial % 3 === 0) {
+    const proto = Object.create(Array.prototype);
+    proto[1] = { step: sparseRandom(bars * 16), pitch: 67 };
+    delete notes[1];
+    Object.setPrototypeOf(notes, proto); // Inherited entries are not holes.
+  }
+  const sourceStart = sparseRandom(bars - copiedBars + 1);
+  const clip = copyRange(notes, sourceStart, copiedBars, bars);
+  assert.notEqual(clip, null);
+  const before = Array.from({ length: notes.length }, (_, i) => [i in notes, notes[i]]);
+  const beforeClip = clip.notes.map(note => ({ ...note }));
+  const combined = rangeEditPreview(notes, start, selectedBars, bars, clip);
+  const individual = rangePreview(notes, clip, start, bars);
+  assert.deepEqual(combined.selectedRange, rangeSummary(notes, start, selectedBars, bars));
+  assert.deepEqual(combined.pasteTarget, individual);
+  const pasted = pasteRange(notes, clip, start, bars);
+  if (individual === null) {
+    assert.equal(pasted, null);
+  } else {
+    assert.notEqual(pasted, null);
+    assert.equal(pasted === notes, !individual.wouldChange);
+    if (pasted !== notes) assert.equal(pasted.length, individual.totalAfter);
+  }
+  const cleared = clearRange(notes, start, selectedBars, bars);
+  if (combined.selectedRange === null) assert.equal(cleared, null);
+  else assert.equal(cleared === notes, combined.selectedRange.notes === 0);
+  assert.deepEqual(Array.from({ length: notes.length }, (_, i) => [i in notes, notes[i]]), before);
+  assert.deepEqual(clip.notes, beforeClip);
+}
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

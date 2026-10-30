@@ -843,4 +843,115 @@ for (let songBars = 1; songBars <= 128; songBars++) {
   }
 }
 
+
+/* UI event regression: 125-bar range editing, Undo/dirty, project isolation.
+ * Fake DOM only; no FiveM server, audio or browser runtime required.
+ */
+function runScoreUiRegression(sourceCode) {
+  // Exercise browser event wiring without deploying to FiveM/CEF.
+  class UiElement {
+    constructor(id = '') {
+      this.id = id; this.listeners = Object.create(null);
+      this.isConnected = true; this.disabled = false;
+      this.value = '1'; this.textContent = '';
+    }
+    addEventListener(type, listener) { (this.listeners[type] ||= []).push(listener); }
+    trigger(type) { for (const listener of this.listeners[type] || []) listener({}); }
+    click() { this.trigger('click'); }
+    blur() {}
+    querySelector(selector) { return this.nodes ? this.nodes[selector.slice(1)] || null : null; }
+    appendChild(child) { this.child = child; child.isConnected = true; }
+    set innerHTML(html) {
+      this.nodes = Object.create(null);
+      for (const match of html.matchAll(/id="([^"]+)"/g)) {
+        this.nodes[match[1]] = new UiElement(match[1]);
+      }
+      this.nodes.waveRangeBars.value = '4';
+    }
+  }
+  const navigator = new UiElement('waveBarNavigator');
+  const counter = new UiElement('waveBarCounter');
+  const view = new UiElement('view-studio');
+  const elements = { waveBarNavigator: navigator, waveBarCounter: counter, 'view-studio': view };
+  const document = {
+    readyState: 'complete', activeElement: null,
+    getElementById(id) { return elements[id] || null; },
+    createElement() { return new UiElement(); },
+    addEventListener() {}
+  };
+  const firstTrack = { notes: [
+    { step: 0, pitch: 60 }, { step: 1, pitch: 62 },
+    { step: 64, pitch: 70 }, { step: 1920, pitch: 75 }
+  ] };
+  const active = { project: { bars: 125, bpm: 120 }, track: firstTrack };
+  const state = { bar: 0 };
+  let renders = 0, undoCalls = 0, dirtyCalls = 0;
+  const isolatedModule = { exports: {} };
+  new Function('document', 'MutationObserver', 'ensureProject', 'getTrack',
+    'state', 'renderStudio', 'pushUndo', 'markDirty', 'queueMicrotask',
+    'module', 'exports', sourceCode)(
+    document, class { observe() {} }, () => active.project, () => active.track,
+    state, () => { renders++; }, () => { undoCalls++; },
+    () => { dirtyCalls++; }, fn => fn(), isolatedModule, isolatedModule.exports
+  );
+  const host = navigator.child;
+  assert.equal(Boolean(host), true);
+  const ui = host.nodes;
+  assert.equal(ui.waveRangeCopy.disabled, false);
+  ui.waveRangeCopy.click();
+  assert.equal(ui.waveScoreMessage.textContent.includes('4小節をコピー'), true);
+  ui.waveRangeNext.click();
+  assert.equal(state.bar, 4);
+  ui.waveRangePaste.click();
+  assert.deepEqual(firstTrack.notes.filter(n => n.step >= 64 && n.step < 128)
+    .map(n => [n.step, n.pitch]), [[64, 60], [65, 62]]);
+  assert.equal(undoCalls, 1);
+  assert.equal(dirtyCalls, 1);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click(); // Programmatic no-op must not create Undo.
+  assert.equal(undoCalls, 1);
+  assert.equal(dirtyCalls, 1);
+  ui.waveBarJump.value = '125';
+  ui.waveBarJumpGo.click();
+  assert.equal(state.bar, 124);
+  ui.waveRangeBars.value = '8';
+  ui.waveRangeBars.trigger('change');
+  assert.equal(state.bar, 117);
+  assert.equal(ui.waveRangeNext.disabled, true);
+  assert.equal(ui.waveRangeLast.disabled, true);
+  ui.waveRangeCopy.click();
+  const secondTrack = { notes: [{ step: 0, pitch: 99 }] };
+  active.project = { bars: 125, bpm: 120 };
+  active.track = secondTrack;
+  host.trigger('focusin'); // Project switch must invalidate copied notes.
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click();
+  assert.deepEqual(secondTrack.notes, [{ step: 0, pitch: 99 }]);
+  assert.equal(undoCalls, 1);
+  active.project = { bars: 125, bpm: 120 };
+  active.track = firstTrack;
+  host.trigger('focusin');
+  ui.waveRangeClear.click();
+  assert.equal(firstTrack.notes.some(n => n.step === 1920), false);
+  assert.equal(undoCalls, 2);
+  assert.equal(dirtyCalls, 2);
+  ui.waveRangeClear.click();
+  assert.equal(undoCalls, 2);
+  active.track = null;
+  host.trigger('focusin');
+  assert.equal(ui.waveRangeCopy.disabled, true);
+  assert.equal(ui.waveRangeClear.disabled, true);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  active.track = firstTrack;
+  host.trigger('focusin');
+  ui.waveRangeFirst.click();
+  assert.equal(state.bar, 0);
+  const rendersBeforeNoop = renders;
+  ui.waveRangeFirst.click();
+  assert.equal(renders, rendersBeforeNoop);
+
+}
+runScoreUiRegression(require('node:fs').readFileSync(
+  require.resolve('./wave-v035-score-tools.js'), 'utf8'));
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

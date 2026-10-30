@@ -201,4 +201,78 @@ try {
   if (previousVoice === undefined) delete global.scheduleVoice;
   else global.scheduleVoice = previousVoice;
 }
-console.log('WAVE harmonic voice velocity regression: PASS');
+
+// A same-bar click/slider release must not redraw long STUDIO scores.
+// Exercise the real navigator event handlers with a minimal DOM, including
+// normalization of an invalid state.bar that only appears visually in range.
+(() => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, 'wave-v033-studio-extras.js'), 'utf8');
+  function checkNavigator(bars) {
+    const button = () => ({
+      handlers: {},
+      addEventListener(name, callback) { this.handlers[name] = callback; },
+      setAttribute() {}
+    });
+    const controls = {};
+    for (const id of ['waveBarCounter', 'waveBarRange', 'waveBarPrev',
+      'waveBarNext', 'waveBarSteps']) controls['#' + id] = button();
+    const steps = controls['#waveBarSteps'];
+    steps.children = [];
+    steps.replaceChildren = () => { steps.children = []; };
+    steps.appendChild = child => { steps.children.push(child); };
+    const host = { isConnected: true, querySelector(selector) { return controls[selector]; } };
+    const transport = { insertAdjacentElement() {} };
+    const view = { querySelector(selector) { return selector === '.transport' ? transport : null; } };
+    const barSelect = button();
+    const document = {
+      readyState: 'complete',
+      getElementById(id) {
+        return id === 'view-studio' ? view : id === 'barSelect' ? barSelect : null;
+      },
+      querySelector() { return null; },
+      createElement(tag) { return tag === 'section' ? host : button(); }
+    };
+    const state = { bar: bars - 1 };
+    let renders = 0;
+    vm.runInNewContext(source, {
+      document, state, ensureProject: () => ({ bars }),
+      renderStudio: () => { renders++; }
+    });
+    const active = () => steps.children[steps.children.length - 1];
+    const initialButtons = steps.children;
+    active().handlers.click();
+    assert.equal(renders, 0);
+    assert.equal(steps.children, initialButtons);
+    controls['#waveBarRange'].value = String(bars);
+    controls['#waveBarRange'].handlers.change();
+    assert.equal(renders, 0);
+    assert.equal(steps.children, initialButtons);
+    if (bars > 1) {
+      controls['#waveBarPrev'].handlers.click();
+      assert.equal(state.bar, bars - 2);
+      assert.equal(renders, 1);
+      controls['#waveBarNext'].handlers.click();
+      assert.equal(state.bar, bars - 1);
+      assert.equal(renders, 2);
+      active().handlers.click();
+      assert.equal(renders, 2);
+    }
+    const expected = renders;
+    state.bar = bars + 50;
+    active().handlers.click();
+    assert.equal(state.bar, bars - 1);
+    assert.equal(renders, expected + 1);
+    state.bar = String(bars - 1);
+    active().handlers.click();
+    assert.equal(state.bar, bars - 1);
+    assert.equal(renders, expected + 2);
+  }
+  checkNavigator(1);
+  checkNavigator(125);
+  checkNavigator(128);
+})();
+
+console.log('WAVE harmonic voice and long-score navigator regression: PASS');

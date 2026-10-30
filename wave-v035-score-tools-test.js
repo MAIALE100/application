@@ -1093,6 +1093,61 @@ function runScoreUiRegression(sourceCode) {
     assert.equal(renders, atFirstRenders);
   }
 
+
+  // Short projects have no complete 4/8-bar edit window. Even synthetic
+  // clicks on disabled controls must not mutate tracks or create Undo entries.
+  const undoBeforeShort = undoCalls;
+  const dirtyBeforeShort = dirtyCalls;
+  const shortProjectTrack = { notes: [{ step: 0, pitch: 40 }] };
+  active.project = { bars: 3, bpm: 120 };
+  active.track = shortProjectTrack;
+  state.bar = 0;
+  host.trigger('focusin');
+  assert.equal(ui.waveRangeCopy.disabled, true);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  assert.equal(ui.waveRangeClear.disabled, true);
+  assert.equal(ui.waveRangeFirst.disabled, true);
+  assert.equal(ui.waveRangeLast.disabled, true);
+  assert.equal(ui.waveRangePrev.disabled, true);
+  assert.equal(ui.waveRangeNext.disabled, true);
+  ui.waveRangeCopy.click();
+  ui.waveRangePaste.click();
+  ui.waveRangeClear.click();
+  ui.waveRangeLast.click();
+  assert.deepEqual(shortProjectTrack.notes, [{ step: 0, pitch: 40 }]);
+  assert.equal(undoCalls, undoBeforeShort);
+  assert.equal(dirtyCalls, dirtyBeforeShort);
+  assert.equal(state.bar, 0);
+
+  // The 128-bar boundary must preserve the final 8-bar copy, including the
+  // last bar, and paste it at the first window with exactly one Undo entry.
+  const longProjectTrack = { notes: [
+    { step: 0, pitch: 48 }, { step: 1920, pitch: 72 }
+  ] };
+  active.project = { bars: 128, bpm: 120 };
+  active.track = longProjectTrack;
+  host.trigger('focusin');
+  ui.waveRangeLast.click();
+  assert.equal(state.bar, 120);
+  assert.equal(ui.waveRangeCopy.disabled, false);
+  ui.waveRangeCopy.click();
+  assert.equal(undoCalls, undoBeforeShort);
+  ui.waveRangeFirst.click();
+  assert.equal(state.bar, 0);
+  assert.equal(ui.waveRangePaste.disabled, false);
+  ui.waveRangePaste.click();
+  assert.deepEqual(longProjectTrack.notes,
+    [{ step: 1920, pitch: 72 }, { step: 0, pitch: 72 }]);
+  assert.equal(undoCalls, undoBeforeShort + 1);
+  assert.equal(dirtyCalls, dirtyBeforeShort + 1);
+  ui.waveRangeBars.value = '4';
+  ui.waveRangeBars.trigger('change');
+  ui.waveRangeLast.click();
+  assert.equal(state.bar, 124);
+  assert.equal(ui.waveRangeNext.disabled, true);
+  ui.waveRangePrev.click();
+  assert.equal(state.bar, 120);
+
 }
 runScoreUiRegression(require('node:fs').readFileSync(
   require.resolve('./wave-v035-score-tools.js'), 'utf8'));

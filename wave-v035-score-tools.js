@@ -46,7 +46,11 @@
     if (last === null || !Number.isInteger(index) || index < 0 ||
         index >= validBars(totalBars) || (direction !== -1 && direction !== 1)) return null;
     if (direction === 1) return index < last ? Math.min(last, index + count) : null;
-    return index > 0 ? Math.max(0, Math.min(last, index - count)) : null;
+    // If a manual jump left the current bar beyond the last complete window,
+    // recover that final window first instead of skipping past it.
+    // Example: from bar 125 of 125, an 8-bar edit must reach bars 118-125.
+    if (index > last) return last;
+    return index > 0 ? Math.max(0, index - count) : null;
   }
 
   // WAVE_RANGE_EDIT_V036: selected-track edits only; unchanged save format.

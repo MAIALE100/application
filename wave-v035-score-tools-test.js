@@ -46,8 +46,19 @@ assert.equal(rangeStepTarget(121,125,4,-1),117);
 assert.equal(rangeStepTarget(117,125,8,1),null);
 assert.equal(rangeStepTarget(112,125,8,1),117);
 assert.equal(rangeStepTarget(117,125,8,-1),109);
-assert.equal(rangeStepTarget(124,125,8,-1),116);
+assert.equal(rangeStepTarget(124,125,8,-1),117);
 assert.equal(rangeStepTarget(124,125,8,1),null);
+// Manual single-bar navigation can leave a partial window at the end.
+// The first backward range step must recover the last *complete* window,
+// not skip it; subsequent steps still advance by exactly 4/8 bars.
+assert.equal(rangeStepTarget(118,125,8,-1),117);
+assert.equal(rangeStepTarget(120,125,8,-1),117);
+assert.equal(rangeStepTarget(124,125,4,-1),121);
+assert.equal(rangeStepTarget(127,128,8,-1),120);
+assert.equal(rangeStepTarget(7,8,8,-1),0);
+assert.equal(rangeStepTarget(3,4,4,-1),0);
+assert.equal(rangeStepTarget(116,125,8,-1),108);
+assert.equal(rangeStepTarget(7,8,8,1),null);
 assert.equal(rangeStepTarget(0,4,4,1),null);
 assert.equal(rangeStepTarget(0,8,8,1),null);
 assert.equal(rangeStepTarget(0,8,4,1),4);

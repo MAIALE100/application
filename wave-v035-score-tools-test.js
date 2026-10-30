@@ -950,6 +950,95 @@ function runScoreUiRegression(sourceCode) {
   ui.waveRangeFirst.click();
   assert.equal(renders, rendersBeforeNoop);
 
+  // 8-bar copy/paste through the UI: no dirty state on copy or identical paste.
+  const originalSource = firstTrack.notes.map(n => ({ ...n }));
+  ui.waveRangeBars.value = '8';
+  ui.waveRangeBars.trigger('change');
+  ui.waveRangeCopy.click();
+  assert.equal(ui.waveScoreMessage.textContent.includes('8小節をコピー'), true);
+  assert.equal(undoCalls, 2);
+  assert.equal(dirtyCalls, 2);
+  ui.waveRangeNext.click();
+  assert.equal(state.bar, 8);
+  ui.waveRangePaste.click();
+  assert.deepEqual(firstTrack.notes.filter(n => n.step >= 128 && n.step < 256)
+    .map(n => [n.step, n.pitch]),
+    [[128, 60], [129, 62], [192, 60], [193, 62]]);
+  assert.equal(undoCalls, 3);
+  assert.equal(dirtyCalls, 3);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, 3);
+  assert.equal(dirtyCalls, 3);
+  assert.deepEqual(firstTrack.notes.filter(n => n.step < 128), originalSource);
+
+  // A clipboard belongs to the project, not the selected track.
+  active.track = secondTrack;
+  host.trigger('focusin');
+  assert.equal(ui.waveRangePaste.disabled, false);
+  ui.waveRangePaste.click();
+  assert.deepEqual(secondTrack.notes.map(n => [n.step, n.pitch]),
+    [[0, 99], [128, 60], [129, 62], [192, 60], [193, 62]]);
+  assert.equal(undoCalls, 4);
+  assert.equal(dirtyCalls, 4);
+  assert.deepEqual(firstTrack.notes.filter(n => n.step < 128), originalSource);
+
+  // 8-bar paste at bar 125 must fail, then succeed in the final full window.
+  ui.waveBarJump.value = '125';
+  ui.waveBarJumpGo.click();
+  assert.equal(state.bar, 124);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, 4);
+  assert.equal(dirtyCalls, 4);
+  ui.waveRangeLast.click();
+  assert.equal(state.bar, 117);
+  ui.waveRangePaste.click();
+  assert.deepEqual(secondTrack.notes.filter(n => n.step >= 1872)
+    .map(n => [n.step, n.pitch]),
+    [[1872, 60], [1873, 62], [1936, 60], [1937, 62]]);
+  assert.equal(undoCalls, 5);
+  assert.equal(dirtyCalls, 5);
+
+  // Mixed 4-bar clipboard / 8-bar selection: only the first 4 bars change.
+  active.track = firstTrack;
+  host.trigger('focusin');
+  ui.waveRangeBars.value = '4';
+  ui.waveRangeBars.trigger('change');
+  ui.waveRangeFirst.click();
+  assert.equal(state.bar, 0);
+  ui.waveRangeCopy.click();
+  ui.waveRangeBars.value = '8';
+  ui.waveRangeBars.trigger('change');
+  ui.waveRangeNext.click();
+  assert.equal(state.bar, 8);
+  const followingBars = firstTrack.notes.filter(n => n.step >= 192 && n.step < 256)
+    .map(n => ({ ...n }));
+  ui.waveRangePaste.click(); // Existing 4 bars are already identical.
+  assert.deepEqual(firstTrack.notes.filter(n => n.step >= 192 && n.step < 256), followingBars);
+  assert.equal(undoCalls, 5);
+  assert.equal(dirtyCalls, 5);
+  const mixedTrack = { notes: [{ step: 128, pitch: 99 }, { step: 192, pitch: 88 }] };
+  active.track = mixedTrack;
+  host.trigger('focusin');
+  assert.equal(ui.waveRangePaste.disabled, false);
+  ui.waveRangePaste.click();
+  assert.deepEqual(mixedTrack.notes.map(n => [n.step, n.pitch]),
+    [[192, 88], [128, 60], [129, 62]]);
+  assert.equal(undoCalls, 6);
+  assert.equal(dirtyCalls, 6);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, 6);
+  assert.equal(dirtyCalls, 6);
+  assert.deepEqual(mixedTrack.notes.filter(n => n.step >= 192), [{ step: 192, pitch: 88 }]);
+
+  // Changing projects invalidates the clip even when the track stays selected.
+  active.project = { bars: 125, bpm: 120 };
+  host.trigger('focusin');
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, 6);
+  assert.equal(dirtyCalls, 6);
+
 }
 runScoreUiRegression(require('node:fs').readFileSync(
   require.resolve('./wave-v035-score-tools.js'), 'utf8'));

@@ -45,6 +45,17 @@
     return lastRangeStart(totalBars, count) === null ? null : 0;
   }
 
+  // Skip first/last navigation when already at the target. This avoids
+  // redundant full STUDIO renders on long songs, including one-window songs.
+  // A manual jump beyond the last complete window can still recover it.
+  function rangeEdgeTarget(index, totalBars, count, edge) {
+    if (!Number.isInteger(index) || index < 0 ||
+        index >= validBars(totalBars)) return null;
+    const target = edge === 'first' ? firstRangeStart(totalBars, count)
+      : edge === 'last' ? lastRangeStart(totalBars, count) : null;
+    return target === null || target === index ? null : target;
+  }
+
   // Expanding a 4-bar selection near the end must land on the nearest
   // complete 8-bar window, not leave the editor on an invalid partial range.
   // Preserve the current bar when the newly selected window already fits.
@@ -335,7 +346,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeSelectionTarget, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeEdgeTarget, rangeSelectionTarget, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -420,8 +431,8 @@
         track && track.notes, index, selectedCount, bars, rangeClipboard);
       rangePrev.disabled = rangeStepTarget(index, bars, selectedCount, -1) === null;
       rangeNext.disabled = rangeStepTarget(index, bars, selectedCount, 1) === null;
-      rangeFirst.disabled = firstRangeStart(bars, selectedCount) === null;
-      rangeLast.disabled = lastRangeStart(bars, selectedCount) === null;
+      rangeFirst.disabled = rangeEdgeTarget(index, bars, selectedCount, 'first') === null;
+      rangeLast.disabled = rangeEdgeTarget(index, bars, selectedCount, 'last') === null;
       rangeCopy.disabled = !selectedRange;
       rangeClear.disabled = !selectedRange || selectedRange.notes === 0;
       rangePaste.disabled = !pasteTarget || !pasteTarget.withinLimit || !pasteTarget.wouldChange;
@@ -482,12 +493,12 @@
     });
 
     rangeFirst.addEventListener('click', () => {
-      const first = firstRangeStart(totals().bars, Number(rangeSelect.value));
+      const first = rangeEdgeTarget(current(), totals().bars, Number(rangeSelect.value), 'first');
       if (first !== null) jump(first);
     });
 
     rangeLast.addEventListener('click', () => {
-      const last = lastRangeStart(totals().bars, Number(rangeSelect.value));
+      const last = rangeEdgeTarget(current(), totals().bars, Number(rangeSelect.value), 'last');
       if (last !== null) jump(last);
     });
 

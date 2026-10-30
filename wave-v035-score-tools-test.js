@@ -50,6 +50,29 @@ assert.equal(firstRangeStart(0,4),null);
 assert.equal(firstRangeStart(125,6),null);
 assert.equal(firstRangeStart(125,'4'),null);
 
+// First/last buttons must disable at their destination, avoiding a
+// redundant render of a 125-bar score. A manual jump past the final complete
+// window must still allow a one-click recovery to the valid edit window.
+const { rangeEdgeTarget } = require('./wave-v035-score-tools.js');
+assert.equal(rangeEdgeTarget(0,125,4,'first'),null);
+assert.equal(rangeEdgeTarget(64,125,4,'first'),0);
+assert.equal(rangeEdgeTarget(124,125,8,'first'),0);
+assert.equal(rangeEdgeTarget(121,125,4,'last'),null);
+assert.equal(rangeEdgeTarget(120,125,4,'last'),121);
+assert.equal(rangeEdgeTarget(124,125,8,'last'),117);
+assert.equal(rangeEdgeTarget(117,125,8,'last'),null);
+assert.equal(rangeEdgeTarget(0,8,8,'last'),null);
+assert.equal(rangeEdgeTarget(3,4,8,'last'),null);
+assert.equal(rangeEdgeTarget(4,4,4,'first'),null);
+assert.equal(rangeEdgeTarget(-1,125,4,'first'),null);
+assert.equal(rangeEdgeTarget(0,125,4,'middle'),null);
+assert.equal(rangeEdgeTarget(3.5,125,4,'last'),null);
+assert.equal(rangeEdgeTarget(NaN,125,4,'last'),null);
+assert.equal(rangeEdgeTarget(0,128,8,'last'),120);
+assert.equal(rangeEdgeTarget(120,128,8,'last'),null);
+assert.equal(rangeEdgeTarget(119,128,8,'last'),120);
+assert.equal(rangeEdgeTarget(0,125,6,'first'),null);
+
 // Switching the selected edit size at the tail keeps a complete window.
 const { rangeSelectionTarget } = require('./wave-v035-score-tools.js');
 assert.equal(rangeSelectionTarget(121,125,8),117);

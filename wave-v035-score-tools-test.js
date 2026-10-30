@@ -811,4 +811,36 @@ for (let trial = 0; trial < 256; trial++) {
 for (const count of Object.values(sparseWindowCoverage)) assert.equal(count > 0, true);
 for (const count of Object.values(sparseLengthCoverage)) assert.equal(count > 0, true);
 
+
+// Exhaustively check every 4/8-bar navigation position for all supported
+// 1..128-bar songs. The oracle uses only arithmetic, not the target helpers:
+// this guards against off-by-one regressions in 125/128-bar edit windows.
+for (let songBars = 1; songBars <= 128; songBars++) {
+  for (const windowBars of [4, 8]) {
+    const finalStart = songBars >= windowBars ? songBars - windowBars : null;
+    assert.equal(lastRangeStart(songBars, windowBars), finalStart);
+    assert.equal(firstRangeStart(songBars, windowBars),
+      finalStart === null ? null : 0);
+    for (let index = 0; index < songBars; index++) {
+      const unavailable = finalStart === null;
+      assert.equal(rangeSelectionTarget(index, songBars, windowBars),
+        unavailable ? null : Math.min(index, finalStart));
+      assert.equal(rangeEdgeTarget(index, songBars, windowBars, 'first'),
+        unavailable || index === 0 ? null : 0);
+      assert.equal(rangeEdgeTarget(index, songBars, windowBars, 'last'),
+        unavailable || index === finalStart ? null : finalStart);
+      assert.equal(rangeStepTarget(index, songBars, windowBars, 1),
+        unavailable || index >= finalStart ? null :
+          Math.min(finalStart, index + windowBars));
+      assert.equal(rangeStepTarget(index, songBars, windowBars, -1),
+        unavailable || index === 0 ? null :
+          index > finalStart ? finalStart : Math.max(0, index - windowBars));
+      assert.deepEqual(rangeBounds(index, windowBars, songBars),
+        unavailable || index > finalStart ? null :
+          { start: index * 16, end: (index + windowBars) * 16 });
+      assert.equal(changedJumpTarget(index, index, songBars), null);
+    }
+  }
+}
+
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

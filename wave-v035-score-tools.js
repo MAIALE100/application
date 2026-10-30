@@ -417,6 +417,7 @@
     const rangeClear = host.querySelector('#waveRangeClear');
     const preview = host.querySelector('#waveRangePreview');
     let rangeClipboard = null;
+    let rangeClipboardSource = null;
     let rangeProject = null;
     const project = () => (typeof ensureProject === 'function' ? ensureProject() : null);
 
@@ -433,7 +434,7 @@
       if (!host.isConnected) return;
       const { bars, bpm } = totals();
       const index = current();
-      if (rangeProject !== project()) { rangeClipboard = null; rangeProject = null; }
+      if (rangeProject !== project()) { rangeClipboard = null; rangeClipboardSource = null; rangeProject = null; }
       const selectedCount = Number(rangeSelect.value);
       const track = selectedNotes();
       const { selectedRange, pasteTarget } = rangeEditPreview(
@@ -449,9 +450,18 @@
         ? selectedRange.startBar + '〜' + selectedRange.endBar + '小節：' + selectedRange.notes + '音符。'
         : 'この位置では選択範囲を編集できません。';
       if (rangeClipboard) {
+        // Keep the copied bar position visible after navigating a long score.
+        // This is UI-only metadata and never enters the saved project.
+        if (rangeClipboardSource !== null) {
+          preview.textContent += ' コピー元' + (rangeClipboardSource + 1) + '〜' +
+            (rangeClipboardSource + rangeClipboard.bars) + '小節。';
+        }
         if (!pasteTarget) {
           preview.textContent += ' コピー済み' + rangeClipboard.bars + '小節はここに貼り付けできません。';
         } else {
+          // Mixed 4/8-bar selections may have a different paste window.
+          preview.textContent += ' 貼り付け先' + pasteTarget.startBar + '〜' +
+            pasteTarget.endBar + '小節。';
           preview.textContent += ' コピー済み' + rangeClipboard.bars + '小節：既存' +
             pasteTarget.overwritten + '音符を置換し、' + pasteTarget.inserted + '音符を配置。';
           if (!pasteTarget.withinLimit) preview.textContent += ' 音符上限（8192）を超えるため貼り付け不可。';
@@ -526,6 +536,7 @@
         return;
       }
       rangeClipboard = clip;
+      rangeClipboardSource = current();
       rangeProject = project();
       message.textContent = count + '小節をコピーしました（' + clip.notes.length + '音符）。';
       refresh();

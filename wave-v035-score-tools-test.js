@@ -900,8 +900,11 @@ function runScoreUiRegression(sourceCode) {
   assert.equal(ui.waveRangeCopy.disabled, false);
   ui.waveRangeCopy.click();
   assert.equal(ui.waveScoreMessage.textContent.includes('4小節をコピー'), true);
+  assert.equal(ui.waveRangePreview.textContent.includes('コピー元1〜4小節'), true);
   ui.waveRangeNext.click();
   assert.equal(state.bar, 4);
+  assert.equal(ui.waveRangePreview.textContent.includes('コピー元1〜4小節'), true);
+  assert.equal(ui.waveRangePreview.textContent.includes('貼り付け先5〜8小節'), true);
   ui.waveRangePaste.click();
   assert.deepEqual(firstTrack.notes.filter(n => n.step >= 64 && n.step < 128)
     .map(n => [n.step, n.pitch]), [[64, 60], [65, 62]]);
@@ -1011,6 +1014,7 @@ function runScoreUiRegression(sourceCode) {
   ui.waveRangeBars.trigger('change');
   ui.waveRangeNext.click();
   assert.equal(state.bar, 8);
+  assert.equal(ui.waveRangePreview.textContent.includes('貼り付け先9〜12小節'), true);
   const followingBars = firstTrack.notes.filter(n => n.step >= 192 && n.step < 256)
     .map(n => ({ ...n }));
   ui.waveRangePaste.click(); // Existing 4 bars are already identical.
@@ -1035,6 +1039,7 @@ function runScoreUiRegression(sourceCode) {
   active.project = { bars: 125, bpm: 120 };
   host.trigger('focusin');
   assert.equal(ui.waveRangePaste.disabled, true);
+  assert.equal(ui.waveRangePreview.textContent.includes('コピー元'), false);
   ui.waveRangePaste.click();
   assert.equal(undoCalls, 6);
   assert.equal(dirtyCalls, 6);
@@ -1193,6 +1198,7 @@ function runScoreUiRegression(sourceCode) {
   host.trigger('focusin');
   ui.waveRangeCopy.click();
   assert.equal(ui.waveScoreMessage.textContent.includes('0音符'), true);
+  assert.equal(ui.waveRangePreview.textContent.includes('コピー元17〜20小節'), true);
   const undoBeforeEmpty = undoCalls, dirtyBeforeEmpty = dirtyCalls;
   ui.waveRangeFirst.click();
   assert.equal(state.bar, 0);

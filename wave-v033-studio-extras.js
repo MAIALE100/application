@@ -51,6 +51,10 @@
     const current = () => Math.max(0, Math.min(maxBars() - 1, Math.floor(Number(state.bar) || 0)));
     const jump = target => {
       const index = Math.max(0, Math.min(maxBars() - 1, Math.floor(target)));
+      // Clicking the active bar (or releasing the slider on it) must not
+      // rebuild the full 125/128-bar STUDIO or its eight navigation buttons.
+      // Compare the raw state to retain normalization of malformed values.
+      if (state.bar === index) return;
       state.bar = index;
       if (typeof renderStudio === 'function') renderStudio();
       render();

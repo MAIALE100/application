@@ -754,12 +754,17 @@ assert.equal(pasteRange(shortInherited,shortSparseClip,0,125).length,3);
 let sparseSeed = 0x53a9b125;
 function sparseRandom(limit) {
   sparseSeed = (Math.imul(sparseSeed, 1664525) + 1013904223) >>> 0;
-  return sparseSeed % limit;
+  // Use high bits: LCG low bits alternate, excluding 4/4 and 8/8 cases.
+  return Math.floor((sparseSeed / 4294967296) * limit);
 }
+const sparseWindowCoverage = { '4/4': 0, '4/8': 0, '8/4': 0, '8/8': 0 };
+const sparseLengthCoverage = { 8: 0, 125: 0, 128: 0 };
 for (let trial = 0; trial < 256; trial++) {
   const bars = [8, 125, 128][sparseRandom(3)];
   const selectedBars = sparseRandom(2) ? 4 : 8;
   const copiedBars = sparseRandom(2) ? 4 : 8;
+  sparseWindowCoverage[selectedBars + '/' + copiedBars]++;
+  sparseLengthCoverage[bars]++;
   const start = [0, bars - selectedBars, bars - 1, sparseRandom(bars)][sparseRandom(4)];
   const notes = new Array(8 + sparseRandom(96));
   for (let i = 0; i < notes.length; i++) {
@@ -800,5 +805,10 @@ for (let trial = 0; trial < 256; trial++) {
   assert.deepEqual(Array.from({ length: notes.length }, (_, i) => [i in notes, notes[i]]), before);
   assert.deepEqual(clip.notes, beforeClip);
 }
+
+// Keep deterministic fuzzing honest: exercise both same-size and mixed-size
+// copy/paste across short, 125-bar and 128-bar project boundaries.
+for (const count of Object.values(sparseWindowCoverage)) assert.equal(count > 0, true);
+for (const count of Object.values(sparseLengthCoverage)) assert.equal(count > 0, true);
 
 console.log('WAVE long-score tools and 4/8-bar range editing: PASS');

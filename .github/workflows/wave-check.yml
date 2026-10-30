@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "336f81829a49666a974826fed7e084e77224a3690625d4fb16b36235ed0242c9  wave-v033-studio-extras.js" | sha256sum -c -
+          echo "8a94bbf0686fd7be42157ca18dc38bfca6b3c30f19203479d176d15bca0c7230  wave-v033-studio-extras.js" | sha256sum -c -
           cp wave-v033-studio-extras.js wave-check/wave/web/studio-extras.js
           python3 - <<'PY'
           from pathlib import Path

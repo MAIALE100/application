@@ -39,6 +39,16 @@
     return bars >= count ? bars - count : null;
   }
 
+  // Move between complete edit windows. Unlike the generic 4/8-bar skips,
+  // never land on a partial selection at the end of a long song.
+  function rangeStepTarget(index, totalBars, count, direction) {
+    const last = lastRangeStart(totalBars, count);
+    if (last === null || !Number.isInteger(index) || index < 0 ||
+        index >= validBars(totalBars) || (direction !== -1 && direction !== 1)) return null;
+    if (direction === 1) return index < last ? Math.min(last, index + count) : null;
+    return index > 0 ? Math.max(0, Math.min(last, index - count)) : null;
+  }
+
   // WAVE_RANGE_EDIT_V036: selected-track edits only; unchanged save format.
   function rangeBounds(startBar, count, totalBars) {
     if (!Number.isInteger(startBar) || (count !== 4 && count !== 8)) return null;
@@ -305,7 +315,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -333,6 +343,8 @@
       '<div class="wave-score-quick-row" id="waveRangeTools">',
       '  <label for="waveRangeBars">範囲</label>',
       '  <select id="waveRangeBars" aria-label="編集する小節数"><option value="4">4小節</option><option value="8">8小節</option></select>',
+      '  <button type="button" class="secondary" id="waveRangePrev">◀ 前の範囲</button>',
+      '  <button type="button" class="secondary" id="waveRangeNext">次の範囲 ▶</button>',
       '  <button type="button" class="secondary" id="waveRangeLast">末尾の範囲へ</button>',
       '  <button type="button" class="secondary" id="waveRangeCopy">コピー</button>',
       '  <button type="button" class="secondary" id="waveRangePaste">貼り付け</button>',
@@ -355,6 +367,8 @@
     const estimate = host.querySelector('#waveScoreEstimate');
     const message = host.querySelector('#waveScoreMessage');
     const rangeSelect = host.querySelector('#waveRangeBars');
+    const rangePrev = host.querySelector('#waveRangePrev');
+    const rangeNext = host.querySelector('#waveRangeNext');
     const rangeLast = host.querySelector('#waveRangeLast');
     const rangeCopy = host.querySelector('#waveRangeCopy');
     const rangePaste = host.querySelector('#waveRangePaste');
@@ -382,6 +396,8 @@
       const track = selectedNotes();
       const { selectedRange, pasteTarget } = rangeEditPreview(
         track && track.notes, index, selectedCount, bars, rangeClipboard);
+      rangePrev.disabled = rangeStepTarget(index, bars, selectedCount, -1) === null;
+      rangeNext.disabled = rangeStepTarget(index, bars, selectedCount, 1) === null;
       rangeLast.disabled = lastRangeStart(bars, selectedCount) === null;
       rangeCopy.disabled = !selectedRange;
       rangeClear.disabled = !selectedRange || selectedRange.notes === 0;
@@ -432,6 +448,15 @@
       const track = getTrack();
       return track && Array.isArray(track.notes) ? track : null;
     }
+
+    rangePrev.addEventListener('click', () => {
+      const target = rangeStepTarget(current(), totals().bars, Number(rangeSelect.value), -1);
+      if (target !== null) jump(target);
+    });
+    rangeNext.addEventListener('click', () => {
+      const target = rangeStepTarget(current(), totals().bars, Number(rangeSelect.value), 1);
+      if (target !== null) jump(target);
+    });
 
     rangeLast.addEventListener('click', () => {
       const last = lastRangeStart(totals().bars, Number(rangeSelect.value));

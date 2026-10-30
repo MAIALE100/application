@@ -35,6 +35,30 @@ assert.equal(lastRangeStart(125,6),null);
 assert.equal(lastRangeStart(125,'4'),null);
 assert.equal(lastRangeStart(0,4),null);
 
+// Range-specific navigation must land only on complete 4/8-bar windows.
+// General 4/8-bar navigation remains free to reach any single bar.
+const { rangeStepTarget } = require('./wave-v035-score-tools.js');
+assert.equal(rangeStepTarget(0,125,4,-1),null);
+assert.equal(rangeStepTarget(0,125,4,1),4);
+assert.equal(rangeStepTarget(118,125,4,1),121);
+assert.equal(rangeStepTarget(121,125,4,1),null);
+assert.equal(rangeStepTarget(121,125,4,-1),117);
+assert.equal(rangeStepTarget(117,125,8,1),null);
+assert.equal(rangeStepTarget(112,125,8,1),117);
+assert.equal(rangeStepTarget(117,125,8,-1),109);
+assert.equal(rangeStepTarget(124,125,8,-1),116);
+assert.equal(rangeStepTarget(124,125,8,1),null);
+assert.equal(rangeStepTarget(0,4,4,1),null);
+assert.equal(rangeStepTarget(0,8,8,1),null);
+assert.equal(rangeStepTarget(0,8,4,1),4);
+assert.equal(rangeStepTarget(4,8,4,1),null);
+assert.equal(rangeStepTarget(2,125,6,1),null);
+assert.equal(rangeStepTarget(2,125,4,0),null);
+assert.equal(rangeStepTarget(-1,125,4,1),null);
+assert.equal(rangeStepTarget(125,125,4,-1),null);
+assert.equal(rangeStepTarget(2,125,4,NaN),null);
+assert.equal(rangeStepTarget(0,3,4,1),null);
+
 // Four beats per bar, 16 steps/bar.  The values agree with existing presets.
 assert.equal(durationSeconds(15,120),30);
 assert.equal(durationLabel(15,120),'0:30');

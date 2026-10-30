@@ -358,7 +358,7 @@ try {
     $scoreToolsPath=Join-Path $Source 'web\score-tools.js'
     [IO.File]::WriteAllText($scoreToolsPath,$scoreToolsText,(New-Object Text.UTF8Encoding($false)))
     $scoreToolsHash=(Get-FileHash -LiteralPath $scoreToolsPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    if ($scoreToolsHash -ne 'D2C25876BCF9FBAA4F0B8BCE0F89BA40C1AC398DAC9093B03BF1E5BD343BEF95') {
+    if ($scoreToolsHash -ne 'C226234E075EBD48FAE0B069FDA76CAAF7A585D6E5EDB25E19C908220231D547') {
         throw ('WAVE long score tools SHA mismatch: ' + $scoreToolsHash)
     }
     $extrasHash=(Get-FileHash -LiteralPath $extrasPath -Algorithm SHA256).Hash.ToUpperInvariant()

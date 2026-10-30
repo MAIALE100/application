@@ -1039,6 +1039,60 @@ function runScoreUiRegression(sourceCode) {
   assert.equal(undoCalls, 6);
   assert.equal(dirtyCalls, 6);
 
+
+  // Walk the real UI controls across a full 125-bar project, not just a
+  // single click. A final partial stride must stop at the last *complete*
+  // edit window; reversing from that window must not skip any valid stop.
+  // Disabled boundary buttons must never trigger a redundant render.
+  for (const windowBars of [4, 8]) {
+    ui.waveRangeBars.value = String(windowBars);
+    ui.waveRangeBars.trigger('change');
+    ui.waveRangeFirst.click();
+    assert.equal(state.bar, 0);
+    const last = 125 - windowBars;
+    const expectedForward = [];
+    for (let cursor = 0; cursor < last;) {
+      cursor = Math.min(last, cursor + windowBars);
+      expectedForward.push(cursor);
+    }
+    const actualForward = [];
+    for (let i = 0; i < expectedForward.length; i++) {
+      const beforeRender = renders;
+      ui.waveRangeNext.click();
+      actualForward.push(state.bar);
+      assert.equal(renders, beforeRender + 1);
+    }
+    assert.deepEqual(actualForward, expectedForward);
+    assert.equal(state.bar, last);
+    assert.equal(ui.waveRangeNext.disabled, true);
+    assert.equal(ui.waveRangeLast.disabled, true);
+    const atLastRenders = renders;
+    ui.waveRangeNext.click();
+    ui.waveRangeLast.click();
+    assert.equal(renders, atLastRenders);
+
+    const expectedBackward = [];
+    for (let cursor = last; cursor > 0;) {
+      cursor = Math.max(0, cursor - windowBars);
+      expectedBackward.push(cursor);
+    }
+    const actualBackward = [];
+    for (let i = 0; i < expectedBackward.length; i++) {
+      const beforeRender = renders;
+      ui.waveRangePrev.click();
+      actualBackward.push(state.bar);
+      assert.equal(renders, beforeRender + 1);
+    }
+    assert.deepEqual(actualBackward, expectedBackward);
+    assert.equal(state.bar, 0);
+    assert.equal(ui.waveRangePrev.disabled, true);
+    assert.equal(ui.waveRangeFirst.disabled, true);
+    const atFirstRenders = renders;
+    ui.waveRangePrev.click();
+    ui.waveRangeFirst.click();
+    assert.equal(renders, atFirstRenders);
+  }
+
 }
 runScoreUiRegression(require('node:fs').readFileSync(
   require.resolve('./wave-v035-score-tools.js'), 'utf8'));

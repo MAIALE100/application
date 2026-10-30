@@ -50,6 +50,25 @@ assert.equal(firstRangeStart(0,4),null);
 assert.equal(firstRangeStart(125,6),null);
 assert.equal(firstRangeStart(125,'4'),null);
 
+// Switching the selected edit size at the tail keeps a complete window.
+const { rangeSelectionTarget } = require('./wave-v035-score-tools.js');
+assert.equal(rangeSelectionTarget(121,125,8),117);
+assert.equal(rangeSelectionTarget(124,125,8),117);
+assert.equal(rangeSelectionTarget(124,125,4),121);
+assert.equal(rangeSelectionTarget(120,125,4),120);
+assert.equal(rangeSelectionTarget(116,125,8),116);
+assert.equal(rangeSelectionTarget(0,125,8),0);
+assert.equal(rangeSelectionTarget(127,128,8),120);
+assert.equal(rangeSelectionTarget(7,8,8),0);
+assert.equal(rangeSelectionTarget(3,4,8),null);
+assert.equal(rangeSelectionTarget(0,3,4),null);
+assert.equal(rangeSelectionTarget(-1,125,8),null);
+assert.equal(rangeSelectionTarget(125,125,8),null);
+assert.equal(rangeSelectionTarget(2.5,125,8),null);
+assert.equal(rangeSelectionTarget(NaN,125,8),null);
+assert.equal(rangeSelectionTarget(120,125,6),null);
+assert.equal(rangeSelectionTarget(120,125,'8'),null);
+
 // Range-specific navigation must land only on complete 4/8-bar windows.
 // General 4/8-bar navigation remains free to reach any single bar.
 const { rangeStepTarget } = require('./wave-v035-score-tools.js');

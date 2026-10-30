@@ -1148,6 +1148,65 @@ function runScoreUiRegression(sourceCode) {
   ui.waveRangePrev.click();
   assert.equal(state.bar, 120);
 
+
+  // Overlapping copy/paste must use a snapshot of the original four bars.
+  // The destination overlaps the copied source; an Undo entry is created
+  // exactly once, while notes outside the destination remain untouched.
+  const overlapTrack = { notes: [
+    { step: 0, pitch: 60 }, { step: 48, pitch: 62 },
+    { step: 64, pitch: 65 }, { step: 80, pitch: 66 },
+    { step: 96, pitch: 70 }
+  ] };
+  active.project = { bars: 125, bpm: 120 };
+  active.track = overlapTrack;
+  state.bar = 0;
+  host.trigger('focusin');
+  ui.waveRangeBars.value = '4';
+  ui.waveRangeBars.trigger('change');
+  const undoBeforeOverlap = undoCalls, dirtyBeforeOverlap = dirtyCalls;
+  ui.waveRangeCopy.click();
+  assert.equal(ui.waveScoreMessage.textContent.includes('2音符'), true);
+  assert.equal(undoCalls, undoBeforeOverlap);
+  ui.waveBarJump.value = '3'; // Zero-based bar 2: overlaps the source.
+  ui.waveBarJumpGo.click();
+  assert.equal(state.bar, 2);
+  assert.equal(ui.waveRangePaste.disabled, false);
+  ui.waveRangePaste.click();
+  assert.deepEqual(overlapTrack.notes.map(n => [n.step, n.pitch]),
+    [[0, 60], [96, 70], [32, 60], [80, 62]]);
+  assert.equal(undoCalls, undoBeforeOverlap + 1);
+  assert.equal(dirtyCalls, dirtyBeforeOverlap + 1);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, undoBeforeOverlap + 1);
+  assert.equal(dirtyCalls, dirtyBeforeOverlap + 1);
+
+  // Copying an empty four-bar window is a valid destructive paste: it
+  // clears occupied destination notes once, then becomes a no-op.
+  const emptyCopyTrack = { notes: [
+    { step: 0, pitch: 48 }, { step: 64, pitch: 55 },
+    { step: 192, pitch: 60 }
+  ] };
+  active.project = { bars: 125, bpm: 120 };
+  active.track = emptyCopyTrack;
+  state.bar = 16; // Bars 17-20 have no notes.
+  host.trigger('focusin');
+  ui.waveRangeCopy.click();
+  assert.equal(ui.waveScoreMessage.textContent.includes('0音符'), true);
+  const undoBeforeEmpty = undoCalls, dirtyBeforeEmpty = dirtyCalls;
+  ui.waveRangeFirst.click();
+  assert.equal(state.bar, 0);
+  assert.equal(ui.waveRangePaste.disabled, false);
+  ui.waveRangePaste.click();
+  assert.deepEqual(emptyCopyTrack.notes,
+    [{ step: 64, pitch: 55 }, { step: 192, pitch: 60 }]);
+  assert.equal(undoCalls, undoBeforeEmpty + 1);
+  assert.equal(dirtyCalls, dirtyBeforeEmpty + 1);
+  assert.equal(ui.waveRangePaste.disabled, true);
+  ui.waveRangePaste.click();
+  assert.equal(undoCalls, undoBeforeEmpty + 1);
+  assert.equal(dirtyCalls, dirtyBeforeEmpty + 1);
+
 }
 runScoreUiRegression(require('node:fs').readFileSync(
   require.resolve('./wave-v035-score-tools.js'), 'utf8'));

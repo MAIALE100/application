@@ -1,5 +1,20 @@
 # BASE test checklist
 
+## Automated custom-field regressions
+
+Run from repository root:
+
+```bash
+lua5.4 flecity_base/tests/custom-fields.lua
+```
+
+This executes the actual Lua validation/persistence helpers against mocked query
+results: Japanese/UTF-8 limits, malformed text rejection, explicit clears,
+duplicate numeric field IDs, number/date/check validation, nil/false write
+results, commit failure, and missing custom-field tables in the DB selftest.
+It does not execute oxmysql, SQL transactions, or multiplayer concurrency.
+See `CI_REVIEW_2026-10-30.md` for the current CI startup blocker and verification.
+
 ## Startup
 
 1. Run `base-update.cmd`.
@@ -237,3 +252,4 @@ GitHub Actions checks Lua syntax, JavaScript syntax, CSS compatibility, packagin
 10. Do not run destructive DB fault-injection on the main Flecity server. Restore test data or delete disposable workspaces only after checking their contents.
 
 Release remains **on hold** until live FiveM/MariaDB testing and CI status are resolved.
+

@@ -1,4 +1,4 @@
-import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
+import { Component, ErrorInfo, PointerEvent as ReactPointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import '@fontsource/m-plus-rounded-1c/700.css'
 import './App.css'
 import Frame from './components/Frame'
@@ -16,6 +16,13 @@ type DrawPoint = { x: number; y: number }
 type DrawTool = 'pen' | 'eraser'
 type DrawStroke = { points: DrawPoint[]; color: CaptionColor; width: number; opacity: number; tool: DrawTool }
 type EditorSnapshot = { frame: FrameStyle; stamps: StampInstance[]; captions: CaptionInstance[]; strokes: DrawStroke[] }
+type CaptureLocation = { label: string; street: string; zone: string; x: number; y: number; z: number }
+type AlbumProject = { id: number; sourceUrl: string; finishedUrl: string; editData?: string; manualLocation: string; memo: string; location: CaptureLocation | null; createdAt: unknown; updatedAt: unknown }
+type PhotoSpot = { id: string; name: string; category: string; description: string; coords: { x: number; y: number; z: number } }
+type MySpot = { id: number; name: string; label: string; street: string; zone: string; x: number; y: number; z: number; createdAt: unknown }
+type AlbumResponse = { ok: boolean; projects?: AlbumProject[]; error?: string }
+type SaveProjectResponse = { ok: boolean; id?: number; error?: string }
+type SimpleResponse = { ok: boolean; error?: string }
 const CAPTION_COLORS: Record<CaptionColor, string> = {
     pink: '#e98bb7',
     hotPink: '#e83e8c',
@@ -102,6 +109,50 @@ const STAMPS: StampDefinition[] = [...BASE_STAMPS, ...COMMUNITY_STAMPS]
 const stampAssetUrl = (stamp: StampDefinition) =>
     stamp.image ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/stamps/${stamp.image}` : null
 
+const getNuiResourceName = () => {
+    const getter = (window as Window & { GetParentResourceName?: () => string }).GetParentResourceName
+    return typeof getter === 'function' ? getter() : 'puriphoto'
+}
+
+const nuiRequest = async <T,>(callback: string, data: unknown = {}): Promise<T> => {
+    if (devMode) throw new Error('NUI callback is unavailable in browser preview')
+    const response = await fetch(`https://${getNuiResourceName()}/${callback}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify(data)
+    })
+    if (!response.ok) throw new Error(`NUI callback failed: ${callback}`)
+    return response.json() as Promise<T>
+}
+
+class PuriPhotoErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+    state = { error: null as string | null }
+
+    static getDerivedStateFromError(error: Error) {
+        return { error: error?.message || 'unknown_error' }
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error('[PuriPhoto] UI render error:', error, info)
+    }
+
+    render() {
+        if (this.state.error) {
+            return (
+                <main className="app">
+                    <div className="ui-error-fallback">
+                        <strong>画面の読み込みに失敗しました</strong>
+                        <p>写真や編集内容はサーバー側から削除されていません。</p>
+                        <button type="button" onClick={() => window.location.reload()}>PuriPhotoを再読み込み</button>
+                    </div>
+                </main>
+            )
+        }
+
+        return this.props.children
+    }
+}
+
 const App = () => {
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
     const [sourcePhotoUrl, setSourcePhotoUrl] = useState<string | null>(null)
@@ -150,6 +201,27 @@ const App = () => {
     const historyTimer = useRef<number | null>(null)
     const lastSnapshot = useRef<string>('')
     const historyActionLock = useRef(false)
+    const [page, setPage] = useState<'main' | 'album' | 'spots'>('main')
+    const [captureLocation, setCaptureLocation] = useState<CaptureLocation | null>(null)
+    const [currentProjectId, setCurrentProjectId] = useState<number | null>(null)
+    const [manualLocation, setManualLocation] = useState('')
+    const [photoMemo, setPhotoMemo] = useState('')
+    const [lastSavedSnapshot, setLastSavedSnapshot] = useState<EditorSnapshot | null>(null)
+    const [albumProjects, setAlbumProjects] = useState<AlbumProject[]>([])
+    const [albumLoading, setAlbumLoading] = useState(false)
+    const [albumMessage, setAlbumMessage] = useState<string | null>(null)
+    const [albumMetaEditingId, setAlbumMetaEditingId] = useState<number | null>(null)
+    const [albumMetaLocation, setAlbumMetaLocation] = useState('')
+    const [albumMetaMemo, setAlbumMetaMemo] = useState('')
+    const [albumMetaSaving, setAlbumMetaSaving] = useState(false)
+    const [photoSpots, setPhotoSpots] = useState<PhotoSpot[]>([])
+    const [spotsLoading, setSpotsLoading] = useState(false)
+    const [spotNotice, setSpotNotice] = useState<string | null>(null)
+    const [spotTab, setSpotTab] = useState<'recommended' | 'mine'>('recommended')
+    const [mySpots, setMySpots] = useState<MySpot[]>([])
+    const [mySpotsLoading, setMySpotsLoading] = useState(false)
+    const [mySpotName, setMySpotName] = useState('')
+    const [mySpotSaving, setMySpotSaving] = useState(false)
 
     const makeSnapshot = (): EditorSnapshot => ({
         frame: selectedFrame,
@@ -318,12 +390,26 @@ const App = () => {
         }
 
         try {
-            window.useCamera((url) => {
+            window.useCamera(async (url) => {
                 if (saveLock.current) return
                 if (typeof url === 'string' && url.trim()) {
+                    let location: CaptureLocation | null = null
+                    try {
+                        const result = await nuiRequest<{ ok: boolean; location?: CaptureLocation }>('puriphotoGetCaptureLocation')
+                        if (result.ok && result.location) location = result.location
+                    } catch (cause) {
+                        console.warn('[PuriPhoto] Could not record capture location:', cause)
+                    }
+
+                    setPage('main')
                     setPhotoUrl(url)
                     setSourcePhotoUrl(url)
                     setSavedPhotoUrl(null)
+                    setCaptureLocation(location)
+                    setCurrentProjectId(null)
+                    setManualLocation('')
+                    setPhotoMemo('')
+                    setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
                     setPhotoAspectRatio(null)
@@ -345,9 +431,15 @@ const App = () => {
 
     const resetPhotoSession = () => {
         if (saveLock.current) return
+        setPage('main')
         setPhotoUrl(null)
         setSourcePhotoUrl(null)
         setSavedPhotoUrl(null)
+        setCaptureLocation(null)
+        setCurrentProjectId(null)
+        setManualLocation('')
+        setPhotoMemo('')
+        setLastSavedSnapshot(null)
         setIsEditing(false)
         resetEditorState()
         setPhotoAspectRatio(null)
@@ -381,9 +473,15 @@ const App = () => {
                         return
                     }
 
+                    setPage('main')
                     setPhotoUrl(selected.src)
                     setSourcePhotoUrl(selected.src)
                     setSavedPhotoUrl(null)
+                    setCaptureLocation(null)
+                    setCurrentProjectId(null)
+                    setManualLocation('')
+                    setPhotoMemo('')
+                    setLastSavedSnapshot(null)
                     setIsEditing(false)
                     resetEditorState()
                     setPhotoAspectRatio(null)
@@ -393,6 +491,285 @@ const App = () => {
         } catch (cause) {
             console.error('[PuriPhoto] Failed to open gallery:', cause)
             setError('ギャラリーを開けませんでした。')
+        }
+    }
+
+    const formatAlbumDate = (value: unknown) => {
+        try {
+            if (value === null || value === undefined || value === '') return '日時不明'
+            let normalized: string | number
+            if (typeof value === 'number') {
+                normalized = value < 100000000000 ? value * 1000 : value
+            } else {
+                const text = String(value)
+                normalized = !/[zZ]|[+-]\d\d:?\d\d$/.test(text) ? text.replace(' ', 'T') : text
+            }
+            const date = new Date(normalized)
+            if (Number.isNaN(date.getTime())) return '日時不明'
+            return new Intl.DateTimeFormat('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date)
+        } catch (cause) {
+            console.warn('[PuriPhoto] Invalid album date:', value, cause)
+            return '日時不明'
+        }
+    }
+
+    const openAlbum = async () => {
+        if (saveLock.current) return
+        setPage('album')
+        setAlbumLoading(true)
+        setAlbumMessage(null)
+        try {
+            const result = await nuiRequest<AlbumResponse>('puriphotoGetAlbum')
+            if (!result.ok) throw new Error(result.error || 'album_load_failed')
+            const projects = Array.isArray(result.projects)
+                ? result.projects.filter((project): project is AlbumProject => Boolean(project && Number(project.id) > 0))
+                : []
+            setAlbumProjects(projects)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load album:', cause)
+            setAlbumProjects([])
+            setAlbumMessage('マイアルバムを読み込めませんでした。')
+        } finally {
+            setAlbumLoading(false)
+        }
+    }
+
+    const loadMySpots = async () => {
+        setMySpotsLoading(true)
+        try {
+            const result = await nuiRequest<{ ok: boolean; spots?: MySpot[]; error?: string }>('puriphotoGetMySpots')
+            if (!result.ok) throw new Error(result.error || 'my_spots_load_failed')
+            setMySpots(Array.isArray(result.spots) ? result.spots.filter(Boolean) : [])
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load my spots:', cause)
+            setMySpots([])
+            setSpotNotice('マイスポットを読み込めませんでした。')
+        } finally {
+            setMySpotsLoading(false)
+        }
+    }
+
+    const openPhotoSpots = async () => {
+        if (saveLock.current) return
+        setPage('spots')
+        setSpotTab('recommended')
+        setSpotsLoading(true)
+        setSpotNotice(null)
+        void loadMySpots()
+        try {
+            const result = await nuiRequest<{ ok: boolean; spots?: PhotoSpot[]; error?: string }>('puriphotoGetPhotoSpots')
+            if (!result.ok) throw new Error(result.error || 'spots_load_failed')
+            setPhotoSpots(Array.isArray(result.spots) ? result.spots : [])
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to load photo spots:', cause)
+            setPhotoSpots([])
+            setSpotNotice('撮影スポットを読み込めませんでした。')
+        } finally {
+            setSpotsLoading(false)
+        }
+    }
+
+    const saveMySpot = async () => {
+        const name = mySpotName.trim().slice(0, 64)
+        if (!name || mySpotSaving) return
+        setMySpotSaving(true)
+        setSpotNotice(null)
+        try {
+            const result = await nuiRequest<{ ok: boolean; id?: number; error?: string }>('puriphotoSaveMySpot', { name })
+            if (!result.ok) throw new Error(result.error || 'my_spot_save_failed')
+            setMySpotName('')
+            await loadMySpots()
+            setSpotNotice('現在地をマイスポットに登録しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to save my spot:', cause)
+            setSpotNotice('マイスポットを登録できませんでした。')
+        } finally {
+            setMySpotSaving(false)
+        }
+    }
+
+    const deleteMySpot = async (spotId: number) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoDeleteMySpot', { id: spotId })
+            if (!result.ok) throw new Error(result.error || 'my_spot_delete_failed')
+            setMySpots((current) => current.filter((spot) => spot.id !== spotId))
+            setSpotNotice('マイスポットから削除しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to delete my spot:', cause)
+            setSpotNotice('マイスポットを削除できませんでした。')
+        }
+    }
+
+    const setMySpotWaypoint = async (spot: MySpot) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoSetMySpotWaypoint', { x: spot.x, y: spot.y })
+            if (!result.ok) throw new Error(result.error || 'my_spot_waypoint_failed')
+            setSpotNotice(`${spot.name}をGPSに設定しました。`)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to set my spot waypoint:', cause)
+            setSpotNotice('GPSを設定できませんでした。')
+        }
+    }
+
+    const restoreAlbumProject = async (project: AlbumProject) => {
+        setAlbumMessage('編集データを読み込んでいます…')
+        try {
+            let loadedProject = project
+            if (!loadedProject.editData) {
+                const result = await nuiRequest<{ ok: boolean; project?: AlbumProject; error?: string }>('puriphotoGetProject', { id: project.id })
+                if (!result.ok || !result.project?.editData) {
+                    throw new Error(result.error || 'project_load_failed')
+                }
+                loadedProject = result.project
+            }
+
+            const snapshot = JSON.parse(loadedProject.editData) as EditorSnapshot
+            if (!snapshot || !Array.isArray(snapshot.stamps) || !Array.isArray(snapshot.captions) || !Array.isArray(snapshot.strokes)) {
+                throw new Error('invalid_snapshot')
+            }
+            resetEditorState()
+            setPage('main')
+            setAlbumMessage(null)
+            setPhotoUrl(loadedProject.sourceUrl)
+            setSourcePhotoUrl(loadedProject.sourceUrl)
+            setSavedPhotoUrl(loadedProject.finishedUrl)
+            setCaptureLocation(loadedProject.location)
+            setCurrentProjectId(loadedProject.id)
+            setManualLocation(loadedProject.manualLocation || '')
+            setPhotoMemo(loadedProject.memo || '')
+            setLastSavedSnapshot(snapshot)
+            setPhotoAspectRatio(null)
+            applySnapshot(snapshot)
+            setIsEditing(true)
+            setError(null)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to restore album project:', cause)
+            setAlbumMessage('この作品の編集データを復元できませんでした。')
+        }
+    }
+
+    const resumeLastSavedEdit = () => {
+        if (!lastSavedSnapshot || saveLock.current) return
+        setPhotoUrl(sourcePhotoUrl || photoUrl)
+        setPhotoAspectRatio(null)
+        setToolsCollapsed(false)
+        setIsEditing(true)
+        setError(null)
+    }
+
+    const beginAlbumMetaEdit = (project: AlbumProject) => {
+        setAlbumMetaEditingId(project.id)
+        setAlbumMetaLocation(project.manualLocation || '')
+        setAlbumMetaMemo(project.memo || '')
+        setAlbumMessage(null)
+    }
+
+    const cancelAlbumMetaEdit = () => {
+        if (albumMetaSaving) return
+        setAlbumMetaEditingId(null)
+        setAlbumMetaLocation('')
+        setAlbumMetaMemo('')
+    }
+
+    const saveAlbumMeta = async (projectId: number) => {
+        if (albumMetaSaving) return
+        setAlbumMetaSaving(true)
+        setAlbumMessage(null)
+        const nextLocation = albumMetaLocation.trim().slice(0, 255)
+        const nextMemo = albumMetaMemo.trim().slice(0, 500)
+
+        try {
+            const result = await nuiRequest<SimpleResponse & { manualLocation?: string; memo?: string }>('puriphotoUpdateProjectMeta', {
+                id: projectId,
+                manualLocation: nextLocation,
+                memo: nextMemo
+            })
+            if (!result.ok) throw new Error(result.error || 'metadata_update_failed')
+
+            setAlbumProjects((current) => current.map((project) =>
+                project.id === projectId
+                    ? { ...project, manualLocation: result.manualLocation ?? nextLocation, memo: result.memo ?? nextMemo, updatedAt: new Date().toISOString() }
+                    : project
+            ))
+
+            if (currentProjectId === projectId) {
+                setManualLocation(result.manualLocation ?? nextLocation)
+                setPhotoMemo(result.memo ?? nextMemo)
+            }
+
+            setAlbumMetaEditingId(null)
+            setAlbumMetaLocation('')
+            setAlbumMetaMemo('')
+            setAlbumMessage('撮影場所メモと自由メモを保存しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to update album memo:', cause)
+            setAlbumMessage('メモを保存できませんでした。')
+        } finally {
+            setAlbumMetaSaving(false)
+        }
+    }
+
+    const deleteAlbumProject = async (projectId: number) => {
+        if (saveLock.current) return
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoDeleteProject', { id: projectId })
+            if (!result.ok) throw new Error(result.error || 'delete_failed')
+            setAlbumProjects((current) => current.filter((project) => project.id !== projectId))
+            if (currentProjectId === projectId) setCurrentProjectId(null)
+            setAlbumMessage('作品をマイアルバムから削除しました。')
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to delete album project:', cause)
+            setAlbumMessage('作品を削除できませんでした。')
+        }
+    }
+
+    const setPhotoSpotWaypoint = async (spot: PhotoSpot) => {
+        try {
+            const result = await nuiRequest<SimpleResponse>('puriphotoSetPhotoSpotWaypoint', { id: spot.id })
+            if (!result.ok) throw new Error(result.error || 'waypoint_failed')
+            setSpotNotice(`${spot.name}をGPSに設定しました。`)
+        } catch (cause) {
+            console.error('[PuriPhoto] Failed to set waypoint:', cause)
+            setSpotNotice('GPSを設定できませんでした。')
+        }
+    }
+
+    const hasDecorations = () =>
+        selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
+
+    const hasUnsavedChanges = () => {
+        const current = JSON.stringify(makeSnapshot())
+        const baseline = lastSavedSnapshot
+            ? JSON.stringify(lastSavedSnapshot)
+            : JSON.stringify({ frame: 'none', stamps: [], captions: [], strokes: [] } as EditorSnapshot)
+        return current !== baseline
+    }
+
+    const handleBack = () => {
+        if (saveLock.current) return
+        if (page !== 'main') {
+            setPage('main')
+            setAlbumMessage(null)
+            setSpotNotice(null)
+            setSpotTab('recommended')
+            return
+        }
+        if (isEditing) {
+            cancelTransientInteractions()
+            setPhotoUrl(sourcePhotoUrl || photoUrl)
+            setIsEditing(false)
+            setError(null)
+            return
+        }
+        if (photoUrl) {
+            if (hasUnsavedChanges()) setConfirmExit(true)
+            else resetPhotoSession()
         }
     }
 
@@ -763,8 +1140,13 @@ const App = () => {
         setError(null)
 
         const exportPhotoUrl = photoUrl
+        const exportSourceUrl = sourcePhotoUrl || photoUrl
         const exportAspectRatio = photoAspectRatio
         const exportSnapshot = makeSnapshot()
+        const exportLocation = captureLocation
+        const exportManualLocation = manualLocation.trim().slice(0, 255)
+        const exportMemo = photoMemo.trim().slice(0, 500)
+        const exportProjectId = currentProjectId
 
         try {
             if (typeof components === 'undefined' || typeof components.uploadMedia !== 'function' || typeof components.saveToGallery !== 'function') {
@@ -1028,12 +1410,41 @@ const App = () => {
                 30000,
                 'Gallery save'
             )
+
+            let albumSaved = false
+            let savedProjectId = exportProjectId
+            try {
+                const editData = JSON.stringify(exportSnapshot)
+                if (new Blob([editData]).size > 1900000) {
+                    throw new Error('project_data_too_large')
+                }
+                const projectResult = await nuiRequest<SaveProjectResponse>('puriphotoSaveProject', {
+                    id: exportProjectId,
+                    sourceUrl: exportSourceUrl,
+                    finishedUrl: uploadedUrl,
+                    editData,
+                    manualLocation: exportManualLocation,
+                    memo: exportMemo,
+                    location: exportLocation
+                })
+                if (!projectResult.ok || !projectResult.id) {
+                    throw new Error(projectResult.error || 'album_save_failed')
+                }
+                albumSaved = true
+                savedProjectId = projectResult.id
+            } catch (cause) {
+                console.warn('[PuriPhoto] Finished photo saved, but album project persistence failed:', cause)
+            }
+
+            setCurrentProjectId(savedProjectId)
+            setLastSavedSnapshot(exportSnapshot)
             setPhotoUrl(uploadedUrl)
             setSavedPhotoUrl(uploadedUrl)
             setPhotoAspectRatio(width / height)
+            cancelTransientInteractions()
+            setSelectedOverlay(null)
             setIsEditing(false)
-            resetEditorState()
-            setSaveNotice('ギャラリーに保存しました')
+            setSaveNotice(albumSaved ? 'ギャラリーとマイアルバムに保存しました' : 'ギャラリーに保存しました（マイアルバム登録のみ失敗）')
             if (saveNoticeTimer.current !== null) window.clearTimeout(saveNoticeTimer.current)
             saveNoticeTimer.current = window.setTimeout(() => {
                 setSaveNotice(null)
@@ -1057,10 +1468,14 @@ const App = () => {
     }
 
     return (
+        <PuriPhotoErrorBoundary>
         <AppProvider>
             <main className="app">
                 <div className={isEditing ? (toolsCollapsed ? 'app-wrapper editing-layout tools-collapsed' : 'app-wrapper editing-layout') : 'app-wrapper'}>
                     <header className="app-header">
+                        {page === 'main' && (isEditing || photoUrl) && (
+                            <button type="button" className="app-back-button" onClick={handleBack} disabled={isSaving}>← 戻る</button>
+                        )}
                         <p className="app-eyebrow">{isEditing ? '写真をかわいく仕上げよう。' : '今日の一枚を、ここに。'}</p>
                         <h1>{isEditing ? '編集' : 'PuriPhoto'}</h1>
                     </header>
@@ -1535,9 +1950,17 @@ const App = () => {
                                     {photoUrl ? '撮り直す' : '写真を撮る'}
                                 </button>
                                 {!photoUrl && (
-                                    <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
-                                        ギャラリーから選ぶ
-                                    </button>
+                                    <>
+                                        <button type="button" className="capture-button secondary-button" onClick={chooseFromGallery}>
+                                            ギャラリーから選ぶ
+                                        </button>
+                                        <button type="button" className="capture-button secondary-button" onClick={openAlbum}>
+                                            マイアルバム
+                                        </button>
+                                        <button type="button" className="capture-button secondary-button" onClick={openPhotoSpots}>
+                                            おすすめ撮影スポット
+                                        </button>
+                                    </>
                                 )}
                                 {photoUrl && (
                                     <>
@@ -1545,14 +1968,44 @@ const App = () => {
                                             別の写真を選ぶ
                                         </button>
                                         <button type="button" className="capture-button" onClick={() => {
+                                            if (savedPhotoUrl && lastSavedSnapshot) {
+                                                resumeLastSavedEdit()
+                                                return
+                                            }
                                             const editingUrl = sourcePhotoUrl || photoUrl
                                             setPhotoUrl(editingUrl)
                                             setToolsCollapsed(false)
                                             setIsEditing(true)
                                         }}>
-                                            編集する
+                                            {savedPhotoUrl && lastSavedSnapshot ? (hasUnsavedChanges() ? '編集を再開' : '再編集する') : hasDecorations() ? '編集を再開' : '編集する'}
                                         </button>
-                                        <button type="button" className="capture-button menu-return-button" onClick={resetPhotoSession}>
+                                        <div className="photo-meta-editor">
+                                            <div className="capture-location-note">
+                                                <span>自動記録された撮影場所</span>
+                                                <strong>{captureLocation?.label || '自動記録なし（ギャラリーから選んだ写真など）'}</strong>
+                                            </div>
+                                            <label>
+                                                <span>撮影場所メモ</span>
+                                                <input
+                                                    type="text"
+                                                    maxLength={255}
+                                                    value={manualLocation}
+                                                    onChange={(event) => setManualLocation(event.target.value)}
+                                                    placeholder="例：Weazel前 / 思い出の海岸"
+                                                />
+                                            </label>
+                                            <label>
+                                                <span>自由メモ</span>
+                                                <textarea
+                                                    maxLength={500}
+                                                    rows={3}
+                                                    value={photoMemo}
+                                                    onChange={(event) => setPhotoMemo(event.target.value)}
+                                                    placeholder="この写真について残しておきたいこと"
+                                                />
+                                            </label>
+                                        </div>
+                                        <button type="button" className="capture-button menu-return-button" onClick={handleBack}>
                                             最初のメニューに戻る
                                         </button>
                                     </>
@@ -1562,12 +2015,10 @@ const App = () => {
                     {isEditing && (
                         <div className="editor-final-actions">
                             <button type="button" className="capture-button secondary-button" onClick={() => {
-                                const dirty = selectedFrame !== 'none' || stampInstances.length > 0 || captionInstances.length > 0 || drawStrokes.length > 0
-                                if (dirty) setConfirmExit(true)
-                                else {
-                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setIsEditing(false)
-                                }
+                                cancelTransientInteractions()
+                                setPhotoUrl(sourcePhotoUrl || photoUrl)
+                                setIsEditing(false)
+                                setError(null)
                             }} disabled={isSaving}>
                                 写真確認に戻る
                             </button>
@@ -1577,18 +2028,178 @@ const App = () => {
                         </div>
                     )}
                 </div>
+
+                {page === 'album' && (
+                    <section className="feature-page" aria-label="マイアルバム">
+                        <div className="feature-page-header">
+                            <button type="button" className="feature-back-button" onClick={handleBack}>← 戻る</button>
+                            <div>
+                                <p>あとから見返して、また編集。</p>
+                                <h2>マイアルバム</h2>
+                            </div>
+                        </div>
+                        {albumMessage && <p className="feature-message" role="status">{albumMessage}</p>}
+                        {albumLoading ? (
+                            <div className="feature-empty">アルバムを読み込んでいます…</div>
+                        ) : albumProjects.length === 0 ? (
+                            <div className="feature-empty">
+                                <strong>まだ作品がありません</strong>
+                                <span>完成写真を保存すると、ここに作品が残ります。</span>
+                            </div>
+                        ) : (
+                            <div className="album-grid">
+                                {albumProjects.map((project) => (
+                                    <article key={project.id} className="album-card">
+                                        <img src={project.finishedUrl} alt="PuriPhoto作品" loading="lazy" />
+                                        <div className="album-card-body">
+                                            <strong>最終編集 {formatAlbumDate(project.updatedAt)}</strong>
+                                            <span>
+                                                {project.manualLocation?.trim()
+                                                    ? `撮影場所：${project.manualLocation}`
+                                                    : project.location?.label
+                                                        ? `撮影場所：${project.location.label}`
+                                                        : '撮影場所：未入力'}
+                                            </span>
+                                            {project.location?.label && project.manualLocation?.trim() && (
+                                                <small className="album-auto-location">自動記録：{project.location.label}</small>
+                                            )}
+                                            {project.memo?.trim() && <p className="album-memo">{project.memo}</p>}
+
+                                            {albumMetaEditingId === project.id ? (
+                                                <div className="album-meta-editor">
+                                                    <label>
+                                                        <span>撮影場所メモ</span>
+                                                        <input
+                                                            type="text"
+                                                            maxLength={255}
+                                                            value={albumMetaLocation}
+                                                            onChange={(event) => setAlbumMetaLocation(event.target.value)}
+                                                            placeholder="撮影場所を自由に入力"
+                                                        />
+                                                    </label>
+                                                    <label>
+                                                        <span>自由メモ</span>
+                                                        <textarea
+                                                            rows={3}
+                                                            maxLength={500}
+                                                            value={albumMetaMemo}
+                                                            onChange={(event) => setAlbumMetaMemo(event.target.value)}
+                                                            placeholder="写真についてのメモ"
+                                                        />
+                                                    </label>
+                                                    <div className="album-meta-actions">
+                                                        <button type="button" disabled={albumMetaSaving} onClick={() => saveAlbumMeta(project.id)}>
+                                                            {albumMetaSaving ? '保存中…' : 'メモを保存'}
+                                                        </button>
+                                                        <button type="button" className="secondary-meta-button" disabled={albumMetaSaving} onClick={cancelAlbumMetaEdit}>キャンセル</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="album-card-actions album-card-actions-three">
+                                                    <button type="button" onClick={() => restoreAlbumProject(project)}>再編集</button>
+                                                    <button type="button" className="secondary-meta-button" onClick={() => beginAlbumMetaEdit(project)}>メモ編集</button>
+                                                    <button type="button" className="danger-subtle" onClick={() => deleteAlbumProject(project.id)}>削除</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
+                {page === 'spots' && (
+                    <section className="feature-page" aria-label="撮影スポット">
+                        <div className="feature-page-header">
+                            <button type="button" className="feature-back-button" onClick={handleBack}>← 戻る</button>
+                            <div>
+                                <p>次の一枚を探しに行こう。</p>
+                                <h2>撮影スポット</h2>
+                            </div>
+                        </div>
+                        <div className="feature-tabs" aria-label="撮影スポットの種類">
+                            <button type="button" className={spotTab === 'recommended' ? 'selected' : ''} onClick={() => setSpotTab('recommended')}>おすすめ</button>
+                            <button type="button" className={spotTab === 'mine' ? 'selected' : ''} onClick={() => setSpotTab('mine')}>マイスポット</button>
+                        </div>
+                        {spotNotice && <p className="feature-message" role="status">{spotNotice}</p>}
+
+                        {spotTab === 'recommended' && (
+                            spotsLoading ? (
+                                <div className="feature-empty">撮影スポットを読み込んでいます…</div>
+                            ) : (
+                                <div className="spot-list">
+                                    {photoSpots.map((spot) => (
+                                        <article key={spot.id} className="spot-card">
+                                            <div>
+                                                <span className="spot-category">{spot.category}</span>
+                                                <strong>{spot.name}</strong>
+                                                <p>{spot.description}</p>
+                                            </div>
+                                            <button type="button" onClick={() => setPhotoSpotWaypoint(spot)}>GPSに設定</button>
+                                        </article>
+                                    ))}
+                                </div>
+                            )
+                        )}
+
+                        {spotTab === 'mine' && (
+                            <>
+                                <div className="my-spot-register">
+                                    <strong>現在地を登録</strong>
+                                    <p>好きな撮影場所に立った状態で、名前を付けて保存できます。</p>
+                                    <div className="my-spot-register-row">
+                                        <input
+                                            type="text"
+                                            maxLength={64}
+                                            value={mySpotName}
+                                            onChange={(event) => setMySpotName(event.target.value)}
+                                            placeholder="例：お気に入りの夜景"
+                                        />
+                                        <button type="button" disabled={!mySpotName.trim() || mySpotSaving} onClick={saveMySpot}>
+                                            {mySpotSaving ? '登録中…' : '現在地を登録'}
+                                        </button>
+                                    </div>
+                                </div>
+                                {mySpotsLoading ? (
+                                    <div className="feature-empty">マイスポットを読み込んでいます…</div>
+                                ) : mySpots.length === 0 ? (
+                                    <div className="feature-empty">
+                                        <strong>まだマイスポットがありません</strong>
+                                        <span>気に入った場所を自分だけの撮影スポットとして登録できます。</span>
+                                    </div>
+                                ) : (
+                                    <div className="spot-list">
+                                        {mySpots.map((spot) => (
+                                            <article key={spot.id} className="spot-card my-spot-card">
+                                                <div>
+                                                    <span className="spot-category">マイスポット</span>
+                                                    <strong>{spot.name}</strong>
+                                                    <p>{spot.label || '登録地点'}</p>
+                                                    <small>登録 {formatAlbumDate(spot.createdAt)}</small>
+                                                </div>
+                                                <div className="my-spot-actions">
+                                                    <button type="button" onClick={() => setMySpotWaypoint(spot)}>GPSに設定</button>
+                                                    <button type="button" className="danger-subtle" onClick={() => deleteMySpot(spot.id)}>削除</button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </section>
+                )}
                 {confirmExit && (
                     <div className="confirm-overlay" role="dialog" aria-modal="true">
                         <div className="confirm-card">
-                            <strong>編集内容を破棄しますか？</strong>
-                            <p>保存していない装飾は失われます。</p>
+                            <strong>最初のメニューに戻りますか？</strong>
+                            <p>保存していない編集内容は失われます。</p>
                             <div>
-                                <button type="button" onClick={() => setConfirmExit(false)}>編集を続ける</button>
+                                <button type="button" onClick={() => setConfirmExit(false)}>写真確認に戻る</button>
                                 <button type="button" className="danger-confirm" onClick={() => {
-                                    setPhotoUrl(savedPhotoUrl || sourcePhotoUrl || photoUrl)
-                                    setIsEditing(false)
-                                    resetEditorState()
-                                }}>破棄して戻る</button>
+                                    setConfirmExit(false)
+                                    resetPhotoSession()
+                                }}>破棄してメニューへ</button>
                             </div>
                         </div>
                     </div>
@@ -1596,6 +2207,7 @@ const App = () => {
                 {saveNotice && <div className="save-toast" role="status">{saveNotice}</div>}
             </main>
         </AppProvider>
+        </PuriPhotoErrorBoundary>
     )
 }
 

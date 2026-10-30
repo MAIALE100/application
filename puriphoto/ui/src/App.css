@@ -5,6 +5,7 @@
 }
 
 .app {
+    position: relative;
     width: 100%;
     height: 100%;
     min-width: 0;
@@ -26,6 +27,7 @@
 }
 
 .app-header {
+    position: relative;
     flex: 0 0 auto;
     text-align: center;
     overflow-wrap: anywhere;
@@ -882,3 +884,544 @@
 .stamp-search-row input{min-width:0;height:1.9rem;padding:.35rem .55rem;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#392b36;font:inherit;font-size:.68rem;outline:none}
 .stamp-search-row input:focus{border-color:#a94875;box-shadow:0 0 0 1px #a94875}
 .stamp-search-row button{width:1.9rem;height:1.9rem;padding:0;border:1px solid #e2bfd0;border-radius:.6rem;background:#fff;color:#7d5369;font:inherit;font-weight:700;cursor:pointer}
+
+
+/* PuriPhoto v1.1: navigation, album and photo spots */
+.app-back-button {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 999px;
+    padding: 0.45rem 0.7rem;
+    background: #f7e8ef;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.app-back-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.capture-location-note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #ead3df;
+    border-radius: 0.85rem;
+    background: #fff;
+    color: #795b70;
+    font-size: 0.68rem;
+    line-height: 1.45;
+}
+
+.capture-location-note strong {
+    color: #5c334b;
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+}
+
+.feature-page {
+    position: absolute;
+    inset: 0;
+    z-index: 180;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+    min-height: 0;
+    padding: min(4.5rem, 10vh) min(1.2rem, 4.5vw) max(1.2rem, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #fff7fa;
+    color: #392b36;
+}
+
+.feature-page-header {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.feature-page-header > div {
+    min-width: 0;
+}
+
+.feature-page-header p {
+    margin: 0;
+    color: #795b70;
+    font-size: 0.68rem;
+}
+
+.feature-page-header h2 {
+    margin: 0.1rem 0 0;
+    font-size: 1.45rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.feature-back-button {
+    align-self: center;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.48rem 0.7rem;
+    background: #f7e8ef;
+    color: #7d2f54;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.feature-message {
+    flex: 0 0 auto;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.7rem;
+    background: #f7e8ef;
+    color: #75425d;
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+.feature-empty {
+    flex: 1 1 auto;
+    min-height: 10rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-align: center;
+    color: #795b70;
+    font-size: 0.72rem;
+}
+
+.feature-empty strong {
+    color: #5c334b;
+    font-size: 0.9rem;
+}
+
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    padding-bottom: 0.5rem;
+}
+
+.album-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #ead3df;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 0.18rem 0.55rem rgba(83, 45, 67, 0.08);
+}
+
+.album-card > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: #f2e6ec;
+}
+
+.album-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.55rem;
+}
+
+.album-card-body > strong {
+    font-size: 0.65rem;
+    color: #5c334b;
+}
+
+.album-card-body > span {
+    min-height: 2.4em;
+    color: #795b70;
+    font-size: 0.58rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.album-card-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
+}
+
+.album-card-actions button,
+.spot-card button {
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.55rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.album-card-actions .danger-subtle {
+    background: #f5e7ed;
+    color: #93425f;
+}
+
+.spot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding-bottom: 0.5rem;
+}
+
+.spot-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem;
+    border: 1px solid #ead3df;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 0.18rem 0.55rem rgba(83, 45, 67, 0.08);
+}
+
+.spot-card > div {
+    min-width: 0;
+}
+
+.spot-card strong {
+    display: block;
+    margin-top: 0.15rem;
+    color: #5c334b;
+    font-size: 0.78rem;
+}
+
+.spot-card p {
+    margin-top: 0.3rem;
+    color: #795b70;
+    font-size: 0.62rem;
+    line-height: 1.5;
+}
+
+.spot-category {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.15rem 0.4rem;
+    background: #f7e8ef;
+    color: #8f2f55;
+    font-size: 0.55rem;
+    font-weight: 700;
+}
+
+@media (max-width: 26.25rem) {
+    .album-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .album-card {
+        display: grid;
+        grid-template-columns: 40% minmax(0, 1fr);
+    }
+
+    .album-card > img {
+        height: 100%;
+        aspect-ratio: auto;
+    }
+
+    .spot-card {
+        grid-template-columns: 1fr;
+    }
+
+    .spot-card button {
+        width: 100%;
+    }
+}
+
+
+.feature-tabs {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.25rem;
+    border-radius: 0.8rem;
+    background: #f7e8ef;
+}
+
+.feature-tabs button {
+    min-width: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    padding: 0.55rem 0.45rem;
+    background: transparent;
+    color: #795b70;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.feature-tabs button.selected {
+    background: #fff;
+    color: #8f2f55;
+    box-shadow: 0 0.08rem 0.25rem rgba(91, 40, 67, 0.14);
+}
+
+.my-spot-register {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border: 1px solid #ead3df;
+    border-radius: 1rem;
+    background: #fff;
+}
+
+.my-spot-register > strong {
+    color: #5c334b;
+    font-size: 0.78rem;
+}
+
+.my-spot-register > p {
+    color: #795b70;
+    font-size: 0.62rem;
+    line-height: 1.5;
+}
+
+.my-spot-register-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+}
+
+.my-spot-register-row input {
+    min-width: 0;
+    border: 1px solid #e4c8d6;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #fffafc;
+    color: #392b36;
+    font: inherit;
+    font-size: 0.65rem;
+    outline: none;
+}
+
+.my-spot-register-row input:focus {
+    border-color: #b85a83;
+    box-shadow: 0 0 0 0.12rem rgba(184, 90, 131, 0.14);
+}
+
+.my-spot-register-row button,
+.my-spot-actions button {
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.my-spot-register-row button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.my-spot-card small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #9b7a8d;
+    font-size: 0.55rem;
+    line-height: 1.35;
+}
+
+.my-spot-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.my-spot-actions .danger-subtle {
+    background: #f5e7ed;
+    color: #93425f;
+}
+
+@media (max-width: 26.25rem) {
+    .my-spot-register-row {
+        grid-template-columns: 1fr;
+    }
+
+    .my-spot-actions {
+        width: 100%;
+    }
+
+    .my-spot-actions button {
+        width: 100%;
+    }
+}
+
+
+.ui-error-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 1.5rem;
+    text-align: center;
+    background: #fff7fa;
+    color: #5c334b;
+}
+
+.ui-error-fallback strong {
+    font-size: 1rem;
+}
+
+.ui-error-fallback p {
+    color: #795b70;
+    font-size: 0.68rem;
+    line-height: 1.55;
+}
+
+.ui-error-fallback button {
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.9rem;
+    background: #a94875;
+    color: #fff;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+
+.photo-meta-editor,
+.album-meta-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid #ead3df;
+    border-radius: 0.9rem;
+    background: #fff;
+}
+
+.photo-meta-editor label,
+.album-meta-editor label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    color: #795b70;
+    font-size: 0.62rem;
+    font-weight: 700;
+}
+
+.photo-meta-editor input,
+.photo-meta-editor textarea,
+.album-meta-editor input,
+.album-meta-editor textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #e4c8d6;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    background: #fffafc;
+    color: #392b36;
+    font: inherit;
+    font-size: 0.65rem;
+    line-height: 1.45;
+    outline: none;
+    resize: vertical;
+}
+
+.photo-meta-editor input:focus,
+.photo-meta-editor textarea:focus,
+.album-meta-editor input:focus,
+.album-meta-editor textarea:focus {
+    border-color: #b85a83;
+    box-shadow: 0 0 0 0.12rem rgba(184, 90, 131, 0.14);
+}
+
+.album-auto-location {
+    color: #9b7a8d;
+    font-size: 0.54rem;
+    line-height: 1.35;
+}
+
+.album-memo {
+    margin: 0.1rem 0 0;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.55rem;
+    background: #fff7fa;
+    color: #6e5364;
+    font-size: 0.59rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.album-card-actions-three {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.album-meta-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem;
+}
+
+.album-meta-actions button,
+.secondary-meta-button {
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.55rem;
+    font: inherit;
+    font-size: 0.6rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.album-meta-actions button {
+    background: #a94875;
+    color: #fff;
+}
+
+.album-meta-actions .secondary-meta-button,
+.album-card-actions .secondary-meta-button {
+    background: #f5e7ed;
+    color: #7d2f54;
+}
+
+.album-meta-actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+@media (max-width: 26.25rem) {
+    .album-card-actions-three {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .album-card-actions-three .danger-subtle {
+        grid-column: 1 / -1;
+    }
+}

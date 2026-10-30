@@ -1,0 +1,607 @@
+local function safeString(value, maxLength)
+    if type(value) ~= "string" then
+        return nil
+    end
+
+    value = value:gsub("%z", "")
+    if #value > maxLength then
+        return value:sub(1, maxLength)
+    end
+
+    return value
+end
+
+local function validHttpUrl(value)
+    local cleaned = safeString(value, 2048)
+    if not cleaned then
+        return nil
+    end
+
+    if not cleaned:match("^https?://") then
+        return nil
+    end
+
+    return cleaned
+end
+
+local function getCitizenId(source)
+    if GetResourceState("qbx_core") ~= "started" then
+        return nil
+    end
+
+    local ok, player = pcall(function()
+        return exports.qbx_core:GetPlayer(source)
+    end)
+
+    if not ok or not player or not player.PlayerData then
+        return nil
+    end
+
+    return player.PlayerData.citizenid
+end
+
+local function sendResponse(source, requestId, payload)
+    local encoded = json.encode(payload)
+    if encoded and #encoded > 60000 then
+        TriggerLatentClientEvent("puriphoto:client:serverResponse", source, 500000, requestId, payload)
+    else
+        TriggerClientEvent("puriphoto:client:serverResponse", source, requestId, payload)
+    end
+end
+
+local function normalizeLocation(location)
+    if type(location) ~= "table" then
+        return nil
+    end
+
+    local x = tonumber(location.x)
+    local y = tonumber(location.y)
+    local z = tonumber(location.z)
+
+    if not x or not y or not z then
+        return nil
+    end
+
+    return {
+        label = safeString(location.label or "", 255) or "",
+        street = safeString(location.street or "", 128) or "",
+        zone = safeString(location.zone or "", 128) or "",
+        x = x,
+        y = y,
+        z = z
+    }
+end
+
+local CREATE_PROJECTS_SQL = [[
+    CREATE TABLE IF NOT EXISTS puriphoto_projects (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        citizenid VARCHAR(64) NOT NULL,
+        source_url TEXT NOT NULL,
+        finished_url TEXT NOT NULL,
+        edit_data LONGTEXT NOT NULL,
+        manual_location VARCHAR(255) NULL,
+        memo VARCHAR(500) NULL,
+        location_label VARCHAR(255) NULL,
+        location_street VARCHAR(128) NULL,
+        location_zone VARCHAR(128) NULL,
+        location_x DOUBLE NULL,
+        location_y DOUBLE NULL,
+        location_z DOUBLE NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_puriphoto_owner_updated (citizenid, updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+]]
+
+local CREATE_MY_SPOTS_SQL = [[
+    CREATE TABLE IF NOT EXISTS puriphoto_my_spots (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        citizenid VARCHAR(64) NOT NULL,
+        name VARCHAR(64) NOT NULL,
+        location_label VARCHAR(255) NOT NULL,
+        location_street VARCHAR(128) NULL,
+        location_zone VARCHAR(128) NULL,
+        location_x DOUBLE NOT NULL,
+        location_y DOUBLE NOT NULL,
+        location_z DOUBLE NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_puriphoto_spot_owner_created (citizenid, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+]]
+
+print("[puriphoto] v1.1 server starting")
+
+MySQL.ready(function()
+    -- Keep schema checks asynchronous so restarting PuriPhoto cannot stall the server thread.
+    MySQL.query(CREATE_PROJECTS_SQL, {}, function(projectResult)
+        if projectResult == nil then
+            print("[puriphoto] selftest FAIL (album schema query returned nil)")
+            return
+        end
+
+        MySQL.query([[
+            ALTER TABLE puriphoto_projects
+                ADD COLUMN IF NOT EXISTS manual_location VARCHAR(255) NULL AFTER edit_data,
+                ADD COLUMN IF NOT EXISTS memo VARCHAR(500) NULL AFTER manual_location
+        ]], {}, function(migrationResult)
+            if migrationResult == nil then
+                print("[puriphoto] selftest FAIL (album memo migration returned nil)")
+                return
+            end
+
+            MySQL.query(CREATE_MY_SPOTS_SQL, {}, function(spotResult)
+                if spotResult == nil then
+                    print("[puriphoto] selftest FAIL (my spots schema query returned nil)")
+                    return
+                end
+
+                local qbxState = GetResourceState("qbx_core")
+                local spotCount = #(Config.PhotoSpots or {})
+                print("[puriphoto] album schema ready")
+                print("[puriphoto] album memo fields ready")
+                print("[puriphoto] my spots schema ready")
+
+                if qbxState == "started" then
+                    print(("[puriphoto] selftest PASS (qbx_core=started, album=ready, memo=ready, my_spots=ready, photo_spots=%d)"):format(spotCount))
+                else
+                    print(("[puriphoto] selftest WARN (qbx_core=%s, album=ready, memo=ready, my_spots=ready, photo_spots=%d)"):format(qbxState, spotCount))
+                end
+            end)
+        end)
+    end)
+end)
+
+RegisterNetEvent("puriphoto:server:getAlbum", function(requestId)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "player_unavailable"
+        })
+        return
+    end
+
+    local limit = math.max(1, math.min(200, tonumber(Config.AlbumLimit) or 100))
+    local sql = ([[
+        SELECT id, source_url, finished_url, manual_location, memo,
+               location_label, location_street, location_zone,
+               location_x, location_y, location_z,
+               created_at, updated_at
+        FROM puriphoto_projects
+        WHERE citizenid = ?
+        ORDER BY updated_at DESC, id DESC
+        LIMIT %d
+    ]]):format(limit)
+
+    local rows = MySQL.query.await(sql, { citizenid }) or {}
+    local projects = {}
+
+    for _, row in ipairs(rows) do
+        projects[#projects + 1] = {
+            id = row.id,
+            sourceUrl = row.source_url,
+            finishedUrl = row.finished_url,
+            manualLocation = row.manual_location or "",
+            memo = row.memo or "",
+            location = row.location_x and {
+                label = row.location_label or "",
+                street = row.location_street or "",
+                zone = row.location_zone or "",
+                x = row.location_x,
+                y = row.location_y,
+                z = row.location_z
+            } or nil,
+            createdAt = row.created_at,
+            updatedAt = row.updated_at
+        }
+    end
+
+    sendResponse(source, requestId, {
+        ok = true,
+        projects = projects
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:getProject", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local projectId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not projectId or projectId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local rows = MySQL.query.await([[
+        SELECT id, source_url, finished_url, edit_data, manual_location, memo,
+               location_label, location_street, location_zone,
+               location_x, location_y, location_z,
+               created_at, updated_at
+        FROM puriphoto_projects
+        WHERE id = ? AND citizenid = ?
+        LIMIT 1
+    ]], { projectId, citizenid }) or {}
+
+    local row = rows[1]
+    if not row then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "project_not_found"
+        })
+        return
+    end
+
+    sendResponse(source, requestId, {
+        ok = true,
+        project = {
+            id = row.id,
+            sourceUrl = row.source_url,
+            finishedUrl = row.finished_url,
+            editData = row.edit_data,
+            manualLocation = row.manual_location or "",
+            memo = row.memo or "",
+            location = row.location_x and {
+                label = row.location_label or "",
+                street = row.location_street or "",
+                zone = row.location_zone or "",
+                x = row.location_x,
+                y = row.location_y,
+                z = row.location_z
+            } or nil,
+            createdAt = row.created_at,
+            updatedAt = row.updated_at
+        }
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:saveProject", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "player_unavailable"
+        })
+        return
+    end
+
+    if type(payload) ~= "table" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_payload"
+        })
+        return
+    end
+
+    local sourceUrl = validHttpUrl(payload.sourceUrl)
+    local finishedUrl = validHttpUrl(payload.finishedUrl)
+    local maxProjectBytes = tonumber(Config.ProjectDataMaxBytes) or 2000000
+    local editData = type(payload.editData) == "string" and payload.editData or nil
+    local manualLocation = safeString(payload.manualLocation or "", 255) or ""
+    local memo = safeString(payload.memo or "", 500) or ""
+    local location = normalizeLocation(payload.location)
+
+    if editData and #editData > maxProjectBytes then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "project_too_large"
+        })
+        return
+    end
+
+    if not sourceUrl or not finishedUrl or not editData or editData == "" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_project"
+        })
+        return
+    end
+
+    local decodedOk = pcall(json.decode, editData)
+    if not decodedOk then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_edit_data"
+        })
+        return
+    end
+
+    local projectId = tonumber(payload.id)
+    if projectId and projectId > 0 then
+        local existingId = MySQL.scalar.await(
+            "SELECT id FROM puriphoto_projects WHERE id = ? AND citizenid = ? LIMIT 1",
+            { projectId, citizenid }
+        )
+
+        if existingId then
+            MySQL.update.await([[
+                UPDATE puriphoto_projects
+                SET source_url = ?, finished_url = ?, edit_data = ?,
+                    manual_location = ?, memo = ?,
+                    location_label = ?, location_street = ?, location_zone = ?,
+                    location_x = ?, location_y = ?, location_z = ?
+                WHERE id = ? AND citizenid = ?
+            ]], {
+                sourceUrl,
+                finishedUrl,
+                editData,
+                manualLocation,
+                memo,
+                location and location.label or nil,
+                location and location.street or nil,
+                location and location.zone or nil,
+                location and location.x or nil,
+                location and location.y or nil,
+                location and location.z or nil,
+                projectId,
+                citizenid
+            })
+
+            sendResponse(source, requestId, {
+                ok = true,
+                id = projectId
+            })
+            return
+        end
+    end
+
+    local insertedId = MySQL.insert.await([[
+        INSERT INTO puriphoto_projects (
+            citizenid, source_url, finished_url, edit_data,
+            manual_location, memo,
+            location_label, location_street, location_zone,
+            location_x, location_y, location_z
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        citizenid,
+        sourceUrl,
+        finishedUrl,
+        editData,
+        manualLocation,
+        memo,
+        location and location.label or nil,
+        location and location.street or nil,
+        location and location.zone or nil,
+        location and location.x or nil,
+        location and location.y or nil,
+        location and location.z or nil
+    })
+
+    local limit = math.max(1, math.min(200, tonumber(Config.AlbumLimit) or 100))
+    local pruneSql = ([[
+        DELETE FROM puriphoto_projects
+        WHERE citizenid = ?
+          AND id NOT IN (
+              SELECT id FROM (
+                  SELECT id
+                  FROM puriphoto_projects
+                  WHERE citizenid = ?
+                  ORDER BY updated_at DESC, id DESC
+                  LIMIT %d
+              ) AS keep_rows
+          )
+    ]]):format(limit)
+
+    MySQL.query.await(pruneSql, { citizenid, citizenid })
+
+    sendResponse(source, requestId, {
+        ok = true,
+        id = insertedId
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:updateProjectMeta", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local projectId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not projectId or projectId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local manualLocation = safeString(payload.manualLocation or "", 255) or ""
+    local memo = safeString(payload.memo or "", 500) or ""
+
+    local affected = MySQL.update.await([[
+        UPDATE puriphoto_projects
+        SET manual_location = ?, memo = ?
+        WHERE id = ? AND citizenid = ?
+    ]], {
+        manualLocation,
+        memo,
+        projectId,
+        citizenid
+    })
+
+    sendResponse(source, requestId, {
+        ok = true,
+        updated = affected and affected > 0 or false,
+        manualLocation = manualLocation,
+        memo = memo
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:getMySpots", function(requestId)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "player_unavailable"
+        })
+        return
+    end
+
+    local limit = math.max(1, math.min(100, tonumber(Config.MySpotLimit) or 30))
+    local sql = ([[
+        SELECT id, name, location_label, location_street, location_zone,
+               location_x, location_y, location_z, created_at
+        FROM puriphoto_my_spots
+        WHERE citizenid = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT %d
+    ]]):format(limit)
+
+    local rows = MySQL.query.await(sql, { citizenid }) or {}
+    local spots = {}
+
+    for _, row in ipairs(rows) do
+        spots[#spots + 1] = {
+            id = row.id,
+            name = row.name,
+            label = row.location_label,
+            street = row.location_street or "",
+            zone = row.location_zone or "",
+            x = row.location_x,
+            y = row.location_y,
+            z = row.location_z,
+            createdAt = row.created_at
+        }
+    end
+
+    sendResponse(source, requestId, {
+        ok = true,
+        spots = spots
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:saveMySpot", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+
+    if not citizenid or type(payload) ~= "table" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local name = safeString(payload.name or "", 64)
+    if not name then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_name"
+        })
+        return
+    end
+
+    name = name:match("^%s*(.-)%s*$") or ""
+    if name == "" then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_name"
+        })
+        return
+    end
+
+    local location = normalizeLocation(payload.location)
+    if not location then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_location"
+        })
+        return
+    end
+
+    local insertedId = MySQL.insert.await([[
+        INSERT INTO puriphoto_my_spots (
+            citizenid, name, location_label, location_street, location_zone,
+            location_x, location_y, location_z
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        citizenid,
+        name,
+        location.label ~= "" and location.label or "登録地点",
+        location.street,
+        location.zone,
+        location.x,
+        location.y,
+        location.z
+    })
+
+    local limit = math.max(1, math.min(100, tonumber(Config.MySpotLimit) or 30))
+    local pruneSql = ([[
+        DELETE FROM puriphoto_my_spots
+        WHERE citizenid = ?
+          AND id NOT IN (
+              SELECT id FROM (
+                  SELECT id
+                  FROM puriphoto_my_spots
+                  WHERE citizenid = ?
+                  ORDER BY created_at DESC, id DESC
+                  LIMIT %d
+              ) AS keep_rows
+          )
+    ]]):format(limit)
+
+    MySQL.query.await(pruneSql, { citizenid, citizenid })
+
+    sendResponse(source, requestId, {
+        ok = true,
+        id = insertedId
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:deleteMySpot", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local spotId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not spotId or spotId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local affected = MySQL.update.await(
+        "DELETE FROM puriphoto_my_spots WHERE id = ? AND citizenid = ?",
+        { spotId, citizenid }
+    )
+
+    sendResponse(source, requestId, {
+        ok = true,
+        deleted = affected and affected > 0 or false
+    })
+end)
+
+RegisterNetEvent("puriphoto:server:deleteProject", function(requestId, payload)
+    local source = source
+    local citizenid = getCitizenId(source)
+    local projectId = type(payload) == "table" and tonumber(payload.id) or nil
+
+    if not citizenid or not projectId or projectId <= 0 then
+        sendResponse(source, requestId, {
+            ok = false,
+            error = "invalid_request"
+        })
+        return
+    end
+
+    local affected = MySQL.update.await(
+        "DELETE FROM puriphoto_projects WHERE id = ? AND citizenid = ?",
+        { projectId, citizenid }
+    )
+
+    sendResponse(source, requestId, {
+        ok = true,
+        deleted = affected and affected > 0 or false
+    })
+end)

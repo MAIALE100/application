@@ -45,6 +45,16 @@
     return lastRangeStart(totalBars, count) === null ? null : 0;
   }
 
+  // Expanding a 4-bar selection near the end must land on the nearest
+  // complete 8-bar window, not leave the editor on an invalid partial range.
+  // Preserve the current bar when the newly selected window already fits.
+  function rangeSelectionTarget(index, totalBars, count) {
+    const last = lastRangeStart(totalBars, count);
+    if (last === null || !Number.isInteger(index) ||
+        index < 0 || index >= validBars(totalBars)) return null;
+    return Math.min(index, last);
+  }
+
   // Move between complete edit windows. Unlike the generic 4/8-bar skips,
   // never land on a partial selection at the end of a long song.
   function rangeStepTarget(index, totalBars, count, direction) {
@@ -325,7 +335,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
+  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeSelectionTarget, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -537,7 +547,13 @@
       message.textContent = count + '小節の音符を削除しました。元に戻すこともできます。';
       refresh();
     });
-    rangeSelect.addEventListener('change', refresh);
+    rangeSelect.addEventListener('change', () => {
+      // Changing 4 to 8 bars at the tail should remain immediately editable.
+      const index = current();
+      const target = rangeSelectionTarget(index, totals().bars, Number(rangeSelect.value));
+      if (target !== null && target !== index) jump(target);
+      else refresh();
+    });
     // Track changes may not update the bar counter; refresh on interaction.
     host.addEventListener('focusin', refresh);
     host.addEventListener('pointerenter', refresh);

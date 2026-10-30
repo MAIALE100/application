@@ -14,7 +14,10 @@ end
 local function normalizeValue(kind, raw)
     if raw == nil or raw == '' then return nil end
     if kind == 'text' then
-        return plainText(raw, 120)
+        local value = plainText(raw, 120)
+        -- nil is reserved for an explicit clear, never a validation failure.
+        if value == nil then return false end
+        return value
     elseif kind == 'number' then
         local rawString = type(raw) == 'number' and tostring(raw) or raw
         if type(rawString) ~= 'string' or not rawString:match('^%-?%d+%.?%d?%d?$') then return false end
@@ -57,14 +60,15 @@ function F.ValidateValues(workspaceId, payload)
     local allowed = {}
     for _, f in ipairs(fields) do allowed[tonumber(f.id)] = f.field_type end
 
-    local updates, count = {}, 0
+    local updates, count, seen = {}, 0, {}
     for key, raw in pairs(payload) do
         count = count + 1
         if count > MAX_FIELDS then return nil, 'INVALID_CUSTOM_VALUES' end
         local fid = tonumber(key)
-        if not fid or fid % 1 ~= 0 or not allowed[fid] then
+        if not fid or fid % 1 ~= 0 or not allowed[fid] or seen[fid] then
             return nil, 'INVALID_CUSTOM_FIELD'
         end
+        seen[fid] = true
         local value = normalizeValue(allowed[fid], raw)
         if value == false then return nil, 'INVALID_CUSTOM_VALUES' end
         updates[#updates + 1] = {id=fid, value=value}
@@ -147,7 +151,7 @@ end
 -- Pure validation checks; database and multiplayer behavior are tested separately.
 function F.Selftest()
     return normalizeValue('text', '日本語メモ') == '日本語メモ'
-        and normalizeValue('text', string.rep('x', 121)) == nil
+        and normalizeValue('text', string.rep('x', 121)) == false
         and normalizeValue('number', '120.50') == '120.50'
         and normalizeValue('number', '12.345') == false
         and normalizeValue('number', '1000000001') == false
@@ -157,3 +161,4 @@ function F.Selftest()
         and normalizeValue('check', '0') == '0'
         and normalizeValue('check', 'invalid') == false
 end
+

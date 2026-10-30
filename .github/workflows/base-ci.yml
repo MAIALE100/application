@@ -41,6 +41,9 @@ jobs:
       - name: Check BASE source regression guards
         run: node flecity_base/tests/source-regression.mjs
 
+      - name: Test custom field validation and transaction results
+        run: lua5.4 flecity_base/tests/custom-fields.lua
+
       - name: Enforce LB Phone fixBlur CSS safety
         run: |
           if grep -nE '[0-9]+([.][0-9]+)?px' flecity_base/web/app.css; then
@@ -74,3 +77,4 @@ jobs:
           test -f flecity_base/web/app.css
           test -f flecity_base/web/app.js
           test -f flecity_base/web/icon.webp
+

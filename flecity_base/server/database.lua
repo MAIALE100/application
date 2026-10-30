@@ -230,8 +230,6 @@ local columnMigrations = {
     },
     {
         tableName = 'flecity_base_stock_movements',
-        'flecity_base_stock_fields',
-        'flecity_base_stock_values',
         columnName = 'actor_name',
         sql = "ALTER TABLE flecity_base_stock_movements ADD COLUMN actor_name VARCHAR(120) NOT NULL DEFAULT '' AFTER actor_citizenid"
     },
@@ -316,6 +314,8 @@ function FlecityBaseDatabase.Selftest()
         'flecity_base_notes',
         'flecity_base_stock_items',
         'flecity_base_stock_movements',
+        'flecity_base_stock_fields',
+        'flecity_base_stock_values',
         'flecity_base_tasks',
         'flecity_base_ledger',
         'flecity_base_calculators',
@@ -334,3 +334,4 @@ function FlecityBaseDatabase.Selftest()
     end
     return #failures == 0, failures
 end
+

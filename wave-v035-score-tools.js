@@ -19,6 +19,15 @@
     return validIndex(validIndex(index, bars) + offset, bars);
   }
 
+  // A jump to the already visible bar must not re-render a long score.
+  // Reject invalid requests instead of clamping them to another bar.
+  function changedJumpTarget(currentBar, requestedBar, totalBars) {
+    const bars = validBars(totalBars);
+    if (!Number.isInteger(requestedBar) || requestedBar < 0 ||
+        requestedBar >= bars || requestedBar === currentBar) return null;
+    return requestedBar;
+  }
+
   function durationSeconds(bars, bpm) {
     const tempo = Number(bpm);
     const safeTempo = Number.isFinite(tempo) && tempo >= 60 && tempo <= 200 ? tempo : 120;
@@ -346,7 +355,7 @@
   }
 
   // Pure functions exportable to Node tests, no browser dependency.
-  const api = { validBars, validIndex, jumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeEdgeTarget, rangeSelectionTarget, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
+  const api = { validBars, validIndex, jumpTarget, changedJumpTarget, durationSeconds, durationLabel, lastRangeStart, firstRangeStart, rangeEdgeTarget, rangeSelectionTarget, rangeStepTarget, rangeBounds, copyRange, pasteRange, clearRange, rangeSummary, rangePreview, rangeEditPreview };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   function init() {
@@ -469,6 +478,12 @@
       message.textContent = '';
       if (typeof state === 'undefined' || typeof renderStudio !== 'function') {
         message.textContent = '\u5c0f\u7bc0\u7de8\u96c6\u753b\u9762\u3092\u958b\u3044\u3066\u304f\u3060\u3055\u3044\u3002';
+        return;
+      }
+      if (changedJumpTarget(state.bar, index, bars) === null) {
+        // Normalize a typed value such as 001, but avoid a full STUDIO render.
+        input.value = String(index + 1);
+        refresh();
         return;
       }
       state.bar = index;

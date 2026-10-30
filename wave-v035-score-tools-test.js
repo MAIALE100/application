@@ -21,6 +21,23 @@ assert.equal(jumpTarget(124,125,-8),116);
 assert.equal(jumpTarget(10,125,NaN),10);
 assert.equal(jumpTarget(127,999,4),127);
 
+// Jumping to the current bar (including a typed Go request) must not
+// rebuild the 125/128-bar editor; invalid targets remain rejected.
+const { changedJumpTarget } = require('./wave-v035-score-tools.js');
+assert.equal(changedJumpTarget(0,0,125),null);
+assert.equal(changedJumpTarget(0,4,125),4);
+assert.equal(changedJumpTarget(117,117,125),null);
+assert.equal(changedJumpTarget(117,120,125),120);
+assert.equal(changedJumpTarget(124,124,125),null);
+assert.equal(changedJumpTarget(124,117,125),117);
+assert.equal(changedJumpTarget(127,127,128),null);
+assert.equal(changedJumpTarget(127,120,128),120);
+assert.equal(changedJumpTarget(127,128,128),null);
+assert.equal(changedJumpTarget(0,-1,125),null);
+assert.equal(changedJumpTarget(0,NaN,125),null);
+assert.equal(changedJumpTarget(0,3.5,125),null);
+assert.equal(changedJumpTarget('4',4,125),4);
+
 // The final full 4/8-bar window is not the final single bar.
 // A 125-bar song should land on bar 122 or 118 (one-based).
 const { lastRangeStart } = require('./wave-v035-score-tools.js');

@@ -76,6 +76,11 @@ local callbackOptions={
 local defaultCallbackOptions={preventSpam=true,rateLimit=120,defaultReturn={ok=false,error='CALLBACK_FAILED'}}
 
 local function safeCall(name,fn,source,data)
+    local apps=FlecityGamesConfig.Apps or {}
+    if (name:find('flecity_games:party:',1,true)==1 and apps.Party and apps.Party.enabled==false)
+        or (name:find('flecity_games:play:',1,true)==1 and apps.Play and apps.Play.enabled==false) then
+        return {ok=false,error='APP_DISABLED'}
+    end
     local ok,result=pcall(fn,source,data)
     if ok then return result or {ok=false,error='EMPTY_RESPONSE'} end
     print(('[FlecityGames] callback %s failed for source=%s: %s'):format(name,tostring(source),tostring(result)))

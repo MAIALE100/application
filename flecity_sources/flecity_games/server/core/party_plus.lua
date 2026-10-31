@@ -12,7 +12,8 @@ local function identifier(source)
 end
 
 local function planEnabled()
-    return config().Enabled~=false
+    local party=FlecityGamesConfig.Apps and FlecityGamesConfig.Apps.Party
+    return config().Enabled~=false and not (party and party.enabled==false)
 end
 
 local function durationSeconds()

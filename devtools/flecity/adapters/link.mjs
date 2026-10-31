@@ -7,6 +7,7 @@ export async function staticChecks(ctx) {
   const lua=luaRuntime();
   if(lua)ctx.exec('LINK Lua rule/rate regressions',lua,[path.join(tool,'tests/lua/link-rules.lua'),ctx.source]);
   else ctx.skip('LINK Lua rule/rate regressions','Lua 5.4 runtime unavailable');
+  if(lua)ctx.exec('Shared app disabled callback and billing boundary',lua,[path.join(tool,'tests/lua/app-disable.lua'),ctx.source]);
   await ctx.check('LINK/PARTY identity and callback surface',()=>{
     const config=ctx.read('config/shared.lua');
     assert(config.includes("identifier = 'flecity_party'"));assert(/name\s*=\s*'(LINK|PARTY)'/.test(config));

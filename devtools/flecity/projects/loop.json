@@ -2,6 +2,7 @@
   "id": "loop",
   "resource": "flecity_games",
   "source": "flecity_sources/flecity_games",
+  "nui": {"entry":"web/play/index.html"},
   "kind": "game",
   "adapter": "loop",
   "logTags": [

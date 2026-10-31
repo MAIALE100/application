@@ -1,0 +1,11 @@
+{
+  "id": "mining",
+  "resource": "flecity_mining",
+  "source": "flecity_mining",
+  "kind": "job",
+  "adapter": "generic",
+  "logTags": [
+    "script:flecity_mining"
+  ],
+  "modules": []
+}

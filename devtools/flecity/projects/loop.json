@@ -1,0 +1,14 @@
+{
+  "id": "loop",
+  "resource": "flecity_games",
+  "source": "flecity_games",
+  "kind": "game",
+  "adapter": "loop",
+  "logTags": [
+    "script:flecity_games"
+  ],
+  "modules": [],
+  "sharedWith": [
+    "link"
+  ]
+}

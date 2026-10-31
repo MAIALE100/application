@@ -1,0 +1,14 @@
+{
+  "id": "base",
+  "resource": "flecity_base",
+  "source": "flecity_base",
+  "kind": "lb-phone",
+  "adapter": "base",
+  "clientPlan": "devtools/flecity/client-plans/base.json",
+  "logTags": [
+    "script:flecity_base"
+  ],
+  "selftest": "base_selftest",
+  "modules": [],
+  "nui": {"entry":"web/index.html"}
+}

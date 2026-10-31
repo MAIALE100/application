@@ -1,0 +1,11 @@
+{
+  "id": "wave",
+  "resource": "wave",
+  "source": "wave",
+  "kind": "lb-phone",
+  "adapter": "wave",
+  "logTags": [
+    "script:wave"
+  ],
+  "modules": []
+}

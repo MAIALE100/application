@@ -1,0 +1,11 @@
+{
+  "id": "puriphoto",
+  "resource": "puriphoto",
+  "source": "puriphoto",
+  "kind": "lb-phone",
+  "adapter": "puriphoto",
+  "logTags": [
+    "script:puriphoto"
+  ],
+  "modules": []
+}

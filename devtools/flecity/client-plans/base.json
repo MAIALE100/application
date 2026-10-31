@@ -1,0 +1,5 @@
+[
+  {"id":"phone-open","dataEffect":"persistent","description":"BLOCKED on existing data: deployed bootstrap calls ensurePersonalWorkspace, including INSERT/INSERT IGNORE for workspace and membership. Requires approved dedicated fixtures before opening BASE through LB Phone."},
+  {"id":"workspace-read","dataEffect":"read-only","description":"With an approved test identity and fixture, open overview, notes and stock; compare rendered values and permission controls. Audit all callbacks before execution."},
+  {"id":"custom-field-rollback","dataEffect":"persistent","description":"Dedicated disposable fixture only: invalid field values and duplicate IDs must not change existing fixture values; verify through real oxmysql callbacks."}
+]

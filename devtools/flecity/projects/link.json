@@ -1,0 +1,17 @@
+{
+  "id": "link",
+  "resource": "flecity_games",
+  "source": "flecity_games",
+  "kind": "game",
+  "adapter": "link",
+  "clientPlan": "devtools/flecity/client-plans/link.json",
+  "logTags": [
+    "script:flecity_games"
+  ],
+  "modules": ["devtools/flecity/modules/link-fall-battle.mjs", "devtools/flecity/modules/link-solo.mjs"],
+  "sharedWith": [
+    "loop"
+  ],
+  "nui": {"entry":"web/party/index.html"},
+  "notes": "LINK is legacy PARTY, flecity_party, within flecity_games. Restart affects LOOP too."
+}

@@ -1,0 +1,14 @@
+{
+  "mariaBin": "D:\\MariaDB\\bin",
+  "lua": "D:\\path-to-reviewed-tools\\lua54.exe",
+  "luac": "D:\\path-to-reviewed-tools\\luac54.exe",
+  "server": {
+    "type": "test",
+    "root": "D:\\FiveM_Test_Server",
+    "resourcesRoot": "txData/Qbox_D233FD.base/resources",
+    "deploymentEnabled": false,
+    "logFile": "txData/default/logs/fxserver.log",
+    "targets": {}
+  },
+  "sources": {}
+}

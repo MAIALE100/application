@@ -1,0 +1,5 @@
+[
+  {"id":"phone-open","dataEffect":"persistent","description":"BLOCKED on existing data: deployed GetSettings calls Profile.Touch with INSERT ON DUPLICATE KEY UPDATE display_name/last_seen_at. Requires approved dedicated fixtures before opening LINK (legacy flecity_party)."},
+  {"id":"room-lifecycle","dataEffect":"session","description":"Approved isolated test actors only: create/join/ready/leave; verify room revision and disconnect cleanup. LINK shares flecity_games with LOOP."},
+  {"id":"fall-two-client","dataEffect":"persistent","description":"Two approved licensed test clients plus disposable ranking fixtures: verify FALL synchronization, replay validation and reconnect. No live ranking or payment data may be changed."}
+]

@@ -1,0 +1,11 @@
+{
+  "id": "flepri",
+  "resource": "puribooth",
+  "source": "puribooth",
+  "kind": "resource",
+  "adapter": "flepri",
+  "logTags": [
+    "script:puribooth"
+  ],
+  "modules": []
+}

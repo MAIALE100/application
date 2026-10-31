@@ -1,0 +1,14 @@
+{
+  "time": "2026-10-31T11:14:37.788Z",
+  "command": "node --test devtools/flecity/tests/*.test.mjs",
+  "exitCode": 0,
+  "tests": 64,
+  "pass": 58,
+  "fail": 0,
+  "skipped": 6,
+  "cancelled": 0,
+  "originalStatusUnchanged": true,
+  "log": ".flecity-dev/migration-20261031/tests.tap",
+  "overall": "BLOCKED",
+  "reason": "Migration overwrite approval and Lua/browser dependencies pending"
+}

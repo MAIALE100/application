@@ -1,0 +1,3499 @@
+{
+  "original": "D:/FiveM_Dev/application",
+  "current": "D:\\FiveM_AutoDev\\workspace-clean",
+  "backup": "D:/FiveM_Dev_Backups/application-20261031-200209",
+  "originalHead": "10dfa3a43c63dd9b939a8bd66efb4d2387044a9a",
+  "newHead": "10dfa3a43c63dd9b939a8bd66efb4d2387044a9a",
+  "originalBranch": "jobs/mining-dev",
+  "originalStatus": [
+    " M .gitignore",
+    " M puriphoto/README.md",
+    " M puriphoto/config.lua",
+    " M puriphoto/fxmanifest.lua",
+    " M puriphoto/package-lock.json",
+    " D puriphoto/ui/dist/assets/index-15d60b95.js",
+    " D puriphoto/ui/dist/assets/index-9487c400.css",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-aec5c866.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-f5a4430c.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-6462ab04.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-a1d2eaff.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-9ac4d563.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-d6f792ea.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a04f21bc.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a97b37af.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-7fba727a.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-b5117eba.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-1298fd63.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-88e2c6ac.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-73524b05.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-dbd51dd7.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-926dba00.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-95cbf856.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-10b444f6.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-39d713f1.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-5f3b8284.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-f1423609.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-d6e4beec.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-ff098553.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-7359d009.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-99b9f623.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-17d2d5ce.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-95fdc4dc.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-21ce3eef.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-8bbfabca.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-32d5568e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-98c2fc57.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-0b26d16f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-632eb41e.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-b40734aa.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-db9f3d27.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-427f25fd.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-606f804b.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-bfec3995.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-fd7d92ec.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-743bd2e2.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-ebce7f7c.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-02cd1db7.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-79b08398.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-323db774.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-dbcfe584.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-95d1ee0f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-9dd548a6.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-5d43404d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-7baa335a.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-6d9feee0.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-d251516d.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-9368bb50.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-cb334098.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-1e01dbdb.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-e67d5615.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-badd7373.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-d141b4b1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-320f97aa.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-e2f6f059.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-7d18d31e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-8e6ef251.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-18f5523f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-e3d3cee9.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-1f265ad8.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-db47a6ae.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-2d44f543.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-fe17fc1c.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-2075cd83.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-9248255d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-0c525a88.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-557287e7.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-39c2fb11.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-b498d01d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-0775a404.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-3f47df05.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-722d7dfb.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-a6c999d6.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-279e18e4.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-66651dec.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-11440322.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-5bd9f43a.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-6be78ead.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-f6aa2541.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-50f77df7.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-85f6b5ad.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-21b8a455.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-fe696f20.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-57ab1369.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-af4955dc.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-60bb2ca9.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-72478cd1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-cf5b1516.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-dd559ed3.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-31869428.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-62c04c2f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-3c1655d1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-c5d7aac5.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-23291592.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-4fa0aa73.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-595e793d.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-79b275d2.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-2968bdda.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-e01bf978.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-daf09bb6.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-e826e6a6.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-c407ab34.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-fbaf2be9.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-870d8110.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-9c63440c.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-001367ff.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-48026f85.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-97715a9d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-fb73b052.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-3efae0d6.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-f033b368.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-62c5633c.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-8e59608b.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-8f0a10ce.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-f4c8e1fc.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-1fc735fd.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-e3fee0b4.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-1278c302.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-d72ba932.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-458baf1e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-47e3d41d.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-406f44f3.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-6f808111.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-6096cc05.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-ca01ca82.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-5867fcf1.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-da4663e1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-148b06cb.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-a49a8f79.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-664b4c95.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-e642125a.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-93d2ec8a.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-e2f2418f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-b6b9e0be.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-be61f839.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-0fc5f6ce.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-795a5964.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-143fe9ec.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-f429755b.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-d50a9b2f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-f684a7f5.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-c3c63548.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-cd032e36.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-50d16c4e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-7595025e.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-72ea5e3e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-e04b182e.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-54e5b216.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-8d4dea65.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-85f9a41e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-cdbcff46.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-cf18f43e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-e75e179c.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-515df2a1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-95f7182b.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-422fb0bc.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-d6e47f1e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-64022299.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-6b99d72f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-886ca7c3.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-9fa3e08f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-a8b431e0.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-d48db7fa.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-75211119.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-7fa2d4a8.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-ad7a3b91.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-f66536e1.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-2c8924ad.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-9f590699.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-54b6cfa1.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-c74936f6.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-6fc50c84.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-f0dbe2a1.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-21bf5a8d.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-b6b2088f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-791b5bd2.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-bd96c084.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-a71163b4.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-f6c732fa.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-2058a87e.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-7d1924fc.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-6ad4aadc.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-dc6236e1.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-02dacf9e.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-ba3a234a.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-251dc77d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-7ed53b32.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-7748ec1f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-8af7808f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-388fd399.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-99d2482f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-2c8ccc8f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-9895cac5.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-38fb699c.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-cd774aed.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-2ca11a8b.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-f122b3ba.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-45ef7eca.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-7b000c4b.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-3f83d109.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-b0d5d5df.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-33802fb0.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-c9890ad7.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-d0e38c96.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-dd969e18.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-73d1655d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-8fcc3fe4.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-2531a66f.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-b078ca5d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-1ccd1810.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-2f72a9f9.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-37118fd3.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-87cf2297.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-3829d1c9.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-8e65f43d.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-ae357cdb.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-f70fc198.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-681af2de.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-dd87164f.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-c7bf33f5.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-d20f63d0.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-09987d06.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-caf53138.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-ab9cb875.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-c5e19ef4.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-79e23f2a.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-8abaa61b.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-1b06d97d.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-4eb2e9a8.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-c16f7c43.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-d847084a.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1688f144.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1c3207e9.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-1734e132.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-eeea363a.woff2",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-125b4bd0.woff",
+    " D puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-ae4a39a6.woff2",
+    " M puriphoto/ui/dist/index.html",
+    " M puriphoto/ui/package-lock.json",
+    " M puriphoto/ui/package.json",
+    " M puriphoto/ui/src/App.css",
+    " M puriphoto/ui/src/App.tsx",
+    "?? .wave-backups/20261027-232404/.wave-build.txt",
+    "?? .wave-backups/20261027-232404/client/main.lua",
+    "?? .wave-backups/20261027-232404/config/shared.lua",
+    "?? .wave-backups/20261027-232404/fxmanifest.lua",
+    "?? .wave-backups/20261027-232404/server/main.lua",
+    "?? .wave-backups/20261027-232404/sql/wave.sql",
+    "?? .wave-backups/20261027-232404/web/app.css",
+    "?? .wave-backups/20261027-232404/web/app.js",
+    "?? .wave-backups/20261027-232404/web/icon.svg",
+    "?? .wave-backups/20261027-232404/web/index.html",
+    "?? .wave-backups/20261028-000118/.wave-build.txt",
+    "?? .wave-backups/20261028-000118/client/main.lua",
+    "?? .wave-backups/20261028-000118/config/shared.lua",
+    "?? .wave-backups/20261028-000118/fxmanifest.lua",
+    "?? .wave-backups/20261028-000118/server/main.lua",
+    "?? .wave-backups/20261028-000118/sql/wave.sql",
+    "?? .wave-backups/20261028-000118/web/app.css",
+    "?? .wave-backups/20261028-000118/web/app.js",
+    "?? .wave-backups/20261028-000118/web/icon.svg",
+    "?? .wave-backups/20261028-000118/web/index.html",
+    "?? .wave-backups/20261028-002651/.wave-build.txt",
+    "?? .wave-backups/20261028-002651/client/main.lua",
+    "?? .wave-backups/20261028-002651/config/shared.lua",
+    "?? .wave-backups/20261028-002651/fxmanifest.lua",
+    "?? .wave-backups/20261028-002651/server/main.lua",
+    "?? .wave-backups/20261028-002651/sql/wave.sql",
+    "?? .wave-backups/20261028-002651/web/app.css",
+    "?? .wave-backups/20261028-002651/web/app.js",
+    "?? .wave-backups/20261028-002651/web/icon.svg",
+    "?? .wave-backups/20261028-002651/web/index.html",
+    "?? .wave-backups/20261028-010145/.wave-build.txt",
+    "?? .wave-backups/20261028-010145/client/main.lua",
+    "?? .wave-backups/20261028-010145/config/shared.lua",
+    "?? .wave-backups/20261028-010145/fxmanifest.lua",
+    "?? .wave-backups/20261028-010145/server/main.lua",
+    "?? .wave-backups/20261028-010145/sql/wave.sql",
+    "?? .wave-backups/20261028-010145/web/app.css",
+    "?? .wave-backups/20261028-010145/web/app.js",
+    "?? .wave-backups/20261028-010145/web/icon.svg",
+    "?? .wave-backups/20261028-010145/web/index.html",
+    "?? .wave-backups/20261028-225241-5027083c/.wave-build.txt",
+    "?? .wave-backups/20261028-225241-5027083c/client/main.lua",
+    "?? .wave-backups/20261028-225241-5027083c/config/shared.lua",
+    "?? .wave-backups/20261028-225241-5027083c/fxmanifest.lua",
+    "?? .wave-backups/20261028-225241-5027083c/server/main.lua",
+    "?? .wave-backups/20261028-225241-5027083c/sql/wave.sql",
+    "?? .wave-backups/20261028-225241-5027083c/web/app.css",
+    "?? .wave-backups/20261028-225241-5027083c/web/app.js",
+    "?? .wave-backups/20261028-225241-5027083c/web/icon.svg",
+    "?? .wave-backups/20261028-225241-5027083c/web/index.html",
+    "?? .wave-backups/20261028-231355-02fad7fe/.wave-build.txt",
+    "?? .wave-backups/20261028-231355-02fad7fe/client/main.lua",
+    "?? .wave-backups/20261028-231355-02fad7fe/config/shared.lua",
+    "?? .wave-backups/20261028-231355-02fad7fe/fxmanifest.lua",
+    "?? .wave-backups/20261028-231355-02fad7fe/server/main.lua",
+    "?? .wave-backups/20261028-231355-02fad7fe/sql/wave.sql",
+    "?? .wave-backups/20261028-231355-02fad7fe/web/app.css",
+    "?? .wave-backups/20261028-231355-02fad7fe/web/app.js",
+    "?? .wave-backups/20261028-231355-02fad7fe/web/icon.svg",
+    "?? .wave-backups/20261028-231355-02fad7fe/web/index.html",
+    "?? .wave-backups/20261029-000025-7a59f36e/.wave-build.txt",
+    "?? .wave-backups/20261029-000025-7a59f36e/client/main.lua",
+    "?? .wave-backups/20261029-000025-7a59f36e/config/shared.lua",
+    "?? .wave-backups/20261029-000025-7a59f36e/fxmanifest.lua",
+    "?? .wave-backups/20261029-000025-7a59f36e/server/main.lua",
+    "?? .wave-backups/20261029-000025-7a59f36e/sql/wave.sql",
+    "?? .wave-backups/20261029-000025-7a59f36e/web/app.css",
+    "?? .wave-backups/20261029-000025-7a59f36e/web/app.js",
+    "?? .wave-backups/20261029-000025-7a59f36e/web/icon.svg",
+    "?? .wave-backups/20261029-000025-7a59f36e/web/index.html",
+    "?? .wave-backups/20261029-000025-7a59f36e/web/studio-extras.js",
+    "?? .wave-backups/20261029-012335-4ab0abb5/.wave-build.txt",
+    "?? .wave-backups/20261029-012335-4ab0abb5/client/main.lua",
+    "?? .wave-backups/20261029-012335-4ab0abb5/config/shared.lua",
+    "?? .wave-backups/20261029-012335-4ab0abb5/fxmanifest.lua",
+    "?? .wave-backups/20261029-012335-4ab0abb5/server/main.lua",
+    "?? .wave-backups/20261029-012335-4ab0abb5/sql/wave.sql",
+    "?? .wave-backups/20261029-012335-4ab0abb5/web/app.css",
+    "?? .wave-backups/20261029-012335-4ab0abb5/web/app.js",
+    "?? .wave-backups/20261029-012335-4ab0abb5/web/icon.svg",
+    "?? .wave-backups/20261029-012335-4ab0abb5/web/index.html",
+    "?? .wave-backups/20261029-012335-4ab0abb5/web/studio-extras.js",
+    "?? .wave-backups/20261029-013517-c6067d43/.wave-build.txt",
+    "?? .wave-backups/20261029-013517-c6067d43/client/main.lua",
+    "?? .wave-backups/20261029-013517-c6067d43/config/shared.lua",
+    "?? .wave-backups/20261029-013517-c6067d43/fxmanifest.lua",
+    "?? .wave-backups/20261029-013517-c6067d43/server/main.lua",
+    "?? .wave-backups/20261029-013517-c6067d43/sql/wave.sql",
+    "?? .wave-backups/20261029-013517-c6067d43/web/app.css",
+    "?? .wave-backups/20261029-013517-c6067d43/web/app.js",
+    "?? .wave-backups/20261029-013517-c6067d43/web/icon.svg",
+    "?? .wave-backups/20261029-013517-c6067d43/web/index.html",
+    "?? .wave-backups/20261029-013517-c6067d43/web/studio-extras.js",
+    "?? AGENTS.md",
+    "?? FLECITY_DEVELOPMENT.md",
+    "?? Fetching",
+    "?? base-update.cmd",
+    "?? base-update.ps1",
+    "?? devtools/AGENTS.md",
+    "?? devtools/flecity/.gitignore",
+    "?? devtools/flecity/EXISTING_SERVER_REPORT.md",
+    "?? devtools/flecity/FLECITY_AUTODEV_MASTER_JA.md",
+    "?? devtools/flecity/IMPLEMENTATION_REPORT_JA.md",
+    "?? devtools/flecity/LUA_UI_REPORT_2026-10-30.md",
+    "?? devtools/flecity/adapters/base.mjs",
+    "?? devtools/flecity/adapters/flepri.mjs",
+    "?? devtools/flecity/adapters/generic.mjs",
+    "?? devtools/flecity/adapters/link.mjs",
+    "?? devtools/flecity/adapters/loop.mjs",
+    "?? devtools/flecity/adapters/puriphoto.mjs",
+    "?? devtools/flecity/adapters/schema-smoke.mjs",
+    "?? devtools/flecity/adapters/wave.mjs",
+    "?? devtools/flecity/checks.mjs",
+    "?? devtools/flecity/cli.mjs",
+    "?? devtools/flecity/client-plans/base.json",
+    "?? devtools/flecity/client-plans/link.json",
+    "?? devtools/flecity/core.mjs",
+    "?? devtools/flecity/database.mjs",
+    "?? devtools/flecity/deployment.mjs",
+    "?? devtools/flecity/evidence.mjs",
+    "?? devtools/flecity/fixtures/README.md",
+    "?? devtools/flecity/fixtures/base.mjs",
+    "?? devtools/flecity/fixtures/link-solo.mjs",
+    "?? devtools/flecity/fixtures/plan.mjs",
+    "?? devtools/flecity/fixtures/scope.mjs",
+    "?? devtools/flecity/lab/client.mjs",
+    "?? devtools/flecity/lab/resources/flecity_validation/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/flecity_validation/server.lua",
+    "?? devtools/flecity/lab/resources/lb-phone/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/lb-phone/server.lua",
+    "?? devtools/flecity/lab/resources/qbx_core/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/qbx_core/server.lua",
+    "?? devtools/flecity/lab/runtime.mjs",
+    "?? devtools/flecity/lab/supervisor.mjs",
+    "?? devtools/flecity/local.example.json",
+    "?? devtools/flecity/module-runner.mjs",
+    "?? devtools/flecity/modules/link-fall-battle.mjs",
+    "?? devtools/flecity/modules/link-solo.mjs",
+    "?? devtools/flecity/nui.mjs",
+    "?? devtools/flecity/preflight.mjs",
+    "?? devtools/flecity/projects/base.json",
+    "?? devtools/flecity/projects/flepri.json",
+    "?? devtools/flecity/projects/link.json",
+    "?? devtools/flecity/projects/loop.json",
+    "?? devtools/flecity/projects/mining.json",
+    "?? devtools/flecity/projects/puriphoto.json",
+    "?? devtools/flecity/projects/wave.json",
+    "?? devtools/flecity/scaffold.mjs",
+    "?? devtools/flecity/server-bridge/fxmanifest.lua",
+    "?? devtools/flecity/server-bridge/policy.lua",
+    "?? devtools/flecity/server-bridge/server.lua",
+    "?? devtools/flecity/server/approval.mjs",
+    "?? devtools/flecity/server/bridge-client.mjs",
+    "?? devtools/flecity/server/bridge-plan.mjs",
+    "?? devtools/flecity/server/client-plan.mjs",
+    "?? devtools/flecity/server/connection.mjs",
+    "?? devtools/flecity/server/install-bridge.mjs",
+    "?? devtools/flecity/server/readonly.mjs",
+    "?? devtools/flecity/tests/browser.test.mjs",
+    "?? devtools/flecity/tests/client-plan.test.mjs",
+    "?? devtools/flecity/tests/fixtures.test.mjs",
+    "?? devtools/flecity/tests/lab.test.mjs",
+    "?? devtools/flecity/tests/lua/bridge-policy.lua",
+    "?? devtools/flecity/tests/lua/link-rules.lua",
+    "?? devtools/flecity/tests/lua/link-solo.lua",
+    "?? devtools/flecity/tests/safety.test.mjs",
+    "?? devtools/flecity/tests/server.test.mjs",
+    "?? devtools/flecity/tests/solo.test.mjs",
+    "?? devtools/flecity/ui/base.mjs",
+    "?? devtools/flecity/ui/link-solo.mjs",
+    "?? devtools/flecity/ui/link.mjs",
+    "?? dist/flecity-games-loop-1.0.0.zip",
+    "?? dist/flecity-games-loop-1.0.0.zip.sha256",
+    "?? flecity.cmd",
+    "?? puribooth-fonts.ps1",
+    "?? puribooth-update.ps1",
+    "?? puribooth/ACCEPTANCE_TEST.md",
+    "?? puribooth/CHANGELOG.md",
+    "?? puribooth/INSTALL.md",
+    "?? puribooth/PURIPHOTO_COMPAT.md",
+    "?? puribooth/README.md",
+    "?? puribooth/RELEASE_CHECKLIST.md",
+    "?? puribooth/SUBMISSION_INFO.txt",
+    "?? puribooth/SUPPORT.md",
+    "?? puribooth/THIRD_PARTY_NOTICES.md",
+    "?? puribooth/client/main.lua",
+    "?? puribooth/config.lua",
+    "?? puribooth/fxmanifest.lua",
+    "?? puribooth/server/main.lua",
+    "?? puribooth/ui/app.js",
+    "?? puribooth/ui/fonts/HachiMaruPop-Regular.ttf",
+    "?? puribooth/ui/fonts/HitoriGothic.ttf",
+    "?? puribooth/ui/fonts/PopRumKiwi-Telop.ttf",
+    "?? puribooth/ui/fonts/README.txt",
+    "?? puribooth/ui/fonts/galmojigothicfree.ttf",
+    "?? puribooth/ui/fonts/licenses/GalMojiGothic-LICENSE.txt",
+    "?? puribooth/ui/fonts/licenses/HachiMaruPop-OFL.txt",
+    "?? puribooth/ui/fonts/licenses/PopRumKiwi-LICENSE.txt",
+    "?? puribooth/ui/index.html",
+    "?? puribooth/ui/style.css",
+    "?? puriphoto.zip",
+    "?? puriphoto/CHANGELOG.md",
+    "?? puriphoto/client/v11.lua",
+    "?? puriphoto/server/main.lua",
+    "?? puriphoto/ui/dist/assets/index-a08d5720.css",
+    "?? puriphoto/ui/dist/assets/index-d3e1db67.js",
+    "?? wave-update.cmd",
+    "?? wave-update.ps1"
+  ],
+  "newStatus": [
+    "?? devtools/flecity/.gitignore",
+    "?? devtools/flecity/EXISTING_SERVER_REPORT.md",
+    "?? devtools/flecity/FLECITY_AUTODEV_MASTER_JA.md",
+    "?? devtools/flecity/IMPLEMENTATION_REPORT_JA.md",
+    "?? devtools/flecity/LUA_UI_REPORT_2026-10-30.md",
+    "?? devtools/flecity/adapters/base.mjs",
+    "?? devtools/flecity/adapters/flepri.mjs",
+    "?? devtools/flecity/adapters/generic.mjs",
+    "?? devtools/flecity/adapters/link.mjs",
+    "?? devtools/flecity/adapters/loop.mjs",
+    "?? devtools/flecity/adapters/puriphoto.mjs",
+    "?? devtools/flecity/adapters/schema-smoke.mjs",
+    "?? devtools/flecity/adapters/wave.mjs",
+    "?? devtools/flecity/checks.mjs",
+    "?? devtools/flecity/cli.mjs",
+    "?? devtools/flecity/client-plans/base.json",
+    "?? devtools/flecity/client-plans/link.json",
+    "?? devtools/flecity/core.mjs",
+    "?? devtools/flecity/database.mjs",
+    "?? devtools/flecity/deployment.mjs",
+    "?? devtools/flecity/evidence.mjs",
+    "?? devtools/flecity/fixtures/README.md",
+    "?? devtools/flecity/fixtures/base.mjs",
+    "?? devtools/flecity/fixtures/link-solo.mjs",
+    "?? devtools/flecity/fixtures/plan.mjs",
+    "?? devtools/flecity/fixtures/scope.mjs",
+    "?? devtools/flecity/lab/client.mjs",
+    "?? devtools/flecity/lab/resources/flecity_validation/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/flecity_validation/server.lua",
+    "?? devtools/flecity/lab/resources/lb-phone/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/lb-phone/server.lua",
+    "?? devtools/flecity/lab/resources/qbx_core/fxmanifest.lua",
+    "?? devtools/flecity/lab/resources/qbx_core/server.lua",
+    "?? devtools/flecity/lab/runtime.mjs",
+    "?? devtools/flecity/lab/supervisor.mjs",
+    "?? devtools/flecity/local.example.json",
+    "?? devtools/flecity/migration-audit.mjs",
+    "?? devtools/flecity/module-runner.mjs",
+    "?? devtools/flecity/modules/link-fall-battle.mjs",
+    "?? devtools/flecity/modules/link-solo.mjs",
+    "?? devtools/flecity/nui.mjs",
+    "?? devtools/flecity/preflight.mjs",
+    "?? devtools/flecity/projects/base.json",
+    "?? devtools/flecity/projects/flepri.json",
+    "?? devtools/flecity/projects/link.json",
+    "?? devtools/flecity/projects/loop.json",
+    "?? devtools/flecity/projects/mining.json",
+    "?? devtools/flecity/projects/puriphoto.json",
+    "?? devtools/flecity/projects/wave.json",
+    "?? devtools/flecity/reports/migration-20261031/inventory.json",
+    "?? devtools/flecity/reports/migration-20261031/original-only-changes.tsv",
+    "?? devtools/flecity/scaffold.mjs",
+    "?? devtools/flecity/server-bridge/fxmanifest.lua",
+    "?? devtools/flecity/server-bridge/policy.lua",
+    "?? devtools/flecity/server-bridge/server.lua",
+    "?? devtools/flecity/server/approval.mjs",
+    "?? devtools/flecity/server/bridge-client.mjs",
+    "?? devtools/flecity/server/bridge-plan.mjs",
+    "?? devtools/flecity/server/client-plan.mjs",
+    "?? devtools/flecity/server/connection.mjs",
+    "?? devtools/flecity/server/install-bridge.mjs",
+    "?? devtools/flecity/server/readonly.mjs",
+    "?? devtools/flecity/tests/browser.test.mjs",
+    "?? devtools/flecity/tests/client-plan.test.mjs",
+    "?? devtools/flecity/tests/fixtures.test.mjs",
+    "?? devtools/flecity/tests/lab.test.mjs",
+    "?? devtools/flecity/tests/lua/bridge-policy.lua",
+    "?? devtools/flecity/tests/lua/link-rules.lua",
+    "?? devtools/flecity/tests/lua/link-solo.lua",
+    "?? devtools/flecity/tests/safety.test.mjs",
+    "?? devtools/flecity/tests/server.test.mjs",
+    "?? devtools/flecity/tests/solo.test.mjs",
+    "?? devtools/flecity/ui/base.mjs",
+    "?? devtools/flecity/ui/link-solo.mjs",
+    "?? devtools/flecity/ui/link.mjs"
+  ],
+  "changes": [
+    {
+      "path": ".gitignore",
+      "status": "DIFFERENT",
+      "oldSha256": "b9bdbc23b0e9fb146977bacf70ce6ac50f20054ef08ef27d7ea8d5dfeee714f6",
+      "newSha256": "2d421aee7262376501991d3e32c2cb078001aa0eca7dcbd74b72dc83e240946d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".three-apps.local.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "2c20bd789ed0ed4829f8ccca3ad4c125c7502e403c4fad40ba5bfad164724e21",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "be398a6a414f134aed53275b63fec7a9a8c9e87ec1087681b323ec1768c8529b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "7d0ca3375e27c9594c541a72317051ca9c3a2ff90379d17f00db51080a5a7e25",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "50182f4b88049f5717b53d63439467404358b0ff5899be7a41892f7725e490e3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "b82e1f12c92dcf9d6caf3ef50f8c6e879c0c7897452117fe9cf7ee560cd0f144",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "4f037d66b6b2c0311bcaacc0835335195d0b259d9458e08919f9df3bb5d8f8bf",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "ea1e5b59168e6f1722d2df37162860632b9dd03ad3db331ae13b7c568ef81413",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "489378e96aeb7591bb2d3efa5c205464d947180dbfa949c884d812ce4f17fc2a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "e2b972be3805adb8cca5e73c08a698fde8ebd521f9d94a1796ed778dfb78378f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261027-232404/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "7300a11735c73fea7cdf2a26aa791ef6e06a138734fa0d22f099b32a8280384f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "4e8e9f18eba96fa21c529bc79ae772e6f095c6ee1c45c14d8bea501f520cead3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "7d0ca3375e27c9594c541a72317051ca9c3a2ff90379d17f00db51080a5a7e25",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "50182f4b88049f5717b53d63439467404358b0ff5899be7a41892f7725e490e3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "b82e1f12c92dcf9d6caf3ef50f8c6e879c0c7897452117fe9cf7ee560cd0f144",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "4f037d66b6b2c0311bcaacc0835335195d0b259d9458e08919f9df3bb5d8f8bf",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "ea1e5b59168e6f1722d2df37162860632b9dd03ad3db331ae13b7c568ef81413",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "489378e96aeb7591bb2d3efa5c205464d947180dbfa949c884d812ce4f17fc2a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "e2b972be3805adb8cca5e73c08a698fde8ebd521f9d94a1796ed778dfb78378f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-000118/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "7300a11735c73fea7cdf2a26aa791ef6e06a138734fa0d22f099b32a8280384f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "47f792bcf99b4c8459682f9442dd183403d1fa556873826383c4ea9962c888fb",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "7d0ca3375e27c9594c541a72317051ca9c3a2ff90379d17f00db51080a5a7e25",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "50182f4b88049f5717b53d63439467404358b0ff5899be7a41892f7725e490e3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "0c947337d8f05df0f84ab73631872443d6fc6ff74d592cd7181fbaef6d00c05a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "4f037d66b6b2c0311bcaacc0835335195d0b259d9458e08919f9df3bb5d8f8bf",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "ea1e5b59168e6f1722d2df37162860632b9dd03ad3db331ae13b7c568ef81413",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "489378e96aeb7591bb2d3efa5c205464d947180dbfa949c884d812ce4f17fc2a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "8c30d5214a5d7f07535f5dc0715314301d35e2842e67e3994e391e97d8429453",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-002651/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "7300a11735c73fea7cdf2a26aa791ef6e06a138734fa0d22f099b32a8280384f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "dd67be2f03a1240f7498a813ac2d02d9eeff4c585f6178840a49cdc4ac4aec7c",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "7d0ca3375e27c9594c541a72317051ca9c3a2ff90379d17f00db51080a5a7e25",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "50182f4b88049f5717b53d63439467404358b0ff5899be7a41892f7725e490e3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "fe3d81c1ea00b64baf4622884e5d5b7e64d63c80b08b50e54475bfe4661bc71e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "4f037d66b6b2c0311bcaacc0835335195d0b259d9458e08919f9df3bb5d8f8bf",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "ea1e5b59168e6f1722d2df37162860632b9dd03ad3db331ae13b7c568ef81413",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "489378e96aeb7591bb2d3efa5c205464d947180dbfa949c884d812ce4f17fc2a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "1ce2c985ab072db4f1c2b9c3d2194525ef619ff8456b154ae2de18f513602262",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-010145/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "7300a11735c73fea7cdf2a26aa791ef6e06a138734fa0d22f099b32a8280384f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "a2c850ce69dffe7d0fd2170b4a2245adfc23bc5fe03bee58e09d1ec948110be8",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "f8725d77d34e93ed10f9f810db53945008620151380a4ec22b1a165b443f1d08",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "ba4f9b881ddb469d6cf3c873886709f2894d947ecaea5163f7fff77250cb552d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "be8911d8e9bbef1d853b38e905027b90153c3a0c57f7c18579ebf50d6683157d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "8dabfb0c874ca189aceb701480f44cf7b90b319409c76256a98543b205c01052",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-225241-5027083c/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "ddb0dae08664ab90eac3915047d835ad3685f5b460b7f0114f2cdacbddd3cc95",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "de857703084aa6e236475429a3587b6d2b05ce6fa414b34d4b261d8280e54c7a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "7d7635cddb88ffe113e0dc67399f33395f88d5de8c160dc21422ceb41a4047e4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "be8911d8e9bbef1d853b38e905027b90153c3a0c57f7c18579ebf50d6683157d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "bdd20768fb57bca0bdf85de5609b67be22927c1f37ef2ecadf804166c6d1a623",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261028-231355-02fad7fe/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "ddb0dae08664ab90eac3915047d835ad3685f5b460b7f0114f2cdacbddd3cc95",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "57b8a693d5d31fcfb922cc2476b831030c0ab14d6d7eda7c1f57732f4eb429ea",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "d79c8d934a989919a5e073d69815a087da514d69a0935503b587d25bcd995a1e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "04984bc42e1eff82a9f2879a85dbeecdc89da1dddf2cdb176221703d209df0f9",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "5d92f8f90a4d4ed353c4eec2ce27fd8aaee02bd18d5eaef07c5c70a95da5f1fe",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-000025-7a59f36e/web/studio-extras.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "1f8c7c37e6b57c80a464f124bc066d9c1372a63dbd93156788f6b07eea3ba62c",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "fef6cf2b513375bee1bd0b78d2c0839a02a8a2f1b8740a963c86cf2975229715",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "d79c8d934a989919a5e073d69815a087da514d69a0935503b587d25bcd995a1e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "037b818a1e852e56ee631e41d7958ae30ceb6adb6fd5254d50c8ab367387c05c",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "5d92f8f90a4d4ed353c4eec2ce27fd8aaee02bd18d5eaef07c5c70a95da5f1fe",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-012335-4ab0abb5/web/studio-extras.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/.wave-build.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "6b98d4ba33a7462f814751872d6e1e2dbd1db14df3e5f8945a79a43898c5ffca",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/config/shared.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "8e2bb657e8f41456067d40443145ed906cbe881b077317631d1fbcabaf2b75a6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/sql/wave.sql",
+      "status": "OLD_ONLY",
+      "oldSha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/web/app.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "6a7cf88a61abce40fd51eec9487ff9e2498ac6d4c8496866c12b7fd58a6fa7c3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/web/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/web/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/web/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "5d92f8f90a4d4ed353c4eec2ce27fd8aaee02bd18d5eaef07c5c70a95da5f1fe",
+      "backupMatchesOld": true
+    },
+    {
+      "path": ".wave-backups/20261029-013517-c6067d43/web/studio-extras.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "AGENTS.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "8fb5c35fb0b8c12c55a6e5a1012e37aca9a15e2261b71c74319922cd6f945cc4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "FLECITY_DEVELOPMENT.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "d8a7eb3028aab2dd2cd7bf6248b9f6d828dd1619e6f5ddf9832378e4b6fdcbba",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "Fetching",
+      "status": "OLD_ONLY",
+      "oldSha256": "d002753f25a2590489e8d683583ca283c8a0b28e0d647ed4e498828d8e24d5b5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/.gitignore",
+      "status": "OLD_ONLY",
+      "oldSha256": "87dd4fc4e139a4e9635d5819fab62f90af4462b317734cc5dd8fb4fc4291103a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/LICENSE",
+      "status": "OLD_ONLY",
+      "oldSha256": "31fb924e98cefe2481eb5deec82e19011f6fd6ffca7355ca3e3d1f9fb5083fbc",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "5bd1c2e6fdac734f8b951ccdd3484531a38ceaaf6eec04bbbe6572482d35acbe",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "956b70034caca040f3764cde00e321bd6e6980c42ee71ea5a85bc9494ebb098e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/client.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "a50a4195ca4fd921ceee79bb68cbfd7420cfde439b66d7db11478d813735ebe0",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "2867cd708fe77257cd959ada04998ec14cbc8a4861516d0ca8361d80cea1a448",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/.gitignore",
+      "status": "OLD_ONLY",
+      "oldSha256": "e22ac5c8fd35f3f917dacea224b702f772d56b08b31a2c340dd35b6f3fe10060",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "abb12aebabd9dd5d13bcf06aa9ebc9c8d3f648dec76db2720e7637433265c982",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/package.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "c89bac48f115897a3f9e8eb14aeafe674c57a5bd91af59e5926c0574f55514d4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/public/.gitkeep",
+      "status": "OLD_ONLY",
+      "oldSha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/public/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "b475cdcb1d41e7f98c3cc39503e9478b0fa4896738f017484ce55cae0c2813b6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/public/screenshot-dark.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "e80c34dadc4dcb224cc49aab26576cedce31a1aa68fd3c8791a57a19a937193e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/public/screenshot-light.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "3b0f55f8e760fa86d66d18ce9691fc5e98426fc39693b438fa23214310fb3fd4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/App.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "f616a08b0875a222bb418514f89e46da912c2584143d6e1b6b4ef2eadb74c33a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/App.jsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "7b2bab0ffe7a3cb6ddc09c670ca36fe9aa3e61191fa2d36190e226109857f30b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/colors.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "9dc6bcd0abaff3f0a0dd5298f4a650756716ab2b1f7512aa4895b7917c7d1522",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/components/Frame.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "3697af733d8e4caaac74162f2f3550ab6e2af7d93115a54d97e611ecd7d54c35",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/components/Frame.jsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "2acb3d38da7eb1589535028df814a95aa46f4d0619a106b32db605f00c973ad6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/index.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "d50ee7ec3e8110b1f199b43a38154e9889973446a43834a15ea5a851dcc1e6eb",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/src/index.jsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "582e52ddda0131266eb2e6dca5c14ef6793aff1d0cf380d2fcd0a1aa5a8138d4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactjs/ui/vite.config.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "6ecfee58b4a98b0e776c1d44fc053974a19a947ab14dadf91552d2389c5652bb",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "751ee9d2a6d8f2f6ecabd421a69b8582a6978ef6d57a0df579f92286de8924b1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/client/client.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "4fee5ea21138cf5cfed4959c37d9f056ba1a360dcada71c7314d7a1568a436a9",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/client/functions.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "5df96c6d38d291cbb5044c4e86571bdd54d64d442cd945c1b071eb7a2cd85272",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/config.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "e573b8d6e431c98591ad96a30fe7ed94ab730d9773375571096426edd2558263",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "3281c91d0eae57d485e3b21ffe0476cf00e6ea53cc9357c408109ebef9a42a88",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/.gitignore",
+      "status": "OLD_ONLY",
+      "oldSha256": "e22ac5c8fd35f3f917dacea224b702f772d56b08b31a2c340dd35b6f3fe10060",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "7c845a0f224bb2127ffd06cb78eca3c631c9024a4aea134e8fa3f204245c8ae4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/package.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "619861208f8acbb87ca95fad0de4c2109b21aea380e918c381c041f21a7fa491",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/public/.gitkeep",
+      "status": "OLD_ONLY",
+      "oldSha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/public/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "b475cdcb1d41e7f98c3cc39503e9478b0fa4896738f017484ce55cae0c2813b6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/public/screenshot-dark.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "e80c34dadc4dcb224cc49aab26576cedce31a1aa68fd3c8791a57a19a937193e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/public/screenshot-light.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "3b0f55f8e760fa86d66d18ce9691fc5e98426fc39693b438fa23214310fb3fd4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/App.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "4a1dc9ca78bec5c89400f7a3445ee401e960aab4e8d604a21ada2bd51b51bdd3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/App.tsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "501d5fa5925427f59ebffa7d6b353e3c05be8684a0435e3b4c7d04c29b8ac9c5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/colors.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "9dc6bcd0abaff3f0a0dd5298f4a650756716ab2b1f7512aa4895b7917c7d1522",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/components.d.ts",
+      "status": "OLD_ONLY",
+      "oldSha256": "24bf34c5227bfb771677fec8a73aba88f49f8e78d5a639a36cef42e51b809c5b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/components/Frame.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "e35d65bd3f28b0a6b07b7150ac51d499c0b9fc20c213603ede2a8b3a74f3186e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/components/Frame.tsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "1287a9c84c292d004c93968f91aa7eead29b9bd1480235bfcc91b3a900a701cd",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/index.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "537112a806d97752a6134977e640590185f3ce1b5b8c171fed2a2687e0bbafcb",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/src/index.tsx",
+      "status": "OLD_ONLY",
+      "oldSha256": "5e047f0d6a6d7429d3b0344409dac90cd6b75e1255fde2889f45cbc6177cdb39",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/tsconfig.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "79e9a38a4fd181aae969b74bf7f284c33f71ff2b819a9af4c02326a9a2b7d4be",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-reactts/ui/vite.config.ts",
+      "status": "OLD_ONLY",
+      "oldSha256": "6ecfee58b4a98b0e776c1d44fc053974a19a947ab14dadf91552d2389c5652bb",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "107834dfcee1f3d54a782f736453a50715980b78a406d428f3e256fa3286deb6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/client.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "9cb10dc317266711ae262290eb4b0971ececbae27342f31314120b2ae16104e9",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "a56f691d228aa33e2fd49650a79ad07e307ab24fb90ea9e51d44b070b0d32917",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/assets/icon.svg",
+      "status": "OLD_ONLY",
+      "oldSha256": "b475cdcb1d41e7f98c3cc39503e9478b0fa4896738f017484ce55cae0c2813b6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/assets/screenshot-dark.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "e80c34dadc4dcb224cc49aab26576cedce31a1aa68fd3c8791a57a19a937193e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/assets/screenshot-light.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "3b0f55f8e760fa86d66d18ce9691fc5e98426fc39693b438fa23214310fb3fd4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/colors.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "9dc6bcd0abaff3f0a0dd5298f4a650756716ab2b1f7512aa4895b7917c7d1522",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/dev.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "19256d85262b0ec2b40f4c0b82b9381480b21daf93964cb45f62e19a7a24637d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/frame.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "3697af733d8e4caaac74162f2f3550ab6e2af7d93115a54d97e611ecd7d54c35",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "b4bc7f8af64740fe6d27a722c29dd8c78d46493b486ac6009f8838739c0cf039",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/script.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "76fe266a5c4ec4c0ccfe4b07267d773db947d133f908e81d7ffa6b41ce2d7414",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vanillajs/ui/styles.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "e4144a910b4fe87e52a33b622ce48522f49e3896160806b459c839f30a4cb8a4",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "9553d961ab1227d2dfc5e9a2aa699900c754070525a1aa1b2725f50007a955b2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/client.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "b5f80a32cbdf15f4c749b0362ab19ce128b9593b0c2cda8f70c674a4a305c386",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "fcb040a9987de111a1545075d4d00c895205954fe69dacc2d6f38b15e7dd7a6e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/.gitignore",
+      "status": "OLD_ONLY",
+      "oldSha256": "a06147984fb5d80f586d8ac94aebf26509a34bc0372d99db58b93904c61fee35",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/.vscode/extensions.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "4cf1d8bb0c29a06068fc2723d17cdfa4d29292705bc87746dee3954910988980",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "a5bef58c87e5b670904e53b9b916318004638b53afdf1d692464e4b7497d752f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/package.json",
+      "status": "OLD_ONLY",
+      "oldSha256": "a766674df21fba7203da5535565184e0d2380a2f0d930dafb5b5fdda25b7d8e9",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/pnpm-lock.yaml",
+      "status": "OLD_ONLY",
+      "oldSha256": "014bb866c99adefd0a7c0c1e9b61df79ce1c33cf41ab7375fe479a79f11df81f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/public/icon.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "1e348173c38db71093de897a3be3bc6a2001201ce5821dc3b52b71b49872485f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/public/screenshot-dark.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "37cf0b506e69b4444186e041454166e924fed064cb820b2bca4f75c1585d8660",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/public/screenshot-light.png",
+      "status": "OLD_ONLY",
+      "oldSha256": "3125a011c27fa0fce0cd0dd431ba768cf315480c1b55f1be5d507160c230046e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/App.vue",
+      "status": "OLD_ONLY",
+      "oldSha256": "9939268da424edc6cf825a7ec9358705bf0723c7837fecb977956e1e9109e5be",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/AppProvider.vue",
+      "status": "OLD_ONLY",
+      "oldSha256": "7ebfdaff8f84497e7236010a626f5e5152672a96c70e2cb239746504a631e0dc",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/colors.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "9dc6bcd0abaff3f0a0dd5298f4a650756716ab2b1f7512aa4895b7917c7d1522",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/components/Frame.vue",
+      "status": "OLD_ONLY",
+      "oldSha256": "0dbcaa5ea158720fab316b65c23d321025e83acabcc389dcea0c78e0b2da2a03",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/index.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "12c15a7873c8e2dccef3e5c875021e1915c349b221eef30ea5ac33de8fd8ead2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/src/index.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "53bc1b4a43d6e7d729c745584acebec84b1898f01b70fbed5f019da4e32df884",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "_lb-template/lb-vuejs/ui/vite.config.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "38fe3c970bac0e719418b055119c011b9bbc7ab95579e49e2cde3b10cee1b794",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "base-update.cmd",
+      "status": "OLD_ONLY",
+      "oldSha256": "ad8ec43c346b5add157732f03def50d7628d5aee14c410039b809cad40b463a6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "base-update.ps1",
+      "status": "OLD_ONLY",
+      "oldSha256": "c74fc59cb2b66b59ce10b88ce8504a7c72609892b758eeb3993c9e504456faf2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "devtools/AGENTS.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "3cd3ac35116121aa92188166716005e4f92e7928caed1da765a4a59e1a44a9a3",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "devtools/flecity/migration-audit.mjs",
+      "status": "NEW_ONLY",
+      "newSha256": "eb9c368728cb85997fdc7742d6f709bb442ac5b228fc5fe484e11ba1ec95ce7a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "devtools/flecity/reports/migration-20261031/inventory.json",
+      "status": "NEW_ONLY",
+      "newSha256": "9a901895050e5b5229af684141e0e616b0f29588d83a43fbc4331e5a792f2cda",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "devtools/flecity/reports/migration-20261031/original-only-changes.tsv",
+      "status": "NEW_ONLY",
+      "newSha256": "e7466adeae68bfe90a5866e520a71a499da8ceb5e95c39943955b899dcf5ef34",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "dist/flecity-games-loop-1.0.0.zip",
+      "status": "OLD_ONLY",
+      "oldSha256": "26548f3d43a5e609ece660cee4c1fc6d8ea770ebec27affa71e4ac57f551fe28",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "dist/flecity-games-loop-1.0.0.zip.sha256",
+      "status": "OLD_ONLY",
+      "oldSha256": "7e92e47f862977694b3d236440325ebca8a68da578f6f8a7d3a3df871d7e1a5d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "flecity.cmd",
+      "status": "OLD_ONLY",
+      "oldSha256": "184e8d99c2b0dcbb611ad0c29bd395ab9181cf35e075a47cd6510ae291280028",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth-fonts.ps1",
+      "status": "OLD_ONLY",
+      "oldSha256": "b7898331446238c9cd6bd3037b5fb7577d447325d724f34897bbd0e0eb3270d0",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth-update.ps1",
+      "status": "OLD_ONLY",
+      "oldSha256": "ef5f7d1e2ab18b849ea4165c911929e67686859919b4b6d3daddce2156b7b14e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ACCEPTANCE_TEST.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "6919e9751cd139ad133dadf5e13ddca9e7195046c0aa03f66f9f050171a91912",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/CHANGELOG.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "38641f0181e3758f33f4ca9cda5374f6c609f581d44b8af87c67dd9885f59d34",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/INSTALL.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "e3bbd50687ea756a55e99f7595a379940fb4b0924ea153f6ab5035dcf461f1a5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/PURIPHOTO_COMPAT.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "71d8b8f615246799836d545fb433be820f443ddaa64973bbd6353d6687a50d92",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/README.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "ac39ff41220cd45e3d823b0b848c970f344b322abb6b15c9565d726bb7a7f2c5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/RELEASE_CHECKLIST.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "b369ca235ae68c5129d59a2d7f96d8f88a94f8c7a1c2337a66123904637e1b48",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/SUBMISSION_INFO.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "e9301fbb529c6e0b92b307f5614ea5daddad989e88d14e32af685102934cc237",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/SUPPORT.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "91fb3d485b2353295da58b4dcb4b37138a77f9df0474cb7e5522feac5177a947",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/THIRD_PARTY_NOTICES.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "dad572b0ccda041985a7c60b3e3acfa18891fd64ecddf15fdf8e86d91cf65f10",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/client/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "66c4b79a084c49c3ce7ae58e173878094d582e35e222baccf55cc0367676b2fd",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/config.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "20a695291c5f8176f7599da702b3cf4356b7f8c0731fcf3d97068465aa58c139",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/fxmanifest.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "8381b6070ec8439ea30bccd63200f4738f6f75f60e24a7a34332186fce970a8d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "ba70b0ad734a754505ccb7e1de69462d9678af4ba4d30c7bfd789e2ad7cd7bd6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/app.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "2c58fa1f86151550034737304a2e20b550d686dd061efa6b1ebfe36eeaa4c28e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/HachiMaruPop-Regular.ttf",
+      "status": "OLD_ONLY",
+      "oldSha256": "a1460e0fb8608bca3cc74f91605ccdb84f62c9b9808061037b4f5ccaad489a17",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/HitoriGothic.ttf",
+      "status": "OLD_ONLY",
+      "oldSha256": "c06f6372d161ef9dd68c5b699813ec50be2693cac28706f73fe9b51fbe268a2d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/PopRumKiwi-Telop.ttf",
+      "status": "OLD_ONLY",
+      "oldSha256": "488a394fcf92aa4c088aab5ae1fda7192a28ba6acb85f477bbd2cec36476efb2",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/README.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "335bfb4688998e6430261e277d003f838c52957466968f175591c954dfb55800",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/galmojigothicfree.ttf",
+      "status": "OLD_ONLY",
+      "oldSha256": "a66d3a92f8af247f3a026dce51229aee4e97c6e16b7e66455100cfea2c06d20d",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/licenses/GalMojiGothic-LICENSE.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "f21fa1a2324dcd06e871ebd64a445a7368fd9f0d54b1f3e42d47ec57c9fa36f5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/licenses/HachiMaruPop-OFL.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "9a74df4d65b93ba55e02c5b4687e305312ac187d2cbad7cce787441535cfa0ed",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/fonts/licenses/PopRumKiwi-LICENSE.txt",
+      "status": "OLD_ONLY",
+      "oldSha256": "d4bddc8b3f1d9b14795556fb0e3851d23adedba4c967dfb3aeedcb2349614c6e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/index.html",
+      "status": "OLD_ONLY",
+      "oldSha256": "9004f68eb9707f2bdebbbc14f3cd83933c590105933b6eecbb78897df7d48350",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puribooth/ui/style.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "b17d40d517c3e51676a8acc1c18af58d31619ed76c288da59489754905fa24f6",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto.zip",
+      "status": "OLD_ONLY",
+      "oldSha256": "f35283f81067bbd879ff1d3213347a9dcf9b809ab2ccbe9857147abbe1ac0974",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/CHANGELOG.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "f2588cff1de3caa00f6b31e782933d32461e69d5dd9add8f606711e92c5d9ab1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/README.md",
+      "status": "DIFFERENT",
+      "oldSha256": "4517e81a1b645cf8d456ee6719b5e2c1542796fd3f95515883c3b274a2863850",
+      "newSha256": "751ee9d2a6d8f2f6ecabd421a69b8582a6978ef6d57a0df579f92286de8924b1",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/client/v11.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "40b543f3377783b9c10c29d843983d40c248c1037d57a26cd024716c327fe551",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/config.lua",
+      "status": "DIFFERENT",
+      "oldSha256": "8edc763402f5bd52b1202e70f5277726510e462565782a2a44ad6e7ff0d6a988",
+      "newSha256": "6a1be8f1e477d59bfcf24efd02681fa7b29ee2093b63922012760feb275365bc",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/fxmanifest.lua",
+      "status": "DIFFERENT",
+      "oldSha256": "19b744ab135111cc06f85932de800fa8c3a7d58e68b7151dbc454ae053f7eccb",
+      "newSha256": "437bf884fee73fb122694927f2039bb2590fb7a7791bd6ebf4af458866a48ac0",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "d0526547983ea0d01f9687e12b2ccaafc34c93fb5dad5b6d4d6aac3ce528c405",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-15d60b95.js",
+      "status": "NEW_ONLY",
+      "newSha256": "7f9c3ce9fe2a709703f1b5993d2917f994db4c830468dd7c75f9416f3168fba6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-9487c400.css",
+      "status": "NEW_ONLY",
+      "newSha256": "5e60b38de252c1f3f6a67050dce0400677e93fc3591b141e8199cb1233a46ce8",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-a08d5720.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "a08d572027892653d41b870ca54c65efe3d15b855e39a05d6785319f2f534c2f",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-d3e1db67.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "d623c190220b068523ac61607b3c186aa795e96001ece12c9e32e974cc1f4e61",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-aec5c866.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "aec5c8660a841c0c5e41066a8233a11159b3db8b985cd5cfecac7cef32d479e6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-f5a4430c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f5a4430cb8aff19b149b2abf715e7447da7d95e887109e5d07d7518eb5483ac2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-6462ab04.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6462ab04d4bbc729b4c263e0f6c1e109af400029d5a88d8451abd6539defaa6b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-a1d2eaff.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a1d2eaff0c0197356973cc4dfc3df1afdca596b0c0b048a4499fcd41fb824625",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-9ac4d563.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9ac4d5631abc99b2eb2b981075fc5317ad22e5759058cd00ff52239b795170ae",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-d6f792ea.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d6f792ea3a715559d1ad14b3b7df8b6d0e8436d0b81c584d8bf1d5c462018484",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a04f21bc.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a04f21bcd94469d4e150b8a465ff8030b3d92ae6f4a877b8b0c0c22ac13b4d92",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a97b37af.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a97b37afff697b6cdb7a1ed1eaef687407c3644a40e91420924d7b196c2f090d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-7fba727a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7fba727aa35024bc973b0d076de730025d765928d943362090b4ac4f782e2f16",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-b5117eba.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b5117eba69cdb2cbaf24ed3278ac0f952ef9db6501c47e6c3f43c722be4dd64e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-1298fd63.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1298fd637a4a12dc1a6dced9fc051a1c54d6460d290309095ef9a2aa6c2ac7f2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-88e2c6ac.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "88e2c6ac621639596b85781b5a78f77b8e796a19648fa9c024a90a5488cc4835",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-73524b05.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "73524b05ca6c5baa17650834d369083e03a0e53e1a9a4d1a9b2a61445f062908",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-dbd51dd7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dbd51dd72f1e5c2078b224367e93ec2a434a4dd1ff83c9716c01ca1032388562",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-926dba00.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "926dba008c88e6f14379eeeb96f9ae9e14cb11442107a1e1fb4a5bfe370ebe71",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-95cbf856.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95cbf856f9e4e55a19534b9c6970ae73712805ea39028b2a0b2e52c71565e5e0",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-10b444f6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "10b444f6da1d51f1dd4adc99398861d2a938d74bdfd9de0925b300326045593a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-39d713f1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "39d713f18133771275d3f815ad91e76529aeeebe8665bf1c0f2e79333f448ef6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-5f3b8284.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "5f3b8284a0f9a43f580cfad3cd2a26098ac5d162765c12e3dafd73d8a777f8b5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-f1423609.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f14236098a9c54dbcbf09ab3145cc23337ef6cbde82247eec9e70be4896ac91b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-d6e4beec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d6e4beec87d64b06b260196333049c79859a0bb5c9933ad320a1639402ddc48d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-ff098553.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ff0985531d56f2e14c6ffec66f50025b41745aa7b0a262dbcec85b82950d5b12",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-7359d009.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7359d0096359cb3faeb8a426cbe14fe42889b066540d8d84405bbdfb5425fdc8",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-99b9f623.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "99b9f623d5cd0853b6159f309f75227f88fb84ec31ecc84e637071628db1be54",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-17d2d5ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "17d2d5cecf14e8931fddf8d7dc8255ff3416f3bd4c3855a9111ff4a46dbbe482",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-95fdc4dc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95fdc4dcd26807b1e887f54a1411955c9bed37db085949ddd2e6f61adb5ef2ac",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-21ce3eef.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21ce3eefdfddc91f2abc041e83c6c993164cd82e64e707b2ba83d59ba1c74054",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-8bbfabca.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8bbfabca227551939d1dc4de9d8e91d03efd5df298ae784cc4d0df02f48839ed",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-32d5568e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "32d5568efb966f6f702d78c32a0035f6ddd5de99d4f576718f669117e4d20cf6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-98c2fc57.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "98c2fc570a7837dab4e82e096301420be57f41cd0570103d746847f6c1b02d55",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-0b26d16f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "0b26d16f9e03ca96a0189e8d47d94ff5439dcc76f177a66abd58eb8bb8bea754",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-632eb41e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "632eb41e3ccaf622c1062564d9301656f66f11f1a656dde2f8916586685ffb2c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-b40734aa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b40734aa826eefdb7abb25010bfda31465a344300ca7d2a99c8bf8c678719761",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-db9f3d27.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "db9f3d276e9937fe371e87b7b9ae08b42697937f9006a79939a6f8385bc96245",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-427f25fd.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "427f25fda96bddfbc72586cc3d2c2138db92f98f5d420e6b1245f9330d8ecfaf",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-606f804b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "606f804b39e6dd2df87e54cfb123332a5ef731b945e6653e2845c52ae10ff825",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-bfec3995.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "bfec39956cea557af413f3081c828dad53290dd148b6a6549c8a4e83f8387b3f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-fd7d92ec.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fd7d92eca33e1c5781d5904e958f1dcd24b6629b17dd98d4ec9de04e5fa6964e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-743bd2e2.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "743bd2e2bf636e562d0bb57a85b856502b8dbcadbcd73dc26576c93120c54334",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-ebce7f7c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ebce7f7cc03ebb974c245d7c1fd51218f9c06f22cb5bd12d2c860a6f33d784bf",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-02cd1db7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "02cd1db7ea36e38711708bf778fb8030ccd515fba77d8f4608468865df17b69c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-79b08398.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "79b0839818b19d27dc91f81b0b036df3d6825f30a55cc53622023e33bc78dfc0",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-323db774.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "323db7746044cb1342838b59d0987719ed59cfe290ca1f9a952bb3439c5a4174",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-dbcfe584.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dbcfe58459ed01254e713d1ff55435bae16e86ebd43e0ede656b6c46c1e96181",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-95d1ee0f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95d1ee0f9cf58b325c9f54c3cb2c2ce15f4af25af982d2c650a4b6a45aac6f99",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-9dd548a6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9dd548a66ef07c727ef1296ff62ff7c145e518de344b014ffb8da3042daa1cb7",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-5d43404d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "5d43404d72a7beaeafa37f47d216e951d5083286c0b69f1c9390186c8088c2ff",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-7baa335a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7baa335a009cd25830974a02308d468173683e776dc2d9f90c491cb95fc175f3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-6d9feee0.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6d9feee0f1f2e5483142f8eb8a7b3aabc7580f478c4d5e3488072bd2b4bdc032",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-d251516d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d251516d485f3052b6f7e47609edabb5b1b2445493609f2d12e2e07707a59fb3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-9368bb50.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9368bb50bcfa6e65f34de15fe17ac570bbefa64c732a53f49839ec1b80e2a0f6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-cb334098.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cb334098424fb196ddc47221a1fa8eb170a811004671d9c23ee250981bffe96a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-1e01dbdb.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1e01dbdb0fab9342f0701dab06720a274081dc93a9c19d5f823c4780188a82ed",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-e67d5615.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e67d56156fdf4ecade4268857c05d257972a98d20190f13103d6916f55edc2e5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-badd7373.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "badd73730196245125270f93f0e454e3c1523719507d58f939c81c06d520cb6a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-d141b4b1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d141b4b1fec3052037a311066b01b927aaa199609a26e81f309b0f1f5d2a5e3d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-320f97aa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "320f97aaa2afb3b7a7fad934a65800b6b56e424be9fe7da071255f5247e4747a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-e2f6f059.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e2f6f059d1429f677f4cf3f986ffdc00f2e7d25c99ec2c22a1567fcfbd4f400a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-7d18d31e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "7d18d31ee7c60da6f561add7934a46fe8a0017b58bde1a854ca03413e3bd9f68",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-8e6ef251.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e6ef2510af481ced0b3927a64d412b56c44c9bb2ccab3460a34211218590b21",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-18f5523f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "18f5523f026706f5a1e355814eed6fc6f67a9ae3e1eedd9fc686d58d898900a0",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-e3d3cee9.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e3d3cee9926402dfc94251950c118595735759598de97125fee3175f4f63fab0",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-1f265ad8.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1f265ad8321c7db1604336ca31aa0c93a3a59b93191610d29827e55daa849b7c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-db47a6ae.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "db47a6ae558fd2b83cf15fdb3c252a74eeff90d93790697fa2213b2b18a21214",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-2d44f543.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2d44f5435504cb83e7855428f288a074a07b238f90f53d368e3ee4353b6503a7",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-fe17fc1c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "fe17fc1c766e320777e08ca5bf62e0478cebb07a5a81a3862b3f5b82b857e2c3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-2075cd83.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2075cd8319369c6a6f449532b13b7140ae568a43f387db6b60ead3057d643ed6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-9248255d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9248255d326457b52f650c6ca9f7ce1bac4b2c94378838bec14bad7379223070",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-0c525a88.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "0c525a8832f73c4a7635ef1b6fb10e210087539dff2c98f8dfb17bfa8f8b603f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-557287e7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "557287e7a1d437210e8b343274ec5354480df07f46fb5e3aada7765591125eec",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-39c2fb11.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "39c2fb1107056b2d9604a157ede8c165a5bd1396bd7da0d6b28e54f360204bb1",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-b498d01d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b498d01da7d14e647817bb9a5f4c9e2465bc31c8235a2471698589f9753eae6e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-0775a404.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "0775a40451b2035b0cb6ba8efed9681a27e7c405faf931f393473c4cab5b3af2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-3f47df05.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "3f47df055cf2127aa4916d95dc58bcebab324e002de3eb62ffda6e570672a6f9",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-722d7dfb.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "722d7dfb48821a551620aec07b68b16f2a2d749b5b15e8ddba3362ef1b6a7d1e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-a6c999d6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a6c999d61f62db6cc0e26ffeb392303638724310003c80bd95eb544b5ce3e5fb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-279e18e4.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "279e18e4efa5cf19fc3d43202bad3f8379353640d03413b44f2a349957744d05",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-66651dec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "66651decf2405157e6bd979f97afe62b0c688b1959e0e9c2e47f8deb4038450b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-11440322.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "11440322893cffa64e74228f2da1b41e3cd0ad697b960b1a7c46989f0fe33b75",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-5bd9f43a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "5bd9f43a9f057440b99401b34f6a32dd40b05042de81f0475972cbac08eaa7ca",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-6be78ead.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6be78eadb8f962dd4471a324f086f4d0a5ed9f4242173f9d1623668c33abdb1a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-f6aa2541.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f6aa2541191fe10ca387f0e8c231fb2085a7f7deeed5149df13c4dfaeeb6c4dc",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-50f77df7.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "50f77df79f066370252e3213753aa2b74c90b2f02f315ed814bfba92c7e31b70",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-85f6b5ad.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "85f6b5ad958b77679a72547f67be24029e87451027d14214cf5d8ce32bfaba55",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-21b8a455.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21b8a455883a0fb8f48654431412c73285a993bd1dd5104d4d0c485d14e10a1d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-fe696f20.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "fe696f20cfb394c20676e3956e299083c8ebba148069427a90e13ec22841e3b4",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-57ab1369.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "57ab136929c56e8ebd70d7573946da7a6bef22c316d633242d14da6104c56e5c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-af4955dc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "af4955dc940df7e04fb8459a2dcd3c57b2c5da5ba75b1d3480cb384f4d2478b2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-60bb2ca9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "60bb2ca956eddcf3c3fe008ce6427107e5c19c1e4e2858d4b8254803c338f03a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-72478cd1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "72478cd1f598026d2ddaabc103f6341118e4655bc9c435347d771f4eb3353c4e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-cf5b1516.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cf5b15165ec60b5e11e909e68399589dd72a50769952444a1f7d9f6437fd4b7e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-dd559ed3.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dd559ed35035bcef3666155a0639059f882a8d2ad5453c1c1c202bea1f7f3163",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-31869428.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "318694280e1ec60a90cf62ca26e7931689b091228f9a03e7262318d8ba005947",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-62c04c2f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "62c04c2f940a3e8298dae2410dfcfa1b7d2b8271b15543d6b1689a77d0fe6faa",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-3c1655d1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3c1655d15255b7144cbfa985df67890fb12de63ba1981877170c79a3a5cf8f31",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-c5d7aac5.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c5d7aac54715740d2ae8945e334f5aea6d1e4dd17c9a123ad6e87fea323fa381",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-23291592.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "23291592beecd1144760d63b74e2146ddce1f8d8abb88c1135e5e0b3dddb23eb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-4fa0aa73.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "4fa0aa7324992bcd43988aa43f9c5f52e4687580be6790968c6249f4bf039368",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-595e793d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "595e793d97cf1c09eb02ff97ff2a111f7fc9214abf216c9a5e9a5a9526e8f1c6",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-79b275d2.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "79b275d2769dcda0843ec789009eef9e099f6dc4a49ec9af5dd86b0027a1e918",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-2968bdda.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "2968bdda601915a5553e47e8db2ece6539349da8affe3bcb19d56b33f90f1f6c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-e01bf978.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e01bf978dcad1afae0c3b0a5df0773b100622b4be8b94bf42a4b069ffddebcca",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-daf09bb6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "daf09bb6ee2218be37942ef729e018e5b602b84ab0c57028ee40c7390be42836",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-e826e6a6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e826e6a61729ecf8232b1cba8af71932bf3b068fba6cbae3463d9ef811390890",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-c407ab34.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c407ab34b72d1507f49bdf493b3b60dd5a56fd0089c95ac11f45dd706f82d043",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-fbaf2be9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fbaf2be94324fae58fe2f3ad94c2601689934c68fe6bf11df43c276f270b3733",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-870d8110.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "870d8110ba7d58d77a4420f7f58db8ce63ac9c6cf77d9f2146e6367f2c467005",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-9c63440c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9c63440cf806b13a7bf085e92564c48673783f8401355f54c9b703e504cf08ee",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-001367ff.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "001367fff3c5950248a37a7012d1f0e0e680862413a2110fd750ea2b5f33a816",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-48026f85.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "48026f859433967b300a9c5e34bf5050c953ae43b91a8a6be4633b2bd7997d9a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-97715a9d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "97715a9d9bb534555a3026d6d6c34cdf0e142e6e0292609be350bb2d00348396",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-fb73b052.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fb73b05246a893d0e22aa6fc5bae2885774b77c93e4622c90094797d9172aae1",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-3efae0d6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3efae0d61562c37c883ed9b733a26cc74add3b987516ee9b1a0d79be671eb431",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-f033b368.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f033b368e1734f93b8c611ba73db49059cdb9d0dc577fdc87cd5b2e29a70982b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-62c5633c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "62c5633cbf43e03b2060c518d78e1c999246064efbabe6e36892351ab16bbcdf",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-8e59608b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e59608bbe421825140cfff5b964de5c32ce6fd95152d46d25c9951c4cf39973",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-8f0a10ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8f0a10ce44882e7e7dd025b60f4df302201614fe7c5c6480e78c4114c6578746",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-f4c8e1fc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f4c8e1fcd9e94e43caa7e9f10c90c79090650e193c77adca421590567431a03d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-1fc735fd.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1fc735fdd23c3f5505086de7926561abd5a6122fc6e1f55d3191175797e1bd50",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-e3fee0b4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e3fee0b47b77247983a805c62e3ad75b42c79793ad12a5236c436ee8a203bba2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-1278c302.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1278c3028d12940215412262fa9b85e8c23c1a18bfc4f08bebd89f6cb055fdee",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-d72ba932.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d72ba9323bf777e32385428b40bf99d42d6e6ef9a24015acad6ba3241b94dfaf",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-458baf1e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "458baf1e43300eb3386689d981d7ba1f95b2bb78b5ffd87a119a4d2fd5b603ec",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-47e3d41d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "47e3d41d75273b6eb86dc038e2968b9cc6af238d641211d793db67c283157d67",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-406f44f3.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "406f44f3455226b648390fbc64eb18f51e364f7d961ae02a6fdb4f3c46c6f19d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-6f808111.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6f8081112d92c1d90b1da165966bfd3cf7059d17cc8a87e51bc4864bc0e061e3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-6096cc05.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6096cc0510ea4595fca16e5ba20a8d70d516849b6f3fde9671a5b1bf6fa42104",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-ca01ca82.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ca01ca829f9f4dcbf43e7cf22ede00e413c1c4f6e250cfa3d405fc1d3c05d3b2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-5867fcf1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "5867fcf1f641a7d7a4566b2aa5eea4cb3f7a58a0d5841ef12084d0ac086c821e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-da4663e1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "da4663e10597423fb113ad6aaf248de21b7b5773b53801ad7ef4eb611a5c2cda",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-148b06cb.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "148b06cbed5c1ef683d25e1926534c59c772a7bcbf15eb83ff3298d27023e1de",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-a49a8f79.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a49a8f79adeff3badda2baf3bbc469a919707c6c1381e061c55a44938af9f322",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-664b4c95.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "664b4c95a9c3508a8a6b340b4556dba5ed5f78bf335e3a7ef0b376a9ff4afba5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-e642125a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e642125ab622e35d5f74c0bd5fa540b2da83059befecb95c51bfa5e3af6fe511",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-93d2ec8a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "93d2ec8ab71070672131dc42df0e5924fab87872845d41fa6a36cb6154e33523",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-e2f2418f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e2f2418f3f4d728f11590a05604a3f4e89b83c016b6ac3a9fa37504ac72492fa",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-b6b9e0be.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b6b9e0be83feb5c2845a3246ebc12518a8ae8e0793949f6622acb3cf3e7b78bb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-be61f839.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "be61f839656c6ede10528b4e450c3e072d4cf61cc92accfa7035abf4840d2632",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-0fc5f6ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "0fc5f6ce4929fb2d84167180f11697c3391fcb74a851af3ae9bea608444d0ff5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-795a5964.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "795a5964847ff66292fa923f4b0c9754e2cdd342076309593b579d1a50854984",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-143fe9ec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "143fe9ec01e21ddc2035faa1f826ec4db2bd2bb98a79ab288a9c4f3af1d3e738",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-f429755b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f429755bbbf2c8bf11c59d38dc42cbd696965f8b741be503247a746090c02ac5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-d50a9b2f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d50a9b2f9a1161a3789f62f319568000225065f2c46d0b8447177330b630d5a7",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-f684a7f5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f684a7f550d28c9d771102fcd83d744bb202f5f13f13372e9e31b0b9d918339c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-c3c63548.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c3c635481979b2722927dbbc51152ace96d70373f389b23e8844331a489dbc30",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-cd032e36.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cd032e36a737c83249ac5c8865608cdfa84599b33ad8c098771f806af1b6ac56",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-50d16c4e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "50d16c4e7f2f6b5aaf349b7b68f07f7fa5ceb0e62328b873215bfee7dfc66af5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-7595025e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7595025e03aea673a58ded2ea45e0b49d3e2725518e39cf1cc5c9590f7197c19",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-72ea5e3e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "72ea5e3e76f224fcff8af18598ae99dc42d127338c472b0d553bf58080090714",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-e04b182e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e04b182eb5876a4d237e2dd1337f3c084275053cee40b6037033ae538dcfd1cc",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-54e5b216.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "54e5b2168184b17ff7c8a4403ddc9a8bc054dff8204a1aa50c8e86f8f53cb0bb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-8d4dea65.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8d4dea659855cd47ae2ccf0cda579f224424a97b3b382afbfd345a906ded003a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-85f9a41e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "85f9a41ed82bb66f051c5f16748f74aae737e29c85ab445654f5d72853fab8d1",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-cdbcff46.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cdbcff467858830d8839d17482c40cb97d9f6fd7a717d6e26e19a8226baa58f3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-cf18f43e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "cf18f43ebfff2767602c47d7349e4664f01c3909a37976ade92e4a879405ebbc",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-e75e179c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e75e179ccb61e11e3d2c5a9507a89f85865d12a76ba58faedc0a5d0ec10992eb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-515df2a1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "515df2a1a9e8a6fba3118618d32929d57ae873bbbb890e493e755329f59c08f0",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-95f7182b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "95f7182b4ce608238140213fb50865140214ca10aa72cc0a0d661c496e8ecffb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-422fb0bc.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "422fb0bc26ae02c922246a2e589744b8bd4a0cc0c1ea93c71d0292478ef30123",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-d6e47f1e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d6e47f1edafd240d3e0b4307c3c6ee1b3a2dbfae5001f5fdb06c50d677225d9b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-64022299.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "640222999d77a37818d12dae3c0f2f6f9554bd8bb7c2b2375f36fac2121ec750",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-6b99d72f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6b99d72f619be89b4bfbc575a63d8332026be3a2e25f756d9878741d81df4119",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-886ca7c3.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "886ca7c3967b0db8ae8c5489d23c5c1074903f9c02d40e85f000a0ddb8d86144",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-9fa3e08f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9fa3e08fcd0a0149a5a95dbcbdf63d5d48f2ddab17e46cfc951c05567ecaab57",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-a8b431e0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a8b431e0a317843dd23f2467890284258dfe434da455be5acaafa44691b5ae51",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-d48db7fa.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d48db7fa11685ed761f79f4f4b01e385a67ee53012d926662cb859ebcd405f4f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-75211119.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "75211119b00b26cbedee5d79acf74e3ca4b30bad755f182405165527ac1e854a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-7fa2d4a8.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7fa2d4a8102642b7f0108ebcac8e0a34d4fbdf8ff44569a2637c30c59494230b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-ad7a3b91.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ad7a3b91918f1e53645385d9570f4d6953668a0b0f5a383921e8d11a50461ec5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-f66536e1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f66536e112fe9236adad9d974648f744ecd3844b807870fafab32de8c9dcda13",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-2c8924ad.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2c8924ade65c371128f0ac7e0c8a1a2b205439daae301e06a7079d8e561be86e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-9f590699.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9f590699188941455769dd360a71706fa80691b64ed95dfcb11d2e6a4c78ae7b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-54b6cfa1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "54b6cfa1f7939b547c802593408758f9604292d78c0989cb51bd88b48a96a516",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-c74936f6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c74936f6321f7dda92e6fe17e88c637fd0d9c0ca00ad267f22281a47f9d34e65",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-6fc50c84.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "6fc50c849095a9414ced1bcfe5eda800c24f791a81a90ddd4af9f6135e9ef928",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-f0dbe2a1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f0dbe2a19ff083ff5cece85cbfe2fcca5b9b97480710b815141f5b9d011358f4",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-21bf5a8d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21bf5a8d1a2329de36efcfc2a6937565300e879709ed9e9fe5427e7a81950856",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-b6b2088f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b6b2088fc03218e95cb58cfcc8c3895ceaec339dc5261097f3aedcc8820ecaf4",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-791b5bd2.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "791b5bd2089f0278d69e3c226ed8c35f7cba019eb1348556744d4097cc0f0929",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-bd96c084.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "bd96c0848747a9dc2b99a8de225e8c5559d3247544ad14bec88858a5ab27099f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-a71163b4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a71163b446a63559cb65f615cc57d9cf767a90798d3a68b5734a86f55b6c63eb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-f6c732fa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f6c732fadd93333629227efcf287458e8e172d2944ed08d3717b1f576fa4b95a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-2058a87e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2058a87e621e703c5b2b4dffcca9d334b683e4427ce9a094baedc36c3323abdd",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-7d1924fc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "7d1924fcc732506074425179e4594a2431af0f2a91e7a77f1bcd0316dad63bc9",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-6ad4aadc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6ad4aadc49ea7e4e2ff0f9cde76b4c799643d551fe1bc5f3f262181ba13e108d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-dc6236e1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "dc6236e1f92c554f14cbf38b55086faf1e4c2e0f282d595ccbcc5343db302e29",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-02dacf9e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "02dacf9e02aefa927e938422caba8c2d788c0338d16f7617ae36bc5a430a59dd",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-ba3a234a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ba3a234a1a3900d439642f139b46ad35c8ba429b2039490d4151065373475bf1",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-251dc77d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "251dc77d988f8be3ce4f81f23e43bdf67c4a5f60d4280c40ba9e54da24c02a16",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-7ed53b32.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7ed53b32ec8144f66b68c080081d74385af62973e1b49e6d0cc99cad9ed163a8",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-7748ec1f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7748ec1f8fdfe85d24f9bcb0ba99880cc90f780f4037d99ef25d2fca6d5d4be9",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-8af7808f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8af7808fca6a861eff6993e5d7c0a32eabe79a6b49a05cbc2c01d870ab1a2d32",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-388fd399.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "388fd399b040e6fc08798b30d139fda8f067a835dc9ce3ead4336a1e80e88651",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-99d2482f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "99d2482f179c47abb843642cda54e28efc794b60e2e8d252d5d2d509566362a5",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-2c8ccc8f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2c8ccc8f8ec19d6f62140adc44effdc9751b87ece398841fcf52104d48c2192c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-9895cac5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9895cac582f8ea9cd843bfff1dd790bad0ab1ab33f98b0adb68a16fb00467356",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-38fb699c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "38fb699c592ef534e4f7c2c2a3e8bccc4e2220675d69d088de2be1f44c770177",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-cd774aed.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "cd774aed5c133160cc3deccab46c92517b3f7c78e671e650bc0a0ebe5f1e19dc",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-2ca11a8b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "2ca11a8bac8f62e1226b382a82a3d2c6bc56cb7c3715363055283d004e4aaf52",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-f122b3ba.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f122b3bac70324f644622b3edf2acef1116e90329f9787116637f7e9b4560af3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-45ef7eca.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "45ef7ecad29b83299a27577073e1e796ed5eb6dad9400273fc4aef68d6346f2d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-7b000c4b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7b000c4b0dffe4fe2bfe614e3de942274e58983d831ebce8da59575029be5a68",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-3f83d109.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3f83d1093909cc63cb8142a0274fdefbefcd7603499ff1e16c2d9e97b6d5c1f1",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-b0d5d5df.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b0d5d5dfe39c4c3697eecb1b63742efb544c080892ca0ff3c95f2ded4061b625",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-33802fb0.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "33802fb0e7f49fc295a87aa78cfcfadfdfc4c0dc6785fb028eb6a238c6392c5d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-c9890ad7.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c9890ad71b2fc28d8b060dbc7f4a1969b87169c97e9a1dc88e523b4dd021cc1f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-d0e38c96.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d0e38c963b9da89142f63fc190cc8faadde01c37588d55415f595f6adb24e25a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-dd969e18.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "dd969e182cee53d4106f866853e79428aa2851a81673b991c4066ae0abdee5c4",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-73d1655d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "73d1655d94f38aedf312cb869e6f3526baefc0548f7c1afa8a3858d006f4d362",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-8fcc3fe4.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8fcc3fe404531f6370fa5048829a21514ed43a8bd3314861e89b8e9d2eb9d329",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-2531a66f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2531a66f3e6be801efc5214ecd8fcc4912562c016187a98c2e4d2ccfa121a3ee",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-b078ca5d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b078ca5db53cd2243650592fa778b8fa6d75f9345cff8025e757d8d68c73380e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-1ccd1810.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1ccd18106cf98026f246c6e7076f11855183b4521124e8bc284e2d7ca81a483c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-2f72a9f9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2f72a9f96d96c90f1dba918c9dc25723add4357a5f793c1ec08239f886bd1b55",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-37118fd3.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "37118fd332a1acf47bba4ac1e760a355ef76571a0b608ccd2fb7e5d5c9dc88ba",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-87cf2297.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "87cf2297fbeea062fbc33259edcd9cd0b4fed936f0152e628f7677b5037bad2f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-3829d1c9.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3829d1c976a728cfcb3b0f6234c069fcf740962c51119b46e30b73bd622a3904",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-8e65f43d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e65f43d3479b4281599867b74298b05cb542c8cf820297c6f1467c6832155ce",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-ae357cdb.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ae357cdbbf6a8984137e12fba4c876e5e4a278b8db2f9cc6a73b11da5cd7a33a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-f70fc198.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f70fc1980369d92bef34f2d05f0962b1f1083b1e50559f31fe6949990190ee00",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-681af2de.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "681af2de287fc0f082da20427893d9b5ffb67fc22899f16d3398d667107a7e8c",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-dd87164f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dd87164f51dd6124cd09807feca6e20987a8e3074f1e4fdebae9cf14479c705d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-c7bf33f5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c7bf33f5531e2ee129b17527ab308c1561597558bcafea14d545ecf6a818bfb2",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-d20f63d0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d20f63d0252878eb16e2eff3a93c7e2600edfbfd9b2cbc33ba024698898ce3cb",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-09987d06.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "09987d063923817df7dfb50bad18ed0bb7b5241cc626f25db8e8fd458e2bfc11",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-caf53138.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "caf53138dfcb59ff5a6671d550c0eb34410bf8a5f47842d85c59e516fcfafe00",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-ab9cb875.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ab9cb8754acc5493f329590287292fc1f438f12e2660490bc22b150abb435f1e",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-c5e19ef4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c5e19ef46101f95dc82ddf55aff3733f84d8ea74c8823796605cacbecf2f1e64",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-79e23f2a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "79e23f2a382d94b058db06cd226b5b308e7345fa9aa4f5320ae7f1d67b7e3a05",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-8abaa61b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8abaa61b3f01d0b5a2de1b03f4fb9220e46ca20803d5d39aa316f2e23f625204",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-1b06d97d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1b06d97d38b3384eda2ecb9967ddad627b9d730a9a4ee2ea9e883bd267ff5c67",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-4eb2e9a8.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "4eb2e9a87222daede1febc9cf797aa6d72f859af5e08216e78adbe97df9b986b",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-c16f7c43.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c16f7c43aabc1bf1250f7a5461947a63d6a47eb9aede66ec61ccff9d06ff591f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-d847084a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d847084a206258640e4b0101225c7e35111d5ef7e03e6232899db56455c4e31d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1688f144.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1688f14412dd12f79daffbb8bd9defe98f555aa5799184b8ddd0ae4583a2851f",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1c3207e9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1c3207e9ee04cc7a359accf3173ace4b669c00b070397b9f014fa3f0a227af8a",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-1734e132.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1734e1323f79ee05218ad46484c83d6f714a591e61e0ec85e353cb30bd28e3e3",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-eeea363a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "eeea363aad66ea67c401afdc05fa77c0b2faaa331c7c957d6bd3dc48c8a7e888",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-125b4bd0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "125b4bd0494daaf318fec0a5e10e3d0ac93801efaaad96a390adb0d931a6305d",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-ae4a39a6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ae4a39a611eb40caaa5d166a120acc0f687801215562b7fde311df3e53864add",
+      "backupMatchesOld": false
+    },
+    {
+      "path": "puriphoto/ui/dist/index.html",
+      "status": "DIFFERENT",
+      "oldSha256": "3afbd899d019b1c376476c088c788b2de19e8f7348822607d51a2e8c410c5337",
+      "newSha256": "385ed3829d6965d88b564765d09a7631cfdb6059828adf08bc84ffc36ae8a879",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/package-lock.json",
+      "status": "DIFFERENT",
+      "oldSha256": "df78b231e15ab9a46c2294e2acaa47a8678f7905adb53a7f790f0d47c2ce2ae6",
+      "newSha256": "f361362d63852cc9838384a6c1e8290c23648d00243d07e36d3a9e4ecf0b45c5",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/package.json",
+      "status": "DIFFERENT",
+      "oldSha256": "fa9caf3324d97c48d7f6fb5fe27e46f30b6c387c447ebda8d51ff4be0310a282",
+      "newSha256": "327094fd906dfe76d3da776b57d42c51807ef3c0aff2bad152281815330e732b",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/src/App.css",
+      "status": "DIFFERENT",
+      "oldSha256": "d3622f8b50129389532ef1dd600d014aa3a17baacb8a28e23c426e675e646bc7",
+      "newSha256": "d74373493d7e8bacc0b4c49c1920a9dc4ea5592267c51a84d20533acba963a6e",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "puriphoto/ui/src/App.tsx",
+      "status": "DIFFERENT",
+      "oldSha256": "8451d36b2ca8fd533e7af4102e7e6e9f0b3cdcfccaf702c22903a28ac79c0e1f",
+      "newSha256": "cda8e926638779c8e9e227a2fbf3d2dbb2105330d5be19ffc2ece2d58a6976c9",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "wave-update.cmd",
+      "status": "OLD_ONLY",
+      "oldSha256": "ddd71732762f5b5f7625d48714a8722e557ef2988b4c07e6793b4894e18fe12a",
+      "backupMatchesOld": true
+    },
+    {
+      "path": "wave-update.ps1",
+      "status": "OLD_ONLY",
+      "oldSha256": "1da072037a74fc1a77001e097e3db8bf5eefaefbaa0c9ef5cecb03fccb3943f6",
+      "backupMatchesOld": true
+    }
+  ],
+  "imports": {
+    "base": {
+      "root": "D:\\FiveM_Dev\\application\\.flecity-dev\\candidates\\base\\63fbb4c8-91af-4db2-b4df-f1a11b6ced47\\flecity_base",
+      "files": 23,
+      "hashes": {
+        "ACCESS.md": "964831647c80b5e6a7d144803caa5b7a7f8fe0141b5e9431c2b4caa7bb978573",
+        "AGENTS.md": "8c49fafc32db96501de4ebe92637ff419968805dd96df1a399957c667cecf873",
+        "CI_REVIEW_2026-10-30.md": "9f7e25690e97c0cc6d584f8463d26cd6eca64d3583ae98d4b2971fe1ea5922e4",
+        "client/main.lua": "035411aba16e06f7c4a70c2f42f10452b4cd9c9007f64a9b1e8a0891d603b680",
+        "CODEX_NEXT_TASK.md": "8534551db9b488753154d0ae544e8141298eaff41fe49b71ff511feca3b73384",
+        "config.lua": "0c2f70b000668befdde916f68cd39204dd40c86e87e5d6a2e6902726e72460d5",
+        "fxmanifest.lua": "459c1960b242f48cee15dbfe1f34b33168671cc22f84c93f5759c44bd250c29d",
+        "HYBRID_ROADMAP_JA.md": "67b37a656d3e0df79fe04a168c687aec75c880e45d765527127ce0abc747c676",
+        "INSTALL.md": "033c5cec86df6ddd9e3f270cce5b5dc97b45755c63bf6d551fe0933f5df335ef",
+        "OPERATOR_GUIDE.md": "610e385986c9a7d55d2d4681ecf65e4930d56c8d6cdcd4ce230227d39c2d2dbd",
+        "README.md": "13de07637cf86f9156e51157350883d0b6e7f76c794a9ee5c8baa2a963e851a7",
+        "server/custom_fields.lua": "f7cc83cebed4c84a4b69c5b7e2721beffc0f8eda831618fec9381bdb4762d383",
+        "server/database.lua": "036826abf5cdc9e2563e9d000318c845ed87a2a31d5a8fe8ff7399ad73588ed1",
+        "server/framework.lua": "8da42e929f170a106739798c5cfdbd23a819d40cb3bc19be8bb1d5a294be6297",
+        "server/main.lua": "dfd5d642e37d5ef2feb36924f16f5b8f28f8c24c475ad7ceb93f7ff91658e517",
+        "sql/schema.sql": "391636657895c215b63025ea1d91a5c9789f6e7967dca3d620b3f4ee9e726582",
+        "TESTING.md": "c55ca2093a3529903cf4950aa3ae181106b43c440c6f6bdd8146a25d15d71318",
+        "tests/custom-fields.lua": "ffdd5f095feab4e2bf910245d845824e4181cc2b7118718c57d04c1a494686d2",
+        "tests/source-regression.mjs": "e6cb5153f0dd20822864ba9358676b34ac6e1322ee2c3cfa83816b59208218e0",
+        "web/app.css": "742b47879b6b62b664ad1fa933c5f2d9f14e8d5ace41fe1e5e170b27a7d41611",
+        "web/app.js": "d9f027c3d1de934425addce8f567e82643b81405edd132a3720db51b584070ac",
+        "web/icon.webp": "828ccab46ae1d20ff4144986f0985eca1fc1eea0a055a72acd46ef655d615fd6",
+        "web/index.html": "a4c7d3ca9771b416eb9a1d893665a849112336b36e8ad87cf25cf8df099decc8"
+      },
+      "skipped": [],
+      "backupMatches": true
+    },
+    "link": {
+      "root": "D:\\FiveM_Dev\\application\\.flecity-dev\\sources\\link\\308741e503a130a570ffaf74ed176edcc2480fe1\\flecity_games",
+      "files": 61,
+      "hashes": {
+        "client/main.lua": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+        "config/shared.lua": "a7333f4da1b769540b9bcc4f91c35dd1305e3b3d9ee2c2d1e6be46a1313c7f7a",
+        "dev-auto-reload.enabled": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "dev-build.txt": "f3d6c830cf8acb15bcd4cefc3adfa386cb866f94a17b7607eb7848020b1d9248",
+        "dev-reload-v2.active": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "dev-reload.token": "d34afb3d8904f1022c558bb5218dcf53955f8f8a7231c17d90176de5e04b5853",
+        "dev-runtime.txt": "be6e212a00dc23a0d941fba0d1b03f534f97acadf5144d461cbe5a7dc2f4d6fa",
+        "fxmanifest.lua": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+        "INSTALL.md": "431293767114db669d233595c2c5810c1ab0b46ddac9d897d54a9edf947c35b0",
+        "README.md": "5d151d06b44741b8abe5a80379091e83e5e25fec6ad7c23fe44edd83a55c5b23",
+        "release_docs/INSTALL_JA.txt": "c6cff22bc9c3da5469423efdc6f14524952d7f00bc01ff56998a2bfa40d98e60",
+        "release_docs/OPERATOR_CHECKLIST_JA.txt": "3f8122fc2884bc43970ae9d6880e3877b7986cab373a665aa64a32beccb38530",
+        "release_docs/PARTY_INSTALL_JA.txt": "d194a42503c671f316fbfc77cb6e210b71152394c8bf74108ff560d8a4d94579",
+        "release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt": "6166f7387a5eec06292e39635c37575de00505fdd79ed598a3d22a00bf5176c2",
+        "release_docs/PARTY_QA_RESULT_JA.txt": "42a4146983f3b58fc45f75a97f0a4687f8732f050cc41b9fcd653e677333f317",
+        "release_docs/PARTY_SUBMISSION_MESSAGE_JA.txt": "c2c3ff9b1e220f0de56f17ec43805429513f52891a835322dde2b344eb5ddb4f",
+        "runtime-active.txt": "98b3d683c8db98416126e5fee90c52ac2d15761fb2dddfd940249b4b5f7fc3c5",
+        "server/bridge/framework.lua": "3d5005955cbdfaadf59b2c1e7fdd88921ac5287aacdf50caa38ece4cf1a6f64b",
+        "server/core/database.lua": "5d5637753e8c7356cf574c35102160959e33fc264bb6807a98fa460beb7a007a",
+        "server/core/dev_reload.lua": "742742e5210344f745b98ef38e52c06db825d30805e6ab734cd4c4dcd98f4645",
+        "server/core/party.lua": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43",
+        "server/core/party_fall.lua": "1ce8aa0e5eb709642e7ac5c099045fcdfc830155e44d41ef0cd67b97040908fc",
+        "server/core/party_plus.lua": "3c133407c154065d12384a63218c90222e442f50e7d7fec956c85cffdcb95d03",
+        "server/core/play.lua": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87",
+        "server/core/profile.lua": "97568808f6afc9660ffad6f69893b1742bc76a5013779bab993fd9125153a18a",
+        "server/core/rate_limit.lua": "8db7b4870c0da93c46d10a9cb602886b3f1e7ec4b589a4258daa8dceb5c08323",
+        "server/core/text.lua": "2a0140a14fed1b5bb764af4e75f01a780506d6af9cb5874497afdbf1c087c216",
+        "server/data/party_plus_prompts.lua": "65599dc26e93e0f65de3d7832e8d36e5905c8f70837b83d9b74ca5ba54561c1b",
+        "server/main.lua": "69108620a31868ece43855dfeaf759efd29ee90c53c1583c2080eeb5ba51b67d",
+        "shared/game_registry.lua": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41",
+        "sql/001_initial.sql": "0b82a6fc2c429586ce11aa2196e57394f0b79ec15bf37277ff41c85ab53f749c",
+        "TESTING.md": "0bc3a4b9ef6671fa8a51ac93b7e6d12eee583da898eceda53c8c11d39f5dbf33",
+        "tools/build_party_submission.py": "825bbabd075b5c11328f97bf58b88ba8abe19c980ce1c7c2241b7cf2080925dd",
+        "tools/build_submission.py": "163bd8e6fd9a19139501239e410d211b4bd274a85ff29348e4665966dd6dc37d",
+        "tools/static_check.py": "52ced4944296d9c98e0aa1b694d85b4c4621b493dd6b8f3875460b0f9be98049",
+        "web/party/app.js": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac",
+        "web/party/fall_battle.js": "095023df080d6865af52ec8cc54bf0c34e101637dc8d7e5065e4b169a4963bd4",
+        "web/party/icon.svg": "d4d9d2abb8892015e52942c26672b62ad050d80f39e601114de8b0ac80c98a0f",
+        "web/party/index.html": "5e94671c062749b41d38834b4381131d2de7e02acf2ad3ff0717a7de9edebc44",
+        "web/play/app.js": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+        "web/play/icon.svg": "15536271ac1580a24d9468b9b713809c1b757b3b2e035e9e32189e22e7160a20",
+        "web/play/icons/block.svg": "51031b9e2f0ca00420d9a1dc1973d9d29090194bbf80715566461581deb2119b",
+        "web/play/icons/color-match.svg": "6a42173c78fae88ccb2c4e49519557b0680f8e2c8953e71474349924eb53b5f1",
+        "web/play/icons/fall.svg": "e5802a3c0b1c4940048d50d1f8929c3ccf426fdf4a0a98f7932429361af19c4b",
+        "web/play/icons/memory.svg": "857d647e58aa619ec610557e3137c1aef61957d8ac558b0764de0c318b48c601",
+        "web/play/icons/merge.svg": "d2efab2e96b8e32d2c679a11d61eb7a62b865587cd85a367c9429d89f6150592",
+        "web/play/icons/mines.svg": "fca9e7c417d5d07a4406aed2b4e03921372c7ee3cf4d053137544af4bb4f47ae",
+        "web/play/icons/nonogram.svg": "b436bc3c2e905106f741a446e3e7ccf70d8f265257a881e3b6676cb0a9edd294",
+        "web/play/icons/number-rush.svg": "d8c7172d847f4a4d5269600ca973702cbb954358ac68c81c2ec37a709f18a376",
+        "web/play/icons/quick-tap.svg": "470500be7353c52b64db949352a21a887b7367f14a03e61506e0f6c0a3ebbf3f",
+        "web/play/icons/range-rush.svg": "461b1c4d644ada703c93aeec68ff77f58ba014d5a529343d4f3809126c296678",
+        "web/play/icons/simon.svg": "e66d58548ba694707a5c76a161739af6e3b485ac7f79c566f849d064428207ba",
+        "web/play/icons/slide.svg": "cdb6964727bfa7f6fec14819cfa6067ab597a214b9f82dc7c6fcc3ea9289a5a9",
+        "web/play/icons/sort.svg": "6398f3d52051fb49e52437a7ce0270c356a285260d5f9e16a426a72b730ac585",
+        "web/play/icons/stop.svg": "4dff192b27ae6fef0f5f2c7dafc64667150dc4a38e87144ed806b2a261045655",
+        "web/play/icons/tower.svg": "d9e85c035ac414fbb6c9f1b06888c152b86b33ad761a638acba9b63f9cf418a6",
+        "web/play/index.html": "389b12b119cac7316753a41a90d37c32d72cafe143f3435e1cc8da687fab28e5",
+        "web/shared/app.css": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+        "web/shared/bridge.js": "21ece0a3b0961a43d30a48a8afbdc3f39d05cbf6d28c6f96b7e30adcca67adce",
+        "web/shared/controls.js": "459e9c14c51a78b46f34a0783c19342a8e2f52638e9b284aa8d2b1aa57e451ab",
+        "web/shared/errors.js": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b"
+      },
+      "skipped": [],
+      "backupMatches": true
+    },
+    "wave": {
+      "root": "D:\\FiveM_Dev\\application\\.flecity-dev\\sources\\wave\\a9fc23b2425f6404fb559c9969e94f80995bd238\\wave",
+      "files": 12,
+      "hashes": {
+        ".wave-build.txt": "4eb6507da2480e9f2ba1990d663f7fbff48ba8d936b251dbff10d768305bfec5",
+        "client/main.lua": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+        "config/shared.lua": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+        "fxmanifest.lua": "db9bae0604a0c4e4ade6de198494d3f6e1964b4ea6d6b08b4225bbe2e7b579b6",
+        "server/main.lua": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+        "sql/wave.sql": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+        "web/app.css": "2f05b3694b58a0e7c314a1d944a124d899bcd29c46f1899cca79cf2606816c06",
+        "web/app.js": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+        "web/icon.svg": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+        "web/index.html": "618df9dd2cd1ca4c9ecc51f2a525598b61fcda2797b11227908111ddc4ab2361",
+        "web/score-tools.js": "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee",
+        "web/studio-extras.js": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b"
+      },
+      "skipped": [],
+      "backupMatches": true
+    },
+    "mining": {
+      "root": "D:\\FiveM_Dev\\application\\.flecity-dev\\sources\\mining\\d66c768c855b1dbb0ec5cbbfbe09235d861179dd\\flecity_mining",
+      "files": 10,
+      "hashes": {
+        "client/main.lua": "e4b65f17b9033085b51d67a2426f922758dfc85d83f4305be687519b03c9225d",
+        "config/economy.lua": "0b261e348f03003590e548ee3c669d90da7982ea29c8d7b30b2ae9b71196a408",
+        "config/gameplay.lua": "d80c33d7e4b6df4cd10e41f86e8b8f406886ba718cf1e43b3e6b124878f29157",
+        "config/locations.lua": "c1e774d4624ffee9b9aaff65c1eae0af8319fe2b8955d17f1fc218998e0d4bf5",
+        "fxmanifest.lua": "f2fb3e129a957ec4705624474867bf88951ce3f88d20b13b8a59858d1fdd1ece",
+        "OPERATIONS.md": "2d63260286f5e2fb354ecd3fb3a6fc3c36ee609db0dea44d22dc7f9bfb34e024",
+        "README.md": "daeedcfd0bcdcd476e1ab479c7c0c70d1220f930b792f8b0860278b8178c8e5b",
+        "server/main.lua": "d2a5f33be4a1f90a4d16020376f491fc9fa16729ab4c0fa45a65885d36194d14",
+        "server/selftest.lua": "8f558029737f2ea209612bd836da1ae50a8a5a02d6e94c4a1ec243a5e747eafe",
+        "TESTING.md": "6fcbb564a3d9a9c72a0e126cd1167c379c714ff4a7bdfb3fd76b20bca8a38124"
+      },
+      "skipped": [],
+      "backupMatches": true
+    }
+  },
+  "exclusions": {
+    "old": [
+      ".flecity-dev",
+      ".git",
+      "puriphoto/ui/node_modules",
+      "_lb-template/.git"
+    ],
+    "new": [
+      ".git"
+    ],
+    "backup": [
+      ".flecity-dev",
+      ".git",
+      "puriphoto/ui/node_modules",
+      "_lb-template/.git"
+    ]
+  }
+}

@@ -1785,6 +1785,7 @@ FlecityGamesControls.bindArrowKeys({
  onLeft:()=>moveFallHorizontal(-1),
  onRight:()=>moveFallHorizontal(1),
  onUp:rotateFall,
+ onSpace:()=>{stopFallSoftDrop();void dropFall(false);},
  onDownStart:startFallSoftDrop,
  onDownEnd:stopFallSoftDrop
 });

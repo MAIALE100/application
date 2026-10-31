@@ -178,6 +178,7 @@ function bind(){
      onLeft:()=>move(-1),
      onRight:()=>move(1),
      onUp:rotate,
+     onSpace:hardDrop,
      onDownStart:softDrop,
      onDownRepeat:softDrop
    });

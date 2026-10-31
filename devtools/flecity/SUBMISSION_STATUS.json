@@ -9,7 +9,7 @@
   "apps": {
     "loop": {
       "track": "submission",
-      "auditedSourceHash": "b10abafbd1f49418da9651fa903870f175c833ab34bf11ee4ba8a8c4da49fdea",
+      "auditedSourceHash": "ce37196b3450b14fe5343b7ee3e0d653740a30d766a1c11569624c1ed98bd09b",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -60,7 +60,7 @@
     },
     "link": {
       "track": "submission",
-      "auditedSourceHash": "b10abafbd1f49418da9651fa903870f175c833ab34bf11ee4ba8a8c4da49fdea",
+      "auditedSourceHash": "ce37196b3450b14fe5343b7ee3e0d653740a30d766a1c11569624c1ed98bd09b",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -84,7 +84,8 @@
         "日本語UIと提出資料",
         "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）",
         "テスター報告のP0/P1をreports/tester-feedback-20261101/TRIAGE_JA.mdで追跡",
-        "6人実機と端末キャッシュ差分の再確認、設置済みコードハッシュ照合"
+        "6人実機と端末キャッシュ差分の再確認、設置済みコードハッシュ照合",
+        "テトリスSpace仕様の実端末・キャッシュ差分を確認"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",

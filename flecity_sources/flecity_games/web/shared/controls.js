@@ -1,7 +1,7 @@
 // Shared keyboard navigation for LOOP and LINK. Game logic stays in each app.
 (()=>{
   'use strict';
-  function bindArrowKeys({isActive,onLeft,onRight,onUp,onDownStart,onDownRepeat,onDownEnd}){
+  function bindArrowKeys({isActive,onLeft,onRight,onUp,onDownStart,onDownRepeat,onDownEnd,onSpace}){
     let downHeld=false;
     const allowed=e=>{
       const t=e.target;
@@ -15,12 +15,13 @@
       if(typeof onDownEnd==='function')onDownEnd();
     };
     const onKeyDown=e=>{
-      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))return;
       if(!allowed(e))return;
       e.preventDefault();
       if(e.key==='ArrowLeft'&&onLeft)onLeft();
       else if(e.key==='ArrowRight'&&onRight)onRight();
       else if(e.key==='ArrowUp'&&!e.repeat&&onUp)onUp();
+      else if(e.key===' '&&!e.repeat&&onSpace)onSpace();
       else if(e.key==='ArrowDown'){
         if(!downHeld){downHeld=true;if(onDownStart)onDownStart();}
         else if(onDownRepeat)onDownRepeat();

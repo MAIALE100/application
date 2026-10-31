@@ -48,6 +48,7 @@ for _,g in ipairs(config.games)do
  room=call(p.StartRound,actors[1]).room
  local raw for _,r in pairs(private.rooms)do if r.code==room.code then raw=r break end end
  local rs=assert(raw).roundState local views={} local checks={'lobby','host-authorization','ready','start'}
+ if g.id=='memory_chain' and not arg[2] then assert(rs.deadlineDurationSec==15,'memorize duration')end
  for i=1,count do
   local v=call(p.GetRoom,actors[i]).room views[i]=v local q=v.roundState local id=identities[actors[i]]
   assert(q.gameId==g.id and not q.complete)
@@ -78,17 +79,24 @@ for _,g in ipairs(config.games)do
   move.token=token;call(p.SubmitMiniShogi,a,move);checks[#checks+1]='public-legal-move-action'
  elseif g.id=='ng_word'then
   local explainer,guesser for i=1,count do if identities[actors[i]]==rs.explainerIdentifier then explainer=actors[i]else guesser=actors[i]end end
+  call(p.SubmitNgWordClue,explainer,{token=token,clue='これは'..rs.forbiddenWords[1]..'です'},'TABOO_FORBIDDEN_WORD')
+  assert(rs.phase=='clue' and rs.clue==nil,'rejected clue changed round')
+  call(p.SubmitNgWordClue,explainer,{token=token,clue='x'},'INVALID_TEXT')
+  assert(rs.phase=='clue' and rs.clue==nil,'invalid input counted as guess')
   call(p.SubmitNgWordClue,explainer,{token=token,clue='架空の説明テキスト'})
+  call(p.SubmitNgWordGuess,guesser,{token=token,guess='絶対に違う答え'})
+  assert(not rs.complete and rs.phase=='guess','wrong answer ended round')
+  for i=1,count do if actors[i]~=explainer and actors[i]~=guesser then guesser=actors[i] break end end
   call(p.SubmitNgWordGuess,guesser,{token=token,guess=rs.targetWord});completed=true
  elseif g.id=='memory_chain'then
   tick=rs.deadlineTick+1;p.Cleanup()
   if arg[3]=='deadline-evidence'then print(encode({config=config,room=call(p.GetRoom,actors[1]).room,scope='memory deadline isolated real handler'}));os.exit(0)end
-  assert(rs.phase=='input')
+  assert(rs.phase=='input' and rs.deadlineDurationSec==30)
   for i=1,count do local view=call(p.GetRoom,actors[i]).room.roundState;assert(view.sequence==nil)end
   for i=1,count do call(p.SubmitMemoryChain,actors[i],{token=token,answer=table.concat(rs.sequence)})end
   assert(rs.stage==2 and rs.phase=='memorize' and not rs.complete,'successful answers must advance stage')
   checks[#checks+1]='successful-stage-advances-with-new-memorize-deadline'
-  tick=rs.deadlineTick+1;p.Cleanup();assert(rs.phase=='input' and not rs.complete)
+  tick=rs.deadlineTick+1;p.Cleanup();assert(rs.phase=='input' and not rs.complete and rs.deadlineDurationSec==30)
   local expected=table.concat(rs.sequence) local wrong=expected:gsub('A','Z'):gsub('[BCD]','A'):gsub('Z','B')
   for i=1,count do call(p.SubmitMemoryChain,actors[i],{token=token,answer=i==count and expected or wrong})end completed=true
  elseif g.id=='bomb'then

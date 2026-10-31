@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-01 JST",
+  "priority": "LOOP+LINK",
+  "common": {
+    "pass": 124,
+    "fail": 0,
+    "skip": 0
+  },
+  "regression": {
+    "loop": [
+      "static PASS",
+      "nui PASS"
+    ],
+    "link": [
+      "static PASS",
+      "game PASS",
+      "virtual-multiplayer PASS",
+      "nui PASS"
+    ]
+  },
+  "appLocalCommits": {
+    "link": "c808d0e14b03b6687865fa827a1d401b715dbbf7",
+    "loop": "815b6061bdd1dc251beac676ca01e2709a84e333"
+  },
+  "latestScreens": {
+    "link": "D:\\FiveM_AutoDev\\workspace-clean\\.flecity-dev\\projects\\link\\runs\\2026-10-31T17-15-07-459Z-02e347",
+    "loop": "D:\\FiveM_AutoDev\\workspace-clean\\.flecity-dev\\projects\\loop\\runs\\2026-10-31T17-14-52-570Z-114a40"
+  },
+  "deployedComparison": [
+    {
+      "file": "fxmanifest.lua",
+      "workspace": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+      "testServer": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d"
+    },
+    {
+      "file": "server/core/party.lua",
+      "workspace": "f7b62477a5682a4fd28b5c80f4f356cf022e632746ddd5fa8da62b3c6b90bee0",
+      "testServer": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43"
+    },
+    {
+      "file": "web/party/app.js",
+      "workspace": "5a14e3db8c46e2cf6d7fa2e84b1eaface99780c56eb89ca2f06abef27e3acb73",
+      "testServer": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac"
+    },
+    {
+      "file": "client/main.lua",
+      "workspace": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+      "testServer": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a"
+    }
+  ],
+  "serverUpdated": false,
+  "realClientRetest": "NOT_RUN",
+  "jointSubmission": "NOT_READY"
+}

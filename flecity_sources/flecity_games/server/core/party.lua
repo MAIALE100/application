@@ -178,7 +178,7 @@ local function newMemorySequence(stage)
 end
 
 local function memoryRevealSeconds(sequence)
-    return math.max(3,math.min(6,2+(#(sequence or {})*0.4)))
+    return 15
 end
 
 local telephonePrompts={
@@ -3127,7 +3127,7 @@ local function openMemoryInput(room)
     if not rs or rs.gameId~='memory_chain' or rs.complete or rs.phase~='memorize' then return false end
     rs.phase='input'
     rs.stageSubmissions={}
-    setRoundDeadline(rs,15)
+    setRoundDeadline(rs,30)
     return true
 end
 

@@ -84,7 +84,8 @@ function deadlineLoop(token){
  if(rs.complete||!Number.isFinite(Number(rs.deadlineTick))){roundDeadline.classList.add('hidden');return;}
  const remaining=Math.max(0,Number(rs.deadlineTick)-estimatedServerTick());
  roundDeadline.classList.remove('hidden');
- roundDeadline.textContent=remaining>0?'残り '+Math.ceil(remaining/1000)+'秒':'時間切れ判定中…';
+ const phase=rs.gameId==='memory_chain'?(rs.phase==='memorize'?'記憶':'入力')+' · ':'';
+ roundDeadline.textContent=remaining>0?phase+'残り '+Math.ceil(remaining/1000)+'秒':phase+'時間切れ判定中…';
  roundDeadline.classList.toggle('warn',remaining<=10000);
  deadlineRaf=requestAnimationFrame(()=>deadlineLoop(token));
 }

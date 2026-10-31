@@ -9,7 +9,7 @@
   "apps": {
     "loop": {
       "track": "submission",
-      "auditedSourceHash": "06960efda4d9f33b5f22a62bb644c4e760c37d78923122e52a19d00b49cfe5c2",
+      "auditedSourceHash": "7f353f7b7b9811ddde6a5c2f2e39200c78c37b819e75dce2f47cef0cd785dcf1",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -25,7 +25,8 @@
         "15ゲーム全クリア/終了再開/保存の回帰",
         "実時間長時間・低FPS/入力遅延・実LB Phone確認",
         "提出用日本語資料と最終ZIP検査",
-        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）"
+        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）",
+        "FALL BATTLEとLOOPテトリスのSpace操作仕様・実機差分を確認"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
@@ -59,7 +60,7 @@
     },
     "link": {
       "track": "submission",
-      "auditedSourceHash": "06960efda4d9f33b5f22a62bb644c4e760c37d78923122e52a19d00b49cfe5c2",
+      "auditedSourceHash": "7f353f7b7b9811ddde6a5c2f2e39200c78c37b819e75dce2f47cef0cd785dcf1",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -70,12 +71,17 @@
         "japaneseDocs": "NOT_RUN",
         "zipInspection": "NOT_RUN"
       },
-      "knownCriticalBugs": [],
+      "knownCriticalBugs": [
+        "NGワードの誤判定・実機復帰不能（未再現/未解決）",
+        "記憶チェインの実機再確認待ち（ローカル進行・15秒/30秒は検証済み）",
+        "お絵描き伝言の白紙・秘密漏洩・履歴欠落・状態残留（実機報告）"
+      ],
       "remaining": [
         "全ゲームロジック/権限/秘密情報/退出再接続",
         "模擬2〜4人と実複数接続を別々に検証",
         "日本語UIと提出資料",
-        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）"
+        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）",
+        "テスター報告のP0/P1をreports/tester-feedback-20261101/TRIAGE_JA.mdで追跡"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",

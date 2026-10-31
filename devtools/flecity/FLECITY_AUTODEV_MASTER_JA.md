@@ -1,6 +1,6 @@
 # Flecity ローカルAI自動開発・無人検証 統合マスター指示書
 
-2026-10-31最新の優先順位変更: **運営提出優先モード LOOP→BASE→LINK→WAVE**。この後の旧優先順位より最新ユーザー指示を優先する。
+2026-10-31最新の優先順位変更: **運営提出優先モード LOOP＋LINK（共同提出）→BASE→WAVE**。この後の旧優先順位より最新ユーザー指示を優先する。
 プリフォト/フレプリは提出済み保守、Photo Diaryは別保留。詳細はSUBMISSION_OPERATIONS_JA.md/SUBMISSION_STATUS.jsonを参照。
 
 更新日: 2026-10-31

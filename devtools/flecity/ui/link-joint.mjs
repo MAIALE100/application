@@ -1,0 +1,83 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import path from 'node:path';
+import {jointTranscript} from '../fixtures/link-joint.mjs';
+import {captureLayout,saveLayout} from './layout-audit.mjs';
+import {command,luaRuntime,tool,repo,sha,local} from '../core.mjs';
+import {createRequire} from 'node:module';
+import {comparePixels} from '../ui-image-compare.mjs';
+export async function prepareJoint(ctx,page){
+ ctx.joint=jointTranscript(ctx.source);
+ const before=path.join(repo,'.flecity-dev/joint-release/memory-before.lua');
+ if(fs.existsSync(before)){
+  ctx.memoryEvidence={};
+  for(const [label,file]of [['before',before],['after',path.join(ctx.source,'server/core/party.lua')]]){
+   const r=command(luaRuntime(),[path.join(tool,'tests/lua/link-joint.lua'),ctx.source,file,'deadline-evidence']);
+   if(!r.ok)throw Error(r.output);
+   ctx.memoryEvidence[label]={...JSON.parse(r.output),sourceSha256:sha(fs.readFileSync(file))};
+  }
+ }
+ fs.writeFileSync(path.join(ctx.run.dir,'joint-transcript.json'),JSON.stringify(ctx.joint,null,2)+'\n');
+ await page.route('**/web/party/app.js',route=>route.fulfill({contentType:'application/javascript',body:ctx.read('web/party/app.js')+`
+// In-memory audit exports; never shipped or written into the application.
+globalThis.__jointRender=(config,room)=>{
+ resetRoundRuntime();currentRoom=null;lastRoomRevision=-1;serverOffsetReady=false;appSuspended=false;
+ partyConfig=config;gameEl.innerHTML='';
+ for(const g of config.games){const o=document.createElement('option');o.value=g.id;o.textContent=g.name;gameEl.appendChild(o);}
+ return renderRoom(room);
+};` }));
+}
+export async function jointScenario(ctx,page){
+ ctx.solo.activate(null);
+ const rows=[];
+ for(const g of ctx.joint.games){
+  for(const width of [390,360]){
+   await page.setViewportSize({width,height:844});
+   // Each private-role view uses its real server projection, not an invented UI fixture.
+   const views=[...g.views,...(g.resultView?[g.resultView]:[])];
+   for(let i=0;i<views.length;i++){
+    await page.evaluate(({config,room})=>__jointRender(config,room),{config:ctx.joint.config,room:views[i]});
+    assert(await page.locator('#roundPanel').isVisible(),g.id);
+    const result=await captureLayout(ctx,page,`joint-${g.id}-${i+1}-${width}`);
+    rows.push({game:g.id,viewer:i+1,...result});
+   }
+  }
+ }
+ saveLayout(ctx,'joint-layout',rows);
+ if(ctx.memoryEvidence){
+  await page.setViewportSize({width:360,height:844});
+  for(const [label,evidence]of Object.entries(ctx.memoryEvidence)){
+   await page.evaluate(({config,room})=>__jointRender(config,room),evidence);
+   await captureLayout(ctx,page,'memory-deadline-'+label);
+  }
+  const require=createRequire(local().browser.module),{PNG}=require('pngjs');
+  const img=label=>PNG.sync.read(fs.readFileSync(path.join(ctx.run.dir,'screenshots/memory-deadline-'+label+'.png')));
+  const pixels=comparePixels(img('before'),img('after'));
+  assert(pixels.changed>0,'Expected functional screen change is missing');
+  const comparison={...pixels,status:'CHANGED_EXPECTED',kind:'informational; not approved-baseline validation'};
+  fs.writeFileSync(path.join(ctx.run.dir,'memory-before-after.json'),JSON.stringify({kind:'functional-change-evidence',approvedBaseline:false,comparison,states:ctx.memoryEvidence},null,2)+'\n');
+  assert.equal(ctx.memoryEvidence.before.room.roundState.complete,true);
+  assert.equal(ctx.memoryEvidence.after.room.roundState.complete,false);
+  assert.equal(ctx.memoryEvidence.after.room.roundState.phase,'input');
+  const answer=ctx.memoryEvidence.before.room.roundState.sequence.join('');
+  await page.evaluate(room=>{
+   const original=globalThis.fetchNui;
+   globalThis.fetchNui=async(event,request)=>{
+    if(request.action==='partySubmitMemoryChain'){
+     globalThis.__memorySubmit=request.payload;
+     return {ok:true,room:{...room,roundState:{...room.roundState,selfSubmitted:true}}};
+    }
+    return original(event,request);
+   };
+  },ctx.memoryEvidence.after.room);
+  for(const symbol of answer)await page.locator('#memoryChainButtons [data-memory="'+symbol+'"]').click();
+  await page.locator('#memoryChainReset').click();
+  assert.equal(await page.locator('#memoryChainInput').textContent(),'入力: ---');
+  for(const symbol of answer)await page.locator('#memoryChainButtons [data-memory="'+symbol+'"]').click();
+  await page.locator('#memoryChainSubmit').click();
+  await page.waitForFunction(()=>!!globalThis.__memorySubmit);
+  assert.deepEqual(await page.evaluate(()=>globalThis.__memorySubmit),{token:ctx.memoryEvidence.after.room.roundState.token,answer});
+  await captureLayout(ctx,page,'memory-browser-submitted');
+ }
+ const failures=rows.filter(r=>r.horizontalOverflow||r.clipped.length||r.textClipping.length||r.overlaps.length);
+ assert.equal(failures.length,0,'Geometry review required: '+JSON.stringify(failures.map(({game,viewer,viewport,clipped,textClipping,overlaps,horizontalOverflow})=>({game,viewer,width:viewport.width,clipped,textClipping,overlaps,horizontalOverflow}))));
+}

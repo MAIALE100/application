@@ -7,7 +7,7 @@
       "migration": "READY",
       "automation": "ACTIVE",
       "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "validationEvidence": "reports/joint-release-20261031/RESULT_JA.md",
       "track": "platform"
     },
     "base": {
@@ -26,7 +26,7 @@
         "loop"
       ],
       "validation": "NOT_RUN",
-      "validationEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "validationEvidence": "reports/joint-release-20261031/RESULT_JA.md",
       "track": "submission"
     },
     "loop": {
@@ -37,7 +37,7 @@
         "link"
       ],
       "validation": "NOT_RUN",
-      "validationEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "validationEvidence": "reports/joint-release-20261031/RESULT_JA.md",
       "track": "submission"
     },
     "wave": {
@@ -77,9 +77,19 @@
     }
   },
   "priority": [
-    "loop",
+    "loop_link",
     "base",
-    "link",
     "wave"
-  ]
+  ],
+  "jointReleases": {
+    "loop_link": {
+      "apps": [
+        "loop",
+        "link"
+      ],
+      "resource": "flecity_games",
+      "submission": "TOGETHER",
+      "allowIndividualCandidate": false
+    }
+  }
 }

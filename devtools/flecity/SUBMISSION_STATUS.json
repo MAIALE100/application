@@ -1,16 +1,15 @@
 {
   "mode": "submission-priority",
   "priority": [
-    "loop",
+    "loop_link",
     "base",
-    "link",
     "wave"
   ],
   "publicationRequiresUserApproval": true,
   "apps": {
     "loop": {
       "track": "submission",
-      "auditedSourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "auditedSourceHash": "06960efda4d9f33b5f22a62bb644c4e760c37d78923122e52a19d00b49cfe5c2",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -25,12 +24,14 @@
       "remaining": [
         "15ゲーム全クリア/終了再開/保存の回帰",
         "実時間長時間・低FPS/入力遅延・実LB Phone確認",
-        "共有リソースのLOOP先行構成とLINK無効境界の回帰",
-        "提出用日本語資料と最終ZIP検査"
+        "提出用日本語資料と最終ZIP検査",
+        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
-      "submission": "NOT_READY"
+      "submission": "NOT_READY",
+      "releaseGroup": "loop_link",
+      "jointLocalEvidence": "reports/joint-release-20261031/RESULT_JA.md"
     },
     "base": {
       "track": "submission",
@@ -58,7 +59,7 @@
     },
     "link": {
       "track": "submission",
-      "auditedSourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "auditedSourceHash": "06960efda4d9f33b5f22a62bb644c4e760c37d78923122e52a19d00b49cfe5c2",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -73,11 +74,14 @@
       "remaining": [
         "全ゲームロジック/権限/秘密情報/退出再接続",
         "模擬2〜4人と実複数接続を別々に検証",
-        "日本語UIと提出資料"
+        "日本語UIと提出資料",
+        "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
-      "submission": "NOT_READY"
+      "submission": "NOT_READY",
+      "releaseGroup": "loop_link",
+      "jointLocalEvidence": "reports/joint-release-20261031/RESULT_JA.md"
     },
     "wave": {
       "track": "submission",
@@ -116,6 +120,26 @@
     "photo_diary": {
       "track": "hold",
       "submission": "OUT_OF_SCOPE"
+    }
+  },
+  "jointReleases": {
+    "loop_link": {
+      "apps": [
+        "loop",
+        "link"
+      ],
+      "resource": "flecity_games",
+      "submission": "TOGETHER",
+      "allowIndividualCandidate": false,
+      "status": "NOT_READY",
+      "remaining": [
+        "LOOP全操作・完局・実時間長期",
+        "LINK通常将棋・成り・全AI難易度・全勝敗方向",
+        "両アプリの登録/インストール/課金枠/権限と実複数クライアント",
+        "DB/既存データ/他アプリ影響",
+        "全状態UI・入力遅延/スクロール・承認済み画像比較",
+        "日本語資料の最終確認と共同ZIP全件検査"
+      ]
     }
   }
 }

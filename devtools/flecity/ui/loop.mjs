@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {captureLayout,saveLayout} from './layout-audit.mjs';
 
 export async function prepare(ctx,page){
   const games=ctx.read('shared/game_registry.lua').split(/\r?\n/).filter(l=>/app='play'/.test(l)).map(l=>({
@@ -48,6 +49,7 @@ globalThis.__loopAudit={suspend:suspendActivePlay,stackPosition,stackInputTime,
 }
 
 export async function scenario(ctx,page){
+  const layouts=[];
   await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('LOOP 準備完了'));
   const screens={quick_tap:'quickTap',stop:'stopGame',stack:'stackGame',block:'blockGame',merge:'mergeGame',fall:'fallGame',mines:'minesGame',nonogram:'nonogramGame',memory:'memoryGame',sort:'sortGame',slide:'slideGame',color_match:'colorMatchGame',number_rush:'numberRushGame',high_low:'highLowGame',simon:'simonGame'};
   for(const game of ctx.loopAudit.games){
@@ -58,6 +60,10 @@ export async function scenario(ctx,page){
         const method={quick_tap:'quick',stop:'stop',color_match:'color',number_rush:'number',high_low:'high',simon:'simon'}[game.id];
         await page.evaluate(method=>globalThis.__loopAudit[method](),method);
       }
+      if(cycle===0)for(const width of [390,360]){
+        await page.setViewportSize({width,height:844});
+        layouts.push({game:game.id,...await captureLayout(ctx,page,`loop-${game.id}-${width}`)});
+      }
       await page.evaluate(()=>globalThis.__loopAudit.suspend());
       assert(await page.locator('#home').isVisible());
       assert(await page.evaluate(()=>Object.values(__loopAudit.states()).every(v=>!v)),'State leaked after '+game.id);
@@ -65,6 +71,8 @@ export async function scenario(ctx,page){
     }
     ctx.loopAudit.coverage.push({game:game.id,openSuspendReopenCycles:2,status:'PASS',scope:'Mock NUI lifecycle, not full game completion'});
   }
+  saveLayout(ctx,'loop-layout',layouts);
+  assert.equal(layouts.filter(r=>r.horizontalOverflow||r.clipped.length||r.textClipping.length||r.overlaps.length).length,0,'LOOP control geometry requires review; see loop-layout.json');
   // A clock jump represents a long frame/suspension gap; it is not five minutes of human play.
   await page.clock.install();await page.evaluate(()=>__loopAudit.startFall());await page.clock.fastForward(5*60*1000);
   await page.evaluate(()=>__loopAudit.suspend());assert(await page.locator('#home').isVisible());

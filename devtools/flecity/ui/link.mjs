@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {installSoloFixture} from '../fixtures/link-solo.mjs';
 import {soloScenario} from './link-solo.mjs';
+import {prepareJoint,jointScenario} from './link-joint.mjs';
 export async function prepare(ctx,page){
   await page.addInitScript(()=>{
     let room=null;
@@ -24,7 +25,8 @@ export async function prepare(ctx,page){
       return {ok:false,error:'UNMOCKED_ACTION'};
     };
   });
-  return installSoloFixture(ctx,page);
+  const solo=await installSoloFixture(ctx,page);
+  await prepareJoint(ctx,page);return solo;
 }
 export async function scenario(ctx,page){
   await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('LINK 準備完了'));
@@ -46,4 +48,5 @@ export async function scenario(ctx,page){
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Horizontal overflow at phone width');
   assert((await page.evaluate(()=>globalThis.__fixtureCalls)).every(r=>['bridgePing','partyGetConfig','profileGetSettings','partyGetRoom','partyJoinRoom','partyCreateRoom','partySetReady'].includes(r.action)));
   await soloScenario(ctx,page);
+  await jointScenario(ctx,page);
 }

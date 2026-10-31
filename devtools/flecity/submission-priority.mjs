@@ -1,4 +1,11 @@
-export const submissionOrder=['loop','base','link','wave'];
+export const submissionOrder=['loop','link','base','wave'];
+export const jointReleaseApps=['loop','link'];
+export function jointSubmissionDecision(apps,hashes){
+  const members=jointReleaseApps.map(id=>({app:id,...submissionDecision(apps[id],hashes[id])}));
+  const blockers=members.flatMap(m=>m.blockers.map(b=>m.app+':'+b));
+  if(!hashes.loop||hashes.loop!==hashes.link)blockers.push('SHARED_SOURCE_MISMATCH');
+  return {id:'loop_link',apps:jointReleaseApps,status:blockers.length?'NOT_READY':'SUBMISSION_CANDIDATE',mayPublish:false,blockers,members};
+}
 export function submissionTasks(policy){
   const suites={loop:['static','db','nui','visual'],base:['static','db','nui','visual'],link:['static','db','game','virtual-multiplayer','nui','visual'],wave:['static','db','nui','visual']};
   return [{id:'toolkit',suites:['tests']},...submissionOrder.map(id=>({id,suites:suites[id]})),

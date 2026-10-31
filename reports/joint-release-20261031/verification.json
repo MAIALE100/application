@@ -1,0 +1,316 @@
+{
+  "date": "2026-10-31",
+  "mode": "joint-release-priority",
+  "priority": [
+    "loop_link",
+    "base",
+    "wave"
+  ],
+  "common": {
+    "tests": 124,
+    "pass": 124,
+    "fail": 0,
+    "skip": 0,
+    "log": ".flecity-dev/joint-release/common-tests.tap"
+  },
+  "automationRun": "2026-10-31T13-19-44-423Z-11ce5d",
+  "jointStatus": "NOT_READY",
+  "jointSourceHash": "06960efda4d9f33b5f22a62bb644c4e760c37d78923122e52a19d00b49cfe5c2",
+  "appSourceCommit": "65759b5",
+  "appLocalCommits": {
+    "link": "482065b5735a71e5c55904a69be3aa7be54ef81c",
+    "loop": "a145983f2a861585be6adb0b95778bd9ef5dc815"
+  },
+  "virtual": {
+    "games": [
+      {
+        "id": "code_break",
+        "players": 2,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "reversi",
+        "players": 2,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "vote",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "gomoku",
+        "players": 2,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "connect4",
+        "players": 2,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "mini_shogi",
+        "players": 2,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "public-legal-move-action",
+          "full-game-completion-NOT_RUN",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": false
+      },
+      {
+        "id": "word_wolf",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "liar",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "draw",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "telephone",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "ng_word",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "fake_answer",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "bomb",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "memory_chain",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "successful-stage-advances-with-new-memorize-deadline",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "unanswered-input-deadline-resolves",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      },
+      {
+        "id": "fall_battle",
+        "players": 4,
+        "checks": [
+          "lobby",
+          "host-authorization",
+          "ready",
+          "start",
+          "per-viewer-public-snapshot-privacy",
+          "real-handler-actions-to-results",
+          "return-lobby",
+          "next-round-restart",
+          "disconnect-new-source-reconnect-stable-member"
+        ],
+        "completed": true
+      }
+    ],
+    "events": 840,
+    "premiumDenied": 5,
+    "realClients": 0,
+    "dbWrites": 0
+  },
+  "nui": {
+    "link": ".flecity-dev/projects/link/runs/2026-10-31T13-27-48-784Z-cfdbd8",
+    "loop": ".flecity-dev/projects/loop/runs/2026-10-31T13-20-26-487Z-7c48d3",
+    "layoutConditions": 158,
+    "geometryFailures": 0,
+    "screenshots": {
+      "link": 136,
+      "loop": 31
+    },
+    "scope": "initial/role/results sampled states; not exhaustive all screens, real input latency or live clients"
+  },
+  "server": {
+    "status": "RUNNING",
+    "healthy": true,
+    "players": 0,
+    "authoritative": false,
+    "nativeProof": "NOT_RUN — installed bridge status capability has not been approved",
+    "checkedAt": "2026-10-31T13:22:47.974Z"
+  },
+  "updatedResources": [],
+  "protection": {
+    "originalChanges": 460,
+    "originalStatusUnchanged": true,
+    "originalFilesChecked": 219,
+    "originalMismatch": [],
+    "backupMismatch": [],
+    "puriphotoFilesChecked": 281,
+    "puriphotoMismatch": [],
+    "installedBridgeMismatch": [],
+    "checkedAt": "2026-10-31T13:24:55.805Z"
+  },
+  "schedule": {
+    "id": "flecity-02-00-13-00-jst",
+    "status": "ACTIVE",
+    "hoursJST": [
+      "02:00",
+      "13:00"
+    ],
+    "projectId": "e0209a29-99b4-430b-9842-ec6c2eab5e21",
+    "codexAutomationCount": 1,
+    "matchingWindowsTasks": 0
+  },
+  "mayPublish": false
+}

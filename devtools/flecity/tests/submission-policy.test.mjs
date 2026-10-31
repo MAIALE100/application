@@ -4,14 +4,22 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {command,sha,inventory} from '../core.mjs';
-import {submissionTasks,submissionDecision,submissionGates} from '../submission-priority.mjs';
+import {submissionTasks,submissionDecision,submissionGates,jointSubmissionDecision} from '../submission-priority.mjs';
 import {prepareLocalChange,applyLocalChange,rollbackLocalChange,localRegressionGate,finishLocalChange} from '../local-change.mjs';
 test('submission order isolates maintenance and held apps; missing live evidence cannot become a candidate',()=>{
  const policy={apps:{flepri:{track:'maintenance',automation:'ACTIVE'},photo_diary:{track:'hold',automation:'PAUSED'}}};
- assert.deepEqual(submissionTasks(policy).map(t=>t.id),['toolkit','loop','base','link','wave','flepri']);
+ assert.deepEqual(submissionTasks(policy).map(t=>t.id),['toolkit','loop','link','base','wave','flepri']);
  const good={track:'submission',auditedSourceHash:'hash',gates:Object.fromEntries(submissionGates.map(g=>[g,'PASS']))};
  assert.equal(submissionDecision(good,'hash').status,'SUBMISSION_CANDIDATE');assert.equal(submissionDecision(good,'changed').status,'NOT_READY');
  assert.equal(submissionDecision({...good,gates:{...good.gates,liveFiveM:'NOT_RUN'}},'hash').status,'NOT_READY');assert.equal(submissionDecision(good,'hash').mayPublish,false);
+});
+test('joint LOOP/LINK candidate requires both members and the identical audited resource',()=>{
+ const good={track:'submission',auditedSourceHash:'same',gates:Object.fromEntries(submissionGates.map(g=>[g,'PASS']))};
+ const apps={loop:good,link:good};
+ assert.equal(jointSubmissionDecision(apps,{loop:'same',link:'same'}).status,'SUBMISSION_CANDIDATE');
+ assert.equal(jointSubmissionDecision({...apps,link:{...good,gates:{...good.gates,liveFiveM:'NOT_RUN'}}},{loop:'same',link:'same'}).status,'NOT_READY');
+ assert(jointSubmissionDecision(apps,{loop:'same',link:'different'}).blockers.includes('SHARED_SOURCE_MISMATCH'));
+ assert.equal(jointSubmissionDecision(apps,{loop:'same',link:'same'}).mayPublish,false);
 });
 function fixture(t){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'flecity-local-change-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));

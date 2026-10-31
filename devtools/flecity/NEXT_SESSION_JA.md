@@ -1,10 +1,10 @@
 # 継続状態（2026-10-31・アプリ別運用）
 
-最新方針は**運営提出優先モード**。SUBMISSION_OPERATIONS_JA.md、SUBMISSION_STATUS.jsonを先に読み、LOOP→BASE→LINK→WAVEを優先する。
+最新方針は**運営提出優先モード**。SUBMISSION_OPERATIONS_JA.md、SUBMISSION_STATUS.jsonを先に読み、LOOP＋LINK（共同提出）→BASE→WAVEを優先する。
 プリフォト/フレプリは提出済み保守（大きな機能/UI変更なし）。プリフォトPAUSEDを維持。Photo Diaryは別管理で保留。
 LOOP: 15ゲームのブラウザー起動/中断/再起動、60実Lua不変条件を追加。全クリア・実時間長期・実機は未完了。
 BASE: 不正workspace/record IDとメモの不正型/UTF-8/過長入力による誤更新を修正し、実ハンドラーを隔離して回帰。実oxmysql/権限/再起動保持は別ゲート。
-共有LOOP/LINK: 無効アプリのcallbackとLINK+内部課金/自動更新を拒否。先行提出構成案は共有ソースのSUBMISSION_READINESS_JA.md。破壊的な分離や候補ZIP作成は未実施。
+共有LOOP/LINK: 無効アプリのcallbackとLINK+内部課金/自動更新を拒否。共同提出条件は共有ソースのSUBMISSION_READINESS_JA.md。破壊的な分離や候補ZIP作成は未実施。
 定期のコード修正は最大5ファイルの提案を-Proposalで適用→回帰→アプリ別checkpoint→明示親コミットする。直接編集や未検証の保存、提出/実反映の自動許可はしない。
 
 作業先: D:/FiveM_AutoDev/workspace-clean。マスター指示書と最新のユーザー指示を読む。
@@ -23,4 +23,6 @@ SQLは既存D:/MariaDB/binから固有named pipe/TCP無効の使い捨てDBの�
 - 定期実行は運営提出優先モード。powershell -NoProfile -ExecutionPolicy Bypass -File devtools/flecity/automation-run.ps1 を実行する。ローカル修正は-Proposalで検証・保存まで保護し、実サーバーへの自動配置は含まない。
 - OS mutexが全実行を保護。アプリ単位の失敗・バックオフを保存し、他アプリを継続。20分上限と証跡容量・期間制御あり。
 - GitHub・fetch/pull/push/PR・git reset --hard・git clean・git add -Aは禁止。元フォルダの作業ファイル・バックアップ・サーバー・既存DBを変更しない。
-- 次: BASEの権限/トランザクション、LINK/LOOPの同期・低FPSの安全なモック検証を優先。ソース修正は別の明示対象タスクで狭い差分・回帰・ローカル保存を行う。
+- 次: LOOP＋LINK共同提出の残項目（reports/joint-release-20261031）を優先し、実機待ちではBASE/WAVEの安全な検証を継続。ソース修正は別の明示対象タスクで狭い差分・回帰・ローカル保存を行う。
+
+共同リリース追加: LINK全15ゲームに仮想2〜4人の開始/秘密情報/切断再接続を追加。記憶チェインが記憶終了で中断する不具合を修正。14ゲームは限定シナリオで結果まで進行、将棋通常完局は未完了。NUI 158画面条件の幾何検査と修正前後を保存。完了/未検証と実機最短手順は reports/joint-release-20261031/RESULT_JA.md と LIVE_TEST_PLAN_JA.md。共通124 PASS。

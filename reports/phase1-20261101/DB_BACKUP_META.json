@@ -1,0 +1,16 @@
+{
+  "createdAt": "2026-10-31T23:41:28.635Z",
+  "kind": "mariadb-backup physical all databases",
+  "target": "D:\\FiveM_Dev_Backups\\flecity-live-test\\phase1-2026-10-31T23-40-29-609Z-7405d02f\\db-physical",
+  "files": 627,
+  "totalBytes": 84491030,
+  "mysqlUserRedacted": true,
+  "ddlLocksRequested": true,
+  "nonTransactionalTablesPresent": true,
+  "logSha256": "1aabf65ffd50c42fcbddadb050f0bf05763a2ea6469a5a67f3f72b78fe2907a6",
+  "prepared": false,
+  "archiveSha256": "384fc336c7a0205d6145803aae0863dc9d4dfc678504279f3828894aeef0380b",
+  "archiveBytes": 84925440,
+  "archiveFiles": 627,
+  "restoreVerified": true
+}

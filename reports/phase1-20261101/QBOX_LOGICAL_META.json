@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "createdAt": "2026-10-31T23:45:21.193Z",
+  "file": "D:\\FiveM_Dev_Backups\\flecity-live-test\\phase1-2026-10-31T23-40-29-609Z-7405d02f\\QBOX_SINGLE_TRANSACTION.sql",
+  "bytes": 465822,
+  "sha256": "ba592369e9d7288e4d4b066534c1a48e3babe3a8fd961d952d0e4fdb80b21213",
+  "engine": "InnoDB",
+  "tableCount": 187,
+  "definitionHashBefore": "142d961cdcf4fc50403802c4b339ce8be6690023bb777368e8e664d3fa9cd1d5",
+  "definitionHashAfter": "142d961cdcf4fc50403802c4b339ce8be6690023bb777368e8e664d3fa9cd1d5",
+  "singleTransaction": true,
+  "routines": true,
+  "triggers": true,
+  "events": true
+}

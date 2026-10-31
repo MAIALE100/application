@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "datadir": "D:\\FiveM_Dev_Backups\\flecity-live-test\\phase1-2026-10-31T23-40-29-609Z-7405d02f\\isolated-restore-data-4",
+  "port": 3307,
+  "pid": 44948,
+  "executable": "D:\\MariaDB\\bin\\mariadbd.exe",
+  "bindAddress": "127.0.0.1",
+  "processArgsVerified": true,
+  "listenerPidVerified": true,
+  "initialUser": "root@localhost",
+  "rootAccountCount": 4,
+  "independentRootPassword": true,
+  "databaseCount": 6,
+  "databases": [
+    "information_schema",
+    "mysql",
+    "performance_schema",
+    "qbox_d233fd",
+    "sys",
+    "test"
+  ],
+  "tableCounts": [
+    "mysql\t30",
+    "performance_schema\t80",
+    "qbox_d233fd\t187",
+    "sys\t1"
+  ],
+  "qboxTables": 187,
+  "waveTables": 19,
+  "objectCounts": {
+    "routines": 51,
+    "triggers": 31,
+    "events": 0
+  },
+  "keyCounts": {
+    "players": 9,
+    "player_vehicles": 0,
+    "wave_tracks": 4,
+    "wave_purchases": 0,
+    "wave_wallets": 8
+  },
+  "tableCheck": "19 OK",
+  "restorationErrors": 0,
+  "liveDbTouched": false
+}

@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-10-31T23:49:00.634Z",
+  "zip": ".flecity-dev/releases/three-app-20261101/LOOP-LINK-WAVE-REVIEW_ONLY.zip",
+  "sha256": "35b1b6da659271fda17cf20d440271f8fd59be03e0bdb630f8b3bbf909e9d9f9",
+  "outerEntries": 5,
+  "children": {
+    "gamesCss": {
+      "name": "flecity_games-CSS-only-REVIEW_REQUIRED.zip",
+      "sha256": "b7cc328952a638630ebf19001f1f01333cfd6c049e0ac73f1da594cac1b4c045",
+      "entries": 2,
+      "extractedTo": ".flecity-dev\\phase1-20261101\\zip-current\\gamesCss"
+    },
+    "wave": {
+      "name": "WAVE-0.3.5-test-CLIENT-GUARD-REVIEW_ONLY.zip",
+      "sha256": "62197625dc82fe91eb2ced4bd73acdcd23990f5604f22848da0ce44740ac39ea",
+      "entries": 14,
+      "extractedTo": ".flecity-dev\\phase1-20261101\\zip-current\\wave"
+    }
+  },
+  "sources": {
+    "games": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+    "wave": "e93f2ab1ea6f1bad756cb8f5634b159cb008796133be456a9245ff1df26dea01"
+  },
+  "suites": {
+    "loop/static": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/loop/runs/2026-10-31T22-59-45-769Z-9e7137/result.json",
+      "checks": 34
+    },
+    "loop/nui": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/loop/runs/2026-10-31T22-59-47-680Z-3dd3c6/result.json",
+      "checks": 1
+    },
+    "link/static": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/link/runs/2026-10-31T23-00-00-979Z-5b1033/result.json",
+      "checks": 34
+    },
+    "link/game": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/link/runs/2026-10-31T23-00-02-786Z-b58240/result.json",
+      "checks": 2
+    },
+    "link/virtual-multiplayer": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/link/runs/2026-10-31T23-00-07-458Z-2c1ed2/result.json",
+      "checks": 1
+    },
+    "link/nui": {
+      "status": "PASS",
+      "sourceHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+      "run": ".flecity-dev/projects/link/runs/2026-10-31T23-00-08-008Z-0f7a72/result.json",
+      "checks": 2
+    },
+    "wave/static": {
+      "status": "PASS",
+      "sourceHash": "e93f2ab1ea6f1bad756cb8f5634b159cb008796133be456a9245ff1df26dea01",
+      "run": ".flecity-dev/projects/wave/runs/2026-10-31T23-01-08-662Z-7cc17f/result.json",
+      "checks": 12
+    },
+    "wave/nui": {
+      "status": "PASS",
+      "sourceHash": "e93f2ab1ea6f1bad756cb8f5634b159cb008796133be456a9245ff1df26dea01",
+      "run": ".flecity-dev/projects/wave/runs/2026-10-31T23-01-09-413Z-4688cd/result.json",
+      "checks": 1
+    }
+  },
+  "jsLuaSyntax": "reused matching-source static PASS",
+  "sql": "isolated physical restore and prior source static checks; no live migration"
+}

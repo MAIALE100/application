@@ -62,6 +62,11 @@ export async function jointScenario(ctx,page){
  await page.locator('#code').focus();
  assert.equal(await page.locator('#code').inputValue(),'2468');
  assert(await page.locator('#code').evaluate(el=>document.activeElement===el),'Room code input lost focus');
+ const diagnostics=await page.evaluate(()=>globalThis.FlecityDiagnostics.snapshot());
+ assert(diagnostics.some(x=>x.event==='room-focus'&&x.focused===true));
+ assert(diagnostics.some(x=>x.event==='room-input'&&x.length===4));
+ assert(!JSON.stringify(diagnostics).includes('2468')&&!JSON.stringify(diagnostics).includes('試験のお題')&&!JSON.stringify(diagnostics).includes('JOINT_'));
+ fs.writeFileSync(path.join(ctx.run.dir,'safe-diagnostics.json'),JSON.stringify(diagnostics,null,2)+'\n');
  if(ctx.memoryEvidence){
   await page.setViewportSize({width:360,height:844});
   for(const [label,evidence]of Object.entries(ctx.memoryEvidence)){

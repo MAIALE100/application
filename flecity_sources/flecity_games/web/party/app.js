@@ -136,6 +136,7 @@ function hideRoundGames(exceptPanel){
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
+ globalThis.FlecityDiagnostics?.note('entry',{fromRoom:!!currentRoom});
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
  document.body.classList.remove('party-room','party-round','party-shogi');
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
@@ -931,6 +932,10 @@ function renderRoom(room,timing){
  if(currentRoom&&currentRoom.code===room.code&&Number.isFinite(incomingRevision)&&incomingRevision<lastRoomRevision)return false;
  if(Number.isFinite(incomingRevision))lastRoomRevision=Math.max(lastRoomRevision,incomingRevision);
  clearStatus();
+ const previous=currentRoom?.roundState,next=room.roundState;
+ if(next&&(!previous||previous.token!==next.token||previous.step!==next.step||previous.phase!==next.phase||previous.complete!==next.complete)){
+   globalThis.FlecityDiagnostics?.note('round',{game:String(next.gameId||''),phase:String(next.phase||''),step:Number(next.step)||0,complete:next.complete===true,drawingCount:Array.isArray(next.promptStrokes)?next.promptStrokes.length:0});
+ }
  currentRoom=room;ready=room.selfReady===true;roomPushEnabled=true;
  document.body.classList.add('party-room');
  document.body.classList.toggle('party-round',room.state!=='lobby');
@@ -1396,7 +1401,9 @@ leaveBtn.onclick=()=>{
    showEntry();status('ルームから退出しました。');
  });
 };
-codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);};
+codeEl.onfocus=()=>globalThis.FlecityDiagnostics?.note('room-focus',{focused:true});
+codeEl.onblur=()=>globalThis.FlecityDiagnostics?.note('room-focus',{focused:false});
+codeEl.oninput=()=>{codeEl.value=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);globalThis.FlecityDiagnostics?.note('room-input',{length:codeEl.value.length});};
 
 async function bootstrap(){
  if(appSuspended)return;

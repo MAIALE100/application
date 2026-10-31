@@ -10,6 +10,14 @@ function nuiDeadline(invoke, cancel) {
     });
 }
 
+// Bounded, local-only diagnostics. Never retain request payloads, room codes or player IDs.
+const flecityDiagnostics = [];
+function noteDiagnostic(event, fields = {}) {
+    flecityDiagnostics.push({at:new Date().toISOString(),event,...fields});
+    if (flecityDiagnostics.length > 64) flecityDiagnostics.shift();
+}
+window.FlecityDiagnostics = {note:noteDiagnostic,snapshot:()=>flecityDiagnostics.map(row=>({...row}))};
+
 function hasPhoneFetchNui() {
     return typeof fetchNui === 'function' || typeof globalThis.fetchNui === 'function';
 }
@@ -71,20 +79,30 @@ async function callPhoneNui(request) {
 window.FlecityBridge = {
     async call(action, payload) {
         const request = {action: action, payload: payload || {}};
+        const started = performance.now();
+        const finish = response => {
+            if (!response?.ok) {
+                const safeAction = /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(String(action)) ? String(action) : 'UNCLASSIFIED_ACTION';
+                const code = String(response?.error || 'EMPTY_RESPONSE');
+                const safeError = /^[A-Z][A-Z0-9_]{0,47}$/.test(code) ? code : 'UNCLASSIFIED_ERROR';
+                noteDiagnostic('callback', {action:safeAction,error:safeError,elapsedMs:Math.max(0,Math.round(performance.now()-started))});
+            }
+            return response;
+        };
 
         // LB Phone injects fetchNui into the custom-app iframe. Wait briefly for
         // the componentsLoaded handshake so resource restarts do not require the
         // user to close/reopen the phone.
         if (hasPhoneFetchNui() || typeof window.invokeNative !== 'undefined') {
             const response = await callPhoneNui(request);
-            if (response.error !== 'NUI_UNAVAILABLE') return response;
+            if (response.error !== 'NUI_UNAVAILABLE') return finish(response);
         }
 
         // Direct NUI / browser-development fallback.
         if (typeof GetParentResourceName === 'function') {
             try {
                 const controller = new AbortController();
-                return await nuiDeadline(async () => {
+                return finish(await nuiDeadline(async () => {
                     const response = await fetch('https://' + GetParentResourceName() + '/flecityGames:callback', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json; charset=UTF-8'},
@@ -92,12 +110,12 @@ window.FlecityBridge = {
                         signal: controller.signal
                     });
                     return await response.json();
-                }, () => controller.abort());
+                }, () => controller.abort()));
             } catch (error) {
-                return {ok:false,error:error.code === 'NUI_REQUEST_TIMEOUT' ? error.code : 'NUI_REQUEST_FAILED'};
+                return finish({ok:false,error:error.code === 'NUI_REQUEST_TIMEOUT' ? error.code : 'NUI_REQUEST_FAILED'});
             }
         }
 
-        return {ok:false,error:'NUI_UNAVAILABLE'};
+        return finish({ok:false,error:'NUI_UNAVAILABLE'});
     }
 };

@@ -9,8 +9,23 @@ const overlay=process.env.FLECITY_OVERLAY;
 function read(relative){const candidate=overlay&&path.join(overlay,relative);return fs.readFileSync(candidate&&fs.existsSync(candidate)?candidate:path.join(source,relative),'utf8');}
 function bridge(extra={}){
  const ctx={performance,setTimeout:(fn,ms)=>setTimeout(fn,ms===12000?15:ms),clearTimeout,AbortController,...extra};
- ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(read('web/shared/bridge.js'),ctx);return ctx.FlecityBridge;
+ ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(read('web/shared/bridge.js'),ctx);ctx.FlecityBridge.diagnostics=ctx.FlecityDiagnostics;return ctx.FlecityBridge;
 }
+test('diagnostics retain error class and duration without secret clue or player data',async()=>{
+ const api=bridge({fetchNui:async()=>({ok:false,error:'TABOO_FORBIDDEN_WORD'})});
+ await api.call('partySubmitNgWordClue',{clue:'秘密のお題',citizenid:'PRIVATE_PLAYER'});
+ const rows=api.diagnostics.snapshot();assert.equal(rows.length,1);
+ assert.equal(rows[0].action,'partySubmitNgWordClue');assert.equal(rows[0].error,'TABOO_FORBIDDEN_WORD');
+ assert(Number.isFinite(rows[0].elapsedMs));
+ assert(!JSON.stringify(rows).includes('秘密のお題')&&!JSON.stringify(rows).includes('PRIVATE_PLAYER'));
+});
+test('diagnostics reject unstructured callback errors containing private values',async()=>{
+ const api=bridge({fetchNui:async()=>({ok:false,error:'room 2468 belongs to PRIVATE_PLAYER'})});
+ await api.call('partyJoinRoom',{code:'2468'});
+ const rows=api.diagnostics.snapshot();
+ assert.equal(rows[0].error,'UNCLASSIFIED_ERROR');
+ assert(!JSON.stringify(rows).includes('2468')&&!JSON.stringify(rows).includes('PRIVATE_PLAYER'));
+});
 test('phone acknowledgement failure never replays an accepted mutation',async()=>{
  let sends=0;
  const api=bridge({fetchNui:async()=>{sends++;throw Error('ack lost');}});

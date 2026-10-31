@@ -21,10 +21,12 @@ WAVEは単独リソース。`fxmanifest.lua` はLua 5.4、`config/shared.lua`、
 | WAVE静的・Lua構文・依存宣言 | **PASS**。実依存API稼働はNOT_RUN |
 | WAVEブラウザーNUI | **PASS**。390×844、1366×768、1920×1080、2560×1440のHome/Search/Library/Studio/Profileと入力・配置。実LB Phoneではない |
 | Lua模擬callback | **PASS**。保存/公開/公開停止/再公開、購入分配・失敗時返金、出金下限、プレビュー非精算、一般/管理者権限、衝突時のアプリ保護 |
-| 使い捨てMariaDB | DDLを2回import **PASS**。実API/実課金/既存DBはNOT_RUNのためDBスイート全体はNOT_RUN |
+| 使い捨てMariaDB | 実 `server/main.lua` 由来の19 CREATE TABLEを2回適用し、19件・InnoDBを確認 **PASS**。実API/実課金/既存DBはNOT_RUNのためDBスイート全体はNOT_RUN |
 | 現行サーバー・複数実クライアント | **NOT_RUN**。更新・起動・再起動は0件 |
 
 既存配置12ファイルを `.flecity-dev/projects/wave/backups/2026-10-31T22-40-04-195Z-b8f42411/resource` に完全コピー。inventory SHA256 `1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050`。隔離復元12件と設置先の再照合はPASS。
+
+従来のDBスイートは説明用 `wave/sql/wave.sql` のSELECTを2回実行するだけだったため、DDL検証として不十分だった。アダプターを実Luaの19 CREATE文へ変更し、上記使い捨てDBで再検証した。旧結果を実スキーマのPASS根拠にしない。
 
 ## ZIP・導入判断
 

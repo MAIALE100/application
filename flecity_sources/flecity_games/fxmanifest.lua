@@ -11,6 +11,8 @@ shared_scripts {
     'shared/game_registry.lua'
 }
 
+ui_page 'web/screen/index.html'
+
 client_scripts {
     'client/main.lua'
 }

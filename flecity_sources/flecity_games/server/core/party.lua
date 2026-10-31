@@ -3369,9 +3369,13 @@ reconcileRound=function(room)
         elseif rs.gameId=='fake_answer' then
             if rs.phase=='submit' then buildFakeAnswerOptions(room) else finishFakeAnswer(room,true) end
         elseif rs.gameId=='bomb' then finishBomb(room,'TURN_TIMEOUT')
+        elseif rs.gameId=='memory_chain' then
+            if rs.phase=='memorize' then openMemoryInput(room)
+            elseif rs.phase=='input' then resolveMemoryStage(room,true)
+            else abortRound(room,'ROUND_TIMEOUT') end
         elseif rs.gameId=='fall_battle' then maybeFinishFallBattle(room,true)
         else abortRound(room,'ROUND_TIMEOUT') end
-        if not rs.complete and rs.gameId~='telephone' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
+        if not rs.complete and rs.gameId~='telephone' and rs.gameId~='memory_chain' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
         return true
     end
 

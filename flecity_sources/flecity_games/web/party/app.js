@@ -1457,7 +1457,7 @@ if(globalThis.FlecityScreen)FlecityScreen.start({
      if(game.id==='telephone'||(FlecityScreen.expanded&&!['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','fall_battle'].includes(game.id)))continue;
      const option=document.createElement('option');option.value=game.id;option.textContent=(game.premium?'★ ':'')+game.name;gameEl.appendChild(option);
    }
-   currentRoom=s.currentRoom;activeRoundToken=s.activeRoundToken;lastRoomRevision=s.lastRoomRevision;
+   currentRoom=s.currentRoom;if(currentRoom)currentRoom.serverTick=s.serverTick+(Date.now()-s.at);activeRoundToken=s.activeRoundToken;lastRoomRevision=s.lastRoomRevision;
    serverOffsetMs=s.serverTick+(Date.now()-s.at)-performance.now();serverOffsetReady=true;
    memoryChainLocal=s.memoryChainLocal;memoryChainKey=s.memoryChainKey;telephoneStrokes=s.telephoneStrokes;codeBreakGuess=s.codeBreakGuess;codeBreakToken=s.codeBreakToken;
    miniShogiSelected=s.miniShogiSelected;miniShogiDropKind=s.miniShogiDropKind;

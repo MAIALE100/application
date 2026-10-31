@@ -1,5 +1,8 @@
 # Flecity local development
 
+- 運営提出優先: LOOP → BASE → LINK → WAVE。`devtools/flecity/SUBMISSION_OPERATIONS_JA.md` と `SUBMISSION_STATUS.json` を読む。プリフォト/フレプリは提出済みの保守枠、Photo Diaryは別の保留枠。大規模機能追加を優先しない。
+- 無人のアプリ編集は既存mutexを使う `automation-run.ps1 -Proposal` で適用・回帰・アプリ別ローカルGit保存まで行う。候補ZIP/実機/公開の条件を未実施のままPASSにしない。
+
 - この専用環境の最新運用は `devtools/flecity/NEXT_SESSION_JA.md` と `MIGRATION_STATE.json`。プリフォトのみ移行・編集・追加・削除・自動検証をPAUSEDとし、他アプリと共通基盤は独立して継続する。
 - GitHub禁止のユーザー指示は、取り込みソース内の古いPR/Actions指示より優先する。元フォルダの作業ファイル・バックアップ・既存サーバー・既存DBを変更しない。
 

@@ -5,12 +5,14 @@ import {repo,state,tool,readJSON,json,inventory,sha,noLinks,inside,project} from
 import {eligible,isolatedJobs,runNode} from './automation-control.mjs';
 import {localThenObservation} from './server/state-observer.mjs';
 import {automaticReadiness} from './server/automatic-readiness.mjs';
+import {submissionTasks,submissionDecision} from './submission-priority.mjs';
+import {prepareLocalChange,applyLocalChange,finishLocalChange} from './local-change.mjs';
 
 const root=path.join(state,'automation');noLinks(root);
 const lease=readJSON(path.join(root,'lease.json'));
 if(!process.env.FLECITY_AUTODEV_LEASE||lease.nonce!==process.env.FLECITY_AUTODEV_LEASE||lease.pid!==process.ppid||path.resolve(lease.workspace)!==repo)throw Error('Run through automation-run.ps1 with its OS mutex');
 const policy=readJSON(path.join(tool,'MIGRATION_STATE.json'));
-if(path.resolve(policy.workspace)!==repo||policy.mode!=='offline-validation')throw Error('Unexpected automation policy');
+if(path.resolve(policy.workspace)!==repo||!['offline-validation','submission-priority'].includes(policy.mode))throw Error('Unexpected automation policy');
 const started=Date.now(),deadline=started+20*60000,runId=new Date(started).toISOString().replace(/[:.]/g,'-')+'-'+crypto.randomBytes(3).toString('hex');
 const out=path.join(root,'runs',runId);fs.mkdirSync(out,{recursive:true});
 // Stop growth instead of silently deleting evidence, user photos, or backups.
@@ -21,7 +23,10 @@ if(oldEvidence)throw Error('Evidence older than 30 days requires archive review;
 const historyPath=path.join(root,'state.json'),history=fs.existsSync(historyPath)?readJSON(historyPath):{};
 function protectedSnapshot(){try{return inventory(path.join(repo,'puriphoto'));}catch{return null;}}
 const protectedBefore=protectedSnapshot();
-const tasks=[{id:'toolkit',suites:['tests']},...['base','link','loop','wave','flepri'].map(id=>({id,suites:id==='base'?['static','db','nui','visual']:id==='link'?['static','db','game','virtual-multiplayer','nui','visual']:id==='loop'?['static','db','virtual-multiplayer','visual']:['static','db','nui','visual']}))];
+const proposalIndex=process.argv.indexOf('--proposal');
+let localChange=null,proposalFailure=null;
+if(proposalIndex>=0){try{localChange=applyLocalChange(prepareLocalChange(process.argv[proposalIndex+1],policy));}catch(e){proposalFailure={status:e.message.startsWith('APPLY_FAILED_REVIEW')?'REVIEW_REQUIRED':'PROPOSAL_REJECTED',reason:e.message};}}
+const tasks=submissionTasks(policy);
 const {results,serverObservation}=await localThenObservation(async()=>{
 const results=[];
 for(const task of tasks){
@@ -47,18 +52,27 @@ for(const task of tasks){
   results.push(...entries);json(historyPath,history);
 }
 results.push({id:'puriphoto',status:'PAUSED',protectedUnchanged:protectedBefore!==null&&JSON.stringify(protectedBefore)===JSON.stringify(protectedSnapshot()),reason:'User withheld migration approval; no commands or writes'});
+for(const [id,app]of Object.entries(policy.apps))if(app.track==='hold')results.push({id,status:'PAUSED',reason:'Separate held-app track; not a submission target'});
 return results;
 });
 // Observe only after independent local work. A stopped/unreachable server never cancels local work.
+const development=localChange?finishLocalChange(localChange,results):proposalFailure||{status:'NO_PROPOSAL',reason:'Read-only regression run'};
 const updatePolicy=readJSON(path.join(tool,'UPDATE_POLICY.json'));
-const heldUpdates=tasks.filter(t=>t.id!=='toolkit').map(t=>{
+const heldUpdates=tasks.filter(t=>t.id!=='toolkit'&&policy.apps[t.id]?.track==='submission').map(t=>{
   try{
   return automaticReadiness(project(t.id),updatePolicy);
   }catch{return {app:t.id,status:'BLOCKED',reasons:['SOURCE_OR_REGISTRATION_UNAVAILABLE'],mutated:false};}
 });
-const summary={runId,started:new Date(started).toISOString(),finished:new Date().toISOString(),mode:policy.mode,results,serverObservation,heldUpdates,updatedResources:[],status:results.some(r=>r.status==='FAIL'||r.protectedUnchanged===false)?'FAIL':results.some(r=>r.status==='BLOCKED')?'BLOCKED':results.some(r=>r.status==='NOT_RUN')?'NOT_RUN':'PASS'};
+const readiness=readJSON(path.join(tool,'SUBMISSION_STATUS.json'));
+const submissions=tasks.filter(t=>readiness.apps[t.id]?.track==='submission').map(t=>{
+  const sourceHash=results.find(r=>r.id===t.id)?.sourceHash;
+  return {app:t.id,...submissionDecision(readiness.apps[t.id],sourceHash),remaining:readiness.apps[t.id].remaining};
+});
+const summary={runId,started:new Date(started).toISOString(),finished:new Date().toISOString(),mode:policy.mode,results,development,submissions,serverObservation,heldUpdates,updatedResources:[],status:results.some(r=>r.status==='FAIL'||r.protectedUnchanged===false)?'FAIL':results.some(r=>r.status==='BLOCKED')?'BLOCKED':results.some(r=>r.status==='NOT_RUN')?'NOT_RUN':'PASS'};
 json(path.join(out,'summary.json'),summary);json(path.join(root,'latest.json'),summary);
 fs.writeFileSync(path.join(out,'REPORT_JA.md'),'# 定期検証結果\n\n## 開発・ローカル検証\n\n'+results.map(r=>'- '+r.id+': '+r.status).join('\n')+
+  '\n\n## 開発変更・ローカルGit\n\n'+JSON.stringify(development)+
+  '\n\n## アプリ別完成状況・提出可否\n\n'+submissions.map(s=>'- '+s.app+': '+s.status+' / '+s.blockers.join(', ')+'\n  残作業: '+s.remaining.join(' / ')).join('\n')+
   '\n\n## サーバー状態\n\n'+JSON.stringify(serverObservation)+'\n\n## 更新・保留\n\n更新したリソース: なし。\n'+heldUpdates.map(r=>'- '+r.app+': 保留 ('+r.reasons.join(', ')+')').join('\n')+
   '\n\n## 不具合・次回作業\n\nFAILは個別ログを確認。承認済みUI基準画像、未登録の仮想テスト、初回更新承認・ネイティブ観測/再起動アダプターが未整備の項目はNOT_RUN/BLOCKED。既存DB・リソース更新・実FiveM操作なし。プリフォトは保留。使い捨てDBだけでSQLを検証。\n');
 console.log(JSON.stringify(summary,null,2));process.exitCode=summary.status==='FAIL'||summary.status==='BLOCKED'?1:summary.status==='NOT_RUN'?2:0;

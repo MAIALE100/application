@@ -93,8 +93,8 @@ export function gitSnapshot(id,ref,resourcePath){
   const cfg=local();cfg.sources[id].inspectionOnly=false;cfg.sources[id].gitCommit=commit;saveLocal(cfg);
   return imported;
 }
-export function checkpoint(config,message='local checkpoint') {
-  const dir=path.join(state,'projects',config.id,'git');noLinks(dir);fs.mkdirSync(dir,{recursive:true});
+export function checkpoint(config,message='local checkpoint',storageRoot=state) {
+  const dir=path.join(storageRoot,'projects',config.id,'git');noLinks(dir);fs.mkdirSync(dir,{recursive:true});
   const git=(args)=>{const r=command('git',['-C',dir,...args]);if(!r.ok)throw Error(r.output);return r.output.trim();};
   if(!fs.existsSync(path.join(dir,'.git')))git(['init']);
   const snap=path.join(dir,'snapshots',new Date().toISOString().replace(/[:.]/g,'-'));

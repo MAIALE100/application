@@ -1,0 +1,121 @@
+{
+  "mode": "submission-priority",
+  "priority": [
+    "loop",
+    "base",
+    "link",
+    "wave"
+  ],
+  "publicationRequiresUserApproval": true,
+  "apps": {
+    "loop": {
+      "track": "submission",
+      "auditedSourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "gates": {
+        "criticalBugs": "NOT_RUN",
+        "automatedTests": "NOT_RUN",
+        "liveFiveM": "NOT_RUN",
+        "dbAndPermissions": "NOT_RUN",
+        "japaneseUi": "NOT_RUN",
+        "crossAppAndData": "NOT_RUN",
+        "japaneseDocs": "NOT_RUN",
+        "zipInspection": "NOT_RUN"
+      },
+      "knownCriticalBugs": [],
+      "remaining": [
+        "15ゲーム全クリア/終了再開/保存の回帰",
+        "実時間長時間・低FPS/入力遅延・実LB Phone確認",
+        "共有リソースのLOOP先行構成とLINK無効境界の回帰",
+        "提出用日本語資料と最終ZIP検査"
+      ],
+      "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
+      "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "submission": "NOT_READY"
+    },
+    "base": {
+      "track": "submission",
+      "auditedSourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+      "gates": {
+        "criticalBugs": "NOT_RUN",
+        "automatedTests": "NOT_RUN",
+        "liveFiveM": "NOT_RUN",
+        "dbAndPermissions": "NOT_RUN",
+        "japaneseUi": "NOT_RUN",
+        "crossAppAndData": "NOT_RUN",
+        "japaneseDocs": "NOT_RUN",
+        "zipInspection": "NOT_RUN"
+      },
+      "knownCriticalBugs": [],
+      "remaining": [
+        "実ハンドラーの権限/不正入力監査を継続",
+        "在庫/招待トランザクションと実oxmysql契約の隔離統合",
+        "タスク/メモ/会計のDB永続化・同時更新・再起動保持",
+        "日本語実機確認と提出ZIP検査"
+      ],
+      "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
+      "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "submission": "NOT_READY"
+    },
+    "link": {
+      "track": "submission",
+      "auditedSourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "gates": {
+        "criticalBugs": "NOT_RUN",
+        "automatedTests": "NOT_RUN",
+        "liveFiveM": "NOT_RUN",
+        "dbAndPermissions": "NOT_RUN",
+        "japaneseUi": "NOT_RUN",
+        "crossAppAndData": "NOT_RUN",
+        "japaneseDocs": "NOT_RUN",
+        "zipInspection": "NOT_RUN"
+      },
+      "knownCriticalBugs": [],
+      "remaining": [
+        "全ゲームロジック/権限/秘密情報/退出再接続",
+        "模擬2〜4人と実複数接続を別々に検証",
+        "日本語UIと提出資料"
+      ],
+      "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
+      "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "submission": "NOT_READY"
+    },
+    "wave": {
+      "track": "submission",
+      "auditedSourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+      "gates": {
+        "criticalBugs": "NOT_RUN",
+        "automatedTests": "NOT_RUN",
+        "liveFiveM": "NOT_RUN",
+        "dbAndPermissions": "NOT_RUN",
+        "japaneseUi": "NOT_RUN",
+        "crossAppAndData": "NOT_RUN",
+        "japaneseDocs": "NOT_RUN",
+        "zipInspection": "NOT_RUN"
+      },
+      "knownCriticalBugs": [],
+      "remaining": [
+        "作曲/保存/再生/公開非公開の回帰",
+        "購入/サブスク/分配/払出/管理権限のモック安全検証",
+        "専用DB統合と実機、日本語資料"
+      ],
+      "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
+      "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",
+      "submission": "NOT_READY"
+    },
+    "flepri": {
+      "track": "maintenance",
+      "submission": "ALREADY_SUBMITTED",
+      "policy": "重大不具合の保守優先。大規模機能/UI変更なし"
+    },
+    "puriphoto": {
+      "track": "maintenance",
+      "submission": "ALREADY_SUBMITTED",
+      "migration": "PAUSED",
+      "policy": "255差分を保護。重大不具合以外の拡張なし"
+    },
+    "photo_diary": {
+      "track": "hold",
+      "submission": "OUT_OF_SCOPE"
+    }
+  }
+}

@@ -1,5 +1,8 @@
 # Flecity ローカルAI自動開発・無人検証 統合マスター指示書
 
+2026-10-31最新の優先順位変更: **運営提出優先モード LOOP→BASE→LINK→WAVE**。この後の旧優先順位より最新ユーザー指示を優先する。
+プリフォト/フレプリは提出済み保守、Photo Diaryは別保留。詳細はSUBMISSION_OPERATIONS_JA.md/SUBMISSION_STATUS.jsonを参照。
+
 更新日: 2026-10-31
 用途: ローカルCodex「fivem/アプリ開発系」へ一度渡し、既存プロジェクトに永続的な開発運用ルールと定期実行を整備する。
 

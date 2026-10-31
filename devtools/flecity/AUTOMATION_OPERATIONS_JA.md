@@ -2,7 +2,8 @@
 
 対象: D:/FiveM_AutoDev/workspace-clean / project ID e0209a29-99b4-430b-9842-ec6c2eab5e21。
 既存自動化ID flecity-02-00-13-00-jst を毎日02:00・13:00（Asia/Tokyo）で復旧する。実登録はCodex自動化画面とautomation.tomlで確認する。
-プリフォトのみPAUSED。共通基盤・BASE・LINK・LOOP・WAVE・フレプリのT0/T1/T2を継続。初期復旧は検証継続モードであり、ソース自動修正・自動配置は含まない。
+現在は運営提出優先モード。LOOP→BASE→LINK→WAVEでローカル開発/検証を進め、提出済みフレプリは静的な保守回帰のみ、プリフォトはPAUSED、Photo Diaryは別保留。
+ローカル修正は-Proposalで既存mutexの内部に適用・回帰・アプリ別Git保存まで限定する。詳細はSUBMISSION_OPERATIONS_JA.md。実サーバーへの自動配置は含まない。
 
 ## 入口と強制ガード
 

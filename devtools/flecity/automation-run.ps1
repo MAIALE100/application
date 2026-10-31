@@ -1,11 +1,13 @@
 param(
     [ValidateRange(0,10000)][int]$GuardProbeMilliseconds = 0,
-    [ValidatePattern('^$|^[a-f0-9]{32}$')][string]$GuardProbeId = ''
+    [ValidatePattern('^$|^[a-f0-9]{32}$')][string]$GuardProbeId = '',
+    [string]$Proposal = ''
 )
 $ErrorActionPreference = 'Stop'
 $workspaceRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $stateRoot = Join-Path $workspaceRoot '.flecity-dev\automation'
 if ($GuardProbeMilliseconds -gt 0) {
+    if ($Proposal) { throw 'Guard probe cannot apply a proposal' }
     if (-not $GuardProbeId) { throw 'Guard probes require a unique fixture ID' }
     $stateRoot = Join-Path $stateRoot "probes\$GuardProbeId"
 } elseif ($GuardProbeId) { throw 'Fixture ID is only allowed for guard probes' }
@@ -34,7 +36,11 @@ try {
         $exitCode = 0
     } else {
         Push-Location -LiteralPath $workspaceRoot
-        try { & (Get-Command node -ErrorAction Stop).Source (Join-Path $PSScriptRoot 'automation-run.mjs'); $exitCode = $LASTEXITCODE }
+        try {
+            if ($Proposal) { & (Get-Command node -ErrorAction Stop).Source (Join-Path $PSScriptRoot 'automation-run.mjs') '--proposal' $Proposal }
+            else { & (Get-Command node -ErrorAction Stop).Source (Join-Path $PSScriptRoot 'automation-run.mjs') }
+            $exitCode = $LASTEXITCODE
+        }
         finally { Pop-Location }
     }
 } finally {

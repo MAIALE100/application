@@ -1,0 +1,767 @@
+{
+  "checkedAt": "2026-10-31T12:55:32.689Z",
+  "priority": [
+    "loop",
+    "base",
+    "link",
+    "wave"
+  ],
+  "common": {
+    "at": "2026-10-31T12:51:32.528Z",
+    "exitCode": 0,
+    "tests": 122,
+    "pass": 122,
+    "fail": 0,
+    "skipped": 0
+  },
+  "server": {
+    "status": "RUNNING",
+    "healthy": true,
+    "players": 0,
+    "authoritative": false,
+    "nativeProof": "NOT_RUN — installed bridge status capability has not been approved",
+    "checkedAt": "2026-10-31T12:55:32.702Z"
+  },
+  "updatedResources": [],
+  "apps": {
+    "loop": {
+      "source": "flecity_sources\\flecity_games",
+      "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "version": "0.79.6-test",
+      "featureCodePresent": [
+        "15一人用ゲーム",
+        "ランキング/Daily/実績",
+        "対応ゲームの途中保存"
+      ],
+      "suites": {
+        "static": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\loop\\static-latest.json",
+          "checks": [
+            {
+              "name": "manifest",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\party\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\party\\fall_battle.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\play\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\bridge.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\controls.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\errors.js",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: client\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: config\\shared.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: fxmanifest.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\bridge\\framework.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\database.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\dev_reload.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party_fall.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party_plus.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\play.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\profile.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\rate_limit.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\text.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\data\\party_plus_prompts.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: shared\\game_registry.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "NUI local assets",
+              "status": "PASS"
+            },
+            {
+              "name": "SQL source: sql\\001_initial.sql",
+              "status": "PASS"
+            },
+            {
+              "name": "LOOP real Lua game/rate/timing invariants (JSON codec excluded)",
+              "status": "PASS"
+            },
+            {
+              "name": "LOOP/LINK disabled callback and billing boundary",
+              "status": "PASS"
+            },
+            {
+              "name": "LOOP game registry",
+              "status": "PASS"
+            }
+          ]
+        },
+        "db": {
+          "status": "NOT_RUN",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\loop\\db-latest.json",
+          "checks": [
+            {
+              "name": "Disposable MariaDB isolation",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP MariaDB schema / idempotent import",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP duplicate score transaction rollback",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP concurrent duplicate session rejection",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK actual server/room/AI integration",
+              "status": "NOT_RUN"
+            },
+            {
+              "name": "Disposable MariaDB shutdown",
+              "status": "PASS"
+            }
+          ]
+        },
+        "nui": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\loop\\nui-latest.json",
+          "checks": [
+            {
+              "name": "NUI offline browser scenario",
+              "status": "PASS"
+            }
+          ]
+        },
+        "virtual-multiplayer": {
+          "status": "PASS",
+          "sourceHash": "df5a99bd7286b3b9ccf2374e0a7e07b70307e7490fc682d08892fee40c1cc0fc",
+          "currentBytes": false,
+          "evidence": ".flecity-dev\\projects\\loop\\virtual-multiplayer-latest.json",
+          "checks": [
+            {
+              "name": "Virtual actors: devtools/flecity/modules/link-multiplayer.mjs",
+              "status": "PASS"
+            }
+          ]
+        },
+        "visual": {
+          "status": "NOT_RUN",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\loop\\visual-latest.json",
+          "checks": [
+            {
+              "name": "Approved UI image comparison",
+              "status": "NOT_RUN"
+            }
+          ]
+        }
+      },
+      "submission": "NOT_READY"
+    },
+    "base": {
+      "source": "flecity_base",
+      "sourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+      "version": "0.11.0-dev",
+      "featureCodePresent": [
+        "MY SPACE/共有BASE/権限",
+        "メモ/在庫/タスク/内部会計/電卓",
+        "在庫任意項目"
+      ],
+      "suites": {
+        "static": {
+          "status": "PASS",
+          "sourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\base\\static-latest.json",
+          "checks": [
+            {
+              "name": "manifest",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: tests\\source-regression.mjs",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: client\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: config.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: fxmanifest.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\custom_fields.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\database.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\framework.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: tests\\custom-fields.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: tests\\server-access.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "NUI local assets",
+              "status": "PASS"
+            },
+            {
+              "name": "SQL source: sql\\schema.sql",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE source regression",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE Lua regression",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE real-handler access and note preservation",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE schema/callback/CSS invariants",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE known data-loss regression source guard",
+              "status": "PASS"
+            }
+          ]
+        },
+        "db": {
+          "status": "NOT_RUN",
+          "sourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\base\\db-latest.json",
+          "checks": [
+            {
+              "name": "Disposable MariaDB isolation",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE MariaDB schema / idempotent import",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE SQL FK failure rollback",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE SQL concurrent quantity/history",
+              "status": "PASS"
+            },
+            {
+              "name": "BASE actual oxmysql/FiveM integration",
+              "status": "NOT_RUN"
+            },
+            {
+              "name": "Disposable MariaDB shutdown",
+              "status": "PASS"
+            }
+          ]
+        },
+        "nui": {
+          "status": "PASS",
+          "sourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\base\\nui-latest.json",
+          "checks": [
+            {
+              "name": "NUI offline browser scenario",
+              "status": "PASS"
+            },
+            {
+              "name": "Offline fixture cleanup / protected-row audit",
+              "status": "PASS"
+            }
+          ]
+        },
+        "visual": {
+          "status": "NOT_RUN",
+          "sourceHash": "bd23a44b95da5a7188dee85f7b261edd8c711b755d055c6ff8a934b431119105",
+          "currentBytes": false,
+          "evidence": ".flecity-dev\\projects\\base\\visual-latest.json",
+          "checks": [
+            {
+              "name": "Approved UI image comparison",
+              "status": "NOT_RUN"
+            }
+          ]
+        }
+      },
+      "submission": "NOT_READY"
+    },
+    "link": {
+      "source": "flecity_sources\\flecity_games",
+      "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+      "version": "0.79.6-test",
+      "featureCodePresent": [
+        "15 PARTYゲーム",
+        "ルーム/手番/再接続",
+        "LINK+コード"
+      ],
+      "suites": {
+        "static": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\static-latest.json",
+          "checks": [
+            {
+              "name": "manifest",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\party\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\party\\fall_battle.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\play\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\bridge.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\controls.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\shared\\errors.js",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: client\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: config\\shared.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: fxmanifest.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\bridge\\framework.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\database.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\dev_reload.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party_fall.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\party_plus.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\play.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\profile.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\rate_limit.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\core\\text.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\data\\party_plus_prompts.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: shared\\game_registry.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "NUI local assets",
+              "status": "PASS"
+            },
+            {
+              "name": "SQL source: sql\\001_initial.sql",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK Lua rule/rate regressions",
+              "status": "PASS"
+            },
+            {
+              "name": "Shared app disabled callback and billing boundary",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/PARTY identity and callback surface",
+              "status": "PASS"
+            }
+          ]
+        },
+        "db": {
+          "status": "NOT_RUN",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\db-latest.json",
+          "checks": [
+            {
+              "name": "Disposable MariaDB isolation",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP MariaDB schema / idempotent import",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP duplicate score transaction rollback",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK/LOOP concurrent duplicate session rejection",
+              "status": "PASS"
+            },
+            {
+              "name": "LINK actual server/room/AI integration",
+              "status": "NOT_RUN"
+            },
+            {
+              "name": "Disposable MariaDB shutdown",
+              "status": "PASS"
+            }
+          ]
+        },
+        "nui": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\nui-latest.json",
+          "checks": [
+            {
+              "name": "NUI offline browser scenario",
+              "status": "PASS"
+            },
+            {
+              "name": "Offline fixture cleanup / protected-row audit",
+              "status": "PASS"
+            }
+          ]
+        },
+        "game": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\game-latest.json",
+          "checks": [
+            {
+              "name": "Game module: devtools/flecity/modules/link-fall-battle.mjs",
+              "status": "PASS"
+            },
+            {
+              "name": "Game module: devtools/flecity/modules/link-solo.mjs",
+              "status": "PASS"
+            }
+          ]
+        },
+        "virtual-multiplayer": {
+          "status": "PASS",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\virtual-multiplayer-latest.json",
+          "checks": [
+            {
+              "name": "Virtual actors: devtools/flecity/modules/link-multiplayer.mjs",
+              "status": "PASS"
+            }
+          ]
+        },
+        "visual": {
+          "status": "NOT_RUN",
+          "sourceHash": "602920d75b5bae1c4665ddfbcb4ebdae12b4ed6cde0ddf42e44e1957c9ecb69d",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\link\\visual-latest.json",
+          "checks": [
+            {
+              "name": "Approved UI image comparison",
+              "status": "NOT_RUN"
+            }
+          ]
+        }
+      },
+      "submission": "NOT_READY"
+    },
+    "wave": {
+      "source": "wave",
+      "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+      "version": "0.3.5-test",
+      "featureCodePresent": [
+        "作曲/保存/再生UI",
+        "公開/非公開・購入・権限",
+        "内部収益/払出コード",
+        "サブスク権限参照。契約/更新は要調査"
+      ],
+      "suites": {
+        "static": {
+          "status": "PASS",
+          "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\wave\\static-latest.json",
+          "checks": [
+            {
+              "name": "manifest",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\app.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\score-tools.js",
+              "status": "PASS"
+            },
+            {
+              "name": "JS syntax: web\\studio-extras.js",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: client\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: config\\shared.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: fxmanifest.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "Lua syntax: server\\main.lua",
+              "status": "PASS"
+            },
+            {
+              "name": "NUI local assets",
+              "status": "PASS"
+            },
+            {
+              "name": "SQL source: sql\\wave.sql",
+              "status": "PASS"
+            },
+            {
+              "name": "WAVE app/CSS contract",
+              "status": "PASS"
+            },
+            {
+              "name": "WAVE score navigation pure functions",
+              "status": "PASS"
+            }
+          ]
+        },
+        "db": {
+          "status": "NOT_RUN",
+          "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\wave\\db-latest.json",
+          "checks": [
+            {
+              "name": "Disposable MariaDB isolation",
+              "status": "PASS"
+            },
+            {
+              "name": "WAVE disposable schema import",
+              "status": "PASS"
+            },
+            {
+              "name": "WAVE actual data/API integration",
+              "status": "NOT_RUN"
+            },
+            {
+              "name": "Disposable MariaDB shutdown",
+              "status": "PASS"
+            }
+          ]
+        },
+        "nui": {
+          "status": "NOT_RUN",
+          "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\wave\\nui-latest.json",
+          "checks": [
+            {
+              "name": "NUI browser scenario",
+              "status": "NOT_RUN"
+            }
+          ]
+        },
+        "visual": {
+          "status": "NOT_RUN",
+          "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+          "currentBytes": true,
+          "evidence": ".flecity-dev\\projects\\wave\\visual-latest.json",
+          "checks": [
+            {
+              "name": "Approved UI image comparison",
+              "status": "NOT_RUN"
+            }
+          ]
+        }
+      },
+      "submission": "NOT_READY"
+    }
+  },
+  "appLocalCommits": {
+    "base": "066a84d41f633601909e5e8048d1f37ba71fc708",
+    "loop": "fbc2e89a31d67d9d17706f3d439830229f3f69de",
+    "link": "6cc409aeeaa19214615107ce6bc3ada311fed02d",
+    "wave": "142aa3758c5cbaeba311c3bfd0bdbe377316e27e"
+  },
+  "parentCommits": {
+    "base": "9c41e0d",
+    "loopAndLink": "bc23d87"
+  },
+  "offlineSourceComparison": {
+    "D:/FiveM_Dev/application": {
+      "flecity_games/web/play/app.js": {
+        "sha256": "58aef0816bfc44735d86cff245fd598a1c656f99b3b5da3efc1332d478881943",
+        "bytes": 216320
+      },
+      "flecity_games/server/core/play.lua": {
+        "sha256": "b96683e817e55d5b9c82e4d4f9da7d57e7fa3e76965254a24e7dd640825f8afb",
+        "bytes": 127178
+      }
+    },
+    "D:/FiveM_Dev/_flecity_games_manual": {
+      "flecity_games/web/play/app.js": {
+        "sha256": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+        "bytes": 227409
+      },
+      "flecity_games/server/core/play.lua": {
+        "sha256": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87",
+        "bytes": 127941
+      }
+    },
+    "D:/FiveM_Dev/_flecity_games_release": {
+      "flecity_games/web/play/app.js": {
+        "sha256": "4488d3f9bcd20d3612ffba669c96eae2fe15483368a559148d067e70fdfbd743",
+        "bytes": 219730
+      },
+      "flecity_games/server/core/play.lua": {
+        "sha256": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87",
+        "bytes": 127941
+      }
+    }
+  }
+}

@@ -32,8 +32,9 @@ export async function jointScenario(ctx,page){
  ctx.solo.activate(null);
  const rows=[];
  for(const g of ctx.joint.games){
-  for(const width of [390,360]){
-   await page.setViewportSize({width,height:844});
+  for(const [width,height] of [[390,844],[1366,768],[1920,1080],[2560,1440]]){
+   await page.setViewportSize({width,height});
+   await page.evaluate(expanded=>document.body.classList.toggle('screen-expanded',expanded),width>600);
    // Each private-role view uses its real server projection, not an invented UI fixture.
    const views=[...g.views,...(g.resultView?[g.resultView]:[])];
    for(let i=0;i<views.length;i++){
@@ -44,6 +45,7 @@ export async function jointScenario(ctx,page){
    }
   }
  }
+ await page.evaluate(()=>document.body.classList.remove('screen-expanded'));
  saveLayout(ctx,'joint-layout',rows);
  const telephone=ctx.joint.games.find(g=>g.id==='telephone');
  assert.equal(telephone.players,6);

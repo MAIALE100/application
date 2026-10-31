@@ -60,9 +60,13 @@ export async function scenario(ctx,page){
         const method={quick_tap:'quick',stop:'stop',color_match:'color',number_rush:'number',high_low:'high',simon:'simon'}[game.id];
         await page.evaluate(method=>globalThis.__loopAudit[method](),method);
       }
-      if(cycle===0)for(const width of [390,360]){
-        await page.setViewportSize({width,height:844});
-        layouts.push({game:game.id,...await captureLayout(ctx,page,`loop-${game.id}-${width}`)});
+      if(cycle===0){
+        for(const [width,height] of [[390,844],[1366,768],[1920,1080],[2560,1440]]){
+          await page.setViewportSize({width,height});
+          await page.evaluate(expanded=>document.body.classList.toggle('screen-expanded',expanded),width>600);
+          layouts.push({game:game.id,...await captureLayout(ctx,page,`loop-${game.id}-${width}`)});
+        }
+        await page.evaluate(()=>document.body.classList.remove('screen-expanded'));
       }
       await page.evaluate(()=>globalThis.__loopAudit.suspend());
       assert(await page.locator('#home').isVisible());

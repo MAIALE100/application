@@ -2,6 +2,7 @@
   "id": "wave",
   "resource": "wave",
   "source": "wave",
+  "nui": {"entry":"web/index.html"},
   "kind": "lb-phone",
   "adapter": "wave",
   "logTags": [

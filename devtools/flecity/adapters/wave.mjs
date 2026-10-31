@@ -19,3 +19,4 @@ export async function staticChecks(ctx){
 }
 export { staticChecks as static };
 export async function db(ctx){await schemaSmoke(ctx,ctx.read('sql/wave.sql'),'WAVE');}
+export {prepare as nuiPrepare,scenario as nui} from '../ui/wave.mjs';

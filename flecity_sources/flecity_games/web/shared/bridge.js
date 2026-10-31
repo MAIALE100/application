@@ -78,7 +78,15 @@ async function callPhoneNui(request) {
 
 window.FlecityBridge = {
     async call(action, payload) {
-        const request = {action: action, payload: payload || {}};
+        const screen=window.FlecityScreen,control=/^(screen|localDiagnostics)/.test(action);
+        if(screen?.parked&&!control)return {ok:false,error:'APP_SUSPENDED'};
+        if(screen&&!control)screen.begin();
+        try { return await this.invoke(action,payload); }
+        finally { if(screen&&!control)screen.end(); }
+    },
+    async invoke(action, payload) {
+        const screen=window.FlecityScreen;
+        const request = {action: action, payload: payload || {},surface:screen?.surface||'phone',lease:screen?.lease||''};
         const started = performance.now();
         const finish = response => {
             if (!response?.ok) {
@@ -93,17 +101,19 @@ window.FlecityBridge = {
         // LB Phone injects fetchNui into the custom-app iframe. Wait briefly for
         // the componentsLoaded handshake so resource restarts do not require the
         // user to close/reopen the phone.
-        if (hasPhoneFetchNui() || typeof window.invokeNative !== 'undefined') {
+        if (screen?.surface!=='expanded' && (hasPhoneFetchNui() || typeof window.invokeNative !== 'undefined')) {
             const response = await callPhoneNui(request);
             if (response.error !== 'NUI_UNAVAILABLE') return finish(response);
         }
 
         // Direct NUI / browser-development fallback.
-        if (typeof GetParentResourceName === 'function') {
+        const directResource=typeof GetParentResourceName==='function'?GetParentResourceName():
+            screen?.expanded&&location.hostname.startsWith('cfx-nui-')?location.hostname.slice(8):null;
+        if (directResource) {
             try {
                 const controller = new AbortController();
                 return finish(await nuiDeadline(async () => {
-                    const response = await fetch('https://' + GetParentResourceName() + '/flecityGames:callback', {
+                    const response = await fetch('https://' + directResource + '/flecityGames:callback', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json; charset=UTF-8'},
                         body: JSON.stringify(request),

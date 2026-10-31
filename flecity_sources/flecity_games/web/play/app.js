@@ -116,6 +116,7 @@ function newStartRequestId(){
  return 'start-'+Date.now().toString(36)+'-'+startRequestCounter.toString(36);
 }
 async function startSessionWithRetry(payload){
+ if(globalThis.FlecityScreen?.expanded&&!['fall','block','merge','slide'].includes(payload?.gameId))return {ok:false,error:'APP_SUSPENDED'};
  const snapshot=JSON.parse(JSON.stringify(payload||{}));
  snapshot.startRequestId=snapshot.startRequestId||newStartRequestId();
  const epoch=appEpoch;
@@ -397,6 +398,7 @@ async function withLaunchLock(fn){
  try{await fn();}finally{launchLocked=false;dailyPlay.disabled=false;}
 }
 async function launchDaily(){
+ if(globalThis.FlecityScreen?.expanded&&!['block','slide'].includes(bootstrapData?.daily?.gameId))return;
  const daily=bootstrapData&&bootstrapData.daily;if(!daily)return;
  await withLaunchLock(async()=>{
    if(daily.gameId==='quick_tap')showQuick(true);
@@ -414,6 +416,7 @@ async function launchDaily(){
 dailyPlay.onclick=launchDaily;
 
 async function launchGame(gameId){
+ if(globalThis.FlecityScreen?.expanded&&!['fall','block','merge','slide'].includes(gameId))return;
  await withLaunchLock(async()=>{
    if(gameId==='quick_tap')showQuick();
    else if(gameId==='stop')openStop();
@@ -463,7 +466,7 @@ async function toggleFavorite(gameId){
  else{appSettings.favorites=previous;renderGames(bootstrapData&&bootstrapData.games);setStatus('お気に入りを保存できません: '+FlecityErrors.text(res.error),'error');}
 }
 function filteredLibraryGames(games){
- const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled);
+ const enabled=(games||[]).filter(g=>g.app==='play'&&g.enabled&&(!globalThis.FlecityScreen?.expanded||['fall','block','merge','slide'].includes(g.id)));
  if(libraryFilter==='all')return enabled;
  if(libraryFilter==='favorites'){
    const favorites=favoriteGameIds();return enabled.filter(g=>favorites.has(g.id));
@@ -3422,6 +3425,7 @@ async function suspendStep(label,action){
  catch(error){console.warn('[PLAY] suspend step failed:',label,error);return null;}
 }
 async function suspendActivePlay(){
+ if(globalThis.FlecityScreen?.transferring)return;
  if(suspendRunning)return;
  suspendRunning=true;appEpoch+=1;
  try{
@@ -3482,6 +3486,7 @@ async function suspendActivePlay(){
  }
 }
 document.addEventListener('visibilitychange',()=>{
+ if(globalThis.FlecityScreen?.transferring)return;
  if(document.hidden){refreshAfterSuspend=false;void suspendActivePlay();return;}
  if(!bootstrapData)return;
  if(suspendRunning){refreshAfterSuspend=true;return;}
@@ -3512,4 +3517,24 @@ function registerPlayPhoneLifecycle(){
 }
 registerPlayPhoneLifecycle();
 
-bootstrap();
+if(globalThis.FlecityScreen)FlecityScreen.start({
+ canTransfer:()=>!suspendRunning&&!confirmResolver&&!!bootstrapData&&
+   [block,merge,fallGame,slideGame].every(g=>!g?.busy&&!g?.finalizing)&&
+   [quickEl,stopEl,minesEl,stackEl,nonogramEl,memoryEl,sortEl,colorMatchEl,numberRushEl,highLowEl,simonEl].every(el=>el.classList.contains('hidden')),
+ snapshot:()=>JSON.parse(JSON.stringify({bootstrapData,saves,appSettings,block,merge,fallGame,slideGame,
+   view:!fallEl.classList.contains('hidden')?'fall':!blockEl.classList.contains('hidden')?'block':!mergeEl.classList.contains('hidden')?'merge':!slideEl.classList.contains('hidden')?'slide':'home',now:performance.now(),at:Date.now()})),
+ pause:()=>{stopFallGravity();stopFallSoftDrop();clearInterval(slideClock);slideClock=null;resetTransientInputState();},
+ restore:s=>{
+   bootstrapData=s.bootstrapData;saves=s.saves;applySettings(s.appSettings);
+   block=s.block;merge=s.merge;fallGame=s.fallGame;slideGame=s.slideGame;
+   // Translate monotonic clocks between browser contexts without resetting elapsed play time.
+   const shift=performance.now()-s.now-(Date.now()-s.at);
+   for(const g of [block,merge,fallGame,slideGame])if(g&&g.startedAt)g.startedAt+=shift;
+   hideAll();
+   if(s.view==='fall'){fallEl.classList.remove('hidden');renderFall();startFallGravity();}
+   else if(s.view==='block'){blockEl.classList.remove('hidden');renderBlock();}
+   else if(s.view==='merge'){mergeEl.classList.remove('hidden');renderMerge();}
+   else if(s.view==='slide'){slideEl.classList.remove('hidden');renderSlide();slideClock=setInterval(updateSlideTime,200);}
+   else showHome();
+ }
+},bootstrap);else bootstrap();

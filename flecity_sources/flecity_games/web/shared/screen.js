@@ -16,7 +16,7 @@ async function importState(state,id){
  if(lastImport===id)return;
  lease=id;activate(state);phase='waiting';
  const r=await call(expanded?'screenReady':'screenReturned');
- if(r.ok){lastImport=id;phase='active';say('');}else{park();say('切替の確認待ちです。');}
+ if(r.ok){lastImport=id;phase='active';say('');if(adapter.afterRestore)adapter.afterRestore();}else{park();say('切替の確認待ちです。');}
 }
 async function claim(){
  if(expanded||busy||!adapter)return false;
@@ -26,8 +26,8 @@ async function claim(){
  return false;
 }
 toggle.onclick=async()=>{
- if(busy||phase!=='active'||flight||!adapter.canTransfer()){say('盤面・テトリス・お絵描きで、通信や操作が終わってから切り替えてください。');return;}
- busy=true;const snapshot=adapter.snapshot();park();
+ if(busy||phase!=='active'||flight||!adapter||(!expanded&&!adapter.canTransfer())){say('盤面・テトリス・お絵描きで、通信や操作が終わってから切り替えてください。');return;}
+ busy=true;let snapshot;try{snapshot=adapter.snapshot();park();}catch(_){busy=false;say('切替を準備できませんでした。');return;}
  const r=await call(expanded?'screenClose':'screenOpen',{state:snapshot});
  if(!r.ok){
   // An uncertain acknowledgement must not create two active owners. Query the lease before resuming.

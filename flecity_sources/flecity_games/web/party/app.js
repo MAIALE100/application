@@ -111,6 +111,7 @@ function resetPartyPlusConfirmation(){
  else if(partyConfig.plus&&partyConfig.plus.active&&partyConfig.plus.autoRenew!==true)partyPlusSubscribe.textContent='自動更新を再開';
 }
 function suspendPartyUi(){
+ if(globalThis.FlecityScreen?.transferring)return;
  lifecycleEpoch+=1;appSuspended=true;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();resetPartyPlusConfirmation();
  clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;clearTimeout(statusTimer);statusTimer=null;
  if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{});
@@ -125,6 +126,7 @@ function scheduleBootstrap(delay=0){
  bootstrapTimer=setTimeout(()=>{bootstrapTimer=null;bindVisibilityLifecycle();bootstrap();},delay);
 }
 function resumePartyUi(){
+ if(globalThis.FlecityScreen?.transferring)return;
  const wasSuspended=appSuspended;if(!wasSuspended)return;
  lifecycleEpoch+=1;appSuspended=false;
  if(currentRoom){roomPushEnabled=true;refresh();beginPolling();}
@@ -1437,4 +1439,32 @@ async function bootstrap(){
  if(res.error==='NOT_IN_ROOM')status('LINK 準備完了 · v'+String(partyConfig.version||'unknown'),'good');
  else status('ルーム復元失敗: '+FlecityErrors.text(res.error),'error');
 }
-bootstrap();
+function registerPhonePushAfterRestore(){bindVisibilityLifecycle();registerPhonePushChannel();}
+if(globalThis.FlecityScreen)FlecityScreen.start({
+ canTransfer:()=>Array.isArray(partyConfig.games)&&partyConfig.games.length>0&&!refreshInFlight&&!actionLocks.size&&!miniShogiPromotionOverlay&&!drawStroke&&!telephoneStroke&&
+   PartyFallBattle.canTransfer()&&(!currentRoom?.roundState||['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','telephone','fall_battle'].includes(currentRoom.roundState.gameId)),
+ snapshot:()=>JSON.parse(JSON.stringify({currentRoom,partyConfig,appSettings,activeRoundToken,lastRoomRevision,
+   serverTick:estimatedServerTick(),at:Date.now(),telephoneStrokes,codeBreakGuess,codeBreakToken,memoryChainLocal,memoryChainKey,
+   miniShogiSelected,miniShogiDropKind,fall:PartyFallBattle.snapshot(),
+   inputs:Object.fromEntries([codeEl,telephoneText,drawGuess,ngWordClue,ngWordGuess,fakeAnswerInput].map(el=>[el.id,el.value]))})),
+ pause:()=>{appSuspended=true;roomPushEnabled=false;clearInterval(poll);poll=null;clearTimeout(bootstrapTimer);bootstrapTimer=null;
+   cancelAnimationFrame(deadlineRaf);cancelAnimationFrame(resultHoldRaf);cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);cancelAnimationFrame(deductionPhaseRaf);clearTimeout(connect4CeremonyTimer);clearTimeout(statusTimer);statusTimer=null;PartyFallBattle.pause();
+   resetLeaveConfirmation();resetPartyPlusConfirmation();},
+ restore:s=>{
+   appSuspended=false;partyConfig=s.partyConfig;applySettings(s.appSettings);
+   gameEl.innerHTML='';
+   for(const game of partyConfig.games||[]){
+     if(game.id==='telephone'||(FlecityScreen.expanded&&!['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','fall_battle'].includes(game.id)))continue;
+     const option=document.createElement('option');option.value=game.id;option.textContent=(game.premium?'★ ':'')+game.name;gameEl.appendChild(option);
+   }
+   currentRoom=s.currentRoom;activeRoundToken=s.activeRoundToken;lastRoomRevision=s.lastRoomRevision;
+   serverOffsetMs=s.serverTick+(Date.now()-s.at)-performance.now();serverOffsetReady=true;
+   memoryChainLocal=s.memoryChainLocal;memoryChainKey=s.memoryChainKey;telephoneStrokes=s.telephoneStrokes;codeBreakGuess=s.codeBreakGuess;codeBreakToken=s.codeBreakToken;
+   miniShogiSelected=s.miniShogiSelected;miniShogiDropKind=s.miniShogiDropKind;
+   PartyFallBattle.restore(s.fall);
+   if(currentRoom){renderRoom(currentRoom);beginPolling();}else showEntry();
+   for(const [id,value]of Object.entries(s.inputs))document.getElementById(id).value=value;
+   if(currentRoom?.roundState?.gameId==='telephone'&&currentRoom.roundState.mode==='draw')paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
+ }
+ ,afterRestore:()=>{registerPhonePushAfterRestore();if(currentRoom)void refresh();}
+},bootstrap);else bootstrap();

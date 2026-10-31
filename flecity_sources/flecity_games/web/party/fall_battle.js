@@ -220,4 +220,11 @@ function render(room){
 function hide(){const panel=el('fallBattlePanel');if(panel)panel.classList.add('hidden');}
 function reset(){stopClocks();game=null;hide();}
 globalThis.PartyFallBattle={render,hide,reset};
+Object.assign(globalThis.PartyFallBattle,{
+ canTransfer:()=>!game?.submitting,
+ snapshot:()=>({game,serverTick:serverNow(),at:Date.now()}),
+ pause:stopClocks,
+ restore:s=>{stopClocks();game=s?.game||null;serverOffsetMs=(s?.serverTick||0)+(Date.now()-(s?.at||Date.now()))-performance.now();
+  if(game){game.lastGravityAt=performance.now();game.groundedAt=null;if(!game.submitted&&!game.ended)startClocks();drawBoard();}}
+});
 })();

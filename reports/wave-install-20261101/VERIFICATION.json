@@ -1,0 +1,52 @@
+{
+  "sourceGitHead": "ee88f46",
+  "sourceFiles": {
+    ".wave-build.txt": "4eb6507da2480e9f2ba1990d663f7fbff48ba8d936b251dbff10d768305bfec5",
+    "client/main.lua": "32e0b5c3e6c9ce6049debd8af0c6d28ce2c64d5164b8c7e44dd724b9354f3051",
+    "config/shared.lua": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+    "fxmanifest.lua": "db9bae0604a0c4e4ade6de198494d3f6e1964b4ea6d6b08b4225bbe2e7b579b6",
+    "server/main.lua": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+    "sql/wave.sql": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+    "web/app.css": "2f05b3694b58a0e7c314a1d944a124d899bcd29c46f1899cca79cf2606816c06",
+    "web/app.js": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+    "web/icon.svg": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+    "web/index.html": "618df9dd2cd1ca4c9ecc51f2a525598b61fcda2797b11227908111ddc4ab2361",
+    "web/score-tools.js": "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee",
+    "web/studio-extras.js": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b"
+  },
+  "installedFiles": {
+    ".wave-build.txt": "4eb6507da2480e9f2ba1990d663f7fbff48ba8d936b251dbff10d768305bfec5",
+    "client/main.lua": "64c9256394442459dc3403471d2e9683380be2f554af8095e087236748d2a0c1",
+    "config/shared.lua": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1",
+    "fxmanifest.lua": "db9bae0604a0c4e4ade6de198494d3f6e1964b4ea6d6b08b4225bbe2e7b579b6",
+    "server/main.lua": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2",
+    "sql/wave.sql": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730",
+    "web/app.css": "2f05b3694b58a0e7c314a1d944a124d899bcd29c46f1899cca79cf2606816c06",
+    "web/app.js": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174",
+    "web/icon.svg": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507",
+    "web/index.html": "618df9dd2cd1ca4c9ecc51f2a525598b61fcda2797b11227908111ddc4ab2361",
+    "web/score-tools.js": "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee",
+    "web/studio-extras.js": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b"
+  },
+  "changed": [
+    "client/main.lua"
+  ],
+  "backupId": "2026-10-31T22-40-04-195Z-b8f42411",
+  "backupInventorySha256": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+  "packageRuntimeInventorySha256": "e05192bf15a9e5ce0be73e560dc5d8e413dfac62af94e739c8d1ba6136cbe1b6",
+  "zipSha256": "62197625dc82fe91eb2ced4bd73acdcd23990f5604f22848da0ce44740ac39ea",
+  "tests": {
+    "common": {
+      "pass": 130,
+      "fail": 0,
+      "skip": 0
+    },
+    "waveStatic": "PASS",
+    "waveNui": "PASS",
+    "waveDisposableDb": "PARTIAL_NOT_RUN",
+    "waveLuaMock": "PASS",
+    "liveFiveM": "NOT_RUN",
+    "realPayment": "NOT_RUN"
+  },
+  "serverMutation": false
+}

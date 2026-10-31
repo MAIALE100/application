@@ -10,6 +10,7 @@ export async function prepare(ctx,page){
       if(event!=='flecityGames:callback')throw Error('Unexpected mock event');
       globalThis.__fixtureCalls.push(request);
       const {action,payload}=request;
+      if(action==='screenClaim')return {ok:true};
       if(action==='bridgePing')return {ok:true};
       if(action==='partyGetConfig')return {ok:true,config:{version:'offline-fixture',roomCodeLength:4,minPlayers:1,maxPlayers:2,plus:{enabled:false},
         games:[{id:'code_break',name:'ヒット＆ブロー',minPlayers:1,maxPlayers:2,description:'試験'},{id:'fall_battle',name:'FALL BATTLE',minPlayers:1,maxPlayers:2,description:'試験'}]}};
@@ -46,7 +47,7 @@ export async function scenario(ctx,page){
   assert(!(await page.locator('#start').isDisabled()));
   await page.setViewportSize({width:360,height:780});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Horizontal overflow at phone width');
-  assert((await page.evaluate(()=>globalThis.__fixtureCalls)).every(r=>['bridgePing','partyGetConfig','profileGetSettings','partyGetRoom','partyJoinRoom','partyCreateRoom','partySetReady'].includes(r.action)));
+  assert((await page.evaluate(()=>globalThis.__fixtureCalls)).every(r=>['screenClaim','bridgePing','partyGetConfig','profileGetSettings','partyGetRoom','partyJoinRoom','partyCreateRoom','partySetReady'].includes(r.action)));
   await soloScenario(ctx,page);
   await jointScenario(ctx,page);
 }

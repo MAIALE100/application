@@ -44,6 +44,7 @@ export async function installSoloFixture(ctx,page){
  await page.exposeFunction('__linkSolo',request=>{
   if(!active)return {active:false};
   const {action,payload={}}=request;calls.push({game:active.game,action,payload});
+  if(action==='screenClaim')return {active:true,response:{ok:true}};
   if(action==='bridgePing')return {active:true,response:{ok:true}};
   if(action==='partyGetConfig')return {active:true,response:active.config};
   if(action==='profileGetSettings')return {active:true,response:{ok:true,settings:{sound:false,reducedMotion:true}}};

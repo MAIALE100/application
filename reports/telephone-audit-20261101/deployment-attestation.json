@@ -1,0 +1,55 @@
+{
+  "status": "DIFFERENT",
+  "scope": "selected runtime entrypoints; full resource identity requires a complete reviewed manifest",
+  "files": [
+    {
+      "file": "fxmanifest.lua",
+      "sourceSha256": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+      "deployedSha256": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+      "status": "MATCH"
+    },
+    {
+      "file": "server/core/party.lua",
+      "sourceSha256": "f7b62477a5682a4fd28b5c80f4f356cf022e632746ddd5fa8da62b3c6b90bee0",
+      "deployedSha256": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43",
+      "status": "DIFFERENT"
+    },
+    {
+      "file": "web/party/app.js",
+      "sourceSha256": "b3036878447a36633fde82f0564b91b3568ea0a2ff6a94ec20cdea527690d2cb",
+      "deployedSha256": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac",
+      "status": "DIFFERENT"
+    },
+    {
+      "file": "web/play/app.js",
+      "sourceSha256": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+      "deployedSha256": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+      "status": "MATCH"
+    },
+    {
+      "file": "client/main.lua",
+      "sourceSha256": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+      "deployedSha256": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+      "status": "MATCH"
+    },
+    {
+      "file": "shared/game_registry.lua",
+      "sourceSha256": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41",
+      "deployedSha256": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41",
+      "status": "MATCH"
+    },
+    {
+      "file": "web/shared/errors.js",
+      "sourceSha256": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b",
+      "deployedSha256": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b",
+      "status": "MATCH"
+    }
+  ],
+  "checkedAt": "2026-10-31T17:28:49.767Z",
+  "mutated": false,
+  "resource": "flecity_games",
+  "target": "D:\\FiveM_Test_Server\\txData\\Qbox_D233FD.base\\resources\\flecity_games",
+  "discovery": "READ_ONLY_INSPECTED_PATH",
+  "workspaceHead": "490d7d6f15b605340656664d937476424548e224",
+  "workspaceSourceDirty": false
+}

@@ -1441,8 +1441,8 @@ async function bootstrap(){
 }
 function registerPhonePushAfterRestore(){bindVisibilityLifecycle();registerPhonePushChannel();}
 if(globalThis.FlecityScreen)FlecityScreen.start({
- canTransfer:()=>Array.isArray(partyConfig.games)&&partyConfig.games.length>0&&!refreshInFlight&&!actionLocks.size&&!miniShogiPromotionOverlay&&!drawStroke&&!telephoneStroke&&
-   PartyFallBattle.canTransfer()&&(!currentRoom?.roundState||['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','telephone','fall_battle'].includes(currentRoom.roundState.gameId)),
+ canTransfer:(closing=false)=>Array.isArray(partyConfig.games)&&partyConfig.games.length>0&&!refreshInFlight&&!actionLocks.size&&!miniShogiPromotionOverlay&&!drawStroke&&!telephoneStroke&&
+   PartyFallBattle.canTransfer()&&(closing||!currentRoom?.roundState||['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','telephone','fall_battle'].includes(currentRoom.roundState.gameId)),
  snapshot:()=>JSON.parse(JSON.stringify({currentRoom,partyConfig,appSettings,activeRoundToken,lastRoomRevision,
    serverTick:estimatedServerTick(),at:Date.now(),telephoneStrokes,codeBreakGuess,codeBreakToken,memoryChainLocal,memoryChainKey,
    miniShogiSelected,miniShogiDropKind,fall:PartyFallBattle.snapshot(),

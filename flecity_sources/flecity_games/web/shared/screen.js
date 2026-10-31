@@ -15,7 +15,9 @@ async function call(action,payload={}){return await FlecityBridge.call(action,{.
 async function importState(state,id){
  if(lastImport===id)return;
  lease=id;activate(state);phase='waiting';
- const r=await call(expanded?'screenReady':'screenReturned');
+ let r=await call(expanded?'screenReady':'screenReturned');
+ // These two local acknowledgements are idempotent; game/billing mutations are never replayed.
+ if(!r.ok&&['NUI_REQUEST_FAILED','NUI_REQUEST_TIMEOUT','PHONE_CALLBACK_FAILED'].includes(r.error))r=await call(expanded?'screenReady':'screenReturned');
  if(r.ok){lastImport=id;phase='active';say('');if(adapter.afterRestore)adapter.afterRestore();}else{park();say('切替の確認待ちです。');}
 }
 async function claim(){
@@ -26,7 +28,7 @@ async function claim(){
  return false;
 }
 toggle.onclick=async()=>{
- if(busy||phase!=='active'||flight||!adapter||(!expanded&&!adapter.canTransfer())){say('盤面・テトリス・お絵描きで、通信や操作が終わってから切り替えてください。');return;}
+ if(busy||phase!=='active'||flight||!adapter||!adapter.canTransfer(expanded)){say('盤面・テトリス・お絵描きで、通信や操作が終わってから切り替えてください。');return;}
  busy=true;let snapshot;try{snapshot=adapter.snapshot();park();}catch(_){busy=false;say('切替を準備できませんでした。');return;}
  const r=await call(expanded?'screenClose':'screenOpen',{state:snapshot});
  if(!r.ok){
@@ -35,7 +37,7 @@ toggle.onclick=async()=>{
   if(owner.ok&&owner.owner===(expanded?'expanded':'phone'))activate(snapshot);
   say('切替を確認できません。もう一度お試しください。');
  }else{lease=r.lease||lease;say(expanded?'スマホへ戻しています…':'大画面で操作中');}
- busy=false;
+ busy=false;if(!r.ok&&!expanded)void claim();
 };
 diag.onclick=async()=>{
  const r=await call('localDiagnostics');if(r.ok){FlecityDiagnostics.note('client-state',r.state);say('端末診断をメモリーに記録しました');}

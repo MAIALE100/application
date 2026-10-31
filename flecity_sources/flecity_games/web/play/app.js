@@ -3518,7 +3518,7 @@ function registerPlayPhoneLifecycle(){
 registerPlayPhoneLifecycle();
 
 if(globalThis.FlecityScreen)FlecityScreen.start({
- canTransfer:()=>!suspendRunning&&!confirmResolver&&!!bootstrapData&&
+ canTransfer:()=>!launchLocked&&!suspendRunning&&!confirmResolver&&!!bootstrapData&&
    [block,merge,fallGame,slideGame].every(g=>!g?.busy&&!g?.finalizing)&&
    [quickEl,stopEl,minesEl,stackEl,nonogramEl,memoryEl,sortEl,colorMatchEl,numberRushEl,highLowEl,simonEl].every(el=>el.classList.contains('hidden')),
  snapshot:()=>JSON.parse(JSON.stringify({bootstrapData,saves,appSettings,block,merge,fallGame,slideGame,

@@ -3,6 +3,7 @@ local RESOURCE = GetCurrentResourceName()
 -- A single presentation lease prevents the phone and independent NUI mutating together.
 local screen=nil
 local pendingReturn=nil
+local lastReturned=nil
 local screenSerial=0
 local function screenOwns(app) return screen and screen.app==app end
 local function releaseScreenFocus()
@@ -96,6 +97,11 @@ end
 
 RegisterNetEvent('lb-phone:phoneToggled',function(open)
     phoneOpen=open==true
+    if screen and screen.ready and phoneOpen then
+        pcall(function() exports['lb-phone']:ToggleOpen(false) end)
+        SetNuiFocus(true,true);SetNuiFocusKeepInput(false)
+        return
+    end
     if phoneOpen then
         bumpPlayLifecycle()
         if partyAppOpen then
@@ -192,7 +198,7 @@ end)
 
 AddEventHandler('onResourceStop',function(resource)
     if resource=='lb-phone' or resource==RESOURCE then
-        screen=nil;pendingReturn=nil;releaseScreenFocus();SendNUIMessage({type='screenHide'})
+        screen=nil;pendingReturn=nil;lastReturned=nil;releaseScreenFocus();SendNUIMessage({type='screenHide'})
     end
     if resource~=RESOURCE or GetResourceState('lb-phone')~='started' then return end
     pcall(function() exports['lb-phone']:RemoveCustomApp(FlecityGamesConfig.Apps.Play.identifier) end)
@@ -304,19 +310,20 @@ RegisterNUICallback('flecityGames:callback',function(data,cb)
     local isExpanded=data.surface=='expanded'
     if action=='localDiagnostics' then
         local ped=PlayerPedId()
-        return cb({ok=true,state={dead=IsEntityDead(ped),ragdoll=IsPedRagdoll(ped),falling=IsPedFalling(ped),frozen=IsEntityPositionFrozen(ped),nuiFocused=IsNuiFocused(),phoneOpen=phoneOpen,expanded=screen~=nil}})
+        return cb({ok=true,state={dead=IsEntityDead(ped),ragdoll=IsPedRagdoll(ped),falling=IsPedFalling(ped),freezeProbeAvailable=type(IsEntityPositionFrozen)=='function',frozen=type(IsEntityPositionFrozen)=='function' and IsEntityPositionFrozen(ped) or nil,nuiFocused=IsNuiFocused(),phoneOpen=phoneOpen,expanded=screen~=nil}})
     end
     if action:sub(1,6)=='screen' then
         if app~='play' and app~='party' then return cb({ok=false,error='INVALID_APP'}) end
         local appConfig=app=='play' and FlecityGamesConfig.Apps.Play or FlecityGamesConfig.Apps.Party
         if not appEnabled(appConfig) then return cb({ok=false,error='APP_DISABLED'}) end
-        if action=='screenStatus' then return cb({ok=true,owner=screen and 'expanded' or 'phone'}) end
+        if action=='screenStatus' then return cb({ok=true,owner=screen and 'expanded' or 'phone',ready=screen and screen.ready or false,returnPending=pendingReturn~=nil}) end
         if action=='screenClaim' and not isExpanded then
             if pendingReturn and pendingReturn.app==app then return cb({ok=true,state=pendingReturn.state,lease=pendingReturn.lease}) end
             return cb({ok=true,parked=screenOwns(app)})
         end
+        if action=='screenReturned' and not isExpanded and lastReturned and lastReturned.app==app and lastReturned.lease==payload.lease then return cb({ok=true}) end
         if action=='screenReturned' and not isExpanded and pendingReturn and pendingReturn.app==app and payload.lease==pendingReturn.lease then
-            pendingReturn=nil
+            lastReturned={app=app,lease=pendingReturn.lease};pendingReturn=nil
             if app=='party' then partyAppOpen=true;partyPushSuspended=false end
             return cb({ok=true})
         end
@@ -337,6 +344,7 @@ RegisterNUICallback('flecityGames:callback',function(data,cb)
             return cb({ok=true,lease=id})
         end
         if screen and screen.app==app and screen.lease==payload.lease and isExpanded then
+            if action=='screenReady' and screen.ready then return cb({ok=true}) end
             if action=='screenReady' and not screen.ready then
                 screen.ready=true;screen.state=nil
                 pcall(function() exports['lb-phone']:ToggleOpen(false) end)

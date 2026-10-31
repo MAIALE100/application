@@ -9,7 +9,7 @@
   "apps": {
     "loop": {
       "track": "submission",
-      "auditedSourceHash": "7f353f7b7b9811ddde6a5c2f2e39200c78c37b819e75dce2f47cef0cd785dcf1",
+      "auditedSourceHash": "b10abafbd1f49418da9651fa903870f175c833ab34bf11ee4ba8a8c4da49fdea",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -60,7 +60,7 @@
     },
     "link": {
       "track": "submission",
-      "auditedSourceHash": "7f353f7b7b9811ddde6a5c2f2e39200c78c37b819e75dce2f47cef0cd785dcf1",
+      "auditedSourceHash": "b10abafbd1f49418da9651fa903870f175c833ab34bf11ee4ba8a8c4da49fdea",
       "gates": {
         "criticalBugs": "NOT_RUN",
         "automatedTests": "NOT_RUN",
@@ -74,14 +74,17 @@
       "knownCriticalBugs": [
         "NGワードの誤判定・実機復帰不能（未再現/未解決）",
         "記憶チェインの実機再確認待ち（ローカル進行・15秒/30秒は検証済み）",
-        "お絵描き伝言の白紙・秘密漏洩・履歴欠落・状態残留（実機報告）"
+        "お絵描き伝言の白紙・秘密漏洩・履歴欠落・状態残留（実機報告）",
+        "お絵描き伝言の実機白紙・結果欠落・秘密漏洩は6人仮想成功後も再確認待ち",
+        "ルームコード入力フォーカスの実機再現待ち"
       ],
       "remaining": [
         "全ゲームロジック/権限/秘密情報/退出再接続",
         "模擬2〜4人と実複数接続を別々に検証",
         "日本語UIと提出資料",
         "LOOP＋LINK両方の必須検証・同一ソース共同ZIP検査完了（単独候補不可）",
-        "テスター報告のP0/P1をreports/tester-feedback-20261101/TRIAGE_JA.mdで追跡"
+        "テスター報告のP0/P1をreports/tester-feedback-20261101/TRIAGE_JA.mdで追跡",
+        "6人実機と端末キャッシュ差分の再確認、設置済みコードハッシュ照合"
       ],
       "auditScope": "Local inventory/scoped regression; full critical-bug/live audit pending",
       "localEvidence": "devtools/flecity/reports/submission-priority-20261031/verification.json",

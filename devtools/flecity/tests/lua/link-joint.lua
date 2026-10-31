@@ -1,7 +1,7 @@
 -- Isolated production handlers; virtual identities/clock/transport/entitlement only.
 -- No FXServer, network, database, billing or real clients.
 local root=assert(arg[1]) local tick=100000 local actors={} local identities={} local events=0
-for i=1,4 do actors[i]=72000+i identities[actors[i]]='JOINT_'..i end
+for i=1,6 do actors[i]=72000+i identities[actors[i]]='JOINT_'..i end
 GetGameTimer=function()return tick end
 GetCurrentResourceName=function()return 'flecity_games' end
 GetResourceMetadata=function()return 'joint-fixture' end
@@ -38,7 +38,7 @@ end
 local config=call(p.GetConfig,actors[1]).config local games={} local premiumDenied=0
 assert(#config.games==15,'registry changed: audit coverage')
 for _,g in ipairs(config.games)do
- local count=g.maxPlayers==2 and 2 or 4
+ local count=g.maxPlayers==2 and 2 or (g.id=='telephone' and 6 or 4)
  local room=call(p.CreateRoom,actors[1]).room
  for i=2,count do call(p.JoinRoom,actors[i],{code=room.code})end
  call(p.SelectGame,actors[2],{gameId=g.id},'HOST_ONLY')
@@ -115,6 +115,12 @@ for _,g in ipairs(config.games)do
  elseif g.id=='telephone'then
   for step=1,count do
    local actor for i=1,count do if identities[actors[i]]==rs.currentIdentifier then actor=actors[i]end end
+   for i=1,count do local projected=call(p.GetRoom,actors[i]).room.roundState
+    assert(projected.chain==nil and projected.results==nil,'unfinished chain leaked')
+    if actors[i]~=actor then assert(projected.promptText==nil and projected.promptStrokes==nil,'previous turn leaked')
+    elseif rs.mode=='draw' then assert(projected.promptText==rs.chain[#rs.chain].text)
+    else assert(#(projected.promptStrokes or {})==#(rs.chain[#rs.chain].strokes or {}),'previous drawing missing')end
+   end
    if rs.mode=='draw'then call(p.SubmitTelephoneDrawing,assert(actor),{token=token,strokes={{{x=.1,y=.1},{x=.7,y=.7}}}})
    else call(p.SubmitTelephoneText,assert(actor),{token=token,text='試験のお題'})end
   end completed=true
@@ -125,8 +131,24 @@ for _,g in ipairs(config.games)do
  elseif g.id=='fall_battle'then
   for i=1,count do call(p.SubmitFallBattle,actors[i],{token=token,history={{x=3,rotation=0,hold=false,t=100}}})end completed=true
  end
- local resultView
+ local resultView,switchViews
  if completed then assert(rs.complete,g.id..' did not complete');resultView=call(p.GetRoom,actors[1]).room;checks[#checks+1]='real-handler-actions-to-results';call(p.ReturnLobby,actors[1]);checks[#checks+1]='return-lobby'
+  if g.id=='telephone'then
+   local chain=resultView.roundState.results.chain;assert(#chain==count+1,'full history missing')
+   for i,entry in ipairs(chain)do assert(entry.kind==(i%2==1 and 'text' or 'draw'),'chain order');if entry.kind=='draw'then assert(#entry.strokes>0 and #entry.strokes[1]>=2,'blank drawing')else assert(entry.text~='','blank text')end end
+   switchViews={}
+   for _,nextGame in ipairs({'fall_battle','vote'})do
+    call(p.SelectGame,actors[1],{gameId=nextGame})
+    for i=1,count do local v=call(p.GetRoom,actors[i]).room;assert(v.selectedGame==nextGame and v.roundState==nil);switchViews[#switchViews+1]=v;call(p.SetReady,actors[i],{ready=true})end
+    call(p.StartRound,actors[1]);local other=raw.roundState
+    if nextGame=='fall_battle'then for i=1,count do call(p.SubmitFallBattle,actors[i],{token=other.token,history={{x=3,rotation=0,hold=false,t=100}}})end
+    else tick=tick+80000;for i=1,count do local target=call(p.GetRoom,actors[i%count+1]).room.players[1].memberId
+      if target==call(p.GetRoom,actors[i]).room.selfMemberId then target=call(p.GetRoom,actors[i%count+1]).room.players[2].memberId end
+      call(p.SubmitVote,actors[i],{token=other.token,targetMemberId=target})end end
+    assert(other.complete,'switched round did not complete');call(p.ReturnLobby,actors[1])
+   end
+   call(p.SelectGame,actors[1],{gameId='telephone'});checks[#checks+1]='telephone-fall_battle-vote-switch-with-six-actors'
+  end
   if g.id=='memory_chain'then
    for i=1,count do call(p.SetReady,actors[i],{ready=true})end call(p.StartRound,actors[1]);local timeout=raw.roundState
    tick=timeout.deadlineTick+1;p.Cleanup();assert(timeout.phase=='input' and not timeout.complete)
@@ -147,6 +169,6 @@ for _,g in ipairs(config.games)do
  checks[#checks+1]='disconnect-new-source-reconnect-stable-member'
  for i=1,count do call(p.LeaveRoom,actors[i])end
  local rooms,members=p.DebugCounts()assert(rooms==0 and members==0)
- games[#games+1]={id=g.id,players=count,views=views,resultView=resultView,checks=checks,completed=completed}
+ games[#games+1]={id=g.id,players=count,views=views,resultView=resultView,switchViews=switchViews,checks=checks,completed=completed}
 end
 print(encode({games=games,config=config,events=events,premiumDenied=premiumDenied,dbWrites=0,scope='isolated Lua handlers; virtual transport; not real multiplayer'}))

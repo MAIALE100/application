@@ -24,7 +24,9 @@ globalThis.__jointRender=(config,room)=>{
  partyConfig=config;gameEl.innerHTML='';
  for(const g of config.games){const o=document.createElement('option');o.value=g.id;o.textContent=g.name;gameEl.appendChild(o);}
  return renderRoom(room);
-};` }));
+};
+globalThis.__jointTransition=room=>renderRoom(room);
+globalThis.__jointEntry=()=>showEntry();` }));
 }
 export async function jointScenario(ctx,page){
  ctx.solo.activate(null);
@@ -43,6 +45,23 @@ export async function jointScenario(ctx,page){
   }
  }
  saveLayout(ctx,'joint-layout',rows);
+ const telephone=ctx.joint.games.find(g=>g.id==='telephone');
+ assert.equal(telephone.players,6);
+ await page.evaluate(({config,room})=>__jointRender(config,room),{config:ctx.joint.config,room:telephone.views[0]});
+ await page.locator('#telephoneText').evaluate(el=>el.value='前ゲームの入力');
+ await page.evaluate(room=>__jointTransition(room),telephone.resultView);
+ await captureLayout(ctx,page,'telephone-six-player-results');
+ await page.evaluate(room=>__jointTransition(room),telephone.switchViews[0]);
+ assert.equal(await page.locator('#telephoneText').inputValue(),'','Previous telephone input remained after lobby return');
+ assert(await page.locator('#lobbyPanel').isVisible());
+ await page.evaluate(room=>__jointTransition(room),telephone.switchViews[6]);
+ assert.equal(await page.locator('#game').inputValue(),'vote');
+ await captureLayout(ctx,page,'telephone-fall-vote-switch');
+ await page.evaluate(()=>__jointEntry());
+ await page.locator('#code').fill('2468');
+ await page.locator('#code').focus();
+ assert.equal(await page.locator('#code').inputValue(),'2468');
+ assert(await page.locator('#code').evaluate(el=>document.activeElement===el),'Room code input lost focus');
  if(ctx.memoryEvidence){
   await page.setViewportSize({width:360,height:844});
   for(const [label,evidence]of Object.entries(ctx.memoryEvidence)){

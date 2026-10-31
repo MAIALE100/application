@@ -5,6 +5,7 @@ import {repo,state,tool,readJSON,json,inventory,sha,noLinks,inside,project} from
 import {eligible,isolatedJobs,runNode} from './automation-control.mjs';
 import {localThenObservation} from './server/state-observer.mjs';
 import {automaticReadiness} from './server/automatic-readiness.mjs';
+import {deploymentAttestation} from './server/deployment-attestation.mjs';
 import {submissionTasks,submissionDecision,jointSubmissionDecision,jointReleaseApps} from './submission-priority.mjs';
 import {prepareLocalChange,applyLocalChange,finishLocalChange} from './local-change.mjs';
 
@@ -73,12 +74,13 @@ const submissions=tasks.filter(t=>readiness.apps[t.id]?.track==='submission').ma
   }
   return {app:t.id,...decision,remaining:readiness.apps[t.id].remaining};
 });
-const summary={runId,started:new Date(started).toISOString(),finished:new Date().toISOString(),mode:policy.mode,results,development,jointRelease,submissions,serverObservation,heldUpdates,updatedResources:[],status:results.some(r=>r.status==='FAIL'||r.protectedUnchanged===false)?'FAIL':results.some(r=>r.status==='BLOCKED')?'BLOCKED':results.some(r=>r.status==='NOT_RUN')?'NOT_RUN':'PASS'};
+const deployedCode=deploymentAttestation(project('link'));
+const summary={runId,started:new Date(started).toISOString(),finished:new Date().toISOString(),mode:policy.mode,results,development,jointRelease,submissions,serverObservation,deployedCode,heldUpdates,updatedResources:[],status:results.some(r=>r.status==='FAIL'||r.protectedUnchanged===false)?'FAIL':results.some(r=>r.status==='BLOCKED')?'BLOCKED':results.some(r=>r.status==='NOT_RUN')?'NOT_RUN':'PASS'};
 json(path.join(out,'summary.json'),summary);json(path.join(root,'latest.json'),summary);
 fs.writeFileSync(path.join(out,'REPORT_JA.md'),'# 定期検証結果\n\n## 開発・ローカル検証\n\n'+results.map(r=>'- '+r.id+': '+r.status).join('\n')+
   '\n\n## 開発変更・ローカルGit\n\n'+JSON.stringify(development)+
   '\n\n## LOOP＋LINK共同提出までの残項目\n\n'+jointRelease.status+'\n'+jointRelease.blockers.map(b=>'- '+b).join('\n')+
   '\n\n## アプリ別完成状況・提出可否\n\n'+submissions.map(s=>'- '+s.app+': '+s.status+' / '+s.blockers.join(', ')+'\n  残作業: '+s.remaining.join(' / ')).join('\n')+
-  '\n\n## サーバー状態\n\n'+JSON.stringify(serverObservation)+'\n\n## 更新・保留\n\n更新したリソース: なし。\n'+heldUpdates.map(r=>'- '+r.app+': 保留 ('+r.reasons.join(', ')+')').join('\n')+
+  '\n\n## サーバー状態\n\n'+JSON.stringify(serverObservation)+'\n\n## 設置済みコード照合\n\n'+deployedCode.status+' / '+deployedCode.files?.map(f=>f.file+': '+f.status).join(', ')+'\n'+deployedCode.scope+'\n\n## 更新・保留\n\n更新したリソース: なし。\n'+heldUpdates.map(r=>'- '+r.app+': 保留 ('+r.reasons.join(', ')+')').join('\n')+
   '\n\n## 不具合・次回作業\n\nFAILは個別ログを確認。承認済みUI基準画像、未登録の仮想テスト、初回更新承認・ネイティブ観測/再起動アダプターが未整備の項目はNOT_RUN/BLOCKED。既存DB・リソース更新・実FiveM操作なし。プリフォトは保留。使い捨てDBだけでSQLを検証。\n');
 console.log(JSON.stringify(summary,null,2));process.exitCode=summary.status==='FAIL'||summary.status==='BLOCKED'?1:summary.status==='NOT_RUN'?2:0;

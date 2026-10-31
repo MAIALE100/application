@@ -6,6 +6,6 @@ export function jointTranscript(source){
  if(!r.ok)throw Error(r.output);
  const t=JSON.parse(r.output);assert.equal(t.games.length,15);assert.equal(t.dbWrites,0);
  assert.equal(new Set(t.games.map(g=>g.id)).size,15);
- for(const g of t.games){assert([2,4].includes(g.players));assert.equal(g.views.length,g.players);assert(g.checks.includes('disconnect-new-source-reconnect-stable-member'));}
+ for(const g of t.games){assert([2,4,6].includes(g.players));assert.equal(g.views.length,g.players);assert(g.checks.includes('disconnect-new-source-reconnect-stable-member'));}
  return t;
 }

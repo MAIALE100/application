@@ -75,6 +75,8 @@ function resetRoundRuntime(){
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
  drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';gomokuRenderToken='';gomokuCells=[];
+ telephoneText.value='';telephoneTextPrompt.textContent='';telephoneHint.textContent='';
+ ngWordClue.value='';ngWordGuess.value='';drawGuess.value='';fakeAnswerInput.value='';
  if(miniShogiPromotionOverlay){miniShogiPromotionOverlay.remove();miniShogiPromotionOverlay=null;}
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
 }

@@ -27,6 +27,23 @@ local function integer(value, minValue, maxValue)
     return n
 end
 
+local function validTextFields(data, limits)
+    for field, limit in pairs(limits) do
+        local value = data[field]
+        if value ~= nil then
+            if type(value) ~= 'string' then return false end
+            local ok, length = pcall(utf8.len, value)
+            if not ok or not length or length > limit then return false end
+        end
+    end
+    return true
+end
+
+local function validNoteText(data, requireBody)
+    if requireBody and type(data.body) ~= 'string' then return false end
+    return validTextFields(data, {title=L.title, body=L.noteBody, category=64, tags=255})
+end
+
 local function strictInteger(value, minValue, maxValue)
     local n = tonumber(value)
     if not n or n ~= n or n == math.huge or n == -math.huge then return nil end
@@ -155,7 +172,8 @@ local function membership(workspaceId, citizenid)
 end
 
 local function workspaceAccess(ctx, workspaceId)
-    local id = integer(workspaceId, 1)
+    local id = strictInteger(workspaceId, 1)
+    if not id then return nil end
     local row = membership(id, ctx.citizenid)
     if row then
         -- Maintenance privileges do not disappear just because the maintainer
@@ -740,6 +758,7 @@ handlers.noteCreate = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+    if not validNoteText(data, false) then return {ok=false, error='INVALID_NOTE_TEXT'} end
     local count = tonumber(MySQL.scalar.await('SELECT COUNT(*) FROM flecity_base_notes WHERE workspace_id=? AND deleted_at IS NULL', {workspace.id}) or 0)
     if count >= L.notesPerWorkspace then return {ok=false, error='NOTE_LIMIT'} end
     local title = clean(data.title, L.title)
@@ -762,6 +781,9 @@ handlers.noteUpdate = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+    local noteId = strictInteger(data.id, 1)
+    if not noteId then return {ok=false, error='INVALID_NOTE_ID'} end
+    if not validNoteText(data, true) then return {ok=false, error='INVALID_NOTE_TEXT'} end
     local title = clean(data.title, L.title)
     local body = clean(data.body, L.noteBody)
     local category = clean(data.category or 'general', 64)
@@ -772,7 +794,7 @@ handlers.noteUpdate = function(source, data)
         UPDATE flecity_base_notes
         SET title=?, body=?, category=?, tags=?, pinned=?, updated_at=NOW()
         WHERE id=? AND workspace_id=? AND deleted_at IS NULL
-    ]], {title, body, category, tags, data.pinned == true and 1 or 0, integer(data.id, 1), workspace.id})
+    ]], {title, body, category, tags, data.pinned == true and 1 or 0, noteId, workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -782,10 +804,12 @@ handlers.noteDelete = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+    local noteId = strictInteger(data.id, 1)
+    if not noteId then return {ok=false, error='INVALID_NOTE_ID'} end
     local changed = MySQL.update.await([[
         UPDATE flecity_base_notes SET deleted_at=NOW()
         WHERE id=? AND workspace_id=? AND deleted_at IS NULL
-    ]], {integer(data.id, 1), workspace.id})
+    ]], {noteId, workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -795,11 +819,13 @@ handlers.notePin = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+    local noteId = strictInteger(data.id, 1)
+    if not noteId then return {ok=false, error='INVALID_NOTE_ID'} end
     local changed = MySQL.update.await([[
         UPDATE flecity_base_notes
         SET pinned=?, updated_at=NOW()
         WHERE id=? AND workspace_id=? AND deleted_at IS NULL
-    ]], {data.pinned == true and 1 or 0, integer(data.id, 1), workspace.id})
+    ]], {data.pinned == true and 1 or 0, noteId, workspace.id})
     return {ok=(tonumber(changed) or 0) > 0}
 end
 
@@ -1120,6 +1146,7 @@ handlers.taskCreate = function(source, data)
     data = type(data) == 'table' and data or {}
     local workspace, accessErr = requireManager(ctx, data.workspaceId)
     if not workspace then return accessErr end
+    if not validTextFields(data, {title=L.title, details=L.taskDetails, assigneeCitizenId=64, dueAt=32, status=16, priority=16}) then return {ok=false, error='INVALID_TASK_TEXT'} end
     local count = tonumber(MySQL.scalar.await("SELECT COUNT(*) FROM flecity_base_tasks WHERE workspace_id=? AND status<>'done'", {workspace.id}) or 0)
     if count >= L.tasksPerWorkspace then return {ok=false, error='TASK_LIMIT'} end
     local title = clean(data.title, L.title)
@@ -1169,6 +1196,7 @@ handlers.taskUpdate = function(source, data)
         return {ok=(tonumber(changed) or 0) > 0}
     end
 
+    if not validTextFields(data, {title=L.title, details=L.taskDetails, assigneeCitizenId=64, dueAt=32, status=16, priority=16}) then return {ok=false, error='INVALID_TASK_TEXT'} end
     local title = clean(data.title, L.title)
     if title == '' then return {ok=false, error='TITLE_REQUIRED'} end
     local status = clean(data.status or 'todo', 16):lower()
@@ -1484,7 +1512,18 @@ local function callbackCount()
     return n
 end
 
+local requiresRecordId = {
+    [handlers.stockHistory]=true, [handlers.stockAdjust]=true,
+    [handlers.stockConfigure]=true, [handlers.stockDelete]=true,
+    [handlers.taskUpdate]=true, [handlers.taskDelete]=true,
+    [handlers.calculatorUpdate]=true, [handlers.calculatorDelete]=true,
+    [handlers.moneyVoid]=true
+}
+
 local function safeCall(name, fn, source, data)
+    if requiresRecordId[fn] and (type(data) ~= 'table' or not strictInteger(data.id, 1)) then
+        return {ok=false, error='INVALID_RECORD_ID'}
+    end
     local ok, result = pcall(fn, source, data)
     if ok then return result or {ok=false, error='EMPTY_RESPONSE'} end
     print(('[BASE] callback %s failed for source=%s: %s'):format(name, tostring(source), tostring(result)))

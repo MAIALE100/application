@@ -12,6 +12,7 @@ export async function staticChecks(ctx) {
   if(!lua)ctx.skip('BASE Lua regression','Lua 5.4 runtime unavailable; set FLECITY_LUA');
   else if(!fs.existsSync(path.join(ctx.source,'tests/custom-fields.lua')))ctx.skip('BASE Lua regression','Regression file absent');
   else ctx.exec('BASE Lua regression',lua,['flecity_base/tests/custom-fields.lua'],{cwd:path.dirname(ctx.source)});
+  if(lua&&fs.existsSync(path.join(ctx.source,'tests/server-access.lua')))ctx.exec('BASE real-handler access and note preservation',lua,[path.join(ctx.source,'tests/server-access.lua'),ctx.source]);
   await ctx.check('BASE schema/callback/CSS invariants',()=>{
     const tables=text=>new Map([...text.matchAll(/CREATE TABLE IF NOT EXISTS\s+(\w+)\s*\([\s\S]*?\)\s*ENGINE\s*=\s*\w+\s+DEFAULT\s+CHARSET\s*=\s*\w+\s+COLLATE\s*=\s*\w+/g)].map(m=>[m[1],m[0].replace(/\s+/g,'')]));
     const a=tables(ctx.read('server/database.lua')),b=tables(ctx.read('sql/schema.sql'));

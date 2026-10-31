@@ -1,0 +1,215 @@
+{
+  "release": "FLECITY-LOOP-LINK-20261101-LIVE-RC1",
+  "backupId": "2026-10-31T22-22-18-816Z-3f765c05",
+  "changedHistory": [
+    {
+      "file": "client/main.lua",
+      "beforeSha256": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+      "rc1IncomingSha256": "5a8b259b777d77ef9927d3ac944bb9b097a4b57006ac69c4037a36cddd638124",
+      "installedSha256": "5a8b259b777d77ef9927d3ac944bb9b097a4b57006ac69c4037a36cddd638124",
+      "workspaceSha256": "5a8b259b777d77ef9927d3ac944bb9b097a4b57006ac69c4037a36cddd638124",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "fxmanifest.lua",
+      "beforeSha256": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+      "rc1IncomingSha256": "c7539afd0ee05ba409a3a2bb83b520805f0672f74ddaa52ed2605aebda3e2523",
+      "installedSha256": "c7539afd0ee05ba409a3a2bb83b520805f0672f74ddaa52ed2605aebda3e2523",
+      "workspaceSha256": "1ab2f8b577558ab6eee9ebf6245dc8baf33e502e3e7bd5d087869040248417b7",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "server/core/party.lua",
+      "beforeSha256": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43",
+      "rc1IncomingSha256": "0c62489aa34622652b9110fab15ee2a11f7114a957f4ae28d8f07ca4b1e2ac90",
+      "installedSha256": "0c62489aa34622652b9110fab15ee2a11f7114a957f4ae28d8f07ca4b1e2ac90",
+      "workspaceSha256": "f7b62477a5682a4fd28b5c80f4f356cf022e632746ddd5fa8da62b3c6b90bee0",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "server/core/party_plus.lua",
+      "beforeSha256": "3c133407c154065d12384a63218c90222e442f50e7d7fec956c85cffdcb95d03",
+      "rc1IncomingSha256": "19432c07cc501f576845af04626b96ec1c72e243dd57ced2722d378631dbb646",
+      "installedSha256": "19432c07cc501f576845af04626b96ec1c72e243dd57ced2722d378631dbb646",
+      "workspaceSha256": "19432c07cc501f576845af04626b96ec1c72e243dd57ced2722d378631dbb646",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "server/main.lua",
+      "beforeSha256": "69108620a31868ece43855dfeaf759efd29ee90c53c1583c2080eeb5ba51b67d",
+      "rc1IncomingSha256": "e4628040316824525105846bda99df364e12f9f28d4f8b2edea0ab37c5101958",
+      "installedSha256": "e4628040316824525105846bda99df364e12f9f28d4f8b2edea0ab37c5101958",
+      "workspaceSha256": "e4628040316824525105846bda99df364e12f9f28d4f8b2edea0ab37c5101958",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/party/app.js",
+      "beforeSha256": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac",
+      "rc1IncomingSha256": "d6a698014581e2929b822f3b8f4dd9caed2d0a4720240b764c989bd38009a092",
+      "installedSha256": "d6a698014581e2929b822f3b8f4dd9caed2d0a4720240b764c989bd38009a092",
+      "workspaceSha256": "44e7324524fd731f775eca2f6d4b09edde2de57167f6bb17fdda6c322b6aaf22",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/party/fall_battle.js",
+      "beforeSha256": "095023df080d6865af52ec8cc54bf0c34e101637dc8d7e5065e4b169a4963bd4",
+      "rc1IncomingSha256": "6dae32a0a0a0f70a01e14dac36f841a82ed40f85005f25e80efdc6597bbfdbae",
+      "installedSha256": "6dae32a0a0a0f70a01e14dac36f841a82ed40f85005f25e80efdc6597bbfdbae",
+      "workspaceSha256": "6dae32a0a0a0f70a01e14dac36f841a82ed40f85005f25e80efdc6597bbfdbae",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/party/index.html",
+      "beforeSha256": "5e94671c062749b41d38834b4381131d2de7e02acf2ad3ff0717a7de9edebc44",
+      "rc1IncomingSha256": "734afde114bdbab1949921a82c18e592c025c5e00226bae84165f3e804e9c403",
+      "installedSha256": "734afde114bdbab1949921a82c18e592c025c5e00226bae84165f3e804e9c403",
+      "workspaceSha256": "b047949478ee3850054e8af45287d32f2d7f27e05bf343f3b2efd17b4ec67c9c",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/play/app.js",
+      "beforeSha256": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+      "rc1IncomingSha256": "30db5343e4d27398f6e20f0bf30830251734d6327ed44abd95d7cb25274d29e3",
+      "installedSha256": "30db5343e4d27398f6e20f0bf30830251734d6327ed44abd95d7cb25274d29e3",
+      "workspaceSha256": "30db5343e4d27398f6e20f0bf30830251734d6327ed44abd95d7cb25274d29e3",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/play/index.html",
+      "beforeSha256": "389b12b119cac7316753a41a90d37c32d72cafe143f3435e1cc8da687fab28e5",
+      "rc1IncomingSha256": "93657fd394ed63b24cf42c76afd28a15d3d74f477b5299d0c63ce4b3479795d3",
+      "installedSha256": "93657fd394ed63b24cf42c76afd28a15d3d74f477b5299d0c63ce4b3479795d3",
+      "workspaceSha256": "93657fd394ed63b24cf42c76afd28a15d3d74f477b5299d0c63ce4b3479795d3",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/shared/app.css",
+      "beforeSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+      "rc1IncomingSha256": "ba11f9a77f4e23876498e37af96efd1db9e9717b02aab8c94b9ea1ea13c55f40",
+      "installedSha256": "ba11f9a77f4e23876498e37af96efd1db9e9717b02aab8c94b9ea1ea13c55f40",
+      "workspaceSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/shared/bridge.js",
+      "beforeSha256": "21ece0a3b0961a43d30a48a8afbdc3f39d05cbf6d28c6f96b7e30adcca67adce",
+      "rc1IncomingSha256": "33cb596515b85f87824938d5b4992d928558ba6bd62aefb88309da66ab8c0f86",
+      "installedSha256": "33cb596515b85f87824938d5b4992d928558ba6bd62aefb88309da66ab8c0f86",
+      "workspaceSha256": "33cb596515b85f87824938d5b4992d928558ba6bd62aefb88309da66ab8c0f86",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/shared/controls.js",
+      "beforeSha256": "459e9c14c51a78b46f34a0783c19342a8e2f52638e9b284aa8d2b1aa57e451ab",
+      "rc1IncomingSha256": "239774e6790ba77d374065d3c56302792a447ced58b946a727717d65c69c892f",
+      "installedSha256": "239774e6790ba77d374065d3c56302792a447ced58b946a727717d65c69c892f",
+      "workspaceSha256": "239774e6790ba77d374065d3c56302792a447ced58b946a727717d65c69c892f",
+      "rc1HistoryVerified": true,
+      "decision": "MATCHES_WORKSPACE_AND_INSTALLED"
+    },
+    {
+      "file": "web/shared/errors.js",
+      "beforeSha256": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b",
+      "rc1IncomingSha256": "bb8c19c0ec8ab56e27319d99694bd24f71617179cfd308fdab51d65d4676f3b5",
+      "installedSha256": "bb8c19c0ec8ab56e27319d99694bd24f71617179cfd308fdab51d65d4676f3b5",
+      "workspaceSha256": "fd08a8547cf536921203874ee1f720577ffe987eaf42d7c383da969e75a8dd61",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    }
+  ],
+  "sevenFileDecision": [
+    {
+      "file": "fxmanifest.lua",
+      "beforeSha256": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+      "rc1IncomingSha256": "c7539afd0ee05ba409a3a2bb83b520805f0672f74ddaa52ed2605aebda3e2523",
+      "installedSha256": "c7539afd0ee05ba409a3a2bb83b520805f0672f74ddaa52ed2605aebda3e2523",
+      "workspaceSha256": "1ab2f8b577558ab6eee9ebf6245dc8baf33e502e3e7bd5d087869040248417b7",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "server/core/party.lua",
+      "beforeSha256": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43",
+      "rc1IncomingSha256": "0c62489aa34622652b9110fab15ee2a11f7114a957f4ae28d8f07ca4b1e2ac90",
+      "installedSha256": "0c62489aa34622652b9110fab15ee2a11f7114a957f4ae28d8f07ca4b1e2ac90",
+      "workspaceSha256": "f7b62477a5682a4fd28b5c80f4f356cf022e632746ddd5fa8da62b3c6b90bee0",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/party/app.js",
+      "beforeSha256": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac",
+      "rc1IncomingSha256": "d6a698014581e2929b822f3b8f4dd9caed2d0a4720240b764c989bd38009a092",
+      "installedSha256": "d6a698014581e2929b822f3b8f4dd9caed2d0a4720240b764c989bd38009a092",
+      "workspaceSha256": "44e7324524fd731f775eca2f6d4b09edde2de57167f6bb17fdda6c322b6aaf22",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/party/index.html",
+      "beforeSha256": "5e94671c062749b41d38834b4381131d2de7e02acf2ad3ff0717a7de9edebc44",
+      "rc1IncomingSha256": "734afde114bdbab1949921a82c18e592c025c5e00226bae84165f3e804e9c403",
+      "installedSha256": "734afde114bdbab1949921a82c18e592c025c5e00226bae84165f3e804e9c403",
+      "workspaceSha256": "b047949478ee3850054e8af45287d32f2d7f27e05bf343f3b2efd17b4ec67c9c",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/shared/app.css",
+      "beforeSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+      "rc1IncomingSha256": "ba11f9a77f4e23876498e37af96efd1db9e9717b02aab8c94b9ea1ea13c55f40",
+      "installedSha256": "ba11f9a77f4e23876498e37af96efd1db9e9717b02aab8c94b9ea1ea13c55f40",
+      "workspaceSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/shared/errors.js",
+      "beforeSha256": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b",
+      "rc1IncomingSha256": "bb8c19c0ec8ab56e27319d99694bd24f71617179cfd308fdab51d65d4676f3b5",
+      "installedSha256": "bb8c19c0ec8ab56e27319d99694bd24f71617179cfd308fdab51d65d4676f3b5",
+      "workspaceSha256": "fd08a8547cf536921203874ee1f720577ffe987eaf42d7c383da969e75a8dd61",
+      "rc1HistoryVerified": true,
+      "decision": "KEEP_INSTALLED_RC1_IN_CANDIDATE"
+    },
+    {
+      "file": "web/shared/screen.css",
+      "beforeSha256": "e5e93481c1cce46fceea8ee3fd0aed624817e85fded5c85b083d0866a7d172ef",
+      "rc1IncomingSha256": "e5e93481c1cce46fceea8ee3fd0aed624817e85fded5c85b083d0866a7d172ef",
+      "installedSha256": "e5e93481c1cce46fceea8ee3fd0aed624817e85fded5c85b083d0866a7d172ef",
+      "workspaceSha256": "863327c1b0f56c5a052393319f66ed0007a1dc4aea362284253e2e8909c78cca",
+      "rc1HistoryVerified": true,
+      "decision": "INCLUDE_UNCOMMITTED_WORKSPACE_CSS_ONLY_IN_CANDIDATE"
+    }
+  ],
+  "candidate": {
+    "status": "REVIEW_ONLY_NOT_DEPLOYED",
+    "gitHead": "19134fa",
+    "backupId": "2026-10-31T22-22-18-816Z-3f765c05",
+    "backupInventoryHash": "bef925ff00b380b0a7f4c46e79fb34c308157803f5af00ee0a10ad4ed97fc14b",
+    "sourceCssSha256": "863327c1b0f56c5a052393319f66ed0007a1dc4aea362284253e2e8909c78cca",
+    "installedCssSha256": "e5e93481c1cce46fceea8ee3fd0aed624817e85fded5c85b083d0866a7d172ef",
+    "candidateInventoryHash": "b1d5339c1c7ac28c13b972a84005f78674bb3ed5dc59b5abfca64c604b77114c",
+    "change": [
+      "web/shared/screen.css"
+    ],
+    "sharedWith": [
+      "loop",
+      "link"
+    ],
+    "dbFilesChanged": false,
+    "requiresResourceRestart": true
+  }
+}

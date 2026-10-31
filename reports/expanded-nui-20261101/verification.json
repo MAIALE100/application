@@ -1,0 +1,390 @@
+{
+  "dateJst": "2026-11-01",
+  "startHead": "c33db9e",
+  "implementationCommit": "912072ad17f43d2d74a2bb7ab20b4acc6fe2d925",
+  "appCommits": {
+    "link": "0488a90391d1e3836f4cce7e3419c368de48ab98",
+    "loop": "d2a5056836eb872bb630071d07ff480c5559fbdd"
+  },
+  "sourceHash": "7ccfd3566fb144ede6d90a98c5e08dc90e25773d4a0c5d842f2bdfd79df7290f",
+  "automationRunId": "2026-10-31T18-49-04-316Z-39e732",
+  "automationOverall": "NOT_RUN",
+  "commonTests": {
+    "tests": 128,
+    "pass": 128,
+    "fail": 0,
+    "skipped": 0
+  },
+  "appTests": {
+    "tests": 10,
+    "pass": 10,
+    "fail": 0,
+    "skipped": 0,
+    "previous": 8,
+    "new": 2,
+    "scope": "Offline browser and actual Lua client with mocked natives/exports; no FiveM"
+  },
+  "requiredLocal": [
+    {
+      "id": "loop",
+      "sourceHash": "7ccfd3566fb144ede6d90a98c5e08dc90e25773d4a0c5d842f2bdfd79df7290f",
+      "sourceUnchanged": true,
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN"
+        }
+      ]
+    },
+    {
+      "id": "link",
+      "sourceHash": "7ccfd3566fb144ede6d90a98c5e08dc90e25773d4a0c5d842f2bdfd79df7290f",
+      "sourceUnchanged": true,
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN"
+        },
+        {
+          "suite": "game",
+          "status": "PASS"
+        },
+        {
+          "suite": "virtual-multiplayer",
+          "status": "PASS"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN"
+        }
+      ]
+    }
+  ],
+  "sourceChanges": " devtools/flecity/fixtures/link-solo.mjs            |   1 +\n devtools/flecity/ui/link.mjs                       |   3 +-\n flecity_sources/flecity_games/client/main.lua      |  89 ++++++++++-\n flecity_sources/flecity_games/fxmanifest.lua       |   2 +\n .../flecity_games/tests/screen-handoff.test.mjs    | 173 +++++++++++++++++++++\n flecity_sources/flecity_games/web/party/app.js     |  32 +++-\n .../flecity_games/web/party/fall_battle.js         |   7 +\n flecity_sources/flecity_games/web/party/index.html |   5 +-\n flecity_sources/flecity_games/web/play/app.js      |  29 +++-\n flecity_sources/flecity_games/web/play/index.html  |   5 +-\n .../flecity_games/web/screen/index.html            |  16 ++\n flecity_sources/flecity_games/web/shared/bridge.js |  18 ++-\n .../flecity_games/web/shared/screen.css            |   5 +\n flecity_sources/flecity_games/web/shared/screen.js |  70 +++++++++\n 14 files changed, 440 insertions(+), 15 deletions(-)\n",
+  "backup": {
+    "scope": "Complete deployed flecity_games resource, including hidden/config/runtime files. Database and whole server NOT_RUN.",
+    "status": "PASS",
+    "backupId": "2026-10-31T18-28-26-262Z-dcffc4c6",
+    "manifestHash": "b1753a019f5aebcc35f8d925a5be219cf4a8f6cdf5da2c7ab21a9331f8eb3478",
+    "files": 61,
+    "bytes": 1178734,
+    "restoredHash": "b1753a019f5aebcc35f8d925a5be219cf4a8f6cdf5da2c7ab21a9331f8eb3478",
+    "deployedUnchanged": true,
+    "wholeServerBackup": "NOT_RUN",
+    "existingDatabaseBackup": "NOT_RUN",
+    "nativeZeroPlayers": "BLOCKED",
+    "physicalDriveRedundancy": false
+  },
+  "deploymentComparison": {
+    "matches": 30,
+    "differences": 13,
+    "missing": 0,
+    "files": [
+      {
+        "file": "client/main.lua",
+        "sourceSha256": "5a8b259b777d77ef9927d3ac944bb9b097a4b57006ac69c4037a36cddd638124",
+        "deployedSha256": "ef24e2c632042b10fb5337c93106db50c6d0d391bb6850ec165b2752f679444a",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "config/shared.lua",
+        "sourceSha256": "a7333f4da1b769540b9bcc4f91c35dd1305e3b3d9ee2c2d1e6be46a1313c7f7a",
+        "deployedSha256": "a7333f4da1b769540b9bcc4f91c35dd1305e3b3d9ee2c2d1e6be46a1313c7f7a",
+        "status": "MATCH"
+      },
+      {
+        "file": "fxmanifest.lua",
+        "sourceSha256": "1ab2f8b577558ab6eee9ebf6245dc8baf33e502e3e7bd5d087869040248417b7",
+        "deployedSha256": "98ce76a2446e59f2b4c980e8cdc4c64b1ea9c89e59fd698d9cc66fe33ff7de2d",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "server/bridge/framework.lua",
+        "sourceSha256": "3d5005955cbdfaadf59b2c1e7fdd88921ac5287aacdf50caa38ece4cf1a6f64b",
+        "deployedSha256": "3d5005955cbdfaadf59b2c1e7fdd88921ac5287aacdf50caa38ece4cf1a6f64b",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/database.lua",
+        "sourceSha256": "5d5637753e8c7356cf574c35102160959e33fc264bb6807a98fa460beb7a007a",
+        "deployedSha256": "5d5637753e8c7356cf574c35102160959e33fc264bb6807a98fa460beb7a007a",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/dev_reload.lua",
+        "sourceSha256": "742742e5210344f745b98ef38e52c06db825d30805e6ab734cd4c4dcd98f4645",
+        "deployedSha256": "742742e5210344f745b98ef38e52c06db825d30805e6ab734cd4c4dcd98f4645",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/party.lua",
+        "sourceSha256": "f7b62477a5682a4fd28b5c80f4f356cf022e632746ddd5fa8da62b3c6b90bee0",
+        "deployedSha256": "d756d20b264bc7ed3a6e500c4e936869a5178af5e691685a7c1bcd7c473ade43",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "server/core/party_fall.lua",
+        "sourceSha256": "1ce8aa0e5eb709642e7ac5c099045fcdfc830155e44d41ef0cd67b97040908fc",
+        "deployedSha256": "1ce8aa0e5eb709642e7ac5c099045fcdfc830155e44d41ef0cd67b97040908fc",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/party_plus.lua",
+        "sourceSha256": "19432c07cc501f576845af04626b96ec1c72e243dd57ced2722d378631dbb646",
+        "deployedSha256": "3c133407c154065d12384a63218c90222e442f50e7d7fec956c85cffdcb95d03",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "server/core/play.lua",
+        "sourceSha256": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87",
+        "deployedSha256": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/profile.lua",
+        "sourceSha256": "97568808f6afc9660ffad6f69893b1742bc76a5013779bab993fd9125153a18a",
+        "deployedSha256": "97568808f6afc9660ffad6f69893b1742bc76a5013779bab993fd9125153a18a",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/rate_limit.lua",
+        "sourceSha256": "8db7b4870c0da93c46d10a9cb602886b3f1e7ec4b589a4258daa8dceb5c08323",
+        "deployedSha256": "8db7b4870c0da93c46d10a9cb602886b3f1e7ec4b589a4258daa8dceb5c08323",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/core/text.lua",
+        "sourceSha256": "2a0140a14fed1b5bb764af4e75f01a780506d6af9cb5874497afdbf1c087c216",
+        "deployedSha256": "2a0140a14fed1b5bb764af4e75f01a780506d6af9cb5874497afdbf1c087c216",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/data/party_plus_prompts.lua",
+        "sourceSha256": "65599dc26e93e0f65de3d7832e8d36e5905c8f70837b83d9b74ca5ba54561c1b",
+        "deployedSha256": "65599dc26e93e0f65de3d7832e8d36e5905c8f70837b83d9b74ca5ba54561c1b",
+        "status": "MATCH"
+      },
+      {
+        "file": "server/main.lua",
+        "sourceSha256": "e4628040316824525105846bda99df364e12f9f28d4f8b2edea0ab37c5101958",
+        "deployedSha256": "69108620a31868ece43855dfeaf759efd29ee90c53c1583c2080eeb5ba51b67d",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "shared/game_registry.lua",
+        "sourceSha256": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41",
+        "deployedSha256": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41",
+        "status": "MATCH"
+      },
+      {
+        "file": "sql/001_initial.sql",
+        "sourceSha256": "0b82a6fc2c429586ce11aa2196e57394f0b79ec15bf37277ff41c85ab53f749c",
+        "deployedSha256": "0b82a6fc2c429586ce11aa2196e57394f0b79ec15bf37277ff41c85ab53f749c",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/party/app.js",
+        "sourceSha256": "44e7324524fd731f775eca2f6d4b09edde2de57167f6bb17fdda6c322b6aaf22",
+        "deployedSha256": "4058732943fe36f007313fa4c97b04ae3ea50128ebd520ea44d4b55c79cf27ac",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/party/fall_battle.js",
+        "sourceSha256": "6dae32a0a0a0f70a01e14dac36f841a82ed40f85005f25e80efdc6597bbfdbae",
+        "deployedSha256": "095023df080d6865af52ec8cc54bf0c34e101637dc8d7e5065e4b169a4963bd4",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/party/icon.svg",
+        "sourceSha256": "d4d9d2abb8892015e52942c26672b62ad050d80f39e601114de8b0ac80c98a0f",
+        "deployedSha256": "d4d9d2abb8892015e52942c26672b62ad050d80f39e601114de8b0ac80c98a0f",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/party/index.html",
+        "sourceSha256": "b047949478ee3850054e8af45287d32f2d7f27e05bf343f3b2efd17b4ec67c9c",
+        "deployedSha256": "5e94671c062749b41d38834b4381131d2de7e02acf2ad3ff0717a7de9edebc44",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/play/app.js",
+        "sourceSha256": "30db5343e4d27398f6e20f0bf30830251734d6327ed44abd95d7cb25274d29e3",
+        "deployedSha256": "6817de50cb8610cfc5ff59ff9686a93ab46ffe315ce73f9b523ccb3b86ee67f7",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/play/icon.svg",
+        "sourceSha256": "15536271ac1580a24d9468b9b713809c1b757b3b2e035e9e32189e22e7160a20",
+        "deployedSha256": "15536271ac1580a24d9468b9b713809c1b757b3b2e035e9e32189e22e7160a20",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/block.svg",
+        "sourceSha256": "51031b9e2f0ca00420d9a1dc1973d9d29090194bbf80715566461581deb2119b",
+        "deployedSha256": "51031b9e2f0ca00420d9a1dc1973d9d29090194bbf80715566461581deb2119b",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/color-match.svg",
+        "sourceSha256": "6a42173c78fae88ccb2c4e49519557b0680f8e2c8953e71474349924eb53b5f1",
+        "deployedSha256": "6a42173c78fae88ccb2c4e49519557b0680f8e2c8953e71474349924eb53b5f1",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/fall.svg",
+        "sourceSha256": "e5802a3c0b1c4940048d50d1f8929c3ccf426fdf4a0a98f7932429361af19c4b",
+        "deployedSha256": "e5802a3c0b1c4940048d50d1f8929c3ccf426fdf4a0a98f7932429361af19c4b",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/memory.svg",
+        "sourceSha256": "857d647e58aa619ec610557e3137c1aef61957d8ac558b0764de0c318b48c601",
+        "deployedSha256": "857d647e58aa619ec610557e3137c1aef61957d8ac558b0764de0c318b48c601",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/merge.svg",
+        "sourceSha256": "d2efab2e96b8e32d2c679a11d61eb7a62b865587cd85a367c9429d89f6150592",
+        "deployedSha256": "d2efab2e96b8e32d2c679a11d61eb7a62b865587cd85a367c9429d89f6150592",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/mines.svg",
+        "sourceSha256": "fca9e7c417d5d07a4406aed2b4e03921372c7ee3cf4d053137544af4bb4f47ae",
+        "deployedSha256": "fca9e7c417d5d07a4406aed2b4e03921372c7ee3cf4d053137544af4bb4f47ae",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/nonogram.svg",
+        "sourceSha256": "b436bc3c2e905106f741a446e3e7ccf70d8f265257a881e3b6676cb0a9edd294",
+        "deployedSha256": "b436bc3c2e905106f741a446e3e7ccf70d8f265257a881e3b6676cb0a9edd294",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/number-rush.svg",
+        "sourceSha256": "d8c7172d847f4a4d5269600ca973702cbb954358ac68c81c2ec37a709f18a376",
+        "deployedSha256": "d8c7172d847f4a4d5269600ca973702cbb954358ac68c81c2ec37a709f18a376",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/quick-tap.svg",
+        "sourceSha256": "470500be7353c52b64db949352a21a887b7367f14a03e61506e0f6c0a3ebbf3f",
+        "deployedSha256": "470500be7353c52b64db949352a21a887b7367f14a03e61506e0f6c0a3ebbf3f",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/range-rush.svg",
+        "sourceSha256": "461b1c4d644ada703c93aeec68ff77f58ba014d5a529343d4f3809126c296678",
+        "deployedSha256": "461b1c4d644ada703c93aeec68ff77f58ba014d5a529343d4f3809126c296678",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/simon.svg",
+        "sourceSha256": "e66d58548ba694707a5c76a161739af6e3b485ac7f79c566f849d064428207ba",
+        "deployedSha256": "e66d58548ba694707a5c76a161739af6e3b485ac7f79c566f849d064428207ba",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/slide.svg",
+        "sourceSha256": "cdb6964727bfa7f6fec14819cfa6067ab597a214b9f82dc7c6fcc3ea9289a5a9",
+        "deployedSha256": "cdb6964727bfa7f6fec14819cfa6067ab597a214b9f82dc7c6fcc3ea9289a5a9",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/sort.svg",
+        "sourceSha256": "6398f3d52051fb49e52437a7ce0270c356a285260d5f9e16a426a72b730ac585",
+        "deployedSha256": "6398f3d52051fb49e52437a7ce0270c356a285260d5f9e16a426a72b730ac585",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/stop.svg",
+        "sourceSha256": "4dff192b27ae6fef0f5f2c7dafc64667150dc4a38e87144ed806b2a261045655",
+        "deployedSha256": "4dff192b27ae6fef0f5f2c7dafc64667150dc4a38e87144ed806b2a261045655",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/icons/tower.svg",
+        "sourceSha256": "d9e85c035ac414fbb6c9f1b06888c152b86b33ad761a638acba9b63f9cf418a6",
+        "deployedSha256": "d9e85c035ac414fbb6c9f1b06888c152b86b33ad761a638acba9b63f9cf418a6",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/play/index.html",
+        "sourceSha256": "93657fd394ed63b24cf42c76afd28a15d3d74f477b5299d0c63ce4b3479795d3",
+        "deployedSha256": "389b12b119cac7316753a41a90d37c32d72cafe143f3435e1cc8da687fab28e5",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/shared/app.css",
+        "sourceSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+        "deployedSha256": "9e7d21ca8ea87781e1349b85963328b4b1ad31bae493c1bb83c9df018eed60b0",
+        "status": "MATCH"
+      },
+      {
+        "file": "web/shared/bridge.js",
+        "sourceSha256": "33cb596515b85f87824938d5b4992d928558ba6bd62aefb88309da66ab8c0f86",
+        "deployedSha256": "21ece0a3b0961a43d30a48a8afbdc3f39d05cbf6d28c6f96b7e30adcca67adce",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/shared/controls.js",
+        "sourceSha256": "239774e6790ba77d374065d3c56302792a447ced58b946a727717d65c69c892f",
+        "deployedSha256": "459e9c14c51a78b46f34a0783c19342a8e2f52638e9b284aa8d2b1aa57e451ab",
+        "status": "DIFFERENT"
+      },
+      {
+        "file": "web/shared/errors.js",
+        "sourceSha256": "fd08a8547cf536921203874ee1f720577ffe987eaf42d7c383da969e75a8dd61",
+        "deployedSha256": "0107e8b8ff5d6976db6695e4ee37af5e52620ae930741740b082852d5bdd0f8b",
+        "status": "DIFFERENT"
+      }
+    ]
+  },
+  "deployedUnchangedSinceBackup": true,
+  "deployedHash": "b1753a019f5aebcc35f8d925a5be219cf4a8f6cdf5da2c7ab21a9331f8eb3478",
+  "serverObservation": {
+    "status": "RUNNING",
+    "healthy": true,
+    "players": 0,
+    "authoritative": false,
+    "nativeProof": "NOT_RUN — installed bridge status capability has not been approved",
+    "checkedAt": "2026-10-31T18:51:58.091Z"
+  },
+  "liveFiveM": "NOT_RUN",
+  "lbPhone290": "Installed manifest and callback export read; integration NOT_RUN",
+  "existingDatabaseBackup": "NOT_RUN",
+  "wholeServerBackup": "NOT_RUN",
+  "authoritativeZeroPlayers": "BLOCKED — workspace bridge approval absent; no native dispatch",
+  "submission": "NOT_READY",
+  "deployed": false,
+  "restarted": false,
+  "realBilling": false,
+  "published": false,
+  "scheduledTasksCreated": 0,
+  "scheduledTasksChanged": 0,
+  "additionalBoardProbe": {
+    "status": "PASS",
+    "scope": "Offline browser: 64 Reversi cells, one accepted mocked move, same board after phone return; no live server",
+    "evidence": "../../.flecity-dev/projects/link/screen-prototype/final-20261101/board-probe.log"
+  }
+}

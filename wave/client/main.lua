@@ -1,6 +1,7 @@
 local RESOURCE = GetCurrentResourceName()
 local APP_ID = WaveConfig.App.identifier
 local cacheBust = tostring(GetGameTimer())
+local ownsApp = false
 
 local function appData()
     local app = WaveConfig.App
@@ -27,15 +28,11 @@ local function addApp()
         print(('[WAVE] AddCustomApp API error: %s'):format(tostring(success)))
         return false
     end
-    if success then return true end
+    if success then ownsApp = true return true end
     if err == 'APP_ALREADY_EXISTS' then
-        pcall(function() exports['lb-phone']:RemoveCustomApp(APP_ID) end)
-        Wait(75)
-        local retryOk, retrySuccess, retryErr = pcall(function()
-            return exports['lb-phone']:AddCustomApp(appData())
-        end)
-        if retryOk and retrySuccess then return true end
-        print(('[WAVE] AddCustomApp retry failed: %s'):format(tostring(retryErr or retrySuccess)))
+        -- Ownership is unknown. Never remove another resource's app by identifier.
+        ownsApp = false
+        print(('[WAVE] app identifier already registered: %s'):format(APP_ID))
         return false
     end
     print(('[WAVE] AddCustomApp failed: %s'):format(tostring(err)))
@@ -67,8 +64,12 @@ AddEventHandler('onResourceStart', function(resource)
 end)
 
 AddEventHandler('onResourceStop', function(resource)
+    if resource == 'lb-phone' then ownsApp = false return end
     if resource ~= RESOURCE or GetResourceState('lb-phone') ~= 'started' then return end
-    pcall(function() exports['lb-phone']:RemoveCustomApp(APP_ID) end)
+    if ownsApp then
+        ownsApp = false
+        pcall(function() exports['lb-phone']:RemoveCustomApp(APP_ID) end)
+    end
 end)
 
 local callbackMap = {

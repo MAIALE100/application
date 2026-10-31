@@ -7,14 +7,14 @@
       "migration": "READY",
       "automation": "ACTIVE",
       "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "base": {
       "migration": "IMPORTED",
       "automation": "ACTIVE",
       "source": "flecity_base",
-      "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validation": "NOT_RUN",
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "link": {
       "migration": "IMPORTED",
@@ -23,8 +23,8 @@
       "sharedWith": [
         "loop"
       ],
-      "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validation": "NOT_RUN",
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "loop": {
       "migration": "IMPORTED",
@@ -33,22 +33,22 @@
       "sharedWith": [
         "link"
       ],
-      "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validation": "NOT_RUN",
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "wave": {
       "migration": "IMPORTED",
       "automation": "ACTIVE",
       "source": "wave",
-      "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validation": "NOT_RUN",
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "flepri": {
       "migration": "IMPORTED",
       "automation": "ACTIVE",
       "source": "puribooth",
-      "validation": "PASS",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validation": "NOT_RUN",
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     },
     "puriphoto": {
       "migration": "PAUSED",
@@ -56,7 +56,7 @@
       "source": "puriphoto",
       "reason": "2026-10-31 user declined all 8 modifications, 5 additions and 242 deletion candidates",
       "validation": "PAUSED",
-      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+      "validationEvidence": "devtools/flecity/reports/server-control-20261031/verification.json"
     }
   }
 }

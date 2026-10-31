@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "enabled": false,
+  "initialApprovalRequired": true,
+  "resources": {},
+  "requiredSuites": ["static", "db", "nui", "visual", "game", "virtual-multiplayer"],
+  "note": "All existing and newly registered resources default to unapproved. Live adapters and native status bridge upgrade require explicit first-update review."
+}

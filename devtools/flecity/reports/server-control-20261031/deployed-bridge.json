@@ -1,0 +1,11 @@
+{
+  "path": "D:/FiveM_Test_Server/txData/Qbox_D233FD.base/resources/flecity_validation_bridge",
+  "privateFilesRead": false,
+  "files": {
+    "fxmanifest.lua": "b192be4c5844103dd2093512de8a184670c339280aefc2ac43553d8245f5468f",
+    "policy.lua": "b9d151933b29f82dbd5f6f1ba52f391216213d68be6c565a760e604e2569fdd7",
+    "server.lua": "c445d0705f146dd4c7ac4a6b502ef39b193c451ce8247d3cdb6296352369aa9c"
+  },
+  "version": "0.1.0-dev",
+  "nativeObservationPresent": false
+}

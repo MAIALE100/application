@@ -2,12 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { once } from 'node:events';
-import { state,local,command,launch,noLinks,inside,json,redact,result } from './core.mjs';
+import { state,local,command,launch,noLinks,inside,json,redact,result,files } from './core.mjs';
 
 export function assertDisposableDatadir(root,datadir) {
   const rel=path.relative(path.resolve(root),path.resolve(datadir));
   if(!rel||rel.startsWith('..')||path.isAbsolute(rel))throw Error('Datadir outside disposable root');
   noLinks(datadir);
+}
+export function releaseDisposableDatadir(root,datadir,proof){
+  assertDisposableDatadir(root,datadir);
+  if(path.basename(datadir)!=='data'||proof?.stopped!==true||proof?.graceful!==true||proof?.testsPassed!==true)throw Error('Verified stopped successful disposable DB required');
+  // Walk first to reject nested reparse points; the resolved target must remain under this private root.
+  files(datadir,[]);
+  fs.rmSync(datadir,{recursive:true,force:false});
 }
 export async function disposable(ctx,fn) {
   const bin=local().mariaBin;
@@ -74,7 +81,12 @@ export async function disposable(ctx,fn) {
     process.removeListener('SIGINT',stopOnSignal);process.removeListener('SIGTERM',stopOnSignal);
     fs.writeFileSync(path.join(ctx.run.dir,'logs','db-process.txt'),redact(output).replaceAll(password,'[REDACTED]'));
     if(fs.existsSync(path.join(dir,'server.err')))fs.copyFileSync(path.join(dir,'server.err'),path.join(ctx.run.dir,'logs','db-server.txt'));
-    json(path.join(dir,'fixture.json'),{project:ctx.id,pid:child.pid,datadir,pipe,dbName,network:'disabled',stopped:ended()||!!spawnError,graceful:shutdown.ok});
+    const stopped=ended()||!!spawnError,testsPassed=!ctx.run.checks.some(c=>c.status==='FAIL');
+    let dataRetained=true;
+    if(stopped&&shutdown.ok&&testsPassed){
+      releaseDisposableDatadir(root,datadir,{stopped,graceful:shutdown.ok,testsPassed});dataRetained=false;
+    }
+    json(path.join(dir,'fixture.json'),{project:ctx.id,pid:child.pid,datadir,pipe,dbName,network:'disabled',stopped,graceful:shutdown.ok,dataRetained});
     result(ctx.run,'Disposable MariaDB shutdown',ended()||spawnError?'PASS':'FAIL','Only the spawned fixture process was addressed; data retained locally; graceful='+shutdown.ok);
   }
 }

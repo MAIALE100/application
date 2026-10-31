@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { files,command,luaCompiler,result,inside,noLinks,repo,inventory,sha,saveRun,newRun,tool } from './core.mjs';
 import { bookmark } from './evidence.mjs';
 import { browserChecks } from './nui.mjs';
+import {compareApprovedImage} from './ui-image-compare.mjs';
 function globPattern(pattern) {
   let out='^';
   for(let i=0;i<pattern.length;i++) {
@@ -65,7 +66,7 @@ export async function staticChecks(ctx) {
   });
 }
 export async function runProject(config,suite='static') {
-  if(!['static','db','nui','live','game','all'].includes(suite))throw Error('Unknown suite');
+  if(!['static','db','nui','visual','live','game','virtual-multiplayer','all'].includes(suite))throw Error('Unknown suite');
   const run=newRun(config.id,suite);run.logStart=bookmark();
   const ctx={...config,run,read:p=>fs.readFileSync(inside(config.source,p),'utf8'),
     skip:(name,why)=>result(run,name,'NOT_RUN',why),
@@ -87,11 +88,22 @@ export async function runProject(config,suite='static') {
       if(fs.existsSync(p))custom=await import(pathToFileURL(p).href);
       else ctx.skip('Project adapter','Configured adapter file absent');
     }
-    for(const selected of suite==='all'?['static','db','nui','game','live']:[suite]) {
+    for(const selected of suite==='all'?['static','db','nui','visual','game','virtual-multiplayer','live']:[suite]) {
       run.activeSuite=selected;
       if(selected==='static'){await staticChecks(ctx);if(adapter.static)await adapter.static(ctx);if(custom?.staticChecks)await custom.staticChecks(ctx);}
       if(selected==='db'){if(adapter.db)await adapter.db(ctx);else ctx.skip('DB integration','No project DB adapter registered');}
       if(selected==='nui')await browserChecks(ctx,custom?.nui||adapter.nui,custom?.nuiPrepare||adapter.nuiPrepare);
+      if(selected==='visual'){
+        const comparison=await compareApprovedImage(config);
+        result(run,'Approved UI image comparison',comparison.status,JSON.stringify(comparison));
+      }
+      if(selected==='virtual-multiplayer'){
+        if(!config.virtualModules?.length)ctx.skip('Virtual multiplayer','No reviewed virtual-actor adapter; not live multi-client testing');
+        for(const name of config.virtualModules||[]){
+          const file=inside(repo,name);noLinks(file);
+          ctx.exec('Virtual actors: '+name,process.execPath,[path.join(tool,'module-runner.mjs'),name,path.relative(repo,ctx.source)],{timeout:60000});
+        }
+      }
       if(selected==='game') {
         if(!config.modules?.length)ctx.skip('Game simulation','No rule/AI module registered');
         for(const name of config.modules||[]){

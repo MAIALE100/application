@@ -17,8 +17,9 @@ export async function getEndpoint(endpoint){
   });
 }
 export function validateCounts(dynamic,players){
+  if(!(typeof dynamic?.clients==='number'||typeof dynamic?.clients==='string'&&/^\d+$/.test(dynamic.clients)))throw Error('Missing or invalid client count');
   const count=Number(dynamic?.clients);
-  if(!Number.isInteger(count)||count<0||!Array.isArray(players))throw Error('Cannot establish tester count');
+  if(!Number.isSafeInteger(count)||count<0||!Array.isArray(players))throw Error('Cannot establish tester count');
   return {dynamicCount:count,playersCount:players.length,idle:count===0&&players.length===0,consistent:count===players.length};
 }
 export function assertIdle(snapshot,now=Date.now()){

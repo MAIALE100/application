@@ -10,5 +10,8 @@
   "modules": [],
   "sharedWith": [
     "link"
+  ],
+  "virtualModules": [
+    "devtools/flecity/modules/link-multiplayer.mjs"
   ]
 }

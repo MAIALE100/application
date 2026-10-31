@@ -18,5 +18,8 @@
   "nui": {
     "entry": "web/party/index.html"
   },
-  "notes": "LINK is legacy PARTY, flecity_party, within flecity_games. Restart affects LOOP too."
+  "notes": "LINK is legacy PARTY, flecity_party, within flecity_games. Restart affects LOOP too.",
+  "virtualModules": [
+    "devtools/flecity/modules/link-multiplayer.mjs"
+  ]
 }

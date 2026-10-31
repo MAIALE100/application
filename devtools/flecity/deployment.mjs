@@ -104,6 +104,7 @@ export function replaceTree(source,target,root,expectedHash,failpoint=null) {
   return {target,previous}; // Retain old files; never recursively delete a resource.
 }
 export async function apply(config,planId,options={}) {
+  if(options.automatic===true)throw Error('Automatic live dispatch is disabled pending initial approval and native guarded adapter review');
   if(!/^[a-f0-9-]{36}$/.test(planId||''))throw Error('Expected plan UUID');
   return locked('deploy-'+config.resource,async()=>{
     const env=local().server,target=targetFor(config);

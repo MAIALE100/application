@@ -3,6 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import { identifier,inside,repo,tool,json,noLinks,copyTree,inventory,local,saveLocal,state,command } from './core.mjs';
+import {defaultUpdatePolicy} from './server/update-gate.mjs';
 
 export function register(id,source,kind='resource',resource=id,workspace=repo,registry=path.join(tool,'projects')) {
   identifier(id);identifier(resource);
@@ -15,7 +16,7 @@ export function register(id,source,kind='resource',resource=id,workspace=repo,re
   if(fs.existsSync(adapter))throw Error('Adapter already exists');
   fs.mkdirSync(path.dirname(adapter),{recursive:true});
   fs.writeFileSync(adapter,"export async function staticChecks(ctx){ctx.skip('Application behavior','Add resource-specific contract tests here');}\n",{flag:'wx'});
-  json(target,{id,resource,source,kind,adapter:'generic',logTags:['script:'+resource],modules:[],testAdapter:path.relative(workspace,adapter).split(path.sep).join('/')});
+  json(target,{id,resource,source,kind,adapter:'generic',logTags:['script:'+resource],modules:[],virtualModules:[],autoUpdate:defaultUpdatePolicy(),testAdapter:path.relative(workspace,adapter).split(path.sep).join('/')});
   return target;
 }
 export function scaffold(id,kind='resource',workspace=repo,registry=path.join(tool,'projects'),language='lua') {

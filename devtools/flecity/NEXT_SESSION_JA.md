@@ -1,6 +1,9 @@
 # 継続状態（2026-10-31・アプリ別運用）
 
 作業先: D:/FiveM_AutoDev/workspace-clean。マスター指示書と最新のユーザー指示を読む。
+最新追加: SERVER_AUTOMATION_SAFETY_JA.mdとUPDATE_POLICY.json。ローカル検証はサーバー状態と分離し、公開状態は最後に観測する。全リソースの実自動反映は未承認・無効。
+接続増加時の中断・復旧ゲートは一時fixtureで検証。ネイティブ人数観測を含むブリッジ案はworkspace内だけで、実配置・リソース再起動アダプターは未有効・未実装。初回更新の具体的な承認前に実行しない。
+SQLは既存D:/MariaDB/binから固有named pipe/TCP無効の使い捨てDBのみ。承認済み画像なしの比較や未登録シナリオはNOT_RUN。
 旧reports/migration-20261031/RESULT_JA.mdの「全体BLOCKED」は初回調査の履歴。現在はプリフォトのみPAUSED。
 
 - 方針: MIGRATION_STATE.json。最新アプリ別結果: .flecity-dev/automation/latest.json。個別証跡: .flecity-dev/projects/<id>/。

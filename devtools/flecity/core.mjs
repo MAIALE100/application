@@ -91,7 +91,7 @@ export function saveRun(run) {
   const changed=command('git',['status','--porcelain','--untracked-files=no']);run.dirtyPaths=changed.ok?changed.output.split('\n').filter(Boolean):[];
   json(path.join(run.dir,'result.json'),run);json(path.join(state,'projects',run.project,'latest.json'),run);
   json(path.join(state,'projects',run.project,run.suite+'-latest.json'),run);
-  if(run.suite==='all')for(const suite of ['static','db','nui','game','live']){
+  if(run.suite==='all')for(const suite of ['static','db','nui','visual','game','virtual-multiplayer','live']){
     const checks=run.checks.filter(c=>c.suite===suite);
     const status=checks.some(c=>c.status==='FAIL')?'FAIL':checks.some(c=>c.status==='BLOCKED')?'BLOCKED':
       !checks.length||checks.some(c=>c.status==='NOT_RUN')?'NOT_RUN':'PASS';

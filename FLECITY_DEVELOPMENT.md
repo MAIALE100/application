@@ -1,5 +1,11 @@
 # Flecity 共通ローカル開発基盤
 
+## 自動反映の標準安全制御（2026-10-31追加）
+
+`devtools/flecity/SERVER_AUTOMATION_SAFETY_JA.md` を参照。新規登録もUPDATE_POLICYの未承認・無効を継承する。
+ローカル検証はFiveM停止・接続者ありでも継続し、実反映だけを8条件で拒否/許可判定する。公開HTTPの0人は承認根拠にしない。
+実反映アダプターと初回更新は未承認・無効のまま。使い捨てSQL、visual、virtual-multiplayerスイートを追加し、未検証をPASSとしない。
+
 ## 現行方針：既存テストサーバーを使用
 
 現在は D:\FiveM_Test_Server の既存FiveM/QBox/oxmysql/LB Phoneを利用します。専用FXServer方式は中止し、labコマンドと直接起動入口を無効化しました。ライセンスキーの発行・表示・コピー・変更は不要です。専用MariaDBを使う破壊的試験とオフラインNUI検証は引き続き利用できます。

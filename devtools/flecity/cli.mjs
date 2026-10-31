@@ -26,7 +26,7 @@ function help(){
     'flecity register <id> --source <repo-relative-directory> --kind <kind> --resource <resource>',
     'flecity import <id> --from <existing-resource-directory> [--provenance <note>]',
     'flecity snapshot <id> --ref <local-git-ref> [--resource-path <git-tree-directory>]',
-    'flecity test <id|all> --suite static|db|nui|game|live|all',
+    'flecity test <id|all> --suite static|db|nui|visual|game|virtual-multiplayer|live|all',
     'flecity status <id|all>',
     'flecity checkpoint <id> --message <local-note>',
     'flecity checkpoint toolkit --message <local-note>',
@@ -88,7 +88,7 @@ try{
       identifier(name);const file=path.join(state,'projects',name,'latest.json');
       if(!fs.existsSync(file)){console.log(name+': NOT_RUN');continue;}
       const r=readJSON(file);console.log(name+': '+r.status+' ('+r.suite+') '+r.id);
-      for(const suite of ['static','db','nui','game','live','preflight','server-readonly','server-native','client-plan']){
+      for(const suite of ['static','db','nui','visual','game','virtual-multiplayer','live','preflight','server-readonly','server-native','client-plan']){
         const f=path.join(state,'projects',name,suite+'-latest.json');
         const s=fs.existsSync(f)?readJSON(f):null;
         console.log('  '+suite.padEnd(7)+(s?.status||'NOT_RUN').padEnd(9)+' source='+(s?.sourceHash?.slice(0,12)||'-'));

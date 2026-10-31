@@ -1,16 +1,16 @@
-# 新環境への移行状態（2026-10-31）
+# 継続状態（2026-10-31・アプリ別運用）
 
-最優先で FLECITY_AUTODEV_MASTER_JA.md と reports/migration-20261031/RESULT_JA.md を読む。
+作業先: D:/FiveM_AutoDev/workspace-clean。マスター指示書と最新のユーザー指示を読む。
+旧reports/migration-20261031/RESULT_JA.mdの「全体BLOCKED」は初回調査の履歴。現在はプリフォトのみPAUSED。
 
-- 作業先は `D:\FiveM_AutoDev\workspace-clean`。元の `D:\FiveM_Dev\application` は変更禁止。
-- 状態: **BLOCKED — アプリソースの移行承認待ち**。既存ファイルの上書きは禁止されているため移行を停止した。
-- `.gitignore` とプリフォト8ファイルに上書き差分。新環境は同じHEADの旧版なので、双方で独立に編集されたマージ競合とは断定しない。ただし無断上書き禁止の対象。
-- プリフォトの旧ビルド242ファイルが新環境に残り、旧環境では削除されている。無断削除しない。
-- フレプリ24ファイル、BASE候補23ファイル、LINK検査用61ファイル、WAVE検査用12ファイルは未移行。
-- BASEの検査対象は sources/base ではなく local.json 指定の candidates/base。コピー元を取り違えない。正式な最新checkoutであるとの保証はない。
-- LINK/LOOPは flecity_games を共有。新環境のルート版は旧環境ルート版と同一だが、検査用LINKコピーとは別物。
-- ローカル設定・資格情報・既存DB接続・サーバー承認記録を移さない。検査用ソースも秘密情報を監査してから扱う。
-- 64テストは58 PASS / 0 FAIL / 6 SKIP。Lua4件、ブラウザー2件が新環境で未設定。全件成功ではない。
-- 自動実行ID `flecity-02-00-13-00-jst` は新プロジェクトへ移しPAUSED。解決・検証前に有効化しない。
-- 次: 対象差分の採用承認→明示したファイルのみ移行→安全な依存設定→64件をskipなしで再実行→BASE/LINK両方の回帰→作業全体を覆うロック/タイムアウト/失敗制御の検証→定期実行を再開。
-- GitHub、サーバー更新・再起動、既存DBへの接続・変更は実行禁止。
+- 方針: MIGRATION_STATE.json。最新アプリ別結果: .flecity-dev/automation/latest.json。個別証跡: .flecity-dev/projects/<id>/。
+- BASE: 23ファイルの候補をflecity_baseへ新規取り込み。正式最新ブランチとの同一性は未保証。
+- LINK/LOOP: 検査用55ファイルをflecity_sources/flecity_gamesへ新規取り込み、両台帳をこの共有先へ統一。旧ルートflecity_gamesは保持。トークン・リロード状態6ファイルは未コピー。
+- WAVE: 12ファイルをwaveへ。フレプリ: 24ファイルをpuriboothへ。新規パスのみ、バックアップとSHA-256一致、機密候補検査済み。
+- プリフォト: 既存8変更・新規5・削除候補242を不承認として保護。移行・編集・追加・削除・自動検証を実施しない。分類はreports/independent-20261031/PURIPHOTO_DIFF_JA.md。
+- 242候補は配布用生成資産だが現行HTML/CSS参照が全件ある。不要と扱わない。
+- 元のlocal.json、DB/サーバー設定、承認記録はコピーしていない。Luaは新環境の無視対象へ検証コピー、既存Playwright/Chromeを設定。元の共通64テストは64 PASS / 0 FAIL / 0 SKIP。
+- 定期実行は安全な検証継続モード。powershell -NoProfile -ExecutionPolicy Bypass -File devtools/flecity/automation-run.ps1 を実行する。ソース自動修正・自動配置は含まない。
+- OS mutexが全実行を保護。アプリ単位の失敗・バックオフを保存し、他アプリを継続。20分上限と証跡容量・期間制御あり。
+- GitHub・fetch/pull/push/PR・git reset --hard・git clean・git add -Aは禁止。元フォルダの作業ファイル・バックアップ・サーバー・既存DBを変更しない。
+- 次: BASEの権限/トランザクション、LINK/LOOPの同期・低FPSの安全なモック検証を優先。ソース修正は別の明示対象タスクで狭い差分・回帰・ローカル保存を行う。

@@ -1,5 +1,13 @@
 # 移行時のリソース照合
 
+## 2026-10-31 続行結果（現在）
+
+BASEはflecity_baseへ23ファイル、LINK/LOOP共有はflecity_sources/flecity_gamesへ55ファイル、WAVEはwaveへ12ファイル、フレプリはpuriboothへ24ファイルを新規取り込み済み。
+LINK/LOOP台帳の参照先は同じ共有コピーへ変更。旧ルートflecity_gamesは維持。トークン・自動リロード状態6ファイルは未コピー。
+全5アプリの静的検証、BASE/LINKの模擬NUI、LINKのローカルゲーム検証PASS。プリフォトのみPAUSED。
+現行のアプリ別状態はMIGRATION_STATE.json、証跡はreports/independent-20261031/validation.jsonを参照。
+以下の表は初回の移行前調査履歴として保持する。
+
 既存台帳 `projects/*.json` を維持し、本表は移行確認を補う。詳細ハッシュはreports/migration-20261031/inventory.json。
 
 | アプリ | 実リソース | 新環境の状態 | 元環境で検査に使っていたソース |

@@ -1,0 +1,1508 @@
+const resource = typeof GetParentResourceName === "function" ? GetParentResourceName() : "flecity_base";
+
+const state = {
+  boot: null,
+  workspace: null,
+  members: [],
+  tab: "overview",
+  overview: { metrics:{notes:0,stock:0,lowStock:0,openTasks:0,overdueTasks:0,balance:0}, recentNotes:[], recentTasks:[], recentStock:[], recentMoney:[] },
+  notes: [],
+  memoQuery: "",
+  memoCategory: "all",
+  memoSort: "updated_desc",
+  memoLimit: 40,
+  stock: [],
+  stockFields: [],
+  stockRecent: [],
+  stockFilter: "all",
+  stockCategory: "all",
+  stockQuery: "",
+  stockSort: "name",
+  stockLimit: 50,
+  tasks: [],
+  taskFilter: "all",
+  taskQuery: "",
+  taskSort: "due",
+  taskLimit: 50,
+  showCompleted: false,
+  calculators: [],
+  moneyQuery: "",
+  moneyType: "all",
+  moneyCategory: "all",
+  moneySort: "newest",
+  moneyLimit: 50,
+  showVoidedMoney: false,
+  money: { entries: [], summary: { income: 0, expense: 0, balance: 0 } }
+};
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const num = (v) => Number(v || 0);
+const yen = (v) => "$" + num(v).toLocaleString("ja-JP");
+
+const UI_LIMITS = {
+  title:120, name:120, label:40, category:64, tags:255, unit:32, note:180,
+  citizenid:64, icon:32, resultLabel:64, resultUnit:32,
+  fieldLabel1:64, fieldLabel2:64, fieldLabel3:64, fieldLabel4:64,
+  fieldLabel5:64, fieldLabel6:64, fieldLabel7:64, fieldLabel8:64,
+  fieldUnit1:32, fieldUnit2:32, fieldUnit3:32, fieldUnit4:32,
+  fieldUnit5:32, fieldUnit6:32, fieldUnit7:32, fieldUnit8:32
+};
+
+function dateValue(value){
+  if(value===null||value===undefined||value==="") return null;
+  if(typeof value==="number"||/^\d{10,13}$/.test(String(value))){
+    let n=Number(value);
+    if(!Number.isFinite(n)) return null;
+    if(n<100000000000) n*=1000;
+    const d=new Date(n);
+    return Number.isNaN(d.getTime())?null:d;
+  }
+  const raw=String(value).trim();
+  const normalized=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw)?raw.replace(" ","T"):raw;
+  const d=new Date(normalized);
+  return Number.isNaN(d.getTime())?null:d;
+}
+
+function fmtDateTime(value,fallback=""){
+  const d=dateValue(value);
+  if(!d) return fallback||String(value??"");
+  return new Intl.DateTimeFormat("ja-JP",{
+    year:"numeric",month:"2-digit",day:"2-digit",
+    hour:"2-digit",minute:"2-digit",hour12:false
+  }).format(d);
+}
+
+function inputDateTime(value){
+  const d=dateValue(value);
+  if(!d) return "";
+  const pad=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+
+const errors = {
+  PLAYER_NOT_READY:"キャラクター情報を取得できません。",
+  NOT_A_MEMBER:"このBASEを開く権限がありません。",
+  OWNER_REQUIRED:"オーナーのみ操作できます。",
+  MANAGER_REQUIRED:"管理権限が必要です。",
+  SUPPORT_NOT_ALLOWED:"WEAZEL SUPPORTを使用する権限がありません。",
+  INVALID_ROLE:"役割設定を確認してください。",
+  MEMBER_NOT_FOUND:"メンバーが見つかりません。",
+  CANNOT_REMOVE_OWNER:"OWNERは除名できません。",
+  CANNOT_CHANGE_OWNER:"OWNERの役割は変更できません。",
+  WORKSPACE_LIMIT:"作成できるBASE数の上限です。",
+  MEMBER_LIMIT:"メンバー数の上限です。",
+  INVITE_LIMIT:"保留中の招待数が上限です。",
+  TITLE_REQUIRED:"タイトルを入力してください。",
+  NAME_REQUIRED:"名前を入力してください。",
+  INVALID_INVITEE:"招待先のCSNを確認してください。",
+  ALREADY_MEMBER:"すでに参加しています。",
+  INVITE_NOT_FOUND:"招待が見つからないか期限切れです。",
+  PERSONAL_WORKSPACE:"MY SPACEではこの操作はできません。",
+  OWNER_CANNOT_LEAVE:"オーナーはBASEから退出できません。",
+  DELETE_CONFIRM_MISMATCH:"確認用のBASE名が一致しません。",
+  STOCK_CHANGED_RETRY:"在庫が同時に更新されました。もう一度操作してください。",
+  INVALID_ASSIGNEE:"担当者がこのBASEのメンバーではありません。",
+  INVALID_STOCK_QUANTITY:"在庫数は0〜1,000,000の整数で入力してください。",
+  INVALID_STOCK_DELTA:"在庫の増減数は-1,000,000〜1,000,000の整数で入力してください。",
+  STOCK_OUT_OF_RANGE:"変更後の在庫数が0〜1,000,000の範囲を超えます。",
+  INVALID_CUSTOM_FIELD:"この追加項目は使用できません。",
+  INVALID_CUSTOM_VALUES:"追加項目の入力を確認してください。",
+  CUSTOM_FIELD_LIMIT:"追加項目は6つまで登録できます。",
+  CUSTOM_FIELD_DUPLICATE:"同じ名前の項目が既にあります。",
+  ZERO_DELTA:"増減数は0以外を入力してください。",
+  NO_CHANGE:"在庫数は変更されませんでした。",
+  INVALID_AMOUNT:"金額は1〜1,000,000,000の整数で入力してください。",
+  INVALID_DUE_AT:"期限の日時を確認してください。",
+  INVALID_PRIORITY:"優先度が不正です。",
+  INVALID_TASK_STATUS:"タスク状態が不正です。",
+  INVALID_CALCULATOR_NUMBER:"計算項目の初期値が範囲外です。",
+  CALCULATOR_LIMIT:"作成できる計算方法の上限です。",
+  CALCULATOR_FIELDS_REQUIRED:"入力項目を1つ以上作ってください。",
+  FORMULA_REQUIRED:"計算式を入力してください。",
+  INVALID_FORMULA:"計算式を確認してください。",
+  INVALID_FORMULA_VARIABLE:"計算式に存在しない入力項目が使われています。",
+  BRIDGE_ERROR:"LB Phoneとの通信に失敗しました。",
+  SERVER_ERROR:"サーバー処理でエラーが発生しました。"
+};
+
+function status(text, bad=false){
+  const el=$("#status");
+  el.textContent=text || "";
+  el.style.color=bad ? "#884646" : "";
+}
+
+async function api(action, payload={}){
+  try{
+    const res=await fetch(`https://${resource}/flecityBase:callback`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action,payload})
+    });
+    const data=await res.json();
+    if(!data?.ok) throw new Error(errors[data?.error] || data?.error || "処理に失敗しました。");
+    return data;
+  }catch(e){
+    status(e.message || "通信エラー",true);
+    throw e;
+  }
+}
+
+function selectedWorkspaceId(){
+  return state.workspace ? Number(state.workspace.id) : null;
+}
+
+function globalAccessMode(){
+  return state.boot?.access?.globalMode || null;
+}
+
+function hasGlobalAccess(){
+  return Boolean(globalAccessMode());
+}
+
+function canManage(){
+  return hasGlobalAccess() || state.workspace?.role==="owner" || state.workspace?.role==="manager";
+}
+
+function canOwn(){
+  return hasGlobalAccess() || state.workspace?.role==="owner";
+}
+
+function roleLabel(role){
+  if(role==="owner") return "OWNER";
+  if(role==="manager") return "MANAGER";
+  if(role==="admin") return "ADMIN";
+  if(role==="weazel_support") return "WEAZEL";
+  return "MEMBER";
+}
+
+function personLabel(name,citizenid){
+  const n=String(name||"").trim();
+  const c=String(citizenid||"").trim();
+  if(n&&c&&n!==c) return n+" ("+c+")";
+  return n||c||"不明";
+}
+
+function workspaceTypeLabel(type){
+  return state.boot?.templates?.[String(type||"")]?.label || String(type||"カスタム");
+}
+
+function emptyState(title,text,action=null,label="追加"){
+  return `<div class="empty empty-guide"><strong>${esc(title)}</strong><span>${esc(text)}</span>${action?`<button class="primary" data-action="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+}
+
+const WORKSPACE_ICONS = [
+  {label:"仕事・店舗",icons:["📁","🏢","🏪","🏦","🏭","🏨","🍔","☕","🍕","🍜","🍸","🛒","🔧","🛠️","🚗","⛽","🚕","🚚","⚕️","🚑","📰","📸","🎬","🎙️"]},
+  {label:"チーム・クルー",icons:["👥","🤝","🛡️","⚡","🔥","💀","🐺","🦅","🦊","🐍","🦁","🐉","🏁","🎯","🎮","♠️","♣️","♦️","♥️","🥷","👑","💎","🔱","⚔️"]},
+  {label:"企画・プロジェクト",icons:["📌","✅","📋","🗂️","🧰","💡","🔬","🧪","💻","📱","🎨","🎵","🏆","💰","📦","🔑","🌐","🚀","⭐","🌟","🗓️","📊","📝","🔔"]},
+  {label:"その他",icons:["🏠","🌴","🌊","⛰️","🌙","☀️","❄️","🌸","🍀","🎲","🎉","🎁","🧭","🗺️","📍","🔒","🔓","❤️","🖤","🤍","💚","💜","🧡","💙"]}
+];
+
+function workspaceIconPicker(selected="📁"){
+  const current=String(selected||"📁");
+  const known=WORKSPACE_ICONS.some(group=>group.icons.includes(current));
+  return `<div class="field icon-picker-field">
+    <label>アイコン</label>
+    <input type="hidden" name="icon" id="workspaceIconValue" value="${esc(current)}">
+    <div class="icon-picker-preview"><span id="workspaceIconPreview">${esc(current)}</span><small>タップして選択</small></div>
+    <div class="icon-picker">
+      ${!known?`<div class="icon-group"><div class="icon-group-label">現在のアイコン</div><div class="icon-grid"><button type="button" class="workspace-icon-option selected" data-icon="${esc(current)}" title="現在のアイコン">${esc(current)}</button></div></div>`:""}
+      ${WORKSPACE_ICONS.map(group=>`<div class="icon-group">
+        <div class="icon-group-label">${esc(group.label)}</div>
+        <div class="icon-grid">${group.icons.map(icon=>`<button type="button" class="workspace-icon-option ${icon===current?"selected":""}" data-icon="${esc(icon)}" title="${esc(icon)}">${esc(icon)}</button>`).join("")}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function bindWorkspaceIconPicker(){
+  const hidden=$("#workspaceIconValue");
+  const preview=$("#workspaceIconPreview");
+  if(!hidden||!preview) return;
+  document.querySelectorAll(".workspace-icon-option").forEach(button=>{
+    button.onclick=()=>{
+      const icon=button.dataset.icon||"📁";
+      hidden.value=icon;
+      preview.textContent=icon;
+      document.querySelectorAll(".workspace-icon-option").forEach(x=>x.classList.toggle("selected",x===button));
+    };
+  });
+}
+
+function dateMs(value){
+  const d=dateValue(value);
+  return d?d.getTime():0;
+}
+
+function textCompare(a,b){
+  return String(a||"").localeCompare(String(b||""),"ja",{numeric:true,sensitivity:"base"});
+}
+
+function listMeta(total,filtered,shown){
+  return `<div class="list-meta">表示 ${shown.toLocaleString("ja-JP")} / 該当 ${filtered.toLocaleString("ja-JP")} / 全体 ${total.toLocaleString("ja-JP")}</div>`;
+}
+
+function moreButton(id,shown,total){
+  if(shown>=total) return "";
+  return `<button id="${id}" class="secondary load-more" type="button">さらに表示（残り ${(total-shown).toLocaleString("ja-JP")}件）</button>`;
+}
+
+function modal(title, html, onSave, saveLabel="保存"){
+  const d=$("#modal");
+  $("#modalTitle").textContent=title;
+  $("#modalBody").innerHTML=html;
+  const save=$("#modalSave");
+  save.textContent=saveLabel;
+  save.style.display="";
+  save.onclick=async (ev)=>{
+    ev.preventDefault();
+    const form=$("#modalForm");
+    if(!form.reportValidity()) return;
+    save.disabled=true;
+    try{
+      const ok=await onSave(new FormData(form));
+      if(ok!==false) d.close();
+    }finally{
+      save.disabled=false;
+    }
+  };
+  if(!d.open) d.showModal();
+}
+
+function viewModal(title, html){
+  const d=$("#modal");
+  $("#modalTitle").textContent=title;
+  $("#modalBody").innerHTML=html;
+  $("#modalSave").textContent="保存";
+  $("#modalSave").style.display="none";
+  if(!d.open) d.showModal();
+}
+
+function field(name,label,value="",type="text",extra=""){
+  const limit=UI_LIMITS[name];
+  const maxAttr=limit&&["text","search"].includes(type)?` maxlength="${limit}"`:"";
+  return `<div class="field"><label>${esc(label)}</label><input name="${esc(name)}" type="${esc(type)}" value="${esc(value)}"${maxAttr} ${extra}></div>`;
+}
+
+function textarea(name,label,value=""){
+  const max=name==="body"?8000:name==="details"?4000:180;
+  return `<div class="field"><label>${esc(label)}</label><textarea name="${esc(name)}" maxlength="${max}">${esc(value)}</textarea></div>`;
+}
+
+function workspacePills(){
+  const root=$("#workspaceStrip");
+  const rows=state.boot?.workspaces || [];
+  root.innerHTML=rows.map(w=>`
+    <button class="workspace-pill ${state.workspace && Number(state.workspace.id)===Number(w.id)?"active":""}" data-workspace="${w.id}">
+      ${esc(w.icon || "📁")} ${esc(w.name)}${w.access_mode&&w.access_mode!=="member"?` <small>${w.access_mode==="admin"?"ADMIN":"SUPPORT"}</small>`:""}
+    </button>`).join("");
+  root.querySelectorAll("[data-workspace]").forEach(b=>b.onclick=()=>openWorkspace(Number(b.dataset.workspace)));
+}
+
+function tabButtons(){
+  $("#tabs").querySelectorAll("[data-tab]").forEach(b=>{
+    b.classList.toggle("active",b.dataset.tab===state.tab);
+    b.onclick=()=>{
+      state.tab=b.dataset.tab;
+      tabButtons();
+      loadTab();
+    };
+  });
+}
+
+async function bootstrap(preferredId){
+  status("BASEを読み込んでいます…");
+  const boot=await api("bootstrap");
+  state.boot=boot;
+  const list=boot.workspaces || [];
+  const target=preferredId && list.find(w=>Number(w.id)===Number(preferredId))
+    ? Number(preferredId)
+    : (state.workspace && list.find(w=>Number(w.id)===Number(state.workspace.id))
+      ? Number(state.workspace.id)
+      : Number(list[0]?.id || 0));
+  workspacePills();
+  if(target) await openWorkspace(target);
+  else status("BASEがありません。");
+}
+
+function resetListViews(){
+  state.memoQuery=""; state.memoCategory="all"; state.memoLimit=40;
+  state.stockQuery=""; state.stockFilter="all"; state.stockCategory="all"; state.stockLimit=50; state.stockFields=[];
+  state.taskQuery=""; state.taskFilter="all"; state.showCompleted=false; state.taskLimit=50;
+  state.moneyQuery=""; state.moneyType="all"; state.moneyCategory="all"; state.showVoidedMoney=false; state.moneyLimit=50;
+}
+
+async function openWorkspace(id){
+  const previousId=selectedWorkspaceId();
+  const data=await api("workspaceGet",{workspaceId:id});
+  state.workspace=data.workspace;
+  if(previousId!==null&&Number(previousId)!==Number(id)) resetListViews();
+  state.members=data.members || [];
+  workspacePills();
+  const accessNote=state.workspace.access_mode==="admin"?" ・ ADMIN ACCESS":state.workspace.access_mode==="weazel_support"?" ・ WEAZEL SUPPORT":"";
+  status(`${state.workspace.name} ・ ${workspaceTypeLabel(state.workspace.workspace_type)} ・ ${roleLabel(state.workspace.role)} ・ ${state.members.length}人${accessNote}`);
+  await loadTab();
+}
+
+async function loadTab(){
+  if(!state.workspace) return;
+  const id=selectedWorkspaceId();
+  if(state.tab==="overview"){
+    const d=await api("workspaceOverview",{workspaceId:id});
+    state.overview=d;
+    renderOverview();
+  }else if(state.tab==="memo"){
+    const d=await api("notesList",{workspaceId:id}); state.notes=d.notes||[]; renderMemo();
+  }else if(state.tab==="stock"){
+    const d=await api("stockList",{workspaceId:id}); state.stock=d.items||[]; state.stockFields=d.customFields||[]; state.stockRecent=d.recent||[]; renderStock();
+  }else if(state.tab==="tasks"){
+    const d=await api("tasksList",{workspaceId:id}); state.tasks=d.tasks||[]; renderTasks();
+  }else if(state.tab==="money"){
+    const d=await api("moneyList",{workspaceId:id}); state.money=d; renderMoney();
+  }else{
+    const d=await api("workspaceGet",{workspaceId:id}); state.workspace=d.workspace; state.members=d.members||[]; renderMembers();
+  }
+}
+
+function topAction(label, action){
+  return `<div class="row between"><h2>${esc(label)}</h2><button class="primary" data-action="${action}">＋ 追加</button></div>`;
+}
+
+function renderOverview(){
+  const d=state.overview||{};
+  const m=d.metrics||{};
+  const recentNotes=d.recentNotes||[];
+  const recentTasks=d.recentTasks||[];
+  const recentStock=d.recentStock||[];
+  const recentMoney=d.recentMoney||[];
+  const activityCount=recentNotes.length+recentTasks.length+recentStock.length+recentMoney.length;
+
+  const taskStatus={todo:"未着手",doing:"進行中",done:"完了"};
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>概要</h2><span class="badge">${esc(workspaceTypeLabel(state.workspace.workspace_type))}</span></div>
+
+    <div class="overview-grid">
+      <button class="overview-stat" data-go-tab="memo">
+        <span>共有メモ</span>
+        <strong>${num(m.notes).toLocaleString("ja-JP")}</strong>
+        <small>件</small>
+      </button>
+      <button class="overview-stat ${num(m.lowStock)>0?"attention":""}" data-go-tab="stock" data-overview-filter="low">
+        <span>在庫不足</span>
+        <strong>${num(m.lowStock).toLocaleString("ja-JP")}</strong>
+        <small>全 ${num(m.stock).toLocaleString("ja-JP")}品目</small>
+      </button>
+      <button class="overview-stat ${num(m.overdueTasks)>0?"danger-stat":""}" data-go-tab="tasks" data-overview-filter="overdue">
+        <span>未完了タスク</span>
+        <strong>${num(m.openTasks).toLocaleString("ja-JP")}</strong>
+        <small>期限切れ ${num(m.overdueTasks).toLocaleString("ja-JP")}</small>
+      </button>
+      <button class="overview-stat" data-go-tab="money">
+        <span>会計残高</span>
+        <strong>${yen(m.balance)}</strong>
+        <small>有効な記録から集計</small>
+      </button>
+    </div>
+
+    <article class="card overview-actions">
+      <div class="card-title">クイック追加</div>
+      <div class="actions">
+        ${canManage()?'<button class="secondary small" data-action="new-note">＋ メモ</button>':""}
+        ${canManage()?'<button class="secondary small" data-action="new-stock">＋ 在庫</button>':""}
+        ${canManage()?'<button class="secondary small" data-action="new-task">＋ タスク</button>':""}
+        <button class="secondary small" data-action="new-money">＋ 会計</button>
+      </div>
+    </article>
+
+    <div class="section-title">最近の動き</div>
+
+    ${recentNotes.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>メモ</strong><button class="overview-link" data-go-tab="memo">すべて見る</button></div>
+      ${recentNotes.map(n=>`<button class="overview-row" data-go-tab="memo">
+        <span><b>${Number(n.pinned)===1?"📌 ":""}${esc(n.title)}</b><small>${esc(n.category||"general")} ・ ${esc(personLabel(n.author_name,n.author_citizenid))}</small></span>
+        <time>${esc(fmtDateTime(n.updated_at))}</time>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${recentTasks.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>タスク</strong><button class="overview-link" data-go-tab="tasks">すべて見る</button></div>
+      ${recentTasks.map(t=>{
+        const overdue=t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<Date.now();
+        return `<button class="overview-row" data-go-tab="tasks" ${overdue?'data-overview-filter="overdue"':""}>
+          <span><b>${esc(t.title)}</b><small>${esc(taskStatus[t.status]||t.status)}${t.due_at?" ・ "+esc(fmtDateTime(t.due_at)):" ・ 期限なし"}</small></span>
+          <span class="badge ${overdue?"high":t.status==="done"?"good":""}">${overdue?"期限切れ":esc(taskStatus[t.status]||t.status)}</span>
+        </button>`;
+      }).join("")}
+    </article>`:""}
+
+    ${recentStock.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>在庫</strong><button class="overview-link" data-go-tab="stock">すべて見る</button></div>
+      ${recentStock.map(x=>`<button class="overview-row" data-go-tab="stock">
+        <span><b>${esc(x.item_name)}</b><small>${esc(personLabel(x.actor_name,x.actor_citizenid))}${x.note?" ・ "+esc(x.note):""}</small></span>
+        <span class="overview-value">${num(x.delta)>0?"+":""}${num(x.delta).toLocaleString("ja-JP")} ${esc(x.unit||"")}</span>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${recentMoney.length?`<article class="card compact-card overview-section">
+      <div class="row between"><strong>会計</strong><button class="overview-link" data-go-tab="money">すべて見る</button></div>
+      ${recentMoney.map(x=>`<button class="overview-row" data-go-tab="money">
+        <span><b>${x.entry_type==="income"?"収入":"支出"} ・ ${esc(x.category||"other")}</b><small>${esc(personLabel(x.actor_name,x.actor_citizenid))} ・ ${esc(fmtDateTime(x.created_at))}</small></span>
+        <span class="overview-value ${x.entry_type==="expense"?"expense":""}">${x.entry_type==="income"?"+":"−"}${yen(x.amount)}</span>
+      </button>`).join("")}
+    </article>`:""}
+
+    ${activityCount===0?emptyState("まだ活動記録がありません","メモ・在庫・タスク・会計を使い始めると、ここに最近の動きが表示されます。"): ""}
+  `;
+
+  bindContent();
+  document.querySelectorAll("[data-go-tab]").forEach(button=>{
+    button.onclick=()=>{
+      const tab=button.dataset.goTab;
+      if(tab==="stock"&&button.dataset.overviewFilter==="low") state.stockFilter="low";
+      if(tab==="tasks"&&button.dataset.overviewFilter==="overdue") state.taskFilter="overdue";
+      state.tab=tab;
+      tabButtons();
+      loadTab();
+    };
+  });
+}
+
+function renderMemo(){
+  const categories=[...new Set(state.notes.map(n=>String(n.category||"general")).filter(Boolean))].sort(textCompare);
+  const query=state.memoQuery.trim().toLowerCase();
+  let rows=state.notes.filter(n=>{
+    if(state.memoCategory!=="all"&&String(n.category||"general")!==state.memoCategory) return false;
+    if(!query) return true;
+    return [n.title,n.body,n.category,n.tags,n.author_name,n.author_citizenid].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+
+  rows=[...rows].sort((a,b)=>{
+    const pin=num(b.pinned)-num(a.pinned);
+    if(pin!==0) return pin;
+    if(state.memoSort==="updated_asc") return dateMs(a.updated_at)-dateMs(b.updated_at);
+    if(state.memoSort==="title") return textCompare(a.title,b.title);
+    return dateMs(b.updated_at)-dateMs(a.updated_at);
+  });
+
+  const visible=rows.slice(0,state.memoLimit);
+  $("#content").innerHTML=`
+    <div class="row between"><h2>共有メモ</h2>${canManage()?'<button class="primary" data-action="new-note">＋ 追加</button>':""}</div>
+    <div class="toolbar">
+      <input id="memoSearch" class="search-input" placeholder="メモを検索" value="${esc(state.memoQuery)}">
+      <select id="memoCategoryFilter" class="compact-select">
+        <option value="all">すべてのカテゴリ</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.memoCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+      <select id="memoSort" class="compact-select">
+        <option value="updated_desc" ${state.memoSort==="updated_desc"?"selected":""}>更新が新しい順</option>
+        <option value="updated_asc" ${state.memoSort==="updated_asc"?"selected":""}>更新が古い順</option>
+        <option value="title" ${state.memoSort==="title"?"selected":""}>タイトル順</option>
+      </select>
+    </div>
+    ${listMeta(state.notes.length,rows.length,visible.length)}
+    ${visible.length?visible.map(n=>{
+      const tags=String(n.tags||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
+      return `<article class="card ${Number(n.pinned)===1?"pinned":""}">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${Number(n.pinned)===1?"📌 ":""}${esc(n.title)}</div>
+            <div class="row"><span class="badge">${esc(n.category||"general")}</span>${tags.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</div>
+            <div class="muted">${esc(fmtDateTime(n.updated_at))}</div>
+          </div>
+          <span class="badge person-chip">${esc(personLabel(n.author_name,n.author_citizenid))}</span>
+        </div>
+        <pre class="note-body">${esc(n.body)}</pre>
+        ${canManage()?`<div class="actions">
+          <button class="small" data-action="pin-note" data-id="${n.id}" data-pinned="${Number(n.pinned)===1?"0":"1"}">${Number(n.pinned)===1?"ピン解除":"ピン留め"}</button>
+          <button class="small" data-action="edit-note" data-id="${n.id}">編集</button>
+          <button class="danger small" data-action="delete-note" data-id="${n.id}">削除</button>
+        </div>`:""}
+      </article>`;
+    }).join(""):(state.notes.length===0?emptyState("まだメモがありません","共有したい情報を最初のメモとして追加できます。",canManage()?"new-note":null,"＋ メモを追加"):`<div class="empty">条件に合うメモはありません。</div>`)}
+    ${moreButton("memoMore",visible.length,rows.length)}
+  `;
+  bindContent();
+  $("#memoSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.memoQuery=e.target.value;
+    state.memoLimit=40;
+    renderMemo();
+    const input=$("#memoSearch");
+    if(input){
+      input.focus();
+      input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));
+    }
+  };
+  $("#memoCategoryFilter").onchange=e=>{state.memoCategory=e.target.value;state.memoLimit=40;renderMemo();};
+  $("#memoSort").onchange=e=>{state.memoSort=e.target.value;state.memoLimit=40;renderMemo();};
+  $("#memoMore")?.addEventListener("click",()=>{state.memoLimit+=40;renderMemo();});
+}
+
+function noteModal(note){
+  modal(note?"メモを編集":"新しいメモ",
+    field("title","タイトル",note?.title||"")+
+    `<div class="split">${field("category","カテゴリ",note?.category||"general")}${field("tags","タグ（カンマ区切り）",note?.tags||"")}</div>`+
+    textarea("body","内容",note?.body||"")+
+    `<div class="field"><label><input type="checkbox" name="pinned" ${Number(note?.pinned)===1?"checked":""}> ピン留め</label></div>`,
+    async fd=>{
+      const payload={
+        workspaceId:selectedWorkspaceId(),
+        title:fd.get("title"),
+        category:fd.get("category"),
+        tags:fd.get("tags"),
+        body:fd.get("body"),
+        pinned:fd.get("pinned")==="on"
+      };
+      if(note){payload.id=Number(note.id);await api("noteUpdate",payload);}else await api("noteCreate",payload);
+      await loadTab(); return true;
+    });
+}
+
+function confirmNoteDelete(note){
+  if(!note) return;
+  modal("メモを削除",
+    `<article class="card"><div class="card-title">${esc(note.title)}</div><div class="muted">このメモを削除します。削除後は一覧から表示されなくなります。</div></article>`,
+    async ()=>{
+      await api("noteDelete",{workspaceId:selectedWorkspaceId(),id:Number(note.id)});
+      await loadTab();
+      return true;
+    },
+    "削除");
+}
+
+function activeExtras(){return (state.stockFields||[]).filter(f=>Number(f.visible)===1);}
+
+function extraForm(item=null){
+  const fields=activeExtras(), values=item?.custom_values||{};
+  if(!fields.length)return "";
+  return `<details class="stock-extras"><summary>追加項目（任意）</summary><div class="stock-extras-body">${fields.map(f=>{
+    const key="custom_"+Number(f.id),value=String(values[String(f.id)]??"");
+    if(f.field_type==="check")return `<div class="field"><label class="check-row"><input type="checkbox" name="${key}" value="1" ${value==="1"?"checked":""}>${esc(f.label)}</label></div>`;
+    const type=f.field_type==="date"?"date":f.field_type==="number"?"number":"text";
+    const extra=type==="number"?'min="-1000000000" max="1000000000" step="0.01"':type==="text"?'maxlength="120"':"";
+    return `<div class="field"><label>${esc(f.label)}</label><input name="${key}" type="${type}" value="${esc(value)}" ${extra}></div>`;
+  }).join("")}</div></details>`;
+}
+
+function extraValues(fd){
+  const values={};
+  for(const f of activeExtras()){
+    const v=fd.get("custom_"+f.id);
+    values[String(f.id)]=f.field_type==="check"?(v==="1"?"1":"0"):String(v??"");
+  }
+  return values;
+}
+
+function extraSummary(item){
+  const values=item.custom_values||{};
+  return activeExtras().filter(f=>values[String(f.id)]!==undefined&&values[String(f.id)]!=="").map(f=>{
+    const v=String(values[String(f.id)]);
+    return `${esc(f.label)}：${f.field_type==="check"?(v==="1"?"はい":"いいえ"):esc(v)}`;
+  }).join(" ・ ");
+}
+
+function addExtraDefinition(){
+  modal("在庫の追加項目を作成",field("label","項目名（40文字以内）")+
+    `<div class="field"><label>入力形式</label><select name="type"><option value="text">文字</option><option value="number">数値</option><option value="date">日付</option><option value="check">チェック</option></select></div><div class="muted">1つのBASEにつき最大6項目。非表示にしても登録値は残ります。</div>`,
+    async fd=>{await api("stockFieldCreate",{workspaceId:selectedWorkspaceId(),label:fd.get("label"),fieldType:fd.get("type")});await loadTab();return true;});
+}
+
+function manageExtras(){
+  const fields=state.stockFields||[];
+  viewModal("在庫の追加項目",`<div class="muted">OWNER/MANAGERが項目を設定できます。非表示にしてもデータは消えません。</div>
+    ${fields.map(f=>`<article class="card compact-card"><div class="row between"><div><strong>${esc(f.label)}</strong><div class="muted">${esc({text:"文字",number:"数値",date:"日付",check:"チェック"}[f.field_type]||f.field_type)}</div></div><button type="button" class="secondary small" data-field-toggle="${Number(f.id)}" data-visible="${Number(f.visible)===1?"0":"1"}">${Number(f.visible)===1?"非表示":"再表示"}</button></div></article>`).join("")||'<div class="empty">追加項目はまだありません。</div>'}
+    <button id="addStockField" type="button" class="primary" ${fields.length>=6?"disabled":""}>＋ 項目を追加 ${fields.length>=6?"（上限）":""}</button>`);
+  $("#addStockField").onclick=()=>{$("#modal").close();addExtraDefinition();};
+  document.querySelectorAll("[data-field-toggle]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{await api("stockFieldToggle",{workspaceId:selectedWorkspaceId(),fieldId:Number(b.dataset.fieldToggle),visible:b.dataset.visible==="1"});await loadTab();manageExtras();}
+    catch(e){b.disabled=false;}
+  });
+}
+
+function renderStock(){
+  const categories=[...new Set(state.stock.map(i=>String(i.category||"general")).filter(Boolean))].sort(textCompare);
+  const query=state.stockQuery.trim().toLowerCase();
+  let rows=state.stock.filter(i=>{
+    if(state.stockFilter==="low"&&num(i.quantity)>num(i.minimum_quantity)) return false;
+    if(state.stockCategory!=="all"&&String(i.category||"general")!==state.stockCategory) return false;
+    if(!query) return true;
+    return [i.name,i.category,i.unit,i.created_by_name,i.created_by].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+  const lowCount=state.stock.filter(i=>num(i.quantity)<=num(i.minimum_quantity)).length;
+
+  rows=[...rows].sort((a,b)=>{
+    if(state.stockSort==="qty_asc") return num(a.quantity)-num(b.quantity)||textCompare(a.name,b.name);
+    if(state.stockSort==="qty_desc") return num(b.quantity)-num(a.quantity)||textCompare(a.name,b.name);
+    if(state.stockSort==="low"){
+      const al=num(a.quantity)<=num(a.minimum_quantity)?0:1;
+      const bl=num(b.quantity)<=num(b.minimum_quantity)?0:1;
+      return al-bl||num(a.quantity)-num(b.quantity)||textCompare(a.name,b.name);
+    }
+    if(state.stockSort==="updated") return dateMs(b.updated_at)-dateMs(a.updated_at);
+    return textCompare(a.name,b.name);
+  });
+
+  const visible=rows.slice(0,state.stockLimit);
+  $("#content").innerHTML=`
+    <div class="row between"><h2>在庫</h2>${canManage()?'<span class="row"><button class="secondary small" data-action="manage-stock-fields">項目設定</button><button class="primary" data-action="new-stock">＋ 追加</button></span>':""}</div>
+    <div class="toolbar">
+      <input id="stockSearch" class="search-input" placeholder="在庫を検索" value="${esc(state.stockQuery)}">
+      <div class="filter-group">
+        <button class="filter-chip ${state.stockFilter==="all"?"active":""}" data-stock-filter="all">すべて</button>
+        <button class="filter-chip ${state.stockFilter==="low"?"active":""}" data-stock-filter="low">不足 ${lowCount}</button>
+      </div>
+      <select id="stockCategoryFilter" class="compact-select">
+        <option value="all">すべてのカテゴリ</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.stockCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+      <select id="stockSort" class="compact-select">
+        <option value="name" ${state.stockSort==="name"?"selected":""}>品名順</option>
+        <option value="low" ${state.stockSort==="low"?"selected":""}>不足優先</option>
+        <option value="qty_asc" ${state.stockSort==="qty_asc"?"selected":""}>数量が少ない順</option>
+        <option value="qty_desc" ${state.stockSort==="qty_desc"?"selected":""}>数量が多い順</option>
+        <option value="updated" ${state.stockSort==="updated"?"selected":""}>最近更新順</option>
+      </select>
+    </div>
+    ${listMeta(state.stock.length,rows.length,visible.length)}
+    ${visible.length?visible.map(i=>{
+      const low=num(i.quantity)<=num(i.minimum_quantity);
+      const customInfo=extraSummary(i);
+      return `<article class="card">
+        <div class="row between">
+          <div>
+            <div class="card-title">${esc(i.name)}</div>
+            <div class="row"><span class="badge">${esc(i.category||"general")}</span>${low?'<span class="badge warn">在庫不足</span>':'<span class="badge good">在庫OK</span>'}</div>
+            <div class="muted">最低在庫 ${num(i.minimum_quantity).toLocaleString()} ${esc(i.unit)}</div>
+            <div class="muted">登録: ${esc(personLabel(i.created_by_name,i.created_by))}</div>
+            ${customInfo?`<div class="muted stock-extra-summary">${customInfo}</div>`:""}
+          </div>
+          <div class="stock-count">${num(i.quantity).toLocaleString()} <small>${esc(i.unit)}</small></div>
+        </div>
+        <div class="actions quick-stock">
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="-10">−10</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="-1">−1</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="1">＋1</button>
+          <button class="small" data-action="stock-adjust" data-id="${i.id}" data-delta="10">＋10</button>
+        </div>
+        <div class="actions">
+          <button class="secondary small" data-action="stock-custom" data-id="${i.id}">数量変更</button>
+          ${canManage()?`<button class="secondary small" data-action="stock-config" data-id="${i.id}">設定</button>
+          <button class="danger small" data-action="stock-delete" data-id="${i.id}">削除</button>`:""}
+          <button class="secondary small" data-action="stock-history" data-id="${i.id}">履歴</button>
+        </div>
+      </article>`;
+    }).join(""):(state.stock.length===0?emptyState("まだ在庫品目がありません","管理したい品目を登録すると数量と履歴を共有できます。",canManage()?"new-stock":null,"＋ 在庫品目を追加"):`<div class="empty">条件に合う在庫はありません。</div>`)}
+    ${moreButton("stockMore",visible.length,rows.length)}
+    ${state.stockRecent.length?`<div class="section-title">最近の入出庫</div>${state.stockRecent.slice(0,6).map(h=>`
+      <article class="card compact-card">
+        <div class="row between"><strong>${esc(h.item_name)}</strong><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()} ${esc(h.unit||"")}</strong></div>
+        <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${esc(personLabel(h.actor_name,h.actor_citizenid))}${h.note?" ・ "+esc(h.note):""}</div>
+      </article>`).join("")}`:""}
+  `;
+  bindContent();
+  $("#stockSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.stockQuery=e.target.value;state.stockLimit=50;renderStock();
+    const input=$("#stockSearch");
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
+  };
+  document.querySelectorAll("[data-stock-filter]").forEach(b=>b.onclick=()=>{state.stockFilter=b.dataset.stockFilter;state.stockLimit=50;renderStock();});
+  $("#stockCategoryFilter").onchange=e=>{state.stockCategory=e.target.value;state.stockLimit=50;renderStock();};
+  $("#stockSort").onchange=e=>{state.stockSort=e.target.value;state.stockLimit=50;renderStock();};
+  $("#stockMore")?.addEventListener("click",()=>{state.stockLimit+=50;renderStock();});
+}
+
+function newStock(){
+  modal("在庫品目を追加",
+    field("name","品名")+field("category","カテゴリ","general")+
+    `<div class="split">${field("quantity","初期数量","0","number",'min="0" max="1000000" step="1"')}${field("minimum","最低在庫","0","number",'min="0" max="1000000" step="1"')}</div>`+field("unit","単位","個")+extraForm(),
+    async fd=>{await api("stockCreate",{workspaceId:selectedWorkspaceId(),name:fd.get("name"),category:fd.get("category"),quantity:Number(fd.get("quantity")),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit"),customValues:extraValues(fd)});await loadTab();return true;});
+}
+
+async function adjustStock(item,delta,note=""){
+  await api("stockAdjust",{workspaceId:selectedWorkspaceId(),id:Number(item.id),delta:Number(delta),note});
+  await loadTab();
+}
+
+function customStock(item){
+  modal(`${item.name} の数量変更`,
+    field("delta","増減数（減らす場合はマイナス）","0","number",'min="-1000000" max="1000000" step="1"')+field("note","メモ"),
+    async fd=>{await adjustStock(item,Number(fd.get("delta")),fd.get("note"));return true;});
+}
+
+function configStock(item){
+  modal("在庫設定",field("name","品名",item.name)+field("category","カテゴリ",item.category||"general")+`<div class="split">${field("minimum","最低在庫",item.minimum_quantity,"number",'min="0" max="1000000" step="1"')}${field("unit","単位",item.unit)}</div>`+extraForm(item),
+    async fd=>{await api("stockConfigure",{workspaceId:selectedWorkspaceId(),id:Number(item.id),name:fd.get("name"),category:fd.get("category"),minimumQuantity:Number(fd.get("minimum")),unit:fd.get("unit"),customValues:extraValues(fd)});await loadTab();return true;});
+}
+
+function deleteStock(item){
+  modal("在庫品目を削除",
+    `<article class="card"><div class="card-title">${esc(item.name)}</div><div class="muted">この品目と入出庫履歴を削除します。この操作は取り消せません。</div></article>`+
+    field("confirm","確認のため品名を入力"),
+    async fd=>{
+      await api("stockDelete",{workspaceId:selectedWorkspaceId(),id:Number(item.id),confirmName:fd.get("confirm")});
+      await loadTab();
+      return true;
+    },
+    "削除");
+}
+
+async function stockHistory(item){
+  const d=await api("stockHistory",{workspaceId:selectedWorkspaceId(),id:Number(item.id)});
+  const rows=d.history||[];
+  viewModal(item.name+" の履歴",rows.length?rows.map(h=>`
+    <article class="card">
+      <div class="row between"><strong>${num(h.delta)>0?"+":""}${num(h.delta).toLocaleString()}</strong><span class="badge person-chip">${esc(personLabel(h.actor_name,h.actor_citizenid))}</span></div>
+      <div class="muted">${esc(fmtDateTime(h.created_at))} ・ ${num(h.before_quantity).toLocaleString()} → ${num(h.after_quantity).toLocaleString()}</div>
+      ${h.note?`<pre class="note-body">${esc(h.note)}</pre>`:""}
+    </article>`).join(""):'<div class="empty">履歴はまだありません。</div>');
+}
+
+function confirmTaskDelete(task){
+  if(!task) return;
+  modal("タスクを削除",
+    `<article class="card"><div class="card-title">${esc(task.title)}</div><div class="muted">このタスクを削除します。この操作は取り消せません。</div></article>`,
+    async ()=>{
+      await api("taskDelete",{workspaceId:selectedWorkspaceId(),id:Number(task.id)});
+      await loadTab();
+      return true;
+    },
+    "削除");
+}
+
+function taskDueMs(value){
+  const d=dateValue(value);
+  return d?d.getTime():null;
+}
+
+function renderTasks(){
+  const myCid=state.boot?.user?.citizenid||"";
+  const now=Date.now();
+  const query=state.taskQuery.trim().toLowerCase();
+  const overdueCount=state.tasks.filter(t=>t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now).length;
+  const mineCount=state.tasks.filter(t=>t.status!=="done"&&t.assignee_citizenid===myCid).length;
+
+  let rows=state.tasks.filter(t=>{
+    if(!state.showCompleted&&t.status==="done") return false;
+    if(state.taskFilter==="mine"&&t.assignee_citizenid!==myCid) return false;
+    if(state.taskFilter==="overdue"&&!(t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now)) return false;
+    if(!query) return true;
+    return [t.title,t.details,t.assignee_name,t.assignee_citizenid,t.created_by_name,t.created_by].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+
+  const priorityRank={high:0,normal:1,low:2};
+  rows=[...rows].sort((a,b)=>{
+    const done=(a.status==="done"?1:0)-(b.status==="done"?1:0);
+    if(done!==0) return done;
+    if(state.taskSort==="priority"){
+      return (priorityRank[a.priority]??9)-(priorityRank[b.priority]??9)
+        || (taskDueMs(a.due_at)??Number.MAX_SAFE_INTEGER)-(taskDueMs(b.due_at)??Number.MAX_SAFE_INTEGER);
+    }
+    if(state.taskSort==="updated") return dateMs(b.updated_at)-dateMs(a.updated_at);
+    if(state.taskSort==="title") return textCompare(a.title,b.title);
+    const ad=taskDueMs(a.due_at),bd=taskDueMs(b.due_at);
+    if(ad===null&&bd!==null) return 1;
+    if(ad!==null&&bd===null) return -1;
+    if(ad!==null&&bd!==null&&ad!==bd) return ad-bd;
+    return (priorityRank[a.priority]??9)-(priorityRank[b.priority]??9);
+  });
+
+  const visible=rows.slice(0,state.taskLimit);
+  $("#content").innerHTML=`
+    <div class="row between"><h2>タスク</h2>${canManage()?'<button class="primary" data-action="new-task">＋ 追加</button>':""}</div>
+    <div class="toolbar">
+      <input id="taskSearch" class="search-input" placeholder="タスクを検索" value="${esc(state.taskQuery)}">
+      <div class="filter-group">
+        <button class="filter-chip ${state.taskFilter==="all"?"active":""}" data-task-filter="all">すべて</button>
+        <button class="filter-chip ${state.taskFilter==="mine"?"active":""}" data-task-filter="mine">自分 ${mineCount}</button>
+        <button class="filter-chip ${state.taskFilter==="overdue"?"active":""}" data-task-filter="overdue">期限切れ ${overdueCount}</button>
+      </div>
+      <select id="taskSort" class="compact-select">
+        <option value="due" ${state.taskSort==="due"?"selected":""}>期限が近い順</option>
+        <option value="priority" ${state.taskSort==="priority"?"selected":""}>優先度順</option>
+        <option value="updated" ${state.taskSort==="updated"?"selected":""}>最近更新順</option>
+        <option value="title" ${state.taskSort==="title"?"selected":""}>タイトル順</option>
+      </select>
+      <button id="toggleCompleted" class="filter-chip ${state.showCompleted?"active":""}">${state.showCompleted?"完了を表示中":"完了を表示"}</button>
+    </div>
+    ${listMeta(state.tasks.length,rows.length,visible.length)}
+    ${visible.length?visible.map(t=>{
+      const label={todo:"未着手",doing:"進行中",done:"完了"}[t.status]||t.status;
+      const overdue=t.status!=="done"&&taskDueMs(t.due_at)!==null&&taskDueMs(t.due_at)<now;
+      return `<article class="card ${overdue?"overdue":""}">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${esc(t.title)}</div>
+            <div class="muted">${esc(t.assignee_name||"担当なし")} ・ ${t.due_at?"期限 "+esc(fmtDateTime(t.due_at)):"期限なし"}</div>
+            <div class="muted">作成: ${esc(personLabel(t.created_by_name,t.created_by))}</div>
+          </div>
+          <div class="row">
+            ${overdue?'<span class="badge high">期限切れ</span>':""}
+            ${t.priority==="high"?'<span class="badge high">優先度 高</span>':t.priority==="low"?'<span class="badge">優先度 低</span>':""}
+            <span class="badge">${esc(label)}</span>
+          </div>
+        </div>
+        ${t.details?`<pre class="note-body">${esc(t.details)}</pre>`:""}
+        <div class="actions">
+          ${canManage()||t.assignee_citizenid===myCid?`<button class="small" data-action="task-next" data-id="${t.id}">${t.status==="todo"?"開始":t.status==="doing"?"完了":"再開"}</button>`:""}
+          ${canManage()?`<button class="secondary small" data-action="task-edit" data-id="${t.id}">編集</button>
+          <button class="danger small" data-action="task-delete" data-id="${t.id}">削除</button>`:""}
+        </div>
+      </article>`;
+    }).join(""):(state.tasks.length===0?emptyState("まだタスクがありません","やることを登録して担当・期限・進捗を共有できます。",canManage()?"new-task":null,"＋ タスクを追加"):`<div class="empty">条件に合うタスクはありません。</div>`)}
+    ${moreButton("taskMore",visible.length,rows.length)}
+  `;
+  bindContent();
+  $("#taskSearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.taskQuery=e.target.value;state.taskLimit=50;renderTasks();
+    const input=$("#taskSearch");
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
+  };
+  document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{state.taskFilter=b.dataset.taskFilter;state.taskLimit=50;renderTasks();});
+  $("#taskSort").onchange=e=>{state.taskSort=e.target.value;state.taskLimit=50;renderTasks();};
+  $("#toggleCompleted").onclick=()=>{state.showCompleted=!state.showCompleted;state.taskLimit=50;renderTasks();};
+  $("#taskMore")?.addEventListener("click",()=>{state.taskLimit+=50;renderTasks();});
+}
+
+function memberOptions(selected){
+  return `<option value="">担当なし</option>`+state.members.map(m=>`<option value="${esc(m.citizenid)}" ${selected===m.citizenid?"selected":""}>${esc(m.display_name)} (${esc(m.citizenid)})</option>`).join("");
+}
+
+function taskModal(task){
+  const due=inputDateTime(task?.due_at);
+  modal(task?"タスクを編集":"新しいタスク",
+    field("title","タイトル",task?.title||"")+textarea("details","詳細",task?.details||"")+
+    `<div class="split"><div class="field"><label>優先度</label><select name="priority">
+      <option value="low" ${task?.priority==="low"?"selected":""}>低</option>
+      <option value="normal" ${!task||task.priority==="normal"?"selected":""}>通常</option>
+      <option value="high" ${task?.priority==="high"?"selected":""}>高</option>
+    </select></div><div class="field"><label>担当</label><select name="assignee">${memberOptions(task?.assignee_citizenid||"")}</select></div></div>`+
+    field("due","期限",due,"datetime-local"),
+    async fd=>{
+      const payload={workspaceId:selectedWorkspaceId(),title:fd.get("title"),details:fd.get("details"),priority:fd.get("priority"),assigneeCitizenId:fd.get("assignee"),dueAt:fd.get("due")||null};
+      if(task){payload.id=Number(task.id);payload.status=task.status;await api("taskUpdate",payload);}else await api("taskCreate",payload);
+      await loadTab();return true;
+    });
+}
+
+async function nextTask(task){
+  const next=task.status==="todo"?"doing":task.status==="doing"?"done":"todo";
+  await api("taskUpdate",{workspaceId:selectedWorkspaceId(),id:Number(task.id),title:task.title,details:task.details,status:next,priority:task.priority,assigneeCitizenId:task.assignee_citizenid||"",dueAt:task.due_at||null});
+  await loadTab();
+}
+
+function renderMoney(){
+  const s=state.money.summary||{};
+  const entries=state.money.entries||[];
+  const categories=[...new Set(entries.map(e=>String(e.category||"other")).filter(Boolean))].sort(textCompare);
+  const query=state.moneyQuery.trim().toLowerCase();
+  let rows=entries.filter(e=>{
+    if(!state.showVoidedMoney&&e.voided_at) return false;
+    if(state.moneyType!=="all"&&e.entry_type!==state.moneyType) return false;
+    if(state.moneyCategory!=="all"&&String(e.category||"other")!==state.moneyCategory) return false;
+    if(!query) return true;
+    return [e.category,e.note,e.actor_name,e.actor_citizenid,e.amount].some(v=>String(v||"").toLowerCase().includes(query));
+  });
+
+  rows=[...rows].sort((a,b)=>{
+    if(state.moneySort==="oldest") return dateMs(a.created_at)-dateMs(b.created_at);
+    if(state.moneySort==="amount_desc") return num(b.amount)-num(a.amount)||dateMs(b.created_at)-dateMs(a.created_at);
+    if(state.moneySort==="amount_asc") return num(a.amount)-num(b.amount)||dateMs(b.created_at)-dateMs(a.created_at);
+    return dateMs(b.created_at)-dateMs(a.created_at);
+  });
+
+  const visible=rows.slice(0,state.moneyLimit);
+  $("#content").innerHTML=`
+    <div class="row between"><h2>会計</h2><span class="row"><button class="secondary" data-action="money-calc">計算</button><button class="primary" data-action="new-money">＋ 記録</button></span></div>
+    <div class="metric-grid">
+      <div class="metric"><span>残高</span><strong>${yen(s.balance)}</strong></div>
+      <div class="metric"><span>収入</span><strong>${yen(s.income)}</strong></div>
+      <div class="metric"><span>支出</span><strong>${yen(s.expense)}</strong></div>
+    </div>
+    <div class="toolbar">
+      <input id="moneySearch" class="search-input" placeholder="会計を検索" value="${esc(state.moneyQuery)}">
+      <select id="moneyTypeFilter" class="compact-select">
+        <option value="all">収支すべて</option>
+        <option value="income" ${state.moneyType==="income"?"selected":""}>収入</option>
+        <option value="expense" ${state.moneyType==="expense"?"selected":""}>支出</option>
+      </select>
+      <select id="moneyCategoryFilter" class="compact-select">
+        <option value="all">カテゴリすべて</option>
+        ${categories.map(c=>`<option value="${esc(c)}" ${state.moneyCategory===c?"selected":""}>${esc(c)}</option>`).join("")}
+      </select>
+      <select id="moneySort" class="compact-select">
+        <option value="newest" ${state.moneySort==="newest"?"selected":""}>新しい順</option>
+        <option value="oldest" ${state.moneySort==="oldest"?"selected":""}>古い順</option>
+        <option value="amount_desc" ${state.moneySort==="amount_desc"?"selected":""}>金額が大きい順</option>
+        <option value="amount_asc" ${state.moneySort==="amount_asc"?"selected":""}>金額が小さい順</option>
+      </select>
+      <button id="toggleVoidedMoney" class="filter-chip ${state.showVoidedMoney?"active":""}">${state.showVoidedMoney?"取消済も表示":"取消済を隠す"}</button>
+    </div>
+    ${listMeta(entries.length,rows.length,visible.length)}
+    ${visible.length?visible.map(e=>`
+      <article class="card ${e.voided_at?"voided":""}">
+        <div class="row between">
+          <div><div class="card-title">${e.entry_type==="income"?"＋":"−"} ${yen(e.amount)}</div><div class="muted">${esc(e.category)} ・ ${esc(fmtDateTime(e.created_at))}<br>記録: ${esc(personLabel(e.actor_name,e.actor_citizenid))}</div></div>
+          <span class="badge ${e.voided_at?"warn":e.entry_type==="income"?"good":"high"}">${e.voided_at?"取消済":e.entry_type==="income"?"収入":"支出"}</span>
+        </div>
+        ${e.note?`<pre class="note-body">${esc(e.note)}</pre>`:""}
+        ${!e.voided_at&&canManage()?`<div class="actions"><button class="danger small" data-action="void-money" data-id="${e.id}">取消</button></div>`:""}
+      </article>`).join(""):(entries.length===0?emptyState("まだ会計記録がありません","最初の収入または支出を記録すると残高集計が始まります。","new-money","＋ 会計を記録"):'<div class="empty">条件に合う会計記録はありません。</div>')}
+    ${moreButton("moneyMore",visible.length,rows.length)}
+  `;
+  bindContent();
+  $("#moneySearch").oninput=e=>{
+    const caret=e.target.selectionStart??e.target.value.length;
+    state.moneyQuery=e.target.value;state.moneyLimit=50;renderMoney();
+    const input=$("#moneySearch");
+    if(input){input.focus();input.setSelectionRange(Math.min(caret,input.value.length),Math.min(caret,input.value.length));}
+  };
+  $("#moneyTypeFilter").onchange=e=>{state.moneyType=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#moneyCategoryFilter").onchange=e=>{state.moneyCategory=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#moneySort").onchange=e=>{state.moneySort=e.target.value;state.moneyLimit=50;renderMoney();};
+  $("#toggleVoidedMoney").onclick=()=>{state.showVoidedMoney=!state.showVoidedMoney;state.moneyLimit=50;renderMoney();};
+  $("#moneyMore")?.addEventListener("click",()=>{state.moneyLimit+=50;renderMoney();});
+}
+
+function confirmMoneyVoid(entry){
+  if(!entry) return;
+  modal("会計記録を取消",
+    `<article class="card">
+      <div class="card-title">${entry.entry_type==="income"?"収入":"支出"} ${yen(entry.amount)}</div>
+      <div class="muted">${esc(entry.category||"other")} ・ ${esc(fmtDateTime(entry.created_at))}</div>
+      <div class="muted">取消後は残高計算から除外され、取消済み記録として残ります。</div>
+    </article>`,
+    async ()=>{
+      await api("moneyVoid",{workspaceId:selectedWorkspaceId(),id:Number(entry.id)});
+      await loadTab();
+      return true;
+    },
+    "取消");
+}
+
+function newMoney(){
+  modal("会計を記録",
+    `<div class="split"><div class="field"><label>区分</label><select name="type"><option value="income">収入</option><option value="expense">支出</option></select></div>${field("amount","金額","0","number",'min="1" max="1000000000" step="1"')}</div>`+
+    field("category","カテゴリ","other")+field("note","内容"),
+    async fd=>{await api("moneyAdd",{workspaceId:selectedWorkspaceId(),entryType:fd.get("type"),amount:Number(fd.get("amount")),category:fd.get("category"),note:fd.get("note")});await loadTab();return true;});
+}
+
+function tokenizeFormula(expression){
+  const tokens=[];
+  let i=0;
+  const src=String(expression||"");
+  while(i<src.length){
+    const ch=src[i];
+    if(/\s/.test(ch)){i++;continue;}
+    if(/[0-9.]/.test(ch)){
+      const m=src.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+      if(!m) throw new Error("数値の書き方を確認してください。");
+      const value=Number(m[0]);
+      if(!Number.isFinite(value)) throw new Error("数値が大きすぎます。");
+      tokens.push({type:"number",value});
+      i+=m[0].length;
+      continue;
+    }
+    if(/[A-Za-z_]/.test(ch)){
+      const m=src.slice(i).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+      tokens.push({type:"variable",value:m[0]});
+      i+=m[0].length;
+      continue;
+    }
+    if("+-*/%()".includes(ch)){
+      tokens.push({type:ch,value:ch});
+      i++;
+      continue;
+    }
+    throw new Error("使えない記号があります。");
+  }
+  return tokens;
+}
+
+function evaluateFormula(expression,values){
+  const tokens=tokenizeFormula(expression);
+  let index=0;
+  const peek=()=>tokens[index];
+  const take=()=>tokens[index++];
+
+  function primary(){
+    const token=peek();
+    if(!token) throw new Error("計算式が途中で終わっています。");
+    if(token.type==="number"){take();return token.value;}
+    if(token.type==="variable"){
+      take();
+      if(!(token.value in values)) throw new Error(token.value+" の値がありません。");
+      return Number(values[token.value]||0);
+    }
+    if(token.type==="("){
+      take();
+      const value=expressionRule();
+      if(!peek()||peek().type!==")") throw new Error("カッコが閉じられていません。");
+      take();
+      return value;
+    }
+    throw new Error("計算式を確認してください。");
+  }
+
+  function unary(){
+    const token=peek();
+    if(token?.type==="+"){take();return unary();}
+    if(token?.type==="-"){take();return -unary();}
+    return primary();
+  }
+
+  function term(){
+    let value=unary();
+    while(peek()&&["*","/","%"].includes(peek().type)){
+      const op=take().type;
+      const right=unary();
+      if((op==="/"||op==="%")&&right===0) throw new Error("0では割れません。");
+      if(op==="*") value*=right;
+      if(op==="/") value/=right;
+      if(op==="%") value%=right;
+    }
+    return value;
+  }
+
+  function expressionRule(){
+    let value=term();
+    while(peek()&&["+", "-"].includes(peek().type)){
+      const op=take().type;
+      const right=term();
+      value=op==="+"?value+right:value-right;
+    }
+    return value;
+  }
+
+  const result=expressionRule();
+  if(index!==tokens.length) throw new Error("計算式の並びを確認してください。");
+  if(!Number.isFinite(result)) throw new Error("計算結果を出せませんでした。");
+  return result;
+}
+
+function roundedResult(value,mode){
+  if(mode==="floor") return Math.floor(value);
+  if(mode==="ceil") return Math.ceil(value);
+  if(mode==="round") return Math.round(value);
+  return value;
+}
+
+function calculatorFormulaLabel(calc){
+  let text=String(calc.formula||"");
+  [...(calc.fields||[])].reverse().forEach(f=>{
+    text=text.replace(new RegExp("\\b"+f.key+"\\b","g"),()=>f.label);
+  });
+  return text.replace(/\*/g," × ").replace(/\//g," ÷ ");
+}
+
+function formatCalculatorResult(calc,value){
+  const rounded=roundedResult(value,calc.rounding);
+  if(calc.result_format==="money") return yen(rounded);
+  const shown=Number(rounded).toLocaleString("ja-JP",{maximumFractionDigits:4});
+  return shown+(calc.result_unit?" "+calc.result_unit:"");
+}
+
+async function moneyCalculator(){
+  const d=await api("calculatorsList",{workspaceId:selectedWorkspaceId()});
+  state.calculators=d.calculators||[];
+  const canEdit=canManage();
+  viewModal("計算方法",`
+    <div class="row between">
+      <div><div class="card-title">カスタム計算</div><div class="muted">BASEごとに計算式を保存できます。</div></div>
+      ${canEdit?'<button id="newCalculator" class="primary" type="button">＋ 作成</button>':""}
+    </div>
+    <div style="display:grid;gap:.7rem;margin-top:.8rem">
+      ${state.calculators.length?state.calculators.map(calc=>`
+        <article class="card">
+          <div class="card-head">
+            <div><div class="card-title">${esc(calc.name)}</div><div class="muted">${esc(calculatorFormulaLabel(calc))}</div></div>
+            <span class="badge">${(calc.fields||[]).length}項目</span>
+          </div>
+          <div class="actions">
+            <button class="primary use-calculator" data-id="${calc.id}" type="button">使う</button>
+            ${canEdit?`<button class="secondary small edit-calculator" data-id="${calc.id}" type="button">編集</button><button class="danger small delete-calculator" data-id="${calc.id}" type="button">削除</button>`:""}
+          </div>
+        </article>`).join(""):'<div class="empty">計算方法はまだありません。<br>OWNERが自由に作成できます。</div>'}
+    </div>
+  `);
+
+  $("#newCalculator")?.addEventListener("click",()=>calculatorEditor());
+  document.querySelectorAll(".use-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorUse(calc);
+  });
+  document.querySelectorAll(".edit-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorEditor(calc);
+  });
+  document.querySelectorAll(".delete-calculator").forEach(b=>b.onclick=()=>{
+    const calc=state.calculators.find(x=>Number(x.id)===Number(b.dataset.id));
+    if(calc) calculatorDelete(calc);
+  });
+}
+
+function calculatorEditor(calc){
+  const existing=(calc?.fields||[]).map(f=>({
+    label:String(f.label||""),
+    unit:String(f.unit||""),
+    defaultValue:Number(f.defaultValue||0)
+  }));
+  if(!existing.length) existing.push({label:"項目1",unit:"",defaultValue:0},{label:"項目2",unit:"",defaultValue:0});
+  const count=Math.min(8,Math.max(1,existing.length));
+
+  const countOptions=Array.from({length:8},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===count?"selected":""}>${n}</option>`).join("");
+  modal(calc?"計算方法を編集":"計算方法を作成",`
+    ${field("name","計算方法の名前",calc?.name||"")}
+    <div class="split">
+      <div class="field"><label>入力項目数</label><select name="fieldCount" id="calcFieldCount">${countOptions}</select></div>
+      <div class="field"><label>結果の表示</label><select name="resultFormat" id="calcResultFormat">
+        <option value="money" ${!calc||calc.result_format==="money"?"selected":""}>金額 ($)</option>
+        <option value="number" ${calc?.result_format==="number"?"selected":""}>数値</option>
+      </select></div>
+    </div>
+    <div id="calcFields"></div>
+    ${field("resultLabel","結果の名前",calc?.result_label||"結果")}
+    <div id="calcResultUnitWrap">${field("resultUnit","結果の単位",calc?.result_unit||"")}</div>
+    <div class="field"><label>端数処理</label><select name="rounding">
+      <option value="floor" ${!calc||calc.rounding==="floor"?"selected":""}>切り捨て</option>
+      <option value="round" ${calc?.rounding==="round"?"selected":""}>四捨五入</option>
+      <option value="ceil" ${calc?.rounding==="ceil"?"selected":""}>切り上げ</option>
+      <option value="none" ${calc?.rounding==="none"?"selected":""}>処理しない</option>
+    </select></div>
+    <div class="field">
+      <label>計算式</label>
+      <input id="calcFormula" name="formula" value="${esc(calc?.formula||"v1 * v2")}" autocomplete="off">
+      <div class="muted">入力項目は v1、v2…で表します。例: v1 * v2 + v3</div>
+    </div>
+    <div id="calcTokens" class="actions"></div>
+  `,async fd=>{
+    const fieldCount=Math.max(1,Math.min(8,Number(fd.get("fieldCount")||1)));
+    const fields=[];
+    for(let i=1;i<=fieldCount;i++){
+      fields.push({
+        label:String(fd.get("fieldLabel"+i)||"").trim(),
+        unit:String(fd.get("fieldUnit"+i)||"").trim(),
+        defaultValue:Number(fd.get("fieldDefault"+i)||0)
+      });
+    }
+    const payload={
+      workspaceId:selectedWorkspaceId(),
+      name:fd.get("name"),
+      fields,
+      formula:fd.get("formula"),
+      resultLabel:fd.get("resultLabel"),
+      resultFormat:fd.get("resultFormat"),
+      resultUnit:fd.get("resultUnit"),
+      rounding:fd.get("rounding")
+    };
+    if(calc){
+      payload.id=Number(calc.id);
+      await api("calculatorUpdate",payload);
+    }else{
+      await api("calculatorCreate",payload);
+    }
+    setTimeout(()=>moneyCalculator().catch(()=>{}),0);
+    return true;
+  });
+
+  function currentFields(){
+    const rows=[];
+    const current=Math.max(1,Math.min(8,Number($("#calcFieldCount")?.value||count)));
+    for(let i=1;i<=current;i++){
+      rows.push({
+        label:document.querySelector(`[name="fieldLabel${i}"]`)?.value||existing[i-1]?.label||("項目"+i),
+        unit:document.querySelector(`[name="fieldUnit${i}"]`)?.value||existing[i-1]?.unit||"",
+        defaultValue:document.querySelector(`[name="fieldDefault${i}"]`)?.value??existing[i-1]?.defaultValue??0
+      });
+    }
+    return rows;
+  }
+
+  function renderFields(){
+    const n=Math.max(1,Math.min(8,Number($("#calcFieldCount").value||1)));
+    const values=currentFields();
+    $("#calcFields").innerHTML=Array.from({length:n},(_,idx)=>{
+      const i=idx+1, f=values[idx]||existing[idx]||{label:"項目"+i,unit:"",defaultValue:0};
+      return `<article class="card">
+        <div class="row between"><strong>v${i}</strong><span class="badge">入力${i}</span></div>
+        ${field("fieldLabel"+i,"項目名",f.label)}
+        <div class="split">${field("fieldUnit"+i,"単位",f.unit)}${field("fieldDefault"+i,"初期値",f.defaultValue,"number","step=\"any\"")}</div>
+      </article>`;
+    }).join("");
+    $("#calcTokens").innerHTML=[
+      ...Array.from({length:n},(_,idx)=>({label:"v"+(idx+1),value:"v"+(idx+1)})),
+      {label:"＋",value:" + "},{label:"−",value:" - "},{label:"×",value:" * "},{label:"÷",value:" / "},
+      {label:"%",value:" % "},{label:"(",value:"("},{label:")",value:")"}
+    ].map(t=>`<button type="button" class="small calc-token" data-token="${esc(t.value)}">${esc(t.label)}</button>`).join("");
+    document.querySelectorAll(".calc-token").forEach(b=>b.onclick=()=>{
+      const input=$("#calcFormula");
+      const token=b.dataset.token||"";
+      const start=input.selectionStart??input.value.length;
+      const end=input.selectionEnd??input.value.length;
+      input.value=input.value.slice(0,start)+token+input.value.slice(end);
+      input.focus();
+      const pos=start+token.length;
+      input.setSelectionRange(pos,pos);
+    });
+  }
+
+  $("#calcFieldCount").onchange=renderFields;
+  $("#calcResultFormat").onchange=()=>{
+    $("#calcResultUnitWrap").style.display=$("#calcResultFormat").value==="number"?"":"none";
+  };
+  renderFields();
+  $("#calcResultFormat").onchange();
+}
+
+function calculatorUse(calc){
+  const fields=calc.fields||[];
+  viewModal(calc.name,`
+    <div class="row between"><button id="calculatorBack" class="secondary small" type="button">← 一覧</button><span></span></div>
+    <article class="card">
+      <div class="muted">${esc(calculatorFormulaLabel(calc))}</div>
+      ${fields.map((f,i)=>`
+        <div class="field">
+          <label>${esc(f.label)}${f.unit?" ("+esc(f.unit)+")":""}</label>
+          <input class="calc-value" data-key="${esc(f.key||("v"+(i+1)))}" type="number" step="any" value="${esc(f.defaultValue??0)}">
+        </div>`).join("")}
+      <button id="runCalculator" class="primary" type="button">計算する</button>
+      <div id="calculatorResult" class="card" style="margin-top:.7rem;display:none"></div>
+    </article>
+  `);
+
+  $("#calculatorBack").onclick=()=>moneyCalculator().catch(()=>{});
+  $("#runCalculator").onclick=()=>{
+    try{
+      const values={};
+      document.querySelectorAll(".calc-value").forEach(input=>values[input.dataset.key]=Number(input.value||0));
+      const raw=evaluateFormula(calc.formula,values);
+      const result=roundedResult(raw,calc.rounding);
+      const el=$("#calculatorResult");
+      el.style.display="";
+      el.innerHTML=`<div class="muted">${esc(calc.result_label||"結果")}</div>
+        <div class="stock-count">${esc(formatCalculatorResult(calc,result))}</div>
+        ${calc.result_format==="money"?'<div class="actions"><button id="recordCalculatorResult" class="secondary small" type="button">会計に記録</button></div>':""}`;
+      if(calc.result_format==="money"){
+        $("#recordCalculatorResult").onclick=()=>recordCalculatorResult(calc,result);
+      }
+      status("");
+    }catch(e){
+      status(e.message||"計算できませんでした。",true);
+    }
+  };
+}
+
+function recordCalculatorResult(calc,result){
+  const amount=Math.abs(Math.round(Number(result)||0));
+  modal("計算結果を会計に記録",
+    `<article class="card">
+      <div class="muted">${esc(calc.name)}</div>
+      <div class="stock-count">${yen(amount)}</div>
+    </article>
+    <div class="split">
+      <div class="field"><label>区分</label><select name="type">
+        <option value="expense">支出</option>
+        <option value="income">収入</option>
+      </select></div>
+      ${field("amount","金額",amount,"number",'min="1" max="1000000000" step="1"')}
+    </div>
+    ${field("category","カテゴリ","calculation")}
+    ${field("note","内容","計算: "+calc.name)}`,
+    async fd=>{
+      await api("moneyAdd",{
+        workspaceId:selectedWorkspaceId(),
+        entryType:fd.get("type"),
+        amount:Number(fd.get("amount")),
+        category:fd.get("category"),
+        note:fd.get("note")
+      });
+      await loadTab();
+      return true;
+    });
+}
+
+function calculatorDelete(calc){
+  modal("計算方法を削除",
+    `<article class="card"><div class="card-title">${esc(calc.name)}</div><div class="muted">この計算方法を削除します。会計記録そのものには影響しません。</div></article>`,
+    async ()=>{
+      await api("calculatorDelete",{workspaceId:selectedWorkspaceId(),id:Number(calc.id)});
+      setTimeout(()=>moneyCalculator().catch(()=>{}),0);
+      return true;
+    });
+}
+
+function renderMembers(){
+  const invites=state.boot?.invites||[];
+  const supportEligible=state.boot?.access?.supportEligible===true;
+  const supportActive=state.boot?.access?.supportActive===true;
+  const isAdmin=state.boot?.access?.admin===true;
+  const manager=canManage();
+  const owner=canOwn();
+
+  $("#content").innerHTML=`
+    <div class="row between"><h2>メンバー</h2>${manager&&Number(state.workspace.is_personal)!==1?'<button class="primary" data-action="invite">＋ 招待</button>':""}</div>
+
+    <article class="card workspace-info">
+      <div class="row between">
+        <div><div class="card-title">${esc(state.workspace.icon||"📁")} ${esc(state.workspace.name)}</div><div class="muted">BASE情報</div></div>
+        <span class="badge ${state.workspace.role==="owner"?"high":state.workspace.role==="manager"?"good":""}">${roleLabel(state.workspace.role)}</span>
+      </div>
+      <div class="workspace-info-grid">
+        <div><span>種類</span><strong>${esc(workspaceTypeLabel(state.workspace.workspace_type))}</strong></div>
+        <div><span>メンバー</span><strong>${state.members.length.toLocaleString("ja-JP")}人</strong></div>
+        <div><span>作成</span><strong>${esc(fmtDateTime(state.workspace.created_at,"--"))}</strong></div>
+        <div><span>BASE</span><strong>v${esc(state.boot?.appVersion||"unknown")}</strong></div>
+      </div>
+    </article>
+
+    ${isAdmin?`<article class="card access-card">
+      <div class="row between"><div><div class="card-title">ADMIN ACCESS</div><div class="muted">運営管理権限で全BASEを常時表示しています。</div></div><span class="badge high">ALWAYS ON</span></div>
+    </article>`:""}
+
+    ${!isAdmin&&supportEligible?`<article class="card access-card">
+      <div class="row between">
+        <div><div class="card-title">WEAZEL SUPPORT</div><div class="muted">${supportActive?"保守モード中：全BASEへアクセスできます。":"通常モード：所属BASEだけ表示します。"}</div></div>
+        <button class="${supportActive?"danger":"primary"} small" data-action="toggle-support" data-enabled="${supportActive?"0":"1"}">${supportActive?"OFFにする":"ONにする"}</button>
+      </div>
+    </article>`:""}
+
+    ${invites.length?`<article class="card"><div class="card-title">届いている招待</div>${invites.map(i=>`<div class="row between"><span>${esc(i.workspace_icon||"📁")} ${esc(i.workspace_name)}</span><span class="row"><button class="small" data-action="accept-invite" data-id="${i.id}">参加</button><button class="danger small" data-action="decline-invite" data-id="${i.id}">辞退</button></span></div>`).join("")}</article>`:""}
+
+    ${state.members.map(m=>`<article class="card">
+      <div class="row between">
+        <div><div class="card-title">${esc(m.display_name)}</div><div class="muted">${esc(m.citizenid)}</div></div>
+        <span class="badge ${m.role==="owner"?"high":m.role==="manager"?"good":""}">${roleLabel(m.role)}</span>
+      </div>
+      ${owner&&m.role!=="owner"?`<div class="actions">
+        <button class="secondary small" data-action="set-role" data-cid="${esc(m.citizenid)}" data-role="${m.role==="manager"?"member":"manager"}">${m.role==="manager"?"管理権限を外す":"MANAGERにする"}</button>
+        <button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button>
+      </div>`:manager&&m.role==="member"?`<div class="actions"><button class="danger small" data-action="remove-member" data-cid="${esc(m.citizenid)}">除名</button></div>`:""}
+    </article>`).join("")}
+
+    ${Number(state.workspace.is_personal)!==1&&owner?`<div class="card"><div class="card-title">BASE設定</div><div class="actions"><button class="secondary small" data-action="workspace-settings">設定</button><button class="danger small" data-action="delete-workspace">BASE削除</button></div></div>`:""}
+    ${Number(state.workspace.is_personal)!==1&&!hasGlobalAccess()&&state.workspace.role!=="owner"?'<button class="danger" data-action="leave-workspace">このBASEから退出</button>':""}
+  `;
+  bindContent();
+}
+
+function inviteMember(){
+  modal("メンバーを招待",field("citizenid","CSN / citizenid"),async fd=>{await api("workspaceInvite",{workspaceId:selectedWorkspaceId(),citizenid:fd.get("citizenid")});status("招待を作成しました。");return true;});
+}
+
+async function setMemberRole(citizenid,role){
+  await api("workspaceSetRole",{workspaceId:selectedWorkspaceId(),citizenid,role});
+  await openWorkspace(selectedWorkspaceId());
+}
+
+async function toggleSupport(enabled){
+  const preferred=selectedWorkspaceId();
+  const d=await api("supportToggle",{enabled});
+  state.boot.access=d.access;
+  state.boot.workspaces=d.workspaces||[];
+  workspacePills();
+  const stillVisible=preferred&&state.boot.workspaces.some(w=>Number(w.id)===Number(preferred));
+  if(stillVisible) await openWorkspace(preferred);
+  else if(state.boot.workspaces[0]) await openWorkspace(Number(state.boot.workspaces[0].id));
+}
+
+function workspaceSettings(){
+  const type=String(state.workspace.workspace_type||"custom");
+  modal("BASE設定",
+    field("name","BASE名",state.workspace.name)+workspaceIconPicker(state.workspace.icon||"📁")+
+    `<div class="field"><label>種類</label><select name="type">
+      <option value="business" ${type==="business"?"selected":""}>企業</option>
+      <option value="crew" ${type==="crew"?"selected":""}>クルー</option>
+      <option value="team" ${type==="team"?"selected":""}>チーム</option>
+      <option value="project" ${type==="project"?"selected":""}>プロジェクト</option>
+      <option value="custom" ${type==="custom"?"selected":""}>カスタム</option>
+    </select></div>`,
+    async fd=>{
+      await api("workspaceSettings",{
+        workspaceId:selectedWorkspaceId(),
+        name:fd.get("name"),
+        icon:fd.get("icon"),
+        workspaceType:fd.get("type")
+      });
+      await bootstrap(selectedWorkspaceId());
+      return true;
+    });
+  bindWorkspaceIconPicker();
+}
+
+function renameWorkspace(){
+  workspaceSettings();
+}
+
+function deleteWorkspace(){
+  modal("BASEを削除",
+    `<div class="card"><div class="card-title">この操作は取り消せません</div><div class="muted">メモ・在庫履歴・タスク・会計・メンバー情報が削除されます。</div></div>`+
+    field("confirm","確認のためBASE名を入力"),
+    async fd=>{
+      await api("workspaceDelete",{workspaceId:selectedWorkspaceId(),confirmName:fd.get("confirm")});
+      state.workspace=null;
+      await bootstrap();
+      return true;
+    },
+    "削除");
+}
+
+function newWorkspace(){
+  modal("新しいBASE",
+    field("name","BASE名")+workspaceIconPicker("📁")+
+    `<div class="field"><label>テンプレート</label><select name="type">
+      <option value="business">企業</option><option value="crew">クルー</option><option value="team">チーム</option><option value="project">プロジェクト</option><option value="custom">カスタム</option>
+    </select></div>`,
+    async fd=>{const d=await api("workspaceCreate",{name:fd.get("name"),icon:fd.get("icon"),workspaceType:fd.get("type"),templateKey:fd.get("type")});await bootstrap(d.workspaceId);return true;});
+  bindWorkspaceIconPicker();
+}
+
+function bindContent(){
+  $("#content").querySelectorAll("[data-action]").forEach(b=>b.onclick=async()=>{
+    if(b.dataset.busy==="1") return;
+    const a=b.dataset.action,id=Number(b.dataset.id||0);
+    b.dataset.busy="1";
+    b.disabled=true;
+    try{
+      if(a==="new-note") noteModal();
+      else if(a==="edit-note") noteModal(state.notes.find(x=>Number(x.id)===id));
+      else if(a==="pin-note"){await api("notePin",{workspaceId:selectedWorkspaceId(),id,pinned:b.dataset.pinned==="1"});await loadTab();}
+      else if(a==="delete-note") confirmNoteDelete(state.notes.find(x=>Number(x.id)===id));
+      else if(a==="new-stock") newStock();
+      else if(a==="manage-stock-fields") manageExtras();
+      else if(a==="stock-adjust") await adjustStock(state.stock.find(x=>Number(x.id)===id),Number(b.dataset.delta));
+      else if(a==="stock-custom") customStock(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="stock-config") configStock(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="stock-history") await stockHistory(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="stock-delete") deleteStock(state.stock.find(x=>Number(x.id)===id));
+      else if(a==="new-task") taskModal();
+      else if(a==="task-edit") taskModal(state.tasks.find(x=>Number(x.id)===id));
+      else if(a==="task-next") await nextTask(state.tasks.find(x=>Number(x.id)===id));
+      else if(a==="task-delete") confirmTaskDelete(state.tasks.find(x=>Number(x.id)===id));
+      else if(a==="new-money") newMoney();
+      else if(a==="money-calc") await moneyCalculator();
+      else if(a==="void-money") confirmMoneyVoid((state.money.entries||[]).find(x=>Number(x.id)===id));
+      else if(a==="invite") inviteMember();
+      else if(a==="accept-invite"){await api("inviteAccept",{inviteId:id});await bootstrap(selectedWorkspaceId());}
+      else if(a==="decline-invite"){await api("inviteDecline",{inviteId:id});await bootstrap(selectedWorkspaceId());}
+      else if(a==="remove-member"){await api("workspaceRemoveMember",{workspaceId:selectedWorkspaceId(),citizenid:b.dataset.cid});await openWorkspace(selectedWorkspaceId());}
+      else if(a==="set-role") await setMemberRole(b.dataset.cid,b.dataset.role);
+      else if(a==="toggle-support") await toggleSupport(b.dataset.enabled==="1");
+      else if(a==="rename-workspace") renameWorkspace();
+      else if(a==="workspace-settings") workspaceSettings();
+      else if(a==="delete-workspace") deleteWorkspace();
+      else if(a==="leave-workspace"){await api("workspaceLeave",{workspaceId:selectedWorkspaceId()});state.workspace=null;await bootstrap();}
+    }catch{}
+    finally{
+      b.dataset.busy="0";
+      b.disabled=false;
+    }
+  });
+}
+
+$("#refreshBtn").onclick=()=>bootstrap(selectedWorkspaceId()).catch(()=>{});
+$("#newWorkspaceBtn").onclick=newWorkspace;
+tabButtons();
+bootstrap().catch(()=>{});

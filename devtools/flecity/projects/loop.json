@@ -1,7 +1,7 @@
 {
   "id": "loop",
   "resource": "flecity_games",
-  "source": "flecity_games",
+  "source": "flecity_sources/flecity_games",
   "kind": "game",
   "adapter": "loop",
   "logTags": [

@@ -1,0 +1,132 @@
+{
+  "runId": "2026-10-31T11-28-52-104Z-5494e6",
+  "started": "2026-10-31T11:28:52.104Z",
+  "finished": "2026-10-31T11:29:16.736Z",
+  "mode": "offline-validation",
+  "results": [
+    {
+      "id": "toolkit",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "tests",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "stats": {
+            "tests": 71,
+            "pass": 71,
+            "fail": 0,
+            "skipped": 0
+          },
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\toolkit-tests.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": null
+    },
+    {
+      "id": "base",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\base-static.log"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\base-nui.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": "3abb80f0a38419a31a0aef6ab78941c356083633b5c029cda88c7658dc7688d4"
+    },
+    {
+      "id": "link",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\link-static.log"
+        },
+        {
+          "suite": "game",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\link-game.log"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\link-nui.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": "df5a99bd7286b3b9ccf2374e0a7e07b70307e7490fc682d08892fee40c1cc0fc"
+    },
+    {
+      "id": "loop",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\loop-static.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": "df5a99bd7286b3b9ccf2374e0a7e07b70307e7490fc682d08892fee40c1cc0fc"
+    },
+    {
+      "id": "wave",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\wave-static.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050"
+    },
+    {
+      "id": "flepri",
+      "status": "PASS",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "code": 0,
+          "timedOut": false,
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T11-28-52-104Z-5494e6\\flepri-static.log"
+        }
+      ],
+      "sourceUnchanged": true,
+      "sourceHash": "3f40a38ee2000d17d89631bb03c242bd8f5d26fbc4e8ca1aacfac27ab1da2a48"
+    },
+    {
+      "id": "puriphoto",
+      "status": "PAUSED",
+      "protectedUnchanged": true,
+      "reason": "User withheld migration approval; no commands or writes"
+    }
+  ],
+  "status": "PASS"
+}

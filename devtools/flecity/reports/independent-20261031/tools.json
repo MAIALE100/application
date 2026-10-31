@@ -1,0 +1,18 @@
+[
+  {
+    "file": "lua54.dll",
+    "sha256": "a842f0d33c897ce08411ea2565e8c19859b45a2374b905de2d56434c7fa4d732"
+  },
+  {
+    "file": "lua54.exe",
+    "sha256": "8c95679e6210e5c3972ea473d248607d41b2cb734af67a60dd9eec4bf3ca237d"
+  },
+  {
+    "file": "luac54.exe",
+    "sha256": "45541cea599c9f74e0945508a1de00908534c84943c17ff06e43407635585a7a"
+  },
+  {
+    "file": "provenance.json",
+    "sha256": "77eec29019648ac4e9cd098f2a8b619dd8d4087a49227d5818317d056fe5c41a"
+  }
+]

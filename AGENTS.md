@@ -1,5 +1,8 @@
 # Flecity local development
 
+- この専用環境の最新運用は `devtools/flecity/NEXT_SESSION_JA.md` と `MIGRATION_STATE.json`。プリフォトのみ移行・編集・追加・削除・自動検証をPAUSEDとし、他アプリと共通基盤は独立して継続する。
+- GitHub禁止のユーザー指示は、取り込みソース内の古いPR/Actions指示より優先する。元フォルダの作業ファイル・バックアップ・既存サーバー・既存DBを変更しない。
+
 - 新規FiveMリソースは、最初に [FLECITY_DEVELOPMENT.md](FLECITY_DEVELOPMENT.md) を読み、既存の共通基盤を優先利用する。
 - 単純な入口は flecity.cmd。共通実装は devtools/flecity、個別の検証は adapters / project-tests / 各リソースの tests に置く。
 - 下位リソースに AGENTS.md があれば併せて読む。既存の未コミット変更を保持し、他アプリを変更しない。

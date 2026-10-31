@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <title>WAVE</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <header class="topbar">
+      <div><div class="eyebrow">FLECITY MUSIC</div><h1>WAVE</h1></div>
+      <button id="adminButton" class="icon-button hidden" aria-label="管理">⚙</button>
+    </header>
+
+    <section id="status" class="status">読み込み中…</section>
+
+    <section id="view-home" class="view active">
+      <div class="hero"><div><div class="eyebrow">CREATE · SHARE · PLAY</div><h2>街の音を、街のみんなで。</h2><p>Flecityで生まれた音楽を聴いて、作って、届ける。</p></div><button id="heroStudio">曲を作る</button></div>
+      <div id="homeRecentSection" class="home-shelf hidden"><div class="section-head"><h3>最近聴いた曲</h3></div><div id="homeRecentTracks" class="track-list"></div></div>
+      <div id="homeFollowingSection" class="home-shelf hidden"><div class="section-head"><h3>フォロー中の新着</h3></div><div id="homeFollowingTracks" class="track-list"></div></div>
+      <div id="homeTrendingSection" class="home-shelf"><div class="section-head"><h3>急上昇</h3></div><div id="homeTrendingTracks" class="track-list"></div></div>
+      <div class="section-head"><h3>新着</h3><button id="refreshHome" class="text-button">更新</button></div>
+      <div id="homeTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-search" class="view">
+      <div class="search-row"><input id="searchInput" placeholder="曲・アーティスト・ジャンル"><button id="searchButton">検索</button></div>
+      <div id="searchArtistSection" class="hidden"><div class="section-head"><h3>アーティスト</h3></div><div id="searchArtists" class="artist-results"></div></div>
+      <div class="section-head"><h3>楽曲</h3></div>
+      <div id="searchTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-library" class="view">
+      <div class="section-head"><h3>ライブラリ</h3><button id="refreshLibrary" class="text-button">更新</button></div>
+      <div class="card playlist-create"><div class="eyebrow">PLAYLIST</div><div class="search-row"><input id="playlistNameInput" maxlength="60" placeholder="新しいプレイリスト名"><button id="createPlaylistButton">作成</button></div><div id="playlistStrip" class="project-strip"></div></div>
+      <div class="section-head"><h3>制作プロジェクト</h3></div><div id="projectStrip" class="project-strip"></div>
+      <div class="section-head"><h3>保存した楽曲</h3></div><div id="libraryTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-studio" class="view">
+      <div class="studio-head">
+        <div class="studio-title"><div class="eyebrow">WAVE STUDIO</div><input id="projectTitleInput" class="project-title-input" maxlength="80" value="Untitled" aria-label="プロジェクト名"></div>
+        <div class="studio-actions"><button id="undoProject" class="secondary">↶</button><button id="redoProject" class="secondary">↷</button><button id="newProject" class="secondary">新規</button><button id="saveProject">保存</button></div>
+      </div>
+      <div class="transport card">
+        <button id="playProject">▶ 再生</button><button id="stopProject" class="secondary">■ 停止</button>
+        <label>BPM <input id="bpmInput" type="number" min="60" max="200" value="120"></label>
+        <label>BAR <select id="barSelect"></select></label>
+        <label>OCT <select id="octaveSelect"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select></label>
+        <label>長さ <input id="barsInput" type="number" min="1" max="128" value="4"></label><label class="switch-row">メトロノーム <input id="metronomeToggle" type="checkbox"></label>
+      </div>
+      <div class="track-editor card">
+        <div class="section-head"><h3>選択トラック</h3><button id="clearTrack" class="secondary">ノートを消す</button></div>
+        <label>トラック名 <input id="trackName" maxlength="24" placeholder="TRACK"></label>
+        <div class="two-col"><label>音色<select id="instrumentSelect"><option value="saw">Synth Lead</option><option value="triangle">Soft Synth</option><option value="sine">Pad</option><option value="piano">Piano</option><option value="strings">Strings</option><option value="square">8bit</option><option value="bass">Bass</option><option value="drums">Drums</option><option value="pluck">Pluck</option><option value="bell">Bell</option></select></label><div><label class="switch-row">ミュート <input id="trackMute" type="checkbox"></label><label class="switch-row">SOLO <input id="trackSolo" type="checkbox"></label></div></div>
+        <label>音量 <input id="trackVolume" type="range" min="0" max="1" step="0.05" value="0.75"></label>
+        <label>PAN <input id="trackPan" type="range" min="-1" max="1" step="0.1" value="0"></label>
+        <div class="two-col"><label>ノート長<select id="noteLength"><option value="1">1/16</option><option value="2">1/8</option><option value="4" selected>1/4</option><option value="8">1/2</option><option value="16">1小節</option></select></label><label>ベロシティ<input id="noteVelocity" type="range" min="0.1" max="1" step="0.05" value="0.85"></label></div>
+        <div class="bar-tools"><button id="copyBar" class="secondary">小節コピー</button><button id="pasteBar" class="secondary">小節貼付</button><button id="clearBar" class="secondary">小節クリア</button></div>
+      </div>
+      <div class="studio-grid-layout">
+        <div id="trackList" class="track-panel card"></div>
+        <div class="piano-wrap card">
+          <div id="pianoGrid" class="piano-grid"></div>
+          <div class="grid-help">タップでノートON/OFF。横=時間 / 縦=音程</div>
+        </div>
+      </div>
+      <div class="card publish-card">
+        <div class="section-head"><h3>リリース</h3><span class="muted">テスト版</span></div>
+        <input id="releaseTitle" placeholder="曲名">
+        <div class="two-col"><select id="releaseGenre"><option>POP</option><option>ROCK</option><option>ELECTRONIC</option><option>HIPHOP</option><option>LOFI</option><option>AMBIENT</option><option>GAME</option><option>JINGLE</option><option>OTHER</option></select><select id="accessMode"><option value="free">無料公開</option><option value="purchase">個別販売</option><option value="both">WAVE+ + 個別販売</option></select></div>
+        <input id="releasePrice" type="number" min="0" value="5000" placeholder="価格">
+        <textarea id="releaseDescription" placeholder="作品説明"></textarea>
+        <div class="rights-grid"><label><input id="rightRingtone" type="checkbox" checked> 着信音</label><label><input id="rightNotification" type="checkbox" checked> 通知音</label><label><input id="rightStore" type="checkbox"> 店舗BGM</label><label><input id="rightEvent" type="checkbox"> イベント</label><label><input id="rightRemix" type="checkbox"> リミックス</label></div>
+        <label class="confirm"><input id="rightsConfirm" type="checkbox"> この作品を公開・販売する権利を持っています</label>
+        <button id="publishTrack">公開する</button>
+      </div>
+    </section>
+
+    <section id="view-profile" class="view">
+      <div id="artistCard" class="card hidden"></div>
+      <div id="artistEditor" class="card artist-create">
+        <h3 id="artistEditorTitle">アーティストプロフィール</h3>
+        <input id="artistName" maxlength="48" placeholder="アーティスト名">
+        <textarea id="artistBio" maxlength="400" placeholder="紹介文"></textarea>
+        <button id="createArtist">保存</button>
+      </div>
+      <div id="ownReleaseManager" class="card">
+        <div class="section-head"><h3>自分のリリース</h3><button id="refreshOwnReleases" class="secondary">更新</button></div>
+        <div id="ownReleases" class="release-manager-list"></div>
+      </div>
+      <div id="albumManager" class="card">
+        <div class="eyebrow">RELEASE COLLECTION</div><h3>EP / アルバム</h3>
+        <input id="albumTitle" maxlength="80" placeholder="タイトル">
+        <div class="two-col"><select id="albumType"><option value="ep">EP</option><option value="album">アルバム</option></select><button id="refreshAlbums" class="secondary">楽曲更新</button></div>
+        <textarea id="albumDescription" maxlength="400" placeholder="作品説明"></textarea>
+        <div id="albumTrackChoices" class="album-track-choices"></div>
+        <button id="createAlbumButton">選択した曲で公開</button>
+        <div class="section-head"><h3>公開済み</h3></div><div id="ownAlbums" class="project-strip"></div>
+      </div>
+      <div class="card wallet-card"><div class="eyebrow">WAVE WALLET</div><div id="walletBalance" class="wallet-balance">$0</div><div id="walletStats" class="muted"></div><button id="withdrawButton">売上を銀行へ受け取る</button></div>
+    </section>
+
+    <section id="view-admin" class="view">
+      <div class="section-head"><div><div class="eyebrow">OWNER / ADMIN ONLY</div><h2>WAVE 管理</h2></div><button id="adminRefresh" class="secondary">更新</button></div>
+      <div id="platformWallet" class="card"></div>
+      <div class="section-head"><h3>アーティスト管理</h3></div><div id="adminArtists" class="admin-list"></div>
+      <div class="section-head"><h3>楽曲管理</h3></div><div id="adminTracks" class="admin-list"></div>
+      <div class="section-head"><h3>未処理の通報</h3></div><div id="adminReports" class="admin-list"></div>
+      <div class="section-head"><h3>監査ログ</h3></div><div id="adminLogs" class="admin-list"></div>
+    </section>
+
+    <nav class="bottom-nav">
+      <button data-view="home" class="active">⌂<span>ホーム</span></button>
+      <button data-view="search">⌕<span>検索</span></button>
+      <button data-view="library">▤<span>ライブラリ</span></button>
+      <button data-view="studio">＋<span>スタジオ</span></button>
+      <button data-view="profile">◉<span>プロフィール</span></button>
+    </nav>
+
+    <div id="miniPlayer" class="mini-player hidden"><button id="miniPrev" class="secondary">‹</button><button id="miniPlay">▶</button><button id="miniNext" class="secondary">›</button><div class="mini-meta"><strong id="miniTitle">---</strong><span id="miniArtist">---</span></div><button id="miniFavorite">♡</button><button id="miniMore">⋯</button></div>
+
+    <dialog id="trackDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogTrack"></div></form></dialog>
+    <dialog id="artistDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogArtist"></div></form></dialog>
+    <dialog id="playlistDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogPlaylist"></div></form></dialog>
+    <dialog id="albumDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogAlbum"></div></form></dialog>
+    <dialog id="reportDialog"><form method="dialog"><button class="dialog-close">×</button><h3>通報</h3><select id="reportCategory"><option value="rights">権利侵害</option><option value="inappropriate">不適切</option><option value="plagiarism">盗作疑い</option><option value="metadata">画像・説明</option><option value="other">その他</option></select><textarea id="reportDetails" placeholder="詳細"></textarea><button id="sendReport" type="button">送信</button></form></dialog>
+  </main>
+  <script src="app.js"></script>
+  <script src='studio-extras.js'></script>
+  <script src='score-tools.js'></script>
+</body>
+</html>

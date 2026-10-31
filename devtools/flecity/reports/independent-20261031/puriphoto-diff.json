@@ -1,0 +1,2309 @@
+{
+  "status": "PAUSED",
+  "approved": false,
+  "rows": [
+    {
+      "path": "puriphoto/CHANGELOG.md",
+      "status": "OLD_ONLY",
+      "oldSha256": "f2588cff1de3caa00f6b31e782933d32461e69d5dd9add8f606711e92c5d9ab1",
+      "backupMatchesOld": true,
+      "classification": "DOCUMENTATION",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/README.md",
+      "status": "DIFFERENT",
+      "oldSha256": "4517e81a1b645cf8d456ee6719b5e2c1542796fd3f95515883c3b274a2863850",
+      "newSha256": "751ee9d2a6d8f2f6ecabd421a69b8582a6978ef6d57a0df579f92286de8924b1",
+      "backupMatchesOld": true,
+      "classification": "DOCUMENTATION",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/client/v11.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "40b543f3377783b9c10c29d843983d40c248c1037d57a26cd024716c327fe551",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/config.lua",
+      "status": "DIFFERENT",
+      "oldSha256": "8edc763402f5bd52b1202e70f5277726510e462565782a2a44ad6e7ff0d6a988",
+      "newSha256": "6a1be8f1e477d59bfcf24efd02681fa7b29ee2093b63922012760feb275365bc",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/fxmanifest.lua",
+      "status": "DIFFERENT",
+      "oldSha256": "19b744ab135111cc06f85932de800fa8c3a7d58e68b7151dbc454ae053f7eccb",
+      "newSha256": "437bf884fee73fb122694927f2039bb2590fb7a7791bd6ebf4af458866a48ac0",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/server/main.lua",
+      "status": "OLD_ONLY",
+      "oldSha256": "d0526547983ea0d01f9687e12b2ccaafc34c93fb5dad5b6d4d6aac3ce528c405",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-15d60b95.js",
+      "status": "NEW_ONLY",
+      "newSha256": "7f9c3ce9fe2a709703f1b5993d2917f994db4c830468dd7c75f9416f3168fba6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-9487c400.css",
+      "status": "NEW_ONLY",
+      "newSha256": "5e60b38de252c1f3f6a67050dce0400677e93fc3591b141e8199cb1233a46ce8",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-a08d5720.css",
+      "status": "OLD_ONLY",
+      "oldSha256": "a08d572027892653d41b870ca54c65efe3d15b855e39a05d6785319f2f534c2f",
+      "backupMatchesOld": true,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/index-d3e1db67.js",
+      "status": "OLD_ONLY",
+      "oldSha256": "d623c190220b068523ac61607b3c186aa795e96001ece12c9e32e974cc1f4e61",
+      "backupMatchesOld": true,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-aec5c866.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "aec5c8660a841c0c5e41066a8233a11159b3db8b985cd5cfecac7cef32d479e6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-10-700-normal-f5a4430c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f5a4430cb8aff19b149b2abf715e7447da7d95e887109e5d07d7518eb5483ac2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-6462ab04.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6462ab04d4bbc729b4c263e0f6c1e109af400029d5a88d8451abd6539defaa6b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-100-700-normal-a1d2eaff.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a1d2eaff0c0197356973cc4dfc3df1afdca596b0c0b048a4499fcd41fb824625",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-9ac4d563.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9ac4d5631abc99b2eb2b981075fc5317ad22e5759058cd00ff52239b795170ae",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-101-700-normal-d6f792ea.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d6f792ea3a715559d1ad14b3b7df8b6d0e8436d0b81c584d8bf1d5c462018484",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a04f21bc.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a04f21bcd94469d4e150b8a465ff8030b3d92ae6f4a877b8b0c0c22ac13b4d92",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-102-700-normal-a97b37af.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a97b37afff697b6cdb7a1ed1eaef687407c3644a40e91420924d7b196c2f090d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-7fba727a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7fba727aa35024bc973b0d076de730025d765928d943362090b4ac4f782e2f16",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-103-700-normal-b5117eba.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b5117eba69cdb2cbaf24ed3278ac0f952ef9db6501c47e6c3f43c722be4dd64e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-1298fd63.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1298fd637a4a12dc1a6dced9fc051a1c54d6460d290309095ef9a2aa6c2ac7f2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-104-700-normal-88e2c6ac.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "88e2c6ac621639596b85781b5a78f77b8e796a19648fa9c024a90a5488cc4835",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-73524b05.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "73524b05ca6c5baa17650834d369083e03a0e53e1a9a4d1a9b2a61445f062908",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-105-700-normal-dbd51dd7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dbd51dd72f1e5c2078b224367e93ec2a434a4dd1ff83c9716c01ca1032388562",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-926dba00.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "926dba008c88e6f14379eeeb96f9ae9e14cb11442107a1e1fb4a5bfe370ebe71",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-106-700-normal-95cbf856.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95cbf856f9e4e55a19534b9c6970ae73712805ea39028b2a0b2e52c71565e5e0",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-10b444f6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "10b444f6da1d51f1dd4adc99398861d2a938d74bdfd9de0925b300326045593a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-107-700-normal-39d713f1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "39d713f18133771275d3f815ad91e76529aeeebe8665bf1c0f2e79333f448ef6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-5f3b8284.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "5f3b8284a0f9a43f580cfad3cd2a26098ac5d162765c12e3dafd73d8a777f8b5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-108-700-normal-f1423609.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f14236098a9c54dbcbf09ab3145cc23337ef6cbde82247eec9e70be4896ac91b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-d6e4beec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d6e4beec87d64b06b260196333049c79859a0bb5c9933ad320a1639402ddc48d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-109-700-normal-ff098553.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ff0985531d56f2e14c6ffec66f50025b41745aa7b0a262dbcec85b82950d5b12",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-7359d009.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7359d0096359cb3faeb8a426cbe14fe42889b066540d8d84405bbdfb5425fdc8",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-11-700-normal-99b9f623.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "99b9f623d5cd0853b6159f309f75227f88fb84ec31ecc84e637071628db1be54",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-17d2d5ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "17d2d5cecf14e8931fddf8d7dc8255ff3416f3bd4c3855a9111ff4a46dbbe482",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-110-700-normal-95fdc4dc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95fdc4dcd26807b1e887f54a1411955c9bed37db085949ddd2e6f61adb5ef2ac",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-21ce3eef.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21ce3eefdfddc91f2abc041e83c6c993164cd82e64e707b2ba83d59ba1c74054",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-111-700-normal-8bbfabca.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8bbfabca227551939d1dc4de9d8e91d03efd5df298ae784cc4d0df02f48839ed",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-32d5568e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "32d5568efb966f6f702d78c32a0035f6ddd5de99d4f576718f669117e4d20cf6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-112-700-normal-98c2fc57.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "98c2fc570a7837dab4e82e096301420be57f41cd0570103d746847f6c1b02d55",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-0b26d16f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "0b26d16f9e03ca96a0189e8d47d94ff5439dcc76f177a66abd58eb8bb8bea754",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-113-700-normal-632eb41e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "632eb41e3ccaf622c1062564d9301656f66f11f1a656dde2f8916586685ffb2c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-b40734aa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b40734aa826eefdb7abb25010bfda31465a344300ca7d2a99c8bf8c678719761",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-114-700-normal-db9f3d27.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "db9f3d276e9937fe371e87b7b9ae08b42697937f9006a79939a6f8385bc96245",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-427f25fd.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "427f25fda96bddfbc72586cc3d2c2138db92f98f5d420e6b1245f9330d8ecfaf",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-115-700-normal-606f804b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "606f804b39e6dd2df87e54cfb123332a5ef731b945e6653e2845c52ae10ff825",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-bfec3995.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "bfec39956cea557af413f3081c828dad53290dd148b6a6549c8a4e83f8387b3f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-116-700-normal-fd7d92ec.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fd7d92eca33e1c5781d5904e958f1dcd24b6629b17dd98d4ec9de04e5fa6964e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-743bd2e2.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "743bd2e2bf636e562d0bb57a85b856502b8dbcadbcd73dc26576c93120c54334",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-117-700-normal-ebce7f7c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ebce7f7cc03ebb974c245d7c1fd51218f9c06f22cb5bd12d2c860a6f33d784bf",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-02cd1db7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "02cd1db7ea36e38711708bf778fb8030ccd515fba77d8f4608468865df17b69c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-118-700-normal-79b08398.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "79b0839818b19d27dc91f81b0b036df3d6825f30a55cc53622023e33bc78dfc0",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-323db774.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "323db7746044cb1342838b59d0987719ed59cfe290ca1f9a952bb3439c5a4174",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-119-700-normal-dbcfe584.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dbcfe58459ed01254e713d1ff55435bae16e86ebd43e0ede656b6c46c1e96181",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-95d1ee0f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "95d1ee0f9cf58b325c9f54c3cb2c2ce15f4af25af982d2c650a4b6a45aac6f99",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-12-700-normal-9dd548a6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9dd548a66ef07c727ef1296ff62ff7c145e518de344b014ffb8da3042daa1cb7",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-5d43404d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "5d43404d72a7beaeafa37f47d216e951d5083286c0b69f1c9390186c8088c2ff",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-13-700-normal-7baa335a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7baa335a009cd25830974a02308d468173683e776dc2d9f90c491cb95fc175f3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-6d9feee0.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6d9feee0f1f2e5483142f8eb8a7b3aabc7580f478c4d5e3488072bd2b4bdc032",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-14-700-normal-d251516d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d251516d485f3052b6f7e47609edabb5b1b2445493609f2d12e2e07707a59fb3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-9368bb50.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9368bb50bcfa6e65f34de15fe17ac570bbefa64c732a53f49839ec1b80e2a0f6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-15-700-normal-cb334098.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cb334098424fb196ddc47221a1fa8eb170a811004671d9c23ee250981bffe96a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-1e01dbdb.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1e01dbdb0fab9342f0701dab06720a274081dc93a9c19d5f823c4780188a82ed",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-16-700-normal-e67d5615.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e67d56156fdf4ecade4268857c05d257972a98d20190f13103d6916f55edc2e5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-badd7373.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "badd73730196245125270f93f0e454e3c1523719507d58f939c81c06d520cb6a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-17-700-normal-d141b4b1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d141b4b1fec3052037a311066b01b927aaa199609a26e81f309b0f1f5d2a5e3d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-320f97aa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "320f97aaa2afb3b7a7fad934a65800b6b56e424be9fe7da071255f5247e4747a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-18-700-normal-e2f6f059.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e2f6f059d1429f677f4cf3f986ffdc00f2e7d25c99ec2c22a1567fcfbd4f400a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-7d18d31e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "7d18d31ee7c60da6f561add7934a46fe8a0017b58bde1a854ca03413e3bd9f68",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-19-700-normal-8e6ef251.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e6ef2510af481ced0b3927a64d412b56c44c9bb2ccab3460a34211218590b21",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-18f5523f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "18f5523f026706f5a1e355814eed6fc6f67a9ae3e1eedd9fc686d58d898900a0",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-20-700-normal-e3d3cee9.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e3d3cee9926402dfc94251950c118595735759598de97125fee3175f4f63fab0",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-1f265ad8.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1f265ad8321c7db1604336ca31aa0c93a3a59b93191610d29827e55daa849b7c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-21-700-normal-db47a6ae.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "db47a6ae558fd2b83cf15fdb3c252a74eeff90d93790697fa2213b2b18a21214",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-2d44f543.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2d44f5435504cb83e7855428f288a074a07b238f90f53d368e3ee4353b6503a7",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-22-700-normal-fe17fc1c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "fe17fc1c766e320777e08ca5bf62e0478cebb07a5a81a3862b3f5b82b857e2c3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-2075cd83.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2075cd8319369c6a6f449532b13b7140ae568a43f387db6b60ead3057d643ed6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-23-700-normal-9248255d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9248255d326457b52f650c6ca9f7ce1bac4b2c94378838bec14bad7379223070",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-0c525a88.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "0c525a8832f73c4a7635ef1b6fb10e210087539dff2c98f8dfb17bfa8f8b603f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-24-700-normal-557287e7.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "557287e7a1d437210e8b343274ec5354480df07f46fb5e3aada7765591125eec",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-39c2fb11.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "39c2fb1107056b2d9604a157ede8c165a5bd1396bd7da0d6b28e54f360204bb1",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-25-700-normal-b498d01d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b498d01da7d14e647817bb9a5f4c9e2465bc31c8235a2471698589f9753eae6e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-0775a404.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "0775a40451b2035b0cb6ba8efed9681a27e7c405faf931f393473c4cab5b3af2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-26-700-normal-3f47df05.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "3f47df055cf2127aa4916d95dc58bcebab324e002de3eb62ffda6e570672a6f9",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-722d7dfb.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "722d7dfb48821a551620aec07b68b16f2a2d749b5b15e8ddba3362ef1b6a7d1e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-27-700-normal-a6c999d6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a6c999d61f62db6cc0e26ffeb392303638724310003c80bd95eb544b5ce3e5fb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-279e18e4.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "279e18e4efa5cf19fc3d43202bad3f8379353640d03413b44f2a349957744d05",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-28-700-normal-66651dec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "66651decf2405157e6bd979f97afe62b0c688b1959e0e9c2e47f8deb4038450b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-11440322.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "11440322893cffa64e74228f2da1b41e3cd0ad697b960b1a7c46989f0fe33b75",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-29-700-normal-5bd9f43a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "5bd9f43a9f057440b99401b34f6a32dd40b05042de81f0475972cbac08eaa7ca",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-6be78ead.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6be78eadb8f962dd4471a324f086f4d0a5ed9f4242173f9d1623668c33abdb1a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-30-700-normal-f6aa2541.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f6aa2541191fe10ca387f0e8c231fb2085a7f7deeed5149df13c4dfaeeb6c4dc",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-50f77df7.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "50f77df79f066370252e3213753aa2b74c90b2f02f315ed814bfba92c7e31b70",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-31-700-normal-85f6b5ad.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "85f6b5ad958b77679a72547f67be24029e87451027d14214cf5d8ce32bfaba55",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-21b8a455.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21b8a455883a0fb8f48654431412c73285a993bd1dd5104d4d0c485d14e10a1d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-32-700-normal-fe696f20.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "fe696f20cfb394c20676e3956e299083c8ebba148069427a90e13ec22841e3b4",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-57ab1369.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "57ab136929c56e8ebd70d7573946da7a6bef22c316d633242d14da6104c56e5c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-33-700-normal-af4955dc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "af4955dc940df7e04fb8459a2dcd3c57b2c5da5ba75b1d3480cb384f4d2478b2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-60bb2ca9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "60bb2ca956eddcf3c3fe008ce6427107e5c19c1e4e2858d4b8254803c338f03a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-34-700-normal-72478cd1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "72478cd1f598026d2ddaabc103f6341118e4655bc9c435347d771f4eb3353c4e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-cf5b1516.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cf5b15165ec60b5e11e909e68399589dd72a50769952444a1f7d9f6437fd4b7e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-35-700-normal-dd559ed3.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dd559ed35035bcef3666155a0639059f882a8d2ad5453c1c1c202bea1f7f3163",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-31869428.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "318694280e1ec60a90cf62ca26e7931689b091228f9a03e7262318d8ba005947",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-36-700-normal-62c04c2f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "62c04c2f940a3e8298dae2410dfcfa1b7d2b8271b15543d6b1689a77d0fe6faa",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-3c1655d1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3c1655d15255b7144cbfa985df67890fb12de63ba1981877170c79a3a5cf8f31",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-37-700-normal-c5d7aac5.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c5d7aac54715740d2ae8945e334f5aea6d1e4dd17c9a123ad6e87fea323fa381",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-23291592.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "23291592beecd1144760d63b74e2146ddce1f8d8abb88c1135e5e0b3dddb23eb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-38-700-normal-4fa0aa73.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "4fa0aa7324992bcd43988aa43f9c5f52e4687580be6790968c6249f4bf039368",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-595e793d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "595e793d97cf1c09eb02ff97ff2a111f7fc9214abf216c9a5e9a5a9526e8f1c6",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-39-700-normal-79b275d2.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "79b275d2769dcda0843ec789009eef9e099f6dc4a49ec9af5dd86b0027a1e918",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-2968bdda.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "2968bdda601915a5553e47e8db2ece6539349da8affe3bcb19d56b33f90f1f6c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-40-700-normal-e01bf978.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e01bf978dcad1afae0c3b0a5df0773b100622b4be8b94bf42a4b069ffddebcca",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-daf09bb6.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "daf09bb6ee2218be37942ef729e018e5b602b84ab0c57028ee40c7390be42836",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-41-700-normal-e826e6a6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e826e6a61729ecf8232b1cba8af71932bf3b068fba6cbae3463d9ef811390890",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-c407ab34.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c407ab34b72d1507f49bdf493b3b60dd5a56fd0089c95ac11f45dd706f82d043",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-42-700-normal-fbaf2be9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fbaf2be94324fae58fe2f3ad94c2601689934c68fe6bf11df43c276f270b3733",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-870d8110.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "870d8110ba7d58d77a4420f7f58db8ce63ac9c6cf77d9f2146e6367f2c467005",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-43-700-normal-9c63440c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9c63440cf806b13a7bf085e92564c48673783f8401355f54c9b703e504cf08ee",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-001367ff.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "001367fff3c5950248a37a7012d1f0e0e680862413a2110fd750ea2b5f33a816",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-44-700-normal-48026f85.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "48026f859433967b300a9c5e34bf5050c953ae43b91a8a6be4633b2bd7997d9a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-97715a9d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "97715a9d9bb534555a3026d6d6c34cdf0e142e6e0292609be350bb2d00348396",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-45-700-normal-fb73b052.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "fb73b05246a893d0e22aa6fc5bae2885774b77c93e4622c90094797d9172aae1",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-3efae0d6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3efae0d61562c37c883ed9b733a26cc74add3b987516ee9b1a0d79be671eb431",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-46-700-normal-f033b368.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f033b368e1734f93b8c611ba73db49059cdb9d0dc577fdc87cd5b2e29a70982b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-62c5633c.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "62c5633cbf43e03b2060c518d78e1c999246064efbabe6e36892351ab16bbcdf",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-47-700-normal-8e59608b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e59608bbe421825140cfff5b964de5c32ce6fd95152d46d25c9951c4cf39973",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-8f0a10ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8f0a10ce44882e7e7dd025b60f4df302201614fe7c5c6480e78c4114c6578746",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-48-700-normal-f4c8e1fc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f4c8e1fcd9e94e43caa7e9f10c90c79090650e193c77adca421590567431a03d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-1fc735fd.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1fc735fdd23c3f5505086de7926561abd5a6122fc6e1f55d3191175797e1bd50",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-49-700-normal-e3fee0b4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e3fee0b47b77247983a805c62e3ad75b42c79793ad12a5236c436ee8a203bba2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-1278c302.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1278c3028d12940215412262fa9b85e8c23c1a18bfc4f08bebd89f6cb055fdee",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-5-700-normal-d72ba932.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d72ba9323bf777e32385428b40bf99d42d6e6ef9a24015acad6ba3241b94dfaf",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-458baf1e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "458baf1e43300eb3386689d981d7ba1f95b2bb78b5ffd87a119a4d2fd5b603ec",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-50-700-normal-47e3d41d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "47e3d41d75273b6eb86dc038e2968b9cc6af238d641211d793db67c283157d67",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-406f44f3.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "406f44f3455226b648390fbc64eb18f51e364f7d961ae02a6fdb4f3c46c6f19d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-53-700-normal-6f808111.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6f8081112d92c1d90b1da165966bfd3cf7059d17cc8a87e51bc4864bc0e061e3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-6096cc05.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6096cc0510ea4595fca16e5ba20a8d70d516849b6f3fde9671a5b1bf6fa42104",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-55-700-normal-ca01ca82.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ca01ca829f9f4dcbf43e7cf22ede00e413c1c4f6e250cfa3d405fc1d3c05d3b2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-5867fcf1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "5867fcf1f641a7d7a4566b2aa5eea4cb3f7a58a0d5841ef12084d0ac086c821e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-56-700-normal-da4663e1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "da4663e10597423fb113ad6aaf248de21b7b5773b53801ad7ef4eb611a5c2cda",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-148b06cb.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "148b06cbed5c1ef683d25e1926534c59c772a7bcbf15eb83ff3298d27023e1de",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-57-700-normal-a49a8f79.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a49a8f79adeff3badda2baf3bbc469a919707c6c1381e061c55a44938af9f322",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-664b4c95.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "664b4c95a9c3508a8a6b340b4556dba5ed5f78bf335e3a7ef0b376a9ff4afba5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-58-700-normal-e642125a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "e642125ab622e35d5f74c0bd5fa540b2da83059befecb95c51bfa5e3af6fe511",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-93d2ec8a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "93d2ec8ab71070672131dc42df0e5924fab87872845d41fa6a36cb6154e33523",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-59-700-normal-e2f2418f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e2f2418f3f4d728f11590a05604a3f4e89b83c016b6ac3a9fa37504ac72492fa",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-b6b9e0be.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b6b9e0be83feb5c2845a3246ebc12518a8ae8e0793949f6622acb3cf3e7b78bb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-6-700-normal-be61f839.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "be61f839656c6ede10528b4e450c3e072d4cf61cc92accfa7035abf4840d2632",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-0fc5f6ce.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "0fc5f6ce4929fb2d84167180f11697c3391fcb74a851af3ae9bea608444d0ff5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-60-700-normal-795a5964.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "795a5964847ff66292fa923f4b0c9754e2cdd342076309593b579d1a50854984",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-143fe9ec.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "143fe9ec01e21ddc2035faa1f826ec4db2bd2bb98a79ab288a9c4f3af1d3e738",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-61-700-normal-f429755b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f429755bbbf2c8bf11c59d38dc42cbd696965f8b741be503247a746090c02ac5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-d50a9b2f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d50a9b2f9a1161a3789f62f319568000225065f2c46d0b8447177330b630d5a7",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-62-700-normal-f684a7f5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f684a7f550d28c9d771102fcd83d744bb202f5f13f13372e9e31b0b9d918339c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-c3c63548.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c3c635481979b2722927dbbc51152ace96d70373f389b23e8844331a489dbc30",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-63-700-normal-cd032e36.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cd032e36a737c83249ac5c8865608cdfa84599b33ad8c098771f806af1b6ac56",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-50d16c4e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "50d16c4e7f2f6b5aaf349b7b68f07f7fa5ceb0e62328b873215bfee7dfc66af5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-64-700-normal-7595025e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7595025e03aea673a58ded2ea45e0b49d3e2725518e39cf1cc5c9590f7197c19",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-72ea5e3e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "72ea5e3e76f224fcff8af18598ae99dc42d127338c472b0d553bf58080090714",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-65-700-normal-e04b182e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e04b182eb5876a4d237e2dd1337f3c084275053cee40b6037033ae538dcfd1cc",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-54e5b216.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "54e5b2168184b17ff7c8a4403ddc9a8bc054dff8204a1aa50c8e86f8f53cb0bb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-66-700-normal-8d4dea65.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8d4dea659855cd47ae2ccf0cda579f224424a97b3b382afbfd345a906ded003a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-85f9a41e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "85f9a41ed82bb66f051c5f16748f74aae737e29c85ab445654f5d72853fab8d1",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-67-700-normal-cdbcff46.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "cdbcff467858830d8839d17482c40cb97d9f6fd7a717d6e26e19a8226baa58f3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-cf18f43e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "cf18f43ebfff2767602c47d7349e4664f01c3909a37976ade92e4a879405ebbc",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-68-700-normal-e75e179c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "e75e179ccb61e11e3d2c5a9507a89f85865d12a76ba58faedc0a5d0ec10992eb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-515df2a1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "515df2a1a9e8a6fba3118618d32929d57ae873bbbb890e493e755329f59c08f0",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-69-700-normal-95f7182b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "95f7182b4ce608238140213fb50865140214ca10aa72cc0a0d661c496e8ecffb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-422fb0bc.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "422fb0bc26ae02c922246a2e589744b8bd4a0cc0c1ea93c71d0292478ef30123",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-7-700-normal-d6e47f1e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d6e47f1edafd240d3e0b4307c3c6ee1b3a2dbfae5001f5fdb06c50d677225d9b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-64022299.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "640222999d77a37818d12dae3c0f2f6f9554bd8bb7c2b2375f36fac2121ec750",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-70-700-normal-6b99d72f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6b99d72f619be89b4bfbc575a63d8332026be3a2e25f756d9878741d81df4119",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-886ca7c3.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "886ca7c3967b0db8ae8c5489d23c5c1074903f9c02d40e85f000a0ddb8d86144",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-71-700-normal-9fa3e08f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "9fa3e08fcd0a0149a5a95dbcbdf63d5d48f2ddab17e46cfc951c05567ecaab57",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-a8b431e0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "a8b431e0a317843dd23f2467890284258dfe434da455be5acaafa44691b5ae51",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-72-700-normal-d48db7fa.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d48db7fa11685ed761f79f4f4b01e385a67ee53012d926662cb859ebcd405f4f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-75211119.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "75211119b00b26cbedee5d79acf74e3ca4b30bad755f182405165527ac1e854a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-73-700-normal-7fa2d4a8.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7fa2d4a8102642b7f0108ebcac8e0a34d4fbdf8ff44569a2637c30c59494230b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-ad7a3b91.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ad7a3b91918f1e53645385d9570f4d6953668a0b0f5a383921e8d11a50461ec5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-74-700-normal-f66536e1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f66536e112fe9236adad9d974648f744ecd3844b807870fafab32de8c9dcda13",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-2c8924ad.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2c8924ade65c371128f0ac7e0c8a1a2b205439daae301e06a7079d8e561be86e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-75-700-normal-9f590699.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9f590699188941455769dd360a71706fa80691b64ed95dfcb11d2e6a4c78ae7b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-54b6cfa1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "54b6cfa1f7939b547c802593408758f9604292d78c0989cb51bd88b48a96a516",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-76-700-normal-c74936f6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c74936f6321f7dda92e6fe17e88c637fd0d9c0ca00ad267f22281a47f9d34e65",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-6fc50c84.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "6fc50c849095a9414ced1bcfe5eda800c24f791a81a90ddd4af9f6135e9ef928",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-77-700-normal-f0dbe2a1.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "f0dbe2a19ff083ff5cece85cbfe2fcca5b9b97480710b815141f5b9d011358f4",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-21bf5a8d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "21bf5a8d1a2329de36efcfc2a6937565300e879709ed9e9fe5427e7a81950856",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-78-700-normal-b6b2088f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b6b2088fc03218e95cb58cfcc8c3895ceaec339dc5261097f3aedcc8820ecaf4",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-791b5bd2.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "791b5bd2089f0278d69e3c226ed8c35f7cba019eb1348556744d4097cc0f0929",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-79-700-normal-bd96c084.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "bd96c0848747a9dc2b99a8de225e8c5559d3247544ad14bec88858a5ab27099f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-a71163b4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "a71163b446a63559cb65f615cc57d9cf767a90798d3a68b5734a86f55b6c63eb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-8-700-normal-f6c732fa.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f6c732fadd93333629227efcf287458e8e172d2944ed08d3717b1f576fa4b95a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-2058a87e.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2058a87e621e703c5b2b4dffcca9d334b683e4427ce9a094baedc36c3323abdd",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-80-700-normal-7d1924fc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "7d1924fcc732506074425179e4594a2431af0f2a91e7a77f1bcd0316dad63bc9",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-6ad4aadc.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "6ad4aadc49ea7e4e2ff0f9cde76b4c799643d551fe1bc5f3f262181ba13e108d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-81-700-normal-dc6236e1.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "dc6236e1f92c554f14cbf38b55086faf1e4c2e0f282d595ccbcc5343db302e29",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-02dacf9e.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "02dacf9e02aefa927e938422caba8c2d788c0338d16f7617ae36bc5a430a59dd",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-82-700-normal-ba3a234a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ba3a234a1a3900d439642f139b46ad35c8ba429b2039490d4151065373475bf1",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-251dc77d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "251dc77d988f8be3ce4f81f23e43bdf67c4a5f60d4280c40ba9e54da24c02a16",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-83-700-normal-7ed53b32.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7ed53b32ec8144f66b68c080081d74385af62973e1b49e6d0cc99cad9ed163a8",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-7748ec1f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7748ec1f8fdfe85d24f9bcb0ba99880cc90f780f4037d99ef25d2fca6d5d4be9",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-84-700-normal-8af7808f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8af7808fca6a861eff6993e5d7c0a32eabe79a6b49a05cbc2c01d870ab1a2d32",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-388fd399.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "388fd399b040e6fc08798b30d139fda8f067a835dc9ce3ead4336a1e80e88651",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-85-700-normal-99d2482f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "99d2482f179c47abb843642cda54e28efc794b60e2e8d252d5d2d509566362a5",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-2c8ccc8f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2c8ccc8f8ec19d6f62140adc44effdc9751b87ece398841fcf52104d48c2192c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-86-700-normal-9895cac5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "9895cac582f8ea9cd843bfff1dd790bad0ab1ab33f98b0adb68a16fb00467356",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-38fb699c.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "38fb699c592ef534e4f7c2c2a3e8bccc4e2220675d69d088de2be1f44c770177",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-87-700-normal-cd774aed.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "cd774aed5c133160cc3deccab46c92517b3f7c78e671e650bc0a0ebe5f1e19dc",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-2ca11a8b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "2ca11a8bac8f62e1226b382a82a3d2c6bc56cb7c3715363055283d004e4aaf52",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-88-700-normal-f122b3ba.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f122b3bac70324f644622b3edf2acef1116e90329f9787116637f7e9b4560af3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-45ef7eca.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "45ef7ecad29b83299a27577073e1e796ed5eb6dad9400273fc4aef68d6346f2d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-89-700-normal-7b000c4b.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "7b000c4b0dffe4fe2bfe614e3de942274e58983d831ebce8da59575029be5a68",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-3f83d109.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3f83d1093909cc63cb8142a0274fdefbefcd7603499ff1e16c2d9e97b6d5c1f1",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-9-700-normal-b0d5d5df.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "b0d5d5dfe39c4c3697eecb1b63742efb544c080892ca0ff3c95f2ded4061b625",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-33802fb0.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "33802fb0e7f49fc295a87aa78cfcfadfdfc4c0dc6785fb028eb6a238c6392c5d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-90-700-normal-c9890ad7.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c9890ad71b2fc28d8b060dbc7f4a1969b87169c97e9a1dc88e523b4dd021cc1f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-d0e38c96.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d0e38c963b9da89142f63fc190cc8faadde01c37588d55415f595f6adb24e25a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-91-700-normal-dd969e18.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "dd969e182cee53d4106f866853e79428aa2851a81673b991c4066ae0abdee5c4",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-73d1655d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "73d1655d94f38aedf312cb869e6f3526baefc0548f7c1afa8a3858d006f4d362",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-92-700-normal-8fcc3fe4.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8fcc3fe404531f6370fa5048829a21514ed43a8bd3314861e89b8e9d2eb9d329",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-2531a66f.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2531a66f3e6be801efc5214ecd8fcc4912562c016187a98c2e4d2ccfa121a3ee",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-93-700-normal-b078ca5d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "b078ca5db53cd2243650592fa778b8fa6d75f9345cff8025e757d8d68c73380e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-1ccd1810.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1ccd18106cf98026f246c6e7076f11855183b4521124e8bc284e2d7ca81a483c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-94-700-normal-2f72a9f9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "2f72a9f96d96c90f1dba918c9dc25723add4357a5f793c1ec08239f886bd1b55",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-37118fd3.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "37118fd332a1acf47bba4ac1e760a355ef76571a0b608ccd2fb7e5d5c9dc88ba",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-95-700-normal-87cf2297.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "87cf2297fbeea062fbc33259edcd9cd0b4fed936f0152e628f7677b5037bad2f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-3829d1c9.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "3829d1c976a728cfcb3b0f6234c069fcf740962c51119b46e30b73bd622a3904",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-96-700-normal-8e65f43d.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "8e65f43d3479b4281599867b74298b05cb542c8cf820297c6f1467c6832155ce",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-ae357cdb.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ae357cdbbf6a8984137e12fba4c876e5e4a278b8db2f9cc6a73b11da5cd7a33a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-97-700-normal-f70fc198.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "f70fc1980369d92bef34f2d05f0962b1f1083b1e50559f31fe6949990190ee00",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-681af2de.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "681af2de287fc0f082da20427893d9b5ffb67fc22899f16d3398d667107a7e8c",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-98-700-normal-dd87164f.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "dd87164f51dd6124cd09807feca6e20987a8e3074f1e4fdebae9cf14479c705d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-c7bf33f5.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c7bf33f5531e2ee129b17527ab308c1561597558bcafea14d545ecf6a818bfb2",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-99-700-normal-d20f63d0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "d20f63d0252878eb16e2eff3a93c7e2600edfbfd9b2cbc33ba024698898ce3cb",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-09987d06.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "09987d063923817df7dfb50bad18ed0bb7b5241cc626f25db8e8fd458e2bfc11",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-700-normal-caf53138.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "caf53138dfcb59ff5a6671d550c0eb34410bf8a5f47842d85c59e516fcfafe00",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-ab9cb875.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "ab9cb8754acc5493f329590287292fc1f438f12e2660490bc22b150abb435f1e",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-cyrillic-ext-700-normal-c5e19ef4.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "c5e19ef46101f95dc82ddf55aff3733f84d8ea74c8823796605cacbecf2f1e64",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-79e23f2a.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "79e23f2a382d94b058db06cd226b5b308e7345fa9aa4f5320ae7f1d67b7e3a05",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-700-normal-8abaa61b.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "8abaa61b3f01d0b5a2de1b03f4fb9220e46ca20803d5d39aa316f2e23f625204",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-1b06d97d.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1b06d97d38b3384eda2ecb9967ddad627b9d730a9a4ee2ea9e883bd267ff5c67",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-greek-ext-700-normal-4eb2e9a8.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "4eb2e9a87222daede1febc9cf797aa6d72f859af5e08216e78adbe97df9b986b",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-c16f7c43.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "c16f7c43aabc1bf1250f7a5461947a63d6a47eb9aede66ec61ccff9d06ff591f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-hebrew-700-normal-d847084a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "d847084a206258640e4b0101225c7e35111d5ef7e03e6232899db56455c4e31d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1688f144.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "1688f14412dd12f79daffbb8bd9defe98f555aa5799184b8ddd0ae4583a2851f",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-700-normal-1c3207e9.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1c3207e9ee04cc7a359accf3173ace4b669c00b070397b9f014fa3f0a227af8a",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-1734e132.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "1734e1323f79ee05218ad46484c83d6f714a591e61e0ec85e353cb30bd28e3e3",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-latin-ext-700-normal-eeea363a.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "eeea363aad66ea67c401afdc05fa77c0b2faaa331c7c957d6bd3dc48c8a7e888",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-125b4bd0.woff",
+      "status": "NEW_ONLY",
+      "newSha256": "125b4bd0494daaf318fec0a5e10e3d0ac93801efaaad96a390adb0d931a6305d",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/assets/m-plus-rounded-1c-vietnamese-700-normal-ae4a39a6.woff2",
+      "status": "NEW_ONLY",
+      "newSha256": "ae4a39a611eb40caaa5d166a120acc0f687801215562b7fde311df3e53864add",
+      "backupMatchesOld": false,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": true
+    },
+    {
+      "path": "puriphoto/ui/dist/index.html",
+      "status": "DIFFERENT",
+      "oldSha256": "3afbd899d019b1c376476c088c788b2de19e8f7348822607d51a2e8c410c5337",
+      "newSha256": "385ed3829d6965d88b564765d09a7631cfdb6059828adf08bc84ffc36ae8a879",
+      "backupMatchesOld": true,
+      "classification": "GENERATED_DEPLOYMENT_ASSET",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/package-lock.json",
+      "status": "DIFFERENT",
+      "oldSha256": "df78b231e15ab9a46c2294e2acaa47a8678f7905adb53a7f790f0d47c2ce2ae6",
+      "newSha256": "f361362d63852cc9838384a6c1e8290c23648d00243d07e36d3a9e4ecf0b45c5",
+      "backupMatchesOld": true,
+      "classification": "BUILD_INPUT",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/package.json",
+      "status": "DIFFERENT",
+      "oldSha256": "fa9caf3324d97c48d7f6fb5fe27e46f30b6c387c447ebda8d51ff4be0310a282",
+      "newSha256": "327094fd906dfe76d3da776b57d42c51807ef3c0aff2bad152281815330e732b",
+      "backupMatchesOld": true,
+      "classification": "BUILD_INPUT",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/src/App.css",
+      "status": "DIFFERENT",
+      "oldSha256": "d3622f8b50129389532ef1dd600d014aa3a17baacb8a28e23c426e675e646bc7",
+      "newSha256": "d74373493d7e8bacc0b4c49c1920a9dc4ea5592267c51a84d20533acba963a6e",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    },
+    {
+      "path": "puriphoto/ui/src/App.tsx",
+      "status": "DIFFERENT",
+      "oldSha256": "8451d36b2ca8fd533e7af4102e7e6e9f0b3cdcfccaf702c22903a28ac79c0e1f",
+      "newSha256": "cda8e926638779c8e9e227a2fbf3d2dbb2105330d5be19ffc2ece2d58a6976c9",
+      "backupMatchesOld": true,
+      "classification": "SOURCE",
+      "held": true,
+      "referencedByCurrentHtmlOrCss": false
+    }
+  ]
+}

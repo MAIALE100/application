@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "workspace": "D:/FiveM_AutoDev/workspace-clean",
+  "mode": "offline-validation",
+  "apps": {
+    "toolkit": {
+      "migration": "READY",
+      "automation": "ACTIVE",
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "base": {
+      "migration": "IMPORTED",
+      "automation": "ACTIVE",
+      "source": "flecity_base",
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "link": {
+      "migration": "IMPORTED",
+      "automation": "ACTIVE",
+      "source": "flecity_sources/flecity_games",
+      "sharedWith": [
+        "loop"
+      ],
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "loop": {
+      "migration": "IMPORTED",
+      "automation": "ACTIVE",
+      "source": "flecity_sources/flecity_games",
+      "sharedWith": [
+        "link"
+      ],
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "wave": {
+      "migration": "IMPORTED",
+      "automation": "ACTIVE",
+      "source": "wave",
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "flepri": {
+      "migration": "IMPORTED",
+      "automation": "ACTIVE",
+      "source": "puribooth",
+      "validation": "PASS",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    },
+    "puriphoto": {
+      "migration": "PAUSED",
+      "automation": "PAUSED",
+      "source": "puriphoto",
+      "reason": "2026-10-31 user declined all 8 modifications, 5 additions and 242 deletion candidates",
+      "validation": "PAUSED",
+      "validationEvidence": "devtools/flecity/reports/independent-20261031/validation.json"
+    }
+  }
+}

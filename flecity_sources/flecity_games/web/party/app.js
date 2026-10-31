@@ -1272,15 +1272,18 @@ telephoneCanvas.onpointermove=event=>{
  if(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<0.006)return;if(telephoneStroke.length<48)telephoneStroke.push(p);
  paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes,telephoneStroke);
 };
-telephoneCanvas.onpointerup=event=>{
- if(!telephoneStroke)return;const stroke=telephoneStroke;telephoneStroke=null;try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
- const stored=drawableStroke(stroke);if(stored.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stored);paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
-};
-telephoneCanvas.onpointercancel=event=>{
- telephoneStroke=null;
+function finishTelephoneStroke(event){
+ if(!telephoneStroke)return;
+ const stored=drawableStroke(telephoneStroke);telephoneStroke=null;
  try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ // Pointer cancellation/lost capture can happen when NUI focus changes.
+ // Keep the already drawn portion instead of silently replacing it with white.
+ if(stored.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stored);
  paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes);
-};
+}
+telephoneCanvas.onpointerup=finishTelephoneStroke;
+telephoneCanvas.onpointercancel=finishTelephoneStroke;
+telephoneCanvas.onlostpointercapture=finishTelephoneStroke;
 telephoneClear.onclick=()=>{telephoneStroke=null;telephoneStrokes=[];paintCanvas(telephoneCtx,telephoneCanvas,[]);};
 telephoneDrawSubmit.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||rs.mode!=='draw'||!rs.isCurrent)return;

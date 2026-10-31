@@ -1,3 +1,15 @@
+function nuiDeadline(invoke, cancel) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            const error = new Error('NUI_REQUEST_TIMEOUT');
+            error.code = 'NUI_REQUEST_TIMEOUT';
+            reject(error);
+            if (cancel) cancel();
+        }, 12000);
+        Promise.resolve().then(invoke).then(resolve, reject).finally(() => clearTimeout(timer));
+    });
+}
+
 function hasPhoneFetchNui() {
     return typeof fetchNui === 'function' || typeof globalThis.fetchNui === 'function';
 }
@@ -46,18 +58,14 @@ async function callPhoneNui(request) {
         return {ok:false,error:'NUI_UNAVAILABLE'};
     }
 
-    let lastError = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            const response = await invokePhoneFetchNui('flecityGames:callback', request);
-            return response || {ok:false,error:'EMPTY_RESPONSE'};
-        } catch (error) {
-            lastError = error;
-            if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 150));
-        }
+    // A failed acknowledgement does not prove that a mutation was rejected.
+    // Never replay it automatically: the server may already have accepted it.
+    try {
+        const response = await nuiDeadline(() => invokePhoneFetchNui('flecityGames:callback', request));
+        return response || {ok:false,error:'EMPTY_RESPONSE'};
+    } catch (error) {
+        return {ok:false,error:error.code === 'NUI_REQUEST_TIMEOUT' ? error.code : 'NUI_REQUEST_FAILED'};
     }
-
-    return {ok:false,error:'NUI_REQUEST_FAILED',detail:String(lastError && lastError.message || '')};
 }
 
 window.FlecityBridge = {
@@ -75,14 +83,18 @@ window.FlecityBridge = {
         // Direct NUI / browser-development fallback.
         if (typeof GetParentResourceName === 'function') {
             try {
-                const response = await fetch('https://' + GetParentResourceName() + '/flecityGames:callback', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json; charset=UTF-8'},
-                    body: JSON.stringify(request)
-                });
-                return await response.json();
+                const controller = new AbortController();
+                return await nuiDeadline(async () => {
+                    const response = await fetch('https://' + GetParentResourceName() + '/flecityGames:callback', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json; charset=UTF-8'},
+                        body: JSON.stringify(request),
+                        signal: controller.signal
+                    });
+                    return await response.json();
+                }, () => controller.abort());
             } catch (error) {
-                return {ok:false,error:'NUI_REQUEST_FAILED'};
+                return {ok:false,error:error.code === 'NUI_REQUEST_TIMEOUT' ? error.code : 'NUI_REQUEST_FAILED'};
             }
         }
 

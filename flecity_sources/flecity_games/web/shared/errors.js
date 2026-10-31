@@ -9,6 +9,7 @@ window.FlecityErrors = {
         CALLBACK_FAILED: 'SERVERとの通信に失敗しました',
         PHONE_CALLBACK_FAILED: 'LB Phone経由の通信に失敗しました',
         NUI_REQUEST_FAILED: 'アプリ画面からの通信に失敗しました',
+        NUI_REQUEST_TIMEOUT: '通信の応答が遅れています。送信済みの可能性があるため、画面の更新を待って状態を確認してください',
         NUI_UNAVAILABLE: 'LB Phoneとの接続準備ができていません',
         APP_SUSPENDED: 'アプリを閉じたため開始を取り消しました',
 

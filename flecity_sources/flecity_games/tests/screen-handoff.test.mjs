@@ -150,7 +150,7 @@ assert(request('playStartSession',{},'expanded',open.lease).error=='APP_SUSPENDE
 assert(request('partyGetRoom',{},'expanded',open.lease).ok and invoke==1)
 events['flecity_games:client:partyDrawStroke']({token='fixture',revision=2,points={{x=1,y=1}}})
 assert(messages[#messages].type=='partyDrawStroke')
-local diag=request('localDiagnostics');assert(diag.ok and diag.state.ragdoll and diag.state.expanded and diag.state.nuiFocused)
+local diag=request('localDiagnostics');assert(diag.ok and diag.state.ragdoll and diag.state.expanded and diag.state.nuiFocused and diag.state.freezeProbeAvailable and diag.state.frozen==false)
 assert(request('screenClose',{app='party',lease=open.lease,state={round='returned'}},'expanded',open.lease).ok)
 assert(not focused and not keep)
 local claim=request('screenClaim',{app='party'});assert(claim.state.round=='returned')

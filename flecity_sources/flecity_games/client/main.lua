@@ -310,7 +310,7 @@ RegisterNUICallback('flecityGames:callback',function(data,cb)
     local isExpanded=data.surface=='expanded'
     if action=='localDiagnostics' then
         local ped=PlayerPedId()
-        return cb({ok=true,state={dead=IsEntityDead(ped),ragdoll=IsPedRagdoll(ped),falling=IsPedFalling(ped),freezeProbeAvailable=type(IsEntityPositionFrozen)=='function',frozen=type(IsEntityPositionFrozen)=='function' and IsEntityPositionFrozen(ped) or nil,nuiFocused=IsNuiFocused(),phoneOpen=phoneOpen,expanded=screen~=nil}})
+        return cb({ok=true,state={dead=IsEntityDead(ped),ragdoll=IsPedRagdoll(ped),falling=IsPedFalling(ped),freezeProbeAvailable=type(IsEntityPositionFrozen)=='function',frozen=type(IsEntityPositionFrozen)=='function' and IsEntityPositionFrozen(ped) or false,nuiFocused=IsNuiFocused(),phoneOpen=phoneOpen,expanded=screen~=nil}})
     end
     if action:sub(1,6)=='screen' then
         if app~='play' and app~='party' then return cb({ok=false,error='INVALID_APP'}) end

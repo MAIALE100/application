@@ -1,0 +1,14 @@
+✔ phone acknowledgement failure never replays an accepted mutation (4.2638ms)
+✔ hung phone callback settles with unknown outcome and releases caller (22.7819ms)
+✔ late acknowledgement cannot change the timeout result or trigger fallback (32.1544ms)
+✔ direct NUI deadline covers a hung JSON body and aborts transport (30.3975ms)
+✔ business rejection remains distinct from transport failure (1.6837ms)
+✔ NUI interruption retains ink, transmits it, and clears it on lobby transition (2006.754ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2185.983

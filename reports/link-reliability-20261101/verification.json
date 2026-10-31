@@ -1,0 +1,188 @@
+{
+  "checkedAt": "2026-10-31T17:43:58.798Z",
+  "runId": "2026-10-31T17-38-49-634Z-0600b4",
+  "automationOverallStatus": "NOT_RUN",
+  "development": {
+    "status": "COMMITTED",
+    "app": "link",
+    "paths": [
+      "flecity_sources\\flecity_games\\web\\shared\\bridge.js",
+      "flecity_sources\\flecity_games\\web\\shared\\errors.js",
+      "flecity_sources\\flecity_games\\web\\party\\app.js",
+      "flecity_sources\\flecity_games\\tests\\link-reliability.test.mjs"
+    ],
+    "commit": "68dfe4d8034c3a3ba1115f73749252efd423ba25",
+    "appCommits": {
+      "link": "8eb42fbc10b3321c6b6c00ae05940403c628b5f1",
+      "loop": "c9d64ed770bab61037c919d62aea10038b7235a0"
+    }
+  },
+  "results": [
+    {
+      "app": "toolkit",
+      "status": "PASS",
+      "sourceHash": null,
+      "suites": [
+        {
+          "suite": "tests",
+          "status": "PASS",
+          "stats": {
+            "tests": 125,
+            "pass": 125,
+            "fail": 0,
+            "skipped": 0
+          },
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\toolkit-tests.log"
+        }
+      ]
+    },
+    {
+      "app": "loop",
+      "status": "NOT_RUN",
+      "sourceHash": "76267619acf64cc63fefc3f88ebd3c829e58fc7adb3cf32964aeb9f7053a19a0",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\loop-static.log"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\loop-db.log"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\loop-nui.log"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\loop-visual.log"
+        }
+      ]
+    },
+    {
+      "app": "link",
+      "status": "NOT_RUN",
+      "sourceHash": "76267619acf64cc63fefc3f88ebd3c829e58fc7adb3cf32964aeb9f7053a19a0",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-static.log"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-db.log"
+        },
+        {
+          "suite": "game",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-game.log"
+        },
+        {
+          "suite": "virtual-multiplayer",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-virtual-multiplayer.log"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-nui.log"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\link-visual.log"
+        }
+      ]
+    },
+    {
+      "app": "base",
+      "status": "NOT_RUN",
+      "sourceHash": "de37dc8324473884740c20ce96efd20d6a956ac856761f1e5b6cc87f57104fb6",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\base-static.log"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\base-db.log"
+        },
+        {
+          "suite": "nui",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\base-nui.log"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\base-visual.log"
+        }
+      ]
+    },
+    {
+      "app": "wave",
+      "status": "NOT_RUN",
+      "sourceHash": "1bf41ce433755084022068e4715e8c76792192302a5ade6cb050d757a7166050",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\wave-static.log"
+        },
+        {
+          "suite": "db",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\wave-db.log"
+        },
+        {
+          "suite": "nui",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\wave-nui.log"
+        },
+        {
+          "suite": "visual",
+          "status": "NOT_RUN",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\wave-visual.log"
+        }
+      ]
+    },
+    {
+      "app": "flepri",
+      "status": "PASS",
+      "sourceHash": "3f40a38ee2000d17d89631bb03c242bd8f5d26fbc4e8ca1aacfac27ab1da2a48",
+      "suites": [
+        {
+          "suite": "static",
+          "status": "PASS",
+          "log": ".flecity-dev\\automation\\runs\\2026-10-31T17-38-49-634Z-0600b4\\flepri-static.log"
+        }
+      ]
+    },
+    {
+      "app": "puriphoto",
+      "status": "PAUSED"
+    },
+    {
+      "app": "photo_diary",
+      "status": "PAUSED"
+    }
+  ],
+  "additionalRegression": {
+    "tests": 6,
+    "pass": 6,
+    "fail": 0,
+    "scope": "isolated bridge with shortened timeout and offline Chrome browser",
+    "log": "reliability-tests.txt"
+  },
+  "updatedResources": [],
+  "liveFiveM": "NOT_RUN",
+  "submission": "NOT_READY"
+}

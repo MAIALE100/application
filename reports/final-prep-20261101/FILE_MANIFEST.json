@@ -1,0 +1,302 @@
+{
+  "status": "REVIEW_ONLY_NOT_READY",
+  "sourceHead": "12ff104",
+  "createdAt": "2026-11-01T01:14:18.2964342Z",
+  "entries": [
+    {
+      "path": "INSTALL_JA.md",
+      "bytes": 2713,
+      "sha256": "e1a8325f77a86c28a9dd4c3439b2f35ea7d789db19727ab7c5f816553aee1e6b"
+    },
+    {
+      "path": "ISSUES_JA.md",
+      "bytes": 1758,
+      "sha256": "965e88c7ed7a700c809ed73c493c79831c75a514e0943cc63b45480d3562769c"
+    },
+    {
+      "path": "OPERATIONS_JA.md",
+      "bytes": 1836,
+      "sha256": "cd1097d59856960beb9f23afd0069dfaafb16e1e117e6239fdb3b5acd16e3c21"
+    },
+    {
+      "path": "flecity_games/fxmanifest.lua",
+      "bytes": 804,
+      "sha256": "a89b720a114b816e30417c1038c064e57512b5f9f2ffba3924be9b84eb743071"
+    },
+    {
+      "path": "flecity_games/client/main.lua",
+      "bytes": 18110,
+      "sha256": "5a8b259b777d77ef9927d3ac944bb9b097a4b57006ac69c4037a36cddd638124"
+    },
+    {
+      "path": "flecity_games/config/shared.lua",
+      "bytes": 2642,
+      "sha256": "a7333f4da1b769540b9bcc4f91c35dd1305e3b3d9ee2c2d1e6be46a1313c7f7a"
+    },
+    {
+      "path": "flecity_games/server/main.lua",
+      "bytes": 28857,
+      "sha256": "e4628040316824525105846bda99df364e12f9f28d4f8b2edea0ab37c5101958"
+    },
+    {
+      "path": "flecity_games/server/bridge/framework.lua",
+      "bytes": 6083,
+      "sha256": "3d5005955cbdfaadf59b2c1e7fdd88921ac5287aacdf50caa38ece4cf1a6f64b"
+    },
+    {
+      "path": "flecity_games/server/core/database.lua",
+      "bytes": 5492,
+      "sha256": "5d5637753e8c7356cf574c35102160959e33fc264bb6807a98fa460beb7a007a"
+    },
+    {
+      "path": "flecity_games/server/core/party_fall.lua",
+      "bytes": 6998,
+      "sha256": "1ce8aa0e5eb709642e7ac5c099045fcdfc830155e44d41ef0cd67b97040908fc"
+    },
+    {
+      "path": "flecity_games/server/core/party_plus.lua",
+      "bytes": 12897,
+      "sha256": "19432c07cc501f576845af04626b96ec1c72e243dd57ced2722d378631dbb646"
+    },
+    {
+      "path": "flecity_games/server/core/party.lua",
+      "bytes": 198828,
+      "sha256": "0c62489aa34622652b9110fab15ee2a11f7114a957f4ae28d8f07ca4b1e2ac90"
+    },
+    {
+      "path": "flecity_games/server/core/play.lua",
+      "bytes": 127941,
+      "sha256": "a17b5d52ec72ff6786d6d12ac3ec54663a51612f59d929583f8068b4889f7b87"
+    },
+    {
+      "path": "flecity_games/server/core/profile.lua",
+      "bytes": 3085,
+      "sha256": "97568808f6afc9660ffad6f69893b1742bc76a5013779bab993fd9125153a18a"
+    },
+    {
+      "path": "flecity_games/server/core/rate_limit.lua",
+      "bytes": 551,
+      "sha256": "8db7b4870c0da93c46d10a9cb602886b3f1e7ec4b589a4258daa8dceb5c08323"
+    },
+    {
+      "path": "flecity_games/server/core/text.lua",
+      "bytes": 1144,
+      "sha256": "2a0140a14fed1b5bb764af4e75f01a780506d6af9cb5874497afdbf1c087c216"
+    },
+    {
+      "path": "flecity_games/server/data/party_plus_prompts.lua",
+      "bytes": 26323,
+      "sha256": "65599dc26e93e0f65de3d7832e8d36e5905c8f70837b83d9b74ca5ba54561c1b"
+    },
+    {
+      "path": "flecity_games/shared/game_registry.lua",
+      "bytes": 10441,
+      "sha256": "4016a26b19a3e75952c95ddd79be93b49e7581a30d33bd65e025e9c0d27b5c41"
+    },
+    {
+      "path": "flecity_games/sql/001_initial.sql",
+      "bytes": 3147,
+      "sha256": "0b82a6fc2c429586ce11aa2196e57394f0b79ec15bf37277ff41c85ab53f749c"
+    },
+    {
+      "path": "flecity_games/web/party/app.js",
+      "bytes": 107361,
+      "sha256": "d6a698014581e2929b822f3b8f4dd9caed2d0a4720240b764c989bd38009a092"
+    },
+    {
+      "path": "flecity_games/web/party/fall_battle.js",
+      "bytes": 11841,
+      "sha256": "6dae32a0a0a0f70a01e14dac36f841a82ed40f85005f25e80efdc6597bbfdbae"
+    },
+    {
+      "path": "flecity_games/web/party/icon.svg",
+      "bytes": 492,
+      "sha256": "d4d9d2abb8892015e52942c26672b62ad050d80f39e601114de8b0ac80c98a0f"
+    },
+    {
+      "path": "flecity_games/web/party/index.html",
+      "bytes": 16077,
+      "sha256": "734afde114bdbab1949921a82c18e592c025c5e00226bae84165f3e804e9c403"
+    },
+    {
+      "path": "flecity_games/web/play/app.js",
+      "bytes": 226147,
+      "sha256": "30db5343e4d27398f6e20f0bf30830251734d6327ed44abd95d7cb25274d29e3"
+    },
+    {
+      "path": "flecity_games/web/play/icon.svg",
+      "bytes": 3720,
+      "sha256": "15536271ac1580a24d9468b9b713809c1b757b3b2e035e9e32189e22e7160a20"
+    },
+    {
+      "path": "flecity_games/web/play/index.html",
+      "bytes": 19827,
+      "sha256": "93657fd394ed63b24cf42c76afd28a15d3d74f477b5299d0c63ce4b3479795d3"
+    },
+    {
+      "path": "flecity_games/web/play/icons/block.svg",
+      "bytes": 343,
+      "sha256": "51031b9e2f0ca00420d9a1dc1973d9d29090194bbf80715566461581deb2119b"
+    },
+    {
+      "path": "flecity_games/web/play/icons/color-match.svg",
+      "bytes": 402,
+      "sha256": "6a42173c78fae88ccb2c4e49519557b0680f8e2c8953e71474349924eb53b5f1"
+    },
+    {
+      "path": "flecity_games/web/play/icons/fall.svg",
+      "bytes": 491,
+      "sha256": "e5802a3c0b1c4940048d50d1f8929c3ccf426fdf4a0a98f7932429361af19c4b"
+    },
+    {
+      "path": "flecity_games/web/play/icons/memory.svg",
+      "bytes": 329,
+      "sha256": "857d647e58aa619ec610557e3137c1aef61957d8ac558b0764de0c318b48c601"
+    },
+    {
+      "path": "flecity_games/web/play/icons/merge.svg",
+      "bytes": 444,
+      "sha256": "d2efab2e96b8e32d2c679a11d61eb7a62b865587cd85a367c9429d89f6150592"
+    },
+    {
+      "path": "flecity_games/web/play/icons/mines.svg",
+      "bytes": 312,
+      "sha256": "fca9e7c417d5d07a4406aed2b4e03921372c7ee3cf4d053137544af4bb4f47ae"
+    },
+    {
+      "path": "flecity_games/web/play/icons/nonogram.svg",
+      "bytes": 594,
+      "sha256": "b436bc3c2e905106f741a446e3e7ccf70d8f265257a881e3b6676cb0a9edd294"
+    },
+    {
+      "path": "flecity_games/web/play/icons/number-rush.svg",
+      "bytes": 540,
+      "sha256": "d8c7172d847f4a4d5269600ca973702cbb954358ac68c81c2ec37a709f18a376"
+    },
+    {
+      "path": "flecity_games/web/play/icons/quick-tap.svg",
+      "bytes": 120,
+      "sha256": "470500be7353c52b64db949352a21a887b7367f14a03e61506e0f6c0a3ebbf3f"
+    },
+    {
+      "path": "flecity_games/web/play/icons/range-rush.svg",
+      "bytes": 218,
+      "sha256": "461b1c4d644ada703c93aeec68ff77f58ba014d5a529343d4f3809126c296678"
+    },
+    {
+      "path": "flecity_games/web/play/icons/simon.svg",
+      "bytes": 217,
+      "sha256": "e66d58548ba694707a5c76a161739af6e3b485ac7f79c566f849d064428207ba"
+    },
+    {
+      "path": "flecity_games/web/play/icons/slide.svg",
+      "bytes": 683,
+      "sha256": "cdb6964727bfa7f6fec14819cfa6067ab597a214b9f82dc7c6fcc3ea9289a5a9"
+    },
+    {
+      "path": "flecity_games/web/play/icons/sort.svg",
+      "bytes": 303,
+      "sha256": "6398f3d52051fb49e52437a7ce0270c356a285260d5f9e16a426a72b730ac585"
+    },
+    {
+      "path": "flecity_games/web/play/icons/stop.svg",
+      "bytes": 280,
+      "sha256": "4dff192b27ae6fef0f5f2c7dafc64667150dc4a38e87144ed806b2a261045655"
+    },
+    {
+      "path": "flecity_games/web/play/icons/tower.svg",
+      "bytes": 354,
+      "sha256": "d9e85c035ac414fbb6c9f1b06888c152b86b33ad761a638acba9b63f9cf418a6"
+    },
+    {
+      "path": "flecity_games/web/screen/index.html",
+      "bytes": 1311,
+      "sha256": "1efa25f950b2b55ae892408de591d2c5a69d151784e33a42e593d3454c57cf0c"
+    },
+    {
+      "path": "flecity_games/web/shared/app.css",
+      "bytes": 125809,
+      "sha256": "ba11f9a77f4e23876498e37af96efd1db9e9717b02aab8c94b9ea1ea13c55f40"
+    },
+    {
+      "path": "flecity_games/web/shared/bridge.js",
+      "bytes": 5610,
+      "sha256": "33cb596515b85f87824938d5b4992d928558ba6bd62aefb88309da66ab8c0f86"
+    },
+    {
+      "path": "flecity_games/web/shared/controls.js",
+      "bytes": 1606,
+      "sha256": "239774e6790ba77d374065d3c56302792a447ced58b946a727717d65c69c892f"
+    },
+    {
+      "path": "flecity_games/web/shared/errors.js",
+      "bytes": 8882,
+      "sha256": "bb8c19c0ec8ab56e27319d99694bd24f71617179cfd308fdab51d65d4676f3b5"
+    },
+    {
+      "path": "flecity_games/web/shared/screen.css",
+      "bytes": 2741,
+      "sha256": "863327c1b0f56c5a052393319f66ed0007a1dc4aea362284253e2e8909c78cca"
+    },
+    {
+      "path": "flecity_games/web/shared/screen.js",
+      "bytes": 4758,
+      "sha256": "33ad09d59aec406bbd9e536862af457fce21cdea15f4bfa27d68e075a078e5da"
+    },
+    {
+      "path": "wave/fxmanifest.lua",
+      "bytes": 465,
+      "sha256": "db9bae0604a0c4e4ade6de198494d3f6e1964b4ea6d6b08b4225bbe2e7b579b6"
+    },
+    {
+      "path": "wave/client/main.lua",
+      "bytes": 4706,
+      "sha256": "32e0b5c3e6c9ce6049debd8af0c6d28ce2c64d5164b8c7e44dd724b9354f3051"
+    },
+    {
+      "path": "wave/config/shared.lua",
+      "bytes": 1550,
+      "sha256": "254603021208acd4a536a70b34701cac2c534d40b9c99c03e0e2871287cd90a1"
+    },
+    {
+      "path": "wave/server/main.lua",
+      "bytes": 81263,
+      "sha256": "af8d4d72897421353cd7f2f443c357bcdd25b491a8983cbea53d590c12691cb2"
+    },
+    {
+      "path": "wave/sql/wave.sql",
+      "bytes": 294,
+      "sha256": "3c97b75d18e19737fd4a39f98b74d10281b9a6bdc7c3a09d72b1cff838f9c730"
+    },
+    {
+      "path": "wave/web/app.css",
+      "bytes": 13126,
+      "sha256": "2f05b3694b58a0e7c314a1d944a124d899bcd29c46f1899cca79cf2606816c06"
+    },
+    {
+      "path": "wave/web/app.js",
+      "bytes": 66948,
+      "sha256": "9d333206d36376a1ad12d330f90459f097c4a8717614394252d07d49ab52b174"
+    },
+    {
+      "path": "wave/web/icon.svg",
+      "bytes": 531,
+      "sha256": "40e3b5d05786307b2bafcfb648496071f4f5bde70354d2a442d8b92488f2f507"
+    },
+    {
+      "path": "wave/web/index.html",
+      "bytes": 12221,
+      "sha256": "618df9dd2cd1ca4c9ecc51f2a525598b61fcda2797b11227908111ddc4ab2361"
+    },
+    {
+      "path": "wave/web/score-tools.js",
+      "bytes": 5690,
+      "sha256": "80681c31cf043501a0fb1a390ab50f4336b387105e477004bba11d66022fa0ee"
+    },
+    {
+      "path": "wave/web/studio-extras.js",
+      "bytes": 11734,
+      "sha256": "689ae752c16f91f9cb11e95a74204043a210bf24658802b50a0543a7308da27b"
+    }
+  ]
+}

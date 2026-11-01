@@ -28,12 +28,20 @@ async function control(action,payload={}){return await bridge(action,{...payload
 async function importState(value,id){
  if(lastImport===id)return;lease=id;
  try{
-  await window.WaveBoot();
+  // The host may receive the iframe's first message before app.js defines
+  // WaveBoot. Wait for all synchronous scripts before starting the handoff.
+  for(let attempt=0;typeof window.WaveBoot!=='function'&&attempt<30;attempt++)await new Promise(resolve=>setTimeout(resolve,50));
+  if(typeof window.WaveBoot!=='function')throw Error('WAVE scripts did not initialize');
+  if(!await window.WaveBoot())throw Error('WAVE bootstrap failed');
   restore(value,false);
   const reply=await control('waveScreenReady');
   if(!reply?.ok)throw Error('WAVE screen acknowledgement failed');
   lastImport=id;setPhase('active');showView(value.view);notice('');
- }catch(_){setPhase('waiting');notice('大画面への切替を確認できません。スマホ画面へ戻してください。');}
+ }catch(error){
+  console.warn('[WAVE] expanded handoff failed:',String(error?.message||error).slice(0,120));
+  setPhase('waiting');notice('大画面への切替に失敗しました。スマホへ復帰します。');
+  void control('waveScreenFailed');
+ }
 }
 async function claim(){
  const reply=await control('waveScreenClaim');
@@ -42,7 +50,9 @@ async function claim(){
   const acknowledged=await control('waveScreenReturned');
   if(!acknowledged?.ok)return;
   await window.WaveBootPromise;
-  restore(reply.state);setPhase('active');notice('');
+  // The lease is already returned to the phone. Unpark before showView starts
+  // its Library/Home callbacks, otherwise the phone rejects them locally.
+  setPhase('active');restore(reply.state);notice('');
  }else if(reply?.parked){setPhase('parked');notice('大画面で操作中');}
 }
 toggle.addEventListener('click',async()=>{
@@ -67,6 +77,6 @@ window.addEventListener('message',event=>{
  else if(!expanded&&(data?.type==='waveScreenReturn'||data?.type==='waveScreenRestore'))void claim();
 });
 window.WaveScreen={expanded,get surface(){return expanded?'expanded':'phone';},get lease(){return lease;},get parked(){return phase!=='active';},begin(){flight++;},end(){flight=Math.max(0,flight-1);},claim};
-if(expanded)parent.postMessage({type:'waveScreenLoaded'},location.origin);
+if(expanded)window.addEventListener('DOMContentLoaded',()=>parent.postMessage({type:'waveScreenLoaded'},location.origin),{once:true});
 else window.addEventListener('load',()=>void claim(),{once:true});
 })();

@@ -232,6 +232,7 @@ local callbackMap={
     partySelectGame='flecity_games:party:selectGame',
     partySetMastermindOptions='flecity_games:party:setMastermindOptions',
     partySetShogiOptions='flecity_games:party:setShogiOptions',
+    partySetPracticeAi='flecity_games:party:setPracticeAi',
     partyStartRound='flecity_games:party:startRound',
     partySubmitReaction='flecity_games:party:submitReaction',
     partySubmitStopBattle='flecity_games:party:submitStopBattle',
@@ -327,7 +328,14 @@ RegisterNUICallback('flecityGames:callback',function(data,cb)
             if app=='party' then partyAppOpen=true;partyPushSuspended=false end
             return cb({ok=true})
         end
-        if action=='screenOpen' and not isExpanded and not screen and not pendingReturn and phoneOpen then
+        if action=='screenOpen' and not isExpanded then
+            -- A resource restart may miss the phoneToggled(open) event while the
+            -- already-open LB Phone iframe reports its own onOpen lifecycle.
+            -- Trust either recognized lifecycle, never an expanded-origin call.
+            if screen then return cb({ok=false,error='SCREEN_ALREADY_ACTIVE'}) end
+            if pendingReturn then return cb({ok=false,error='SCREEN_RETURN_PENDING'}) end
+            local appVisible=app=='play' and playAppOpen or (app=='party' and partyAppOpen and not partyPushSuspended)
+            if not phoneOpen and not appVisible then return cb({ok=false,error='PHONE_NOT_READY'}) end
             if type(payload.state)~='table' or #json.encode(payload.state)>524288 then return cb({ok=false,error='INVALID_STATE'}) end
             screenSerial=screenSerial+1
             screen={app=app,lease=tostring(GetGameTimer())..'-'..screenSerial,state=payload.state,ready=false}

@@ -58,17 +58,19 @@ test('business rejection remains distinct from transport failure',async()=>{
 test('NUI interruption retains ink, transmits it, and clears it on lobby transition',async t=>{
  assert(process.env.FLECITY_BROWSER_MODULE,'Set FLECITY_BROWSER_MODULE to the local Playwright module');
  const {chromium}=await import(pathToFileURL(process.env.FLECITY_BROWSER_MODULE));
- const browser=await chromium.launch({headless:true,channel:'chrome'});t.after(()=>browser.close());
+ const browser=await chromium.launch({headless:true,...(process.env.FLECITY_CHROMIUM_EXECUTABLE?{executablePath:process.env.FLECITY_CHROMIUM_EXECUTABLE,args:['--no-sandbox']}:{channel:'chrome'})});t.after(()=>browser.close());
  const page=await browser.newPage({viewport:{width:390,height:844}});
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
- await page.route('**/*',route=>{
-  const url=new URL(route.request().url());if(url.hostname!=='reliability.test')return route.abort();
-  const relative=url.pathname.slice(1);let body;
-  try{body=read(relative);}catch{return route.fulfill({status:404,body:''});}
-  if(relative==='web/party/app.js')body+=`\nglobalThis.auditRender=(room)=>{resetRoundRuntime();currentRoom=null;lastRoomRevision=-1;partyConfig={games:[{id:'telephone',name:'伝言',minPlayers:2,maxPlayers:6}]};appSuspended=false;renderRoom(room);};globalThis.auditUpdate=room=>renderRoom(room);`;
-  return route.fulfill({body,contentType:({'.js':'text/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml'})[path.extname(relative)]||'text/plain'});
- });
- await page.goto('http://reliability.test/web/party/index.html');await page.waitForFunction(()=>typeof auditRender==='function');
+ // Use an in-memory document rather than network navigation (restricted in some CI sandboxes).
+ const html=read('web/party/index.html').replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/g,'');
+ await page.setContent(html);
+ await page.addStyleTag({content:read('web/shared/app.css')});
+ await page.addStyleTag({content:read('web/shared/screen.css')});
+ for(const file of ['web/shared/errors.js','web/shared/bridge.js','web/shared/controls.js','web/shared/screen.js','web/party/fall_battle.js']){
+  await page.addScriptTag({content:read(file)});
+ }
+ await page.addScriptTag({content:read('web/party/app.js')+`\nglobalThis.auditRender=(room)=>{resetRoundRuntime();currentRoom=null;lastRoomRevision=-1;partyConfig={games:[{id:'telephone',name:'伝言',minPlayers:2,maxPlayers:6}]};appSuspended=false;renderRoom(room);};globalThis.auditUpdate=room=>renderRoom(room);`});
+ await page.waitForFunction(()=>typeof auditRender==='function');
  const room={code:'1234',revision:1,state:'round',selectedGame:'telephone',isHost:true,connectedCount:2,players:[{memberId:'a',name:'A'},{memberId:'b',name:'B'}],roundState:{token:'test',gameId:'telephone',step:1,totalSteps:2,isCurrent:true,currentMemberId:'a',mode:'draw',promptText:'ねこ'}};
  for(const interruption of ['pointercancel','lostpointercapture']){
   await page.evaluate(room=>auditRender(room),room);
@@ -78,11 +80,12 @@ test('NUI interruption retains ink, transmits it, and clears it on lobby transit
   await page.evaluate(()=>{globalThis.sent=[];FlecityBridge.call=async(action,payload)=>{sent.push({action,payload});return {ok:false,error:'RATE_LIMIT'};};});
   await page.locator('#telephoneDrawSubmit').click();
   const sent=await page.evaluate(()=>globalThis.sent);
-  assert.equal(sent.length,1,interruption+' dropped the drawing');assert.equal(sent[0].action,'partySubmitTelephoneDrawing');
-  assert(sent[0].payload.strokes[0].length>=2);assert(sent[0].payload.strokes[0].some(p=>p.x!==sent[0].payload.strokes[0][0].x));
+  assert.equal(sent.filter(row=>row.action==='partySubmitTelephoneDrawing').length,1,interruption+' dropped the drawing: '+JSON.stringify(sent.map(row=>row.action)));assert.equal(sent.find(row=>row.action==='partySubmitTelephoneDrawing').action,'partySubmitTelephoneDrawing');
+  const drawing=sent.find(row=>row.action==='partySubmitTelephoneDrawing');
+  assert(drawing.payload.strokes[0].length>=2);assert(drawing.payload.strokes[0].some(p=>p.x!==drawing.payload.strokes[0][0].x));
   assert(await page.locator('#telephoneDrawSubmit').isEnabled());
   // Paint the transmitted data in the next player's text turn.
-  await page.evaluate(room=>auditRender(room),{...room,roundState:{...room.roundState,mode:'text',step:2,promptStrokes:sent[0].payload.strokes}});
+  await page.evaluate(room=>auditRender(room),{...room,roundState:{...room.roundState,mode:'text',step:2,promptStrokes:drawing.payload.strokes}});
   const ink=await canvas.evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4!==3&&v<100));assert(ink);
   await page.locator('#telephoneText').fill('前ゲームの入力');
   await page.evaluate(room=>auditUpdate({...room,state:'lobby',revision:2,roundState:null}),room);

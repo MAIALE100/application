@@ -156,7 +156,22 @@ end
 local function containsPartyTerm(text,term)
     local haystack=normalizedPartyAnswer(text)
     local needle=normalizedPartyAnswer(term)
-    return needle~='' and haystack:find(needle,1,true)~=nil
+    if needle=='' then return false end
+    -- ASCII labels like PC, CM or UFO must be whole labels. The old substring
+    -- match incorrectly treated NPC as the forbidden word PC, for example.
+    -- Japanese phrases keep the historical substring rule (no word tokenizer).
+    if needle:match('^[%a%d]+$') then
+        local offset=1
+        while true do
+            local first,last=haystack:find(needle,offset,true)
+            if not first then return false end
+            local before=first>1 and haystack:sub(first-1,first-1) or ''
+            local after=last<#haystack and haystack:sub(last+1,last+1) or ''
+            if not before:match('[%w]') and not after:match('[%w]') then return true end
+            offset=last+1
+        end
+    end
+    return haystack:find(needle,1,true)~=nil
 end
 
 local function shuffledCopy(values)
@@ -311,6 +326,36 @@ local function connectedIdentifiers(room)
     table.sort(list,function(a,b) return a.joinOrder<b.joinOrder end)
     local out={} for _,entry in ipairs(list) do out[#out+1]=entry.id end
     return out
+end
+
+-- Local, server-owned practice participants. Never accept a client-supplied AI identity.
+local aiGameIds={ng_word=true,draw=true,telephone=true}
+local function aiGameSupported(gameId) return aiGameIds[tostring(gameId or '')]==true end
+local function aiMemberId(index) return '__flecity_party_ai_'..tostring(index) end
+local function humanMemberCount(room)
+    local count=0
+    for _,member in pairs(room.members or {}) do if not member.ai then count=count+1 end end
+    return count
+end
+local function clearAiMembers(room)
+    for id,member in pairs(room.members or {}) do if member.ai then room.members[id]=nil end end
+end
+local function configureAiMembers(room,count)
+    clearAiMembers(room)
+    local value=math.max(0,math.floor(tonumber(count) or 0))
+    for index=1,value do
+        local id=aiMemberId(index)
+        room.members[id]={ai=true,memberId='AI-'..index,name='AI '..index,
+            ready=true,disconnected=false,appOpen=true,joinOrder=100000+index,joinedAt=os.time()}
+    end
+    room.aiOptions=room.aiOptions or {}
+    room.aiOptions.count=value
+    room.aiOptions.enabled=value>0
+end
+local function aiOptionLimit(room,game)
+    local globalMax=math.floor(tonumber(FlecityGamesConfig.Party.MaxPlayers) or 10)
+    local gameMax=math.floor(tonumber(game and game.maxPlayers) or globalMax)
+    return math.max(0,math.min(globalMax,gameMax)-humanMemberCount(room))
 end
 
 local function rotatedIdentifiers(ids,startIndex)
@@ -991,7 +1036,7 @@ local function bestHostCandidate(room,excludeId,requireAppOpen)
     local selected
     for id,m in pairs(room and room.members or {}) do
         local appEligible=not requireAppOpen or m.appOpen~=false
-        if id~=excludeId and not m.disconnected and appEligible
+        if id~=excludeId and not m.ai and not m.disconnected and appEligible
             and (not selected or m.joinOrder<selected.member.joinOrder) then
             selected={id=id,member=m}
         end
@@ -1018,6 +1063,7 @@ local function removeMember(room,id)
     if not m then return end
     if m.source then sourceToRoom[m.source]=nil end
     room.members[id]=nil
+    if humanMemberCount(room)==0 then clearAiMembers(room) end
     if room.hostIdentifier==id then migrateHost(room) end
     if memberCount(room)==0 then rooms[room.id]=nil roomsByCode[room.code]=nil end
 end
@@ -1100,7 +1146,7 @@ local function sanitizedStrokes(strokes,maxStrokes,maxPoints)
         for _,point in ipairs(stroke) do
             if type(point)~='table' then return nil end
             local x=tonumber(point.x) local y=tonumber(point.y)
-            if not x or not y or x<0 or x>1 or y<0 or y>1 then return nil end
+            if not x or not y or x~=x or y~=y or x<0 or x>1 or y<0 or y>1 then return nil end
             points[#points+1]={x=math.floor(x*10000+0.5)/10000,y=math.floor(y*10000+0.5)/10000}
         end
         clean[#clean+1]=points
@@ -1361,7 +1407,7 @@ end
 local function snapshot(room,viewerId)
     local players={}
     for id,m in pairs(room.members) do
-        players[#players+1]={memberId=m.memberId,name=m.name,ready=m.ready==true,disconnected=m.disconnected==true,appOpen=m.appOpen~=false,isHost=id==room.hostIdentifier,joinOrder=m.joinOrder}
+        players[#players+1]={memberId=m.memberId,name=m.name,ai=m.ai==true,ready=m.ready==true,disconnected=m.disconnected==true,appOpen=m.appOpen~=false,isHost=id==room.hostIdentifier,joinOrder=m.joinOrder}
     end
     table.sort(players,function(a,b) return a.joinOrder<b.joinOrder end)
     local selfMember=room.members[viewerId]
@@ -1369,6 +1415,7 @@ local function snapshot(room,viewerId)
         code=room.code,revision=tonumber(room.revision) or 0,state=room.state,round=room.round,selectedGame=room.selectedGame,players=players,
         mastermindOptions=room.mastermindOptions or {aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},
         shogiOptions=room.shogiOptions or {aiDifficulty='hard'},
+        aiOptions=room.aiOptions or {enabled=false,count=0,difficulty='normal'},
         playerCount=#players,connectedCount=connectedCount(room),maxPlayers=FlecityGamesConfig.Party.MaxPlayers,
         isHost=viewerId==room.hostIdentifier,selfReady=selfMember and selfMember.ready==true or false,
         selfMemberId=selfMember and selfMember.memberId or nil,createdAt=room.createdAt,serverTick=GetGameTimer(),
@@ -1485,7 +1532,7 @@ function FlecityGamesParty.CreateRoom(source)
     local roomId=makeInternalId()
     nextJoinOrder=nextJoinOrder+1
     local now=os.time()
-    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',mastermindOptions={aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},shogiOptions={aiDifficulty='hard'},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
+    local room={id=roomId,code=code,revision=0,hostIdentifier=id,members={},selectedGame='code_break',aiOptions={enabled=false,count=0,difficulty='normal'},mastermindOptions={aiDifficulty='normal',allowDuplicates=true,turnLimit=true,firstTurn='random'},shogiOptions={aiDifficulty='hard'},state='lobby',round=0,roundState=nil,promptIndexes={},rotation={draw=0,telephone=0},createdAt=now,lastActivityAt=now}
     room.members[id]={source=tonumber(source),memberId=makeMemberId(room),name=characterName(source),ready=false,disconnected=false,appOpen=true,joinOrder=nextJoinOrder,joinedAt=os.time()}
     rooms[roomId]=room roomsByCode[code]=roomId sourceToRoom[tonumber(source)]=roomId
     notifyRoom(room,source)
@@ -1527,7 +1574,14 @@ function FlecityGamesParty.JoinRoom(source,data)
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers and connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers then
         reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)
     end
-    if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers then return {ok=false,error='ROOM_FULL'} end
+    -- Free a local AI slot for an actual human joining the lobby.
+    local selectedGame=partyGame(room.selectedGame)
+    local limit=math.min(FlecityGamesConfig.Party.MaxPlayers,selectedGame and selectedGame.maxPlayers or FlecityGamesConfig.Party.MaxPlayers)
+    if memberCount(room)>=limit and aiGameSupported(room.selectedGame) then
+        local opts=room.aiOptions or {}
+        if (tonumber(opts.count) or 0)>0 then configureAiMembers(room,(tonumber(opts.count) or 0)-1) end
+    end
+    if memberCount(room)>=limit then return {ok=false,error='ROOM_FULL'} end
 
     nextJoinOrder=nextJoinOrder+1
     room.members[id]={
@@ -1593,8 +1647,35 @@ function FlecityGamesParty.SelectGame(source,data)
         local allowed=FlecityGamesPartyPlus.HasAccess(source,id,true)
         if not allowed then return {ok=false,error='PARTY_PLUS_REQUIRED'} end
     end
+    if room.selectedGame~=game.id then
+        clearAiMembers(room)
+        room.aiOptions={enabled=false,count=0,difficulty='normal'}
+    end
     room.selectedGame=game.id
-    for _,m in pairs(room.members) do m.ready=false end
+    for _,m in pairs(room.members) do if not m.ai then m.ready=false end end
+    notifyRoom(room,source)
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.SetPracticeAi(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'room_action',FlecityGamesConfig.RateLimits.RoomActionMs) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
+    if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
+    if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end
+    local game=partyGame(room.selectedGame)
+    if not game or not aiGameSupported(game.id) then return {ok=false,error='GAME_UNAVAILABLE'} end
+    if type(data)~='table' then return {ok=false,error='INVALID_REQUEST'} end
+    local enabled=data.enabled==true
+    local requested=tonumber(data.count)
+    if enabled and (not requested or requested~=math.floor(requested) or requested<1) then return {ok=false,error='INVALID_AI_COUNT'} end
+    local count=enabled and requested or 0
+    if count>aiOptionLimit(room,game) then return {ok=false,error='AI_COUNT_EXCEEDED'} end
+    local difficulty=tostring(data.difficulty or 'normal')
+    if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' then return {ok=false,error='INVALID_AI_DIFFICULTY'} end
+    configureAiMembers(room,count)
+    room.aiOptions.difficulty=difficulty
+    for _,member in pairs(room.members) do if not member.ai then member.ready=false end end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -1790,7 +1871,7 @@ function FlecityGamesParty.StartRound(source)
         room.rotation=room.rotation or {draw=0,telephone=0}
         room.rotation.draw=((tonumber(room.rotation.draw) or 0)%#ids)+1
         rs.drawerIdentifier=ids[room.rotation.draw]
-        rs.prompt=pickRoomPrompt(room,'draw',drawPrompts)
+        rs.prompt=pickRoomPrompt(room,'draw',room.members[rs.drawerIdentifier] and room.members[rs.drawerIdentifier].ai and {'家','太陽','木','魚','山','花'} or drawPrompts)
         rs.strokes={} rs.guessed={} rs.guessedAt={}
     end
     if game.id=='telephone' then
@@ -1867,7 +1948,7 @@ function FlecityGamesParty.StartRound(source)
     else
         setRoundDeadline(rs,roundTimeoutSeconds(game.id))
     end
-    for _,m in pairs(room.members) do m.ready=false end
+    for _,m in pairs(room.members) do m.ready=m.ai==true end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -2610,7 +2691,17 @@ local function maybeFinishDraw(room,force)
     for id,m in pairs(room.members) do
         if not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
     end
-    if guessed<needed and not force then return end
+    if guessed<needed and not force then
+        -- Bot players submit one attempt each. Do not keep a solo human drawer
+        -- waiting 90 seconds when all remaining responders are finished bots.
+        local awaiting=false
+        for id,m in pairs(room.members) do
+            if not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier and not rs.guessed[id] then
+                if not m.ai or not rs.submissions[id] then awaiting=true break end
+            end
+        end
+        if awaiting then return end
+    end
     local entries={}
     for id,m in pairs(room.members) do
         if not m.disconnected and id~=rs.drawerIdentifier and rs.guessed[id] then
@@ -2786,6 +2877,217 @@ local function finishNgWord(room,timedOut,noClue)
     }
 end
 
+-- No external AI service is required. These lightweight practice bots only use
+-- the latest public clue / drawing and never receive a human's secret role.
+local aiDrawingWords={'家','太陽','木','魚','山','花'}
+local aiDrawingShapes={
+    ['山']={{{.12,.82},{.38,.29},{.58,.72},{.75,.39},{.91,.81}},{{.1,.84},{.92,.84}}},
+    ['太陽']={{{.5,.28},{.68,.35},{.72,.54},{.6,.7},{.4,.7},{.28,.54},{.32,.35},{.5,.28}},{{.5,.07},{.5,.2}},{{.5,.78},{.5,.93}}},
+    ['家']={{{.15,.45},{.5,.13},{.85,.45}},{{.22,.45},{.22,.86},{.78,.86},{.78,.45}},{{.45,.86},{.45,.58},{.62,.58},{.62,.86}},{{.1,.45},{.9,.45}}},
+    ['魚']={{{.13,.5},{.43,.28},{.78,.49},{.43,.72},{.13,.5}},{{.78,.49},{.94,.27},{.94,.73},{.78,.49}},{{.28,.43},{.3,.43}},{{.48,.53},{.63,.53}},{{.39,.3},{.39,.7}}},
+    ['木']={{{.45,.89},{.45,.54}},{{.55,.89},{.55,.54}},{{.34,.56},{.5,.13},{.66,.56},{.34,.56}},{{.25,.7},{.5,.33},{.75,.7},{.25,.7}},{{.43,.89},{.57,.89}},{{.2,.72},{.8,.72}}},
+    ['花']={{{.5,.48},{.5,.91}},{{.5,.61},{.24,.54},{.5,.69}},{{.5,.72},{.76,.64},{.5,.78}},{{.5,.4},{.37,.23},{.5,.17},{.63,.23},{.5,.4}},{{.36,.37},{.25,.42},{.35,.52},{.5,.4}},{{.64,.37},{.75,.42},{.65,.52},{.5,.4}},{{.47,.38},{.53,.38}}}
+}
+local function botDrawing(text)
+    local chosen=nil
+    for _,word in ipairs(aiDrawingWords) do
+        if containsPartyTerm(text,word) then chosen=word break end
+    end
+    local model=aiDrawingShapes[chosen or '山']
+    local strokes={}
+    for _,line in ipairs(model) do
+        local stroke={}
+        for _,pt in ipairs(line) do stroke[#stroke+1]={x=pt[1],y=pt[2]} end
+        strokes[#strokes+1]=stroke
+    end
+    return strokes
+end
+local function botReadDrawing(strokes)
+    -- Intentionally read stroke count, not the server's hidden prompt.
+    local count=type(strokes)=='table' and #strokes or 0
+    local candidates={[2]='山',[3]='太陽',[4]='家',[5]='魚',[6]='木',[7]='花'}
+    return candidates[count] or aiDrawingWords[math.random(1,#aiDrawingWords)]
+end
+-- One prompt can have several *safe* clues; don't fall back to one static hint
+-- whenever a target is missing from the small initial practice vocabulary.
+local aiNgClues={
+    ['猫']={'日なたで丸くなって眠ることがあります。','高い所に飛び乗るのが得意な小さなペットです。','気が向いたときに甘えてくる動物です。'},
+    ['犬']={'飼い主と外を散歩することが多いです。','しっぽを振って喜びを表すことがあります。','人間と暮らす動物で、芸を覚えることもあります。'},
+    ['車']={'道路を走って人を遠くへ運びます。','免許が必要な場合の多い移動手段です。','街の駐車場でよく見かけます。'},
+    ['自転車']={'通学や近所の買い物に便利です。','坂道を登るときは少し大変です。','駅前に専用の置き場所があります。'},
+    ['新聞']={'朝の通勤中に広げて読む人がいます。','世の中の出来事を毎日まとめて伝えます。','毎朝家に届けてもらう人もいます。'},
+    ['バー']={'カウンターに腰掛けて静かに過ごす場所です。','落ち着いた照明の中で会話を楽しめます。','大人が仕事帰りに立ち寄ることがあります。'},
+    ['スマホ']={'手のひらの画面で連絡や検索ができます。','外出先でも地図を調べられます。','写真を撮って友達に送ることもできます。'},
+    ['コーヒー']={'朝に飲む人の多い香りの強い飲み物です。','豆を挽いてから淹れることがあります。','眠気覚ましに選ぶ人もいます。'},
+    ['ピザ']={'平たい生地の上に具を載せて焼きます。','切り分けて友達と食べることもできます。','熱々のチーズが伸びる料理です。'},
+    ['海']={'遠くまで水平線が続く広い景色です。','波の音を聞きながら散歩できます。','船で沖へ出ることもあります。'},
+    ['山']={'頂上まで歩いて登る人もいます。','遠くから見ると大きな起伏が見えます。','高い所では気温が低くなることがあります。'},
+    ['ラーメン']={'熱々の汁に細長い麺が入った料理です。','食べるときにずるずる音がしやすい料理です。','味噌や醤油などいろいろな味があります。'},
+    ['ケーキ']={'特別な日に切り分けて食べることがあります。','甘いクリームや果物で飾ることがあります。','誕生日のお祝いによく登場します。'},
+    ['時計']={'待ち合わせに遅れないため確認します。','壁に掛けたり腕に着けたりします。','針がゆっくり動くものもあります。'},
+    ['太陽']={'朝に東の方から昇ってきます。','日差しが強い日は日陰が恋しくなります。','一日の明るさを作る大きな存在です。'},
+    ['花']={'庭先で色や形を楽しめます。','記念日に贈られることがあります。','春になると道端でもよく見かけます。'},
+    ['花火']={'祭りの終盤に大きな音を響かせる催しです。','遠くからでも色鮮やかな光が見えます。','大勢で見上げて楽しむことがあります。'},
+    ['公園']={'散歩や休憩で立ち寄る人が多い場所です。','子どもたちの遊び場になることもあります。','ベンチや遊具が置いてあることがあります。'},
+    ['学校']={'平日の朝に多くの子どもが集まります。','教室や運動場があることが多い場所です。','授業が終わると帰宅する人が増えます。'},
+    ['病院']={'体調が悪いときに相談する場所です。','診察室や待合室があります。','白衣を着て働く人がいます。'},
+    ['警察']={'困ったときに通報すると助けに来てくれます。','街の安全を守るため巡回しています。','事件や事故への対応をしています。'},
+    ['消防車']={'緊急時に大きな音を鳴らして走ります。','赤い車体と長いホースが特徴です。','火事の現場に駆けつけます。'},
+    ['電車']={'駅のホームで待って乗ります。','決まった線路の上を走ります。','通勤時間帯には混むことがあります。'},
+    ['バス']={'停留所で待って乗る交通手段です。','路線をたどって決まった場所に停まります。','運転手の近くから乗ることもあります。'},
+    ['飛行機']={'空港から遠くの街へ移動できます。','翼を広げて空を飛ぶ大きな乗り物です。','離陸するときに大きな音がします。'},
+    ['傘']={'急に雨が降ったときに役立ちます。','使わないときは細く畳めるものもあります。','手に持って頭の上に広げます。'},
+    ['雪']={'気温が低い日に白く降ってきます。','積もると道が滑りやすくなります。','丸めて遊ぶこともできます。'},
+    ['雨']={'空から落ちてきて地面を濡らします。','外出時に天気予報で確認します。','降ると水たまりができることがあります。'},
+    ['寿司']={'小さな一口サイズで楽しむ和食です。','魚や卵などを載せて食べます。','回るレーンから取る店もあります。'},
+    ['カレー']={'ご飯に香辛料の効いたソースをかけます。','辛さを好みに合わせられる料理です。','一晩置くと味がなじむと言われます。'},
+    ['パン']={'朝食にトーストして食べる人もいます。','小麦粉を焼いて作る食べ物です。','ふわふわしたものから硬いものまであります。'},
+    ['チョコレート']={'甘くて溶けやすいお菓子です。','茶色い板状の商品がよくあります。','贈り物として選ぶ人もいます。'},
+    ['りんご']={'赤や青い色の皮をむいて食べる果物です。','かじるとしゃきっとした食感があります。','お菓子に入れて焼くこともあります。'},
+    ['時計台']={'街の中心で時間を知らせる建物です。','見上げると大きな文字盤があります。','観光客が写真に収めることもあります。'},
+    ['パソコン']={'机の上で仕事や勉強に使います。','キーボードと画面を使って操作します。','文章を書いたり動画を見たりできます。'},
+    ['テレビ']={'家の中で番組や映像を楽しむ機械です。','リモコンでチャンネルを変えられます。','大きな画面をリビングに置く人が多いです。'},
+    ['映画']={'暗い部屋の大きなスクリーンで楽しめます。','上映が終わるとエンドロールが流れます。','友達と観に行く休日の楽しみです。'},
+    ['本']={'ページをめくって物語や知識を楽しめます。','図書館で借りられます。','しおりを挟んで続きを読むことがあります。'},
+    ['釣り']={'水辺で道具を使ってじっと待つ趣味です。','大物がかかると糸を巻き取ります。','湖や川でも楽しめます。'},
+    ['自動販売機']={'硬貨を入れて飲み物を選ぶ機械です。','駅前や街角で見かけることがあります。','ボタンを押すと下の取り出し口から出てきます。'},
+    ['信号']={'道路を渡るときに色を見て判断します。','交差点に設置されていることが多いです。','赤いときには立ち止まります。'},
+    ['スマートフォン']={'外でも写真や連絡ができる小さな画面の道具です。','地図や音楽を持ち歩けます。','充電が切れると使えなくなります。'},
+}
+local aiNgFallback={
+    '街で見かけたことがある人は多そうです。使う場面を思い出してください。',
+    '毎日の生活と関わりがあります。どんなときに使うでしょうか。',
+    '身近な風景に登場するものです。周囲を観察してみてください。',
+    '友達と話していると名前が出てくることがあります。',
+    '置いてある場所や用途を想像してみてください。',
+    '種類によって形や色が違うことがあります。',
+    '外出したときに出会うことがあるものです。',
+    '多くの人が一度は見聞きしたことのあるものです。',
+}
+local aiNgClueRotation={}
+local function botClue(rs)
+    local word=tostring(rs.targetWord or '')
+    local choices=aiNgClues[word] or aiNgFallback
+    local rotation=(aiNgClueRotation[word] or 0)+1
+    aiNgClueRotation[word]=rotation
+    for offset=0,#choices-1 do
+        local clue=choices[((rotation+offset-1)%#choices)+1]
+        local safe=not containsPartyTerm(clue,word)
+        if safe then
+            for _,forbidden in ipairs(rs.forbiddenWords or {}) do
+                if containsPartyTerm(clue,forbidden) then safe=false break end
+            end
+        end
+        if safe then return clue end
+    end
+    -- No target/forbidden word should be leaked even if all tailored clues clash.
+    for _,clue in ipairs(aiNgFallback) do
+        local safe=not containsPartyTerm(clue,word)
+        if safe then
+            for _,forbidden in ipairs(rs.forbiddenWords or {}) do
+                if containsPartyTerm(clue,forbidden) then safe=false break end
+            end
+        end
+        if safe then return clue end
+    end
+    return 'もう少し考えてみてください。'
+end
+
+local function botNgGuess(clue,difficulty)
+    local hints={
+        {'散歩','犬'},{'ひなた','猫'},{'飲み物','コーヒー'},{'どんぶり','ラーメン'},
+        {'大きな道具','車'},{'手のひら','スマホ'},{'生地','ピザ'},
+        {'水平線','海'},{'地形','山'},{'特別な日','ケーキ'},
+        {'壁や机','時計'},{'東から','太陽'},{'庭や道端','花'}
+    }
+    if difficulty~='easy' then
+        for _,item in ipairs(hints) do if containsPartyTerm(clue,item[1]) then return item[2] end end
+    end
+    local pool={'猫','犬','車','スマホ','ピザ','山','花','時計','海','ラーメン'}
+    return pool[math.random(1,#pool)]
+end
+local function practiceAiNextTick(rs,ms)
+    rs.aiNextTick=GetGameTimer()+(ms or 1600)
+end
+local function drivePracticeBots(room)
+    local rs=room.roundState
+    if not rs or rs.complete or room.state~='round' or not aiGameSupported(rs.gameId) then return false end
+    if not room.aiOptions or not room.aiOptions.enabled then return false end
+    local now=GetGameTimer()
+    if not rs.aiNextTick then practiceAiNextTick(rs,1800) return false end
+    if now<rs.aiNextTick then return false end
+    if rs.gameId=='telephone' then
+        local id=rs.currentIdentifier
+        local member=id and room.members[id] or nil
+        if not member or not member.ai then return false end
+        local previous=rs.chain[#rs.chain]
+        if rs.mode=='draw' then
+            local text=previous and previous.kind=='text' and previous.text or ''
+            rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,byName=member.name,strokes=botDrawing(text)}
+        else
+            local strokes=previous and previous.kind=='draw' and previous.strokes or {}
+            rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,byName=member.name,text=botReadDrawing(strokes)}
+        end
+        rs.submissions[id]=(rs.submissions[id] or 0)+1
+        advanceTelephone(room,true)
+        if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+        practiceAiNextTick(rs,1800)
+        return true
+    elseif rs.gameId=='draw' then
+        local drawer=room.members[rs.drawerIdentifier]
+        if drawer and drawer.ai then
+            if #(rs.strokes or {})>0 then return false end
+            rs.strokes=botDrawing(rs.prompt)
+            practiceAiNextTick(rs,3500)
+            return true
+        end
+        if not rs.strokes or #rs.strokes<2 then practiceAiNextTick(rs,2400) return false end
+        local candidates={}
+        for id,member in pairs(room.members) do
+            if member.ai and id~=rs.drawerIdentifier and not rs.guessed[id] and not rs.submissions[id] then candidates[#candidates+1]=id end
+        end
+        table.sort(candidates)
+        if #candidates<1 then return false end
+        local id=candidates[1]
+        local guess=botReadDrawing(rs.strokes)
+        rs.submissions[id]=true
+        if drawGuessMatches(rs.prompt,guess) then
+            rs.guessed[id]=true rs.guessedAt[id]=now
+        end
+        maybeFinishDraw(room)
+        practiceAiNextTick(rs,1800)
+        return true
+    elseif rs.gameId=='ng_word' then
+        local explainer=room.members[rs.explainerIdentifier]
+        if rs.phase=='clue' then
+            if not explainer or not explainer.ai then return false end
+            rs.clue=botClue(rs)
+            rs.phase='guess'
+            setRoundDeadline(rs,45)
+            practiceAiNextTick(rs,4500)
+            return true
+        end
+        local candidates={}
+        for id,member in pairs(room.members) do
+            if member.ai and id~=rs.explainerIdentifier and not rs.guesses[id] then candidates[#candidates+1]=id end
+        end
+        table.sort(candidates)
+        if #candidates<1 then return false end
+        local id=candidates[1]
+        local guess=botNgGuess(rs.clue or '',tostring(room.aiOptions.difficulty or 'normal'))
+        local correct=normalizedPartyAnswer(guess)==normalizedPartyAnswer(rs.targetWord)
+        rs.guesses[id]={text=guess,correct=correct}
+        rs.guessOrder[#rs.guessOrder+1]=id
+        if correct then
+            rs.winnerIdentifier=id
+            finishNgWord(room,false,false)
+        elseif ngWordAllRemainingGuessed(room) then finishNgWord(room,false,false) end
+        practiceAiNextTick(rs,3500)
+        return true
+    end
+    return false
+end
+
 function FlecityGamesParty.SubmitNgWordClue(source,data)
     if not FlecityGamesRateLimit.Allow(source,'ng_word_clue',500) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
@@ -2799,9 +3101,16 @@ function FlecityGamesParty.SubmitNgWordClue(source,data)
     local clue=FlecityGamesText.Normalize(data.clue)
     local clueLength=FlecityGamesText.Length(clue)
     if clueLength<3 or clueLength>100 then return {ok=false,error='INVALID_TEXT'} end
-    if containsPartyTerm(clue,rs.targetWord) then return {ok=false,error='TABOO_FORBIDDEN_WORD'} end
+    -- The explainer already knows the target and forbidden words. Report only the
+    -- matching term to that explainer, never to other players or server logs.
+    -- This keeps the input intact and makes overly broad substring matches diagnosable.
+    if containsPartyTerm(clue,rs.targetWord) then
+        return {ok=false,error='TABOO_FORBIDDEN_WORD',matchedTerm=rs.targetWord}
+    end
     for _,term in ipairs(rs.forbiddenWords or {}) do
-        if containsPartyTerm(clue,term) then return {ok=false,error='TABOO_FORBIDDEN_WORD'} end
+        if containsPartyTerm(clue,term) then
+            return {ok=false,error='TABOO_FORBIDDEN_WORD',matchedTerm=term}
+        end
     end
     rs.clue=clue
     rs.phase='guess'
@@ -3279,7 +3588,7 @@ function FlecityGamesParty.ReturnLobby(source)
     local rs=room.roundState
     if room.state~='round' or not rs or rs.complete~=true then return {ok=false,error='ROUND_IN_PROGRESS'} end
     room.state='lobby' room.roundState=nil
-    for _,m in pairs(room.members) do m.ready=false end
+    for _,m in pairs(room.members) do m.ready=m.ai==true end
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
 end
@@ -3336,6 +3645,8 @@ reconcileRound=function(room)
     local beforeCurrent=rs.currentIdentifier
     local beforeStep=rs.step
     local purged=purgeDisconnectedTargets(room)
+    local botChanged=drivePracticeBots(room)
+    if rs.complete then return botChanged or purged>0 end
 
     if rs.gameId=='bomb' and tonumber(rs.bombFuseTick) and GetGameTimer()>=tonumber(rs.bombFuseTick) then
         finishBomb(room,'BOMB')
@@ -3445,7 +3756,7 @@ reconcileRound=function(room)
         maybeFinishFallBattle(room)
     end
 
-    return purged>0
+    return botChanged or purged>0
         or (rs.complete==true)~=beforeComplete
         or rs.currentIdentifier~=beforeCurrent
         or rs.step~=beforeStep

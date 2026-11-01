@@ -4,6 +4,7 @@ const lobbyPanel=document.getElementById('lobbyPanel'),roundPanel=document.getEl
 const mastermindLobbyOptions=document.getElementById('mastermindLobbyOptions'),mastermindAiDifficulty=document.getElementById('mastermindAiDifficulty'),mastermindDuplicates=document.getElementById('mastermindDuplicates'),mastermindTurnLimit=document.getElementById('mastermindTurnLimit'),mastermindFirstTurn=document.getElementById('mastermindFirstTurn'),mastermindOptionsNote=document.getElementById('mastermindOptionsNote');
 const shogiLobbyOptions=document.getElementById('shogiLobbyOptions'),shogiAiDifficulty=document.getElementById('shogiAiDifficulty'),shogiOptionsNote=document.getElementById('shogiOptionsNote');
 const drawingLobbyOptions=document.getElementById('drawingLobbyOptions'),drawingModeGuess=document.getElementById('drawingModeGuess'),drawingModeTelephone=document.getElementById('drawingModeTelephone'),drawingModeNote=document.getElementById('drawingModeNote');
+const practiceAiOptions=document.getElementById('practiceAiOptions'),practiceAiEnabled=document.getElementById('practiceAiEnabled'),practiceAiCount=document.getElementById('practiceAiCount'),practiceAiDifficulty=document.getElementById('practiceAiDifficulty'),practiceAiDetails=document.getElementById('practiceAiDetails'),practiceAiNote=document.getElementById('practiceAiNote');
 const partyPlusCard=document.getElementById('partyPlusCard'),partyPlusTitle=document.getElementById('partyPlusTitle'),partyPlusBadge=document.getElementById('partyPlusBadge'),partyPlusDescription=document.getElementById('partyPlusDescription'),partyPlusSubscribe=document.getElementById('partyPlusSubscribe'),partyPlusCancel=document.getElementById('partyPlusCancel');
 const reactionPanel=document.getElementById('reactionPanel'),reactionMessage=document.getElementById('reactionMessage'),reactionTap=document.getElementById('reactionTap');
 const stopBattlePanel=document.getElementById('stopBattlePanel'),stopBattleMessage=document.getElementById('stopBattleMessage'),stopBattleButton=document.getElementById('stopBattleButton'),stopBattleTarget=document.getElementById('stopBattleTarget'),stopBattleMarker=document.getElementById('stopBattleMarker');
@@ -16,7 +17,7 @@ const connect4Panel=document.getElementById('connect4Panel'),connect4Status=docu
 const miniShogiPanel=document.getElementById('miniShogiPanel'),miniShogiStatus=document.getElementById('miniShogiStatus'),miniShogiHandsTop=document.getElementById('miniShogiHandsTop'),miniShogiBoard=document.getElementById('miniShogiBoard'),miniShogiHandsBottom=document.getElementById('miniShogiHandsBottom'),miniShogiMeta=document.getElementById('miniShogiMeta');
 const deductionPanel=document.getElementById('deductionPanel'),deductionGame=document.getElementById('deductionGame'),deductionSecret=document.getElementById('deductionSecret'),deductionHint=document.getElementById('deductionHint'),deductionChoices=document.getElementById('deductionChoices');
 const drawPanel=document.getElementById('drawPanel'),drawPrompt=document.getElementById('drawPrompt'),drawProgress=document.getElementById('drawProgress'),drawCanvas=document.getElementById('drawCanvas'),drawDrawerControls=document.getElementById('drawDrawerControls'),drawGuessControls=document.getElementById('drawGuessControls'),drawClear=document.getElementById('drawClear'),drawGuess=document.getElementById('drawGuess'),drawGuessSubmit=document.getElementById('drawGuessSubmit');
-const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
+const telephonePanel=document.getElementById('telephonePanel'),telephoneStatus=document.getElementById('telephoneStatus'),telephoneHint=document.getElementById('telephoneHint'),telephoneTextPrompt=document.getElementById('telephoneTextPrompt'),telephoneCanvas=document.getElementById('telephoneCanvas'),telephoneDrawControls=document.getElementById('telephoneDrawControls'),telephoneClear=document.getElementById('telephoneClear'),telephoneDrawSubmit=document.getElementById('telephoneDrawSubmit'),telephoneRetry=document.getElementById('telephoneRetry'),telephoneTextControls=document.getElementById('telephoneTextControls'),telephoneText=document.getElementById('telephoneText'),telephoneTextSubmit=document.getElementById('telephoneTextSubmit');
 const ngWordPanel=document.getElementById('ngWordPanel'),ngWordTitle=document.getElementById('ngWordTitle'),ngWordHint=document.getElementById('ngWordHint'),ngWordForbidden=document.getElementById('ngWordForbidden'),ngWordClueControls=document.getElementById('ngWordClueControls'),ngWordClue=document.getElementById('ngWordClue'),ngWordClueSubmit=document.getElementById('ngWordClueSubmit'),ngWordGuessControls=document.getElementById('ngWordGuessControls'),ngWordGuess=document.getElementById('ngWordGuess'),ngWordGuessSubmit=document.getElementById('ngWordGuessSubmit');
 const fakeAnswerPanel=document.getElementById('fakeAnswerPanel'),fakeAnswerQuestion=document.getElementById('fakeAnswerQuestion'),fakeAnswerHint=document.getElementById('fakeAnswerHint'),fakeAnswerSubmitControls=document.getElementById('fakeAnswerSubmitControls'),fakeAnswerInput=document.getElementById('fakeAnswerInput'),fakeAnswerSubmit=document.getElementById('fakeAnswerSubmit'),fakeAnswerChoices=document.getElementById('fakeAnswerChoices');
 const bombPanel=document.getElementById('bombPanel'),bombPrompt=document.getElementById('bombPrompt'),bombHolder=document.getElementById('bombHolder'),bombHint=document.getElementById('bombHint'),bombPass=document.getElementById('bombPass');
@@ -30,7 +31,7 @@ let partyConfig={roomCodeLength:4,minPlayers:2,maxPlayers:10,plus:null};
 let refreshInFlight=false,refreshQueued=false,appSuspended=false,bootstrapTimer=null,visibilityBound=false,leaveConfirmTimer=null,leaveConfirmUntil=0,partyPlusConfirmTimer=null,partyPlusConfirmUntil=0,lifecycleEpoch=0;
 const actionLocks=new Set();
 let reactionState='idle',reactionRaf=null;
-let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawIsDrawer=false,telephoneStroke=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='',miniShogiPromotionOverlay=null,gomokuRenderToken='',gomokuCells=[];
+let stopBattleState='idle',stopBattleRaf=null,deadlineRaf=null,deductionPhaseRaf=null,resultHoldRaf=null,resultLobbyUnlockAt=0,drawStroke=null,drawPointerId=null,drawIsDrawer=false,telephoneStroke=null,telephonePointerId=null,telephoneStrokes=[],memoryChainLocal=[],memoryChainKey='',codeBreakGuess=[],codeBreakToken='',connect4CeremonyToken='',connect4CeremonyUntil=0,connect4CeremonyTimer=null,miniShogiSelected=0,miniShogiDropKind='',miniShogiPromotionOverlay=null,gomokuRenderToken='',gomokuCells=[];
 
 function tone(freq=660,duration=70){
  if(!appSettings.sound)return;
@@ -74,8 +75,8 @@ function resetRoundRuntime(){
  reactionState='idle';stopBattleState='idle';deadlineRaf=null;deductionPhaseRaf=null;resultHoldRaf=null;resultLobbyUnlockAt=0;
  lobbyBtn.disabled=false;lobbyBtn.textContent='ロビーに戻る';
  roundDeadline.classList.add('hidden');roundDeadline.textContent='';
- drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';gomokuRenderToken='';gomokuCells=[];
- telephoneText.value='';telephoneTextPrompt.textContent='';telephoneHint.textContent='';
+ drawStroke=null;drawPointerId=null;drawIsDrawer=false;telephoneStroke=null;telephonePointerId=null;telephoneStrokes=[];memoryChainLocal=[];memoryChainKey='';codeBreakGuess=[];codeBreakToken='';miniShogiSelected=0;miniShogiDropKind='';gomokuRenderToken='';gomokuCells=[];
+ telephoneText.value='';telephoneTextPrompt.textContent='';telephoneHint.textContent='';telephoneRetry.classList.add('hidden');
  ngWordClue.value='';ngWordGuess.value='';drawGuess.value='';fakeAnswerInput.value='';
  if(miniShogiPromotionOverlay){miniShogiPromotionOverlay.remove();miniShogiPromotionOverlay=null;}
  if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.reset();
@@ -132,10 +133,10 @@ function resumePartyUi(){
  if(currentRoom){roomPushEnabled=true;refresh();beginPolling();}
  else scheduleBootstrap(0);
 }
-function hideRoundGames(exceptPanel){
+function hideRoundGames(exceptPanel,keepFall=false){
  const panels=[reactionPanel,stopBattlePanel,codeBreakPanel,reversiPanel,votePanel,majorityPanel,gomokuPanel,connect4Panel,miniShogiPanel,deductionPanel,drawPanel,telephonePanel,ngWordPanel,fakeAnswerPanel,bombPanel,memoryChainPanel];
  panels.forEach(panel=>{if(panel&&panel!==exceptPanel)panel.classList.add('hidden');});
- if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
+ if(!keepFall&&globalThis.PartyFallBattle)globalThis.PartyFallBattle.hide();
 }
 function showEntry(){
  globalThis.FlecityDiagnostics?.note('entry',{fromRoom:!!currentRoom});
@@ -157,12 +158,20 @@ function formatExpiry(unix){
  const date=new Date(value*1000);
  return date.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
+// LINK+ is managed on demand inside Settings; never show a persistent sales panel.
+function openLinkPlusSettings(){
+ if(partyPlusCard.classList.contains('hidden'))return;
+ const settings=partyPlusCard.closest('details.global-settings');
+ if(settings)settings.open=true;
+ partyPlusCard.open=true;
+ partyPlusCard.scrollIntoView({block:'nearest'});
+}
 function renderPartyPlus(){
  const plus=partyConfig.plus;
  if(!plus||plus.enabled===false){partyPlusCard.classList.add('hidden');return;}
  partyPlusCard.classList.remove('hidden');
  const days=Math.max(1,Number(plus.durationDays)||7),price=Math.max(0,Number(plus.price)||50000);
- partyPlusTitle.textContent=days+'日間プレミアム';
+ partyPlusTitle.textContent='LINK+の加入・管理';
  partyPlusSubscribe.textContent=days+'日 '+formatMoney(price);
  if(plus.active){
    partyPlusBadge.textContent='加入中';
@@ -206,6 +215,26 @@ function renderDrawingModeOptions(room){
  drawingModeNote.textContent=room.isHost?'遊びたいモードを選んでください。':'ホストが「'+(mode==='telephone'?'お絵かき伝言':'お絵かき当て')+'」を選択中です。';
 }
 
+function renderPracticeAi(room){
+ const supported=room&&room.state==='lobby'&&['ng_word','draw','telephone'].includes(room.selectedGame);
+ practiceAiOptions.classList.toggle('hidden',!supported);
+ if(!supported)return;
+ const game=selectedGameConfig(room);
+ const humans=(room.players||[]).filter(p=>!p.ai).length;
+ const available=Math.max(0,Math.min(Number(partyConfig.maxPlayers)||10,Number(game?.maxPlayers)||10)-humans);
+ const opts=room.aiOptions||{enabled:false,count:0,difficulty:'normal'};
+ const checked=opts.enabled===true&&Number(opts.count)>0;
+ practiceAiEnabled.checked=checked;
+ practiceAiCount.min='1';practiceAiCount.max=String(Math.max(1,available));
+ practiceAiCount.value=String(Math.max(1,Math.min(available,Number(opts.count)||Math.max(1,(Number(game?.minPlayers)||2)-humans))));
+ practiceAiDifficulty.value=['easy','normal','hard'].includes(opts.difficulty)?opts.difficulty:'normal';
+ practiceAiDetails.classList.toggle('hidden',!checked);
+ practiceAiEnabled.disabled=!room.isHost||available<=0;
+ practiceAiCount.disabled=!room.isHost||available<=0;
+ practiceAiDifficulty.disabled=!room.isHost;
+ const minimum=Math.max(1,Number(game?.minPlayers)||2);
+ practiceAiNote.textContent=room.isHost?`人間${humans}人／AI最大${available}人。ゲーム開始は合計${minimum}人以上。AIはルーム参加人数に含まれます。簡易AIはオフラインで動作し、お絵描きの認識は限定的です。`:'ホストがAIの有無と人数を設定します。';
+}
 function startReadiness(room){
  const game=selectedGameConfig(room);
  const min=Math.max(1,Number(game&&game.minPlayers)||partyConfig.minPlayers||2);
@@ -226,10 +255,11 @@ function renderPlayers(room){
  playersEl.classList.toggle('dense',Number(room.players&&room.players.length||0)>=7);
  const readyCount=connected.filter(p=>p.ready).length;
  const appOpenCount=connected.filter(p=>p.appOpen!==false).length;
- readySummary.textContent='接続中 '+connected.length+'人 · アプリ '+appOpenCount+'/'+connected.length+' · 準備 '+readyCount+'/'+connected.length;
+ const humans=connected.filter(p=>!p.ai).length,bots=connected.length-humans;
+ readySummary.textContent='人間 '+humans+'人 · AI '+bots+'人 · アプリ '+appOpenCount+'/'+connected.length+' · 準備 '+readyCount+'/'+connected.length;
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
-   const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+p.name;
+   const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+(p.ai?'[AI] ':'')+p.name;
    const state=p.disconnected?'オフライン':(p.appOpen===false?'アプリ閉じています':(p.ready?'準備OK':'待機中'));
    const right=document.createElement('span');right.textContent=state;right.className=p.ready&&p.appOpen!==false?'good':(p.disconnected?'error':'muted');
    row.append(left,right);playersEl.appendChild(row);
@@ -797,6 +827,20 @@ function drawableStroke(points){
  const p=points[0],dx=p.x<=.998?.002:-.002;
  return [p,{x:Math.max(0,Math.min(1,p.x+dx)),y:p.y}];
 }
+// Both drawing games have a 48-point-per-stroke server contract. Instead of
+// stopping the pen after 48 points, decimate the existing path and keep its
+// beginning and latest point. This preserves the complete drag at lower detail.
+function appendDrawingPoint(stroke,point){
+ if(!Array.isArray(stroke)||!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return false;
+ const last=stroke[stroke.length-1];
+ if(last&&Math.abs(point.x-last.x)+Math.abs(point.y-last.y)<0.006)return false;
+ if(stroke.length>=48){
+  const compact=stroke.filter((_,i)=>i===0||i===stroke.length-1||i%2===0);
+  stroke.splice(0,stroke.length,...compact);
+ }
+ stroke.push(point);
+ return true;
+}
 function paintCanvas(ctx,canvas,strokes,temp){
  ctx.fillStyle='#f7f7f7';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';
  const drawOne=points=>{if(!Array.isArray(points)||points.length<2)return;ctx.beginPath();ctx.moveTo(points[0].x*canvas.width,points[0].y*canvas.height);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x*canvas.width,points[i].y*canvas.height);ctx.stroke();};
@@ -830,15 +874,25 @@ function setupTelephone(room){
  const current=room.players.find(p=>p.memberId===rs.currentMemberId);
  telephoneStatus.textContent='ステップ '+Number(rs.step||0)+' / '+Number(rs.totalSteps||0);
  telephoneHint.textContent=rs.isCurrent?'あなたの番です。':(current?current.name+' の入力を待っています。':'次のプレイヤーを待っています。');
- telephoneTextPrompt.classList.add('hidden');telephoneCanvas.classList.add('hidden');telephoneDrawControls.classList.add('hidden');telephoneTextControls.classList.add('hidden');
+ telephoneTextPrompt.classList.add('hidden');telephoneCanvas.classList.add('hidden');telephoneDrawControls.classList.add('hidden');telephoneTextControls.classList.add('hidden');telephoneRetry.classList.add('hidden');
  if(!rs.isCurrent)return;
  if(rs.mode==='draw'){
    telephoneTextPrompt.textContent='これを絵で伝えてください: '+String(rs.promptText||'---');telephoneTextPrompt.classList.remove('hidden');
    telephoneCanvas.classList.remove('hidden');telephoneDrawControls.classList.remove('hidden');paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes,telephoneStroke);
  }else{
-   telephoneCanvas.classList.remove('hidden');telephoneTextControls.classList.remove('hidden');
-   paintCanvas(telephoneCtx,telephoneCanvas,rs.promptStrokes||[]);
-   telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
+   // A submitted drawing cannot legitimately be empty. Prevent a blank render
+   // from being mistaken for an intentional drawing and avoid losing the turn.
+   const validDrawing=Array.isArray(rs.promptStrokes)&&rs.promptStrokes.some(stroke=>Array.isArray(stroke)&&stroke.length>=2);
+   telephoneCanvas.classList.remove('hidden');
+   paintCanvas(telephoneCtx,telephoneCanvas,validDrawing?rs.promptStrokes:[]);
+   if(!validDrawing){
+     telephoneHint.textContent='前の人の絵を受信できませんでした。回答せずに「再確認」を押してください。';
+     telephoneRetry.classList.remove('hidden');
+     globalThis.FlecityDiagnostics?.note('telephone-missing-drawing',{step:Number(rs.step)||0});
+   }else{
+     telephoneTextControls.classList.remove('hidden');
+     telephoneHint.textContent='この絵が何を表しているか文章で入力してください。';
+   }
  }
 }
 function memorySymbol(value){return ({A:'●',B:'▲',C:'■',D:'★'})[value]||'?';}
@@ -955,7 +1009,7 @@ function renderRoom(room,timing){
  entryEl.classList.add('hidden');roomEl.classList.remove('hidden');roomCodeEl.textContent=room.code;renderPlayers(room);
  if(room.state==='lobby'){
    activeRoundToken=null;resetRoundRuntime();lobbyPanel.classList.remove('hidden');roundPanel.classList.add('hidden');
-   const lobbyGameId=(room.selectedGame==='telephone'?'draw':(room.selectedGame||'code_break'));
+   const lobbyGameId=(room.selectedGame||'code_break');
    gameEl.value=lobbyGameId;gameEl.disabled=!room.isHost;renderGameInfo(lobbyGameId);
    const mmOptions=room.mastermindOptions||{aiDifficulty:'normal',allowDuplicates:true,turnLimit:true,firstTurn:'random'};
    mastermindLobbyOptions.classList.toggle('hidden',room.selectedGame!=='code_break');
@@ -974,6 +1028,7 @@ function renderRoom(room,timing){
    shogiAiDifficulty.disabled=!room.isHost;
    shogiOptionsNote.textContent=(Number(room.connectedCount)||0)<=1?'1人プレイ時のAI強さを選べます。':'2人対戦ではAI強さは使用しません。';
    renderDrawingModeOptions(room);
+   renderPracticeAi(room);
    const readiness=startReadiness(room);
    startBtn.disabled=!readiness.ok;startBtn.textContent=readiness.ok?'ゲーム開始':readiness.text;
    readyBtn.disabled=false;readyBtn.textContent=ready?'準備解除':'準備OK';
@@ -1002,7 +1057,7 @@ function renderRoom(room,timing){
    else if(rs&&rs.gameId==='fake_answer')setupFakeAnswer(room);
    else if(rs&&rs.gameId==='bomb')setupBomb(room);
    else if(rs&&rs.gameId==='memory_chain')setupMemoryChain(room);
-   else if(rs&&rs.gameId==='fall_battle'){hideRoundGames();if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.render(room);}
+   else if(rs&&rs.gameId==='fall_battle'){hideRoundGames(null,true);if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.render(room);}
  }
  return true;
 }
@@ -1039,10 +1094,10 @@ async function loadPartyConfig(epoch=lifecycleEpoch){
 
  const games=Array.isArray(res.config.games)?res.config.games:[];
  if(games.length){
-   const current=(currentRoom&&currentRoom.selectedGame==='telephone')?'draw':gameEl.value;
+   const current=currentRoom?.selectedGame||gameEl.value;
    gameEl.innerHTML='';
    games.forEach(game=>{
-     if(game.id==='telephone')return;
+
      const option=document.createElement('option');
      option.value=game.id;
      const min=Number(game.minPlayers)||2,max=Number(game.maxPlayers)||10;
@@ -1109,7 +1164,7 @@ registerPhonePushChannel();
 createBtn.onclick=()=>runOnce('create',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyCreateRoom',{});const received=performance.now();if(!res.ok){status('ルーム作成失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 joinBtn.onclick=()=>runOnce('join',async()=>{const code=codeEl.value.replace(/\D/g,'').slice(0,partyConfig.roomCodeLength);const started=performance.now();const res=await FlecityBridge.call('partyJoinRoom',{code});const received=performance.now();if(!res.ok){status('参加失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});beginPolling();});
 readyBtn.onclick=()=>runOnce('ready',async()=>{ready=!ready;const res=await FlecityBridge.call('partySetReady',{ready});if(!res.ok){ready=!ready;status('準備状態の変更失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
-gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');shogiLobbyOptions.classList.toggle('hidden',gameEl.value!=='mini_shogi');drawingLobbyOptions.classList.toggle('hidden',gameEl.value!=='draw');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);});
+gameEl.onchange=()=>runOnce('select-game',async()=>{renderGameInfo(gameEl.value);mastermindLobbyOptions.classList.toggle('hidden',gameEl.value!=='code_break');shogiLobbyOptions.classList.toggle('hidden',gameEl.value!=='mini_shogi');drawingLobbyOptions.classList.toggle('hidden',gameEl.value!=='draw'&&gameEl.value!=='telephone');const res=await FlecityBridge.call('partySelectGame',{gameId:gameEl.value});if(!res.ok){status('ゲーム変更失敗: '+FlecityErrors.text(res.error),'error');if(res.error==='PARTY_PLUS_REQUIRED')openLinkPlusSettings();await refresh();return;}renderRoom(res.room);});
 async function selectDrawingMode(gameId){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
  if(gameId!=='draw'&&gameId!=='telephone')return;
@@ -1119,6 +1174,21 @@ async function selectDrawingMode(gameId){
 }
 drawingModeGuess.onclick=()=>runOnce('drawing-mode',()=>selectDrawingMode('draw'));
 drawingModeTelephone.onclick=()=>runOnce('drawing-mode',()=>selectDrawingMode('telephone'));
+async function savePracticeAi(){
+ if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
+ const enabled=practiceAiEnabled.checked;
+ const count=enabled?Math.max(1,Number.parseInt(practiceAiCount.value,10)||1):0;
+ const response=await FlecityBridge.call('partySetPracticeAi',{enabled,count,difficulty:practiceAiDifficulty.value});
+ if(!response.ok){status('AI設定を変更できません: '+FlecityErrors.text(response.error),'error');await refresh();return;}
+ renderRoom(response.room);
+}
+practiceAiEnabled.onchange=()=>{
+ practiceAiDetails.classList.toggle('hidden',!practiceAiEnabled.checked);
+ return runOnce('practice-ai',savePracticeAi);
+};
+practiceAiCount.onchange=()=>runOnce('practice-ai',savePracticeAi);
+practiceAiDifficulty.onchange=()=>runOnce('practice-ai',savePracticeAi);
+
 
 async function saveMastermindOptions(){
  if(!currentRoom||!currentRoom.isHost||currentRoom.state!=='lobby')return;
@@ -1139,7 +1209,7 @@ async function saveShogiOptions(){
 }
 shogiAiDifficulty.onchange=()=>runOnce('shogi-options',saveShogiOptions);
 
-startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room,{started,received});});
+startBtn.onclick=()=>runOnce('start',async()=>{const started=performance.now();const res=await FlecityBridge.call('partyStartRound',{});const received=performance.now();if(!res.ok){status('ゲーム開始失敗: '+FlecityErrors.text(res.error),'error');if(res.error==='PARTY_PLUS_REQUIRED')openLinkPlusSettings();return;}renderRoom(res.room,{started,received});});
 roundLeave.onclick=()=>leaveBtn.click();
 
 partyPlusSubscribe.onclick=()=>{
@@ -1224,29 +1294,32 @@ function drawPointFromEvent(event){
  return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
 }
 drawCanvas.onpointerdown=event=>{
- if(!drawIsDrawer||!currentRoom||!currentRoom.roundState||currentRoom.roundState.gameId!=='draw'||currentRoom.roundState.complete)return;
- drawStroke=[drawPointFromEvent(event)];drawCanvas.setPointerCapture(event.pointerId);
+ if(drawStroke||!drawIsDrawer||!currentRoom||!currentRoom.roundState||currentRoom.roundState.gameId!=='draw'||currentRoom.roundState.complete)return;
+ if(event.isPrimary===false)return;
+ drawPointerId=event.pointerId;drawStroke=[drawPointFromEvent(event)];
+ try{drawCanvas.setPointerCapture(event.pointerId);}catch(_){}
 };
 drawCanvas.onpointermove=event=>{
- if(!drawStroke||!drawIsDrawer)return;const p=drawPointFromEvent(event),last=drawStroke[drawStroke.length-1];
- if(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<0.006)return;
- if(drawStroke.length<48)drawStroke.push(p);
+ if(!drawStroke||!drawIsDrawer||drawPointerId!==event.pointerId)return;
+ if(!appendDrawingPoint(drawStroke,drawPointFromEvent(event)))return;
  renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[],drawStroke);
 };
-drawCanvas.onpointerup=async event=>{
- if(!drawStroke)return;const points=drawStroke;drawStroke=null;
- try{drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
- const sendPoints=drawableStroke(points);
- if(sendPoints.length<2){renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);return;}
- const rs=currentRoom&&currentRoom.roundState;if(!rs)return;
- const res=await FlecityBridge.call('partyAddDrawStroke',{token:rs.token,points:sendPoints});
- if(!res.ok){status('描画同期失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}renderRoom(res.room);
-};
-drawCanvas.onpointercancel=event=>{
- drawStroke=null;
- try{drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
- renderDrawCanvas((currentRoom&&currentRoom.roundState&&currentRoom.roundState.strokes)||[]);
-};
+async function finishDrawStroke(event){
+ if(!drawStroke||drawPointerId!==event.pointerId)return;
+ const points=drawableStroke(drawStroke);drawStroke=null;drawPointerId=null;
+ try{if(drawCanvas.hasPointerCapture(event.pointerId))drawCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ const rs=currentRoom&&currentRoom.roundState;
+ if(!rs||rs.gameId!=='draw'||rs.complete||!drawIsDrawer)return;
+ const token=rs.token;
+ // Cancellation/lost capture is common while an LB Phone NUI changes focus.
+ // Preserve the ink and submit the completed portion instead of discarding it.
+ const res=await FlecityBridge.call('partyAddDrawStroke',{token,points});
+ if(!res.ok){status('描画同期失敗: '+FlecityErrors.text(res.error),'error');await refresh();return;}
+ if(currentRoom?.roundState?.token===token)renderRoom(res.room);
+}
+drawCanvas.onpointerup=finishDrawStroke;
+drawCanvas.onpointercancel=finishDrawStroke;
+drawCanvas.onlostpointercapture=finishDrawStroke;
 drawClear.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs)return;drawClear.disabled=true;
  const res=await FlecityBridge.call('partyClearDrawing',{token:rs.token});drawClear.disabled=false;
@@ -1271,18 +1344,20 @@ function telephonePoint(event){
  return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
 }
 telephoneCanvas.onpointerdown=event=>{
- const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||!rs.isCurrent||rs.mode!=='draw'||rs.complete)return;
- telephoneStroke=[telephonePoint(event)];telephoneCanvas.setPointerCapture(event.pointerId);
+ const rs=currentRoom&&currentRoom.roundState;if(telephoneStroke||!rs||rs.gameId!=='telephone'||!rs.isCurrent||rs.mode!=='draw'||rs.complete)return;
+ if(event.isPrimary===false)return;
+ telephonePointerId=event.pointerId;telephoneStroke=[telephonePoint(event)];
+ try{telephoneCanvas.setPointerCapture(event.pointerId);}catch(_){}
 };
 telephoneCanvas.onpointermove=event=>{
- if(!telephoneStroke)return;const p=telephonePoint(event),last=telephoneStroke[telephoneStroke.length-1];
- if(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<0.006)return;if(telephoneStroke.length<48)telephoneStroke.push(p);
+ if(!telephoneStroke||telephonePointerId!==event.pointerId)return;
+ if(!appendDrawingPoint(telephoneStroke,telephonePoint(event)))return;
  paintCanvas(telephoneCtx,telephoneCanvas,telephoneStrokes,telephoneStroke);
 };
 function finishTelephoneStroke(event){
- if(!telephoneStroke)return;
- const stored=drawableStroke(telephoneStroke);telephoneStroke=null;
- try{telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
+ if(!telephoneStroke||telephonePointerId!==event.pointerId)return;
+ const stored=drawableStroke(telephoneStroke);telephoneStroke=null;telephonePointerId=null;
+ try{if(telephoneCanvas.hasPointerCapture(event.pointerId))telephoneCanvas.releasePointerCapture(event.pointerId);}catch(_){}
  // Pointer cancellation/lost capture can happen when NUI focus changes.
  // Keep the already drawn portion instead of silently replacing it with white.
  if(stored.length>=2&&telephoneStrokes.length<80)telephoneStrokes.push(stored);
@@ -1291,12 +1366,19 @@ function finishTelephoneStroke(event){
 telephoneCanvas.onpointerup=finishTelephoneStroke;
 telephoneCanvas.onpointercancel=finishTelephoneStroke;
 telephoneCanvas.onlostpointercapture=finishTelephoneStroke;
-telephoneClear.onclick=()=>{telephoneStroke=null;telephoneStrokes=[];paintCanvas(telephoneCtx,telephoneCanvas,[]);};
+telephoneClear.onclick=()=>{telephoneStroke=null;telephonePointerId=null;telephoneStrokes=[];paintCanvas(telephoneCtx,telephoneCanvas,[]);};
 telephoneDrawSubmit.onclick=async()=>{
  const rs=currentRoom&&currentRoom.roundState;if(!rs||rs.gameId!=='telephone'||rs.mode!=='draw'||!rs.isCurrent)return;
  if(!telephoneStrokes.length){status('絵を描いてから送信してください。','warn');return;}
  telephoneDrawSubmit.disabled=true;const res=await FlecityBridge.call('partySubmitTelephoneDrawing',{token:rs.token,strokes:telephoneStrokes});telephoneDrawSubmit.disabled=false;
- if(!res.ok){status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
+ if(!res.ok){
+   if(['NUI_REQUEST_TIMEOUT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','EMPTY_RESPONSE'].includes(res.error)){
+     status('送信結果を確認しています。続けて送信せず、画面の更新を確認してください。','warn');
+     await refresh();
+   }else status('絵の送信失敗: '+FlecityErrors.text(res.error),'error');
+   return;
+ }
+ telephoneStrokes=[];telephoneStroke=null;renderRoom(res.room);
 };
 memoryChainButtons.querySelectorAll('[data-memory]').forEach(button=>{
  button.onclick=()=>{
@@ -1351,10 +1433,20 @@ fakeAnswerInput.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitFakeAnswe
 async function submitNgWordClue(){
  return runOnce('ng-word-clue',async()=>{
   const rs=currentRoom&&currentRoom.roundState,value=ngWordClue.value.trim();if(!rs||rs.gameId!=='ng_word'||rs.phase!=='clue'||!rs.isExplainer||!value)return;
+  if(Array.from(value).length<3){status('ヒントは3文字以上で入力してください。','warn');return;}
   ngWordClueSubmit.disabled=true;
   try{
    const res=await FlecityBridge.call('partySubmitNgWordClue',{token:rs.token,clue:value});
-   if(!res.ok){status('ヒント送信失敗: '+FlecityErrors.text(res.error),'error');return;}
+   if(!res.ok){
+    // Only the explainer receives matchedTerm, since the banned words are secret.
+    if(res.error==='TABOO_FORBIDDEN_WORD'&&typeof res.matchedTerm==='string'&&res.matchedTerm){
+     status('「'+res.matchedTerm+'」がヒント内に含まれていると判定されました。言い換えてください。','warn');
+    }else if(['NUI_REQUEST_TIMEOUT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','EMPTY_RESPONSE'].includes(res.error)){
+      status('ヒントの送信結果を確認しています。すぐに再送せず状態を確認してください。','warn');
+      await refresh();
+    }else status('ヒント送信失敗: '+FlecityErrors.text(res.error),'error');
+    return; // Keep the original clue so it can be edited and resent.
+   }
    ngWordClue.value='';renderRoom(res.room);
   }finally{ngWordClueSubmit.disabled=false;}
  });
@@ -1381,10 +1473,18 @@ async function submitTelephoneText(){
   telephoneTextSubmit.disabled=true;
   try{
    const res=await FlecityBridge.call('partySubmitTelephoneText',{token:rs.token,text:value});
-   if(!res.ok){status('文章の送信失敗: '+FlecityErrors.text(res.error),'error');return;}telephoneText.value='';renderRoom(res.room);
+   if(!res.ok){
+    if(['NUI_REQUEST_TIMEOUT','NUI_REQUEST_FAILED','PHONE_CALLBACK_FAILED','EMPTY_RESPONSE'].includes(res.error)){
+      status('送信結果を確認しています。二重送信せず更新を確認してください。','warn');
+      await refresh();
+    }else status('文章の送信失敗: '+FlecityErrors.text(res.error),'error');
+    return;
+   }
+   telephoneText.value='';renderRoom(res.room);
   }finally{telephoneTextSubmit.disabled=false;}
  });
 }
+telephoneRetry.onclick=()=>runOnce('telephone-retry',refresh);
 telephoneTextSubmit.onclick=submitTelephoneText;
 telephoneText.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)submitTelephoneText();};
 lobbyBtn.onclick=()=>runOnce('return-lobby',async()=>{const res=await FlecityBridge.call('partyReturnLobby',{});if(!res.ok){status('ロビーへ戻れません: '+FlecityErrors.text(res.error),'error');return;}renderRoom(res.room);});
@@ -1454,7 +1554,7 @@ if(globalThis.FlecityScreen)FlecityScreen.start({
    appSuspended=false;partyConfig=s.partyConfig;applySettings(s.appSettings);
    gameEl.innerHTML='';
    for(const game of partyConfig.games||[]){
-     if(game.id==='telephone'||(FlecityScreen.expanded&&!['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','fall_battle'].includes(game.id)))continue;
+
      const option=document.createElement('option');option.value=game.id;option.textContent=(game.premium?'★ ':'')+game.name;gameEl.appendChild(option);
    }
    currentRoom=s.currentRoom;if(currentRoom)currentRoom.serverTick=s.serverTick+(Date.now()-s.at);activeRoundToken=s.activeRoundToken;lastRoomRevision=s.lastRoomRevision;

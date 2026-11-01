@@ -58,7 +58,7 @@ test('independent NUI transfers telephone ink, input and LOOP piece with one act
  assert.deepEqual(await frame.evaluate(()=>ink()),originalInk);
  assert.equal(await phone.evaluate(()=>FlecityScreen.parked),true);assert.equal(await phone.evaluate(()=>intervalCount()),0);
  assert.equal((await phone.evaluate(()=>FlecityBridge.call('partySubmitTelephoneText',{text:'must not send'}))).error,'APP_SUSPENDED');
- const submitBounds=await frame.locator('#telephoneDrawSubmit').boundingBox();assert(submitBounds.y+submitBounds.height<1080*.94);
+ const submitBounds=await frame.locator('#telephoneDrawSubmit').boundingBox();await host.screenshot({path:path.join(evidence,'link-expanded-before-visibility-check.png')});assert(submitBounds.y+submitBounds.height<1080*.94,`submit bottom=${submitBounds.y+submitBounds.height}`);
  const rect=await host.locator('#window').boundingBox();assert(Math.abs(rect.width/1920-.88)<.01);assert(Math.abs(rect.height/1080-.88)<.01);
  fs.mkdirSync(evidence,{recursive:true});await host.screenshot({path:path.join(evidence,'link-expanded.png')});
  await host.bringToFront();await frame.locator('#screenBar button').first().focus();await host.keyboard.press('Escape');await phone.waitForFunction(()=>!FlecityScreen.parked);assert.deepEqual(await phone.evaluate(()=>ink()),originalInk);

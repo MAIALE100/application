@@ -64,3 +64,7 @@ body.wave-screen-parked .view,body.wave-screen-parked .bottom-nav,body.wave-scre
  body.wave-expanded .mini-player{left:max(1rem,calc((100vw - 112.5rem)/2));right:max(1rem,calc((100vw - 112.5rem)/2));bottom:5rem}
 }
 @media(max-width:56.1875rem){.topbar-actions{gap:.3rem}.screen-toggle{font-size:.7rem;padding:.45rem .55rem}}
+
+/* LB Phone draws its own notch and status strip over custom-app iframes. Keep
+   the WAVE header, including the expanded-view button, below that strip. */
+@media(max-width:56.1875rem){body:not(.wave-expanded) .app-shell{padding-top:max(3.75rem,calc(env(safe-area-inset-top,0px) + 1.5rem))}}

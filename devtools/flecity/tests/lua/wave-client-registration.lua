@@ -9,7 +9,11 @@ GetResourceState=function()return 'started' end
 Wait=function()end
 CreateThread=function(fn)fn()end
 AddEventHandler=function(name,fn)events[name]=fn end
+RegisterNetEvent=function()end
 RegisterNUICallback=function()end
+SetNuiFocus=function()end
+SetNuiFocusKeepInput=function()end
+SendNUIMessage=function()end
 exports={['lb-phone']={
  AddCustomApp=function(_,data)
   assert(data.identifier=='flecity_wave')

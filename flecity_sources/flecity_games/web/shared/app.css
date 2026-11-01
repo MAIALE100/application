@@ -1484,20 +1484,18 @@ body.party-app button:disabled{
   opacity:1;
 }
 
-body.party-app .party-plus-card{
-  background:linear-gradient(135deg,#f5edc9,#efe2a8);
-  border-color:#d8bd67;
-  box-shadow:0 .45rem 1rem rgba(181,151,55,.15);
+/* Subscription management is a subdued, nested settings item—not a sales banner. */
+body.party-app .settings-body .party-plus-card{
+  margin:.45rem 0 .35rem;
+  background:#f5f8fa;
+  border:1px solid #c7d5df;
+  box-shadow:none;
 }
-
-body.party-app .party-plus-summary{
-  background:linear-gradient(90deg,rgba(255,220,82,.18),rgba(255,162,61,.08));
-}
-
-body.party-app .party-plus-summary .kicker{color:#b47a00}
-body.party-app .party-plus-body{border-top-color:#ecd97f}
-body.party-app .party-plus-body .muted{color:#756534}
-body.party-app .party-plus-card .good{color:#168b63}
+body.party-app .settings-body .party-plus-summary{background:transparent}
+body.party-app .settings-body .party-plus-summary .kicker{color:#51677b}
+body.party-app .settings-body .party-plus-body{border-top-color:#d5e0e8}
+body.party-app .settings-body .party-plus-body .muted{color:#536579}
+body.party-app .settings-body .party-plus-card .good{color:#168b63}
 
 body.party-app .party-entry{
   background:#eef3f6;
@@ -2085,3 +2083,16 @@ body.play-app .ranking-help{
   line-height:1.4;
   margin:.25rem 0;
 }
+
+/* Optional local AI players for LINK word/drawing practice; responsive in LB Phone. */
+.practice-ai-toggle{display:flex;align-items:center;gap:.65rem;cursor:pointer;font-weight:700}
+.practice-ai-toggle input{width:1.1rem;height:1.1rem;flex:none}
+.practice-ai-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.6rem}
+.practice-ai-fields label{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.practice-ai-fields input,.practice-ai-fields select{width:100%;min-width:0}
+
+/* FALL in-panel feedback: no green banner over the falling board. */
+#fallGame .fall-feedback{position:relative;max-width:100%;margin:0;padding:.65rem .8rem;border:1px solid #245243;border-radius:.65rem;background:#14251e;color:#e8fff2;font-size:.84rem;line-height:1.35;overflow-wrap:anywhere}
+#fallGame .fall-feedback.warn{background:#322617;border-color:#806036;color:#fff0d0}
+#fallGame .fall-feedback.error{background:#321c21;border-color:#88424a;color:#ffe9e9}
+#fallGame .fall-feedback.hidden{display:none!important}

@@ -35,11 +35,12 @@
 </section>
 <section id="fallGame" class="hidden">
   <div class="card row"><div><div class="kicker">テトリス</div><div id="fallScore" class="big-number small-number">0</div><div id="fallMeta" class="game-meta">LINES 0 · PIECES 0 · COMBO 0</div><div id="fallBest" class="game-meta">BEST ---</div></div><button id="fallBack" class="secondary">戻る</button></div>
-  <div class="game-tip card-tip fall-tip">← →で左右移動、↑で回転、↓長押しでゆっくり落下、Spaceで一気に落下。画面の十字キーとキーボードの両方に対応。</div>
+  <div class="game-tip card-tip fall-tip">A / D・← →で左右移動、W・↑で回転、S・Spaceで一気に落下、↓長押しでゆっくり落下、C・ShiftでHOLD。画面の操作ボタンも使えます。</div>
   <div class="card fall-board-card"><div id="fallBoard" class="fall-board" aria-label="テトリス盤"></div></div>
   <div class="card stack fall-panel">
     <div class="fall-preview-row"><div><div class="kicker">次のブロック</div><div id="fallNext" class="fall-next" aria-label="Next three pieces"></div></div></div>
     <div class="fall-hold-row"><div><div class="kicker">保留したブロック</div><div id="fallHoldPreview" class="fall-hold-preview" aria-label="Held piece"></div></div><button id="fallHold" class="secondary">HOLD</button></div>
+    <div id="fallFeedback" class="fall-feedback hidden" role="status" aria-live="polite" aria-atomic="true"></div>
     <div class="fall-controls fall-dpad" aria-label="テトリスの十字キー"><button id="fallLeft" class="secondary" aria-label="左へ移動">←</button><button id="fallRotate" class="secondary" aria-label="回転">↑ 回転</button><button id="fallRight" class="secondary" aria-label="右へ移動">→</button><button id="fallSoft" class="secondary" aria-label="押している間ゆっくり落下">↓ 落下</button><button id="fallDrop">一気に落とす</button></div>
     <div class="row"><button id="fallNew" class="secondary">新しく始める</button><button id="fallFinish" class="danger">終了して記録</button></div>
   </div>

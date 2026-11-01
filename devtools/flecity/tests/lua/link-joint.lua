@@ -40,10 +40,11 @@ assert(#config.games==15,'registry changed: audit coverage')
 for _,g in ipairs(config.games)do
  local count=g.maxPlayers==2 and 2 or (g.id=='telephone' and 6 or 4)
  local room=call(p.CreateRoom,actors[1]).room
- for i=2,count do call(p.JoinRoom,actors[i],{code=room.code})end
+ call(p.JoinRoom,actors[2],{code=room.code})
  call(p.SelectGame,actors[2],{gameId=g.id},'HOST_ONLY')
  if g.premium then entitled=false;call(p.SelectGame,actors[1],{gameId=g.id},'PARTY_PLUS_REQUIRED');entitled=true;premiumDenied=premiumDenied+1 end
  call(p.SelectGame,actors[1],{gameId=g.id})
+ for i=3,count do call(p.JoinRoom,actors[i],{code=room.code})end
  for i=1,count do call(p.SetReady,actors[i],{ready=true})end
  room=call(p.StartRound,actors[1]).room
  local raw for _,r in pairs(private.rooms)do if r.code==room.code then raw=r break end end

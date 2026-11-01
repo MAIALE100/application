@@ -10,6 +10,9 @@ const SHAPES=[
 ];
 const LINE_POINTS=[0,100,300,500,800];
 let game=null,gravityClock=null,deadlineClock=null,serverOffsetMs=0;
+const perf={renders:0,renderMeanMs:0,renderMaxMs:0,gravityTicks:0,lateTicks:0};
+globalThis.FlecityBattleTetrisPerf=()=>({...perf,controls:globalThis.FlecityGamesControls?.metrics?.()||null,
+ pieces:game?.pieces||0,history:game?.history?.length||0,gravityTimers:gravityClock?1:0,deadlineTimers:deadlineClock?1:0});
 
 function el(id){return document.getElementById(id);}
 function seededNext(state){
@@ -31,6 +34,11 @@ function canPlace(board,w,h,shape,x,y){
 function dropY(board,w,h,shape,x){
  if(!canPlace(board,w,h,shape,x,0))return null;
  let y=0;while(canPlace(board,w,h,shape,x,y+1))y++;return y;
+}
+function landingY(shape){
+ const signature=game.pieces+'|'+game.nextPiece+'|'+game.rotation+'|'+game.x;
+ if(game._landingSignature!==signature){game._landingSignature=signature;game._landingY=dropY(game.board,game.width,game.height,shape,game.x);}
+ return game._landingY;
 }
 function clearLines(board,w){
  let cleared=0,y=board.length-1;
@@ -59,11 +67,23 @@ function resetCursor(){
  if(!found){game.ended=true;return false;}
  game.x=found.x;game.rotation=found.rotation;return true;
 }
+let cachedBattleCells=[];
 function drawBoard(){
  const boardEl=el('fallBattleBoard');if(!game||!boardEl)return;
- boardEl.innerHTML='';
+ const renderStartedAt=performance.now();
+ const count=game.width*game.height;
+ if(boardEl.childElementCount!==count){
+   const fragment=document.createDocumentFragment();
+   for(let i=0;i<count;i++){const cell=document.createElement('span');cell.className='fall-cell';fragment.appendChild(cell);}
+   boardEl.replaceChildren(fragment);
+   cachedBattleCells=[];
+ }
+ if(cachedBattleCells.length!==count || (count && cachedBattleCells[0]!==boardEl.firstElementChild)){
+   cachedBattleCells=Array.from(boardEl.children);
+ }
+ const cells=cachedBattleCells;
  const shape=!game.ended?shapeFor(game.nextPiece,game.rotation):[];
- const ghostY=!game.ended?dropY(game.board,game.width,game.height,shape,game.x):null;
+ const ghostY=!game.ended?landingY(shape):null;
  const active=new Set(),ghost=new Set();
  if(!game.ended){
    const yy=Math.max(0,Math.floor(Number(game.y)||0));
@@ -73,12 +93,12 @@ function drawBoard(){
    });
  }
  for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
-   const s=document.createElement('span'),v=Number(game.board[y][x]||0),key=x+','+y;
+   const s=cells[y*game.width+x],v=Number(game.board[y][x]||0),key=x+','+y;
    let cls='fall-cell';
    if(v)cls+=' filled fall-piece-'+v;
    else if(active.has(key))cls+=' active fall-piece-'+game.nextPiece;
    else if(ghost.has(key))cls+=' ghost fall-piece-'+game.nextPiece;
-   s.className=cls;boardEl.appendChild(s);
+   if(s.className!==cls)s.className=cls;
  }
  const score=el('fallBattleScore'),meta=el('fallBattleMeta'),hint=el('fallBattleHint');
  if(score)score.textContent=String(game.score)+' pt';
@@ -90,6 +110,9 @@ function drawBoard(){
  }
  const locked=game.submitted||game.ended;
  ['fallBattleLeft','fallBattleRight','fallBattleRotate','fallBattleSoft','fallBattleDrop','fallBattleHold'].forEach(id=>{const b=el(id);if(b)b.disabled=locked;});
+ const ms=performance.now()-renderStartedAt;perf.renders++;
+ perf.renderMeanMs+=(ms-perf.renderMeanMs)/Math.min(perf.renders,200);
+ perf.renderMaxMs=Math.max(perf.renderMaxMs,ms);
 }
 function move(dx){
  if(!game||game.submitted||game.ended)return;
@@ -142,11 +165,18 @@ function startClocks(){
  stopClocks();
  gravityClock=setInterval(()=>{
    if(!game||game.submitted||game.ended)return;
-   const shape=shapeFor(game.nextPiece,game.rotation),landing=dropY(game.board,game.width,game.height,shape,game.x),now=performance.now();
+   perf.gravityTicks++;
+   const shape=shapeFor(game.nextPiece,game.rotation),landing=landingY(shape),now=performance.now();
    if(landing===null){game.ended=true;drawBoard();void submit();return;}
    if(game.y<landing){
      game.groundedAt=null;
-     if(now-game.lastGravityAt>=gravityDelay()){game.y++;game.lastGravityAt=now;drawBoard();}
+     const delay=gravityDelay(),elapsed=now-game.lastGravityAt;
+     if(elapsed>=delay){
+       if(elapsed>delay*2)perf.lateTicks++;
+       if(elapsed>delay*3)game.lastGravityAt=now-delay*3;
+       const steps=Math.min(3,Math.max(1,Math.floor((now-game.lastGravityAt)/delay)));
+       game.y=Math.min(landing,game.y+steps);game.lastGravityAt+=steps*delay;drawBoard();
+     }
    }else if(game.groundedAt==null)game.groundedAt=now;
    else if(now-game.groundedAt>=450)void applyPlacement();
  },50);
@@ -179,6 +209,9 @@ function bind(){
      onRight:()=>move(1),
      onUp:rotate,
      onSpace:hardDrop,
+     allowWASD:true,
+     onS:hardDrop,
+     onHold:hold,
      onDownStart:softDrop,
      onDownRepeat:softDrop
    });
@@ -215,9 +248,10 @@ function render(room){
  game.expectedCount=Math.max(1,Number(rs.expectedSubmissions)||Number(room.connectedCount)||1);
  if(rs.selfSubmitted===true&&!game.submitted){game.submitted=true;stopClocks();}
  if(rs.complete){game.submitted=true;stopClocks();}
+ if(!game.submitted&&!game.ended&&!gravityClock){game.lastGravityAt=performance.now();startClocks();}
  drawBoard();
 }
-function hide(){const panel=el('fallBattlePanel');if(panel)panel.classList.add('hidden');}
+function hide(){stopClocks();const panel=el('fallBattlePanel');if(panel)panel.classList.add('hidden');}
 function reset(){stopClocks();game=null;hide();}
 globalThis.PartyFallBattle={render,hide,reset};
 Object.assign(globalThis.PartyFallBattle,{

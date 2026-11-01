@@ -17,6 +17,7 @@ local function call(fn,s,data,expected)
  if expected then assert(not r.ok and r.error==expected,tostring(r.error))else assert(r.ok,tostring(r.error))end return r
 end
 local room=call(p.CreateRoom,actors[1]).room
+call(p.SelectGame,actors[1],{gameId='vote'}) -- four-actor lobby before selecting the two-player round
 for i=2,4 do call(p.JoinRoom,actors[i],{code=room.code}) end
 assert(call(p.GetRoom,actors[1]).room.playerCount==4)
 call(p.JoinRoom,actors[4],{code=room.code}) -- duplicate join must not add another member

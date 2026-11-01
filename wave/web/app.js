@@ -87,6 +87,23 @@ async function bridge(action, payload = {}) {
 async function bridgeRequest(action,payload,screen) {
   const request = { action, payload, surface:screen?.surface||'phone', lease:screen?.lease||'' };
 
+  // The independent fullscreen NUI has no LB Phone fetchNui injection. Waiting
+  // for it used most of the client handoff deadline before the first callback.
+  // FiveM exposes GetParentResourceName in the top-level NUI document, but
+  // the independent WAVE editor runs one same-origin iframe deeper. Its
+  // cfx-nui-wave origin is still the registered wave resource callback host.
+  const resource = typeof GetParentResourceName === 'function'
+    ? GetParentResourceName()
+    : location.hostname === 'cfx-nui-wave' ? 'wave' : null;
+  if (screen?.expanded && resource) {
+    try {
+      const response = await fetch('https://' + resource + '/wave:callback', {
+        method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(request)
+      });
+      return await response.json();
+    } catch (error) { return { ok: false, error: 'NUI_FAILED', detail: String(error) }; }
+  }
+
   const ready = await waitForPhoneBridge();
   if (ready && hasFetchNui()) {
     let lastError = null;
@@ -1451,7 +1468,7 @@ $('adminRefresh').onclick = loadAdmin;
 async function boot() {
   status('WAVEを起動しています…');
   const r = await bridge('bootstrap');
-  if (!r.ok) { status('起動失敗: ' + errorText(r.error), true); return; }
+  if (!r.ok) { status('起動失敗: ' + errorText(r.error), true); return false; }
   state.bootstrap = r;
   state.tracks = r.home || [];
   state.homeSections = r.homeSections || { newest: state.tracks };
@@ -1470,6 +1487,7 @@ async function boot() {
   renderStudio();
   renderProfile();
   status(restored ? '端末内の未保存下書きを復元しました' : '');
+  return true;
 }
 
 window.addEventListener('beforeunload', () => {

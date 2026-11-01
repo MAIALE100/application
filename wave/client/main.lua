@@ -10,12 +10,49 @@ local function releaseScreenFocus()
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
 end
+local function phoneHidden()
+    local openOk, open = pcall(function() return exports['lb-phone']:IsOpen() end)
+    local visibleOk, visible = pcall(function() return exports['lb-phone']:IsPhoneOnScreen() end)
+    return openOk and visibleOk and open == false and visible == false
+end
+local function closePhoneAndWait()
+    local ok = pcall(function() exports['lb-phone']:ToggleOpen(false) end)
+    if not ok then return false end
+    for _ = 1, 30 do
+        if phoneHidden() then return true end
+        Wait(100)
+    end
+    -- A partially visible handset may remain after closing; use the documented
+    -- LB Phone export before giving the independent NUI mouse focus.
+    pcall(function() exports['lb-phone']:SetPhonePartiallyVisible(0) end)
+    for _ = 1, 10 do
+        if phoneHidden() then return true end
+        Wait(100)
+    end
+    return false
+end
+local function restorePhone(lease)
+    pcall(function() exports['lb-phone']:ToggleOpen(true) end)
+    CreateThread(function()
+        for _ = 1, 20 do
+            local ok, open = pcall(function() return exports['lb-phone']:IsOpen() end)
+            if ok and open then break end
+            Wait(100)
+        end
+        if pendingReturn and pendingReturn.lease == lease then
+            pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenReturn'}) end)
+        end
+    end)
+end
 
 RegisterNetEvent('lb-phone:phoneToggled', function(open)
     if open == true and screen and screen.ready then
-        pcall(function() exports['lb-phone']:ToggleOpen(false) end)
-        SetNuiFocus(true, true)
-        SetNuiFocusKeepInput(false)
+        CreateThread(function()
+            if closePhoneAndWait() and screen and screen.ready then
+                SetNuiFocus(true, true)
+                SetNuiFocusKeepInput(false)
+            end
+        end)
     end
 end)
 
@@ -81,10 +118,11 @@ end)
 
 AddEventHandler('onResourceStop', function(resource)
     if resource == 'lb-phone' then ownsApp = false return end
-    if resource == RESOURCE and screen then
+    if resource == RESOURCE and (screen or pendingReturn) then
+        local ownedFocus = screen and screen.ready
         screen = nil
         pendingReturn = nil
-        releaseScreenFocus()
+        if ownedFocus then releaseScreenFocus() end
         SendNUIMessage({type = 'waveScreenHide'})
     end
     if resource ~= RESOURCE or GetResourceState('lb-phone') ~= 'started' then return end
@@ -156,11 +194,10 @@ RegisterNUICallback('wave:callback', function(data, cb)
             SendNUIMessage({type='waveScreenOpen', lease=screen.lease, state=screen.state})
             local currentLease = screen.lease
             CreateThread(function()
-                Wait(8000)
+                Wait(15000)
                 if screen and screen.lease == currentLease and not screen.ready then
                     pendingReturn = screen
                     screen = nil
-                    releaseScreenFocus()
                     SendNUIMessage({type='waveScreenHide'})
                     pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenRestore'}) end)
                 end
@@ -170,11 +207,34 @@ RegisterNUICallback('wave:callback', function(data, cb)
         if screen and expanded and payload.lease == screen.lease then
             if action == 'waveScreenReady' and screen.ready then return cb({ok=true}) end
             if action == 'waveScreenReady' and not screen.ready then
-                screen.ready = true
-                screen.state = nil
-                pcall(function() exports['lb-phone']:ToggleOpen(false) end)
-                SetNuiFocus(true, true)
-                SetNuiFocusKeepInput(false)
+                local currentLease = screen.lease
+                CreateThread(function()
+                    if not closePhoneAndWait() then
+                        if screen and screen.lease == currentLease then
+                            pendingReturn = screen
+                            screen = nil
+                            SendNUIMessage({type='waveScreenHide'})
+                            restorePhone(currentLease)
+                        end
+                        print('[WAVE] expanded handoff aborted: LB Phone did not close')
+                        return cb({ok=false, error='PHONE_STILL_VISIBLE'})
+                    end
+                    if not screen or screen.lease ~= currentLease then return cb({ok=false, error='SCREEN_LEASE_MISMATCH'}) end
+                    screen.ready = true
+                    screen.state = nil
+                    SetNuiFocus(true, true)
+                    SetNuiFocusKeepInput(false)
+                    print('[WAVE] expanded handoff ready')
+                    cb({ok=true})
+                end)
+                return
+            end
+            if action == 'waveScreenFailed' and not screen.ready then
+                pendingReturn = screen
+                screen = nil
+                SendNUIMessage({type='waveScreenHide'})
+                restorePhone(pendingReturn.lease)
+                print('[WAVE] expanded bootstrap failed; phone state retained')
                 return cb({ok=true})
             end
             if action == 'waveScreenClose' and screen.ready and type(payload.state) == 'table' and #json.encode(payload.state) <= 1048576 then
@@ -182,8 +242,7 @@ RegisterNUICallback('wave:callback', function(data, cb)
                 screen = nil
                 releaseScreenFocus()
                 SendNUIMessage({type='waveScreenHide'})
-                pcall(function() exports['lb-phone']:ToggleOpen(true) end)
-                CreateThread(function() Wait(300); pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenReturn'}) end) end)
+                restorePhone(pendingReturn.lease)
                 return cb({ok=true})
             end
         end

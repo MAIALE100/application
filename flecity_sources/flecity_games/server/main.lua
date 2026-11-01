@@ -27,6 +27,7 @@ local callbacks={
     ['flecity_games:party:selectGame']=function(source,data) return FlecityGamesParty.SelectGame(source,data) end,
     ['flecity_games:party:setMastermindOptions']=function(source,data) return FlecityGamesParty.SetMastermindOptions(source,data) end,
     ['flecity_games:party:setShogiOptions']=function(source,data) return FlecityGamesParty.SetShogiOptions(source,data) end,
+    ['flecity_games:party:setPracticeAi']=function(source,data) return FlecityGamesParty.SetPracticeAi(source,data) end,
     ['flecity_games:party:startRound']=function(source) return FlecityGamesParty.StartRound(source) end,
     ['flecity_games:party:submitCodeBreak']=function(source,data) return FlecityGamesParty.SubmitCodeBreak(source,data) end,
     ['flecity_games:party:submitReversi']=function(source,data) return FlecityGamesParty.SubmitReversi(source,data) end,

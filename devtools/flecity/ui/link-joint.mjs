@@ -30,6 +30,8 @@ globalThis.__jointEntry=()=>showEntry();` }));
 }
 export async function jointScenario(ctx,page){
  ctx.solo.activate(null);
+ await page.waitForFunction(()=>document.querySelector('#game')?.options.length===15);
+ assert.deepEqual(await page.locator('#game option').evaluateAll(options=>options.map(o=>o.value)),ctx.joint.games.map(g=>g.id));
  const rows=[];
  for(const g of ctx.joint.games){
   for(const [width,height] of [[390,844],[1366,768],[1920,1080],[2560,1440]]){
@@ -47,6 +49,17 @@ export async function jointScenario(ctx,page){
  }
  await page.evaluate(()=>document.body.classList.remove('screen-expanded'));
  saveLayout(ctx,'joint-layout',rows);
+ const fallBattle=ctx.joint.games.find(g=>g.id==='fall_battle');
+ if(fallBattle){
+  await page.evaluate(({config,room})=>__jointRender(config,room),{config:ctx.joint.config,room:fallBattle.views[0]});
+  const initial=await page.evaluate(()=>FlecityBattleTetrisPerf());
+  for(let cycle=1;cycle<=50;cycle++)await page.evaluate(({room,cycle})=>__jointTransition({...room,revision:room.revision+cycle}),{room:fallBattle.views[0],cycle});
+  const after=await page.evaluate(()=>FlecityBattleTetrisPerf());
+  assert.equal(after.gravityTimers,1,'LINK Tetris gravity clock was duplicated or stopped by polling');
+  assert.equal(after.deadlineTimers,1,'LINK Tetris deadline clock was duplicated or stopped by polling');
+  assert.equal(after.controls.bindings,initial.controls.bindings,'LINK Tetris keyboard listener multiplied');
+  fs.writeFileSync(path.join(ctx.run.dir,'link-tetris-polling.json'),JSON.stringify({cycles:50,initial,after,scope:'Mock NUI room refresh'},null,2)+'\n');
+ }
  const telephone=ctx.joint.games.find(g=>g.id==='telephone');
  assert.equal(telephone.players,6);
  await page.evaluate(({config,room})=>__jointRender(config,room),{config:ctx.joint.config,room:telephone.views[0]});

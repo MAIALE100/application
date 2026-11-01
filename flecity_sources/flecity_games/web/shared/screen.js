@@ -35,7 +35,9 @@ toggle.onclick=async()=>{
   // An uncertain acknowledgement must not create two active owners. Query the lease before resuming.
   const owner=await call('screenStatus');
   if(owner.ok&&owner.owner===(expanded?'expanded':'phone'))activate(snapshot);
-  say('切替を確認できません。もう一度お試しください。');
+  // Keep the reason visible for a failed request without logging game state.
+  const code=typeof r.error==='string'&&/^[A-Z][A-Z0-9_]{0,47}$/.test(r.error)?r.error:'UNKNOWN_ERROR';
+  say('切替失敗 ('+code+')。診断用に表示されています。');
  }else{lease=r.lease||lease;say(expanded?'スマホへ戻しています…':'大画面で操作中');}
  busy=false;if(!r.ok&&!expanded)void claim();
 };

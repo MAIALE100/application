@@ -78,7 +78,14 @@ async function waitForPhoneBridge(timeoutMs = 5000) {
 }
 
 async function bridge(action, payload = {}) {
-  const request = { action, payload };
+  const screen=window.WaveScreen,control=action.startsWith('waveScreen');
+  if(screen?.parked&&!control&&!(screen.expanded&&action==='bootstrap'))return {ok:false,error:'APP_SUSPENDED'};
+  if(screen&&!control)screen.begin();
+  try{return await bridgeRequest(action,payload,screen);}finally{if(screen&&!control)screen.end();}
+}
+
+async function bridgeRequest(action,payload,screen) {
+  const request = { action, payload, surface:screen?.surface||'phone', lease:screen?.lease||'' };
 
   const ready = await waitForPhoneBridge();
   if (ready && hasFetchNui()) {
@@ -1470,4 +1477,5 @@ window.addEventListener('beforeunload', () => {
   stopAudio(true);
 });
 
-boot();
+window.WaveBoot=boot;
+if(!window.WaveScreen?.expanded)window.WaveBootPromise=boot();

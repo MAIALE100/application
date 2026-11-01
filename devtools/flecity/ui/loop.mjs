@@ -76,7 +76,7 @@ export async function scenario(ctx,page){
     ctx.loopAudit.coverage.push({game:game.id,openSuspendReopenCycles:2,status:'PASS',scope:'Mock NUI lifecycle, not full game completion'});
   }
   saveLayout(ctx,'loop-layout',layouts);
-  assert.equal(layouts.filter(r=>r.horizontalOverflow||r.clipped.length||r.textClipping.length||r.overlaps.length).length,0,'LOOP control geometry requires review; see loop-layout.json');
+  assert.equal(layouts.filter(r=>r.horizontalOverflow||r.headerOverlap||r.statusOverBar||r.clipped.length||r.textClipping.length||r.overlaps.length).length,0,'LOOP control/header geometry requires review; see loop-layout.json');
   // A clock jump represents a long frame/suspension gap; it is not five minutes of human play.
   await page.clock.install();await page.evaluate(()=>__loopAudit.startFall());await page.clock.fastForward(5*60*1000);
   await page.evaluate(()=>__loopAudit.suspend());assert(await page.locator('#home').isVisible());

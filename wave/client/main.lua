@@ -2,6 +2,22 @@ local RESOURCE = GetCurrentResourceName()
 local APP_ID = WaveConfig.App.identifier
 local cacheBust = tostring(GetGameTimer())
 local ownsApp = false
+local screen = nil
+local pendingReturn = nil
+local lastReturned = nil
+local screenSerial = 0
+local function releaseScreenFocus()
+    SetNuiFocus(false, false)
+    SetNuiFocusKeepInput(false)
+end
+
+RegisterNetEvent('lb-phone:phoneToggled', function(open)
+    if open == true and screen and screen.ready then
+        pcall(function() exports['lb-phone']:ToggleOpen(false) end)
+        SetNuiFocus(true, true)
+        SetNuiFocusKeepInput(false)
+    end
+end)
 
 local function appData()
     local app = WaveConfig.App
@@ -65,6 +81,12 @@ end)
 
 AddEventHandler('onResourceStop', function(resource)
     if resource == 'lb-phone' then ownsApp = false return end
+    if resource == RESOURCE and screen then
+        screen = nil
+        pendingReturn = nil
+        releaseScreenFocus()
+        SendNUIMessage({type = 'waveScreenHide'})
+    end
     if resource ~= RESOURCE or GetResourceState('lb-phone') ~= 'started' then return end
     if ownsApp then
         ownsApp = false
@@ -111,13 +133,72 @@ local callbackMap = {
 RegisterNUICallback('wave:callback', function(data, cb)
     if type(data) ~= 'table' then return cb({ok=false, error='INVALID_REQUEST'}) end
     local action = tostring(data.action or '')
+    local payload = type(data.payload) == 'table' and data.payload or {}
+    local expanded = data.surface == 'expanded'
+    if action:sub(1, 10) == 'waveScreen' then
+        if action == 'waveScreenStatus' then return cb({ok=true, owner=screen and 'expanded' or 'phone'}) end
+        if action == 'waveScreenClaim' and not expanded then
+            if pendingReturn then return cb({ok=true, state=pendingReturn.state, lease=pendingReturn.lease}) end
+            return cb({ok=true, parked=screen ~= nil})
+        end
+        if action == 'waveScreenReturned' and not expanded then
+            if lastReturned and lastReturned.lease == payload.lease then return cb({ok=true}) end
+            if pendingReturn and pendingReturn.lease == payload.lease then
+                lastReturned = {lease=pendingReturn.lease}
+                pendingReturn = nil
+                return cb({ok=true})
+            end
+        end
+        if action == 'waveScreenOpen' and not expanded and not screen and not pendingReturn and GetResourceState('lb-phone') == 'started' then
+            if type(payload.state) ~= 'table' or #json.encode(payload.state) > 1048576 then return cb({ok=false, error='INVALID_STATE'}) end
+            screenSerial = screenSerial + 1
+            screen = {lease=tostring(GetGameTimer()) .. '-' .. screenSerial, state=payload.state, ready=false}
+            SendNUIMessage({type='waveScreenOpen', lease=screen.lease, state=screen.state})
+            local currentLease = screen.lease
+            CreateThread(function()
+                Wait(8000)
+                if screen and screen.lease == currentLease and not screen.ready then
+                    pendingReturn = screen
+                    screen = nil
+                    releaseScreenFocus()
+                    SendNUIMessage({type='waveScreenHide'})
+                    pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenRestore'}) end)
+                end
+            end)
+            return cb({ok=true, lease=screen.lease})
+        end
+        if screen and expanded and payload.lease == screen.lease then
+            if action == 'waveScreenReady' and screen.ready then return cb({ok=true}) end
+            if action == 'waveScreenReady' and not screen.ready then
+                screen.ready = true
+                screen.state = nil
+                pcall(function() exports['lb-phone']:ToggleOpen(false) end)
+                SetNuiFocus(true, true)
+                SetNuiFocusKeepInput(false)
+                return cb({ok=true})
+            end
+            if action == 'waveScreenClose' and screen.ready and type(payload.state) == 'table' and #json.encode(payload.state) <= 1048576 then
+                pendingReturn = {lease=screen.lease, state=payload.state}
+                screen = nil
+                releaseScreenFocus()
+                SendNUIMessage({type='waveScreenHide'})
+                pcall(function() exports['lb-phone']:ToggleOpen(true) end)
+                CreateThread(function() Wait(300); pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenReturn'}) end) end)
+                return cb({ok=true})
+            end
+        end
+        return cb({ok=false, error='SCREEN_LEASE_MISMATCH'})
+    end
+    if screen then
+        if not expanded or data.lease ~= screen.lease or (not screen.ready and action ~= 'bootstrap') then return cb({ok=false, error='APP_SUSPENDED'}) end
+    elseif expanded or pendingReturn then return cb({ok=false, error='APP_SUSPENDED'}) end
     if action == 'bridgePing' then
         return cb({ok=true, resource=RESOURCE, lbPhoneState=GetResourceState('lb-phone')})
     end
     local callbackName = callbackMap[action]
     if not callbackName then return cb({ok=false, error='UNKNOWN_ACTION'}) end
     local ok, result = pcall(function()
-        return exports['lb-phone']:AwaitCallback(callbackName, type(data.payload) == 'table' and data.payload or {})
+        return exports['lb-phone']:AwaitCallback(callbackName, payload)
     end)
     if not ok then
         print(('[WAVE] callback %s failed: %s'):format(callbackName, tostring(result)))

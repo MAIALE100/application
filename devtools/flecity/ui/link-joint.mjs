@@ -104,6 +104,6 @@ export async function jointScenario(ctx,page){
   assert.deepEqual(await page.evaluate(()=>globalThis.__memorySubmit),{token:ctx.memoryEvidence.after.room.roundState.token,answer});
   await captureLayout(ctx,page,'memory-browser-submitted');
  }
- const failures=rows.filter(r=>r.horizontalOverflow||r.clipped.length||r.textClipping.length||r.overlaps.length);
+ const failures=rows.filter(r=>r.horizontalOverflow||r.headerOverlap||r.statusOverBar||r.clipped.length||r.textClipping.length||r.overlaps.length);
  assert.equal(failures.length,0,'Geometry review required: '+JSON.stringify(failures.map(({game,viewer,viewport,clipped,textClipping,overlaps,horizontalOverflow})=>({game,viewer,width:viewport.width,clipped,textClipping,overlaps,horizontalOverflow}))));
 }

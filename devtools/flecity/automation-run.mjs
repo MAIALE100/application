@@ -8,6 +8,7 @@ import {automaticReadiness} from './server/automatic-readiness.mjs';
 import {deploymentAttestation} from './server/deployment-attestation.mjs';
 import {submissionTasks,submissionDecision,jointSubmissionDecision,jointReleaseApps} from './submission-priority.mjs';
 import {prepareLocalChange,applyLocalChange,finishLocalChange} from './local-change.mjs';
+import {runCached,testCodeHash} from './test-cache.mjs';
 
 const root=path.join(state,'automation');noLinks(root);
 const lease=readJSON(path.join(root,'lease.json'));
@@ -24,6 +25,7 @@ if(oldEvidence)throw Error('Evidence older than 30 days requires archive review;
 const historyPath=path.join(root,'state.json'),history=fs.existsSync(historyPath)?readJSON(historyPath):{};
 function protectedSnapshot(){try{return inventory(path.join(repo,'puriphoto'));}catch{return null;}}
 const protectedBefore=protectedSnapshot();
+const currentTestCodeHash=testCodeHash();
 const proposalIndex=process.argv.indexOf('--proposal');
 let localChange=null,proposalFailure=null;
 if(proposalIndex>=0){try{localChange=applyLocalChange(prepareLocalChange(process.argv[proposalIndex+1],policy));}catch(e){proposalFailure={status:e.message.startsWith('APPLY_FAILED_REVIEW')?'REVIEW_REQUIRED':'PROPOSAL_REJECTED',reason:e.message};}}
@@ -41,11 +43,17 @@ for(const task of tasks){
     for(const suite of job.suites){
       if(Date.now()>=deadline){suites.push({suite,status:'BLOCKED',reason:'20 minute deadline'});break;}
       const args=suite==='tests'?['--test','--test-reporter=tap',...fs.readdirSync(path.join(tool,'tests')).filter(f=>f.endsWith('.test.mjs')).map(f=>path.join(tool,'tests',f))]:[path.join(tool,'cli.mjs'),'test',job.id,'--suite',suite];
-      const result=await runNode(args,{cwd:repo,timeout:Math.min(120000,deadline-Date.now())});
+      const result=await runCached({app:job.id,source:sourceRoot||repo,suite,
+        codeHash:currentTestCodeHash,
+        conditions:{args,job:policy.apps[job.id],mariaBin:process.env.FLECITY_MARIA_BIN||null,lua:process.env.FLECITY_LUA||null,luac:process.env.FLECITY_LUAC||null},
+        execute:async()=>{
+          const r=await runNode(args,{cwd:repo,timeout:Math.min(120000,deadline-Date.now())});
+          const stats=suite==='tests'?Object.fromEntries(['tests','pass','fail','skipped'].map(k=>[k,Number(r.output.match(new RegExp('^# '+k+' (\\d+)','m'))?.[1])])):undefined;
+          const status=stats&&(!Number.isFinite(stats.tests)||stats.tests<64)?'FAIL':stats?.skipped>0&&r.status==='PASS'?'NOT_RUN':r.status;
+          return {...r,status,stats};
+        }});
       const log=path.join(out,job.id+'-'+suite+'.log');fs.writeFileSync(log,result.output);
-      const stats=suite==='tests'?Object.fromEntries(['tests','pass','fail','skipped'].map(k=>[k,Number(result.output.match(new RegExp('^# '+k+' (\\d+)','m'))?.[1])])):undefined;
-      const status=stats&&(!Number.isFinite(stats.tests)||stats.tests<64)?'FAIL':stats?.skipped>0&&result.status==='PASS'?'NOT_RUN':result.status;
-      suites.push({suite,status,code:result.code,timedOut:result.timedOut,stats,log:path.relative(repo,log)});
+      suites.push({suite,status:result.status,code:result.code,timedOut:result.timedOut,stats:result.stats,reused:result.reused,log:path.relative(repo,log)});
     }
     const unchanged=!sourceRoot||JSON.stringify(before)===JSON.stringify(inventory(sourceRoot));
     return {status:!unchanged||suites.some(s=>s.status==='FAIL')?'FAIL':suites.some(s=>s.status==='BLOCKED')?'BLOCKED':suites.some(s=>s.status==='NOT_RUN')?'NOT_RUN':'PASS',suites,sourceUnchanged:unchanged,sourceHash:before?sha(JSON.stringify(before)):null};

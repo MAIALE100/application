@@ -4,9 +4,30 @@ import {tool,state,readJSON,inventory,sha,local,inside,noLinks} from '../core.mj
 import {targetFor,approvedServer} from '../deployment.mjs';
 import {dependencies} from './connection.mjs';
 import {evaluateUpdate} from './update-gate.mjs';
+import {inspectThreeAppDelta} from './test-deploy-plan.mjs';
+import {evaluateTestDeployment} from './test-deploy-gate.mjs';
 
 // Read local evidence independently of server availability. No backup creation or dispatch.
 export function automaticReadiness(config,policy){
+  const testPolicyFile=path.join(tool,'TEST_DEPLOY_POLICY.json');
+  if(fs.existsSync(testPolicyFile)){
+    const testPolicy=readJSON(testPolicyFile);
+    if(testPolicy.enabled===true&&testPolicy.resources?.includes(config.resource)){
+      try{
+        const release=path.join(state,'releases/final-prep-20261101');
+        const inspected=inspectThreeAppDelta({policy:testPolicy,
+          baseline:readJSON(path.join(tool,'../../reports/phase1-20261101/RESOURCE_MANIFEST.json')),
+          reviewed:readJSON(path.join(tool,'../../reports/three-app-20261101/MANIFEST.json')),
+          packageRoot:path.join(release,'update-verify-v3'),
+          zipPath:path.join(release,'FLECITY-THREE-APP-TEST-UPDATE-REVIEW_ONLY-v3.zip')});
+        const plan=inspected.plans.find(p=>p.resource===config.resource);
+        const decision=evaluateTestDeployment({plan,policy:testPolicy,exclusive:false});
+        return {app:config.id,resource:config.resource,status:'BLOCKED',packageState:decision.status,
+          reasons:decision.blockers,warnings:decision.warnings,sourceHash:plan.sourceHash,mutated:false};
+      }catch(e){return {app:config.id,resource:config.resource,status:'BLOCKED',packageState:'REVIEW_ONLY',
+        reasons:['TEST_PACKAGE_OR_TARGET_CHANGED'],mutated:false};}
+    }
+  }
   const profiles=fs.readdirSync(path.join(tool,'projects')).filter(f=>f.endsWith('.json')).map(f=>readJSON(path.join(tool,'projects',f)));
   const peers=profiles.filter(p=>p.resource===config.resource&&p.id!==config.id).map(p=>p.id);
   const enrolled=policy.resources?.[config.resource];

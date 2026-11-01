@@ -18,7 +18,7 @@
 ## 確認用パッケージ
 
 - テストサーバー差分更新案: CSSとWAVE client Luaの2ファイル。設置先固有の残り80ファイルは更新対象外。現行DBや設定を同梱しない。
-- テスト更新確認用ZIP: `.flecity-dev/releases/final-prep-20261101/FLECITY-THREE-APP-TEST-UPDATE-REVIEW_ONLY-v2.zip`、SHA256 `74c0f3ba3f58d19a143a80077fa3ef2ececbdf4774e4dc8d167c9f2533c7e477`。展開後2更新ファイルを照合済み。旧ZIPは検査履歴として保持するが使用しない。
+- この時点のテスト更新確認用ZIP v2は後続の基準SHA再検査でWAVEの旧ファイルSHAに誤りを発見したため**使用禁止**。修正版v3と理由は [後続レポート](../test-deploy-improvement-20261101/RESULT_JA.md)を参照する。
 - 運営向け初回導入案: 固定候補の `flecity_games` から実行45ファイル、WAVEから実行11ファイルを抽出。開発用リロードスクリプト・トークン・ビルド/実行マーカー、テスト・ツール・現行DB/バックアップ・認証情報は除外。共有リソースの `fxmanifest.lua` から除外済みdev reload参照のみ削除。価格・権限・収益設定は未変更。テスト用版表示を維持し、最終提出品とは呼ばない。
 - 初回導入確認用ZIP: `.flecity-dev/releases/final-prep-20261101/FLECITY-LOOP-LINK-WAVE-INITIAL-INSTALL-REVIEW_ONLY-v3.zip`、SHA256 `f643330b6080263eb5b6ff2b8a43a323bdd6de3c2f672d51b9278e1a3857b99a`。展開後60ファイルのSHA照合PASS。最新レポートはZIP外の本書。旧ZIPは検査履歴として保持するが使用しない。
 - 日本語[初回導入](INSTALL_JA.md)、[操作・設定・コマンド](OPERATIONS_JA.md)、[未解決項目](ISSUES_JA.md)、ファイル別SHA一覧を添付。

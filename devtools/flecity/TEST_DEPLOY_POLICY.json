@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "serverRoot": "D:\\FiveM_Test_Server",
+  "enabled": true,
+  "allowConnectedPlayers": true,
+  "interruptionApproved": true,
+  "resources": ["flecity_games", "wave"],
+  "allowedChanges": {
+    "flecity_games": ["web/shared/screen.css"],
+    "wave": ["client/main.lua"]
+  },
+  "packageSha256": "a1c6a8f2834f4e44312f9ae93fb4542268aa349d3f24e3f4d1c6c8631666d4dd",
+  "requires": ["exact target", "full fresh DB and resource backup", "restore verification", "matching tests", "exclusive lease", "authenticated target restart", "post-restart health"],
+  "production": "never",
+  "note": "2026-11-01 user consent applies only to the named test server and interruption of its connected testers. It does not grant a restart credential or bypass backup and data safety gates."
+}

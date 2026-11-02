@@ -76,10 +76,24 @@ for round=1,50 do
  call(party.SetReady,host,{ready=true});call(party.SetReady,guest,{ready=true})
  rematch=call(party.StartRound,host).room
  local token=rematch.roundState.token;assert(token~=lastToken,'rematch reused a round token');lastToken=token
+ if round==25 then
+  local previousGuest=guest
+  party.DropSource(previousGuest)
+  local dropped=call(party.GetRoom,host).room
+  assert(dropped.connectedCount==1 and dropped.players[2].disconnected,'disconnect was not isolated to the guest')
+  guest=91002;ids[guest]=ids[previousGuest]
+  local resumed=call(party.JoinRoom,guest,{code=rematch.code})
+  assert(resumed.reconnected and resumed.room.roundState.token==token,'guest failed to reconnect to running room')
+  call(party.SubmitFallBattle,host,{token=token,history={{x=3,rotation=0,hold=false,t=100}}})
+  rematch=call(party.GetRoom,host).room
+  assert(rematch.roundState.complete and #rematch.roundState.results.entries==2,'disconnect result did not complete')
+  call(party.ReturnLobby,host)
+ else
  call(party.SubmitFallBattle,host,{token=token,history={{x=3,rotation=0,hold=false,t=100}}})
  rematch=call(party.SubmitFallBattle,guest,{token=token,history={{x=3,rotation=0,hold=false,t=100}}}).room
  assert(rematch.roundState.complete and #rematch.roundState.results.entries==2,'rematch result incomplete')
  call(party.ReturnLobby,host)
+ end
 end
 call(party.LeaveRoom,guest);call(party.LeaveRoom,host)
 roomsCount,membersCount=party.DebugCounts();assert(roomsCount==0 and membersCount==0)

@@ -2,6 +2,7 @@ local RESOURCE = GetCurrentResourceName()
 local APP_ID = WaveConfig.App.identifier
 local cacheBust = tostring(GetGameTimer())
 local ownsApp = false
+local phoneAppOpen = false
 local screen = nil
 local pendingReturn = nil
 local lastReturned = nil
@@ -19,29 +20,58 @@ local function closePhoneAndWait()
     local ok = pcall(function() exports['lb-phone']:ToggleOpen(false) end)
     if not ok then return false end
     for _ = 1, 30 do
-        if phoneHidden() then return true end
+        if phoneHidden() then phoneAppOpen = false return true end
         Wait(100)
     end
     -- A partially visible handset may remain after closing; use the documented
     -- LB Phone export before giving the independent NUI mouse focus.
     pcall(function() exports['lb-phone']:SetPhonePartiallyVisible(0) end)
     for _ = 1, 10 do
-        if phoneHidden() then return true end
+        if phoneHidden() then phoneAppOpen = false return true end
         Wait(100)
     end
     return false
 end
 local function restorePhone(lease)
-    pcall(function() exports['lb-phone']:ToggleOpen(true) end)
     CreateThread(function()
-        for _ = 1, 20 do
+        -- OpenApp may open the handset and select its route atomically. Trying
+        -- ToggleOpen first can leave the lock/home route above the custom app.
+        local directOk, directError = pcall(function() exports['lb-phone']:OpenApp(APP_ID) end)
+        if not directOk then print(('[WAVE] direct app return failed: %s'):format(tostring(directError))) end
+        local phoneOpen = false
+        for _ = 1, 8 do
             local ok, open = pcall(function() return exports['lb-phone']:IsOpen() end)
-            if ok and open then break end
+            if ok and open then phoneOpen = true break end
             Wait(100)
         end
-        if pendingReturn and pendingReturn.lease == lease then
-            pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenReturn'}) end)
+        if not phoneOpen then
+            print('[WAVE] app return needs handset open fallback')
+            -- OpenApp can fire onOpen while the handset is still closed. That
+            -- route is not visible; force a new selection after ToggleOpen.
+            phoneAppOpen = false
+            pcall(function() exports['lb-phone']:ToggleOpen(true) end)
+            for _ = 1, 20 do
+                local ok, open = pcall(function() return exports['lb-phone']:IsOpen() end)
+                if ok and open then phoneOpen = true break end
+                Wait(100)
+            end
         end
+        if not phoneOpen or not pendingReturn or pendingReturn.lease ~= lease then return end
+        -- IsOpen becomes true before the handset finishes its opening route.
+        -- Select WAVE after that route settles, then wait for its onOpen event.
+        Wait(500)
+        for attempt = 1, 15 do
+            if not pendingReturn or pendingReturn.lease ~= lease then break end
+            if not phoneAppOpen then
+                local opened, err = pcall(function() exports['lb-phone']:OpenApp(APP_ID) end)
+                if not opened then print(('[WAVE] OpenApp attempt %d failed: %s'):format(attempt, tostring(err))) end
+                Wait(400)
+            else
+                pcall(function() exports['lb-phone']:SendCustomAppMessage(APP_ID, {type='waveScreenReturn'}) end)
+                Wait(350)
+            end
+        end
+        if pendingReturn and pendingReturn.lease == lease then print('[WAVE] phone app return still pending') end
     end)
 end
 
@@ -68,7 +98,16 @@ local function appData()
         price = app.price,
         ui = RESOURCE .. '/' .. app.ui .. '?cb=' .. cacheBust,
         icon = ('https://cfx-nui-%s/%s'):format(RESOURCE, app.icon),
-        fixBlur = app.fixBlur == true
+        fixBlur = app.fixBlur == true,
+        onOpen = function()
+            local ok, open = pcall(function() return exports['lb-phone']:IsOpen() end)
+            phoneAppOpen = ok and open == true
+            if pendingReturn then print(phoneAppOpen and '[WAVE] return app route opened' or '[WAVE] return app route arrived before handset opened') end
+        end,
+        onClose = function()
+            phoneAppOpen = false
+            if pendingReturn then print('[WAVE] return app route closed') end
+        end
     }
 end
 
@@ -176,12 +215,12 @@ RegisterNUICallback('wave:callback', function(data, cb)
     if action:sub(1, 10) == 'waveScreen' then
         if action == 'waveScreenStatus' then return cb({ok=true, owner=screen and 'expanded' or 'phone'}) end
         if action == 'waveScreenClaim' and not expanded then
-            if pendingReturn then return cb({ok=true, state=pendingReturn.state, lease=pendingReturn.lease}) end
-            return cb({ok=true, parked=screen ~= nil})
+            if pendingReturn and phoneAppOpen then return cb({ok=true, state=pendingReturn.state, lease=pendingReturn.lease}) end
+            return cb({ok=true, parked=screen ~= nil or pendingReturn ~= nil})
         end
         if action == 'waveScreenReturned' and not expanded then
             if lastReturned and lastReturned.lease == payload.lease then return cb({ok=true}) end
-            if pendingReturn and pendingReturn.lease == payload.lease then
+            if pendingReturn and phoneAppOpen and pendingReturn.lease == payload.lease then
                 lastReturned = {lease=pendingReturn.lease}
                 pendingReturn = nil
                 return cb({ok=true})
@@ -250,7 +289,9 @@ RegisterNUICallback('wave:callback', function(data, cb)
     end
     if screen then
         if not expanded or data.lease ~= screen.lease or (not screen.ready and action ~= 'bootstrap') then return cb({ok=false, error='APP_SUSPENDED'}) end
-    elseif expanded or pendingReturn then return cb({ok=false, error='APP_SUSPENDED'}) end
+    -- A freshly mounted phone iframe must bootstrap before it can claim the
+    -- pending return. Keep every other phone mutation parked until claim.
+    elseif expanded or (pendingReturn and action ~= 'bootstrap') then return cb({ok=false, error='APP_SUSPENDED'}) end
     if action == 'bridgePing' then
         return cb({ok=true, resource=RESOURCE, lbPhoneState=GetResourceState('lb-phone')})
     end

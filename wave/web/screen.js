@@ -1,7 +1,7 @@
 // A presentation lease keeps the phone and expanded editor from writing at once.
 (()=>{'use strict';
 const params=new URLSearchParams(location.search),expanded=params.get('surface')==='expanded';
-let lease=params.get('lease')||'',phase=expanded?'waiting':'active',busy=false,flight=0,lastImport='';
+let lease=params.get('lease')||'',phase=expanded?'waiting':'active',busy=false,flight=0,lastImport='',claiming=false;
 const toggle=document.getElementById('waveScreenToggle');
 toggle.textContent=expanded?'スマホへ戻る':'大画面で開く';
 document.body.classList.toggle('wave-expanded',expanded);
@@ -44,16 +44,22 @@ async function importState(value,id){
  }
 }
 async function claim(){
+ if(claiming)return;
+ claiming=true;
+ try{
  const reply=await control('waveScreenClaim');
  if(reply?.ok&&reply.state&&reply.lease){
   lease=reply.lease;
+  let booted=await window.WaveBootPromise;
+  if(!booted&&typeof window.WaveBoot==='function')booted=await window.WaveBoot();
+  if(!booted){notice('スマホ画面の起動に失敗しました。もう一度お試しください。');return;}
   const acknowledged=await control('waveScreenReturned');
   if(!acknowledged?.ok)return;
-  await window.WaveBootPromise;
   // The lease is already returned to the phone. Unpark before showView starts
   // its Library/Home callbacks, otherwise the phone rejects them locally.
   setPhase('active');restore(reply.state);notice('');
  }else if(reply?.parked){setPhase('parked');notice('大画面で操作中');}
+ }finally{claiming=false;}
 }
 toggle.addEventListener('click',async()=>{
  if(busy||phase!=='active'||flight||state.publishing){notice('処理が終わってから切り替えてください。');return;}

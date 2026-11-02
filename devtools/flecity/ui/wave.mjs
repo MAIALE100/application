@@ -99,17 +99,35 @@ export async function scenario(ctx,page){
  await page.locator('#waveScreenToggle').click();
  const libraryState=await page.evaluate(()=>globalThis.__waveScreenState);
  const expandedLibrary=await page.context().newPage();
+ let libraryReturn;
  try{
   await expandedLibrary.goto(new URL('index.html?surface=expanded&lease=fixture-wave-1',page.url()).href,{waitUntil:'load'});
   await expandedLibrary.evaluate(value=>window.postMessage({type:'waveScreenImport',lease:'fixture-wave-1',state:value},location.origin),libraryState);
   await expandedLibrary.waitForFunction(()=>WaveScreen.parked===false);
   assert(await expandedLibrary.locator('#view-library').isVisible(),'Library did not transfer to Library');
   await expandedLibrary.locator('#waveScreenToggle').click();
-  const libraryReturn=await expandedLibrary.evaluate(()=>globalThis.__waveScreenState);
+  libraryReturn=await expandedLibrary.evaluate(()=>globalThis.__waveScreenState);
   await page.evaluate(value=>{globalThis.__waveReturnState=value;window.postMessage({type:'waveScreenReturn'},location.origin);},libraryReturn);
   await page.waitForFunction(()=>WaveScreen.parked===false);
   assert(await page.locator('#view-library').isVisible(),'Library did not return to Library');
   await page.waitForTimeout(100);
   assert(!/APP_SUSPENDED/.test(await page.locator('#status').textContent()),'Library callback ran while phone was parked');
  }finally{await expandedLibrary.close();}
+ for(const [view,returnState] of [['studio',saved],['library',libraryReturn]]){
+  const freshPhone=await page.context().newPage();
+  try{
+   await freshPhone.addInitScript(value=>{globalThis.__waveReturnState=value;},returnState);
+   await freshPhone.goto(page.url(),{waitUntil:'load'});
+   await freshPhone.waitForFunction(()=>window.WaveScreen?.parked===false);
+   assert(await freshPhone.locator('#view-'+view).isVisible(),`Fresh LB Phone iframe returned to ${view}`);
+   const calls=await freshPhone.evaluate(()=>globalThis.__waveCalls);
+   assert(calls.indexOf('bootstrap')>=0&&calls.indexOf('bootstrap')<calls.indexOf('waveScreenReturned'),'Return was acknowledged before phone bootstrap');
+   assert(!/APP_SUSPENDED|起動失敗/.test(await freshPhone.locator('#status').textContent()));
+   if(view==='studio'){
+    assert.equal(await freshPhone.locator('#projectTitleInput').inputValue(),'切替中の制作データ');
+    assert.equal(await freshPhone.locator('#bpmInput').inputValue(),'138');
+    assert(await freshPhone.locator('#pianoGrid .step-cell.on').count()>0);
+   }
+  }finally{await freshPhone.close();}
+ }
 }

@@ -59,6 +59,66 @@ export async function jointScenario(ctx,page){
   assert.equal(after.deadlineTimers,1,'LINK Tetris deadline clock was duplicated or stopped by polling');
   assert.equal(after.controls.bindings,initial.controls.bindings,'LINK Tetris keyboard listener multiplied');
   fs.writeFileSync(path.join(ctx.run.dir,'link-tetris-polling.json'),JSON.stringify({cycles:50,initial,after,scope:'Mock NUI room refresh'},null,2)+'\n');
+  const realtimeMs=Number(process.env.FLECITY_LINK_TETRIS_REALTIME_MS||0);
+  if(realtimeMs>=10000){
+   const cdp=await page.context().newCDPSession(page);
+   const heap=async()=>{try{return (await cdp.send('Runtime.getHeapUsage')).usedSize;}catch{return null;}};
+   const browserHeapBefore=await heap();
+   const stress=await page.evaluate(async ({config,room,durationMs})=>{
+    const originalCall=FlecityBridge.call;
+    const transport={calls:0,bytes:0,submissions:0,maxPayloadBytes:0};
+    FlecityBridge.call=async(action,payload)=>{
+     if(action.startsWith('party')){
+      const bytes=JSON.stringify(payload||{}).length;transport.calls++;transport.bytes+=bytes;
+      transport.maxPayloadBytes=Math.max(transport.maxPayloadBytes,bytes);
+     }
+     if(action==='partySubmitFallBattle'){transport.submissions++;return {ok:true};}
+     return originalCall(action,payload);
+    };
+    let rounds=0,drops=0,keys=0,frameCount=0,frameMeanMs=0,frameMaxMs=0,lastFrame=0;
+    let clickCount=0,clickMeanMs=0,clickMaxMs=0,middle=null;
+    const frame=now=>{if(lastFrame){const ms=now-lastFrame;frameCount++;frameMeanMs+=(ms-frameMeanMs)/frameCount;frameMaxMs=Math.max(frameMaxMs,ms);}lastFrame=now;frameId=requestAnimationFrame(frame);};
+    let frameId=requestAnimationFrame(frame);
+    const sample=()=>({at:Date.now(),metrics:FlecityBattleTetrisPerf(),frameCount,frameMeanMs,frameMaxMs,
+     clickCount,clickMeanMs,clickMaxMs,transport:{...transport}});
+    const start=()=>{
+     rounds++;const tick=100000+rounds*100000;
+     __jointRender(config,{...room,revision:(room.revision||0)+rounds,serverTick:tick,
+      roundState:{...room.roundState,token:'stress-'+rounds,startedTick:tick,deadlineTick:tick+90000}});
+    };
+    try{
+     for(let cycle=0;cycle<50;cycle++){
+      start();if(FlecityBattleTetrisPerf().gravityTimers!==1)throw Error('Gravity clock missing after restart');
+      PartyFallBattle.hide();if(FlecityBattleTetrisPerf().gravityTimers!==0)throw Error('Gravity clock leaked after exit');
+     }
+     start();const before=sample();let tickNo=0;
+     await new Promise(resolve=>{
+      const begun=Date.now();const clock=setInterval(()=>{
+       const elapsed=Date.now()-begun;
+       if(!middle&&elapsed>=durationMs/2)middle=sample();
+       if(elapsed>=durationMs){clearInterval(clock);resolve();return;}
+       const drop=document.getElementById('fallBattleDrop');
+       if(!drop||drop.disabled){start();return;}
+       tickNo++;
+       const key=['a','ArrowRight','w','ArrowDown','c','Shift','d','ArrowLeft',' ','s'][tickNo%10];
+       const code=key===' '?'Space':key.length===1?'Key'+key.toUpperCase():key;
+       document.dispatchEvent(new KeyboardEvent('keydown',{key,code,bubbles:true}));
+       document.dispatchEvent(new KeyboardEvent('keyup',{key,code,bubbles:true}));keys++;
+       const begunClick=performance.now();drop.click();const clickMs=performance.now()-begunClick;
+       clickCount++;clickMeanMs+=(clickMs-clickMeanMs)/clickCount;clickMaxMs=Math.max(clickMaxMs,clickMs);drops++;
+      },250);
+     });
+     PartyFallBattle.hide();const after=sample();
+     return {durationMs,rounds,drops,keys,before,middle,after,scope:'Mock browser NUI; no real FiveM clients or AI opponent'};
+    }finally{cancelAnimationFrame(frameId);FlecityBridge.call=originalCall;PartyFallBattle.hide();}
+   },{config:ctx.joint.config,room:fallBattle.views[0],durationMs:realtimeMs});
+   stress.browserHeapBytes={before:browserHeapBefore,after:await heap()};
+   fs.writeFileSync(path.join(ctx.run.dir,'link-tetris-longrun.json'),JSON.stringify(stress,null,2)+'\n');
+   assert(stress.rounds>=50&&stress.drops>Math.floor(realtimeMs/5000),'LINK Tetris stalled during stress');
+   assert.equal(stress.after.metrics.gravityTimers,0,'Gravity timer leaked after long run');
+   assert.equal(stress.after.metrics.deadlineTimers,0,'Deadline timer leaked after long run');
+   assert.equal(stress.after.metrics.controls.bindings,stress.before.metrics.controls.bindings,'Keyboard bindings multiplied during long run');
+  }
  }
  const telephone=ctx.joint.games.find(g=>g.id==='telephone');
  assert.equal(telephone.players,6);

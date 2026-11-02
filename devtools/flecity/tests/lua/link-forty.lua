@@ -35,6 +35,20 @@ for _,room in ipairs(rooms)do
   if not view.roundState.isExplainer then assert(view.roundState.forbiddenWords==nil) end
  end
 end
+local fallSubmissions=0
+for _,room in ipairs(rooms)do
+ if room.gameId=='fall_battle' then
+  for n=1,4 do
+   local source=actors[room.base+n]
+   local result=call(party.SubmitFallBattle,source,{token=room.token,history={{x=3,rotation=0,hold=false,t=100}}}).room
+   fallSubmissions=fallSubmissions+1
+   assert(result.roundState.submittedCount==n,'opponent submission count must synchronize')
+   local opponent=call(party.GetRoom,actors[room.base+(n%4)+1]).room.roundState
+   assert(opponent.submittedCount==n and opponent.history==nil,'private replay leaked or count drifted')
+   if n==4 then assert(result.roundState.complete and #result.roundState.results.entries==4)end
+  end
+ end
+end
 local roomsCount,membersCount=party.DebugCounts();assert(roomsCount==roomTotal and membersCount==players)
 local peakKb=collectgarbage('count')
 for _,room in ipairs(rooms)do for n=4,1,-1 do call(party.LeaveRoom,actors[room.base+n])end end
@@ -53,5 +67,21 @@ end
 roomsCount,membersCount=party.DebugCounts();assert(roomsCount==4 and membersCount==16)
 for roomIndex=1,4 do local room=rooms[roomIndex];call(party.LeaveRoom,room.guest);call(party.LeaveRoom,room.host)end
 roomsCount,membersCount=party.DebugCounts();assert(roomsCount==0 and membersCount==0)
+local host,guest=actors[1],actors[2]
+local rematch=call(party.CreateRoom,host).room
+call(party.SelectGame,host,{gameId='fall_battle'})
+call(party.JoinRoom,guest,{code=rematch.code})
+local lastToken=nil
+for round=1,50 do
+ call(party.SetReady,host,{ready=true});call(party.SetReady,guest,{ready=true})
+ rematch=call(party.StartRound,host).room
+ local token=rematch.roundState.token;assert(token~=lastToken,'rematch reused a round token');lastToken=token
+ call(party.SubmitFallBattle,host,{token=token,history={{x=3,rotation=0,hold=false,t=100}}})
+ rematch=call(party.SubmitFallBattle,guest,{token=token,history={{x=3,rotation=0,hold=false,t=100}}}).room
+ assert(rematch.roundState.complete and #rematch.roundState.results.entries==2,'rematch result incomplete')
+ call(party.ReturnLobby,host)
+end
+call(party.LeaveRoom,guest);call(party.LeaveRoom,host)
+roomsCount,membersCount=party.DebugCounts();assert(roomsCount==0 and membersCount==0)
 collectgarbage('collect')
-print(('PASS virtual_players=%d rooms=%d ai_rooms=4 ai_members=8 cleanup_rooms=0 cleanup_members=0 peak_lua_kb=%.0f retained_lua_kb=%.0f elapsed_cpu_ms=%.1f scope=Lua_mock_not_FiveM_clients'):format(players,roomTotal,peakKb,collectgarbage('count')-initialKb,(os.clock()-started)*1000))
+print(('PASS virtual_players=%d rooms=%d fall_submissions=%d rematches=50 ai_rooms=4 ai_members=8 cleanup_rooms=0 cleanup_members=0 peak_lua_kb=%.0f retained_lua_kb=%.0f elapsed_cpu_ms=%.1f scope=Lua_mock_not_FiveM_clients'):format(players,roomTotal,fallSubmissions,peakKb,collectgarbage('count')-initialKb,(os.clock()-started)*1000))

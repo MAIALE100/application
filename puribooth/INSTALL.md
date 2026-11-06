@@ -1,4 +1,4 @@
-# FLEPURI v1.0.6 導入手順
+# FLEPURI v1.0.7 導入手順
 
 ## 1. FLEPURI本体
 
@@ -12,7 +12,7 @@ resources/[flecity]/puribooth/
 
 ## 2. PuriPhoto互換性
 
-FLEPURI v1.0.6 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
+FLEPURI v1.0.7 は **PuriPhoto 1.1.0+** に加えて、FLEPURI booth-import bridgeがproduction UIへ入っていることを要求します。
 
 提出互換版は **PuriPhoto v1.1.1** です。
 
@@ -56,6 +56,10 @@ Weazel所属者に加えて、既定ではACE `group.admin` / `group.god` を持
 Config.Management.job = "weazel"
 ```
 
+### Routing bucket
+
+設置済み台は既存DB形式のまま維持され、追加の列やマイグレーションはありません。既定の `Config.BoothRoutingBucket = 0` では、台の利用・撮影セッション・テーマ・カウントダウン・管理操作をrouting bucket 0に限定します。別instanceで同じ座標にいる利用者は台の操作や進行中セッションに干渉できません。値を変更する場合は全台がそのbucketに属する運用として扱われます。台ごとのbucket分離はこの版では対応していません。
+
 設定可能:
 
 - placeMinGrade
@@ -69,7 +73,7 @@ Config.Management.job = "weazel"
 
 ## 6. 売上回収
 
-既定ではRenewed-Bankingの `weazel` 会社口座へ入金します。
+既定ではRenewed-Bankingの `weazel` 会社口座へ入金します。環境ごとの銀行resource名・job名・口座名は独立して指定します。
 
 ```lua
 Config.Payout = {
@@ -83,9 +87,28 @@ Config.Payout = {
 
 selftestはRenewed-Bankingの起動だけでなく、`weazel` 口座が実際に取得できることも確認します。
 
+運営側がokokBankingV2を使う環境では、`GetAccount` / `AddMoney` は `okokBanking`、取引履歴 `AddTransaction` は公式ドキュメント上 `okokBankingV2` の別exportです。導入版で異なる場合は実在するexport名に合わせて `transactionResource` を明示してください。job名は `reporter` など設置環境に合わせます。口座IDはjob名と同一とは限らないため、既存口座名を確認して `Config.Payout.account` に明示します。
+
+API参照: https://docs.okokscripts.io/scripts/okokbankingv2/exports
+
+```lua
+Config.Management.job = "reporter"
+Config.Management.ace = "admin"
+Config.Payout = {
+    enabled = true,
+    mode = "okok-banking",
+    resource = "okokBanking",
+    transactionResource = "okokBankingV2",
+    account = "<既存の会社口座ID>",
+    transactionTitle = "FLEPURI売上"
+}
+```
+
+この例の口座IDとexport名は環境依存です。実際の値と `AddMoney` の成功戻り値が確認できるまでは設定・テスト回収をしないでください。成功を `true` で確認できない場合、実装は `paying` のまま保守照合へ回し、二重送金を避けます。
+
 `/puribooth collect all` / `/puribooth collect <台ID>` は、QBoxのWeazel job定義から最上位gradeを動的に判定し、そのオーナーgradeだけに許可します。
 
-回収時は会社口座残高へ加算し、銀行取引履歴にもFLEPURI売上として記録します。残高加算に失敗した場合は、確保した未回収売上を各台へ戻します。
+回収時は会社口座残高へ加算し、可能な場合は銀行取引履歴にもFLEPURI売上として記録します。銀行側が明確な失敗を返した場合は、確保した未回収売上を各台へ戻します。銀行呼び出しが例外終了して結果不明の場合は `paying` のまま保持し、残高を戻したり再送金したりしません。銀行履歴を照合して保守コマンドで確定してください。
 
 ## 7. フォント
 
@@ -157,4 +180,4 @@ puribooth_collection_review <collection_id> <paid|notpaid>
 `pending` 返金は通常60秒ごとに自動再試行されます。
 `processing` は「QBoxへの返金呼び出し後、DB確定前に異常終了した可能性」があるため、自動再試行せず手動照合してください。
 
-会社売上回収の `paying` も銀行呼び出し結果が不明な状態です。Renewed-Bankingの履歴を確認して `puribooth_collection_review <collection_id> <paid|notpaid>` で確定します。`finalizing` / `restoring` は `puribooth_collection_retry <collection_id>` で銀行へ再送金せずDB処理だけを再試行できます。
+会社売上回収の `paying` も銀行呼び出し結果が不明な状態です。利用中の銀行履歴を確認して `puribooth_collection_review <collection_id> <paid|notpaid>` で確定します。`finalizing` / `restoring` / `finalizing_retry` / `restoring_retry` は `puribooth_collection_retry <collection_id>` で銀行へ再送金せずDB処理だけを再試行できます。回復中の同じコマンドや、新しい回収との同時実行は拒否されます。

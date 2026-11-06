@@ -8,14 +8,56 @@ local themeSerial = 0
 local sessionSerial = 0
 local collectionSerial = 0
 local collectionProcessRunning = false
+local collectionRecoveryRunning = false
 local refundRetryRunning = false
 local puriphotoUiCache = nil
 local clearThemeRecipients
 local devRuntimeManagementJobCreated = false
 local devManagementAssignments = {}
 
+local function safeAuditDetail(value)
+    local detail = tostring(value or "")
+    if #detail > 255 then
+        detail = detail:sub(1, 255)
+    end
+    return detail
+end
+
 local function notify(source, kind, message)
     TriggerClientEvent("puribooth:client:notify", source, kind, message)
+end
+
+local function currentRoutingBucket(source)
+    if type(GetPlayerRoutingBucket) ~= "function" then return nil end
+
+    local ok, bucket = pcall(GetPlayerRoutingBucket, source)
+    if not ok then return nil end
+    return tonumber(bucket)
+end
+
+local function configuredRoutingBucket()
+    return math.floor(tonumber(Config.BoothRoutingBucket) or 0)
+end
+
+local function playerInBoothBucket(source, booth)
+    if source == 0 then return true end
+
+    local bucket = currentRoutingBucket(source)
+    local expected = math.floor(
+        tonumber(booth and booth.routingBucket) or configuredRoutingBucket()
+    )
+    return bucket ~= nil and bucket == expected
+end
+
+local function playerInSessionBucket(source, session, booth)
+    if source == 0 then return true end
+
+    local bucket = currentRoutingBucket(source)
+    local sessionBucket = tonumber(session and session.routingBucket)
+    return bucket ~= nil
+        and sessionBucket ~= nil
+        and bucket == sessionBucket
+        and playerInBoothBucket(source, booth)
 end
 
 local function versionParts(value)
@@ -365,6 +407,11 @@ local function requireCollectionOwnerAccess(source)
         return false
     end
 
+    if not playerInBoothBucket(source) then
+        notify(source, "error", "フレプリ台の管理は設定されたrouting bucket内で行ってください。")
+        return false
+    end
+
     if GetResourceState("qbx_core") ~= "started" then
         notify(source, "error", "QBoxを確認できないため売上回収を停止しました。")
         return false
@@ -416,6 +463,11 @@ local function requireCollectionOwnerAccess(source)
 end
 
 local function requireManagementAccess(source, action)
+    if source ~= 0 and not playerInBoothBucket(source) then
+        notify(source, "error", "フレプリ台の管理は設定されたrouting bucket内で行ってください。")
+        return false
+    end
+
     if hasManagementAccess(source, action) then
         return true
     end
@@ -506,11 +558,21 @@ local function broadcastState(boothId)
     boothId = tostring(boothId)
     local session = sessions[boothId]
 
-    TriggerClientEvent("puribooth:client:sessionState", -1, boothId, session and {
+    local payload = session and {
         owner = session.owner,
         capturing = session.capturing,
         expiresAt = session.expiresAt
-    } or false)
+    } or false
+    local bucket = math.floor(
+        tonumber(session and session.routingBucket) or configuredRoutingBucket()
+    )
+
+    for _, playerIdText in ipairs(GetPlayers()) do
+        local playerId = tonumber(playerIdText)
+        if playerId and currentRoutingBucket(playerId) == bucket then
+            TriggerClientEvent("puribooth:client:sessionState", playerId, boothId, payload)
+        end
+    end
 end
 
 local function releaseSession(boothId)
@@ -525,7 +587,7 @@ end
 
 local function playerNearBooth(source, booth, maxDistance)
     local ped = GetPlayerPed(source)
-    if not ped or ped <= 0 or not booth then return false end
+    if not ped or ped <= 0 or not booth or not playerInBoothBucket(source, booth) then return false end
 
     local coords = GetEntityCoords(ped)
     local boothCoords = vector3(booth.coords.x, booth.coords.y, booth.coords.z)
@@ -555,7 +617,7 @@ end
 
 local function playerNearCapture(source, booth, maxDistance)
     local ped = GetPlayerPed(source)
-    if not ped or ped <= 0 or not booth then return false end
+    if not ped or ped <= 0 or not booth or not playerInBoothBucket(source, booth) then return false end
 
     local center = captureCenterForBooth(booth)
     if not center then return false end
@@ -568,9 +630,13 @@ local function relevantBoothForPlayer(source, capturingOnly)
     local ped = GetPlayerPed(source)
     if not ped or ped <= 0 then return nil end
 
+    local playerBucket = currentRoutingBucket(source)
+    if playerBucket == nil then return nil end
+
     -- A payer always belongs to their own active booth.
     for boothId, session in pairs(sessions) do
         if session.owner == source
+            and tonumber(session.routingBucket) == playerBucket
             and (not capturingOnly or session.capturing) then
             return tostring(boothId)
         end
@@ -586,8 +652,10 @@ local function relevantBoothForPlayer(source, capturingOnly)
     local bestDistance = nil
 
     for boothId, session in pairs(sessions) do
-        if not capturingOnly or session.capturing then
-            local booth = getBooth(boothId)
+        local booth = getBooth(boothId)
+        if booth
+            and playerInSessionBucket(source, session, booth)
+            and (not capturingOnly or session.capturing) then
             local center = booth and captureCenterForBooth(booth)
 
             if center then
@@ -671,6 +739,7 @@ local function syncThemeToNearby(boothId, session)
         local playerId = tonumber(playerIdText)
 
         if playerId
+            and playerInSessionBucket(playerId, session, booth)
             and playerNearCapture(playerId, booth, syncDistance)
             and relevantBoothForPlayer(playerId, false) == tostring(boothId) then
 
@@ -873,11 +942,14 @@ RegisterNetEvent("puribooth:server:requestSync", function()
     broadcastBooths(source)
 
     for boothId, session in pairs(sessions) do
-        TriggerClientEvent("puribooth:client:sessionState", source, boothId, {
-            owner = session.owner,
-            capturing = session.capturing,
-            expiresAt = session.expiresAt
-        })
+        local booth = getBooth(boothId)
+        if booth and playerInSessionBucket(source, session, booth) then
+            TriggerClientEvent("puribooth:client:sessionState", source, boothId, {
+                owner = session.owner,
+                capturing = session.capturing,
+                expiresAt = session.expiresAt
+            })
+        end
     end
 end)
 
@@ -885,12 +957,18 @@ local function nearestBooth(source, maxDistance)
     local ped = GetPlayerPed(source)
     if not ped or ped <= 0 then return nil end
 
+    local playerBucket = currentRoutingBucket(source)
+    if playerBucket == nil then return nil end
+
     local coords = GetEntityCoords(ped)
     local nearestId = nil
     local nearest = nil
     local nearestDistance = tonumber(maxDistance) or 6.0
 
     for boothId, booth in pairs(booths) do
+        local boothBucket = math.floor(
+            tonumber(booth.routingBucket) or configuredRoutingBucket()
+        )
         local distance =
             #(coords - vector3(
                 booth.coords.x,
@@ -898,7 +976,7 @@ local function nearestBooth(source, maxDistance)
                 booth.coords.z
             ))
 
-        if distance <= nearestDistance then
+        if playerBucket == boothBucket and distance <= nearestDistance then
             nearestId = tostring(boothId)
             nearest = booth
             nearestDistance = distance
@@ -948,12 +1026,25 @@ local function addCompanyMoney(source, amount)
             or "weazel"
         )
 
+        local accountOk, accountBalance = pcall(function()
+            return exports[resource]:getAccountMoney(account)
+        end)
+        if not accountOk or accountBalance == false or accountBalance == nil then
+            return false, "Renewed-Bankingの会社口座を確認できません。"
+        end
+
         local ok, result = pcall(function()
             return exports[resource]:addAccountMoney(account, amount)
         end)
 
-        if not ok or result == false then
+        if not ok then
+            return nil, account
+        end
+        if result == false then
             return false, "会社口座への入金に失敗しました。"
+        end
+        if result ~= true then
+            return nil, account
         end
 
         local title = tostring(
@@ -983,16 +1074,78 @@ local function addCompanyMoney(source, amount)
         return true, account
     end
 
-    if mode == "player-bank" then
-        local added = exports.qbx_core:AddMoney(
-            source,
-            "bank",
-            amount,
-            "puribooth-sales-collection"
+    if mode == "okok-banking" then
+        local resource = tostring(payout.resource or "okokBanking")
+        if GetResourceState(resource) ~= "started" then
+            return false, ("%s が起動していません。"):format(resource)
+        end
+
+        local account = tostring(
+            payout.account
+            or ((Config.Management or {}).job)
+            or "weazel"
         )
 
-        if not added then
+        local accountOk, accountData = pcall(function()
+            return exports[resource]:GetAccount(account)
+        end)
+        if not accountOk or accountData == nil or accountData == false then
+            return false, "okokBankingの会社口座を確認できません。"
+        end
+
+        local payoutOk, result = pcall(function()
+            return exports[resource]:AddMoney(account, amount)
+        end)
+        if not payoutOk then
+            return nil, account
+        end
+        if result ~= true then
+            -- The official API documents AddMoney but not its return contract.
+            -- Do not guess whether nil means paid; retain `paying` for review.
+            return nil, account
+        end
+
+        local title = tostring(payout.transactionTitle or "FLEPURI売上")
+        local historyResource = tostring(payout.transactionResource or resource)
+        local historyOk, historyResult = pcall(function()
+            return exports[historyResource]:AddTransaction(account, {
+                sender_identifier = "FLEPURI",
+                sender_name = "FLEPURI",
+                receiver_identifier = account,
+                receiver_name = account,
+                value = amount,
+                type = "deposit",
+                reason = title
+            }, source)
+        end)
+        if not historyOk or historyResult == false then
+            print(
+                ("[puribooth] WARN payout succeeded but %s transaction history failed account=%s amount=%d")
+                    :format(historyResource, account, amount)
+            )
+        end
+
+        return true, account
+    end
+
+    if mode == "player-bank" then
+        local callOk, added = pcall(function()
+            return exports.qbx_core:AddMoney(
+                source,
+                "bank",
+                amount,
+                "puribooth-sales-collection"
+            )
+        end)
+
+        if not callOk then
+            return nil, "player-bank"
+        end
+        if added == false then
             return false, "回収者の銀行口座へ入金できませんでした。"
+        end
+        if added ~= true then
+            return nil, "player-bank"
         end
 
         return true, "player-bank"
@@ -1177,6 +1330,134 @@ local function transitionCollection(collectionId, fromStatus, toStatus, errorTex
     return affected and affected > 0
 end
 
+local function claimCollectionRetry(collectionId, fromStatus, toStatus, previousError)
+    local token = safeAuditDetail(("recovery:%s"):format(nextCollectionId(0)))
+    local affected = MySQL.update.await([[
+        UPDATE puribooth_collections
+        SET
+            status = ?,
+            last_error = ?
+        WHERE collection_id = ?
+          AND status = ?
+          AND last_error <=> ?
+    ]], {
+        tostring(toStatus),
+        token,
+        tostring(collectionId),
+        tostring(fromStatus),
+        previousError
+    })
+
+    if not affected or affected < 1 then
+        return nil
+    end
+
+    return token
+end
+
+local function retryCollectionFinalize(collectionId, claimed, token)
+    local queries = {}
+
+    for _, item in ipairs(claimed or {}) do
+        queries[#queries + 1] = {
+            query = [[
+                UPDATE puribooth_booths
+                SET
+                    collected_total = collected_total + ?,
+                    last_collected_at = NOW()
+                WHERE id = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM puribooth_collections
+                      WHERE collection_id = ?
+                        AND status = 'finalizing_retry'
+                        AND last_error = ?
+                  )
+            ]],
+            values = { item.amount, item.id, tostring(collectionId), token }
+        }
+    end
+
+    queries[#queries + 1] = {
+        query = [[
+            UPDATE puribooth_collections
+            SET status = 'resolved', last_error = NULL, resolved_at = NOW()
+            WHERE collection_id = ?
+              AND status = 'finalizing_retry'
+              AND last_error = ?
+        ]],
+        values = { tostring(collectionId), token }
+    }
+
+    if not collectionTransaction(queries) then
+        return false
+    end
+
+    local row = MySQL.single.await([[
+        SELECT status FROM puribooth_collections WHERE collection_id = ? LIMIT 1
+    ]], { tostring(collectionId) })
+    return row and tostring(row.status or "") == "resolved"
+end
+
+local function retryCollectionRestore(collectionId, claimed, token)
+    local queries = {}
+
+    for _, item in ipairs(claimed or {}) do
+        queries[#queries + 1] = {
+            query = [[
+                UPDATE puribooth_booths
+                SET balance = balance + ?
+                WHERE id = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM puribooth_collections
+                      WHERE collection_id = ?
+                        AND status = 'restoring_retry'
+                        AND last_error = ?
+                  )
+            ]],
+            values = { item.amount, item.id, tostring(collectionId), token }
+        }
+    end
+
+    queries[#queries + 1] = {
+        query = [[
+            UPDATE puribooth_collections
+            SET status = 'rolled_back', last_error = NULL, resolved_at = NOW()
+            WHERE collection_id = ?
+              AND status = 'restoring_retry'
+              AND last_error = ?
+        ]],
+        values = { tostring(collectionId), token }
+    }
+
+    if not collectionTransaction(queries) then
+        return false
+    end
+
+    local row = MySQL.single.await([[
+        SELECT status FROM puribooth_collections WHERE collection_id = ? LIMIT 1
+    ]], { tostring(collectionId) })
+    return row and tostring(row.status or "") == "rolled_back"
+end
+
+local function withCollectionRecovery(callback)
+    if collectionProcessRunning or collectionRecoveryRunning then
+        print("[puribooth] another collection operation is active; recovery command stopped")
+        return false
+    end
+
+    collectionRecoveryRunning = true
+    local ok, err = xpcall(callback, debug.traceback)
+    collectionRecoveryRunning = false
+
+    if not ok then
+        print(("[puribooth] ERROR collection recovery failed: %s"):format(tostring(err)))
+    end
+
+    return ok
+end
+
 local function finalizeCollection(collectionId, claimed)
     local queries = collectionFinalizeQueries(claimed)
     queries[#queries + 1] = {
@@ -1212,7 +1493,7 @@ local function restoreCollection(collectionId, claimed)
 end
 
 local function collectSales(source, target)
-    if collectionProcessRunning then
+    if collectionProcessRunning or collectionRecoveryRunning then
         notify(source, "error", "別の売上回収処理が進行中です。")
         return
     end
@@ -1396,6 +1677,21 @@ local function collectSales(source, target)
         end
 
         local paid, destination = addCompanyMoney(source, total)
+
+        if paid == nil then
+            clearCollectionLocks(claimed, collectionId)
+            print(
+                ("[puribooth] CRITICAL collection bank outcome is ambiguous id=%s amount=%d account=%s; keep paying for manual review")
+                    :format(collectionId, total, tostring(destination or "?"))
+            )
+            notify(
+                source,
+                "error",
+                ("会社口座への処理結果を確認できません。再回収せず銀行履歴を確認してください。collection_id=%s")
+                    :format(collectionId)
+            )
+            return
+        end
 
         if not paid then
             local moved = transitionCollection(
@@ -1793,14 +2089,6 @@ local function nextSessionId(source, boothId)
             tostring(boothId or "0"),
             sessionSerial
         )
-end
-
-local function safeAuditDetail(value)
-    local detail = tostring(value or "")
-    if #detail > 255 then
-        detail = detail:sub(1, 255)
-    end
-    return detail
 end
 
 local function beginSettlement(session, kind)
@@ -2440,6 +2728,7 @@ RegisterNetEvent("puribooth:server:startSession", function(boothId)
         sessionId = sessionId,
         boothId = tonumber(boothId),
         owner = source,
+        routingBucket = currentRoutingBucket(source),
         refundIdentifier = citizenid,
         paid = price,
         moneyType = paidWith or "cash",
@@ -2499,7 +2788,8 @@ RegisterNetEvent("puribooth:server:setTheme", function(boothId, theme)
     local session = sessions[boothId]
     local booth = getBooth(boothId)
 
-    if not session or not booth or session.owner ~= source then return end
+    if not session or not booth or session.owner ~= source
+        or not playerInSessionBucket(source, session, booth) then return end
     if session.capturing then return end
     if not playerNearBooth(source, booth, 12.0) then return end
     if type(theme) ~= "table" then return end
@@ -2549,7 +2839,8 @@ RegisterNetEvent("puribooth:server:beginCapture", function(boothId)
     local booth = getBooth(boothId)
     local session = sessions[boothId]
 
-    if not booth or not session or session.owner ~= source then return end
+    if not booth or not session or session.owner ~= source
+        or not playerInSessionBucket(source, session, booth) then return end
     if session.capturing then return end
 
     if session.expiresAt <= os.time() then
@@ -2597,7 +2888,9 @@ RegisterNetEvent("puribooth:server:announceCountdown", function(boothId, shotInd
     boothId = tostring(boothId)
 
     local session = sessions[boothId]
-    if not session or session.owner ~= source or not session.capturing then return end
+    local booth = getBooth(boothId)
+    if not session or not booth or session.owner ~= source or not session.capturing
+        or not playerInSessionBucket(source, session, booth) then return end
 
     shotIndex = math.max(
         1,
@@ -2657,7 +2950,9 @@ RegisterNetEvent("puribooth:server:captureComplete", function(boothId)
     boothId = tostring(boothId)
 
     local session = sessions[boothId]
-    if not session or session.owner ~= source or not session.capturing then return end
+    local booth = getBooth(boothId)
+    if not session or not booth or session.owner ~= source or not session.capturing
+        or not playerInSessionBucket(source, session, booth) then return end
 
     local requiredShots =
         math.max(1, math.floor(tonumber(Config.ShotCount) or 4))
@@ -2711,7 +3006,9 @@ RegisterNetEvent("puribooth:server:cancelSession", function(boothId)
     boothId = tostring(boothId)
 
     local session = sessions[boothId]
-    if not session or session.owner ~= source then return end
+    local booth = getBooth(boothId)
+    if not session or not booth or session.owner ~= source
+        or not playerInSessionBucket(source, session, booth) then return end
 
     if not beginSettlement(session, "cancel-session") then
         return
@@ -2778,7 +3075,9 @@ RegisterNetEvent("puribooth:server:finishSession", function(boothId)
     boothId = tostring(boothId)
 
     local session = sessions[boothId]
-    if not session or session.owner ~= source then return end
+    local booth = getBooth(boothId)
+    if not session or not booth or session.owner ~= source
+        or not playerInSessionBucket(source, session, booth) then return end
 
     print(
         ("[puribooth] WARN ignored unexpected finishSession source=%s booth=%s phase=%s")
@@ -2802,7 +3101,9 @@ RegisterNetEvent("puribooth:server:technicalFailure", function(boothId)
     boothId = tostring(boothId)
 
     local session = sessions[boothId]
-    if not session or session.owner ~= source or not session.capturing then return end
+    local booth = getBooth(boothId)
+    if not session or not booth or session.owner ~= source or not session.capturing
+        or not playerInSessionBucket(source, session, booth) then return end
 
     if not beginSettlement(session, "technical-failure") then
         return
@@ -3320,6 +3621,32 @@ local function payoutState()
             :format(account, tostring(balance))
     end
 
+    if mode == "okok-banking" then
+        local resource = tostring(payout.resource or "okokBanking")
+        if GetResourceState(resource) ~= "started" then
+            return ("FAIL(%s=%s)")
+                :format(resource, GetResourceState(resource))
+        end
+
+        local account = tostring(
+            payout.account
+            or ((Config.Management or {}).job)
+            or ""
+        )
+        if account == "" then
+            return "FAIL(account=empty)"
+        end
+
+        local ok, accountData = pcall(function()
+            return exports[resource]:GetAccount(account)
+        end)
+        if not ok or accountData == nil or accountData == false then
+            return ("FAIL(account=%s)"):format(account)
+        end
+
+        return ("PASS(%s)"):format(account)
+    end
+
     return "FAIL(mode=" .. mode .. ")"
 end
 
@@ -3755,117 +4082,147 @@ RegisterCommand("puribooth_collection_retry", function(source, args)
         return
     end
 
-    local collectionId = tostring(args[1] or "")
-    if collectionId == "" then
-        print("[puribooth] usage: puribooth_collection_retry <collection_id>")
-        return
-    end
+    withCollectionRecovery(function()
+        local collectionId = tostring(args[1] or "")
+        if collectionId == "" then
+            print("[puribooth] usage: puribooth_collection_retry <collection_id>")
+            return
+        end
 
-    local row = MySQL.single.await([[
-        SELECT collection_id, status, allocations
-        FROM puribooth_collections
-        WHERE collection_id = ?
-        LIMIT 1
-    ]], { collectionId })
-
-    if not row then
-        print(("[puribooth] collection not found: %s"):format(collectionId))
-        return
-    end
-
-    local status = tostring(row.status or "")
-    local claimed = decodeCollectionAllocations(row.allocations)
-
-    if status == "preparing" then
-        local updated = MySQL.update.await([[
-            UPDATE puribooth_collections
-            SET
-                status = 'rolled_back',
-                last_error = 'manual-cleanup-preparing',
-                resolved_at = NOW()
-            WHERE collection_id = ? AND status = 'preparing'
+        local row = MySQL.single.await([[
+            SELECT collection_id, status, allocations, last_error
+            FROM puribooth_collections
+            WHERE collection_id = ?
+            LIMIT 1
         ]], { collectionId })
 
-        print(
-            updated and updated > 0
-                and ("[puribooth] collection preparing row closed: %s"):format(collectionId)
-                or ("[puribooth] collection preparing cleanup failed: %s"):format(collectionId)
-        )
-        return
-    end
-
-    if not claimed then
-        print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
-        return
-    end
-
-    if status == "claimed" then
-        if not transitionCollection(
-            collectionId,
-            "claimed",
-            "restoring",
-            "manual-recovery-before-payout"
-        ) then
-            print(("[puribooth] collection claim recovery lock failed: %s"):format(collectionId))
+        if not row then
+            print(("[puribooth] collection not found: %s"):format(collectionId))
             return
         end
-        status = "restoring"
-    elseif status == "paid_unfinalized" then
-        if not transitionCollection(
-            collectionId,
-            "paid_unfinalized",
-            "finalizing",
-            "legacy-recovery"
-        ) then
-            print(("[puribooth] collection legacy finalize lock failed: %s"):format(collectionId))
+
+        local status = tostring(row.status or "")
+        local previousError = row.last_error
+        local claimed = decodeCollectionAllocations(row.allocations)
+
+        if status == "preparing" then
+            local updated = MySQL.update.await([[
+                UPDATE puribooth_collections
+                SET
+                    status = 'rolled_back',
+                    last_error = 'manual-cleanup-preparing',
+                    resolved_at = NOW()
+                WHERE collection_id = ?
+                  AND status = 'preparing'
+                  AND last_error <=> ?
+            ]], { collectionId, previousError })
+
+            print(
+                updated and updated > 0
+                    and ("[puribooth] collection preparing row closed: %s"):format(collectionId)
+                    or ("[puribooth] collection preparing cleanup failed: %s"):format(collectionId)
+            )
             return
         end
-        status = "finalizing"
-    elseif status == "rollback_failed" then
-        if not transitionCollection(
-            collectionId,
-            "rollback_failed",
-            "restoring",
-            "legacy-recovery"
-        ) then
-            print(("[puribooth] collection legacy restore lock failed: %s"):format(collectionId))
+
+        if not claimed then
+            print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
             return
         end
-        status = "restoring"
-    end
 
-    if status == "finalizing" then
-        local finalized = finalizeCollection(collectionId, claimed)
+        if status == "claimed" then
+            previousError = "manual-recovery-before-payout"
+            if not transitionCollection(
+                collectionId,
+                "claimed",
+                "restoring",
+                previousError
+            ) then
+                print(("[puribooth] collection claim recovery lock failed: %s"):format(collectionId))
+                return
+            end
+            status = "restoring"
+        elseif status == "paid_unfinalized" then
+            previousError = "legacy-recovery"
+            if not transitionCollection(
+                collectionId,
+                "paid_unfinalized",
+                "finalizing",
+                previousError
+            ) then
+                print(("[puribooth] collection legacy finalize lock failed: %s"):format(collectionId))
+                return
+            end
+            status = "finalizing"
+        elseif status == "rollback_failed" then
+            previousError = "legacy-recovery"
+            if not transitionCollection(
+                collectionId,
+                "rollback_failed",
+                "restoring",
+                previousError
+            ) then
+                print(("[puribooth] collection legacy restore lock failed: %s"):format(collectionId))
+                return
+            end
+            status = "restoring"
+        end
+
+        if status == "finalizing" or status == "finalizing_retry" then
+            local token = claimCollectionRetry(
+                collectionId,
+                status,
+                "finalizing_retry",
+                previousError
+            )
+            if not token then
+                print(("[puribooth] collection finalize retry lock failed: %s"):format(collectionId))
+                return
+            end
+
+            local finalized = retryCollectionFinalize(collectionId, claimed, token)
+            print(
+                finalized
+                    and ("[puribooth] collection finalized: %s"):format(collectionId)
+                    or ("[puribooth] collection finalize retry failed; state remains finalizing_retry: %s"):format(collectionId)
+            )
+            return
+        end
+
+        if status == "restoring" or status == "restoring_retry" then
+            local token = claimCollectionRetry(
+                collectionId,
+                status,
+                "restoring_retry",
+                previousError
+            )
+            if not token then
+                print(("[puribooth] collection restore retry lock failed: %s"):format(collectionId))
+                return
+            end
+
+            local restored = retryCollectionRestore(collectionId, claimed, token)
+            print(
+                restored
+                    and ("[puribooth] collection rollback restored: %s"):format(collectionId)
+                    or ("[puribooth] collection restore retry failed; state remains restoring_retry: %s"):format(collectionId)
+            )
+            return
+        end
+
+        if status == "paying" then
+            print(
+                ("[puribooth] collection %s is paying/ambiguous. Check Renewed-Banking first, then use puribooth_collection_review %s <paid|notpaid>")
+                    :format(collectionId, collectionId)
+            )
+            return
+        end
+
         print(
-            finalized
-                and ("[puribooth] collection finalized: %s"):format(collectionId)
-                or ("[puribooth] collection finalize retry failed; state remains finalizing: %s"):format(collectionId)
+            ("[puribooth] collection %s status=%s does not need automatic recovery")
+                :format(collectionId, status)
         )
-        return
-    end
-
-    if status == "restoring" then
-        local restored = restoreCollection(collectionId, claimed)
-        print(
-            restored
-                and ("[puribooth] collection rollback restored: %s"):format(collectionId)
-                or ("[puribooth] collection restore retry failed; state remains restoring: %s"):format(collectionId)
-        )
-        return
-    end
-
-    if status == "paying" then
-        print(
-            ("[puribooth] collection %s is paying/ambiguous. Check Renewed-Banking first, then use puribooth_collection_review %s <paid|notpaid>")
-                :format(collectionId, collectionId)
-        )
-        return
-    end
-
-    print(
-        ("[puribooth] collection %s status=%s does not need automatic recovery")
-            :format(collectionId, status)
-    )
+    end)
 end, false)
 
 RegisterCommand("puribooth_collection_review", function(source, args)
@@ -3874,80 +4231,106 @@ RegisterCommand("puribooth_collection_review", function(source, args)
         return
     end
 
-    local collectionId = tostring(args[1] or "")
-    local verdict = string.lower(tostring(args[2] or ""))
+    withCollectionRecovery(function()
+        local collectionId = tostring(args[1] or "")
+        local verdict = string.lower(tostring(args[2] or ""))
 
-    if collectionId == ""
-        or (verdict ~= "paid" and verdict ~= "notpaid") then
+        if collectionId == ""
+            or (verdict ~= "paid" and verdict ~= "notpaid") then
 
-        print("[puribooth] usage: puribooth_collection_review <collection_id> <paid|notpaid>")
-        print("[puribooth]   paid    = Renewed-Banking側で入金済みを確認")
-        print("[puribooth]   notpaid = Renewed-Banking側で未入金を確認")
-        return
-    end
+            print("[puribooth] usage: puribooth_collection_review <collection_id> <paid|notpaid>")
+            print("[puribooth]   paid    = Renewed-Banking側で入金済みを確認")
+            print("[puribooth]   notpaid = Renewed-Banking側で未入金を確認")
+            return
+        end
 
-    local row = MySQL.single.await([[
-        SELECT collection_id, status, allocations
-        FROM puribooth_collections
-        WHERE collection_id = ?
-        LIMIT 1
-    ]], { collectionId })
+        local row = MySQL.single.await([[
+            SELECT collection_id, status, allocations
+            FROM puribooth_collections
+            WHERE collection_id = ?
+            LIMIT 1
+        ]], { collectionId })
 
-    if not row then
-        print(("[puribooth] collection not found: %s"):format(collectionId))
-        return
-    end
+        if not row then
+            print(("[puribooth] collection not found: %s"):format(collectionId))
+            return
+        end
 
-    if tostring(row.status or "") ~= "paying" then
-        print(
-            ("[puribooth] collection %s status=%s is not awaiting bank review")
-                :format(collectionId, tostring(row.status or "?"))
-        )
-        return
-    end
+        if tostring(row.status or "") ~= "paying" then
+            print(
+                ("[puribooth] collection %s status=%s is not awaiting bank review")
+                    :format(collectionId, tostring(row.status or "?"))
+            )
+            return
+        end
 
-    local claimed = decodeCollectionAllocations(row.allocations)
-    if not claimed then
-        print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
-        return
-    end
+        local claimed = decodeCollectionAllocations(row.allocations)
+        if not claimed then
+            print(("[puribooth] collection allocations invalid: %s"):format(collectionId))
+            return
+        end
 
-    if verdict == "paid" then
+        if verdict == "paid" then
+            local errorMarker = "manual-confirmed-bank-paid"
+            if not transitionCollection(
+                collectionId,
+                "paying",
+                "finalizing",
+                errorMarker
+            ) then
+                print(("[puribooth] collection review lock failed: %s"):format(collectionId))
+                return
+            end
+
+            local token = claimCollectionRetry(
+                collectionId,
+                "finalizing",
+                "finalizing_retry",
+                errorMarker
+            )
+            if not token then
+                print(("[puribooth] collection review finalize lock failed: %s"):format(collectionId))
+                return
+            end
+
+            local finalized = retryCollectionFinalize(collectionId, claimed, token)
+            print(
+                finalized
+                    and ("[puribooth] collection bank-paid finalization complete: %s"):format(collectionId)
+                    or ("[puribooth] collection finalization failed; state remains finalizing_retry: %s"):format(collectionId)
+            )
+            return
+        end
+
+        local errorMarker = "manual-confirmed-bank-not-paid"
         if not transitionCollection(
             collectionId,
             "paying",
-            "finalizing",
-            "manual-confirmed-bank-paid"
+            "restoring",
+            errorMarker
         ) then
             print(("[puribooth] collection review lock failed: %s"):format(collectionId))
             return
         end
 
-        local finalized = finalizeCollection(collectionId, claimed)
-        print(
-            finalized
-                and ("[puribooth] collection bank-paid finalization complete: %s"):format(collectionId)
-                or ("[puribooth] collection finalization failed; state remains finalizing: %s"):format(collectionId)
+        local token = claimCollectionRetry(
+            collectionId,
+            "restoring",
+            "restoring_retry",
+            errorMarker
         )
-        return
-    end
+        if not token then
+            print(("[puribooth] collection review restore lock failed: %s"):format(collectionId))
+            return
+        end
 
-    if not transitionCollection(
-        collectionId,
-        "paying",
-        "restoring",
-        "manual-confirmed-bank-not-paid"
-    ) then
-        print(("[puribooth] collection review lock failed: %s"):format(collectionId))
-        return
-    end
-
-    local restored = restoreCollection(collectionId, claimed)
-    print(
-        restored
-            and ("[puribooth] collection bank-not-paid rollback complete: %s"):format(collectionId)
-            or ("[puribooth] collection rollback failed; state remains restoring: %s"):format(collectionId)
-    )
+        local restored = retryCollectionRestore(collectionId, claimed, token)
+        print(
+            restored
+                and ("[puribooth] collection bank-not-paid rollback complete: %s"):format(collectionId)
+                or ("[puribooth] collection rollback failed; state remains restoring_retry: %s"):format(collectionId)
+        )
+    end)
 end, false)
 
 RegisterCommand("puribooth_refunds", function(source)

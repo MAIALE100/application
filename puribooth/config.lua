@@ -4,6 +4,9 @@ Config.Price = 1000 -- 新規設置台の初期料金
 Config.MinPrice = 0
 Config.MaxPrice = 100000
 Config.PaymentMethods = { "cash", "bank" }
+-- Booth rows are shared, non-instanced data. Interactions and session state
+-- are restricted to this bucket; existing public-world installations use 0.
+Config.BoothRoutingBucket = 0
 
 -- Version floors are used only where the upstream resource exposes a
 -- directly comparable resource version. qbx_core is capability-checked
@@ -16,10 +19,12 @@ Config.MinimumVersions = {
 -- 設置・撤去・料金変更・売上確認を使えるjob。
 -- 提出版では初回claimadmin方式を使わず、jobで権限管理します。
 Config.Management = {
+    -- 運営test02は `reporter` を使う場合があります。各環境のjob名を明示します。
     job = "weazel",
     requireOnDuty = false,
     allowAceOverride = true,
-    ace = "group.admin", -- 運営ACE。group.godも常に許可
+    -- ACE文字列も環境ごとに指定します（例: `group.admin` または `admin`）。
+    ace = "group.admin", -- group.godも常に許可
 
     placeMinGrade = 0,
     removeMinGrade = 0,
@@ -34,8 +39,11 @@ Config.Management = {
     salesDistance = 12.0
 }
 
--- 売上入金先。QBox標準構成で使われるRenewed-Bankingに対応。
--- accountを "weazel" にするとweazelのjob口座へ入金できます。
+-- 銀行アダプターは各環境で明示指定します。
+-- renewed-banking: getAccountMoney / addAccountMoney / handleTransaction
+-- okok-banking: GetAccount / AddMoney / AddTransaction
+-- okok-bankingはtransactionResourceも実際に存在するexportに合わせます。
+-- accountはManagement.jobとは独立して指定できます。
 Config.Payout = {
     enabled = true,
     mode = "renewed-banking",

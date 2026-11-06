@@ -1,5 +1,12 @@
 # PuriBooth Changelog
 
+## Unreleased -運営レビュー対応
+- 売上回収・復旧処理の相互排他、比較交換claim、DBトランザクション内の冪等確定を追加。復旧経路から銀行送金APIを呼び出さない。
+- Renewed-BankingとokokBankingのexport契約を別々に設定し、銀行結果が不明な場合は自動再送金・残高復元をせず照合待ちにする。
+- 管理job、ACE、入金先口座、履歴resourceを環境別に指定可能に整理。
+- `Config.BoothRoutingBucket` で利用・撮影状態・同期・管理操作を一つのbucketに限定。既存DB形式は変更しない。
+- 回収復旧・環境差異・routing bucketの静的回帰テストを追加。実銀行・隔離DB検証は未実施。
+
 ## 1.0.7 - 2026-10-28
 
 ### 撮影中の誤攻撃防止
@@ -439,3 +446,10 @@
 - npm lockずれを自動修復するデプロイ処理
 - 管理コマンド表をD:\FiveM_Devへ自動コピー
 - README / selftestを拡充
+# 開発中の会計復旧修正
+
+- `safeAuditDetail` を最初の利用より前に定義し、回収状態遷移時の nil 参照を防止。
+- 売上回収と保守回復コマンドに相互排他を追加し、精算途中の `preparing` 行を誤って閉じる競合を防止。
+- `finalizing_retry` / `restoring_retry` の回復トークンと状態条件付きDBトランザクションを追加。再実行は銀行へ送金せず、回収台帳と各台の集計更新を一度だけ行う。
+- Renewed-BankingとokokBankingV2を異なるexport契約の明示設定アダプターとして分離。外部入金結果が不明な場合は台残高を戻さず `paying` で手動照合へ回す。
+- この変更はローカル回帰試験段階。実DB・実口座・FiveM実機では未検証であり、テストサーバーへの適用対象外。

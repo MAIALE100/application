@@ -40,6 +40,11 @@
 - [x] exclude font binaries from operator ZIP and provide official download links instead
 
 ## Final validation
+- [ ] verify collection retry and review commands reject concurrent payout / recovery calls
+- [ ] verify finalizing_retry / restoring_retry are idempotent with a disposable DB transaction test
+- [ ] verify ambiguous bank export results remain paying until manual transaction-history review
+- [ ] verify okokBanking AddMoney return behavior and transaction-history export resource for the target version
+- [ ] verify parallel booths and capture sessions are isolated across routing buckets
 - [ ] verify non-weazel player cannot place / remove / change price / view sales
 - [ ] verify weazel player can place / remove / change price
 - [ ] verify each booth keeps an independent price after restart

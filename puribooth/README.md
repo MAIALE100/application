@@ -26,6 +26,10 @@ Flecity向けの街中設置型プリクラ「FLEPURI（フレプリ）」撮影
 - 撮影終了・キャンセル後は通常操作に自動復帰します
 - 撮影参加者以外の通行人には操作制限を適用しません
 
+## Routing bucket
+
+`Config.BoothRoutingBucket`（既定 `0`）で、台の操作・撮影セッション・背景共有・カウントダウン・管理操作を指定bucketへ制限します。同じ座標にいる別instanceのプレイヤーはセッションに参加できません。既存DBへの列追加や移行は不要です。この設定はresource内の全台に共通で、台ごとのbucket指定は対象外です。
+
 ## 基本フロー
 
 1. プリクラ台で料金を支払う
@@ -196,7 +200,7 @@ Config.Management.salesCoords = { x = ..., y = ..., z = ... }
 - 撮影タイムアウトで返金
 - resource restartによる返金
 
-既定の回収先はRenewed-Bankingの `weazel` job口座です。
+既定の回収先はRenewed-Bankingの `weazel` job口座です。運営環境では `Config.Payout.mode = "okok-banking"` と `resource = "okokBanking"` を明示できます。公式okokBankingV2のAPIでは、取引履歴exportは `okokBankingV2` にあります。導入版で異なる場合は `transactionResource` を実際のexportに合わせます。job権限 (`Config.Management.job` / `ace`) と銀行口座ID (`Config.Payout.account`) は別々に設定します。`AddMoney` 成功を `true` で確認できるまでこの方式を本番運用しないでください。
 
 ```lua
 Config.Payout = {
@@ -207,13 +211,12 @@ Config.Payout = {
 }
 ```
 
-会社口座への送金が失敗した場合、先に確保した未回収残高をDBへ戻すため、
-入金失敗で売上だけ消えることはありません。
+銀行が明確な失敗を返した場合は、先に確保した未回収残高をDBへ戻します。銀行呼び出しが例外終了して結果が不明な場合は `paying` として保持し、残高を戻したり再送金したりしません。銀行履歴を照合してから手動で確定します。
 
 会社売上回収は `puribooth_collections` に台ごとの配分と状態を記録します。
 台残高の確保 / 復元 / 回収確定はDBトランザクションで処理し、銀行呼び出し前後を
-`paying` / `finalizing` として区別します。銀行入金後にサーバーが停止しても、
-銀行へ二重送金せずDB側だけ復旧できる設計です。未解決回収がある間は新しい回収と台撤去を停止します。
+`paying` / `finalizing` / `*_retry` として区別します。銀行入金後にサーバーが停止しても、
+銀行へ二重送金せずDB側だけ復旧できる設計です。回復コマンドは同時実行を拒否し、条件付き状態更新とトークンで回収台帳を保護します。未解決回収がある間は新しい回収と台撤去を停止します。
 
 テスト環境などで会社口座がない場合は `mode = "player-bank"` も使用できます。
 
@@ -316,7 +319,7 @@ puribooth_collection_review <collection_id> <paid|notpaid>
 - `puribooth_retry_refunds`: pending返金を即時再試行
 - `puribooth_refund_review`: processing返金を残高照合後に解決 / 再試行へ戻す
 - `puribooth_collections`: 未解決の会社売上回収を一覧表示
-- `puribooth_collection_retry`: finalizing / restoring を銀行へ再送金せずDBだけ安全に再処理
+- `puribooth_collection_retry`: finalizing / restoring と回復途中の状態を、銀行へ再送金せずDBだけ安全に再処理
 - `puribooth_collection_review`: paying状態をRenewed-Banking照合後に paid / notpaid として確定
 - `processing` 返金と `paying` 売上回収は二重処理防止のため自動再試行しません。実際の入出金を照合してから対応します。
 

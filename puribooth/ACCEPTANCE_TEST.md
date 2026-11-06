@@ -85,8 +85,14 @@
 - 売上回収時、台残高確保と回収台帳更新が同一DBトランザクションで処理される
 - `finalizing` 状態は `puribooth_collection_retry <collection_id>` で銀行へ再入金せずDB確定だけ再試行できる
 - `restoring` 状態は `puribooth_collection_retry <collection_id>` で台残高復元だけ再試行できる
+- `finalizing_retry` / `restoring_retry` 状態でも、回復コマンドの再実行で各台残高が二重加算・二重復元されない
+- 精算中に回復コマンドを重ねて実行しても拒否され、回収・復旧のDB状態が競合しない
 - `paying` 状態では新しい回収が停止し、Renewed-Banking照合後に `puribooth_collection_review <collection_id> <paid|notpaid>` で安全に解決できる
 - 未解決の会社売上回収がある間は新規回収と台撤去が停止する
+- [ ] 実DBではなく使い捨てDBで、二重retry・transaction途中失敗・成功後応答喪失を検証し、各回収が一度だけ反映される
+- [ ] okokBankingの実設置版でAddMoneyの成否戻り値とAddTransactionのresource名を確認する（確認前は実口座試験・提出不可）
+- [ ] routing bucketが異なる同一台で、セッション・テーマ・カウントダウン・退出・返金が相互干渉しない
+- [ ] configured bucket外からは同一座標の台を開始・管理できず、進行中セッションの操作も拒否される
 
 ## 保守確認
 - 正常撮影後、`puribooth_support <citizenid>` に session_charged → sale_recorded が残る

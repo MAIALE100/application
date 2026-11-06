@@ -14,6 +14,7 @@ def fail(message):
 def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
+
 play_js = read("flecity_games/web/play/app.js")
 party_js = read("flecity_games/web/party/app.js")
 play_html = read("flecity_games/web/play/index.html")
@@ -34,6 +35,21 @@ safety_server = read("flecity_dev_safety/server.lua")
 safety_fx = read("flecity_dev_safety/fxmanifest.lua")
 testing = read("flecity_games/TESTING.md")
 party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
+text_lua = read("flecity_games/server/core/text.lua")
+profile_lua = read("flecity_games/server/core/profile.lua")
+sql = read("flecity_games/sql/001_initial.sql")
+party_plus_prompts = read("flecity_games/server/data/party_plus_prompts.lua")
+play_css = read("flecity_games/web/shared/app.css")
+party_lua = read("flecity_games/server/core/party.lua")
+framework_lua = read("flecity_games/server/bridge/framework.lua")
+helper_lua = read("flecity_dev_safety/server.lua")
+updater_ps1 = read("games-update.ps1")
+party_plus_lua = read("flecity_games/server/core/party_plus.lua")
+submission_builder = read("flecity_games/tools/build_submission.py")
+submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
+submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
+party_submission_builder = read("flecity_games/tools/build_party_submission.py")
+party_submission_install = read("flecity_games/release_docs/PARTY_INSTALL_JA.txt")
 
 def dom_ids(js):
     return set(re.findall(r"getElementById\('([^']+)'\)", js))
@@ -95,17 +111,13 @@ if "Price = 50000" not in config or "DurationSeconds = 7 * 24 * 60 * 60" not in 
 if "RemoveMoney" not in read("flecity_games/server/bridge/framework.lua") or "flecity_game_subscriptions" not in database_lua:
     fail("PARTY+ payment/persistence wiring is incomplete")
 
-text_lua = read("flecity_games/server/core/text.lua")
 if "utf8.len" not in text_lua or "utf8.offset" not in text_lua or "utf8Truncate" not in text_lua:
     fail("UTF-8 text helper/selftest is incomplete")
 
-profile_lua = read("flecity_games/server/core/profile.lua")
 identifiers = re.findall(r"identifier\s*=\s*'([^']+)'", config)
 if len(identifiers) < 2 or len(set(identifiers[:2])) != 2:
     fail("PLAY and PARTY app identifiers must both exist and be unique")
 
-sql = read("flecity_games/sql/001_initial.sql")
-database_lua = read("flecity_games/server/core/database.lua")
 if re.search(r"\b(DROP\s+TABLE|TRUNCATE\s+TABLE)\b", sql, re.I):
     fail("destructive DDL found in initial SQL")
 
@@ -185,14 +197,13 @@ if not re.search(r"local function finishNgWord\(room,timedOut,noClue\).*?not m\.
     fail("PARTY+ NG WORD results must exclude app-closed guessers")
 if not re.search(r"local function finishMemoryChain\(room,reason\).*?not m\.disconnected and m\.appOpen~=false then", party_lua, re.S):
     fail("PARTY+ MEMORY CHAIN results must exclude app-closed members")
-if "PARTY+ app/phone close実機確認" not in testing or "PARTY+ app/phone close実機確認" not in party_submission_checklist:
+if "PARTY+ app/phone close実機確認" not in testing or "LINK / Phone closeの実機確認結果" not in party_submission_checklist:
     fail("PARTY+ app-close live-test documentation is missing")
 if "FALL_BASE_SHAPES" in party_fall_js:
     fail("PARTY FALL BATTLE client should keep its implementation isolated from PLAY source markers")
 if "PARTY_PLUS_REQUIRED" not in errors_js:
     fail("PARTY+ error mapping is missing")
 
-party_plus_prompts = read("flecity_games/server/data/party_plus_prompts.lua")
 taboo_count = len(re.findall(r"\{word='", party_plus_prompts))
 fake_answer_count = len(re.findall(r"\{question='", party_plus_prompts))
 bomb_match = re.search(r"FlecityGamesPartyPlusPrompts\.Bomb\s*=\s*\{(.*?)\n\}", party_plus_prompts, re.S)
@@ -281,7 +292,7 @@ if 'id="dailyIcon"' not in play_html:
     fail("PLAY Daily icon slot is missing")
 if "quickTapGrade" not in play_js or "stopRushGrade" not in play_js or "colorMatchChoiceOrder" not in play_js:
     fail("PLAY skill-feedback gameplay pass is missing")
-if "playQuickRound" not in play_js or "QUICK TAP FOCUS" not in play_html or "tapRunMeta" not in play_js:
+if "playQuickRound" not in play_js or "反射神経チャレンジ" not in play_html or "tapRunMeta" not in play_js:
     fail("QUICK TAP FOCUS client run flow is missing")
 if "FlecityGamesPlay.QuickRound" not in play_lua or "newQuickState" not in play_lua or "applyQuickTap" not in play_lua:
     fail("QUICK TAP FOCUS server-authoritative round flow is missing")
@@ -289,7 +300,7 @@ if "playQuickRound='flecity_games:play:quickRound'" not in client:
     fail("QUICK TAP FOCUS bridge callback is missing")
 if not re.search(r"id='quick_tap'[^\n]*version=2", registry):
     fail("QUICK TAP FOCUS registry version must be 2")
-if "playStopRound" not in play_js or "STOP! RUSH" not in play_html:
+if "playStopRound" not in play_js or "タイミングストップ" not in play_html:
     fail("STOP RUSH client flow is missing")
 if "FlecityGamesPlay.StopRound" not in play_lua or "newStopState" not in play_lua or "applyStopRound" not in play_lua:
     fail("STOP RUSH server-authoritative round flow is missing")
@@ -301,7 +312,7 @@ if "memoryDeckFromSeed" not in play_js or "finishMemory" not in play_js:
     fail("MEMORY client implementation is missing")
 if "colorMatchRounds" not in play_js or "openColorMatch" not in play_js:
     fail("COLOR MATCH client implementation is missing")
-if "lives:Number(session.challenge&&session.challenge.lives)||3" not in play_js or "COLOR MATCH RUSH" not in play_html:
+if "lives:Number(session.challenge&&session.challenge.lives)||3" not in play_js or 'id="colorMatchGame"' not in play_html or "3ライフ" not in play_html:
     fail("COLOR MATCH RUSH three-life client flow is missing")
 if "challenge.rounds=20 challenge.lives=3 challenge.missPenaltyMs=1500" not in play_lua:
     fail("COLOR MATCH RUSH server challenge is missing")
@@ -379,7 +390,7 @@ if "saveEpochs" not in play_lua or "SAVE_RESET" not in play_lua:
     fail("PLAY stale autosave reset protection is missing")
 if "saveStateHasProgress" not in play_lua or "progressed!==true" not in play_js:
     fail("PLAY must not persist untouched resumable runs")
-if "TODAY BEST" not in play_js or "displayElapsedMs" not in play_js:
+if "今日の自己ベスト" not in play_js or "displayElapsedMs" not in play_js:
     fail("PLAY Daily/result display polish is missing")
 if "gameVisuals" not in play_js or "setQuickVisual" not in play_js or "setStopVisual" not in play_js:
     fail("PLAY game identity / live-state visual feedback is missing")
@@ -409,7 +420,7 @@ if "rangeRushRoundLimit" not in play_lua or "rangeRushPoints" not in play_lua or
     fail("RANGE RUSH v3 lives/combo/adaptive scoring is missing")
 if "highLowTimerFill" not in play_js or "highLowLives" not in play_js or "LIFE -1" not in play_js:
     fail("RANGE RUSH v3 time-pressure/lives UI loop is missing")
-if not re.search(r"id='high_low'[^\n]*name='RANGE RUSH'[^\n]*version=3", registry):
+if not re.search(r"id='high_low'[^\n]*name='ハイ＆ロー'[^\n]*version=3", registry):
     fail("RANGE RUSH v3 registry/version marker is missing")
 if "score=score+(gained*chain)" not in play_lua or "merge.chain" not in play_js or "CHAIN ×" not in play_js:
     fail("MERGE chain multiplier scoring is missing")
@@ -474,7 +485,6 @@ if "SlideMasterMs = 90000" not in config or "SlideMasterMoves = 120" not in conf
     fail("SLIDE MASTER thresholds are missing")
 if "metadata.timeMs" not in play_lua or "metadata.moves" not in play_lua or "slide_master" not in play_lua or "slide_master" not in play_js:
     fail("SLIDE MASTER achievement flow is missing")
-play_css = read("flecity_games/web/shared/app.css")
 if re.search(r"(?<![A-Za-z0-9_-])-?\d*\.?\d+px\b", play_css):
     fail("shared app CSS contains px units; fixBlur requires rem/em-compatible CSS")
 if re.search(r"(?:^|[}\s])(?:html|:root)\s*\{[^}]*font-size\s*:", play_css, re.MULTILINE):
@@ -505,7 +515,7 @@ if "sortPourCount" not in play_js or "QUICK POUR ×" not in play_js or ".sort-bo
     fail("SORT quick-pour tempo feedback is missing")
 if "slideMovePath" not in play_js or "CHAIN SLIDE ×" not in play_js:
     fail("SLIDE line-slide tempo controls are missing")
-if "RANK SCORE" not in play_js or "+0.35秒" not in play_html or "+0.20秒" not in play_html:
+if "RANK SCORE" not in play_js or "1手あたり0.35秒" not in play_html or "1手あたり0.20秒" not in play_html:
     fail("SORT/SLIDE ranking-score explanation is missing")
 if "Puzzle mastery feedback v16" not in play_css or "Puzzle quality-of-life v17" not in play_css:
     fail("puzzle mastery visual passes are missing")
@@ -517,13 +527,13 @@ if "fallSwipeSteps" not in play_js or "Math.round(Math.abs(Number(dx)||0)/cellWi
     fail("FALL touch swipe scaling is missing")
 if "fallGravityDelay" not in play_js or "fallGravityTick" not in play_js or "startFallGravity" not in play_js or "fall-grounded" not in play_css:
     fail("FALL automatic gravity loop is missing")
-if "fallPeekPieces" not in play_js or "fallSoft" not in play_js or "startFallSoftDrop" not in play_js or "NEXT 3" not in play_html:
+if "fallPeekPieces(fallGame,3)" not in play_js or "fallSoft" not in play_js or "startFallSoftDrop" not in play_js or 'id="fallNext"' not in play_html or "次のブロック" not in play_html:
     fail("FALL soft drop / NEXT queue is missing")
 if ".fall-preview-cell.filled{background:currentColor" not in play_css or "width:min(100%,14rem)" not in play_css:
     fail("FALL preview contrast / enlarged board visual pass is missing")
 if "holdFallPiece" not in play_js or 'id="fallHold"' not in play_html or "fallHoldReplay" not in play_lua or "heldPiece=heldPiece or 0" not in play_lua:
     fail("FALL HOLD replay/UI is missing")
-if "DROP '+gravity+'s" not in play_js or "HARD DROP" not in play_html:
+if "fallMeta.textContent='レベル '+level+' · 落下間隔 '+gravity+'秒" not in play_js or "一気に落とす" not in play_html:
     fail("FALL gravity speed/control feedback is missing")
 if "CLUTCH ESCAPE" not in play_js or "CHAIN BREAK" not in play_js or "QUAD CLEAR" not in play_js or "SO CLOSE" not in play_js:
     fail("PLAY mastery/clutch feedback is missing")
@@ -535,7 +545,7 @@ if "STOP RUSH progression v13" not in play_css or "dataset.tier" not in play_js:
     fail("STOP RUSH escalating visual feedback is missing")
 if "QUICK TAP FOCUS v15" not in play_css or "#tapRunMeta" not in play_css:
     fail("QUICK TAP FOCUS visual feedback is missing")
-if "personalBestGainText" not in play_js or "PB +" not in play_js:
+if "personalBestGainText" not in play_js or "自己ベスト更新" not in play_js:
     fail("PLAY personal-best gain feedback is missing")
 if "liveRankUpPrefix" not in play_js or "RANK UP " not in play_js:
     fail("PLAY live rank-up feedback is missing")
@@ -543,14 +553,14 @@ if "stop:{order:'desc',S:16000,A:8000,B:3500}" not in play_js:
     fail("STOP RUSH cumulative rank thresholds are stale")
 if "period5<period1" not in play_lua or "zone5<zone1" not in play_lua:
     fail("STOP RUSH escalation self-test is missing")
-if "STOP!でBULLSEYEを1回" not in play_js:
+if "bullseye:'ど真ん中 · タイミングストップで中心を捉える'" not in play_js:
     fail("STOP BULLSEYE achievement label is stale")
-if "NUMBER RUSHをノーミス16秒以内" not in play_js or "NumberRushAceMs = 16000" not in config or "cfg.NumberRushAceMs or 16000" not in play_lua:
+if "number_rush_ace:'数字の達人 · 数字タッチをノーミス16秒以内'" not in play_js or "NumberRushAceMs = 16000" not in config or "cfg.NumberRushAceMs or 16000" not in play_lua:
     fail("NUMBER ACE displayed/server threshold mismatch")
-if "COLOR MATCHをノーミス14秒以内" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
+if "color_focus:'色の達人 · 色あてラッシュをノーミス14秒以内'" not in play_js or "ColorMatchFocusMs = 14000" not in config or "cfg.ColorMatchFocusMs or 14000" not in play_lua:
     fail("COLOR FOCUS displayed/server threshold mismatch")
-if "version '0.70.0-test'" not in fx:
-    fail("PLAY manifest version must be 0.70.0-test")
+if not re.search(r"version '0\.\d+\.\d+-test'", fx):
+    fail("Flecity Games test manifest version must use the 0.x.y-test format")
 if "word-break:break-word" not in play_css:
     fail("PLAY narrow-phone status wrapping guard is missing")
 if "resetTransientInputState" not in play_js or "clearInterval(highLowClock)" not in play_js:
@@ -641,7 +651,7 @@ if "lastStep" not in play_lua or not re.search(r"step\s*=\s*(?:highLow|game)\.co
     fail("HIGH & LOW idempotent action numbering is missing")
 if "replaySimon" not in play_lua or "simonReplay" not in play_lua:
     fail("SIMON server replay/selftest is missing")
-if "SPEED '+speedStage" not in play_js or "SIMON SPEED UP" not in play_js:
+if "速度 '+speedStage" not in play_js or "SIMON SPEED UP" not in play_js:
     fail("SIMON speed-stage progression is missing")
 if not re.search(r"id='simon'[^\n]*version=2", registry):
     fail("SIMON speed-stage registry version must be 2")
@@ -650,18 +660,15 @@ if "SubmitSimonRound" not in play_lua or "simonServerState" not in play_lua:
 if "lastRound" not in play_lua or "sendSimonRound(inputs,round)" not in play_js:
     fail("SIMON idempotent round numbering is missing")
 
-party_lua = read("flecity_games/server/core/party.lua")
-framework_lua = read("flecity_games/server/bridge/framework.lua")
-helper_lua = read("flecity_dev_safety/server.lua")
-updater_ps1 = read("games-update.ps1")
-party_plus_lua = read("flecity_games/server/core/party_plus.lua")
 if framework_lua.count("QBCore:Server:OnPlayerUnload") != 1:
     fail("framework unload bridge must be defined exactly once")
 if framework_lua.count("function FlecityGamesFramework.AddSocietyMoney") != 1 or framework_lua.count("function FlecityGamesFramework.RemoveSocietyMoney") != 1:
     fail("society banking adapter must be defined exactly once")
-if ":gsub('%s+if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
+if ":gsub('%s+','')" not in party_lua:
+    fail("PARTY guess normalization must remove whitespace consistently")
+if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
     fail("PARTY user text limits must use UTF-8 character length")
-if "local function roomForPlayer(source,id)" not in party_lua:
+if "local function roomForPlayer(source,id,allowClosed)" not in party_lua:
     fail("PARTY character-switch room guard is missing")
 if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framework:playerUnloaded" not in framework_lua:
     fail("framework character-unload bridge is missing")
@@ -718,7 +725,7 @@ if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:party
     fail("PARTY app-close ready cleanup is missing")
 if "telephoneAppCloseSkip" not in party_lua or "bombAppCloseSkip" not in party_lua or "ticTacAppCloseForfeit" not in party_lua:
     fail("PARTY turn-based app-close selftests are missing")
-if "member.appOpen~=false" not in party_lua or "reason='APP_CLOSED'" not in party_lua:
+if "member.appOpen~=false" not in party_lua or "finishTicTacForfeit" not in party_lua or "'APP_CLOSED'" not in party_lua:
     fail("PARTY turn-based app-close handling is incomplete")
 if "not target or target.disconnected or target.appOpen==false" not in party_lua:
     fail("PARTY votes targeting closed-app members must be purged")
@@ -823,12 +830,6 @@ all_text = "\n".join(
 )
 if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
     fail("merge conflict markers found")
-submission_builder = read("flecity_games/tools/build_submission.py")
-submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
-submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
-party_submission_builder = read("flecity_games/tools/build_party_submission.py")
-party_submission_install = read("flecity_games/release_docs/PARTY_INSTALL_JA.txt")
-party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
 if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder or 'flecity-games-loop-' not in submission_builder or 'web/play/icon.svg' not in submission_builder:
     fail("submission builder LOOP release branding/dev exclusion is missing")
 if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
@@ -840,15 +841,17 @@ if "PARTYカスタムアプリは無効化" not in submission_checklist or "defa
 
 party_config_match = re.search(r"Party\s*=\s*\{(.*?)\n        \}", config, flags=re.S)
 party_config_block = party_config_match.group(1) if party_config_match else ""
-for required_marker in ("identifier = 'flecity_party'", "name = 'PARTY'", "defaultApp = false", "game = true", "price = 0"):
+for required_marker in ("identifier = 'flecity_party'", "name = 'LINK'", "defaultApp = false", "game = true", "price = 0"):
     if required_marker not in party_config_block:
         fail(f"PARTY App Store config missing: {required_marker}")
-if 'PARTY_RELEASE_VERSION = "1.0.0"' not in party_submission_builder or 'RESOURCE_RELEASE_VERSION = "1.1.0"' not in party_submission_builder:
-    fail("PARTY submission builder versioning is missing")
-if "flecity-games-party-" not in party_submission_builder or '"server/core/dev_reload.lua"' not in party_submission_builder or "web/party/icon.svg" not in party_submission_builder:
-    fail("PARTY submission builder packaging markers are missing")
-if "PARTY" not in party_submission_install or "restart flecity_games" not in party_submission_install or "SQLの手動実行は不要" not in party_submission_install:
-    fail("PARTY operator install guide is incomplete")
+if 'LINK_RELEASE_VERSION = "1.0.0"' not in party_submission_builder or 'RESOURCE_RELEASE_VERSION = "1.1.0"' not in party_submission_builder:
+    fail("LINK submission builder versioning is missing")
+if "flecity-games-loop-link-" not in party_submission_builder or '"server/core/dev_reload.lua"' not in party_submission_builder or "web/party/icon.svg" not in party_submission_builder:
+    fail("LOOP + LINK submission builder packaging markers are missing")
+if '"--porcelain", "--untracked-files=no"' not in party_submission_builder or "BUILD_ID = BUILD_SOURCE_COMMIT[:12]" not in party_submission_builder:
+    fail("submission artifacts must identify a clean source commit without overwriting another build")
+if "LINK" not in party_submission_install or "restart flecity_games" not in party_submission_install or "SQLの手動実行は不要" not in party_submission_install:
+    fail("LINK operator install guide is incomplete")
 if "defaultApp=false" not in party_submission_checklist or "game=true" not in party_submission_checklist or "price=0" not in party_submission_checklist:
     fail("PARTY operator checklist does not describe App Store build")
 
@@ -882,466 +885,16 @@ if get_room_start < 0 or set_ready_start < 0 or "member.appOpen=true" not in par
 if get_room_start < 0 or set_ready_start < 0 or "roomForPlayer(source,id,true)" not in party_lua[get_room_start:set_ready_start]:
     fail("PARTY GetRoom must be the explicit closed-membership exception")
 
-if errors:
-    print("Flecity Games static check FAILED")
-    for error in errors:
-        print(" -", error)
-    sys.exit(1)
-
-print("Flecity Games static check PASS")
-print(f" - enabled games: {len(enabled)}")
-print(f" - UI actions mapped: {len(actions)}")
-print(" - DOM references: PASS")
-print(" - LB Phone bridge: PASS")
-print(" - replay/privacy markers: PASS")
-
-,'')" not in framework_lua:
+if ":gsub('^%s+',''):gsub('%s+$','')" not in framework_lua:
     fail("framework society account trimming is malformed")
+if "):gsub('^%s+',''):gsub('%s+$','')" not in party_plus_lua:
+    fail("PARTY+ revenue account trimming is malformed")
 if party_plus_lua.count("local function readRow") != 1 or party_plus_lua.count("local function purchasePeriod") != 1:
     fail("PARTY+ subscription core contains duplicated implementation blocks")
 if party_plus_lua.count("local function revenueAccount") != 1 or party_plus_lua.count("local function revenueProvider") != 1:
     fail("PARTY+ revenue configuration helpers are malformed or duplicated")
 if "depositRevenue(amount)" not in party_plus_lua or "reverseRevenue(amount,depositProvider)" not in party_plus_lua:
     fail("PARTY+ WEAZEL revenue deposit/rollback flow is missing")
-if ":gsub('%s+if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
-    fail("PARTY user text limits must use UTF-8 character length")
-if "local function roomForPlayer(source,id)" not in party_lua:
-    fail("PARTY character-switch room guard is missing")
-if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framework:playerUnloaded" not in framework_lua:
-    fail("framework character-unload bridge is missing")
-if "flecity_games:framework:playerUnloaded" not in server:
-    fail("server character-unload cleanup handler is missing")
-if "reclaimDisconnectedCapacity" not in party_lua or "connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers" not in party_lua:
-    fail("PARTY disconnected-slot reclaim is missing")
-if "now-disconnectedAt>grace" not in party_lua:
-    fail("PARTY disconnected-slot reclaim must preserve reconnect grace")
-if party_lua.find("if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end") > party_lua.find("reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)"):
-    fail("PARTY join must reject live rounds before capacity mutation")
-if "room.state=='lobby' then member.ready=false end" not in party_lua or "room.state=='lobby' then m.ready=false end" not in party_lua:
-    fail("PARTY lobby ready reset on disconnect/reconnect is missing")
-if "strokePointCount(rs.strokes)+#clean[1]>3200" not in party_lua or "sanitizedStrokes(data.strokes,80,2400)" not in party_lua:
-    fail("PARTY drawing payload limits are missing")
-if "partyOnOpen" not in client or "partyOnClose" not in client or "partyPushSuspended" not in client:
-    fail("PARTY LB Phone lifecycle gating is missing")
-if "partySuspend" not in party_js or "partyResume" not in party_js or "appSuspended" not in party_js:
-    fail("PARTY UI suspend/resume cleanup is missing")
-if "if(appSuspended)return;" not in party_js:
-    fail("PARTY suspended NUI must ignore delayed push events")
-if "lifecycleEpoch" not in party_js or party_js.count("epoch!==lifecycleEpoch") < 4 or "if(appSuspended||!room)return false;" not in party_js:
-    fail("PARTY async responses must be lifecycle-epoch guarded")
-if "visibilityBound" not in party_js or "function bindVisibilityLifecycle()" not in party_js:
-    fail("PARTY visibility lifecycle listener must bind only once")
-if "clearTimeout(statusTimer);statusTimer=null" not in party_js:
-    fail("PARTY suspend must clear status timer")
-if "actionLocks" not in party_js or "runOnce('start'" not in party_js:
-    fail("PARTY client action de-duplication is missing")
-if "drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[]" not in party_js:
-    fail("PARTY round runtime cleanup is incomplete")
-if "roundTimeoutSeconds" not in party_lua or "deadlineTick" not in party_lua or "TURN_TIMEOUT" not in party_lua or "ROUND_TIMEOUT" not in party_lua:
-    fail("PARTY authoritative round timeout is missing")
-if "deadlineLoop" not in party_js or "roundDeadline" not in party_js or 'id="roundDeadline"' not in party_html:
-    fail("PARTY round deadline UI is missing")
-if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "deductionPhaseLoop" not in party_js:
-    fail("PARTY deduction discussion/voting phase separation is missing")
-if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=activeCount(room)" not in party_lua or "submissionProgress" not in party_js:
-    fail("PARTY aggregate waiting-progress UI is missing")
-if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
-    fail("PARTY MINORITY unanimous-choice handling is missing")
-if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
-    fail("PARTY MAJORITY/MINORITY results must exclude members whose app is closed")
-if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
-    fail("PARTY app-close ready cleanup is missing")
-if "telephoneAppCloseSkip" not in party_lua or "bombAppCloseSkip" not in party_lua or "ticTacAppCloseForfeit" not in party_lua:
-    fail("PARTY turn-based app-close selftests are missing")
-if "member.appOpen~=false" not in party_lua or "reason='APP_CLOSED'" not in party_lua:
-    fail("PARTY turn-based app-close handling is incomplete")
-if "not target or target.disconnected or target.appOpen==false" not in party_lua:
-    fail("PARTY votes targeting closed-app members must be purged")
-if "DebugRoomSummaries" not in party_lua or "game_party_status" not in server:
-    fail("PARTY live room diagnostic command is missing")
-if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in server:
-    fail("PARTY DRAW LB Phone callback throttle is too restrictive")
-if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
-    fail("PARTY app-close host handoff is missing")
-if "local room=roomForSource(source)" not in party_lua or "tonumber(member.source)~=tonumber(source)" not in party_lua:
-    fail("PARTY AppClosed must use side-effect-free room lookup")
-if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
-    fail("PARTY host migration must prefer app-active members")
-join_start = party_lua.find("function FlecityGamesParty.JoinRoom(source,data)")
-get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
-if join_start < 0 or get_room_start < 0 or "host and host.appOpen==false" not in party_lua[join_start:get_room_start] or "handoffHostFrom(room,room.hostIdentifier)" not in party_lua[join_start:get_room_start]:
-    fail("PARTY new join must recover host control from a closed host")
-if "appOpen=m.appOpen~=false" not in party_lua or "アプリ閉じています" not in party_js or "アプリ待ち " not in party_js:
-    fail("PARTY lobby must expose app-presence blocking state")
-if "m.appOpen==false or m.ready~=true" not in party_lua:
-    fail("PARTY server must reject start while a connected member app is closed")
-if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:
-    fail("PARTY ReturnLobby idempotency/live-round guard is missing")
-if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:
-    fail("PARTY cleanup must push timeout/reconcile state changes")
-if "Wait(1000)" not in server or "FlecityGamesParty.Cleanup()" not in server:
-    fail("PARTY cleanup cadence must be 1 second for responsive deadlines")
-if "Wait(5000)" not in server or "FlecityGamesPlay.Cleanup()" not in server:
-    fail("PLAY cleanup cadence changed unexpectedly")
-if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
-    fail("PARTY turn-timeout continuation/forfeit handling is missing")
-if "telephoneTurnTimeoutSeconds" not in party_lua or "mode=='text' and 30 or 45" not in party_lua:
-    fail("PARTY TELEPHONE mode-specific turn pacing is missing")
-if "canvas.width=360;canvas.height=260;canvas.className='draw-canvas'" not in party_js:
-    fail("PARTY TELEPHONE result canvas must preserve drawing aspect ratio")
-if "function drawableStroke(points)" not in party_js or "const sendPoints=drawableStroke(points)" not in party_js or "const stored=drawableStroke(stroke)" not in party_js:
-    fail("PARTY drawing must preserve single-tap dots")
-if party_js.count("e.key==='Enter'&&!e.isComposing") < 2:
-    fail("PARTY Japanese IME Enter guards are missing")
-if "maybeFinishCodeBreak(room,true)" not in party_lua or "finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
-    fail("PARTY timeout partial-result finalization is missing")
-if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
-    fail("PARTY result-screen accidental-return guard is missing")
-if "leaveConfirmUntil" not in party_js or "もう一度押して退出" not in party_js or "resetLeaveConfirmation" not in party_js:
-    fail("PARTY leave accidental-tap confirmation is missing")
-if "appendResultBanner" not in party_js or "WINNER · " not in party_js or "FASTEST · " not in party_js:
-    fail("PARTY result winner clarity banners are missing")
-if "playersEl.classList.toggle('dense'" not in party_js or "#players.dense" not in play_css:
-    fail("PARTY large-room player-list density handling is missing")
-
-for marker in (
-    "wordWolfPrivacy",
-    "liarPrivacy",
-    "drawPrivacy",
-    "drawAliasMatch",
-    "drawConnectedProgress",
-    "telephonePrivacy",
-    "telephoneContributorNamePreserved",
-    "telephoneDisconnectFreshDeadline",
-    "roomRevision",
-    "appCloseHostHandoff",
-    "reconnectGracePreserved",
-    "expiredCapacityReclaimed",
-    "disconnectedVoteIgnored",
-    "roundAbortLowPlayers",
-    "secretRoleDisconnectAbort",
-    "minorityAggregation",
-    "ticTacWinner",
-):
-    if marker not in party_lua:
-        fail(f"PARTY selftest missing: {marker}")
-
-expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "mini_shogi", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
-ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
-normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
-play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
-party_order = [game_id for _, game_id, app in normalized_defs if app == "party"]
-if play_order != expected_play_order:
-    fail(f"PLAY registry order mismatch: {play_order}")
-if party_order != expected_party_order:
-    fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='mini_shogi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
-    fail("PARTY solo/duo board-game player caps are incorrect")
-
-server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
-missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)
-if missing_error_messages:
-    fail(f"shared error dictionary missing codes: {', '.join(missing_error_messages)}")
-
-scan_files = [
-    p for p in GAME.rglob("*")
-    if p.is_file()
-    and p.name != "static_check.py"
-    and p.suffix.lower() in {".lua", ".js", ".html", ".css", ".sql", ".md"}
-]
-all_text = "\n".join(
-    p.read_text(encoding="utf-8", errors="ignore")
-    for p in scan_files
-)
-if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
-    fail("merge conflict markers found")
-submission_builder = read("flecity_games/tools/build_submission.py")
-submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
-submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
-party_submission_builder = read("flecity_games/tools/build_party_submission.py")
-party_submission_install = read("flecity_games/release_docs/PARTY_INSTALL_JA.txt")
-party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
-if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder or 'flecity-games-loop-' not in submission_builder or 'web/play/icon.svg' not in submission_builder:
-    fail("submission builder LOOP release branding/dev exclusion is missing")
-if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
-    fail("submission builder PARTY-disable packaging is missing")
-if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install or "App Store" not in submission_install:
-    fail("operator submission install guide is incomplete")
-if "PARTYカスタムアプリは無効化" not in submission_checklist or "defaultApp=false / price=0" not in submission_checklist:
-    fail("operator submission checklist does not describe LOOP App Store build")
-
-party_config_match = re.search(r"Party\s*=\s*\{(.*?)\n        \}", config, flags=re.S)
-party_config_block = party_config_match.group(1) if party_config_match else ""
-for required_marker in ("identifier = 'flecity_party'", "name = 'PARTY'", "defaultApp = false", "game = true", "price = 0"):
-    if required_marker not in party_config_block:
-        fail(f"PARTY App Store config missing: {required_marker}")
-if 'PARTY_RELEASE_VERSION = "1.0.0"' not in party_submission_builder or 'RESOURCE_RELEASE_VERSION = "1.1.0"' not in party_submission_builder:
-    fail("PARTY submission builder versioning is missing")
-if "flecity-games-party-" not in party_submission_builder or '"server/core/dev_reload.lua"' not in party_submission_builder or "web/party/icon.svg" not in party_submission_builder:
-    fail("PARTY submission builder packaging markers are missing")
-if "PARTY" not in party_submission_install or "restart flecity_games" not in party_submission_install or "SQLの手動実行は不要" not in party_submission_install:
-    fail("PARTY operator install guide is incomplete")
-if "defaultApp=false" not in party_submission_checklist or "game=true" not in party_submission_checklist or "price=0" not in party_submission_checklist:
-    fail("PARTY operator checklist does not describe App Store build")
-
-if re.search(r"\bTODO\b|\bFIXME\b", all_text):
-    fail("TODO/FIXME marker found in flecity_games source/docs")
-
-if "local function activeCount(room)" not in party_lua or party_lua.count("completedSubmissionCount(room)<activeCount(room)") < 8:
-    fail("PARTY simultaneous rounds must not wait for members whose app is closed")
-if "if room.state=='round' and reconcileRound(room) then changed=true end" not in party_lua:
-    fail("PARTY AppClosed must immediately reconcile simultaneous-input rounds")
-if party_lua.count("or wolf.appOpen==false") < 1 or party_lua.count("or liar.appOpen==false") < 1:
-    fail("PARTY secret-role rounds must abort when the secret player closes the app")
-if party_lua.count("room.members[targetId].appOpen==false") < 3:
-    fail("PARTY vote submissions must reject targets whose app is closed")
-if "p=>!p.disconnected&&p.appOpen!==false&&p.memberId!==room.selfMemberId" not in party_js:
-    fail("PARTY deduction UI must hide closed players from vote targets")
-if "not drawer or drawer.disconnected or drawer.appOpen==false" not in party_lua or "not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier" not in party_lua:
-    fail("PARTY DRAW must stop on drawer close and exclude closed guessers from completion")
-if "action:sub(1,5)=='party' and (not partyAppOpen or partyPushSuspended)" not in client or "error='APP_SUSPENDED'" not in client:
-    fail("PARTY NUI callbacks must be rejected client-side while the app/phone is suspended")
-if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:
-    fail("PARTY room lookup can regress into reopening app presence on delayed callbacks")
-if party_lua.count("member.appOpen~=false and src~=excluded") < 2:
-    fail("PARTY server pushes must skip members whose app is closed")
-if "local function roomForPlayer(source,id,allowClosed)" not in party_lua or "if member.appOpen==false and allowClosed~=true then return nil end" not in party_lua:
-    fail("PARTY closed-app callbacks must be rejected server-side")
-get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
-set_ready_start = party_lua.find("function FlecityGamesParty.SetReady(source")
-if get_room_start < 0 or set_ready_start < 0 or "member.appOpen=true" not in party_lua[get_room_start:set_ready_start]:
-    fail("PARTY GetRoom must explicitly restore app-open presence")
-if get_room_start < 0 or set_ready_start < 0 or "roomForPlayer(source,id,true)" not in party_lua[get_room_start:set_ready_start]:
-    fail("PARTY GetRoom must be the explicit closed-membership exception")
-
-if errors:
-    print("Flecity Games static check FAILED")
-    for error in errors:
-        print(" -", error)
-    sys.exit(1)
-
-print("Flecity Games static check PASS")
-print(f" - enabled games: {len(enabled)}")
-print(f" - UI actions mapped: {len(actions)}")
-print(" - DOM references: PASS")
-print(" - LB Phone bridge: PASS")
-print(" - replay/privacy markers: PASS")
-
-,'')" not in party_plus_lua:
-    fail("PARTY+ revenue account trimming is malformed")
-if "FlecityGamesText.Length(guess)" not in party_lua or "FlecityGamesText.Length(value)" not in party_lua:
-    fail("PARTY user text limits must use UTF-8 character length")
-if "local function roomForPlayer(source,id)" not in party_lua:
-    fail("PARTY character-switch room guard is missing")
-if "QBCore:Server:OnPlayerUnload" not in framework_lua or "flecity_games:framework:playerUnloaded" not in framework_lua:
-    fail("framework character-unload bridge is missing")
-if "flecity_games:framework:playerUnloaded" not in server:
-    fail("server character-unload cleanup handler is missing")
-if "reclaimDisconnectedCapacity" not in party_lua or "connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers" not in party_lua:
-    fail("PARTY disconnected-slot reclaim is missing")
-if "now-disconnectedAt>grace" not in party_lua:
-    fail("PARTY disconnected-slot reclaim must preserve reconnect grace")
-if party_lua.find("if room.state~='lobby' then return {ok=false,error='ROUND_IN_PROGRESS'} end") > party_lua.find("reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)"):
-    fail("PARTY join must reject live rounds before capacity mutation")
-if "room.state=='lobby' then member.ready=false end" not in party_lua or "room.state=='lobby' then m.ready=false end" not in party_lua:
-    fail("PARTY lobby ready reset on disconnect/reconnect is missing")
-if "strokePointCount(rs.strokes)+#clean[1]>3200" not in party_lua or "sanitizedStrokes(data.strokes,80,2400)" not in party_lua:
-    fail("PARTY drawing payload limits are missing")
-if "partyOnOpen" not in client or "partyOnClose" not in client or "partyPushSuspended" not in client:
-    fail("PARTY LB Phone lifecycle gating is missing")
-if "partySuspend" not in party_js or "partyResume" not in party_js or "appSuspended" not in party_js:
-    fail("PARTY UI suspend/resume cleanup is missing")
-if "if(appSuspended)return;" not in party_js:
-    fail("PARTY suspended NUI must ignore delayed push events")
-if "lifecycleEpoch" not in party_js or party_js.count("epoch!==lifecycleEpoch") < 4 or "if(appSuspended||!room)return false;" not in party_js:
-    fail("PARTY async responses must be lifecycle-epoch guarded")
-if "visibilityBound" not in party_js or "function bindVisibilityLifecycle()" not in party_js:
-    fail("PARTY visibility lifecycle listener must bind only once")
-if "clearTimeout(statusTimer);statusTimer=null" not in party_js:
-    fail("PARTY suspend must clear status timer")
-if "actionLocks" not in party_js or "runOnce('start'" not in party_js:
-    fail("PARTY client action de-duplication is missing")
-if "drawStroke=null;drawIsDrawer=false;telephoneStroke=null;telephoneStrokes=[]" not in party_js:
-    fail("PARTY round runtime cleanup is incomplete")
-if "roundTimeoutSeconds" not in party_lua or "deadlineTick" not in party_lua or "TURN_TIMEOUT" not in party_lua or "ROUND_TIMEOUT" not in party_lua:
-    fail("PARTY authoritative round timeout is missing")
-if "deadlineLoop" not in party_js or "roundDeadline" not in party_js or 'id="roundDeadline"' not in party_html:
-    fail("PARTY round deadline UI is missing")
-if "voteUnlockTick" not in party_lua or "VOTING_LOCKED" not in party_lua or "deductionPhaseLoop" not in party_js:
-    fail("PARTY deduction discussion/voting phase separation is missing")
-if "out.submittedCount=submitted" not in party_lua or "out.expectedSubmissions=activeCount(room)" not in party_lua or "submissionProgress" not in party_js:
-    fail("PARTY aggregate waiting-progress UI is missing")
-if "minorityUnanimousNoWinner" not in party_lua or "noMinority" not in party_lua:
-    fail("PARTY MINORITY unanimous-choice handling is missing")
-if party_lua.count("if not m.disconnected and m.appOpen~=false then\n            local choice=rs.submissions[id]") < 2:
-    fail("PARTY MAJORITY/MINORITY results must exclude members whose app is closed")
-if "FlecityGamesParty.AppClosed" not in party_lua or "flecity_games:server:partyClosed" not in client or "flecity_games:server:partyClosed" not in server:
-    fail("PARTY app-close ready cleanup is missing")
-if "telephoneAppCloseSkip" not in party_lua or "bombAppCloseSkip" not in party_lua or "ticTacAppCloseForfeit" not in party_lua:
-    fail("PARTY turn-based app-close selftests are missing")
-if "member.appOpen~=false" not in party_lua or "reason='APP_CLOSED'" not in party_lua:
-    fail("PARTY turn-based app-close handling is incomplete")
-if "not target or target.disconnected or target.appOpen==false" not in party_lua:
-    fail("PARTY votes targeting closed-app members must be purged")
-if "DebugRoomSummaries" not in party_lua or "game_party_status" not in server:
-    fail("PARTY live room diagnostic command is missing")
-if "['flecity_games:party:addDrawStroke']={preventSpam=true,rateLimit=75" not in server:
-    fail("PARTY DRAW LB Phone callback throttle is too restrictive")
-if "handoffHostFrom(room,id)" not in party_lua or "appCloseHostHandoff" not in party_lua:
-    fail("PARTY app-close host handoff is missing")
-if "local room=roomForSource(source)" not in party_lua or "tonumber(member.source)~=tonumber(source)" not in party_lua:
-    fail("PARTY AppClosed must use side-effect-free room lookup")
-if "bestHostCandidate" not in party_lua or "m.appOpen~=false" not in party_lua or "member.appOpen=true" not in party_lua:
-    fail("PARTY host migration must prefer app-active members")
-join_start = party_lua.find("function FlecityGamesParty.JoinRoom(source,data)")
-get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
-if join_start < 0 or get_room_start < 0 or "host and host.appOpen==false" not in party_lua[join_start:get_room_start] or "handoffHostFrom(room,room.hostIdentifier)" not in party_lua[join_start:get_room_start]:
-    fail("PARTY new join must recover host control from a closed host")
-if "appOpen=m.appOpen~=false" not in party_lua or "アプリ閉じています" not in party_js or "アプリ待ち " not in party_js:
-    fail("PARTY lobby must expose app-presence blocking state")
-if "m.appOpen==false or m.ready~=true" not in party_lua:
-    fail("PARTY server must reject start while a connected member app is closed")
-if "if room.state=='lobby' then return {ok=true,room=snapshot(room,id)} end" not in party_lua or "rs.complete~=true" not in party_lua:
-    fail("PARTY ReturnLobby idempotency/live-round guard is missing")
-if "local roundChanged=reconcileRound(room)" not in party_lua or "if changed or roundChanged then notifyRoom(room) end" not in party_lua:
-    fail("PARTY cleanup must push timeout/reconcile state changes")
-if "Wait(1000)" not in server or "FlecityGamesParty.Cleanup()" not in server:
-    fail("PARTY cleanup cadence must be 1 second for responsive deadlines")
-if "Wait(5000)" not in server or "FlecityGamesPlay.Cleanup()" not in server:
-    fail("PLAY cleanup cadence changed unexpectedly")
-if "rs.gameId=='telephone'" not in party_lua or "forfeit=true" not in party_lua:
-    fail("PARTY turn-timeout continuation/forfeit handling is missing")
-if "telephoneTurnTimeoutSeconds" not in party_lua or "mode=='text' and 30 or 45" not in party_lua:
-    fail("PARTY TELEPHONE mode-specific turn pacing is missing")
-if "canvas.width=360;canvas.height=260;canvas.className='draw-canvas'" not in party_js:
-    fail("PARTY TELEPHONE result canvas must preserve drawing aspect ratio")
-if "function drawableStroke(points)" not in party_js or "const sendPoints=drawableStroke(points)" not in party_js or "const stored=drawableStroke(stroke)" not in party_js:
-    fail("PARTY drawing must preserve single-tap dots")
-if party_js.count("e.key==='Enter'&&!e.isComposing") < 2:
-    fail("PARTY Japanese IME Enter guards are missing")
-if "maybeFinishCodeBreak(room,true)" not in party_lua or "finishReversiForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')" not in party_lua or "maybeFinishDraw(room,true)" not in party_lua or "totalVotes=totalVotes" not in party_lua:
-    fail("PARTY timeout partial-result finalization is missing")
-if "resultHoldLoop" not in party_js or "resultLobbyUnlockAt=performance.now()+2500" not in party_js:
-    fail("PARTY result-screen accidental-return guard is missing")
-if "leaveConfirmUntil" not in party_js or "もう一度押して退出" not in party_js or "resetLeaveConfirmation" not in party_js:
-    fail("PARTY leave accidental-tap confirmation is missing")
-if "appendResultBanner" not in party_js or "WINNER · " not in party_js or "FASTEST · " not in party_js:
-    fail("PARTY result winner clarity banners are missing")
-if "playersEl.classList.toggle('dense'" not in party_js or "#players.dense" not in play_css:
-    fail("PARTY large-room player-list density handling is missing")
-
-for marker in (
-    "wordWolfPrivacy",
-    "liarPrivacy",
-    "drawPrivacy",
-    "drawAliasMatch",
-    "drawConnectedProgress",
-    "telephonePrivacy",
-    "telephoneContributorNamePreserved",
-    "telephoneDisconnectFreshDeadline",
-    "roomRevision",
-    "appCloseHostHandoff",
-    "reconnectGracePreserved",
-    "expiredCapacityReclaimed",
-    "disconnectedVoteIgnored",
-    "roundAbortLowPlayers",
-    "secretRoleDisconnectAbort",
-    "minorityAggregation",
-    "ticTacWinner",
-):
-    if marker not in party_lua:
-        fail(f"PARTY selftest missing: {marker}")
-
-expected_play_order = ["quick_tap", "stop", "stack", "block", "merge", "fall", "mines", "nonogram", "memory", "sort", "slide", "color_match", "number_rush", "high_low", "simon"]
-expected_party_order = ["code_break", "reversi", "vote", "gomoku", "connect4", "mini_shogi", "word_wolf", "liar", "draw", "telephone", "ng_word", "fake_answer", "bomb", "memory_chain", "fall_battle"]
-ordered_defs = re.findall(r"order=(\d+),id='([^']+)'[^\n]*app='(play|party)'", registry)
-normalized_defs = sorted((int(order), game_id, app) for order, game_id, app in ordered_defs)
-play_order = [game_id for _, game_id, app in normalized_defs if app == "play"]
-party_order = [game_id for _, game_id, app in normalized_defs if app == "party"]
-if play_order != expected_play_order:
-    fail(f"PLAY registry order mismatch: {play_order}")
-if party_order != expected_party_order:
-    fail(f"PARTY registry order mismatch: {party_order}")
-if not re.search(r"id='code_break'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='reversi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='gomoku'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='connect4'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry) or not re.search(r"id='mini_shogi'[^\n]*minPlayers=1[^\n]*maxPlayers=2", registry):
-    fail("PARTY solo/duo board-game player caps are incorrect")
-
-server_error_codes = set(re.findall(r"error='([A-Z0-9_]+)'", server + "\n" + play_lua + "\n" + party_lua))
-missing_error_messages = sorted(code for code in server_error_codes if code not in errors_js)
-if missing_error_messages:
-    fail(f"shared error dictionary missing codes: {', '.join(missing_error_messages)}")
-
-scan_files = [
-    p for p in GAME.rglob("*")
-    if p.is_file()
-    and p.name != "static_check.py"
-    and p.suffix.lower() in {".lua", ".js", ".html", ".css", ".sql", ".md"}
-]
-all_text = "\n".join(
-    p.read_text(encoding="utf-8", errors="ignore")
-    for p in scan_files
-)
-if "<<<<<<<" in all_text or ">>>>>>>" in all_text:
-    fail("merge conflict markers found")
-submission_builder = read("flecity_games/tools/build_submission.py")
-submission_install = read("flecity_games/release_docs/INSTALL_JA.txt")
-submission_checklist = read("flecity_games/release_docs/OPERATOR_CHECKLIST_JA.txt")
-party_submission_builder = read("flecity_games/tools/build_party_submission.py")
-party_submission_install = read("flecity_games/release_docs/PARTY_INSTALL_JA.txt")
-party_submission_checklist = read("flecity_games/release_docs/PARTY_OPERATOR_CHECKLIST_JA.txt")
-if 'RELEASE_VERSION = "1.0.0"' not in submission_builder or '"server/core/dev_reload.lua"' not in submission_builder or 'flecity-games-loop-' not in submission_builder or 'web/play/icon.svg' not in submission_builder:
-    fail("submission builder LOOP release branding/dev exclusion is missing")
-if '"web/party"' not in submission_builder or "enabled = false" not in submission_builder:
-    fail("submission builder PARTY-disable packaging is missing")
-if "ensure flecity_games" not in submission_install or "SQLの手動実行は不要" not in submission_install or "App Store" not in submission_install:
-    fail("operator submission install guide is incomplete")
-if "PARTYカスタムアプリは無効化" not in submission_checklist or "defaultApp=false / price=0" not in submission_checklist:
-    fail("operator submission checklist does not describe LOOP App Store build")
-
-party_config_match = re.search(r"Party\s*=\s*\{(.*?)\n        \}", config, flags=re.S)
-party_config_block = party_config_match.group(1) if party_config_match else ""
-for required_marker in ("identifier = 'flecity_party'", "name = 'PARTY'", "defaultApp = false", "game = true", "price = 0"):
-    if required_marker not in party_config_block:
-        fail(f"PARTY App Store config missing: {required_marker}")
-if 'PARTY_RELEASE_VERSION = "1.0.0"' not in party_submission_builder or 'RESOURCE_RELEASE_VERSION = "1.1.0"' not in party_submission_builder:
-    fail("PARTY submission builder versioning is missing")
-if "flecity-games-party-" not in party_submission_builder or '"server/core/dev_reload.lua"' not in party_submission_builder or "web/party/icon.svg" not in party_submission_builder:
-    fail("PARTY submission builder packaging markers are missing")
-if "PARTY" not in party_submission_install or "restart flecity_games" not in party_submission_install or "SQLの手動実行は不要" not in party_submission_install:
-    fail("PARTY operator install guide is incomplete")
-if "defaultApp=false" not in party_submission_checklist or "game=true" not in party_submission_checklist or "price=0" not in party_submission_checklist:
-    fail("PARTY operator checklist does not describe App Store build")
-
-if re.search(r"\bTODO\b|\bFIXME\b", all_text):
-    fail("TODO/FIXME marker found in flecity_games source/docs")
-
-if "local function activeCount(room)" not in party_lua or party_lua.count("completedSubmissionCount(room)<activeCount(room)") < 8:
-    fail("PARTY simultaneous rounds must not wait for members whose app is closed")
-if "if room.state=='round' and reconcileRound(room) then changed=true end" not in party_lua:
-    fail("PARTY AppClosed must immediately reconcile simultaneous-input rounds")
-if party_lua.count("or wolf.appOpen==false") < 1 or party_lua.count("or liar.appOpen==false") < 1:
-    fail("PARTY secret-role rounds must abort when the secret player closes the app")
-if party_lua.count("room.members[targetId].appOpen==false") < 3:
-    fail("PARTY vote submissions must reject targets whose app is closed")
-if "p=>!p.disconnected&&p.appOpen!==false&&p.memberId!==room.selfMemberId" not in party_js:
-    fail("PARTY deduction UI must hide closed players from vote targets")
-if "not drawer or drawer.disconnected or drawer.appOpen==false" not in party_lua or "not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier" not in party_lua:
-    fail("PARTY DRAW must stop on drawer close and exclude closed guessers from completion")
-if "action:sub(1,5)=='party' and (not partyAppOpen or partyPushSuspended)" not in client or "error='APP_SUSPENDED'" not in client:
-    fail("PARTY NUI callbacks must be rejected client-side while the app/phone is suspended")
-if "Membership lookup must not imply that the PARTY UI is open." not in party_lua:
-    fail("PARTY room lookup can regress into reopening app presence on delayed callbacks")
-if party_lua.count("member.appOpen~=false and src~=excluded") < 2:
-    fail("PARTY server pushes must skip members whose app is closed")
-if "local function roomForPlayer(source,id,allowClosed)" not in party_lua or "if member.appOpen==false and allowClosed~=true then return nil end" not in party_lua:
-    fail("PARTY closed-app callbacks must be rejected server-side")
-get_room_start = party_lua.find("function FlecityGamesParty.GetRoom(source)")
-set_ready_start = party_lua.find("function FlecityGamesParty.SetReady(source")
-if get_room_start < 0 or set_ready_start < 0 or "member.appOpen=true" not in party_lua[get_room_start:set_ready_start]:
-    fail("PARTY GetRoom must explicitly restore app-open presence")
-if get_room_start < 0 or set_ready_start < 0 or "roomForPlayer(source,id,true)" not in party_lua[get_room_start:set_ready_start]:
-    fail("PARTY GetRoom must be the explicit closed-membership exception")
-
 if errors:
     print("Flecity Games static check FAILED")
     for error in errors:

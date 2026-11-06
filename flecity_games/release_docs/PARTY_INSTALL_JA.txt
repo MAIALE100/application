@@ -1,38 +1,38 @@
-Flecity Games PARTY v1.0.0
+Flecity Games LINK v1.0.0
 運営様向け 導入方法
 
-この度はPARTYの導入をご確認いただき、ありがとうございます。
+この度はLINKの導入をご確認いただき、ありがとうございます。
 本データは、既に導入済みの一人用ゲームアプリ「LOOP」を維持したまま、
-同じ独立resource「flecity_games」に複数人用ゲームアプリ「PARTY」を追加する更新版です。
+同じ独立resource「flecity_games」に複数人用ゲームアプリ「LINK」を追加する更新版です。
 
 LB Phone本体、Qbox本体、既存アプリ本体のファイルを直接編集していただく必要はありません。
 
 ■ 今回の提出内容
 ・既存アプリ「LOOP」v1.0.0相当の機能を維持
-・LB Phone用複数人ゲームアプリ「PARTY」v1.0.0
-・PARTY内ミニゲーム 合計15種
+・LB Phone用複数人ゲームアプリ「LINK」v1.0.0
+・LINK内ミニゲーム 合計15種
 
-無料ゲーム 10種
-1. REACTION
-2. STOP! BATTLE
-3. VOTE
-4. MAJORITY
-5. MINORITY
-6. TIC-TAC
-7. WORD WOLF
-8. LIAR
-9. DRAW
-10. TELEPHONE
+収録ゲーム 15種
+1. ヒット＆ブロー
+2. リバーシ
+3. みんなで投票
+4. 五目並べ
+5. コネクトフォー
+6. 将棋
+7. ワードウルフ
+8. ウソつき探し
+9. お絵かきゲーム（お絵かき当て等）
+10. お絵かき伝言
+11. NGワード
+12. ニセ回答
+13. 爆弾リレー
+14. 記憶チェイン
+15. テトリス対戦
 
-PARTY+ 5種
-11. NG WORD
-12. FAKE ANSWER
-13. BOMB
-14. MEMORY CHAIN
-15. FALL BATTLE
+毎週、ワードウルフを除く対象ゲームから5種がLINK+対象として切り替わり、残り10種は無料で遊べます。現在の対象と切替予定はLINK内の表示をご確認ください。
 
-・PARTY+：7日 / 50,000
-・PARTY+加入者がHostのRoomでは、未加入参加者もPARTY+ゲームを利用可能
+・LINK+：7日 / 50,000
+・LINK+加入者がHostのRoomでは、未加入参加者もLINK+ゲームを利用可能
 ・ルーム作成 / 4桁コード参加 / Ready / ホスト管理
 ・切断 / 再接続 / ホスト移行 / timeout / cleanup
 ・LB Phone App Storeから無料ダウンロード
@@ -46,14 +46,14 @@ defaultApp: false
 game: true
 price: 0
 
-PARTY
+LINK
 identifier: flecity_party
-name: PARTY
+name: LINK
 defaultApp: false
 game: true
 price: 0
 
-LOOP・PARTYともに初期状態で強制インストールせず、
+LOOP・LINKともに初期状態で強制インストールせず、
 プレイヤーがLB PhoneのApp Storeから必要な時に無料でダウンロードする方式です。
 
 ■ 前提
@@ -73,24 +73,24 @@ refresh
 restart flecity_games
 
 通常、サーバー全体の再起動は不要です。
-server.cfgの「ensure flecity_games」は既存のままで、PARTY用のensure追加は不要です。
+server.cfgの「ensure flecity_games」は既存のままで、LINK用のensure追加は不要です。
 
 ■ LOOPの既存データ
 今回の更新では、LOOPのidentifierや既存DB仕様を変更しません。
 既存のスコア、BEST、セーブ、実績、Daily、ランキング等は維持する前提です。
 
 ■ データベース
-PARTYのRoom状態はサーバーメモリ上で管理します。
-PARTY+の有効期限・自動更新状態は「flecity_game_subscriptions」に保存します。
+LINKのRoom状態はサーバーメモリ上で管理します。
+LINK+の有効期限・自動更新状態は「flecity_game_subscriptions」に保存します。
 
 起動時に必要なテーブル・不足項目を自動確認します。
 通常はSQLの手動実行は不要です。
 既存データに対するDROP TABLE / TRUNCATE TABLEは実行しません。
 
-■ PARTY+決済
+■ LINK+決済
 ・プレイヤー本人のbankから50,000をserver側で減算します。
 ・有効期間は7日です。
-・自動更新ONの場合、期限後の次回PARTY利用時に1期間だけ更新を試行します。
+・自動更新ONの場合、期限後の次回LINK利用時に1期間だけ更新を試行します。
 ・自動更新を停止しても現在の期限までは利用できます。
 ・売上はWEAZEL企業口座「weazel」へ入金します。
 ・企業口座providerはauto判定です。
@@ -117,13 +117,13 @@ game_party_status
 game_healthcheck
 
 ■ 導入後の最小確認
-1. LB PhoneのApp StoreにLOOPとPARTYが表示されること
+1. LB PhoneのApp StoreにLOOPとLINKが表示されること
 2. LOOPが従来どおり起動できること
-3. PARTYを無料でダウンロードできること
+3. LINKを無料でダウンロードできること
 4. 2台以上の端末で、Room作成・4桁コード参加・Ready・ゲーム開始ができること
-5. PARTY+購入時にプレイヤーbankから50,000減算されること
+5. LINK+購入時にプレイヤーbankから50,000減算されること
 6. WEAZEL企業口座へ50,000入金されること
-7. PARTY終了後もLOOPの既存記録・セーブが維持されていること
+7. LINK終了後もLOOPの既存記録・セーブが維持されていること
 
 ■ 切り戻し
 問題がございましたら、更新前にバックアップしたLOOP版「flecity_games」へ戻し、
@@ -133,7 +133,7 @@ restart flecity_games
 
 をご実行ください。
 
-PARTY用DBテーブルを削除する必要はありません。
+LINK用DBテーブルを削除する必要はありません。
 
 運営様側の作業を最小限にできるよう、
 通常の更新は「flecity_games」の差し替えと「restart flecity_games」のみで完了する構成です。

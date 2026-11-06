@@ -184,7 +184,7 @@ resource起動時にDB作成とnon-player preflightが自動実行され、正�
 - Dailyでは全員が同じ配置になる
 - タップ履歴を改変した送信は `INVALID_NUMBER_RUSH_REPLAY` で拒否される
 - 3秒未満など成立しないクリア時間はSERVERで拒否される
-- ノーミス12秒以内で `NUMBER ACE` 実績が解除される
+- ノーミス16秒以内で `NUMBER ACE` 実績が解除される
 
 
 ## HIGH & LOW

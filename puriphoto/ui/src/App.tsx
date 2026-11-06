@@ -177,6 +177,8 @@ const App = () => {
     const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const saveLock = useRef(false)
+    const boothImportInFlight = useRef(false)
+    const lastAppliedBoothImportToken = useRef<string | null>(null)
     const [activeEditorTab, setActiveEditorTab] = useState<'frame' | 'stamp' | 'text' | 'draw'>('stamp')
     const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([])
     const [drawColor, setDrawColor] = useState<CaptionColor>('hotPink')
@@ -381,13 +383,15 @@ const App = () => {
         }
     }
 
-    const loadBoothImport = async () => {
-        if (saveLock.current) return
+    const loadBoothImport = async (attempt = 0) => {
+        if (saveLock.current || boothImportInFlight.current) return
+        boothImportInFlight.current = true
 
         try {
             const result = await nuiRequest<{
                 ok: boolean
                 import?: {
+                    token: string
                     image: string
                     location?: CaptureLocation
                 }
@@ -397,22 +401,45 @@ const App = () => {
             if (!result.ok || !result.import?.image) return
 
             const imported = result.import
-            setPage('main')
-            setPhotoUrl(imported.image)
-            setSourcePhotoUrl(imported.image)
-            setSavedPhotoUrl(null)
-            setCaptureLocation(imported.location || null)
-            setCurrentProjectId(null)
-            setManualLocation(imported.location?.label || 'Street PURI')
-            setPhotoMemo('')
-            setLastSavedSnapshot(null)
-            resetEditorState()
-            setPhotoAspectRatio(null)
-            setToolsCollapsed(false)
-            setIsEditing(true)
-            setError(null)
+            if (!imported.token) throw new Error('booth_import_token_missing')
+
+            if (lastAppliedBoothImportToken.current !== imported.token) {
+                setPage('main')
+                setPhotoUrl(imported.image)
+                setSourcePhotoUrl(imported.image)
+                setSavedPhotoUrl(null)
+                setCaptureLocation(imported.location || null)
+                setCurrentProjectId(null)
+                setManualLocation(imported.location?.label || 'Street PURI')
+                setPhotoMemo('')
+                setLastSavedSnapshot(null)
+                resetEditorState()
+                setPhotoAspectRatio(null)
+                setToolsCollapsed(false)
+                setIsEditing(true)
+                setError(null)
+                lastAppliedBoothImportToken.current = imported.token
+            }
+
+            await new Promise<void>((resolve) => {
+                window.requestAnimationFrame(() => resolve())
+            })
+
+            const confirmed = await nuiRequest<SimpleResponse>(
+                'puriphotoConfirmBoothImport',
+                { token: imported.token }
+            )
+
+            if (!confirmed.ok) {
+                throw new Error(confirmed.error || 'booth_import_confirm_failed')
+            }
         } catch (cause) {
             console.warn('[PuriPhoto] Booth import unavailable:', cause)
+            if (!devMode && attempt < 2) {
+                window.setTimeout(() => void loadBoothImport(attempt + 1), 500)
+            }
+        } finally {
+            boothImportInFlight.current = false
         }
     }
 

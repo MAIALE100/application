@@ -125,7 +125,7 @@
     "initialRingtonePreview": "WAVE preview is unavailable by design while the LB Phone initial ringtone is selected; the revised explanatory hint is automated-tested",
     "customRingtonePreviewAudio": "PASS_USER_CONFIRMED audible Flecity Afterglow 0.0-15.0 seconds",
     "savedRingtoneAfterRestart": "Flecity Afterglow 0.0-15.0 seconds visible in Library; left unchanged",
-    "playbackAfterClosingPhone": "NOT_VERIFIED",
+    "playbackAfterClosingPhone": "PASS_USER_CONFIRMED: Library audio continued after closing LB Phone.",
     "lockScreenRestore": "NOT_VERIFIED",
     "positionAndVolumePersistence": "NOT_VERIFIED",
     "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",

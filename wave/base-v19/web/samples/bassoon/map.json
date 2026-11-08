@@ -1,0 +1,66 @@
+{
+  "instrument": "bassoon",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 34,
+      "layer": 4,
+      "file": "p34.ogg",
+      "sha256": "aefcb46f0bab20bc23f341a948983a691a0e22e7616334ca563464c7dc15a223",
+      "bytes": 113558,
+      "sourceFile": "PSBassoon_A#1_v1_1.wav"
+    },
+    {
+      "midi": 36,
+      "layer": 4,
+      "file": "p36.ogg",
+      "sha256": "9f0c92c50a13516f5d1d112c23e1dfcff5b98777b562df7a427f0d937994831c",
+      "bytes": 93953,
+      "sourceFile": "PSBassoon_C2_v1_1.wav"
+    },
+    {
+      "midi": 43,
+      "layer": 4,
+      "file": "p43.ogg",
+      "sha256": "ce0b07e8479183f5de228c25082fd9100e60a861bcb2fd0f4693342b9265a4d0",
+      "bytes": 132068,
+      "sourceFile": "PSBassoon_G2_v1_1.wav"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "a89796195f08a5735b60192ea99598d9b1b9b83c7a302570e0c8f1f61fd2fe60",
+      "bytes": 121695,
+      "sourceFile": "PSBassoon_C3_v1_1.wav"
+    },
+    {
+      "midi": 51,
+      "layer": 4,
+      "file": "p51.ogg",
+      "sha256": "9469a63c91170288bf89a813ee37652045cf842f3dfd93593d3d161f2d3de80d",
+      "bytes": 120823,
+      "sourceFile": "PSBassoon_D#3_v1_1.wav"
+    },
+    {
+      "midi": 57,
+      "layer": 4,
+      "file": "p57.ogg",
+      "sha256": "6c2562e078ed8492b3c875a4caf06f82e58d6768e153887eab07bcfa37b62a5b",
+      "bytes": 147634,
+      "sourceFile": "PSBassoon_A3_v1_1.wav"
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "f22e6aa9ff67850ddc7907c0a931e964b18d39e380cde9c7cd00f079286ff8bb",
+      "bytes": 175953,
+      "sourceFile": "PSBassoon_C4_v1_1.wav"
+    }
+  ]
+}

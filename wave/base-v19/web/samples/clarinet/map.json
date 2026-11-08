@@ -1,0 +1,72 @@
+{
+  "instrument": "clarinet",
+  "source": "FreePats Clarinet (Tyler and Kaili Dence, 2019-08-18)",
+  "license": "CC0-1.0",
+  "sourceURL": "https://freepats.zenvoid.org/Reed/clarinet.html",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 50,
+      "layer": 4,
+      "file": "p50.ogg",
+      "sha256": "8bafef248dd7e8d798dfd99191758208668a5a2947dc830fcb0b58c71cb4ba52",
+      "bytes": 90004
+    },
+    {
+      "midi": 53,
+      "layer": 4,
+      "file": "p53.ogg",
+      "sha256": "0181cd918c166113eb2f6ee542843043cde63f03a35d3be52d00d88d531f5665",
+      "bytes": 103219
+    },
+    {
+      "midi": 58,
+      "layer": 4,
+      "file": "p58.ogg",
+      "sha256": "e5d71fb64b980d9af3870b491a69044e540fbab158dac1a47902252734663301",
+      "bytes": 92166
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "35b045469c3ee0b418ddd7ea9001c36aba56fabc3b4fee15268ecac38e5c0a25",
+      "bytes": 99144
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "file": "p65.ogg",
+      "sha256": "01c6c264905ff0f35e1a7628529bf0f2fcc6a99e3e8078cd68d460f61b2e6d45",
+      "bytes": 103234
+    },
+    {
+      "midi": 70,
+      "layer": 4,
+      "file": "p70.ogg",
+      "sha256": "60c8b078e65563b7b2290b39793e03d6a9ea6e618a869302251a77928e209515",
+      "bytes": 72260
+    },
+    {
+      "midi": 74,
+      "layer": 4,
+      "file": "p74.ogg",
+      "sha256": "39cea86554ebf9848a756061c7ee291821c79dff81474149b6d808f0645d672d",
+      "bytes": 95824
+    },
+    {
+      "midi": 77,
+      "layer": 4,
+      "file": "p77.ogg",
+      "sha256": "4d19bfe3bc856a8d63395866f9a6aa3fb6df936440d04390ee46fd7d6c91b0fd",
+      "bytes": 98445
+    },
+    {
+      "midi": 82,
+      "layer": 4,
+      "file": "p82.ogg",
+      "sha256": "4ea1e20eca11904fb6dea9db92f1dc36ae83ed8c2e04fd47aa8eaac68a08eb57",
+      "bytes": 69149
+    }
+  ]
+}

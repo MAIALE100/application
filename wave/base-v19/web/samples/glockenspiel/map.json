@@ -1,0 +1,58 @@
+{
+  "instrument": "glockenspiel",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "52eb263d27726c00eb43b5908b3fa19bfe798e5bea62f8f6c4bb8871280a4ffd",
+      "bytes": 95846,
+      "sourceFile": "glock_medium_G4.wav"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "e9ee2399623d9c7a1e2662ce9d39817c2ba0a69f6f041dc152c517b44f38cb83",
+      "bytes": 99366,
+      "sourceFile": "glock_medium_C5.wav"
+    },
+    {
+      "midi": 79,
+      "layer": 4,
+      "file": "p79.ogg",
+      "sha256": "e5f24cf4885a7ffa6c42b07772554a8fc429135b68f831577195ebec3e1b6b4e",
+      "bytes": 62758,
+      "sourceFile": "glock_medium_G5.wav"
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "file": "p84.ogg",
+      "sha256": "bfc7d35b91b8a942239e8b3a5a26be2d13cfdfca4b9fc84baa53efe31816fe44",
+      "bytes": 66273,
+      "sourceFile": "glock_medium_C6.wav"
+    },
+    {
+      "midi": 91,
+      "layer": 4,
+      "file": "p91.ogg",
+      "sha256": "3474a658e11ad43bebcb30de4ed6086241ed3583f9cd0d3c7abb88b39579dce3",
+      "bytes": 51043,
+      "sourceFile": "glock_medium_G6.wav"
+    },
+    {
+      "midi": 96,
+      "layer": 4,
+      "file": "p96.ogg",
+      "sha256": "5dac2dbbb4b3a01bfa02caf63f208cd30d3d0613e61da95d553aeb245eec1636",
+      "bytes": 32392,
+      "sourceFile": "glock_medium_C7.wav"
+    }
+  ]
+}

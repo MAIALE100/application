@@ -1,0 +1,66 @@
+{
+  "instrument": "tuba",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 22,
+      "layer": 4,
+      "file": "p22.ogg",
+      "sha256": "358d69ede85306fcd262068dd5f4a3bf002af128283986fbcb519e8d18d8e37d",
+      "bytes": 122148,
+      "sourceFile": "Tuba3_sus_A#0_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 27,
+      "layer": 4,
+      "file": "p27.ogg",
+      "sha256": "b555b3fbf8ee907894cc52e942e8a6126dd405a902cc30ed1beb33a517872508",
+      "bytes": 100854,
+      "sourceFile": "Tuba3_sus_D#1_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 29,
+      "layer": 4,
+      "file": "p29.ogg",
+      "sha256": "1700334ff1f0ed34e4093755c326864476a07dea0f23e456888b99ee874ccbec",
+      "bytes": 105056,
+      "sourceFile": "Tuba3_sus_F1_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 34,
+      "layer": 4,
+      "file": "p34.ogg",
+      "sha256": "a47e5a4db3d4c478a0cd89f509b1980aed0c0d9c2d77ba1f97feaedaa5229cc4",
+      "bytes": 128911,
+      "sourceFile": "Tuba3_sus_A#1_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 38,
+      "layer": 4,
+      "file": "p38.ogg",
+      "sha256": "95913ffdc95d6ea1a64db625fd9cb2f11631d3939c03da679210877338127a85",
+      "bytes": 197339,
+      "sourceFile": "Tuba3_sus_D2_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "3f045e934a5c3ee7976e109c4907cb4b8c6f028c42be6d83e1765417678a39d8",
+      "bytes": 172967,
+      "sourceFile": "Tuba3_sus_F2_v2_rr1_Mid.wav"
+    },
+    {
+      "midi": 46,
+      "layer": 4,
+      "file": "p46.ogg",
+      "sha256": "e8ed35005233d4b42be060c358e1a4adfc255607c08173f3d1d34b528603de8e",
+      "bytes": 133303,
+      "sourceFile": "Tuba3_sus_A#2_v2_rr1_Mid.wav"
+    }
+  ]
+}

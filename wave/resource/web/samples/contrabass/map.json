@@ -1,0 +1,90 @@
+{
+  "instrument": "contrabass",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 16,
+      "layer": 4,
+      "file": "p16.ogg",
+      "sha256": "71fdbcfc766ddddff766d06e8de510fa4c30d43c23aa4d2ad931f5cb3e254bb1",
+      "bytes": 258610,
+      "sourceFile": "BKCtbss_SusNV_E0_v1_rr1.wav"
+    },
+    {
+      "midi": 22,
+      "layer": 4,
+      "file": "p22.ogg",
+      "sha256": "b3296b37a424f5bc5e03c47c0aee4a22fdb4c4f17764bcb7a6fef8911bf5deba",
+      "bytes": 168876,
+      "sourceFile": "BKCtbss_SusNV_A#0_v1_rr1.wav"
+    },
+    {
+      "midi": 24,
+      "layer": 4,
+      "file": "p24.ogg",
+      "sha256": "7f166c8f6081163bdce03890fea487ef0e8e9d6855ea1ac572df8e3bc5e2411e",
+      "bytes": 133068,
+      "sourceFile": "BKCtbss_SusNV_C1_v1_rr1.wav"
+    },
+    {
+      "midi": 26,
+      "layer": 4,
+      "file": "p26.ogg",
+      "sha256": "b18d55310b27b7adc1d0896e62a237c6197b5af7d9a4f9b14ab5f4a97f5bb4b4",
+      "bytes": 228811,
+      "sourceFile": "BKCtbss_SusNV_D1_v1_rr1.wav"
+    },
+    {
+      "midi": 28,
+      "layer": 4,
+      "file": "p28.ogg",
+      "sha256": "a0ac4330f76ece2fac0620dcfebb7d41bd399b75ea4d83b301fcf6246ce73635",
+      "bytes": 256592,
+      "sourceFile": "BKCtbss_SusNV_E1_v1_rr1.wav"
+    },
+    {
+      "midi": 30,
+      "layer": 4,
+      "file": "p30.ogg",
+      "sha256": "a7062f1a4f8b230217b038de87ffeaf3a979da8934d2c247b81bdbb98bee20c4",
+      "bytes": 120117,
+      "sourceFile": "BKCtbss_SusNV_F#1_v1_rr1.wav"
+    },
+    {
+      "midi": 33,
+      "layer": 4,
+      "file": "p33.ogg",
+      "sha256": "4f0273fc137a2a55addb41f70f64ba45fef863007b39105b7c453c8691f9ce26",
+      "bytes": 111664,
+      "sourceFile": "BKCtbss_SusNV_A1_v1_rr1.wav"
+    },
+    {
+      "midi": 37,
+      "layer": 4,
+      "file": "p37.ogg",
+      "sha256": "6f351029fe19bf221c1ab9206c526fe1786fa996bb702a5cc3ebbb4fd3ab65a0",
+      "bytes": 109171,
+      "sourceFile": "BKCtbss_SusNV_C#2_v1_rr1.wav"
+    },
+    {
+      "midi": 40,
+      "layer": 4,
+      "file": "p40.ogg",
+      "sha256": "2d1cceaed210c5e71bec686a11b043703edd02f5fceba01abb1024ac193fe137",
+      "bytes": 128771,
+      "sourceFile": "BKCtbss_SusNV_E2_v1_rr1.wav"
+    },
+    {
+      "midi": 47,
+      "layer": 4,
+      "file": "p47.ogg",
+      "sha256": "1ff8e25926059fddd73a24b26e8657dc43d8a0bbc09ffa6cf97b60e5f12e3aa9",
+      "bytes": 146854,
+      "sourceFile": "BKCtbss_SusNV_B2_v1_rr1.wav"
+    }
+  ]
+}

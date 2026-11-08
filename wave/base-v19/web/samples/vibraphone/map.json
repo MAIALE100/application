@@ -1,0 +1,98 @@
+{
+  "instrument": "vibraphone",
+  "source": "Versilian Studios VCSL",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VCSL",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "2ccef68707b51c4396b552cfa87b62423b03bac31ee5a014b093dfb3a6700f86",
+      "bytes": 62183,
+      "sourceFile": "Vibes_hard_F2_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "e40a954d2c2337ea9bdd53960222579ba2edaa2eff50dfb1782c73ce0ec78f46",
+      "bytes": 151890,
+      "sourceFile": "Vibes_hard_A2_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "450fb586813214632dedb43da8c2c298496963e929fa8eebdf7c2457a120546e",
+      "bytes": 159885,
+      "sourceFile": "Vibes_hard_C3_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 52,
+      "layer": 4,
+      "file": "p52.ogg",
+      "sha256": "987d646734d4907af3d05b39afc97f4bc1d4053bb037dded9964de79c24276db",
+      "bytes": 174996,
+      "sourceFile": "Vibes_hard_E3_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 55,
+      "layer": 4,
+      "file": "p55.ogg",
+      "sha256": "e739c1703ae5e204a1eab5583d474d5989f0c29f5262694487a48b50ba452e2a",
+      "bytes": 237788,
+      "sourceFile": "Vibes_hard_G3_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 59,
+      "layer": 4,
+      "file": "p59.ogg",
+      "sha256": "6922e1bee303eaacef8973ffa41190dba8cebbf82c053ec1565087897fba0169",
+      "bytes": 178122,
+      "sourceFile": "Vibes_hard_B3_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "6495e99a6a01614fffbe4aae56bcae3a2a136e01bcfd50f6ac5f70ddc04c661f",
+      "bytes": 178338,
+      "sourceFile": "Vibes_hard_D4_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "file": "p65.ogg",
+      "sha256": "658f2cc6e2b0da1135892d8291cf5964dc6963637bde4fd9f01a6431330a741a",
+      "bytes": 133021,
+      "sourceFile": "Vibes_hard_F4_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 69,
+      "layer": 4,
+      "file": "p69.ogg",
+      "sha256": "367b8d28f257b85e44b52c4d3974a4a218ee0226d916abeeff4ddd1388d7b92b",
+      "bytes": 149273,
+      "sourceFile": "Vibes_hard_A4_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "55e120dbed3419a1953729416467a65f63b091d3dc5f8200568fd6ccad3447da",
+      "bytes": 78717,
+      "sourceFile": "Vibes_hard_C5_v2_rr1_Main.wav"
+    },
+    {
+      "midi": 76,
+      "layer": 4,
+      "file": "p76.ogg",
+      "sha256": "38260385708bfe00572998b33b78c190b473dba1563831b9f11d8ffe18c839c3",
+      "bytes": 96257,
+      "sourceFile": "Vibes_hard_E5_v2_rr1_Main.wav"
+    }
+  ]
+}

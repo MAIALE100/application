@@ -1,0 +1,43 @@
+{
+  "instrument": "electric_bass",
+  "source": "FreePats Bass Guitar YR / Picked",
+  "license": "CC0-1.0",
+  "pitchOffset": -12,
+  "samples": [
+    {
+      "midi": 28,
+      "layer": 4,
+      "file": "p28.ogg",
+      "sha256": "0db3eed7058119c1de8135e307e5db61db3b820b94430a6a68607f7104a57c4a",
+      "bytes": 29782
+    },
+    {
+      "midi": 31,
+      "layer": 4,
+      "file": "p31.ogg",
+      "sha256": "afc0e281e71de58eae5d85678786f95b367ff498dfd4ca16a1bacf4196789e2e",
+      "bytes": 21068
+    },
+    {
+      "midi": 34,
+      "layer": 4,
+      "file": "p34.ogg",
+      "sha256": "898201e5d6569535f25aef706692c7c593549e3331b7328bd8c4de7200e50d13",
+      "bytes": 21255
+    },
+    {
+      "midi": 37,
+      "layer": 4,
+      "file": "p37.ogg",
+      "sha256": "ad9f3d6bbf7650059c907d06bc0963b894e2cd979b8f1d687059d1600bf99175",
+      "bytes": 19268
+    },
+    {
+      "midi": 40,
+      "layer": 4,
+      "file": "p40.ogg",
+      "sha256": "ed09d401094af7d1efee9b3878f088eb9faf7c8120b89f77816c3984b1ec6d3b",
+      "bytes": 12849
+    }
+  ]
+}

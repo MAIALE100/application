@@ -1,0 +1,82 @@
+{
+  "instrument": "marimba",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 36,
+      "layer": 4,
+      "file": "p36.ogg",
+      "sha256": "8751350f6d3f272de27aa5838f6b751236cfbe67e815c2d182e14a9ccc3cf2fb",
+      "bytes": 31271,
+      "sourceFile": "Marimba_hit_Outrigger_C2_loud_01.wav"
+    },
+    {
+      "midi": 43,
+      "layer": 4,
+      "file": "p43.ogg",
+      "sha256": "e36c1dd2885e26a5ab5355ce51c96561c769dad10f301df7a8e1d01bfc40e9f1",
+      "bytes": 24619,
+      "sourceFile": "Marimba_hit_Outrigger_G2_loud_01.wav"
+    },
+    {
+      "midi": 47,
+      "layer": 4,
+      "file": "p47.ogg",
+      "sha256": "acafe860ed57be1c73407e87f24d86f44f86422d30547d5d049f88d60b9ddd81",
+      "bytes": 22716,
+      "sourceFile": "Marimba_hit_Outrigger_B2_loud_01.wav"
+    },
+    {
+      "midi": 53,
+      "layer": 4,
+      "file": "p53.ogg",
+      "sha256": "e5edc16342a7671daf78c6edbe5a5dadc12257f05c48ffeabcb070f438ef09ce",
+      "bytes": 21594,
+      "sourceFile": "Marimba_hit_Outrigger_F3_loud_01.wav"
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "b22638489e90912b696bdddb95a51c824ca1a089789e79334e659d7880d7b2f1",
+      "bytes": 16951,
+      "sourceFile": "Marimba_hit_Outrigger_C4_loud_01.wav"
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "2309efa9d6b895903d0b3903abfd131f0a9adf2a5e649bdbc275104fb2bd1812",
+      "bytes": 14077,
+      "sourceFile": "Marimba_hit_Outrigger_G4_loud_01.wav"
+    },
+    {
+      "midi": 71,
+      "layer": 4,
+      "file": "p71.ogg",
+      "sha256": "3e6f9b429842fa1bf530a824722173abd34616aaa201238a2a89e3567e196905",
+      "bytes": 14327,
+      "sourceFile": "Marimba_hit_Outrigger_B4_loud_01.wav"
+    },
+    {
+      "midi": 77,
+      "layer": 4,
+      "file": "p77.ogg",
+      "sha256": "3ec1c3ebec2fe2b24f8242c60376db523545372e52bf7af6287ebc1685c0ba9d",
+      "bytes": 14091,
+      "sourceFile": "Marimba_hit_Outrigger_F5_loud_01.wav"
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "file": "p84.ogg",
+      "sha256": "fc8369c9f4f457e703a966b451774a5b1912d5a396094bad16ac25cc427ffbcb",
+      "bytes": 13525,
+      "sourceFile": "Marimba_hit_Outrigger_C6_loud_01.wav"
+    }
+  ]
+}

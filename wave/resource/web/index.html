@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <title>WAVE</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <header class="topbar">
+      <div><div class="eyebrow">FLECITY MUSIC</div><h1>WAVE</h1></div>
+      <div class="topbar-actions"><button id="waveScreenToggle" class="secondary screen-toggle" type="button">大画面で開く</button><button id="adminButton" class="icon-button hidden" aria-label="管理">⚙</button></div>
+    </header>
+
+    <section id="status" class="status">読み込み中…</section>
+
+    <section id="view-home" class="view active">
+      <div class="hero"><div><div class="eyebrow">CREATE · SHARE · PLAY</div><h2>街の音を、街のみんなで。</h2><p>Flecityで生まれた音楽を聴いて、作って、届ける。</p></div><button id="heroStudio">曲を作る</button></div>
+      <div id="homeRecentSection" class="home-shelf hidden"><div class="section-head"><h3>最近聴いた曲</h3></div><div id="homeRecentTracks" class="track-list"></div></div>
+      <div id="homeFollowingSection" class="home-shelf hidden"><div class="section-head"><h3>フォロー中の新着</h3></div><div id="homeFollowingTracks" class="track-list"></div></div>
+      <div id="homeTrendingSection" class="home-shelf"><div class="section-head"><h3>急上昇</h3></div><div id="homeTrendingTracks" class="track-list"></div></div>
+      <div class="section-head"><h3>新着</h3><button id="refreshHome" class="text-button">更新</button></div>
+      <div id="homeTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-search" class="view">
+      <div class="search-row"><input id="searchInput" placeholder="曲・アーティスト・ジャンル"><button id="searchButton">検索</button></div>
+      <div id="searchArtistSection" class="hidden"><div class="section-head"><h3>アーティスト</h3></div><div id="searchArtists" class="artist-results"></div></div>
+      <div class="section-head"><h3>楽曲</h3></div>
+      <div id="searchTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-library" class="view">
+      <div class="section-head"><h3>ライブラリ</h3><button id="refreshLibrary" class="text-button">更新</button></div>
+      <div class="card wave-ringtone-card"><div><div class="eyebrow">RINGTONE</div><h3>現在の着信音</h3><strong id="ringtoneCurrentTitle">初期着信音を使用中</strong></div><div class="ringtone-actions"><button id="previewCurrentRingtone" class="secondary" type="button" disabled>試聴</button><button id="stopRingtonePreview" class="secondary" type="button">停止</button><button id="resetRingtone" class="secondary" type="button">初期音に戻す</button></div><p class="muted">作者が着信音利用を許可し、利用権を持つ公開曲を設定できます。LB Phone 2.9.0の通話着信への反映は、native音連携の実機確認後に有効化します。</p></div>
+      <div class="card playlist-create"><div class="eyebrow">PLAYLIST</div><div class="search-row"><input id="playlistNameInput" maxlength="60" placeholder="新しいプレイリスト名"><button id="createPlaylistButton">作成</button></div><div id="playlistStrip" class="project-strip"></div></div>
+      <div class="section-head"><h3>制作プロジェクト</h3></div><div id="projectStrip" class="project-strip"></div>
+      <div class="section-head"><h3>保存した楽曲</h3></div><div id="libraryTracks" class="track-list"></div>
+    </section>
+
+    <section id="view-studio" class="view">
+      <div class="studio-head">
+        <div class="studio-title"><div class="eyebrow">WAVE STUDIO</div><input id="projectTitleInput" class="project-title-input" maxlength="80" value="Untitled" aria-label="プロジェクト名"></div>
+        <div class="studio-actions"><button id="mixerToggle" class="secondary" type="button" aria-controls="mixerPanel" aria-expanded="false">ミキサー</button><button id="undoProject" class="secondary">↶</button><button id="redoProject" class="secondary">↷</button><button id="newProject" class="secondary">新規</button><button id="saveProject">保存</button></div>
+      </div>
+      <div class="transport card">
+        <button id="playProject">▶ 再生</button><button id="stopProject" class="secondary">■ 停止</button>
+        <div class="play-start" aria-label="再生開始小節"><span>開始小節</span><button id="playStartPrev" class="secondary" type="button" aria-label="開始小節を戻す">◀</button><output id="playStartValue">1 / 4</output><button id="playStartNext" class="secondary" type="button" aria-label="開始小節を進める">▶</button><button id="playStartReset" class="secondary" type="button">先頭</button><output id="playBarNow" aria-live="off"></output></div>
+        <label>BPM <input id="bpmInput" type="number" min="60" max="200" value="120"></label>
+        <details class="wave-transport-settings">
+          <summary>小節・音域・Keyなど</summary>
+          <div class="wave-transport-settings-grid">
+            <label>小節 <select id="barSelect"></select></label>
+            <label>音域 <select id="octaveSelect"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select></label>
+            <label>表示<select id="octaveRowsSelect"><option value="12">1オクターブ</option><option value="24">2オクターブ</option></select></label>
+            <label>Key<select id="keySelect" aria-label="制作曲のKey"></select></label>
+            <label class="switch-row">音階ガイド <input id="keyGuideToggle" type="checkbox" checked></label>
+            <label>長さ <input id="barsInput" type="number" min="1" max="128" value="4"></label>
+            <label class="switch-row">メトロノーム <input id="metronomeToggle" type="checkbox"></label>
+          </div>
+        </details>
+      </div>
+      <section id="mixerPanel" class="mixer-panel card hidden" aria-label="8トラックミキサー">
+        <div class="section-head"><h3>ミキサー</h3><label>マスター音量 <input id="masterVolume" type="range" min="0" max="100" step="1" value="100" aria-label="マスター音量"><output id="masterVolumeValue">100%</output></label></div>
+        <p class="muted">トラック音量は既存の設定を使用します。100%は従来の標準音量です。</p>
+        <div id="mixerTracks" class="mixer-tracks"></div>
+      </section>
+      <div class="studio-grid-layout">
+        <div id="trackList" class="track-panel card"></div>
+        <div class="piano-wrap card">
+          <div class="wave-piano-toolbar" aria-label="楽譜の作曲操作">
+            <div class="wave-toolbar-control wave-toolbar-instrument" aria-label="音色選択と試聴"><label>音色<select id="instrumentSelect"><option value="synth">シンセサイザー（音色編集）</option><option value="saw">シンセリード</option><option value="triangle">ソフトシンセ</option><option value="sine">シンセパッド</option><option value="piano">ピアノ</option><option value="grand_piano">グランドピアノ</option><option value="acoustic_guitar">アコースティックギター</option><option value="electric_bass">エレキベース</option><option value="acoustic_drums">ドラムセット</option><option value="timpani">ティンパニ</option><option value="marimba">マリンバ</option><option value="xylophone">シロフォン</option><option value="glockenspiel">グロッケン</option><option value="vibraphone">ヴィブラフォン</option><option value="cymbals">オーケストラシンバル</option><option value="violin">バイオリン</option><option value="cello">チェロ</option><option value="contrabass">コントラバス</option><option value="harp">ハープ</option><option value="flute">フルート</option><option value="piccolo">ピッコロ</option><option value="oboe">オーボエ</option><option value="bassoon">ファゴット</option><option value="tenor_sax">テナーサックス</option><option value="clarinet">クラリネット</option><option value="trumpet">トランペット</option><option value="trombone">トロンボーン</option><option value="french_horn">ホルン</option><option value="tuba">チューバ</option><option value="electric_guitar">エレキギター</option><option value="strings">ストリングス</option><option value="square">8ビット</option><option value="bass">シンセベース</option><option value="drums">ドラム</option><option value="pluck">プラック</option><option value="bell">ベル</option></select></label><button id="instrumentPreview" type="button" class="secondary">♪ 音色を試聴</button></div>
+            <label class="wave-toolbar-control">音量 <input id="trackVolume" type="range" min="0" max="1" step="0.05" value="0.75"></label>
+            <label class="wave-toolbar-control">左右バランス <input id="trackPan" type="range" min="-1" max="1" step="0.1" value="0"></label>
+            <div class="wave-toolbar-control wave-toolbar-articulation"><div class="wave-articulation-row"><button id="articulationToggle" class="secondary" type="button" aria-pressed="false" title="押すごとに奏法を切り替え">奏法：切る（タンギング）</button><div class="wave-articulation-legend"><span class="wave-legend-legato">● 伸ばす</span><span class="wave-legend-tongue">● 切る</span></div></div></div>
+            <label class="wave-toolbar-control">ノート長<select id="noteLength"><option value="1">1/16</option><option value="2">1/8</option><option value="4" selected>1/4</option><option value="8">1/2</option><option value="16">1小節</option></select></label>
+            <label class="wave-toolbar-control">ベロシティ<input id="noteVelocity" type="range" min="0.1" max="1" step="0.05" value="0.85"></label>
+          </div>
+          <div class="piano-grid-scroll" aria-label="ピアノロールをスクロール"><div id="pianoGrid" class="piano-grid"></div></div>
+          <div class="grid-help">タップで音符を配置・削除。横=時間 / 縦=音程</div>
+        </div>
+      </div>
+      <div class="track-editor card">
+        <details class="wave-track-details">
+          <summary><strong>トラック詳細</strong><span>名前・ミュート・ソロ・楽器の表示範囲</span></summary>
+          <div class="wave-track-details-body">
+            <div class="section-head"><h3>選択トラック</h3><button id="clearTrack" class="secondary">ノートを消す</button></div>
+            <label>トラック名 <input id="trackName" maxlength="24" placeholder="トラック名"></label>
+            <div class="two-col"><div><label class="instrument-preset-label">楽器の選び方<select id="instrumentPreset" aria-label="楽器の表示範囲"><option value="easy">お手軽（定番）</option><option value="standard">そこそこ（よく使う楽器）</option><option value="all">全部乗せ（すべて）</option></select></label><p id="instrumentPresetHelp" class="instrument-preset-hint" aria-live="polite"></p></div><div><label class="switch-row">ミュート <input id="trackMute" type="checkbox"></label><label class="switch-row">ソロ <input id="trackSolo" type="checkbox"></label></div></div>
+          </div>
+        </details>
+
+        <section id="synthPanel" class="wave-synth-panel hidden" aria-label="シンセサイザー音色設計">
+          <details class="wave-synth-details">
+            <summary><strong>SYNTH DESIGNER</strong><span>音源を編集・保存</span></summary>
+          <div class="section-head"><h3>音源プレビュー</h3><button id="synthPreview" class="secondary" type="button">♪ 試聴</button></div>
+          <div class="wave-synth-layout">
+            <div class="wave-synth-block wave-synth-left">
+          <label>プリセット<select id="synthPreset"><option value="warm_pad">ウォームパッド</option><option value="synth_bass">シンセベース</option><option value="lead">シンセリード</option><option value="super_saw">スーパーソー</option><option value="fm_bell">FMベル</option><option value="retro">レトロゲーム</option><option value="pluck">プラック</option><option value="soft_keys">ソフトキー</option></select></label>
+          <div class="wave-synth-user-presets" aria-label="マイプリセット">
+            <div class="wave-synth-user-heading">マイプリセット <span>最大32音色・キャラクター別</span></div>
+            <label>保存済み音色<select id="synthUserPresetSelect"><option value="">保存した音色を選択</option></select></label>
+            <div class="wave-synth-user-actions"><button id="synthUserPresetLoad" type="button" class="secondary">呼び出す</button><button id="synthUserPresetDelete" type="button" class="secondary danger">削除</button></div>
+            <label>音色の名前<input id="synthUserPresetName" type="text" maxlength="40" placeholder="例：夜空のパッド" autocomplete="off"></label>
+            <div class="wave-synth-user-actions"><button id="synthUserPresetSave" type="button">新規保存</button><button id="synthUserPresetUpdate" type="button" class="secondary">選択中を上書き</button></div>
+            <p id="synthUserPresetFeedback" class="muted" role="status" aria-live="polite">音色を保存すると、別の曲でも使えます。</p>
+          </div>
+          <label>波形<select id="synthWave"><option value="sine">サイン波</option><option value="triangle">三角波</option><option value="sawtooth">ノコギリ波</option><option value="square">矩形波</option></select></label>
+            </div>
+            <div class="wave-synth-block wave-synth-visuals">
+          <div class="wave-synth-viz" aria-label="波形プレビュー">
+            <div class="wave-synth-viz-head"><strong>OSC / 波形プレビュー</strong><output id="synthVizWaveText">波形</output></div>
+            <svg viewBox="0 0 320 100" preserveAspectRatio="none" class="wave-synth-viz-svg" role="img" aria-label="選択した波形の概念プレビュー">
+              <defs><linearGradient id="waveSynthVizFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#54d9ed" stop-opacity=".38"/><stop offset="100%" stop-color="#54d9ed" stop-opacity="0"/></linearGradient></defs>
+              <path class="wave-synth-viz-grid" d="M10 16H310 M10 52H310 M10 85H310 M10 16V85 M85 16V85 M160 16V85 M235 16V85 M310 16V85"/>
+              <path id="synthVizWaveArea" fill="url(#waveSynthVizFill)"/><path id="synthVizWave" class="wave-synth-viz-line"/>
+            </svg><div class="wave-synth-viz-caption">設定値から描いたイメージ。音声の実測値ではありません。</div>
+          </div>
+          <div class="wave-synth-knob-section" aria-label="ADSR エンベロープ">
+            <div class="wave-synth-knob-heading"><strong>ADSR / エンベロープ</strong><span>音の立ち上がり・減衰・持続・余韻</span></div>
+            <div class="wave-synth-viz" aria-label="エンベローププレビュー">
+              <div class="wave-synth-viz-head"><strong>ENV / 音量の変化</strong><output id="synthVizEnvelopeText">ADSR</output></div>
+              <svg viewBox="0 0 320 100" preserveAspectRatio="none" class="wave-synth-viz-svg" role="img" aria-label="2秒間ノートを保持した際の音量の概念図">
+                <defs><linearGradient id="waveSynthEnvFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a89aff" stop-opacity=".4"/><stop offset="100%" stop-color="#a89aff" stop-opacity="0"/></linearGradient></defs>
+                <path class="wave-synth-viz-grid" d="M10 16H310 M10 52H310 M10 85H310 M10 16V85 M85 16V85 M160 16V85 M235 16V85 M310 16V85"/>
+                <path id="synthVizEnvelopeArea" fill="url(#waveSynthEnvFill)"/><path id="synthVizEnvelope" class="wave-synth-viz-line wave-synth-viz-env"/>
+                <path id="synthVizGate" stroke="#f6d39b" stroke-dasharray="4 3" stroke-width="1" fill="none"/>
+              </svg><div class="wave-synth-viz-caption">2秒間のロングトーンを想定した参考図。破線で音を離します。</div>
+            </div>
+          </div>
+            </div>
+            <div class="wave-synth-controls">
+              <div class="wave-synth-knob-section" aria-label="ADSR controls">
+            <div class="wave-synth-knob-grid wave-synth-adsr">
+              <div class="wave-synth-knob-control" data-synth-param="attack">
+                <span class="wave-synth-knob-name">Attack</span>
+                <span class="wave-synth-knob-desc">立ち上がり</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="attack" aria-label="Attack" aria-valuemin="0.005" aria-valuemax="2" aria-valuenow="0.005" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="Attackを下げる">−</button><output id="synthAttackValue" for="synthAttack"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="Attackを上げる">＋</button></div>
+                <input id="synthAttack" class="wave-synth-knob-native" type="range" min="0.005" max="2" step="0.005" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="decay">
+                <span class="wave-synth-knob-name">Decay</span>
+                <span class="wave-synth-knob-desc">減衰</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="decay" aria-label="Decay" aria-valuemin="0.01" aria-valuemax="2" aria-valuenow="0.01" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="Decayを下げる">−</button><output id="synthDecayValue" for="synthDecay"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="Decayを上げる">＋</button></div>
+                <input id="synthDecay" class="wave-synth-knob-native" type="range" min="0.01" max="2" step="0.01" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="sustain">
+                <span class="wave-synth-knob-name">Sustain</span>
+                <span class="wave-synth-knob-desc">持続</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="sustain" aria-label="Sustain" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="Sustainを下げる">−</button><output id="synthSustainValue" for="synthSustain"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="Sustainを上げる">＋</button></div>
+                <input id="synthSustain" class="wave-synth-knob-native" type="range" min="0" max="1" step="0.01" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="release">
+                <span class="wave-synth-knob-name">Release</span>
+                <span class="wave-synth-knob-desc">余韻</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="release" aria-label="Release" aria-valuemin="0.02" aria-valuemax="3" aria-valuenow="0.02" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="Releaseを下げる">−</button><output id="synthReleaseValue" for="synthRelease"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="Releaseを上げる">＋</button></div>
+                <input id="synthRelease" class="wave-synth-knob-native" type="range" min="0.02" max="3" step="0.01" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </div>
+          <div class="wave-synth-knob-section" aria-label="音色・FM調整">
+            <div class="wave-synth-knob-heading"><strong>TONE / FM</strong><span>フィルター・倍音・音の厚み</span></div>
+            <div class="wave-synth-knob-grid wave-synth-tone">
+              <div class="wave-synth-knob-control" data-synth-param="cutoff">
+                <span class="wave-synth-knob-name">フィルター</span>
+                <span class="wave-synth-knob-desc">明るさ</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="cutoff" aria-label="フィルター" aria-valuemin="150" aria-valuemax="16000" aria-valuenow="150" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="フィルターを下げる">−</button><output id="synthCutoffValue" for="synthCutoff"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="フィルターを上げる">＋</button></div>
+                <input id="synthCutoff" class="wave-synth-knob-native" type="range" min="150" max="16000" step="50" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="resonance">
+                <span class="wave-synth-knob-name">レゾナンス</span>
+                <span class="wave-synth-knob-desc">共鳴</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="resonance" aria-label="レゾナンス" aria-valuemin="0.1" aria-valuemax="16" aria-valuenow="0.1" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="レゾナンスを下げる">−</button><output id="synthResonanceValue" for="synthResonance"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="レゾナンスを上げる">＋</button></div>
+                <input id="synthResonance" class="wave-synth-knob-native" type="range" min="0.1" max="16" step="0.1" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="detune">
+                <span class="wave-synth-knob-name">デチューン</span>
+                <span class="wave-synth-knob-desc">音の厚み</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="detune" aria-label="デチューン" aria-valuemin="0" aria-valuemax="18" aria-valuenow="0" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="デチューンを下げる">−</button><output id="synthDetuneValue" for="synthDetune"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="デチューンを上げる">＋</button></div>
+                <input id="synthDetune" class="wave-synth-knob-native" type="range" min="0" max="18" step="1" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="fmRatio">
+                <span class="wave-synth-knob-name">FM比率</span>
+                <span class="wave-synth-knob-desc">音程比</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="fmRatio" aria-label="FM比率" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="FM比率を下げる">−</button><output id="synthFmRatioValue" for="synthFmRatio"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="FM比率を上げる">＋</button></div>
+                <input id="synthFmRatio" class="wave-synth-knob-native" type="range" min="0" max="8" step="0.1" tabindex="-1" aria-hidden="true">
+              </div>
+              <div class="wave-synth-knob-control" data-synth-param="fmDepth">
+                <span class="wave-synth-knob-name">FM深さ</span>
+                <span class="wave-synth-knob-desc">変調量</span>
+                <div class="wave-synth-knob" role="slider" tabindex="0" data-synth-knob="fmDepth" aria-label="FM深さ" aria-valuemin="0" aria-valuemax="800" aria-valuenow="0" title="上下ドラッグで調整・矢印キーで微調整">
+                  <span class="wave-synth-knob-face" aria-hidden="true"><span class="wave-synth-knob-pointer"></span></span>
+                </div>
+                <div class="wave-synth-knob-adjust"><button class="wave-synth-knob-step" type="button" data-synth-step="-1" aria-label="FM深さを下げる">−</button><output id="synthFmDepthValue" for="synthFmDepth"></output><button class="wave-synth-knob-step" type="button" data-synth-step="1" aria-label="FM深さを上げる">＋</button></div>
+                <input id="synthFmDepth" class="wave-synth-knob-native" type="range" min="0" max="800" step="5" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </div>
+            </div>
+          <p class="muted wave-synth-note">音色設定はこの曲のトラックに保存され、Libraryでも同じ音で再生されます。</p>
+          </div>
+        
+          </details>
+        </section>
+        
+        
+        
+        
+        <div class="bar-tools"><button id="copyBar" class="secondary">小節コピー</button><button id="pasteBar" class="secondary">小節貼付</button><button id="clearBar" class="secondary">小節クリア</button></div>
+      </div>
+            <div class="card publish-card">
+        <div class="section-head"><h3>リリース</h3><span class="muted">テスト版</span></div>
+        <input id="releaseTitle" placeholder="曲名">
+        <div class="two-col"><select id="releaseGenre"><option>POP</option><option>ROCK</option><option>ELECTRONIC</option><option>HIPHOP</option><option>LOFI</option><option>AMBIENT</option><option>GAME</option><option>JINGLE</option><option>OTHER</option></select><select id="accessMode"><option value="free">無料公開</option><option value="purchase">個別販売</option><option value="both">WAVE+ + 個別販売</option></select></div>
+        <input id="releasePrice" type="number" min="0" value="5000" placeholder="価格">
+        <textarea id="releaseDescription" placeholder="作品説明"></textarea>
+        <div class="rights-grid"><label><input id="rightRingtone" type="checkbox"> 着信音としての利用を許可</label><label><input id="rightNotification" type="checkbox" checked> 通知音</label><label><input id="rightStore" type="checkbox"> 店舗BGM</label><label><input id="rightEvent" type="checkbox"> イベント</label><label><input id="rightRemix" type="checkbox"> リミックス</label></div>
+        <label class="confirm"><input id="rightsConfirm" type="checkbox"> この作品を公開・販売する権利を持っています</label>
+        <button id="publishTrack">公開する</button>
+      </div>
+    </section>
+
+    <section id="view-profile" class="view">
+      <div id="artistCard" class="card hidden"></div>
+      <div id="artistEditor" class="card artist-create">
+        <h3 id="artistEditorTitle">アーティストプロフィール</h3>
+        <input id="artistName" maxlength="48" placeholder="アーティスト名">
+        <textarea id="artistBio" maxlength="400" placeholder="紹介文"></textarea>
+        <button id="createArtist">保存</button>
+      </div>
+      <div id="ownReleaseManager" class="card">
+        <div class="section-head"><h3>自分のリリース</h3><button id="refreshOwnReleases" class="secondary">更新</button></div>
+        <div id="ownReleases" class="release-manager-list"></div>
+      </div>
+      <div id="albumManager" class="card">
+        <div class="eyebrow">RELEASE COLLECTION</div><h3>EP / アルバム</h3>
+        <input id="albumTitle" maxlength="80" placeholder="タイトル">
+        <div class="two-col"><select id="albumType"><option value="ep">EP</option><option value="album">アルバム</option></select><button id="refreshAlbums" class="secondary">楽曲更新</button></div>
+        <textarea id="albumDescription" maxlength="400" placeholder="作品説明"></textarea>
+        <div id="albumTrackChoices" class="album-track-choices"></div>
+        <button id="createAlbumButton">選択した曲で公開</button>
+        <div class="section-head"><h3>公開済み</h3></div><div id="ownAlbums" class="project-strip"></div>
+      </div>
+      <div class="card wallet-card"><div class="eyebrow">WAVE WALLET</div><div id="walletBalance" class="wallet-balance">$0</div><div id="walletStats" class="muted"></div><button id="withdrawButton">売上を銀行へ受け取る</button></div>
+    </section>
+
+    <section id="view-admin" class="view">
+      <div class="section-head"><div><div class="eyebrow">OWNER / ADMIN ONLY</div><h2>WAVE 管理</h2></div><button id="adminRefresh" class="secondary">更新</button></div>
+      <div id="platformWallet" class="card"></div>
+      <div class="section-head"><h3>アーティスト管理</h3></div><div id="adminArtists" class="admin-list"></div>
+      <div class="section-head"><h3>楽曲管理</h3></div><div id="adminTracks" class="admin-list"></div>
+      <div class="section-head"><h3>未処理の通報</h3></div><div id="adminReports" class="admin-list"></div>
+      <div class="section-head"><h3>監査ログ</h3></div><div id="adminLogs" class="admin-list"></div>
+    </section>
+
+    <nav class="bottom-nav">
+      <button data-view="home" class="active">⌂<span>ホーム</span></button>
+      <button data-view="search">⌕<span>検索</span></button>
+      <button data-view="library">▤<span>ライブラリ</span></button>
+      <button data-view="studio">＋<span>スタジオ</span></button>
+      <button data-view="profile">◉<span>プロフィール</span></button>
+    </nav>
+
+    <div id="miniPlayer" class="mini-player hidden"><button id="miniPrev" class="secondary">‹</button><button id="miniPlay">▶</button><button id="miniNext" class="secondary">›</button><div class="mini-meta"><strong id="miniTitle">---</strong><span id="miniArtist">---</span></div><button id="miniShuffle" class="player-mode secondary" type="button" title="シャッフル" aria-label="シャッフル" aria-pressed="false">🔀</button><button id="miniRepeat" class="player-mode secondary" type="button" title="リピートOFF" aria-label="リピートOFF">↻</button><button id="miniFavorite">♡</button><button id="miniMore">⋯</button></div>
+
+    <dialog id="trackDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogTrack"></div></form></dialog>
+    <dialog id="artistDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogArtist"></div></form></dialog>
+    <dialog id="playlistDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogPlaylist"></div></form></dialog>
+    <dialog id="albumDialog"><form method="dialog"><button class="dialog-close">×</button><div id="dialogAlbum"></div></form></dialog>
+    <dialog id="reportDialog"><form method="dialog"><button class="dialog-close">×</button><h3>通報</h3><select id="reportCategory"><option value="rights">権利侵害</option><option value="inappropriate">不適切</option><option value="plagiarism">盗作疑い</option><option value="metadata">画像・説明</option><option value="other">その他</option></select><textarea id="reportDetails" placeholder="詳細"></textarea><button id="sendReport" type="button">送信</button></form></dialog>
+  <div id="waveToast" class="wave-toast hidden" role="status" aria-live="polite"></div>
+  </main>
+  <script src="history-codec.js"></script>
+  <script src="screen.js"></script>
+  <script src="sample-engine.js"></script>
+  <script src="synth-engine.js"></script>
+  <script src="articulation.js"></script>
+  <script src="instrument-presets.js"></script>
+  <script src="ringtone-core.js"></script>
+  <script src="app.js"></script>
+  <script src='studio-extras.js'></script>
+  <script src='score-tools.js'></script>
+</body>
+</html>

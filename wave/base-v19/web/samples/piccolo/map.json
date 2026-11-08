@@ -1,0 +1,50 @@
+{
+  "instrument": "piccolo",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "96e8d38665fe1b23155f699482b88d6bde1043ed5aeca32e218a0c22b59aed48",
+      "bytes": 134329,
+      "sourceFile": "piccolo_G4_sustain1.wav"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "518f8eacbfbf2727f76406bc4f01dd3503eb6b7b745686ecdc88a6656a41c0c2",
+      "bytes": 161874,
+      "sourceFile": "piccolo_C5_sustain1.wav"
+    },
+    {
+      "midi": 79,
+      "layer": 4,
+      "file": "p79.ogg",
+      "sha256": "b16159730cf0551975eff6f70db2d32851c4fe5322f5439ca284a18166111c3a",
+      "bytes": 167429,
+      "sourceFile": "piccolo_G5_sustain1.wav"
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "file": "p84.ogg",
+      "sha256": "8b187e43a32233f7760744fda63be2d995142df03dbad1d5e97c1e98c0a6f518",
+      "bytes": 233967,
+      "sourceFile": "piccolo_C6_sustain1.wav"
+    },
+    {
+      "midi": 91,
+      "layer": 4,
+      "file": "p91.ogg",
+      "sha256": "15763e0ff0b747c7ae060b1f51e0bdfbd5139484f3823c11e88fd9118f1a627c",
+      "bytes": 155760,
+      "sourceFile": "piccolo_G6_sustain1.wav"
+    }
+  ]
+}

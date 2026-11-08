@@ -1,0 +1,57 @@
+{
+  "instrument": "trombone",
+  "source": "Versilian Studios VSCO 2 Community Edition - OldTrombone/Sustain",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 36,
+      "layer": 4,
+      "file": "p36.ogg",
+      "sha256": "c404a2827688d1b1b4cdc39285e06d9581a4e8352a43721c23c757617a8b7598",
+      "bytes": 77428,
+      "sourceFile": "Trombone_Sustain_C2_v4_1.wav"
+    },
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "6bbf8e1cffe16bf1be1a17caef6287f8f87ada0b33a1e9c0acc4dd3c9da1b07e",
+      "bytes": 83312,
+      "sourceFile": "Trombone_Sustain_F2_v4_1.wav"
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "2e66f7ead49620ba3157f72ad1c39f8cec4ce5d88d778050244a5d655b8f337a",
+      "bytes": 74381,
+      "sourceFile": "Trombone_Sustain_A2_v4_1.wav"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "081d6c17cf9f09bc78465b7b1bbd083795a276ec74c6638142d2a0b13ab1e500",
+      "bytes": 76617,
+      "sourceFile": "Trombone_Sustain_C3_v4_1.wav"
+    },
+    {
+      "midi": 50,
+      "layer": 4,
+      "file": "p50.ogg",
+      "sha256": "7c5f5f7efc8fef2a072458c4f9837f84539eb7b5d2e5a1f968e63ba53646a24f",
+      "bytes": 80526,
+      "sourceFile": "Trombone_Sustain_D3_v4_1.wav"
+    },
+    {
+      "midi": 53,
+      "layer": 4,
+      "file": "p53.ogg",
+      "sha256": "b56cbf5f354a3f2e9b0079e7b6d925a86669ec15569ce6b9c7850bc4f3f5c706",
+      "bytes": 80715,
+      "sourceFile": "Trombone_Sustain_F3_v4_1.wav"
+    }
+  ]
+}

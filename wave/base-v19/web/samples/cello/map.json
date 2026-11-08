@@ -1,0 +1,64 @@
+{
+  "instrument": "cello",
+  "source": "Versilian Studios VSCO 2 Community Edition 256-sample pack",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 24,
+      "layer": 4,
+      "file": "p24.ogg",
+      "sha256": "0a2ae995ac3caca5f86d5f6358710342ebd7684b4331e4a42740a8e8cc97bf66",
+      "bytes": 30225
+    },
+    {
+      "midi": 28,
+      "layer": 4,
+      "file": "p28.ogg",
+      "sha256": "ea01b4084182c6fadaa1c9222d8258d4e425f1d361a1455d415c6c853027e0ba",
+      "bytes": 29353
+    },
+    {
+      "midi": 31,
+      "layer": 4,
+      "file": "p31.ogg",
+      "sha256": "d1fea6046ed1e7ed372bce389f603f2b7cb460ea9ba60885033fea9bc2886ed0",
+      "bytes": 29889
+    },
+    {
+      "midi": 35,
+      "layer": 4,
+      "file": "p35.ogg",
+      "sha256": "1992c6a82421d755f04d8d7644b13e9cd74cdb1ab49be3c908ba20bf4f1abd91",
+      "bytes": 30540
+    },
+    {
+      "midi": 38,
+      "layer": 4,
+      "file": "p38.ogg",
+      "sha256": "69f2227dffb21de469bbaf1f121ba0c97be24044a4c489a6ccd4a418793bfc53",
+      "bytes": 30908
+    },
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "5ad0c73fdff89844b86f5702640c5f0f84ec4732bfdabed84d9070ebcd965d37",
+      "bytes": 30771
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "e13fc64e75d7a47e07c0320f8c4013b68538f45c42c896c7cb6ab0e3403352ea",
+      "bytes": 31874
+    },
+    {
+      "midi": 59,
+      "layer": 4,
+      "file": "p59.ogg",
+      "sha256": "82c1795f5ac32acec40f81b2f55de47e3a081532d80bfd9be02c503a231d6143",
+      "bytes": 32440
+    }
+  ]
+}

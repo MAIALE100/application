@@ -1,0 +1,82 @@
+{
+  "instrument": "oboe",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 46,
+      "layer": 4,
+      "file": "p46.ogg",
+      "sha256": "e610b8905af171f8be90cbb448f7f69fb719743a493e8108561924b833530fd7",
+      "bytes": 491269,
+      "sourceFile": "Oboe_Sus_A#2_v1_Main.wav"
+    },
+    {
+      "midi": 50,
+      "layer": 4,
+      "file": "p50.ogg",
+      "sha256": "a10c3bca14995a35456b85cd8c79c68963b0d50fe8d49f9c6ff1aaf1c2fd96b2",
+      "bytes": 218195,
+      "sourceFile": "Oboe_Sus_D3_v1_Main.wav"
+    },
+    {
+      "midi": 53,
+      "layer": 4,
+      "file": "p53.ogg",
+      "sha256": "4defc880b1ce1b6a348d40e9bd92b037eb8706257d862a118c289242e744d982",
+      "bytes": 157059,
+      "sourceFile": "Oboe_Sus_F3_v1_Main.wav"
+    },
+    {
+      "midi": 58,
+      "layer": 4,
+      "file": "p58.ogg",
+      "sha256": "d2f78ee4ccad85204199644faab3f8fbf6c4d2cd2a96cf55d16eea628be2188e",
+      "bytes": 190718,
+      "sourceFile": "Oboe_Sus_A#3_v1_Main.wav"
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "1d7164f8f294959c612aebe28881cf7ef09b571e7473166f3c09d969561bc103",
+      "bytes": 176002,
+      "sourceFile": "Oboe_Sus_D4_v1_Main.wav"
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "file": "p65.ogg",
+      "sha256": "9865648a97818c50b0622a9acfec0f916eb9edeaaa961e3a8e425d0aaa8e6078",
+      "bytes": 160742,
+      "sourceFile": "Oboe_Sus_F4_v1_Main.wav"
+    },
+    {
+      "midi": 70,
+      "layer": 4,
+      "file": "p70.ogg",
+      "sha256": "930161f9f588d28e5634b9c1d98d44f6d96176ede9929402b161cff3bf343454",
+      "bytes": 189584,
+      "sourceFile": "Oboe_Sus_A#4_v1_Main.wav"
+    },
+    {
+      "midi": 74,
+      "layer": 4,
+      "file": "p74.ogg",
+      "sha256": "a27bb1dd236ee1e23948528cea7167068f9b84f00d81eb75471b67bc2d201b7e",
+      "bytes": 147745,
+      "sourceFile": "Oboe_Sus_D5_v1_Main.wav"
+    },
+    {
+      "midi": 77,
+      "layer": 4,
+      "file": "p77.ogg",
+      "sha256": "e039ff6fc771fa4e93c1bc37f08fd076618fe763a9ffdda2ac8186341269e92f",
+      "bytes": 149039,
+      "sourceFile": "Oboe_Sus_F5_v1_Main.wav"
+    }
+  ]
+}

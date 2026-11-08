@@ -1,0 +1,106 @@
+{
+  "instrument": "harp",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 35,
+      "layer": 4,
+      "file": "p35.ogg",
+      "sha256": "ecbcf46eee6238548f2dddf1fc38fbb1a24d82e09455cf23afdc5ca4613c7538",
+      "bytes": 205317,
+      "sourceFile": "KSHarp_B1_mf.wav"
+    },
+    {
+      "midi": 38,
+      "layer": 4,
+      "file": "p38.ogg",
+      "sha256": "7b4d685f55ae66bcd68e1a807c0180cb743baa2d031d68bc99e6da53e216ed4f",
+      "bytes": 159034,
+      "sourceFile": "KSHarp_D2_mf.wav"
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "09fa37ad65ceed6518967ba7dc5b6312051504309357d189c71dc8de7866cc95",
+      "bytes": 182532,
+      "sourceFile": "KSHarp_A2_mf.wav"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "0ed05b74a7f62f4c9761cf49b78427879d26384e68c0c44494075c7647aa3067",
+      "bytes": 145053,
+      "sourceFile": "KSHarp_C3_mf.wav"
+    },
+    {
+      "midi": 59,
+      "layer": 4,
+      "file": "p59.ogg",
+      "sha256": "90b89b67babd3217790fc719966f9a4e3cf2c57f14640044b2eb78aa38dfb68a",
+      "bytes": 179425,
+      "sourceFile": "KSHarp_B3_mf.wav"
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "2e79fd2f82a8d993e9eceaf620cb9dd18607370c0143bcabba3ef77aaf47942e",
+      "bytes": 173469,
+      "sourceFile": "KSHarp_D4_mf.wav"
+    },
+    {
+      "midi": 69,
+      "layer": 4,
+      "file": "p69.ogg",
+      "sha256": "82e0900aad19f22403ec77a4132a4cda967eca4392b30fe0958050db2ea62737",
+      "bytes": 191266,
+      "sourceFile": "KSHarp_A4_mf.wav"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "2f9ef76bc56e5a8c18925a47267e2bd8b2471656c0964ddcaee1e7d700ba2723",
+      "bytes": 112833,
+      "sourceFile": "KSHarp_C5_mf.wav"
+    },
+    {
+      "midi": 83,
+      "layer": 4,
+      "file": "p83.ogg",
+      "sha256": "51cf6e87175b371a308acf86ec0cfa54185c417a36ff31b071ad351170902989",
+      "bytes": 72439,
+      "sourceFile": "KSHarp_B5_mf.wav"
+    },
+    {
+      "midi": 86,
+      "layer": 4,
+      "file": "p86.ogg",
+      "sha256": "7fb7e583f3e2eb25f6b4fd62995081fd5eb5430fc3c828cb6b193ac4c209f2db",
+      "bytes": 64198,
+      "sourceFile": "KSHarp_D6_mf.wav"
+    },
+    {
+      "midi": 93,
+      "layer": 4,
+      "file": "p93.ogg",
+      "sha256": "83bc691c85f5f57019a6cb81fd5c771bbffcde72556dfbc16243d45beec5b902",
+      "bytes": 59867,
+      "sourceFile": "KSHarp_A6_mf.wav"
+    },
+    {
+      "midi": 98,
+      "layer": 4,
+      "file": "p98.ogg",
+      "sha256": "f82ddf0fbd206ba3161d16550825d435a928a337435f558e81a71a29a853ff26",
+      "bytes": 39519,
+      "sourceFile": "KSHarp_D7_f.wav"
+    }
+  ]
+}

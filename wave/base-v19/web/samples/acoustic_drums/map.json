@@ -1,0 +1,80 @@
+{
+  "instrument": "acoustic_drums",
+  "source": "FreePats MuldjordKit + World Percussion Hand Clap",
+  "license": "CC-BY-4.0 + CC0-1.0",
+  "mode": "kit",
+  "samples": [
+    {
+      "midi": 60,
+      "layer": 4,
+      "name": "kick",
+      "file": "kick.ogg",
+      "sha256": "75a3e8af0e24623e837b35993a226aec8af21c54a82bd5bace59ba804b41e365",
+      "bytes": 25805
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "name": "snare",
+      "file": "snare.ogg",
+      "sha256": "7f830167135f8e7c91d1c1ca41c20810dcdd9f16a90d1cae92470fbce4fc0ddb",
+      "bytes": 31007
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "name": "closed_hat",
+      "file": "closed_hat.ogg",
+      "sha256": "7b5d0b81db6f9b800d5047371dd38e33d8375596852aed0394ce76b122546031",
+      "bytes": 10944
+    },
+    {
+      "midi": 68,
+      "layer": 4,
+      "name": "open_hat",
+      "file": "open_hat.ogg",
+      "sha256": "463f3b0b6cafc237461f5fb5af07d1aad34243c191c2fc040cd4af7f18f50577",
+      "bytes": 23654
+    },
+    {
+      "midi": 69,
+      "layer": 4,
+      "name": "clap",
+      "file": "clap.ogg",
+      "sha256": "3e98e0f5839936599b4e7b65ca72392cef1b9ce659538b471076819d2c401a5b",
+      "bytes": 6545
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "name": "low_tom",
+      "file": "low_tom.ogg",
+      "sha256": "4d4ba70c548657e4706bf92ea0c83a71fbbae5e312cb81cb77f9bad4a92f5bc2",
+      "bytes": 52051
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "name": "high_tom",
+      "file": "high_tom.ogg",
+      "sha256": "9648557974657ef367ad895bc72561b04a284960a7865e5b59367b3b245b13e7",
+      "bytes": 51961
+    },
+    {
+      "midi": 71,
+      "layer": 4,
+      "name": "crash",
+      "file": "crash.ogg",
+      "sha256": "62100f0ede3942d16b0807b608acb052e8ef8aa307d9b5c657c5e80e21a55627",
+      "bytes": 85296
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "name": "ride",
+      "file": "ride.ogg",
+      "sha256": "d86d39b99e71f4e7257eb957e1763b6baf3419fb741c4df84d3934466fe50d01",
+      "bytes": 78610
+    }
+  ]
+}

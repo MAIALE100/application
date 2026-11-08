@@ -1,0 +1,58 @@
+{
+  "instrument": "french_horn",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 31,
+      "layer": 4,
+      "file": "p31.ogg",
+      "sha256": "abaed95a515fe5a1352480ceddb2e3874633cc7532ee77113aceb0ea8c74bf6a",
+      "bytes": 114610,
+      "sourceFile": "MOHorn_sus_G1_v2_1.wav"
+    },
+    {
+      "midi": 34,
+      "layer": 4,
+      "file": "p34.ogg",
+      "sha256": "67b418fdcef5842ff0bf55cdba16f2f56f8c295c6afe3ef97f4d53cf1f7cc3c3",
+      "bytes": 241535,
+      "sourceFile": "MOHorn_sus_A#1_v2_1.wav"
+    },
+    {
+      "midi": 38,
+      "layer": 4,
+      "file": "p38.ogg",
+      "sha256": "02e5d5db3adec9d2029fcf0fa074dfe058567da7d49ac4ea51619ebcbc616a4e",
+      "bytes": 216729,
+      "sourceFile": "MOHorn_sus_D2_v2_1.wav"
+    },
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "8cdc785cabd364b4c90650cba51953da54e49900df38f27d4513993bf40a3eec",
+      "bytes": 208142,
+      "sourceFile": "MOHorn_sus_F2_v2_1.wav"
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "43f8028a3fd4852322468edc0946242c6bc1fa199b65853401c27c236d45300a",
+      "bytes": 180738,
+      "sourceFile": "MOHorn_sus_A2_v2_1.wav"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "d16da308182fe968324fbf87b07deb68ea8c64673c7de35f95ef2587f5acedf1",
+      "bytes": 159801,
+      "sourceFile": "MOHorn_sus_C3_v2_1.wav"
+    }
+  ]
+}

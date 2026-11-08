@@ -1,0 +1,85 @@
+{
+  "instrument": "flute",
+  "source": "Versilian Studios VSCO 2 Community Edition 256-sample pack",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "c864df1cc85df687a54c837e3c021c5004d8ca9f3ec21cd289cfa13bd3939e48",
+      "bytes": 30156
+    },
+    {
+      "midi": 52,
+      "layer": 4,
+      "file": "p52.ogg",
+      "sha256": "2b546cdc2a5108d7aac612baa69500271025d2702af45521e2c4653a43842dc5",
+      "bytes": 30263
+    },
+    {
+      "midi": 55,
+      "layer": 4,
+      "file": "p55.ogg",
+      "sha256": "b5f0e80283947f086056b1b0c8651835ad721051b5743d472f3ca0b31072ea46",
+      "bytes": 30643
+    },
+    {
+      "midi": 57,
+      "layer": 4,
+      "file": "p57.ogg",
+      "sha256": "d932c2a6f65c1bb8857b0e6c35ef419dff5b21f90fc843f79ab9336341b28d11",
+      "bytes": 31364
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "3c0603bcebe3953ab0eed1fd80141af4fda86ebf6fc477a7a49f4710f594a44e",
+      "bytes": 30871
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "67cdd404852e97b4d3c4d0f40c9b032064f068759d8c574bc8c7bc9af9fa5a9e",
+      "bytes": 31986
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "18445cf085db10e7a7f1c2b643c42fc132cbc6e2d8703a01951e474256632bbb",
+      "bytes": 32116
+    },
+    {
+      "midi": 69,
+      "layer": 4,
+      "file": "p69.ogg",
+      "sha256": "febf988b20bb2a727910f8c53b66f8f96537edb2805d009dfbe3a1aba16d7e7a",
+      "bytes": 30585
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "9bbb406f0a0ec7474cc267651502cad775cd7894b69cda7b3553afafcfd21d8b",
+      "bytes": 29321
+    },
+    {
+      "midi": 76,
+      "layer": 4,
+      "file": "p76.ogg",
+      "sha256": "61f3ec61047ea9c4bea827be457db1c05b0be812e948f7031e62fc50547c1896",
+      "bytes": 26719
+    },
+    {
+      "midi": 81,
+      "layer": 4,
+      "file": "p81.ogg",
+      "sha256": "ad1affdfa93ed96df6586a8ce423daa669110dba181eb1101fc8366a4f1ff75c",
+      "bytes": 24962
+    }
+  ]
+}

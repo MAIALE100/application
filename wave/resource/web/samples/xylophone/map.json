@@ -1,0 +1,74 @@
+{
+  "instrument": "xylophone",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "melodic",
+  "samples": [
+    {
+      "midi": 55,
+      "layer": 4,
+      "file": "p55.ogg",
+      "sha256": "33e7f514d3e01ac7c80771cb634f4f2794d37914f860fcb58fd1cccde241fd81",
+      "bytes": 22813,
+      "sourceFile": "Xylo_Medium_G3_ff_01_far.wav"
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "cd6c18071cae2c7cec203cb9cf9194d5934b6c1ef32059363098c2a8e2bb7fce",
+      "bytes": 21451,
+      "sourceFile": "Xylo_Medium_C4_ff_01_far.wav"
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "67e6d2a4b8a577bad316c680f2c51a2b268e3ffb6637c705258c0c45120831de",
+      "bytes": 20057,
+      "sourceFile": "Xylo_Medium_G4_ff_01_far.wav"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "ab875ee694d55a16ced66271b0e8c82433252e99815004bcf1c0b5bd71f6b205",
+      "bytes": 15034,
+      "sourceFile": "Xylo_Medium_C5_ff_01_far.wav"
+    },
+    {
+      "midi": 79,
+      "layer": 4,
+      "file": "p79.ogg",
+      "sha256": "fb52ae07c2540aac39f4a5a8cdc739f9fa641221badaa0d288b5a31801850e9d",
+      "bytes": 14475,
+      "sourceFile": "Xylo_Medium_G5_ff_01_far.wav"
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "file": "p84.ogg",
+      "sha256": "59d67bf6a617e13d53934bc2389a402efb0d791b417f952aa62d9f3628d81e57",
+      "bytes": 13053,
+      "sourceFile": "Xylo_Medium_C6_ff_01_far.wav"
+    },
+    {
+      "midi": 91,
+      "layer": 4,
+      "file": "p91.ogg",
+      "sha256": "00c2105d766307f254d994ea58928ac457944a8b57f2856f13fb42fed953151c",
+      "bytes": 12132,
+      "sourceFile": "Xylo_Medium_G6_ff_01_far.wav"
+    },
+    {
+      "midi": 96,
+      "layer": 4,
+      "file": "p96.ogg",
+      "sha256": "e1849ea79885efd37991a8f9c782005f1fbf8b3adf71a3ab6cf6613ab0d5bd73",
+      "bytes": 12143,
+      "sourceFile": "Xylo_Medium_C7_ff_01_far.wav"
+    }
+  ]
+}

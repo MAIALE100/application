@@ -1,0 +1,50 @@
+{
+  "instrument": "trumpet",
+  "source": "Versilian Studios VSCO 2 Community Edition 256-sample pack",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "d8f63d6b5aa72eff175cb298518440ebefbed343b0f7d1e6eee3c651dc1e4e5d",
+      "bytes": 31330
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "3da1e4f91d78618fd9db56412ec81660dbc930a20bd7a1ae0412a285dd66f59e",
+      "bytes": 31148
+    },
+    {
+      "midi": 58,
+      "layer": 4,
+      "file": "p58.ogg",
+      "sha256": "0438915e25b576b215dde2cdd2abfb717e38a924d286674932723683c47116a9",
+      "bytes": 30389
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "652018f40fe9bf35fe68767678f67f6cd4bdc2db869644b3c32186bc12fa4eda",
+      "bytes": 26348
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "file": "p65.ogg",
+      "sha256": "d2616d650fd2a10bff9b5b0813ecf4db0cc257940abf2f4453b86739e3d7578c",
+      "bytes": 27588
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "6b305f5f84d46bcb61020c8fa30b5cd73cddd2d43477ec09e21f27f23ad026e1",
+      "bytes": 26125
+    }
+  ]
+}

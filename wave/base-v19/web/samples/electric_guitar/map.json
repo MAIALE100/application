@@ -1,0 +1,99 @@
+{
+  "instrument": "electric_guitar",
+  "source": "FreePats FSBS Electric Guitar Clean #1 small",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 36,
+      "layer": 4,
+      "file": "p36.ogg",
+      "sha256": "47b2557d015b2e0f722809841198d367d7270c4cfd113515b9602f5bf0a4bf9f",
+      "bytes": 16394
+    },
+    {
+      "midi": 41,
+      "layer": 4,
+      "file": "p41.ogg",
+      "sha256": "fc9457ca82a5ad0948d71a17ea899b1256f159889642d47d99b08717edb9c148",
+      "bytes": 17499
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "eaf4a9d03824d9e6de703861a9c8e3ec967ead91991f2bec68995e6504b95b39",
+      "bytes": 18961
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "c7093d7b5d653766234662e84753fca1071bb94ea520a09f4e5f6cdda3f29d4c",
+      "bytes": 17173
+    },
+    {
+      "midi": 52,
+      "layer": 4,
+      "file": "p52.ogg",
+      "sha256": "1b9286a1d99f91a6bc4580390c0363fa1cc17a3080d0f4477cda5687a29f29e0",
+      "bytes": 21128
+    },
+    {
+      "midi": 55,
+      "layer": 4,
+      "file": "p55.ogg",
+      "sha256": "8e16064be0f742b6526bce3e45c7cc3350f05b1ada4827e7c8f4adcb916a0bcd",
+      "bytes": 22473
+    },
+    {
+      "midi": 59,
+      "layer": 4,
+      "file": "p59.ogg",
+      "sha256": "f21e82042e8a87168e044c901db436938dad3f8cabee5f6490850c9ecffb4340",
+      "bytes": 23445
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "a9a55eb33454b66dedb1fb76513db0038107d518bded56fc4e0e51943f72a8eb",
+      "bytes": 23972
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "a5c2e04b76d18664d4610d86fb52ed7e8091dfe438a33af43e5b4168992b7ee0",
+      "bytes": 24236
+    },
+    {
+      "midi": 71,
+      "layer": 4,
+      "file": "p71.ogg",
+      "sha256": "9b7e9c3a051a8561675326fd632b25c1b62eea2b8212438cd5d2a8930dbd9af4",
+      "bytes": 24461
+    },
+    {
+      "midi": 74,
+      "layer": 4,
+      "file": "p74.ogg",
+      "sha256": "9898e7b96104101c1fe489e93375f3078948c23c313f89d4aeb66cb8d168c2f9",
+      "bytes": 18866
+    },
+    {
+      "midi": 80,
+      "layer": 4,
+      "file": "p80.ogg",
+      "sha256": "e42db5bd6034ac6f31791fcdbcf857106439c5aefd30e0a41787e44ade56821d",
+      "bytes": 20139
+    },
+    {
+      "midi": 85,
+      "layer": 4,
+      "file": "p85.ogg",
+      "sha256": "4463ddfd94f405fa0895be453ad77162942573a9ddd97ff32551a511d294c4a1",
+      "bytes": 12881
+    }
+  ]
+}

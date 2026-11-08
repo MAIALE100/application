@@ -1,0 +1,71 @@
+{
+  "instrument": "violin",
+  "source": "Versilian Studios VSCO 2 Community Edition 256-sample pack",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 43,
+      "layer": 4,
+      "file": "p43.ogg",
+      "sha256": "107b5c49961459053ae94c7762a72717cddd09c2be972b9d672cca65c8511890",
+      "bytes": 31266
+    },
+    {
+      "midi": 45,
+      "layer": 4,
+      "file": "p45.ogg",
+      "sha256": "c4a7334c5080f45a988bf5fe0c44b04af874eaddbbd4ad1d610b0ec51f41ef88",
+      "bytes": 30925
+    },
+    {
+      "midi": 47,
+      "layer": 4,
+      "file": "p47.ogg",
+      "sha256": "31fbd917f550ae8aa904e876aab85b4d32daaf01bd451222f4876b446c311d3f",
+      "bytes": 30874
+    },
+    {
+      "midi": 50,
+      "layer": 4,
+      "file": "p50.ogg",
+      "sha256": "9793d1798eab5200e4a8b0666583e39eb16140237ef95f491f4024960268108b",
+      "bytes": 31421
+    },
+    {
+      "midi": 57,
+      "layer": 4,
+      "file": "p57.ogg",
+      "sha256": "54d0232f60626a476179dbaff8a2658d1e64765cc9f99d4c0f0cb2dbd67df205",
+      "bytes": 31834
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "2b9ff03a59c0d6b6271459064413beb31a9a013388247b9935c4825c64d06b4c",
+      "bytes": 31681
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "0d94e135bb281a6218e0f03412594508868efa7b7a0f7dd08c6d54fa524b556d",
+      "bytes": 33396
+    },
+    {
+      "midi": 71,
+      "layer": 4,
+      "file": "p71.ogg",
+      "sha256": "cff5ba32ee40f38e00317007d8b318ec0b6fe614a154fc0355adb682549ad818",
+      "bytes": 30177
+    },
+    {
+      "midi": 74,
+      "layer": 4,
+      "file": "p74.ogg",
+      "sha256": "0217b5634423da0ca5fe8a3dacdd391a8c7e2cb9cf0fc04c2e7a4a0439686aed",
+      "bytes": 29125
+    }
+  ]
+}

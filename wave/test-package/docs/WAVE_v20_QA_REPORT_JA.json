@@ -1,0 +1,101 @@
+{
+  "version": "v20-test",
+  "resourceVersion": "0.3.6-test",
+  "overallStatus": "PARTIAL_PENDING_IN_GAME_UI_TESTS",
+  "productionChanged": false,
+  "sourceBaseline": {
+    "result": "PASS",
+    "baseline": "v19 test installation",
+    "baselineFiles": 273,
+    "preUpdateInstalledMatches": true,
+    "changedFiles": 10,
+    "targetFiles": 274
+  },
+  "automatedTests": {
+    "v20RegressionAndRingtone": {
+      "result": "PASS",
+      "passed": 33,
+      "failed": 0
+    },
+    "v19ExistingRegression": {
+      "result": "PASS",
+      "passed": 18,
+      "failed": 0
+    },
+    "luaSyntax": {
+      "result": "PASS",
+      "parsed": 4,
+      "failed": 0
+    },
+    "javascriptSyntax": {
+      "result": "PASS",
+      "files": 3
+    },
+    "updaterConflictApplyVerifyRollback": {
+      "result": "PASS",
+      "fixtureFiles": 273
+    },
+    "databaseBackupRestore": {
+      "result": "PASS",
+      "tables": 20,
+      "rows": 90,
+      "temporarySchemaRemoved": true
+    }
+  },
+  "backups": {
+    "resource": {
+      "result": "PASS",
+      "fullFiles": 273,
+      "path": "Local test-server backup retained outside the public repository."
+    },
+    "database": {
+      "result": "PASS",
+      "tables": 20,
+      "rows": 90,
+      "restoreSmokeTest": "PASS",
+      "retention": "Private backup kept outside the public repository; isolated restore smoke test passed."
+    }
+  },
+  "testServer": {
+    "resourceUpdate": "PASS",
+    "resourceRestart": "PASS_WAVE_ONLY",
+    "installedHashVerification": {
+      "result": "PASS",
+      "files": 274
+    },
+    "waveSelftest": "PASS",
+    "callbacks": "41/41",
+    "schemaVersion": 4,
+    "waveDiag": {
+      "reportedVersion": "0.3.5-test",
+      "versionNote": "FXServer metadata still reports the previous version after the WAVE-only restart; installed fxmanifest.lua matches the v20 0.3.6-test target hash."
+    },
+    "databaseChanges": [
+      "Created additive wave_ringtones table with CREATE TABLE IF NOT EXISTS.",
+      "Updated WAVE schema metadata to version 4.",
+      "No existing song, preset, purchase, wallet, subscription, or revenue rows were deleted or rewritten by the update."
+    ]
+  },
+  "ringtone": {
+    "authorPermissionAndEntitlementChecks": "PASS_STATIC_AND_AUTOMATED",
+    "segmentFadeGainValidation": "PASS_AUTOMATED",
+    "selectionPreviewSaveClearUI": "NOT_VERIFIED_IN_FIVEM_UI",
+    "LBPhoneNativeReplacement": "DISABLED_AND_NOT_VERIFIED",
+    "reason": "LB Phone 2.9.0 native sound type and audio continuity after the phone UI closes require a real incoming-call test. WAVE nativeIntegration remains false."
+  },
+  "runtimeChecks": {
+    "fiveMClientConnected": true,
+    "LBPhoneWAVEUi": "NOT_VERIFIED",
+    "libraryAudioOutput": "NOT_VERIFIED",
+    "playbackAfterClosingPhone": "NOT_VERIFIED",
+    "lockScreenRestore": "NOT_VERIFIED",
+    "positionAndVolumePersistence": "NOT_VERIFIED",
+    "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",
+    "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME"
+  },
+  "github": {
+    "audit": "wave/dev is an incomplete 11-file deployment package and does not match the installed v19 resource.",
+    "remoteChanges": "Prepared on wave/v20-test based on main; existing main and wave/dev remain unchanged."
+  },
+  "video": "No new recording or edit was made, per instruction."
+}

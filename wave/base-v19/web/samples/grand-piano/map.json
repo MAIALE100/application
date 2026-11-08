@@ -1,0 +1,189 @@
+{
+  "instrument": "grand_piano",
+  "source": "VCSL Keys / Grand Piano, K",
+  "license": "CC0-1.0",
+  "samples": [
+    {
+      "midi": 36,
+      "layer": 2,
+      "tune": 3,
+      "file": "p36_v2.ogg",
+      "sha256": "34e1d2aea4c02dcda986915fa619371f398ade859f0cec2a828400795f834e66"
+    },
+    {
+      "midi": 36,
+      "layer": 4,
+      "tune": -2,
+      "file": "p36_v4.ogg",
+      "sha256": "4de2c47977f493bdd479b330557e4f43ac931529dfc458c13dd9422cad8e9970"
+    },
+    {
+      "midi": 42,
+      "layer": 2,
+      "tune": 0,
+      "file": "p42_v2.ogg",
+      "sha256": "b4e4563cb28f925b2112a38c316d5d4fdb2b860bf55c56639def34b28ff0f24b"
+    },
+    {
+      "midi": 42,
+      "layer": 4,
+      "tune": -5,
+      "file": "p42_v4.ogg",
+      "sha256": "1de03268c78c7027265d58011545e153699d712b1a739d14493814a2105ad9d2"
+    },
+    {
+      "midi": 48,
+      "layer": 2,
+      "tune": 1,
+      "file": "p48_v2.ogg",
+      "sha256": "32a3993f736a8147f8c35e00989b53e8d3c4f76b5e41d6a37fc3ebba3d6b67a2"
+    },
+    {
+      "midi": 48,
+      "layer": 4,
+      "tune": -10,
+      "file": "p48_v4.ogg",
+      "sha256": "a72e25f8a31b0949bc009f9711380d57e81a988ab5423ed0b35dc49bff59c761"
+    },
+    {
+      "midi": 52,
+      "layer": 2,
+      "tune": 5,
+      "file": "p52_v2.ogg",
+      "sha256": "c0327873f115ac1a9796c5040efcbb4ae61556d869ae84f2e51069d67d1d554b"
+    },
+    {
+      "midi": 52,
+      "layer": 4,
+      "tune": -2,
+      "file": "p52_v4.ogg",
+      "sha256": "5488f690089db4be71d346c22e7e385317a256138744ef2aa1fafbb10e427d98"
+    },
+    {
+      "midi": 56,
+      "layer": 2,
+      "tune": 3,
+      "file": "p56_v2.ogg",
+      "sha256": "931e383afc73136d35318f11f730494e389c23e2fd248137fb8d9b60b11d79e3"
+    },
+    {
+      "midi": 56,
+      "layer": 4,
+      "tune": -5,
+      "file": "p56_v4.ogg",
+      "sha256": "a06bbaef0ea37da10092fe5b9f0d3ab2ca9946318241403a2b43706e9164c91a"
+    },
+    {
+      "midi": 60,
+      "layer": 2,
+      "tune": 4,
+      "file": "p60_v2.ogg",
+      "sha256": "78ebf28ea632cb40642d0943eb427bedd40533d4d0b9c5c76dd792ba31b4bdcb"
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "tune": -3,
+      "file": "p60_v4.ogg",
+      "sha256": "89607909c1f9a72a489776c2662343a634b4ed957b05f13b2d78a902386ed470"
+    },
+    {
+      "midi": 64,
+      "layer": 2,
+      "tune": 7,
+      "file": "p64_v2.ogg",
+      "sha256": "ffd879b12eab075793e334156263ef85d7e88e057f0355641c02e19df1ef89b7"
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "tune": -3,
+      "file": "p64_v4.ogg",
+      "sha256": "12e9d5f97293caac6204c2514af45460f44cafd24d2a17c9684b2eb647756727"
+    },
+    {
+      "midi": 68,
+      "layer": 2,
+      "tune": 3,
+      "file": "p68_v2.ogg",
+      "sha256": "f477fe418cab715dc5b0428ad6fd22092c9708bacfbd837ea1890db6bbe62b67"
+    },
+    {
+      "midi": 68,
+      "layer": 4,
+      "tune": -5,
+      "file": "p68_v4.ogg",
+      "sha256": "6204b1655eeba89c958c2e834f56fd0c5801ae0c7b1777c772392ad7c70aabb6"
+    },
+    {
+      "midi": 72,
+      "layer": 2,
+      "tune": 4,
+      "file": "p72_v2.ogg",
+      "sha256": "77cf7c12c548d99ef0a998633dab599e8a157e81501f4f52d177a2e27a690484"
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "tune": -2,
+      "file": "p72_v4.ogg",
+      "sha256": "0b8adcfb76f1bbd38482f127b9ce55fde1d96fb66b0179b449cd5b653286e9bc"
+    },
+    {
+      "midi": 76,
+      "layer": 2,
+      "tune": 3,
+      "file": "p76_v2.ogg",
+      "sha256": "d219d81953ee6201657ec32563b7710954365059b86993a22bd756fedfc051cd"
+    },
+    {
+      "midi": 76,
+      "layer": 4,
+      "tune": -6,
+      "file": "p76_v4.ogg",
+      "sha256": "a40a85b2373805795ed9a9b556b83bb7606ae0ee1566032875236b24a3e91704"
+    },
+    {
+      "midi": 80,
+      "layer": 2,
+      "tune": -1,
+      "file": "p80_v2.ogg",
+      "sha256": "bc70a7690a1a4d038ce2c64568f112f13ddf144e77d777de10ec74e892e70db1"
+    },
+    {
+      "midi": 80,
+      "layer": 4,
+      "tune": -18,
+      "file": "p80_v4.ogg",
+      "sha256": "ab9e4d9dab87c68b8fdb2c43e83a1d5a72c93a49b7c6803b6d0f90c7f3b7f52e"
+    },
+    {
+      "midi": 84,
+      "layer": 2,
+      "tune": 1,
+      "file": "p84_v2.ogg",
+      "sha256": "cc20a50730869fbc56ff55f817325f23870ba9d7d22e7d9e44ff79f5063ea41a"
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "tune": -2,
+      "file": "p84_v4.ogg",
+      "sha256": "7ba7560bc75eaef84eb36d0662a3a8b5114ce5303a78ec0abc0a665bc5064ca2"
+    },
+    {
+      "midi": 90,
+      "layer": 2,
+      "tune": 0,
+      "file": "p90_v2.ogg",
+      "sha256": "0f95cc128d8962d469b9e64ddced5e56e5abe5c038ed66c9e32265ef2c6f4998"
+    },
+    {
+      "midi": 90,
+      "layer": 4,
+      "tune": -7,
+      "file": "p90_v4.ogg",
+      "sha256": "6a5b5b747396f0a8f7fce9a19e8a2621a974b317a9057621e569f688ef987886"
+    }
+  ]
+}

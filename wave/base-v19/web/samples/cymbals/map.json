@@ -1,0 +1,50 @@
+{
+  "instrument": "cymbals",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "kit",
+  "samples": [
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "2e904fc4ccf5ca4a41d9bc0175e8cd863f9857e6cd208ddb1e98a77f1b0f6a79",
+      "bytes": 135701,
+      "sourceFile": "clash/crash_hit_ff_loose.wav"
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "8aa372dad322800cfba5be5109d91c9fb7172ba5c148ea0feb50cd30f4a414dc",
+      "bytes": 245608,
+      "sourceFile": "clash/crash_hit_mp_loose.wav"
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "c386e6d8a097b80ea80acc81f1bfbe05e6da3ff0b3e748685b0690513b828648",
+      "bytes": 213737,
+      "sourceFile": "susp/susp_hit_hardmall_f.wav"
+    },
+    {
+      "midi": 65,
+      "layer": 4,
+      "file": "p65.ogg",
+      "sha256": "1e881eb758b7a8c47d53de7d0d8a39f06a609f7ab6465cd86e837dd30d464688",
+      "bytes": 105791,
+      "sourceFile": "susp/susp_hit_metal_2_ff.wav"
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "2b74834c32635d4c4edf925be43adc124190d3186c066e4d787520433397b46c",
+      "bytes": 69892,
+      "sourceFile": "susp/susp_hit_metal_2_mf.wav"
+    }
+  ]
+}

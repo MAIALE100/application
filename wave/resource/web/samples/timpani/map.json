@@ -1,0 +1,50 @@
+{
+  "instrument": "timpani",
+  "source": "Versilian Studios VSCO",
+  "license": "CC0-1.0",
+  "sourceURL": "https://github.com/sgossner/VSCO-2-CE",
+  "pitchOffset": 0,
+  "mode": "kit",
+  "samples": [
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "294823ab12f33cece666774a4887fd8ec0919a202cbd915d74ffd1b6d34e7c0f",
+      "bytes": 94944,
+      "sourceFile": "Timpani1_Hit_v3_rr1_Sum.wav"
+    },
+    {
+      "midi": 62,
+      "layer": 4,
+      "file": "p62.ogg",
+      "sha256": "072b8f42bb37da56f1890fb0541667cbd6627621e84237f54b935c3e0d3eed9c",
+      "bytes": 117952,
+      "sourceFile": "Timpani2_Hit_v3_rr1_Sum.wav"
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "0c259f949ff48f553a0b24aa32b3127b9ac4b2f7a9b1ff3d240191288a64d866",
+      "bytes": 93957,
+      "sourceFile": "Timpani3_Hit_v3_rr1_Sum.wav"
+    },
+    {
+      "midi": 66,
+      "layer": 4,
+      "file": "p66.ogg",
+      "sha256": "5b7112d411d964587ec15cea44019d3448f300a51f7ca42ebfb8c96c5944b553",
+      "bytes": 73611,
+      "sourceFile": "Timpani4_Hit_v3_rr1_Sum.wav"
+    },
+    {
+      "midi": 68,
+      "layer": 4,
+      "file": "p68.ogg",
+      "sha256": "aab38a362b4bfc8fcc4d4deb359a4308f94b0b74615ae346360b79a1eae4054a",
+      "bytes": 70497,
+      "sourceFile": "Timpani5_Hit_v3_rr1_Sum.wav"
+    }
+  ]
+}

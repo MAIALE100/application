@@ -1,0 +1,78 @@
+{
+  "instrument": "acoustic_guitar",
+  "source": "FreePats Spanish Classical Guitar",
+  "license": "CC0-1.0",
+  "pitchOffset": 0,
+  "samples": [
+    {
+      "midi": 48,
+      "layer": 4,
+      "file": "p48.ogg",
+      "sha256": "2fe98c3c0e0d2552c2a39afebd5c461ea2f413868b081460d5ffb0e4af5491ad",
+      "bytes": 25179
+    },
+    {
+      "midi": 52,
+      "layer": 4,
+      "file": "p52.ogg",
+      "sha256": "ae0ae7e4e2da75409440a78ba3ef86042a54ab26e4ef177cf7c5990159a70a2b",
+      "bytes": 28723
+    },
+    {
+      "midi": 55,
+      "layer": 4,
+      "file": "p55.ogg",
+      "sha256": "2e01cd82f4a95028363a7613cf9d51e588727993dad3ebf4fc8f13c13bc4c8b7",
+      "bytes": 31471
+    },
+    {
+      "midi": 60,
+      "layer": 4,
+      "file": "p60.ogg",
+      "sha256": "532491dabbbed41bc17f7e80ab984ddbb065dba8680e322f7b5e41843657616d",
+      "bytes": 20143
+    },
+    {
+      "midi": 64,
+      "layer": 4,
+      "file": "p64.ogg",
+      "sha256": "ecff59bd7f4308dfe98b47f6a9ca579ff2c62b00ffaed8261171401434e02b5d",
+      "bytes": 23540
+    },
+    {
+      "midi": 67,
+      "layer": 4,
+      "file": "p67.ogg",
+      "sha256": "8d4b896f78f051dfc75aa74fad6041a2acfea3c3ab5f945dc54d1330329a52fd",
+      "bytes": 20118
+    },
+    {
+      "midi": 72,
+      "layer": 4,
+      "file": "p72.ogg",
+      "sha256": "11e67ebbf7d458a90663a85d540afed6f427bfbeb7d507996ca12a1afcce0a86",
+      "bytes": 14923
+    },
+    {
+      "midi": 76,
+      "layer": 4,
+      "file": "p76.ogg",
+      "sha256": "0c6e8c95c0054432e5cf7b143055618896c48b63720b4b832ba12fb71c68eb3e",
+      "bytes": 14109
+    },
+    {
+      "midi": 80,
+      "layer": 4,
+      "file": "p80.ogg",
+      "sha256": "045986ea977408ab6251127e043a8e75508d9ee9d28111b9686b7ca83be7ca9e",
+      "bytes": 10352
+    },
+    {
+      "midi": 84,
+      "layer": 4,
+      "file": "p84.ogg",
+      "sha256": "7624160f2117757cd43bab3aa44236eaa8872bbddba2687442e72a1c3bd76fcc",
+      "bytes": 10342
+    }
+  ]
+}

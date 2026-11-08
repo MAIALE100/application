@@ -64,7 +64,7 @@
       "result": "PASS",
       "tests": 34,
       "failed": 0,
-    "extractedZipEntries": 33
+      "extractedZipEntries": 33
     }
   },
   "backups": {
@@ -141,8 +141,8 @@
     "customSelectionPreviewAudio": "PASS_USER_CONFIRMED: Flecity Afterglow, 0.0-15.0 seconds",
     "customSelectionSave": "VISIBLE_IN_UI_AFTER_RESTART; current test-account selection left intact",
     "customSelectionClear": "NOT_TESTED",
-    "LBPhoneNativeReplacement": "PENDING_POST_PATCH_USER_INCOMING_CALL_CONFIRMATION",
-    "reason": "LB Phone 2.9.0 official client exports document AddCheck('playNativePhoneSound'); false suppresses native playback. WAVE nativeIntegration is enabled for the configured ringtone type and falls back when selection or NUI audio is not ready. The callback soundType and actual replacement remain unverified until a post-patch incoming call."
+    "LBPhoneNativeReplacement": "PENDING; latest user-reported incoming call played LB Phone initial tone, but WAVE restart after config patch is unverified, so integration outcome is inconclusive.",
+    "reason": "LB Phone 2.9.0 official client exports document AddCheck(playNativePhoneSound); returning false suppresses native playback. WAVE nativeIntegration is enabled for configured ringtone type and falls back when selection or NUI audio is not ready. Latest user-reported call played LB Phone initial tone, but restart after this config patch is not verified; the observation is inconclusive and does not establish replacement success or failure."
   },
   "runtimeChecks": {
     "fiveMClientConnected": true,
@@ -152,12 +152,13 @@
     "customRingtonePreviewAudio": "PASS_USER_CONFIRMED audible Flecity Afterglow 0.0-15.0 seconds",
     "savedRingtoneAfterRestart": "Flecity Afterglow 0.0-15.0 seconds visible in Library; left unchanged",
     "incomingCallBeforeIntegrationPatch": "PASS_USER_CONFIRMED: LB Phone initial/native tone played while WAVE nativeIntegration was false.",
-    "incomingCallAfterIntegrationPatch": "NOT_VERIFIED",
+    "incomingCallAfterIntegrationPatch": "USER_REPORTED_LBPHONE_INITIAL_TONE; WAVE_RESTART_AFTER_PATCH_UNVERIFIED; INCONCLUSIVE",
     "playbackAfterClosingPhone": "PASS_USER_CONFIRMED: Library audio continued after closing LB Phone.",
     "lockScreenRestore": "PASS_USER_CONFIRMED: Playback state and audio remained intact after returning from the lock screen.",
     "positionAndVolumePersistence": "NOT_VERIFIED",
     "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",
-    "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME"
+    "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME",
+    "latestIncomingCallAttempt": "User reported that the LB Phone initial ringtone played. Because the config patch restart is not verified, this is not a conclusive post-restart integration test."
   },
   "localOutputs": {
     "preChangeManifest": {

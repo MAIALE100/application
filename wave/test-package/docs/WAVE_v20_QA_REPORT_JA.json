@@ -159,9 +159,9 @@
         "hashMismatchFiles": 0
       },
       "postFiles": 102,
-      "postBytes": 511995650,
       "postManifest": "work/wave-v20/inventory/outputs-post-v20-uxhint.csv and .json",
-      "referenceNote": "Filename-level list, not a complete runtime dependency graph."
+      "referenceNote": "Filename-level list, not a complete runtime dependency graph.",
+      "postBytesNote": "The exact post-change byte total is the sum of SizeBytes in postManifest."
     }
   },
   "github": {

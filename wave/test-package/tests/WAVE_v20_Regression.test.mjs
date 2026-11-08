@@ -101,10 +101,14 @@ test('invalid segment, fade, and gain values are rejected server-side',()=>{
   for(const token of ['INVALID_RINGTONE_RANGE','INVALID_RINGTONE_FADE','INVALID_RINGTONE_GAIN','WaveConfig.Ringtone.minSeconds','WaveConfig.Ringtone.maxSeconds','WaveConfig.Ringtone.maxFadeMilliseconds'])assert.ok(block.includes(token),`missing bound: ${token}`);
 });
 
-test('native LB Phone sound interception remains disabled until call audio is verified',async()=>{
+test('native LB Phone sound interception uses the documented check and readiness guards',async()=>{
   const config=await readFile(path.join(payloadRoot,'config','shared.lua'),'utf8');
-  assert.match(config,/nativeIntegration\s*=\s*false/);
-  assert.match(client,/not waveRingtoneUiReady or not waveRingtoneAudioReady then return true/);
+  assert.match(config,/nativeIntegration\s*=\s*true/);
+  assert.match(config,/nativeSoundType\s*=\s*'ringtone'/);
+  assert.match(client,/AddCheck\('playNativePhoneSound'/);
+  assert.match(client,/soundType or ''\)~=WaveConfig\.Ringtone\.nativeSoundType then return true/);
+  assert.match(client,/not waveRingtoneSelection or not waveRingtoneUiReady or not waveRingtoneAudioReady then return true/);
+  assert.match(client,/SendNUIMessage\(\{type='waveRingtoneStart'\}\)\s*return false/);
 });
 
 test('saved and preview ringtone settings remain separate and stale preloads cannot win',async()=>{

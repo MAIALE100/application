@@ -19,8 +19,17 @@ foreach($file in Get-ChildItem -LiteralPath $package -File -Recurse -Force){
   $files+=,[pscustomobject]@{File=$file;Relative=$relative;Hash=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToUpperInvariant()}
 }
 $files=@($files|Sort-Object Relative)
-if($files.Count -ne 27){throw "Unexpected package entry count: $($files.Count); expected 27."}
+if($files.Count -ne 33){throw "Unexpected package entry count: $($files.Count); expected 33."}
 if(@($files|Where-Object{$_.Relative -eq 'scripts/WAVE_Test_Server.local.cmd'}).Count -ne 0){throw 'Local server configuration must not be included.'}
+$requiredFiles=@(
+  'manifests/v20-pre-ringtone-integration.json',
+  'scripts/WAVE_v20_RingtonePatch.ps1',
+  'scripts/05_PATCH_RINGTONE_INTEGRATION.cmd',
+  'scripts/06_VERIFY_RINGTONE_INTEGRATION.cmd',
+  'scripts/07_ROLLBACK_RINGTONE_INTEGRATION.cmd',
+  'tests/WAVE_v20_RingtonePatch.SmokeTest.ps1'
+)
+foreach($required in $requiredFiles){if(@($files|Where-Object{$_.Relative -ceq $required}).Count -ne 1){throw "Required incremental patch file missing: $required"}}
 
 $stream=[System.IO.File]::Open($Destination,[System.IO.FileMode]::CreateNew,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)
 try{

@@ -59,7 +59,7 @@ WaveConfig = {
         maxFadeMilliseconds = 3000,
         minGain = 0.5,
         maxGain = 1.5,
-        nativeIntegration = false,
+        nativeIntegration = true,
         nativeSoundType = 'ringtone'
     },
 

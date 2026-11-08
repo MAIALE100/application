@@ -99,12 +99,14 @@ test('ringtone data is additive and does not attach cascading deletes to songs o
   assert.match(server,/wave_ringtones.*SchemaVersion|SchemaVersion.*wave_ringtones/s);
 });
 
-test('native LB Phone suppression remains disabled until an incoming-call test verifies it',async()=>{
+test('documented LB Phone native sound check is enabled and falls back until ringtone audio is ready',async()=>{
   const config=await read('config/shared.lua');
   const client=await read('client/main.lua');
-  assert.match(config,/nativeIntegration\s*=\s*false/);
+  assert.match(config,/nativeIntegration\s*=\s*true/);
+  assert.match(config,/nativeSoundType\s*=\s*'ringtone'/);
   assert.match(client,/soundType or ''\)~=WaveConfig\.Ringtone\.nativeSoundType then return true/);
-  assert.match(client,/not waveRingtoneUiReady or not waveRingtoneAudioReady then return true/);
+  assert.match(client,/not waveRingtoneSelection or not waveRingtoneUiReady or not waveRingtoneAudioReady then return true/);
+  assert.match(client,/SendNUIMessage\(\{type='waveRingtoneStart'\}\)\s*return false/);
 });
 
 test('saved ringtone readiness follows the current selection and ignores stale preload results',async()=>{

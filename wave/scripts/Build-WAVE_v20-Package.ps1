@@ -4,6 +4,7 @@ $SourceRoot = Join-Path $Root 'resource'
 $PackageRoot = Join-Path $Root 'test-package'
 $PayloadRoot = Join-Path $PackageRoot 'payload'
 $BaselinePath = Join-Path $PackageRoot 'manifests\v19-baseline.json'
+$PrePatchPath = Join-Path $PackageRoot 'manifests\v20-pre-ringtone-integration.json'
 $TargetPath = Join-Path $PackageRoot 'manifests\v20-target.json'
 $ChangedPath = Join-Path $PackageRoot 'manifests\changed-files.json'
 $Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
@@ -44,6 +45,30 @@ if ((Compare-Object $actualChanged ($ExpectedFiles | Sort-Object)).Count -gt 0) 
   throw ('CONFLICT_STOP: source changes do not match the approved allowlist: ' + ($actualChanged -join ', '))
 }
 
+$preDocument = Get-Content -LiteralPath $PrePatchPath -Raw | ConvertFrom-Json
+$prePatch = @{}
+foreach ($property in $preDocument.PSObject.Properties) { $prePatch[$property.Name] = ([string]$property.Value).ToUpperInvariant() }
+if ($prePatch.Count -ne $target.Count) { throw 'CONFLICT_STOP: the frozen previous-v20 manifest has an unexpected file count.' }
+foreach ($relative in $prePatch.Keys) { if (-not $target.ContainsKey($relative)) { throw "CONFLICT_STOP: previous-v20 file is missing from the target: $relative" } }
+$incrementalChanges = @($prePatch.Keys | Where-Object { $prePatch[$_] -cne $target[$_] })
+if ($incrementalChanges.Count -ne 1 -or $incrementalChanges[0] -cne 'config/shared.lua') {
+  throw ('CONFLICT_STOP: the previous-v20 incremental patch must change only config/shared.lua: ' + ($incrementalChanges -join ', '))
+}
+$currentTargetDocument = Get-Content -LiteralPath $TargetPath -Raw | ConvertFrom-Json
+$currentTarget = @{}
+foreach ($property in $currentTargetDocument.PSObject.Properties) { $currentTarget[$property.Name] = ([string]$property.Value).ToUpperInvariant() }
+if ($currentTarget.Count -ne $prePatch.Count) { throw 'CONFLICT_STOP: existing v20 target manifest has an unexpected file count.' }
+$currentMatchesPre = $true
+$currentMatchesSource = $true
+foreach ($relative in $prePatch.Keys) {
+  if (-not $currentTarget.ContainsKey($relative)) { throw "CONFLICT_STOP: existing v20 target is missing $relative." }
+  if ($currentTarget[$relative] -cne $prePatch[$relative]) { $currentMatchesPre = $false }
+  if ($currentTarget[$relative] -cne $target[$relative]) { $currentMatchesSource = $false }
+}
+if (-not $currentMatchesPre -and -not $currentMatchesSource) {
+  throw 'CONFLICT_STOP: existing v20 target matches neither the frozen pre-integration target nor the reviewed source.'
+}
+
 $payload = Get-TreeHashes $PayloadRoot
 $payloadPaths = @($payload.Keys | Sort-Object)
 if ((Compare-Object $payloadPaths ($ExpectedFiles | Sort-Object)).Count -gt 0) {
@@ -56,17 +81,27 @@ foreach ($relative in $ExpectedFiles) {
   Copy-Item -LiteralPath $sourceFile -Destination $payloadFile -Force
 }
 
-$baselineJsonObject = [ordered]@{}
-foreach ($key in ($baseline.Keys | Sort-Object)) { $baselineJsonObject[$key] = $baseline[$key] }
-$targetJsonObject = [ordered]@{}
-foreach ($key in ($target.Keys | Sort-Object)) { $targetJsonObject[$key] = $target[$key] }
-$baselineJson = $baselineJsonObject | ConvertTo-Json -Depth 3
-$targetJson = $targetJsonObject | ConvertTo-Json -Depth 3
-[System.IO.File]::WriteAllText($BaselinePath, $baselineJson, $Utf8NoBom)
-[System.IO.File]::WriteAllText($TargetPath, $targetJson, $Utf8NoBom)
-$changedDocument = @($ExpectedFiles | Sort-Object | ForEach-Object { [pscustomobject]@{ path = $_; sha256 = $target[$_] } })
-$changedJson = ConvertTo-Json -InputObject $changedDocument -Depth 3
-[System.IO.File]::WriteAllText($ChangedPath, $changedJson, $Utf8NoBom)
+$targetText = [System.IO.File]::ReadAllText($TargetPath)
+$targetPattern = '("config/shared\.lua"\s*:\s*")([A-Fa-f0-9]{64})(")'
+$targetMatches = [System.Text.RegularExpressions.Regex]::Matches($targetText, $targetPattern)
+if ($targetMatches.Count -ne 1 -or @($prePatch['config/shared.lua'], $target['config/shared.lua']) -cnotcontains $targetMatches[0].Groups[2].Value.ToUpperInvariant()) {
+  throw 'CONFLICT_STOP: existing v20 target config hash cannot be updated safely.'
+}
+if ($targetMatches[0].Groups[2].Value.ToUpperInvariant() -cne $target['config/shared.lua']) {
+  $targetText = [System.Text.RegularExpressions.Regex]::Replace($targetText, $targetPattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $match.Groups[1].Value + $target['config/shared.lua'] + $match.Groups[3].Value }, 1)
+  [System.IO.File]::WriteAllText($TargetPath, $targetText, $Utf8NoBom)
+}
+
+$changedText = [System.IO.File]::ReadAllText($ChangedPath)
+$changedPattern = '("path"\s*:\s*"config/shared\.lua"\s*,\s*"sha256"\s*:\s*")([A-Fa-f0-9]{64})(")'
+$changedMatches = [System.Text.RegularExpressions.Regex]::Matches($changedText, $changedPattern)
+if ($changedMatches.Count -ne 1 -or @($prePatch['config/shared.lua'], $target['config/shared.lua']) -cnotcontains $changedMatches[0].Groups[2].Value.ToUpperInvariant()) {
+  throw 'CONFLICT_STOP: changed-files config hash cannot be updated safely.'
+}
+if ($changedMatches[0].Groups[2].Value.ToUpperInvariant() -cne $target['config/shared.lua']) {
+  $changedText = [System.Text.RegularExpressions.Regex]::Replace($changedText, $changedPattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $match.Groups[1].Value + $target['config/shared.lua'] + $match.Groups[3].Value }, 1)
+  [System.IO.File]::WriteAllText($ChangedPath, $changedText, $Utf8NoBom)
+}
 
 $verifiedPayload = Get-TreeHashes $PayloadRoot
 foreach ($relative in $ExpectedFiles) {

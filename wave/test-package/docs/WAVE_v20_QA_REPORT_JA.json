@@ -115,23 +115,25 @@
       "lbPhoneChanged": false,
       "rollbackBackup": "AVAILABLE; private test-server backup not included in package"
     },
-    "ringtonePatchResourceRestart": "PENDING_TXADMIN_USER_SIGN_IN",
-    "ringtonePatchWaveSelftest": "NOT_RUN_AFTER_CONFIG_PATCH",
-    "waveSelftest": "PASS_AFTER_FULL_V20_INSTALL; NOT_RERUN_AFTER_UI_ONLY_PATCH",
+    "ringtonePatchResourceRestart": "PASS_TXADMIN_OBSERVED: restart wave issued at 03:33:43; Started resource wave at 03:33:47; READY_FOR_TEST logged.",
+    "waveSelftest": "PASS_TXADMIN_OBSERVED_AFTER_CONFIG_PATCH_RESTART",
     "callbacks": "41/41",
     "schemaVersion": 4,
     "waveDiag": {
       "artists": 3,
       "tracks": 4,
       "publicTracks": 4,
-      "reportedVersion": "0.3.5-test",
-      "versionNote": "FXServer metadata still reports the previous version after the WAVE-only restart; installed fxmanifest.lua matches the v20 0.3.6-test target hash."
+      "reportedVersion": "0.3.6-test",
+      "callbacks": "41/41",
+      "schemaVersion": 4,
+      "versionNote": "wave_diag after the config patch restart reported 0.3.6-test, callbacks 41/41, schema 4, artists 3, tracks 4, public tracks 4."
     },
     "databaseChanges": [
       "Created additive wave_ringtones table with CREATE TABLE IF NOT EXISTS.",
       "Updated WAVE schema metadata to version 4.",
       "No existing song, preset, purchase, wallet, subscription, or revenue rows were deleted or rewritten by the update."
-    ]
+    ],
+    "ringtonePatchWaveSelftest": "PASS_TXADMIN_OBSERVED: [WAVE] SELFTEST PASS at 03:34:04 after config patch restart."
   },
   "ringtone": {
     "authorPermissionAndEntitlementChecks": "PASS_STATIC_AND_AUTOMATED",
@@ -141,8 +143,8 @@
     "customSelectionPreviewAudio": "PASS_USER_CONFIRMED: Flecity Afterglow, 0.0-15.0 seconds",
     "customSelectionSave": "VISIBLE_IN_UI_AFTER_RESTART; current test-account selection left intact",
     "customSelectionClear": "NOT_TESTED",
-    "LBPhoneNativeReplacement": "PENDING; latest user-reported incoming call played LB Phone initial tone, but WAVE restart after config patch is unverified, so integration outcome is inconclusive.",
-    "reason": "LB Phone 2.9.0 official client exports document AddCheck(playNativePhoneSound); returning false suppresses native playback. WAVE nativeIntegration is enabled for configured ringtone type and falls back when selection or NUI audio is not ready. Latest user-reported call played LB Phone initial tone, but restart after this config patch is not verified; the observation is inconclusive and does not establish replacement success or failure."
+    "LBPhoneNativeReplacement": "PENDING_POST_RESTART_INCOMING_CALL_USER_CONFIRMATION",
+    "reason": "LB Phone 2.9.0 official client exports document AddCheck(playNativePhoneSound); returning false suppresses native playback. The WAVE config patch is now restarted and wave_selftest passed. The latest previously reported call played the LB Phone initial tone before the confirmed restart, so it is not a post-restart result. Confirm replacement with a new incoming call now."
   },
   "runtimeChecks": {
     "fiveMClientConnected": true,
@@ -152,13 +154,14 @@
     "customRingtonePreviewAudio": "PASS_USER_CONFIRMED audible Flecity Afterglow 0.0-15.0 seconds",
     "savedRingtoneAfterRestart": "Flecity Afterglow 0.0-15.0 seconds visible in Library; left unchanged",
     "incomingCallBeforeIntegrationPatch": "PASS_USER_CONFIRMED: LB Phone initial/native tone played while WAVE nativeIntegration was false.",
-    "incomingCallAfterIntegrationPatch": "USER_REPORTED_LBPHONE_INITIAL_TONE; WAVE_RESTART_AFTER_PATCH_UNVERIFIED; INCONCLUSIVE",
+    "incomingCallAfterIntegrationPatch": "PENDING_POST_RESTART_INCOMING_CALL_USER_CONFIRMATION; prior LB Phone initial-tone report preceded the confirmed restart and is not conclusive.",
     "playbackAfterClosingPhone": "PASS_USER_CONFIRMED: Library audio continued after closing LB Phone.",
     "lockScreenRestore": "PASS_USER_CONFIRMED: Playback state and audio remained intact after returning from the lock screen.",
     "positionAndVolumePersistence": "NOT_VERIFIED",
     "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",
     "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME",
-    "latestIncomingCallAttempt": "User reported that the LB Phone initial ringtone played. Because the config patch restart is not verified, this is not a conclusive post-restart integration test."
+    "latestIncomingCallAttempt": "User reported the LB Phone initial ringtone before the confirmed 2026-11-09 config-patch restart; this is a pre-restart observation.",
+    "incomingCallAfterConfigPatchRestart": "PENDING_USER_CONFIRMATION"
   },
   "localOutputs": {
     "preChangeManifest": {
@@ -195,7 +198,7 @@
   },
   "github": {
     "audit": "wave/dev is an incomplete 11-file deployment package and does not match the installed v19 resource.",
-    "remoteChanges": "This UI-only follow-up is prepared on wave/v20-test. The original wave-v20-test tag remains immutable; main and wave/dev are unchanged.",
+    "remoteChanges": "The test branch wave/v20-test contains the ringtone integration source, current QA status, and reproducible package builder. main, wave/dev, and immutable prior tags are unchanged.",
     "repositorySafety": "No DB dump, credentials, private local path, or local server logs were published.",
     "builder": "scripts/Build-WAVE_v20-Package.ps1 validates the frozen previous-v20 manifest and updates only the config/shared.lua hash while rebuilding the 10-file allowlisted payload; Build-WAVE_v20-Zip.ps1 creates the 33-entry ZIP without local server settings or logs."
   },

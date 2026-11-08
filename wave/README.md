@@ -19,6 +19,12 @@ node --test tests/WAVE_v20_Ringtone.test.mjs tests/WAVE_v20_Regression.test.mjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/WAVE_v20_Updater.SmokeTest.ps1
 ```
 
+ソースから更新payloadとSHA256マニフェストを再生成するときは、次を実行します。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WAVE_v20-Package.ps1
+```
+
 更新CMDを使う場合は、`scripts/WAVE_Test_Server.local.example.cmd`を`WAVE_Test_Server.local.cmd`へコピーし、テスト環境のパスだけを設定してください。ローカル設定とログはGitで管理しません。本番サーバーには適用しないでください。
 
 ## 音源ライセンス

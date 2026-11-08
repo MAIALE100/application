@@ -136,3 +136,15 @@ test('UI exposes the opt-in permission and guarded clip controls',async()=>{
   assert.match(app,/bridge\('clearRingtone'/);
   assert.match(app,/bridge\('previewRingtone'/);
 });
+
+test('default ringtone preview is clearly unavailable until a WAVE ringtone is set',async()=>{
+  const html=await read('web/index.html');
+  const app=await read('web/app.js');
+  const css=await read('web/app.css');
+  assert.match(html,/id="previewCurrentRingtone"[^>]*disabled/);
+  assert.match(html,/id="ringtoneStatusHint"/);
+  assert.match(app,/preview\.disabled=true/);
+  assert.match(app,/if\(reset\)reset\.disabled=true/);
+  assert.match(app,/初期着信音はLB Phone側が管理するため、WAVE内では試聴できません/);
+  assert.match(css,/\.wave-ringtone-card button:disabled\{opacity:[^}]*cursor:not-allowed/);
+});

@@ -635,6 +635,7 @@ body.wave-studio-active dialog :focus-visible{outline:2px solid #72e5ff;outline-
 .wave-ringtone-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.75rem;align-items:center;margin-bottom:1rem}
 .wave-ringtone-card h3{margin:.15rem 0}.wave-ringtone-card p{grid-column:1/-1;margin:0}
 .ringtone-actions{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:flex-end}
+.wave-ringtone-card button:disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .ringtone-editor{display:grid;gap:.65rem;margin-top:1rem;padding:.8rem;border:1px solid var(--line,#273548);border-radius:12px;background:#0a1423}
 .ringtone-editor h3{margin:0}.ringtone-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}
 .ringtone-editor label{display:grid;gap:.25rem;font-size:.88rem}.ringtone-editor output{color:#c4d6f0;font-variant-numeric:tabular-nums}

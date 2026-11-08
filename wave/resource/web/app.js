@@ -1955,13 +1955,21 @@ function renderRingtoneCard(){
   const ring=state.ringtone;
   const title=$('ringtoneCurrentTitle');
   const preview=$('previewCurrentRingtone');
+  const reset=$('resetRingtone');
+  const hint=$('ringtoneStatusHint');
   if(!title||!preview)return;
   if(ring?.track){
     title.textContent=`${ring.track.title} · ${Number(ring.startSeconds).toFixed(1)}–${Number(ring.endSeconds).toFixed(1)}秒`;
     preview.disabled=false;
+    preview.title='設定したWAVE着信音を試聴できます';
+    if(reset)reset.disabled=false;
+    if(hint)hint.textContent='作者が着信音利用を許可した公開曲の設定区間を試聴できます。LB Phone 2.9.0の通話着信への反映は、native連携の実機確認後に有効化します。';
   }else{
     title.textContent='初期着信音を使用中';
     preview.disabled=true;
+    preview.title='WAVE着信音を設定すると試聴できます';
+    if(reset)reset.disabled=true;
+    if(hint)hint.textContent='初期着信音はLB Phone側が管理するため、WAVE内では試聴できません。Libraryで着信音利用が許可された公開曲を開くと、区間を試聴して設定できます。通話音への反映はLB Phone 2.9.0との実機確認後に有効化します。';
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "version": "v20-test",
   "resourceVersion": "0.3.6-test",
-  "overallStatus": "PARTIAL_PENDING_IN_GAME_UI_TESTS",
+  "overallStatus": "PARTIAL_PENDING_REMAINING_RUNTIME_TESTS",
   "productionChanged": false,
   "sourceBaseline": {
     "result": "PASS",
@@ -14,7 +14,7 @@
   "automatedTests": {
     "v20RegressionAndRingtone": {
       "result": "PASS",
-      "passed": 33,
+      "passed": 34,
       "failed": 0
     },
     "v19ExistingRegression": {
@@ -40,33 +40,64 @@
       "tables": 20,
       "rows": 90,
       "temporarySchemaRemoved": true
+    },
+    "packageBuild": {
+      "result": "PASS",
+      "v19Files": 273,
+      "v20Files": 274,
+      "payloadFiles": 10,
+      "generatedJsonBom": false
+    },
+    "finalArchiveRegression": {
+      "result": "PASS",
+      "tests": 34,
+      "failed": 0,
+      "extractedZipEntries": 27
     }
   },
   "backups": {
     "resource": {
       "result": "PASS",
       "fullFiles": 273,
-      "path": "Local test-server backup retained outside the public repository."
+      "path": "private test-server backup directory; excluded from package"
     },
     "database": {
       "result": "PASS",
+      "file": "private WAVE database backup; excluded from package",
       "tables": 20,
       "rows": 90,
-      "restoreSmokeTest": "PASS",
-      "retention": "Private backup kept outside the public repository; isolated restore smoke test passed."
+      "bytes": 334106,
+      "sha256": "66CF4F83C31B52D97CF6EF9EC7E0641C6F717C43B1EAD63C6A0545BBF080AB42",
+      "restoreSmokeTest": "PASS"
     }
   },
   "testServer": {
     "resourceUpdate": "PASS",
-    "resourceRestart": "PASS_WAVE_ONLY",
+    "resourceRestart": "PASS_USER_CONFIRMED_WAVE_ONLY_AFTER_UI_HINT_PATCH",
     "installedHashVerification": {
       "result": "PASS",
       "files": 274
     },
-    "waveSelftest": "PASS",
+    "incrementalUiPatch": {
+      "result": "PASS",
+      "prePatchInstalledFilesMatchFrozenV20": 274,
+      "fullResourceBackupFiles": 274,
+      "changedFiles": [
+        "web/app.css",
+        "web/app.js",
+        "web/index.html"
+      ],
+      "postPatchHashVerificationFiles": 274,
+      "databaseChanged": false,
+      "rollbackBackup": "AVAILABLE; private test-server backup not included in package"
+    },
+    "waveSelftest": "PASS_AFTER_FULL_V20_INSTALL; NOT_RERUN_AFTER_UI_ONLY_PATCH",
     "callbacks": "41/41",
     "schemaVersion": 4,
     "waveDiag": {
+      "artists": 3,
+      "tracks": 4,
+      "publicTracks": 4,
       "reportedVersion": "0.3.5-test",
       "versionNote": "FXServer metadata still reports the previous version after the WAVE-only restart; installed fxmanifest.lua matches the v20 0.3.6-test target hash."
     },
@@ -79,23 +110,65 @@
   "ringtone": {
     "authorPermissionAndEntitlementChecks": "PASS_STATIC_AND_AUTOMATED",
     "segmentFadeGainValidation": "PASS_AUTOMATED",
-    "selectionPreviewSaveClearUI": "NOT_VERIFIED_IN_FIVEM_UI",
+    "defaultRingtonePreview": "NOT_A_WAVE_PREVIEW; LB Phone owns the initial native ringtone, and no WAVE-accessible preview API was found. The WAVE button is disabled in this state.",
+    "unconfiguredPreviewHint": "PASS_AUTOMATED; default-state visual confirmation not repeated because a WAVE ringtone is currently selected",
+    "customSelectionPreviewAudio": "PASS_USER_CONFIRMED: Flecity Afterglow, 0.0-15.0 seconds",
+    "customSelectionSave": "VISIBLE_IN_UI_AFTER_RESTART; current test-account selection left intact",
+    "customSelectionClear": "NOT_TESTED",
     "LBPhoneNativeReplacement": "DISABLED_AND_NOT_VERIFIED",
-    "reason": "LB Phone 2.9.0 native sound type and audio continuity after the phone UI closes require a real incoming-call test. WAVE nativeIntegration remains false."
+    "reason": "LB Phone 2.9.0 has no inspected public API for previewing its initial native ringtone. Its native sound type and WAVE audio continuity after the phone UI closes still require a real incoming-call test. WAVE nativeIntegration remains false."
   },
   "runtimeChecks": {
     "fiveMClientConnected": true,
-    "LBPhoneWAVEUi": "NOT_VERIFIED",
-    "libraryAudioOutput": "NOT_VERIFIED",
+    "LBPhoneWAVEUi": "OPENED_BY_USER; Library screen observed",
+    "libraryAudioOutput": "PASS_USER_CONFIRMED audible Flecity Afterglow",
+    "initialRingtonePreview": "WAVE preview is unavailable by design while the LB Phone initial ringtone is selected; the revised explanatory hint is automated-tested",
+    "customRingtonePreviewAudio": "PASS_USER_CONFIRMED audible Flecity Afterglow 0.0-15.0 seconds",
+    "savedRingtoneAfterRestart": "Flecity Afterglow 0.0-15.0 seconds visible in Library; left unchanged",
     "playbackAfterClosingPhone": "NOT_VERIFIED",
     "lockScreenRestore": "NOT_VERIFIED",
     "positionAndVolumePersistence": "NOT_VERIFIED",
     "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",
     "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME"
   },
+  "localOutputs": {
+    "preChangeManifest": {
+      "result": "PASS",
+      "files": 80,
+      "bytes": 511727746
+    },
+    "independentCopy": {
+      "result": "PASS",
+      "files": 80,
+      "hashMismatches": 0
+    },
+    "references": {
+      "filenameLevelRows": 254,
+      "legacyFilesMovedOrDeleted": false
+    },
+    "organization": {
+      "result": "PASS",
+      "preFiles": 80,
+      "preBytes": 511727746,
+      "filenameLevelReferenceRows": 254,
+      "legacyFilesMovedOrDeleted": false,
+      "backupCopyHashMatchFiles": 80,
+      "restoreSmokeTest": {
+        "result": "PASS",
+        "restoredFiles": 80,
+        "hashMismatchFiles": 0
+      },
+      "postFiles": 102,
+      "postBytes": 511995650,
+      "postManifest": "work/wave-v20/inventory/outputs-post-v20-uxhint.csv and .json",
+      "referenceNote": "Filename-level list, not a complete runtime dependency graph."
+    }
+  },
   "github": {
     "audit": "wave/dev is an incomplete 11-file deployment package and does not match the installed v19 resource.",
-    "remoteChanges": "Prepared on wave/v20-test based on main; existing main and wave/dev remain unchanged."
+    "remoteChanges": "This UI-only follow-up is prepared on wave/v20-test. The original wave-v20-test tag remains immutable; main and wave/dev are unchanged.",
+    "repositorySafety": "No DB dump, credentials, private local path, or local server logs were published.",
+    "builder": "scripts/Build-WAVE_v20-Package.ps1 and scripts/Build-WAVE_v20-Zip.ps1; regenerate the allowlisted payload, sorted UTF-8 no-BOM manifests, and a ZIP without local server settings or logs."
   },
   "video": "No new recording or edit was made, per instruction."
 }

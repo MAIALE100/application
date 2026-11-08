@@ -56,8 +56,12 @@ foreach ($relative in $ExpectedFiles) {
   Copy-Item -LiteralPath $sourceFile -Destination $payloadFile -Force
 }
 
-$baselineJson = $baseline | ConvertTo-Json -Depth 3
-$targetJson = $target | ConvertTo-Json -Depth 3
+$baselineJsonObject = [ordered]@{}
+foreach ($key in ($baseline.Keys | Sort-Object)) { $baselineJsonObject[$key] = $baseline[$key] }
+$targetJsonObject = [ordered]@{}
+foreach ($key in ($target.Keys | Sort-Object)) { $targetJsonObject[$key] = $target[$key] }
+$baselineJson = $baselineJsonObject | ConvertTo-Json -Depth 3
+$targetJson = $targetJsonObject | ConvertTo-Json -Depth 3
 [System.IO.File]::WriteAllText($BaselinePath, $baselineJson, $Utf8NoBom)
 [System.IO.File]::WriteAllText($TargetPath, $targetJson, $Utf8NoBom)
 $changedDocument = @($ExpectedFiles | Sort-Object | ForEach-Object { [pscustomobject]@{ path = $_; sha256 = $target[$_] } })

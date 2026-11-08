@@ -126,7 +126,7 @@
     "customRingtonePreviewAudio": "PASS_USER_CONFIRMED audible Flecity Afterglow 0.0-15.0 seconds",
     "savedRingtoneAfterRestart": "Flecity Afterglow 0.0-15.0 seconds visible in Library; left unchanged",
     "playbackAfterClosingPhone": "PASS_USER_CONFIRMED: Library audio continued after closing LB Phone.",
-    "lockScreenRestore": "NOT_VERIFIED",
+    "lockScreenRestore": "PASS_USER_CONFIRMED: Playback state and audio remained intact after returning from the lock screen.",
     "positionAndVolumePersistence": "NOT_VERIFIED",
     "sixteenTrackAndMobileInteraction": "NOT_VERIFIED",
     "purchaseSubscriptionRevenuePermissions": "NOT_VERIFIED_IN_RUNTIME"

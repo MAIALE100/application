@@ -48,7 +48,7 @@ WAVE起動時に`wave_ringtones`を`CREATE TABLE IF NOT EXISTS`で追加し、WA
 
 ## 検証上の注意
 
-自動テストやSHA256照合だけで、FiveM実機の音声出力をPASSにしません。FiveM実機ではLibrary再生に加え、LB Phoneを閉じた後も音が続くことをユーザーが確認しました。ロック画面からの復帰、実着信、短時間の連続操作は個別に確認してください。未確認項目は同梱QAレポートのとおり保留です。
+自動テストやSHA256照合だけで、FiveM実機の音声出力をPASSにしません。FiveM実機ではLibrary再生、LB Phoneを閉じた後の再生継続、ロック画面からWAVEへ戻った後の再生状態と音声の維持をユーザーが確認しました。実着信と短時間の連続操作は個別に確認してください。未確認項目は同梱QAレポートのとおり保留です。
 
 WAVEの`wave_selftest`はPASSし、コールバックは41/41登録されています。`wave_diag`はFXServerのメタデータキャッシュにより`0.3.5-test`と表示されますが、設置版の`fxmanifest.lua`は0.3.6-testの承認済みSHA256に一致しています。この表示差はQAレポートに記録しています。
 

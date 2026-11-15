@@ -1,0 +1,408 @@
+[
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p36_v2.ogg",
+    "sourceFile": "grand-piano/p36_v2.ogg",
+    "sourceSha256": "34e1d2aea4c02dcda986915fa619371f398ade859f0cec2a828400795f834e66",
+    "sha256": "34e1d2aea4c02dcda986915fa619371f398ade859f0cec2a828400795f834e66"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p36_v4.ogg",
+    "sourceFile": "grand-piano/p36_v4.ogg",
+    "sourceSha256": "4de2c47977f493bdd479b330557e4f43ac931529dfc458c13dd9422cad8e9970",
+    "sha256": "4de2c47977f493bdd479b330557e4f43ac931529dfc458c13dd9422cad8e9970"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p42_v2.ogg",
+    "sourceFile": "grand-piano/p42_v2.ogg",
+    "sourceSha256": "b4e4563cb28f925b2112a38c316d5d4fdb2b860bf55c56639def34b28ff0f24b",
+    "sha256": "b4e4563cb28f925b2112a38c316d5d4fdb2b860bf55c56639def34b28ff0f24b"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p42_v4.ogg",
+    "sourceFile": "grand-piano/p42_v4.ogg",
+    "sourceSha256": "1de03268c78c7027265d58011545e153699d712b1a739d14493814a2105ad9d2",
+    "sha256": "1de03268c78c7027265d58011545e153699d712b1a739d14493814a2105ad9d2"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p48_v2.ogg",
+    "sourceFile": "grand-piano/p48_v2.ogg",
+    "sourceSha256": "32a3993f736a8147f8c35e00989b53e8d3c4f76b5e41d6a37fc3ebba3d6b67a2",
+    "sha256": "32a3993f736a8147f8c35e00989b53e8d3c4f76b5e41d6a37fc3ebba3d6b67a2"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p48_v4.ogg",
+    "sourceFile": "grand-piano/p48_v4.ogg",
+    "sourceSha256": "a72e25f8a31b0949bc009f9711380d57e81a988ab5423ed0b35dc49bff59c761",
+    "sha256": "a72e25f8a31b0949bc009f9711380d57e81a988ab5423ed0b35dc49bff59c761"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p52_v2.ogg",
+    "sourceFile": "grand-piano/p52_v2.ogg",
+    "sourceSha256": "c0327873f115ac1a9796c5040efcbb4ae61556d869ae84f2e51069d67d1d554b",
+    "sha256": "c0327873f115ac1a9796c5040efcbb4ae61556d869ae84f2e51069d67d1d554b"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p52_v4.ogg",
+    "sourceFile": "grand-piano/p52_v4.ogg",
+    "sourceSha256": "5488f690089db4be71d346c22e7e385317a256138744ef2aa1fafbb10e427d98",
+    "sha256": "5488f690089db4be71d346c22e7e385317a256138744ef2aa1fafbb10e427d98"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p56_v2.ogg",
+    "sourceFile": "grand-piano/p56_v2.ogg",
+    "sourceSha256": "931e383afc73136d35318f11f730494e389c23e2fd248137fb8d9b60b11d79e3",
+    "sha256": "931e383afc73136d35318f11f730494e389c23e2fd248137fb8d9b60b11d79e3"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p56_v4.ogg",
+    "sourceFile": "grand-piano/p56_v4.ogg",
+    "sourceSha256": "a06bbaef0ea37da10092fe5b9f0d3ab2ca9946318241403a2b43706e9164c91a",
+    "sha256": "a06bbaef0ea37da10092fe5b9f0d3ab2ca9946318241403a2b43706e9164c91a"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p60_v2.ogg",
+    "sourceFile": "grand-piano/p60_v2.ogg",
+    "sourceSha256": "78ebf28ea632cb40642d0943eb427bedd40533d4d0b9c5c76dd792ba31b4bdcb",
+    "sha256": "78ebf28ea632cb40642d0943eb427bedd40533d4d0b9c5c76dd792ba31b4bdcb"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p60_v4.ogg",
+    "sourceFile": "grand-piano/p60_v4.ogg",
+    "sourceSha256": "89607909c1f9a72a489776c2662343a634b4ed957b05f13b2d78a902386ed470",
+    "sha256": "89607909c1f9a72a489776c2662343a634b4ed957b05f13b2d78a902386ed470"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p64_v2.ogg",
+    "sourceFile": "grand-piano/p64_v2.ogg",
+    "sourceSha256": "ffd879b12eab075793e334156263ef85d7e88e057f0355641c02e19df1ef89b7",
+    "sha256": "ffd879b12eab075793e334156263ef85d7e88e057f0355641c02e19df1ef89b7"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p64_v4.ogg",
+    "sourceFile": "grand-piano/p64_v4.ogg",
+    "sourceSha256": "12e9d5f97293caac6204c2514af45460f44cafd24d2a17c9684b2eb647756727",
+    "sha256": "12e9d5f97293caac6204c2514af45460f44cafd24d2a17c9684b2eb647756727"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p68_v2.ogg",
+    "sourceFile": "grand-piano/p68_v2.ogg",
+    "sourceSha256": "f477fe418cab715dc5b0428ad6fd22092c9708bacfbd837ea1890db6bbe62b67",
+    "sha256": "f477fe418cab715dc5b0428ad6fd22092c9708bacfbd837ea1890db6bbe62b67"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p68_v4.ogg",
+    "sourceFile": "grand-piano/p68_v4.ogg",
+    "sourceSha256": "6204b1655eeba89c958c2e834f56fd0c5801ae0c7b1777c772392ad7c70aabb6",
+    "sha256": "6204b1655eeba89c958c2e834f56fd0c5801ae0c7b1777c772392ad7c70aabb6"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p72_v2.ogg",
+    "sourceFile": "grand-piano/p72_v2.ogg",
+    "sourceSha256": "77cf7c12c548d99ef0a998633dab599e8a157e81501f4f52d177a2e27a690484",
+    "sha256": "77cf7c12c548d99ef0a998633dab599e8a157e81501f4f52d177a2e27a690484"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p72_v4.ogg",
+    "sourceFile": "grand-piano/p72_v4.ogg",
+    "sourceSha256": "0b8adcfb76f1bbd38482f127b9ce55fde1d96fb66b0179b449cd5b653286e9bc",
+    "sha256": "0b8adcfb76f1bbd38482f127b9ce55fde1d96fb66b0179b449cd5b653286e9bc"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p76_v2.ogg",
+    "sourceFile": "grand-piano/p76_v2.ogg",
+    "sourceSha256": "d219d81953ee6201657ec32563b7710954365059b86993a22bd756fedfc051cd",
+    "sha256": "d219d81953ee6201657ec32563b7710954365059b86993a22bd756fedfc051cd"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p76_v4.ogg",
+    "sourceFile": "grand-piano/p76_v4.ogg",
+    "sourceSha256": "a40a85b2373805795ed9a9b556b83bb7606ae0ee1566032875236b24a3e91704",
+    "sha256": "a40a85b2373805795ed9a9b556b83bb7606ae0ee1566032875236b24a3e91704"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p80_v2.ogg",
+    "sourceFile": "grand-piano/p80_v2.ogg",
+    "sourceSha256": "bc70a7690a1a4d038ce2c64568f112f13ddf144e77d777de10ec74e892e70db1",
+    "sha256": "bc70a7690a1a4d038ce2c64568f112f13ddf144e77d777de10ec74e892e70db1"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p80_v4.ogg",
+    "sourceFile": "grand-piano/p80_v4.ogg",
+    "sourceSha256": "ab9e4d9dab87c68b8fdb2c43e83a1d5a72c93a49b7c6803b6d0f90c7f3b7f52e",
+    "sha256": "ab9e4d9dab87c68b8fdb2c43e83a1d5a72c93a49b7c6803b6d0f90c7f3b7f52e"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p84_v2.ogg",
+    "sourceFile": "grand-piano/p84_v2.ogg",
+    "sourceSha256": "cc20a50730869fbc56ff55f817325f23870ba9d7d22e7d9e44ff79f5063ea41a",
+    "sha256": "cc20a50730869fbc56ff55f817325f23870ba9d7d22e7d9e44ff79f5063ea41a"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p84_v4.ogg",
+    "sourceFile": "grand-piano/p84_v4.ogg",
+    "sourceSha256": "7ba7560bc75eaef84eb36d0662a3a8b5114ce5303a78ec0abc0a665bc5064ca2",
+    "sha256": "7ba7560bc75eaef84eb36d0662a3a8b5114ce5303a78ec0abc0a665bc5064ca2"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p90_v2.ogg",
+    "sourceFile": "grand-piano/p90_v2.ogg",
+    "sourceSha256": "0f95cc128d8962d469b9e64ddced5e56e5abe5c038ed66c9e32265ef2c6f4998",
+    "sha256": "0f95cc128d8962d469b9e64ddced5e56e5abe5c038ed66c9e32265ef2c6f4998"
+  },
+  {
+    "instrument": "piano",
+    "file": "samples/piano/p90_v4.ogg",
+    "sourceFile": "grand-piano/p90_v4.ogg",
+    "sourceSha256": "6a5b5b747396f0a8f7fce9a19e8a2621a974b317a9057621e569f688ef987886",
+    "sha256": "6a5b5b747396f0a8f7fce9a19e8a2621a974b317a9057621e569f688ef987886"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p48.ogg",
+    "sourceFile": "acoustic_guitar/p48.ogg",
+    "sourceSha256": "2fe98c3c0e0d2552c2a39afebd5c461ea2f413868b081460d5ffb0e4af5491ad",
+    "sha256": "2fe98c3c0e0d2552c2a39afebd5c461ea2f413868b081460d5ffb0e4af5491ad"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p52.ogg",
+    "sourceFile": "acoustic_guitar/p52.ogg",
+    "sourceSha256": "ae0ae7e4e2da75409440a78ba3ef86042a54ab26e4ef177cf7c5990159a70a2b",
+    "sha256": "ae0ae7e4e2da75409440a78ba3ef86042a54ab26e4ef177cf7c5990159a70a2b"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p55.ogg",
+    "sourceFile": "acoustic_guitar/p55.ogg",
+    "sourceSha256": "2e01cd82f4a95028363a7613cf9d51e588727993dad3ebf4fc8f13c13bc4c8b7",
+    "sha256": "2e01cd82f4a95028363a7613cf9d51e588727993dad3ebf4fc8f13c13bc4c8b7"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p60.ogg",
+    "sourceFile": "acoustic_guitar/p60.ogg",
+    "sourceSha256": "532491dabbbed41bc17f7e80ab984ddbb065dba8680e322f7b5e41843657616d",
+    "sha256": "532491dabbbed41bc17f7e80ab984ddbb065dba8680e322f7b5e41843657616d"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p64.ogg",
+    "sourceFile": "acoustic_guitar/p64.ogg",
+    "sourceSha256": "ecff59bd7f4308dfe98b47f6a9ca579ff2c62b00ffaed8261171401434e02b5d",
+    "sha256": "ecff59bd7f4308dfe98b47f6a9ca579ff2c62b00ffaed8261171401434e02b5d"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p67.ogg",
+    "sourceFile": "acoustic_guitar/p67.ogg",
+    "sourceSha256": "8d4b896f78f051dfc75aa74fad6041a2acfea3c3ab5f945dc54d1330329a52fd",
+    "sha256": "8d4b896f78f051dfc75aa74fad6041a2acfea3c3ab5f945dc54d1330329a52fd"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p72.ogg",
+    "sourceFile": "acoustic_guitar/p72.ogg",
+    "sourceSha256": "11e67ebbf7d458a90663a85d540afed6f427bfbeb7d507996ca12a1afcce0a86",
+    "sha256": "11e67ebbf7d458a90663a85d540afed6f427bfbeb7d507996ca12a1afcce0a86"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p76.ogg",
+    "sourceFile": "acoustic_guitar/p76.ogg",
+    "sourceSha256": "0c6e8c95c0054432e5cf7b143055618896c48b63720b4b832ba12fb71c68eb3e",
+    "sha256": "0c6e8c95c0054432e5cf7b143055618896c48b63720b4b832ba12fb71c68eb3e"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p80.ogg",
+    "sourceFile": "acoustic_guitar/p80.ogg",
+    "sourceSha256": "045986ea977408ab6251127e043a8e75508d9ee9d28111b9686b7ca83be7ca9e",
+    "sha256": "045986ea977408ab6251127e043a8e75508d9ee9d28111b9686b7ca83be7ca9e"
+  },
+  {
+    "instrument": "guitar",
+    "file": "samples/guitar/p84.ogg",
+    "sourceFile": "acoustic_guitar/p84.ogg",
+    "sourceSha256": "7624160f2117757cd43bab3aa44236eaa8872bbddba2687442e72a1c3bd76fcc",
+    "sha256": "7624160f2117757cd43bab3aa44236eaa8872bbddba2687442e72a1c3bd76fcc"
+  },
+  {
+    "instrument": "bass",
+    "file": "samples/bass/p28.ogg",
+    "sourceFile": "electric_bass/p28.ogg",
+    "sourceSha256": "0db3eed7058119c1de8135e307e5db61db3b820b94430a6a68607f7104a57c4a",
+    "sha256": "0db3eed7058119c1de8135e307e5db61db3b820b94430a6a68607f7104a57c4a"
+  },
+  {
+    "instrument": "bass",
+    "file": "samples/bass/p31.ogg",
+    "sourceFile": "electric_bass/p31.ogg",
+    "sourceSha256": "afc0e281e71de58eae5d85678786f95b367ff498dfd4ca16a1bacf4196789e2e",
+    "sha256": "afc0e281e71de58eae5d85678786f95b367ff498dfd4ca16a1bacf4196789e2e"
+  },
+  {
+    "instrument": "bass",
+    "file": "samples/bass/p34.ogg",
+    "sourceFile": "electric_bass/p34.ogg",
+    "sourceSha256": "898201e5d6569535f25aef706692c7c593549e3331b7328bd8c4de7200e50d13",
+    "sha256": "898201e5d6569535f25aef706692c7c593549e3331b7328bd8c4de7200e50d13"
+  },
+  {
+    "instrument": "bass",
+    "file": "samples/bass/p37.ogg",
+    "sourceFile": "electric_bass/p37.ogg",
+    "sourceSha256": "ad9f3d6bbf7650059c907d06bc0963b894e2cd979b8f1d687059d1600bf99175",
+    "sha256": "ad9f3d6bbf7650059c907d06bc0963b894e2cd979b8f1d687059d1600bf99175"
+  },
+  {
+    "instrument": "bass",
+    "file": "samples/bass/p40.ogg",
+    "sourceFile": "electric_bass/p40.ogg",
+    "sourceSha256": "ed09d401094af7d1efee9b3878f088eb9faf7c8120b89f77816c3984b1ec6d3b",
+    "sha256": "ed09d401094af7d1efee9b3878f088eb9faf7c8120b89f77816c3984b1ec6d3b"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p50.wav",
+    "sourceFile": "clarinet/p50.ogg",
+    "sourceSha256": "8bafef248dd7e8d798dfd99191758208668a5a2947dc830fcb0b58c71cb4ba52",
+    "sha256": "98da2ed887ccff540d75cef2161901fbd3294abd11087f15f9e006d2b54c5aec"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p53.wav",
+    "sourceFile": "clarinet/p53.ogg",
+    "sourceSha256": "0181cd918c166113eb2f6ee542843043cde63f03a35d3be52d00d88d531f5665",
+    "sha256": "76f915d7efde091cf4b44ece2fcc5d7b00223ab6f666b7f78a99ff95709f83ec"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p58.wav",
+    "sourceFile": "clarinet/p58.ogg",
+    "sourceSha256": "e5d71fb64b980d9af3870b491a69044e540fbab158dac1a47902252734663301",
+    "sha256": "da21502040b7235edae70a26f135aa757003900745b9e505b562cc78db4c0d09"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p62.wav",
+    "sourceFile": "clarinet/p62.ogg",
+    "sourceSha256": "35b045469c3ee0b418ddd7ea9001c36aba56fabc3b4fee15268ecac38e5c0a25",
+    "sha256": "8721423b4c2dcd932a7e4c7c59c66f0ca373699b46e00463e4b0f295dd919cc8"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p65.wav",
+    "sourceFile": "clarinet/p65.ogg",
+    "sourceSha256": "01c6c264905ff0f35e1a7628529bf0f2fcc6a99e3e8078cd68d460f61b2e6d45",
+    "sha256": "5c5a80b78753829f86f91a958d108460fa82dfbf154a9cd5bb7dcc2a38af5746"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p70.wav",
+    "sourceFile": "clarinet/p70.ogg",
+    "sourceSha256": "60c8b078e65563b7b2290b39793e03d6a9ea6e618a869302251a77928e209515",
+    "sha256": "ef2cf349b5c4ac0807cfd26036e799fa8fcada66d4de2ca8ba645487fd8f550d"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p74.wav",
+    "sourceFile": "clarinet/p74.ogg",
+    "sourceSha256": "39cea86554ebf9848a756061c7ee291821c79dff81474149b6d808f0645d672d",
+    "sha256": "9585e447af88e9938314e9053ae783dfe44829358c979ba0a71ba27daf8b33a2"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p77.wav",
+    "sourceFile": "clarinet/p77.ogg",
+    "sourceSha256": "4d19bfe3bc856a8d63395866f9a6aa3fb6df936440d04390ee46fd7d6c91b0fd",
+    "sha256": "e2226c90a0474a0eaf09484707f40fdbbb4f0799f6f14fc7333c3280f110386c"
+  },
+  {
+    "instrument": "clarinet",
+    "file": "samples/clarinet/p82.wav",
+    "sourceFile": "clarinet/p82.ogg",
+    "sourceSha256": "4ea1e20eca11904fb6dea9db92f1dc36ae83ed8c2e04fd47aa8eaac68a08eb57",
+    "sha256": "c555d050989b2cba999ec0420fa5114b3506efbad5e4df7311118f61b6bc4282"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/kick.ogg",
+    "sourceFile": "acoustic_drums/kick.ogg",
+    "sourceSha256": "75a3e8af0e24623e837b35993a226aec8af21c54a82bd5bace59ba804b41e365",
+    "sha256": "75a3e8af0e24623e837b35993a226aec8af21c54a82bd5bace59ba804b41e365"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/snare.ogg",
+    "sourceFile": "acoustic_drums/snare.ogg",
+    "sourceSha256": "7f830167135f8e7c91d1c1ca41c20810dcdd9f16a90d1cae92470fbce4fc0ddb",
+    "sha256": "7f830167135f8e7c91d1c1ca41c20810dcdd9f16a90d1cae92470fbce4fc0ddb"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/closed_hat.ogg",
+    "sourceFile": "acoustic_drums/closed_hat.ogg",
+    "sourceSha256": "7b5d0b81db6f9b800d5047371dd38e33d8375596852aed0394ce76b122546031",
+    "sha256": "7b5d0b81db6f9b800d5047371dd38e33d8375596852aed0394ce76b122546031"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/open_hat.ogg",
+    "sourceFile": "acoustic_drums/open_hat.ogg",
+    "sourceSha256": "463f3b0b6cafc237461f5fb5af07d1aad34243c191c2fc040cd4af7f18f50577",
+    "sha256": "463f3b0b6cafc237461f5fb5af07d1aad34243c191c2fc040cd4af7f18f50577"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/low_tom.ogg",
+    "sourceFile": "acoustic_drums/low_tom.ogg",
+    "sourceSha256": "4d4ba70c548657e4706bf92ea0c83a71fbbae5e312cb81cb77f9bad4a92f5bc2",
+    "sha256": "4d4ba70c548657e4706bf92ea0c83a71fbbae5e312cb81cb77f9bad4a92f5bc2"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/high_tom.ogg",
+    "sourceFile": "acoustic_drums/high_tom.ogg",
+    "sourceSha256": "9648557974657ef367ad895bc72561b04a284960a7865e5b59367b3b245b13e7",
+    "sha256": "9648557974657ef367ad895bc72561b04a284960a7865e5b59367b3b245b13e7"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/crash.ogg",
+    "sourceFile": "acoustic_drums/crash.ogg",
+    "sourceSha256": "62100f0ede3942d16b0807b608acb052e8ef8aa307d9b5c657c5e80e21a55627",
+    "sha256": "62100f0ede3942d16b0807b608acb052e8ef8aa307d9b5c657c5e80e21a55627"
+  },
+  {
+    "instrument": "drums",
+    "file": "samples/drums/ride.ogg",
+    "sourceFile": "acoustic_drums/ride.ogg",
+    "sourceSha256": "d86d39b99e71f4e7257eb957e1763b6baf3419fb741c4df84d3934466fe50d01",
+    "sha256": "d86d39b99e71f4e7257eb957e1763b6baf3419fb741c4df84d3934466fe50d01"
+  }
+]

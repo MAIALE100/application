@@ -4,6 +4,12 @@
 
 ## 初回
 
+開発環境には `devtools/install.py` を追加しました。共通のapplyは既存配置先の更新専用のため、初回だけを扱う小さな補助です。配布ZIPのSHA-256、全ファイルのMANIFEST、配置先を検査し、既存JAMがある場合は設定を上書きせず停止します。通常実行は計画表示のみです。
+
+リポジトリルートで、計画は `python flecity_jam/devtools/install.py`、初回配置は `python flecity_jam/devtools/install.py --apply`。書き込み可能な実行環境が必要です。サーバー起動・設定変更・リソース起動は行いません。自動実行前には共通mutexを取得してください。実行結果がINSTALLEDでも、実機検証はNOT_RUNです。
+
+検証は `python flecity_jam/tests/install_test.py`。実サーバーを触らず、作業フォルダーのfixtureで5ケースを検査します。
+
 1. FiveMの既存テストサーバーでOneSyncが有効であることを確認。
 2. ZIP内の `flecity_jam` フォルダーをresources配下へコピー。ほかのリソース・DB・Voice設定は変更しない。
 3. `config.lua` のRangeとAccessを確認。最初は`Access='open'`でコマンド試験が可能。

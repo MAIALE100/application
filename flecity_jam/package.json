@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test tests/model.test.mjs",
     "test:browser": "node tests/browser.mjs",
+    "test:install": "python tests/install_test.py",
     "preview": "node devtools/serve.mjs"
   }
 }

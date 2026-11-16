@@ -5,10 +5,11 @@ local wires = {}
 local function nui(data) SendNUIMessage(data) end
 local function close(reason)
     local old = session
+    local ownedFocus = shown
     shown,session,pending = false,nil,nil
     if old then TriggerServerEvent('flecity_jam:stop',old) end
     JamPresentation.stop()
-    SetNuiFocus(false,false); SetNuiFocusKeepInput(false)
+    if ownedFocus then SetNuiFocus(false,false); SetNuiFocusKeepInput(false) end
     nui({type='close',reason=reason})
 end
 local function open(instrument,listenOnly)

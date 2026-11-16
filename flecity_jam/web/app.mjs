@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const preview=typeof GetParentResourceName!=='function';
 const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
-let pending=[],flushTimer=0,queue=Promise.resolve(),queued=0,capture=null,reserved=[],keys=[...DEFAULT_KEYS];
+let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[],keys=[...DEFAULT_KEYS];
 let listen=.65,muted=false,metronome=null,nextBeat=0,beat=0,noticeTimer=0;
 const pedalSources=new Set();
 const now=()=>performance.now();
@@ -31,13 +31,15 @@ function failTransport() {
   stop();error('演奏の通信が途切れました。音を止めました。もう一度「演奏する」を押してください。');
 }
 function send(packet) {
-  const expected=session,created=now();packet.session=expected;packet.seq=++sequence;
-  if(++queued>20){queued--;failTransport();return;}
-  queue=queue.then(async()=>{
-    if(session!==expected)return;
+  const expected=session,lane=transport,created=now();
+  if(!expected||lane.session!==expected)return;
+  packet.session=expected;packet.seq=++sequence;
+  if(++lane.queued>20){lane.queued--;failTransport();return;}
+  lane.queue=lane.queue.then(async()=>{
+    if(session!==expected||transport!==lane)return;
     if(now()-created>1500)throw Error('stale queue');
     const result=await bridge('input',packet);if(!result.ok)throw Error('input rejected');
-  }).catch(()=>{if(session===expected)failTransport();}).finally(()=>queued--);
+  }).catch(()=>{if(session===expected&&transport===lane)failTransport();}).finally(()=>lane.queued--);
 }
 function flush() {
   clearTimeout(flushTimer);flushTimer=0;
@@ -101,20 +103,31 @@ function bindings() {
 async function start() {
   if(session){stop();return;}
   if(starting)return;
-  const generation=++startGeneration;starting=true;$('start').disabled=true;$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
+  const generation=++startGeneration;starting=true;$('start').disabled=true;$('start').setAttribute('aria-busy','true');$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
+  let stage='audio';
   try {
-    if(!await audio.unlock())throw Error('音声を開始できません。「演奏する」をもう一度押してください。');
+    if(!await audio.unlock())throw Error('audio unavailable');
+    stage='samples';
     await audio.load(model.spec.id);
     if(generation!==startGeneration||!shown)return;
+    stage='resume';
+    if(!await audio.unlock())throw Error('audio suspended');
+    if(generation!==startGeneration||!shown)return;
+    stage='server';
     const result=await bridge('start',{instrument:model.spec.id});if(!result.ok)throw Error('演奏を開始できません。');
     setTimeout(()=>{if(starting&&generation===startGeneration){stop();error('サーバーから応答がありません。再度お試しください。');}},5000);
-  }catch(e){if(generation===startGeneration){stop();error(e.message);}}
+  }catch{if(generation===startGeneration){stop();error({
+    audio:'音声を開始できませんでした。JAMを開き直して、もう一度お試しください。',
+    samples:'音源を読み込めませんでした。少し待ってから、もう一度お試しください。',
+    resume:'音声を再開できませんでした。JAMを開き直して、もう一度お試しください。',
+    server:'演奏の通信を開始できませんでした。少し待ってから、もう一度お試しください。'
+  }[stage]);}}
 }
 function control(data) {
   if(data.kind==='started') {
     if(!shown||!starting){bridge('stop').catch(()=>{});return;}
-    session=data.session;sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
-    $('start').disabled=false;$('start').textContent='演奏を休む';$('lamp').classList.add('active');
+    session=data.session;transport={session,queue:Promise.resolve(),queued:0};sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
+    $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏を休む';$('lamp').classList.add('active');
     $('status').textContent=preview?'試奏モード · 周囲への共有なし':'演奏中 · 周囲に音が届きます';
     $('playArea').focus({preventScroll:true});syncInput();redraw();
   } else if(data.kind==='denied') {
@@ -126,8 +139,9 @@ function control(data) {
 }
 function stop() {
   const wasActive=session||starting;startGeneration++;session=null;starting=false;pending=[];clearTimeout(flushTimer);flushTimer=0;
+  transport={session:null,queue:Promise.resolve(),queued:0};
   pedalSources.clear();model?.panic();audio?.remove('local');
-  $('start').disabled=false;$('start').textContent='演奏する';$('instrument').disabled=false;$('lamp').classList.remove('active');
+  $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏する';$('instrument').disabled=false;$('lamp').classList.remove('active');
   $('status').textContent='楽器を選んで、演奏を始めよう。';
   if(wasActive)bridge('stop').catch(()=>{});
 }
@@ -146,7 +160,7 @@ function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribut
 function stopMetronome() {clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
 async function toggleMetronome() {
   if(metronome){stopMetronome();return;}
-  try{await audio.unlock();}catch{error('音声を開始できません。');return;}
+  try{if(!await audio.unlock())throw Error('audio suspended');}catch{error('音声を開始できません。');return;}
   beat=0;nextBeat=audio.ctx.currentTime+.05;$('metro').setAttribute('aria-pressed','true');$('metro').textContent='メトロノーム ON';
   metronome=setInterval(()=>{
     const bpm=Math.max(40,Math.min(240,Number($('bpm').value)||100));
@@ -162,13 +176,17 @@ async function toggleMetronome() {
 
 const midi=new MidiInput({press:(...args)=>{if(session)model.press(...args);},release:key=>model?.release(key),pedal:down=>{if(session)pedal('midi',down);},panic,
   status:text=>$('midiStatus').textContent=text,devices:list=>{
-    const select=$('midiDevice');select.replaceChildren();select.disabled=!list.length;
+    const select=$('midiDevice'),selected=select.value;select.replaceChildren();select.disabled=!list.length;
     if(!list.length)select.add(new Option('未接続',''));for(const p of list)select.add(new Option(p.name,p.id));
+    if(list.some(p=>p.id===selected))select.value=selected;
   }});
 const replicas=new Replicas((id,s)=>{audio?.sync(id,s);$('nearby').textContent=`周囲 ${replicas.states.size}人`;},id=>{audio?.remove(id);$('nearby').textContent=`周囲 ${replicas.states.size}人`;});
 
 window.addEventListener('keydown',e=>{
-  if(!shown)return;
+  if(!shown){
+    if(e.code==='Escape'&&!$('retryBoot').hidden){e.preventDefault();bootShown=false;early.length=0;$('retryBoot').hidden=true;bridge('close').catch(()=>{});}
+    return;
+  }
   if(e.code==='Escape'){e.preventDefault();if(capture!==null){capture=null;bindings();}else if(!$('settings').hidden){$('settingsToggle').click();}else close();return;}
   if(capture!==null){
     e.preventDefault();const proposal=[...keys];proposal[capture]=e.code;
@@ -212,20 +230,69 @@ function message(data) {
   else if(data.type==='toggleMute'){setMuted(!muted);notice(muted?'JAMを消音しました。/jammute で解除。':'JAMの消音を解除しました。');}
   else if(data.type==='config'){reserved=data.reserved||[];}
 }
-const early=[];window.addEventListener('message',e=>{if(catalog)message(e.data);else if(early.length<16)early.push(e.data);});
-try {
-  const response=await fetch('catalog.json');if(!response.ok)throw Error('楽器一覧を読み込めません。');catalog=await response.json();
-  for(const s of catalog.instruments)$('instrument').add(new Option(s.name,s.id));
-  audio=new AudioRack(catalog,null,text=>{error(text);if(!shown)notice(text);});audio.setVolume(listen);setMuted(muted);
-  $('listenVolume').value=Math.round(listen*100);$('listenValue').textContent=Math.round(listen*100)+'%';choose('piano');
-  await bridge('ready');for(const data of early)message(data);
-  // FiveM normally permits autoplay; if CEF blocks it, expose an explicit unlock command.
-  audio.unlock().then(ok=>{if(!ok&&!preview)notice('周囲の演奏を聴くには /jamlisten を開いてください。');}).catch(()=>{});
-  if(!preview)(async()=>{for(const spec of catalog.instruments)await audio.load(spec.id);})().catch(()=>notice('一部の音源を準備できませんでした。/jamlisten で確認してください。'));
-  setInterval(()=>{
-    replicas.expire();
-    if(shown)bridge('pulse').catch(()=>{if(session)failTransport();});
-    if(session){if([...model.notes.values()].some(n=>now()-n.at>115000)){panic();notice('長時間の持続音を安全停止しました。');}syncInput();}
-  },1000);
-  if(preview){document.body.classList.add('preview');open();window.JAM={get model(){return model;},audio,replicas,message,midi,get session(){return session;},panic,stop};}
-}catch(e){$('notice').hidden=false;$('notice').textContent='JAMを準備できません: '+e.message;bridge('close').catch(()=>{});}
+let booting=false,bootReady=false,bootFailed=false,bootShown=false,preloading=false;
+const early=[];window.addEventListener('message',e=>{
+  const data=e.data;
+  if(bootReady)message(data);
+  else{
+    if(data?.type==='reset'){bootShown=false;early.length=0;}
+    else if(data?.type==='open'||data?.type==='close'){
+      bootShown=data.type==='open';
+      for(let i=early.length-1;i>=0;i--)if(early[i]?.type==='open'||early[i]?.type==='close')early.splice(i,1);
+    }
+    if(early.length>=16&&['open','close','reset'].includes(data?.type))early.shift();
+    if(early.length<16)early.push(data);
+    if(data?.type==='open'&&!booting)initialize();
+  }
+});
+setInterval(()=>{
+  replicas.expire();
+  if(shown||bootShown)bridge('pulse').catch(()=>{if(session)failTransport();});
+  if(session&&model){if([...model.notes.values()].some(n=>now()-n.at>115000)){panic();notice('長時間の持続音を安全停止しました。');}syncInput();}
+},1000);
+async function readyBridge() {
+  for(let attempt=0;attempt<2;attempt++){
+    try{const result=await bridge('ready');if(result?.ok===true)return;}catch{}
+    if(attempt===0)await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  throw Error('ready unavailable');
+}
+async function loadCatalog() {
+  const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),6000);
+  try {
+    const response=await fetch('catalog.json',{signal:abort.signal});
+    if(!response.ok)throw Error('catalog unavailable');
+    const data=await response.json();
+    if(!Array.isArray(data?.instruments)||!data.instruments.length)throw Error('invalid catalog');
+    return data;
+  }finally{clearTimeout(timeout);}
+}
+async function initialize() {
+  if(booting||bootReady)return;
+  booting=true;$('retryBoot').hidden=true;$('retryBoot').disabled=true;error();
+  if(bootFailed){clearTimeout(noticeTimer);$('notice').textContent='JAMを再読み込みしています…';$('notice').hidden=false;}
+  try {
+    if(!audio){
+      if(!catalog)catalog=await loadCatalog();
+      $('instrument').replaceChildren();
+      for(const s of catalog.instruments)$('instrument').add(new Option(s.name,s.id));
+      audio=new AudioRack(catalog,null,()=>{const message='音源を再生できませんでした。少し待ってから再試行してください。';error(message);if(!shown)notice(message);});audio.setVolume(listen);setMuted(muted);
+      $('listenVolume').value=Math.round(listen*100);$('listenValue').textContent=Math.round(listen*100)+'%';choose('piano');
+    }
+    await readyBridge();
+    for(const data of early.splice(0))message(data);
+    bootShown=false;
+    // FiveM normally permits autoplay; if CEF blocks it, expose an explicit unlock command.
+    audio.unlock().then(ok=>{if(!ok&&!preview)notice('周囲の演奏を聴くには /jamlisten を開いてください。');}).catch(()=>{});
+    if(!preview&&!preloading){preloading=true;(async()=>{for(const spec of catalog.instruments)await audio.load(spec.id);})().catch(()=>notice('一部の音源を準備できませんでした。/jamlisten で確認してください。'));}
+    if(preview){document.body.classList.add('preview');open();window.JAM={get model(){return model;},audio,replicas,message,midi,get session(){return session;},panic,stop};}
+    bootReady=true;bootFailed=false;$('notice').hidden=true;$('notice').textContent='';
+  }catch{
+    bootFailed=true;
+    if(bootShown){$('notice').hidden=false;$('notice').textContent='JAMを準備できませんでした。「JAMを再読み込み」を押すか、Escで閉じて再度開いてください。改善しない場合は管理者へ連絡してください。';$('retryBoot').hidden=false;}
+    else{$('notice').hidden=true;$('retryBoot').hidden=true;}
+  }
+  finally{booting=false;$('retryBoot').disabled=false;}
+}
+$('retryBoot').onclick=initialize;
+await initialize();

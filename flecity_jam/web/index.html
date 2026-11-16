@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://flecity_jam; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <title>Flecity JAM</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="notice" role="status" hidden></div>
+  <aside id="feedback" aria-label="JAMからのお知らせ">
+    <div id="notice" role="status" hidden></div>
+    <button id="retryBoot" type="button" hidden>JAMを再読み込み</button>
+  </aside>
   <main id="panel" aria-label="JAM 演奏パネル" hidden>
     <header>
       <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>JAM<span>FLECITY</span></h1></div>

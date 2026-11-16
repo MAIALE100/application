@@ -11,7 +11,7 @@ dest.mkdir(parents=True, exist_ok=True)
 specs = [
     dict(id='piano', name='グランドピアノ', family='鍵盤', folder='grand-piano', kind='pluck', min=36, max=96, octave=4, attack=.004, release=.28, gain=.72, source='VCSL Keys / Grand Piano K — Versilian Studios', url='https://versilian-studios.com/vcsl-keys/', license='CC0-1.0'),
     dict(id='guitar', name='アコースティックギター', family='弦', folder='acoustic_guitar', kind='pluck', min=45, max=88, octave=4, attack=.003, release=.18, gain=.70, source='FreePats Spanish Classical Guitar — roberto@zenvoid.org', url='https://freepats.zenvoid.org/Guitar/acoustic-guitar.html', license='CC0-1.0'),
-    dict(id='bass', name='エレキベース', family='弦', folder='electric_bass', kind='pluck', min=28, max=67, octave=2, attack=.004, release=.16, gain=.65, source='FreePats Bass Guitar YR Picked — Andrea Biasior', url='https://freepats.zenvoid.org/ElectricGuitar/clean-electric-bass.html', license='CC0-1.0'),
+    dict(id='bass', name='エレキベース', family='弦', folder='electric_bass', kind='pluck', min=28, max=67, octave=1, attack=.004, release=.16, gain=.65, source='FreePats Bass Guitar YR Picked — Andrea Biasior', url='https://freepats.zenvoid.org/ElectricGuitar/clean-electric-bass.html', license='CC0-1.0'),
     dict(id='clarinet', name='クラリネット', family='管', folder='clarinet', kind='wind', min=50, max=84, octave=4, attack=.028, release=.09, gain=.53, source='FreePats Clarinet — Tyler Dence / Kaili Dence', url='https://freepats.zenvoid.org/Reed/clarinet.html', license='CC0-1.0'),
     dict(id='drums', name='ドラム', family='打楽器', folder='acoustic_drums', kind='drums', min=36, max=51, octave=2, attack=.002, release=.05, gain=.68, source='MuldjordKit — Lars Muldjord, FreePats edition by roberto@zenvoid.org', url='https://freepats.zenvoid.org/Percussion/acoustic-drum-kit.html', license='CC-BY-4.0'),
 ]
@@ -19,6 +19,7 @@ drums = {'kick':(36,'キック'), 'snare':(38,'スネア'), 'closed_hat':(42,'�
 provenance, metrics = [], []
 for spec in specs:
     source = args.source / spec['folder']
+    piano_levels = {}
     spec['max'] = {'piano':93, 'guitar':87, 'bass':43, 'clarinet':84, 'drums':51}[spec['id']]
     spec['gain'] = {'piano':.9, 'guitar':.85, 'bass':.8, 'clarinet':.75, 'drums':.9}[spec['id']]
     mapping = json.loads((source/'map.json').read_text('utf-8-sig'))
@@ -40,6 +41,11 @@ for spec in specs:
         rms=math.sqrt(sum(x*x for x in signal)/len(signal))
         attack_rms=math.sqrt(sum(x*x for x in signal[:sr])/min(len(signal),sr))
         record['gain']=min(16,.15/max(.002,attack_rms))*(.65 if record['layer']==2 else 1)
+        if spec['id']=='piano':
+            window=signal[:min(len(signal),sr//2)]
+            level=math.sqrt(sum(x*x for x in window)/len(window))
+            if not math.isfinite(level) or level<=0: raise ValueError(f'Silent piano layer: {origin.name}')
+            piano_levels[(pitch,record['layer'])]=level
         if spec['kind']=='wind':
             # Match the steady waveform, then crossfade the pre-loop region into the tail.
             start=int(.65*sr); window=int(.06*sr)
@@ -69,6 +75,15 @@ for spec in specs:
         spec['samples'].append(record)
         provenance.append(dict(instrument=spec['id'],file=record['file'],sourceFile=f'{spec["folder"]}/{sample["file"]}',sourceSha256=digest,sha256=record['sha256']))
         metrics.append(dict(file=record['file'],peak=peak,rms=rms,loopSeam=seam))
+    if spec['id']=='piano':
+        # Match soft and forte recordings at the same pitch. MIDI velocity still
+        # controls the level; the former soft-layer cap caused a jump at 74→75.
+        layers={}
+        for sample in spec['samples']:
+            layers.setdefault(sample['midi'],{})[sample['layer']]=sample
+        for pitch,pair in layers.items():
+            if set(pair)!={2,4}: raise ValueError(f'Incomplete piano layers at MIDI {pitch}')
+            pair[2]['gain']=pair[4]['gain']*piano_levels[(pitch,4)]/piano_levels[(pitch,2)]
     del spec['folder']
 (root/'web'/'catalog.json').write_text(json.dumps(dict(version=1,instruments=specs),ensure_ascii=False,indent=2)+'\n','utf-8')
 licenses=root/'licenses'; licenses.mkdir(exist_ok=True)

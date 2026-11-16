@@ -1,5 +1,6 @@
 local handlers,callbacks,commands,threads,sent,messages={},{},{},{},{},{}
 local clock,dead,focused,keepInput,otherUi=1000,false,false,false,false
+local focusWrites,keepInputWrites=0,0
 local currentPed=99
 local exported={}
 source=65535
@@ -10,8 +11,8 @@ function PlayerPedId()return currentPed end
 function PlayerId()return 0 end
 function GetPlayerServerId()return 1 end
 function SendNUIMessage(data)messages[#messages+1]=data end
-function SetNuiFocus(value)focused=value end
-function SetNuiFocusKeepInput(value)keepInput=value end
+function SetNuiFocus(value)focusWrites=focusWrites+1;focused=value end
+function SetNuiFocusKeepInput(value)keepInputWrites=keepInputWrites+1;keepInput=value end
 function IsNuiFocused()return focused or otherUi end
 function IsPauseMenuActive()return false end
 function IsEntityDead()return dead end
@@ -41,6 +42,13 @@ local function call(name,data)
 end
 test('another focused UI blocks opening without focus theft',function()
     otherUi=true;commands.jam(nil,{});assert(not focused);otherUi=false
+end)
+test('jamstop while another UI is focused does not release its focus',function()
+    otherUi=true
+    local beforeFocus,beforeKeep=focusWrites,keepInputWrites
+    commands.jamstop()
+    assert(focusWrites==beforeFocus and keepInputWrites==beforeKeep and IsNuiFocused())
+    otherUi=false
 end)
 test('opening sets focus while keeping PTT input available',function()
     commands.jam(nil,{});assert(focused and keepInput);assert(call('ready').ok);assert(call('pulse').ok)

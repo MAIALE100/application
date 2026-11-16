@@ -1,4 +1,6 @@
-local catalog = json.decode(LoadResourceFile(GetCurrentResourceName(), 'web/catalog.json'))
+local resource = GetCurrentResourceName()
+local version = GetResourceMetadata(resource, 'version', 0) or 'unknown'
+local catalog = json.decode(LoadResourceFile(resource, 'web/catalog.json'))
 assert(type(catalog) == 'table' and type(catalog.instruments) == 'table', 'JAM catalog missing')
 local instruments = {}
 for _,spec in ipairs(catalog.instruments) do
@@ -44,6 +46,6 @@ end)
 RegisterCommand('jam_status',function(src)
     if src ~= 0 then return end
     local n=0; for _ in pairs(engine.sessions) do n=n+1 end
-    print(('[JAM] v0.1.0-test sessions=%d range=%.1fm access=%s'):format(n,JamConfig.Range,JamConfig.Access))
+    print(('[JAM] v%s sessions=%d range=%.1fm access=%s'):format(version,n,JamConfig.Range,JamConfig.Access))
 end,true)
-print('[JAM] v0.1.0-test ready; live multiplayer acceptance NOT_RUN')
+print(('[JAM] v%s ready; live multiplayer acceptance NOT_RUN'):format(version))

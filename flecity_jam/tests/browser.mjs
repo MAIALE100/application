@@ -8,7 +8,7 @@ const configPath=path.resolve(root,'../.flecity-dev/local.json');
 const config=fs.existsSync(configPath)?JSON.parse(fs.readFileSync(configPath,'utf8').replace(/^\uFEFF/,'')):{browser:{}};
 const modulePath=process.env.JAM_PLAYWRIGHT_MODULE||config.browser.module||'playwright';
 const {chromium}=await import(path.isAbsolute(modulePath)?pathToFileURL(modulePath):modulePath);
-const browser=await chromium.launch({channel:config.browser.channel,headless:true,args:['--autoplay-policy=no-user-gesture-required']});
+const browser=await chromium.launch({channel:process.env.JAM_BROWSER_CHANNEL||config.browser.channel||'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});
 const results=[];
 async function check(name,fn){const at=Date.now();try{await fn();results.push({name,status:'PASS',ms:Date.now()-at});console.log('PASS '+name);}catch(e){results.push({name,status:'FAIL',message:e.stack});console.log('FAIL '+name+': '+e.message);throw e;}}
 try {
@@ -67,7 +67,8 @@ try {
     await page.click('#start');
     for(const id of ['piano','guitar','bass','clarinet','drums']) {
       await page.selectOption('#instrument',id);await page.click('#start');await page.waitForFunction(()=>JAM.session);
-      const key=id==='drums'?'a':'q';await page.keyboard.down(key);assert(await page.evaluate(()=>JAM.audio.stats().voices)>0,id);await page.keyboard.up(key);
+      const key=await page.locator('#keyboard button:not(:disabled) kbd').first().innerText();
+      await page.keyboard.down(key);assert(await page.evaluate(()=>JAM.audio.stats().voices)>0,id);await page.keyboard.up(key);
       await page.click('#panic');await page.click('#start');
     }
     const stats=await page.evaluate(()=>JAM.audio.stats());assert(stats.cacheBytes>0 && stats.cacheBytes<64*1024*1024);assert.equal(stats.voices,0);
@@ -123,7 +124,7 @@ try {
     const seconds=Math.min(600,Number(process.env.JAM_SOAK_SECONDS));
     const stats=await page.evaluate(async seconds=>{
       const ids=['piano','guitar','bass','clarinet','drums'];for(const id of ids)await JAM.audio.load(id);
-      const before=JAM.audio.stats(),started=performance.now();let wire=100,round=0,maxVoices=0,maxSlots=0;
+      const before=JAM.audio.stats(),started=performance.now();let wire=100,round=0,maxVoices=0,maxNodes=0,maxSlots=0;
       while(performance.now()-started<seconds*1000){
         for(let player=1;player<=8;player++){
           const id=ids[(player-1)%ids.length],base=id==='bass'?36:id==='drums'?38:60;
@@ -131,13 +132,13 @@ try {
             notes:round%2?[]:[{id:round+1,pitch:base,velocity:100,held:true,age:0},{id:round+2,pitch:id==='drums'?42:base+3,velocity:85,held:true,age:0}]}});
         }
         JAM.message({type:'positions',listener:{x:0,y:0,z:0,fx:0,fy:1,fz:0},sources:Array.from({length:8},(_,i)=>({player:i+1,x:(i%3)-1,y:2,z:0}))});
-        const s=JAM.audio.stats();maxVoices=Math.max(maxVoices,s.voices);maxSlots=Math.max(maxSlots,s.performers);round++;
+        const s=JAM.audio.stats();maxVoices=Math.max(maxVoices,s.voices);maxNodes=Math.max(maxNodes,s.nodes);maxSlots=Math.max(maxSlots,s.performers);round++;
         await new Promise(resolve=>setTimeout(resolve,100));
       }
       JAM.replicas.clear();JAM.audio.stopAll();await new Promise(resolve=>setTimeout(resolve,100));
-      return {seconds:(performance.now()-started)/1000,rounds:round,maxVoices,maxSlots,before,after:JAM.audio.stats()};
+      return {seconds:(performance.now()-started)/1000,rounds:round,maxVoices,maxNodes,maxSlots,before,after:JAM.audio.stats()};
     },seconds);
-    assert.equal(stats.after.voices,0);assert.equal(stats.after.performers,0);assert.equal(stats.before.cacheBytes,stats.after.cacheBytes);assert(stats.maxVoices<=128);assert.equal(stats.maxSlots,8);
+    assert.equal(stats.after.voices,0);assert.equal(stats.after.nodes,0);assert.equal(stats.after.performers,0);assert.equal(stats.before.cacheBytes,stats.after.cacheBytes);assert(stats.maxVoices<=128);assert(stats.maxNodes<=128);assert.equal(stats.maxSlots,8);
     fs.writeFileSync(path.join(evidence,'soak.json'),JSON.stringify(stats,null,2));
   });
   await check('no JavaScript errors; Escape closes cleanly',async()=>{

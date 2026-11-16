@@ -1,11 +1,13 @@
 {
   "name": "flecity-jam",
-  "version": "0.1.0-test",
+  "version": "0.2.0-test",
   "private": true,
   "description": "Standalone FiveM proximity instruments; no runtime npm dependencies",
   "scripts": {
-    "test": "node --test tests/model.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/audio.test.mjs tests/midi.test.mjs",
     "test:browser": "node tests/browser.mjs",
+    "test:lifecycle": "node tests/app-lifecycle.mjs",
+    "test:levels": "python tests/audio_levels.py",
     "test:install": "python tests/install_test.py",
     "preview": "node devtools/serve.mjs"
   }

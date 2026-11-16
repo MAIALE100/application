@@ -1,5 +1,14 @@
 import {attenuation,selectSample} from './model.mjs';
 
+async function bounded(promise,ms,message,cancel=()=>{}) {
+  let timer;
+  try {
+    return await Promise.race([promise,new Promise((_,reject)=>{
+      timer=setTimeout(()=>{cancel();reject(Error(message));},ms);
+    })]);
+  } finally {clearTimeout(timer);}
+}
+
 export class AudioRack {
   constructor(catalog, context=null, onError=()=>{}) {
     this.catalog=new Map(catalog.instruments.map(s=>[s.id,s]));this.ctx=context;this.onError=onError;
@@ -9,16 +18,26 @@ export class AudioRack {
     if(context)this.init();
   }
   init() {
-    if(this.master)return;
+    if(this.master && this.ctx.state!=='closed')return;
+    if(this.master) {
+      for(const voice of [...this.aliveVoices])this.terminate(voice);
+      for(const slot of this.slots.values()){slot.gain.disconnect();slot.panner?.disconnect();}
+      this.slots.clear();this.master.disconnect();this.limiter.disconnect();
+      this.master=null;this.ctx=null;
+    }
     this.ctx ||= new AudioContext({latencyHint:'interactive',sampleRate:48000});
     this.decoder=new OfflineAudioContext(1,1,32000);
-    this.master=this.ctx.createGain();this.master.gain.value=this.masterVolume;
+    this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:this.masterVolume;
     this.limiter=this.ctx.createDynamicsCompressor();
     this.limiter.threshold.value=-8;this.limiter.knee.value=4;this.limiter.ratio.value=12;
     this.limiter.attack.value=.003;this.limiter.release.value=.12;
     this.master.connect(this.limiter).connect(this.ctx.destination);
   }
-  async unlock() {this.init();await this.ctx.resume();return this.ctx.state==='running';}
+  async unlock() {
+    this.init();
+    if(this.ctx.state!=='running')await bounded(this.ctx.resume(),3000,'音声を開始できません。「演奏する」をもう一度押してください。');
+    return this.ctx.state==='running';
+  }
   setVolume(value) {this.masterVolume=Math.max(0,Math.min(1,value));this.applyMaster();}
   setMute(value) {this.muted=Boolean(value);this.applyMaster();}
   applyMaster() {if(this.master)this.master.gain.setTargetAtTime(this.muted?0:this.masterVolume,this.ctx.currentTime,.02);}
@@ -27,8 +46,13 @@ export class AudioRack {
     const loadSample=async s=>{
       if(this.buffers.has(s.file))return;
       if(!this.loading.has(s.file))this.loading.set(s.file,(async()=>{
-        const response=await fetch(s.file);if(!response.ok)throw Error('音源を読み込めません: '+s.file);
-        const decoded=await this.decoder.decodeAudioData(await response.arrayBuffer());
+        const abort=new AbortController();
+        const decoded=await bounded((async()=>{
+          const response=await fetch(s.file,{signal:abort.signal});
+          if(!response.ok)throw Error('音源を読み込めません。「演奏する」で再試行してください。');
+          return await this.decoder.decodeAudioData(await response.arrayBuffer());
+        })(),8000,'音源の準備が時間内に終わりませんでした。「演奏する」で再試行してください。',()=>abort.abort());
+        if(!decoded.length || !decoded.numberOfChannels || !Number.isFinite(decoded.sampleRate))throw Error('音源を読み取れませんでした。JAMを開き直して再試行してください。');
         const data=this.ctx.createBuffer(1,decoded.length,decoded.sampleRate),mono=data.getChannelData(0);
         for(let channel=0;channel<decoded.numberOfChannels;channel++) {
           const pcm=decoded.getChannelData(channel);
@@ -85,7 +109,10 @@ export class AudioRack {
       let offset=age*rate;
       if(sample.loopEnd && offset>=sample.loopEnd)offset=sample.loopStart+(offset-sample.loopStart)%(sample.loopEnd-sample.loopStart);
       if(offset>=buffer.duration){slot.done.add(id);continue;}
-      while(this.aliveVoices.size>=this.voiceLimit)this.release(this.aliveVoices.values().next().value,.01);
+      while(this.aliveVoices.size>=this.voiceLimit) {
+        const victim=[...this.aliveVoices].find(v=>v.released)||this.aliveVoices.values().next().value;
+        this.terminate(victim);
+      }
       const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),now=this.ctx.currentTime;
       source.buffer=buffer;source.playbackRate.value=rate;
       if(sample.loopEnd){source.loop=true;source.loopStart=sample.loopStart;source.loopEnd=sample.loopEnd;}
@@ -107,7 +134,13 @@ export class AudioRack {
     const now=this.ctx.currentTime;
     v.gain.gain.cancelAndHoldAtTime(now);v.gain.gain.linearRampToValueAtTime(0,now+seconds);
     try{v.source.stop(now+seconds+.005);}catch{}
-    this.aliveVoices.delete(v);
+    // Count release tails until onended, so rapid taps cannot evade the source cap.
+  }
+  terminate(v) {
+    v.released=true;
+    try{v.source.stop();}catch{}
+    v.source.disconnect();v.gain.disconnect();this.aliveVoices.delete(v);
+    if(v.slot.voices.get(v.id)===v){v.slot.voices.delete(v.id);if(v.slot.desired.has(v.id))v.slot.done.add(v.id);}
   }
   updateGain(key,slot) {
     const scale=key==='local'?1:slot.position?attenuation(slot.distance,slot.range):0;
@@ -140,5 +173,5 @@ export class AudioRack {
     setTimeout(()=>{slot.gain.disconnect();slot.panner?.disconnect();},40);
   }
   stopAll() {for(const key of [...this.slots.keys()])this.remove(key);}
-  stats() {return {voices:this.aliveVoices.size,performers:this.slots.size,cacheBytes:this.cacheBytes,state:this.ctx?.state||'closed'};}
+  stats() {return {voices:[...this.aliveVoices].filter(v=>!v.released).length,nodes:this.aliveVoices.size,performers:this.slots.size,cacheBytes:this.cacheBytes,state:this.ctx?.state||'closed'};}
 }

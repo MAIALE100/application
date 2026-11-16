@@ -67,6 +67,29 @@ try {
   assert.equal(await page.locator('#instrument option').count(),catalog.instruments.length);
   console.log('PASS bounded ready retry, boot pulse, and in-place recovery (mock NUI)');
 
+  await page.waitForFunction(()=>window.__rack?.ctx);
+  await page.evaluate(async()=>{
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'close'}}));
+    await window.__rack.ctx.suspend();
+    window.__forceUnlockFalse=true;
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'open',listenOnly:true,range:7}}));
+  });
+  await page.locator('#resumeAudio').waitFor({state:'visible'});
+  assert.match(await page.locator('#status').innerText(),/音声が停止/);
+  await page.evaluate(()=>{window.__forceUnlockFalse=true;});
+  await page.click('#resumeAudio');
+  await page.locator('#error').waitFor({state:'visible'});
+  assert(await page.locator('#resumeAudio').isVisible(),'failed resume must retain a retry action');
+  await page.click('#resumeAudio');
+  await page.locator('#resumeAudio').waitFor({state:'hidden'});
+  assert(await page.locator('#error').isHidden(),'successful resume must clear the prior error');
+  assert.equal(await page.evaluate(()=>window.__rack.ctx.state),'running');
+  console.log('PASS listener-only audio unlock exposes user gesture and retry (mock NUI)');
+  await page.evaluate(()=>{
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'close'}}));
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'open',range:7}}));
+  });
+
   await page.click('#settingsToggle');
   await page.evaluate(()=>{window.__forceUnlockFalse=true;});
   await page.click('#metro');

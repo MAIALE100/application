@@ -2,6 +2,7 @@ local handlers,callbacks,commands,threads,sent,messages={},{},{},{},{},{}
 local clock,dead,focused,keepInput,otherUi=1000,false,false,false,false
 local focusWrites,keepInputWrites=0,0
 local currentPed=99
+local remotePresent=false
 local exported={}
 source=65535
 LocalPlayer={state={}}
@@ -27,8 +28,14 @@ function CreateThread(fn)threads[#threads+1]=coroutine.create(fn)end
 function Wait(ms)coroutine.yield(ms)end
 function DisableControlAction(_,id)assert(id~=249,'PTT must not be disabled')end
 function DisablePlayerFiring()end
-function DoesEntityExist()return false end
-function GetPlayerFromServerId()return -1 end
+function DoesEntityExist(ped)return remotePresent and ped==103 end
+function GetPlayerFromServerId(id)return id==3 and 3 or -1 end
+function GetPlayerPed(index)return index+100 end
+function GetEntityCoords(ped)
+    if ped==currentPed then return {x=0,y=0,z=0} end
+    return {x=2,y=0,z=0}
+end
+function GetGameplayCamRot()return {x=0,z=0} end
 exports=function(name,fn)exported[name]=fn end
 dofile('config.lua')
 dofile('client/presentation.lua')
@@ -65,6 +72,31 @@ test('old wire data does not resurrect stopped remote session',function()
     handlers['flecity_jam:remote']({kind='snapshot',player=2,session='a',wire=2})
     handlers['flecity_jam:remote']({kind='stop',player=2,session='a',wire=3})
     local before=#messages;handlers['flecity_jam:remote']({kind='snapshot',player=2,session='a',wire=1});assert(#messages==before)
+end)
+test('first remote position precedes short note and retries when ped streams in',function()
+    remotePresent=false
+    local before=#messages
+    handlers['flecity_jam:remote']({kind='snapshot',player=3,session='p1',wire=10,instrument='drums'})
+    assert(messages[before+1].type=='remote')
+    assert(messages[before+2].type=='positions' and #messages[before+2].sources==0)
+    remotePresent=true
+    before=#messages
+    handlers['flecity_jam:remote']({kind='delta',player=3,session='p1',wire=11,ops={{kind='on',id=1,pitch=36},{kind='off',id=1}}})
+    assert(messages[before+1].type=='positions' and messages[before+1].sources[1].player==3)
+    assert(messages[before+2].type=='remote' and messages[before+2].data.kind=='delta')
+    before=#messages
+    handlers['flecity_jam:remote']({kind='delta',player=3,session='p1',wire=12,ops={{kind='on',id=2,pitch=38}}})
+    assert(#messages==before+1 and messages[#messages].type=='remote','known position should not be resent per note')
+    before=#messages
+    handlers['flecity_jam:remote']({kind='snapshot',player=3,session='p1',wire=13,instrument='drums'})
+    assert(messages[before+1].type=='remote' and messages[before+2].type=='positions',
+        'a healing snapshot must position a recreated NUI slot')
+    handlers['flecity_jam:remote']({kind='stop',player=3,session='p1',wire=14})
+    before=#messages
+    handlers['flecity_jam:remote']({kind='snapshot',player=3,session='p2',wire=15,instrument='drums'})
+    assert(messages[before+1].type=='remote' and messages[before+2].type=='positions',
+        'a replacement session must create its slot before positioning it')
+    remotePresent=false
 end)
 test('NUI failure watchdog releases focus and held session',function()
     assert(coroutine.resume(threads[1]));clock=clock+5000;assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)

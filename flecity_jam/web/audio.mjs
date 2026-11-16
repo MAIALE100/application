@@ -1,5 +1,9 @@
 import {attenuation,selectSample} from './model.mjs';
 
+// Avoid replaying uncached remote notes so late that a band sounds out of time.
+const DEFERRED_NOTE_MS=250;
+const DEFERRED_NOTE_LIMIT=16;
+
 async function bounded(promise,ms,message,cancel=()=>{}) {
   let timer;
   try {
@@ -15,6 +19,7 @@ export class AudioRack {
     this.buffers=new Map();this.loading=new Map();this.slots=new Map();this.masterVolume=.65;this.muted=false;
     this.listener={x:0,y:0,z:0,fx:0,fy:1,fz:0};this.voiceLimit=128;this.aliveVoices=new Set();
     this.maxCacheBytes=64*1024*1024;this.cacheBytes=0;
+    this.now=()=>performance.now();
     if(context)this.init();
   }
   init() {
@@ -36,6 +41,7 @@ export class AudioRack {
   async unlock() {
     this.init();
     if(this.ctx.state!=='running')await bounded(this.ctx.resume(),3000,'音声を開始できません。「演奏する」をもう一度押してください。');
+    if(this.ctx.state==='running')for(const [key,slot] of this.slots)if(key!=='local')this.reconcile(key,slot);
     return this.ctx.state==='running';
   }
   setVolume(value) {this.masterVolume=Math.max(0,Math.min(1,value));this.applyMaster();}
@@ -66,9 +72,9 @@ export class AudioRack {
     };
     for(let i=0;i<spec.samples.length;i+=4)await Promise.all(spec.samples.slice(i,i+4).map(loadSample));
   }
-  slot(key,instrument,range=7) {
+  slot(key,instrument,range=7,session=null) {
     let slot=this.slots.get(key);
-    if(slot?.instrument!==instrument){this.remove(key);slot=null;}
+    if(slot && (slot.instrument!==instrument || (session && slot.session && slot.session!==session))){this.remove(key);slot=null;}
     if(!slot) {
       const gain=this.ctx.createGain();gain.gain.value=key==='local'?1:0;
       let panner=null;
@@ -77,16 +83,27 @@ export class AudioRack {
         panner.rolloffFactor=0;panner.refDistance=1;panner.maxDistance=range;
         gain.connect(panner).connect(this.master);
       }else gain.connect(this.master);
-      slot={instrument,range,gain,panner,voices:new Map(),done:new Set(),desired:new Map(),volume:.75,seen:performance.now(),position:null};
+      slot={instrument,session,range,gain,panner,voices:new Map(),done:new Set(),desired:new Map(),deferred:[],deferredTimer:null,volume:.75,seen:this.now(),position:null};
       this.slots.set(key,slot);
     }
+    if(session)slot.session=session;
     return slot;
   }
   sync(key,state) {
     this.init();const spec=this.catalog.get(state.instrument);if(!spec)return;
-    const slot=this.slot(key,state.instrument,state.range);
-    slot.volume=state.volume;slot.desired=new Map(state.notes instanceof Map ? state.notes : state.notes.map(n=>[n.id,n]));
-    slot.seen=performance.now();
+    const slot=this.slot(key,state.instrument,state.range,state.session);
+    const next=new Map(state.notes instanceof Map ? state.notes : state.notes.map(n=>[n.id,n]));
+    const now=this.now();
+    this.pruneDeferred(slot);
+    if(key!=='local' && (slot.loading || !slot.position))for(const [id,n] of slot.desired)if(!next.has(id) && !slot.voices.has(id) && !slot.done.has(id)) {
+      const age=n.age+Math.max(0,now-slot.seen);
+      if(age<=DEFERRED_NOTE_MS){
+        slot.deferred.push({id,n:{...n,age},at:now});
+        if(slot.deferred.length>DEFERRED_NOTE_LIMIT)slot.deferred.shift();
+        if(!slot.deferredTimer)this.scheduleDeferredExpiry(slot);
+      }
+    }
+    slot.volume=state.volume;slot.desired=next;slot.seen=now;
     for(const[id,v]of slot.voices)if(!slot.desired.has(id)){this.release(v,spec.kind==='drums'?null:spec.release);slot.voices.delete(id);}
     for(const id of slot.done)if(!slot.desired.has(id))slot.done.delete(id);
     this.updateGain(key,slot);
@@ -94,42 +111,74 @@ export class AudioRack {
     else if(!slot.loading){
       slot.loading=true;
       this.load(spec.id).then(()=>{slot.loading=false;if(this.slots.get(key)===slot)this.reconcile(key,slot);})
-        .catch(error=>{slot.loading=false;this.onError(error.message);});
+        .catch(error=>{slot.loading=false;this.clearDeferred(slot);if(this.slots.get(key)===slot)this.onError(error.message);});
     }
+  }
+  pruneDeferred(slot) {slot.deferred=slot.deferred.filter(entry=>this.now()-entry.at<=DEFERRED_NOTE_MS);}
+  clearDeferred(slot) {slot.deferred=[];clearTimeout(slot.deferredTimer);slot.deferredTimer=null;}
+  scheduleDeferredExpiry(slot) {
+    if(!slot.deferred.length)return;
+    const delay=Math.max(1,DEFERRED_NOTE_MS-(this.now()-slot.deferred[0].at)+1);
+    slot.deferredTimer=setTimeout(()=>{
+      slot.deferredTimer=null;this.pruneDeferred(slot);
+      if(slot.deferred.length)this.scheduleDeferredExpiry(slot);
+    },delay);
   }
   reconcile(key,slot) {
     if(key!=='local' && (!slot.position || attenuation(slot.distance,slot.range)===0))return;
     const spec=this.catalog.get(slot.instrument);
+    const time=this.now();
+    // OfflineAudioContext schedules sources before startRendering(), while a
+    // suspended live AudioContext must not queue notes that may sound later.
+    const ready=this.ctx.state==='running' || typeof this.ctx.startRendering==='function';
+    // Completed taps can be recovered if decoding finished almost immediately.
+    // Never retain them for a later listener, context resume, or distant player.
+    this.pruneDeferred(slot);
+    if(ready && !slot.loading) {
+      const deferred=slot.deferred;this.clearDeferred(slot);
+      for(const entry of deferred)if(!slot.desired.has(entry.id)) {
+        const voice=this.startVoice(slot,spec,entry.id,{...entry.n,age:entry.n.age+time-entry.at},true);
+        if(voice && spec.kind!=='drums')voice.releaseTimer=setTimeout(()=>this.release(voice,spec.release),20);
+      }
+    }
+    if(key!=='local' && !ready)return;
     for(const[id,n]of slot.desired) {
       if(slot.voices.has(id)||slot.done.has(id))continue;
-      const sample=selectSample(spec,n.pitch,n.velocity);if(!sample)continue;
-      const buffer=this.buffers.get(sample.file);if(!buffer)continue;
-      const age=(n.age+Math.max(0,performance.now()-slot.seen))/1000;
-      const rate=2**((n.pitch-sample.midi)/12+(sample.tune||0)/1200);
-      let offset=age*rate;
-      if(sample.loopEnd && offset>=sample.loopEnd)offset=sample.loopStart+(offset-sample.loopStart)%(sample.loopEnd-sample.loopStart);
-      if(offset>=buffer.duration){slot.done.add(id);continue;}
-      while(this.aliveVoices.size>=this.voiceLimit) {
-        const victim=[...this.aliveVoices].find(v=>v.released)||this.aliveVoices.values().next().value;
-        this.terminate(victim);
-      }
-      const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),now=this.ctx.currentTime;
-      source.buffer=buffer;source.playbackRate.value=rate;
-      if(sample.loopEnd){source.loop=true;source.loopStart=sample.loopStart;source.loopEnd=sample.loopEnd;}
-      const level=(n.velocity/127)**1.4*spec.gain*(sample.gain||1)*.26;
-      gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(level,now+(age>.1?.012:spec.attack));
-      source.connect(gain).connect(slot.gain);
-      const voice={source,gain,slot,id,released:false};slot.voices.set(id,voice);this.aliveVoices.add(voice);
-      source.onended=()=>{
-        source.disconnect();gain.disconnect();this.aliveVoices.delete(voice);
-        if(slot.voices.get(id)===voice){slot.voices.delete(id);if(slot.desired.has(id))slot.done.add(id);}
-      };
-      source.start(now,offset);
+      this.startVoice(slot,spec,id,{...n,age:n.age+Math.max(0,time-slot.seen)});
     }
+  }
+  startVoice(slot,spec,id,n,transient=false) {
+    const sample=selectSample(spec,n.pitch,n.velocity);if(!sample)return null;
+    const buffer=this.buffers.get(sample.file);if(!buffer)return null;
+    const age=n.age/1000;
+    const rate=2**((n.pitch-sample.midi)/12+(sample.tune||0)/1200);
+    let offset=age*rate;
+    if(sample.loopEnd && offset>=sample.loopEnd)offset=sample.loopStart+(offset-sample.loopStart)%(sample.loopEnd-sample.loopStart);
+    if(offset>=buffer.duration){if(!transient)slot.done.add(id);return null;}
+    while(this.aliveVoices.size>=this.voiceLimit) {
+      const victim=[...this.aliveVoices].find(v=>v.released)||this.aliveVoices.values().next().value;
+      this.terminate(victim);
+    }
+    const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),now=this.ctx.currentTime;
+    source.buffer=buffer;source.playbackRate.value=rate;
+    if(sample.loopEnd){source.loop=true;source.loopStart=sample.loopStart;source.loopEnd=sample.loopEnd;}
+    const level=(n.velocity/127)**1.4*spec.gain*(sample.gain||1)*.26;
+    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(level,now+(age>.1?.012:spec.attack));
+    source.connect(gain).connect(slot.gain);
+    const voice={source,gain,slot,id,released:false,releaseTimer:null};
+    if(!transient)slot.voices.set(id,voice);
+    this.aliveVoices.add(voice);
+    source.onended=()=>{
+      clearTimeout(voice.releaseTimer);source.disconnect();gain.disconnect();this.aliveVoices.delete(voice);
+      if(slot.voices.get(id)===voice){slot.voices.delete(id);if(slot.desired.has(id))slot.done.add(id);}
+    };
+    source.start(now,offset);
+    return voice;
   }
   release(v,seconds) {
     if(v.released)return;
     if(seconds===null){return;} // Drum tails finish naturally; teardown still stops them through aliveVoices.
+    clearTimeout(v.releaseTimer);v.releaseTimer=null;
     v.released=true;
     const now=this.ctx.currentTime;
     v.gain.gain.cancelAndHoldAtTime(now);v.gain.gain.linearRampToValueAtTime(0,now+seconds);
@@ -137,6 +186,7 @@ export class AudioRack {
     // Count release tails until onended, so rapid taps cannot evade the source cap.
   }
   terminate(v) {
+    clearTimeout(v.releaseTimer);v.releaseTimer=null;
     v.released=true;
     try{v.source.stop();}catch{}
     v.source.disconnect();v.gain.disconnect();this.aliveVoices.delete(v);
@@ -158,17 +208,17 @@ export class AudioRack {
       slot.position=p;slot.distance=Math.hypot(p.x-listener.x,p.y-listener.y,p.z-listener.z);
       for(const[name,value]of Object.entries({positionX:p.x,positionY:p.z,positionZ:-p.y}))slot.panner[name].setTargetAtTime(value,now,.04);
       this.updateGain(p.player,slot);this.reconcile(p.player,slot);
-      if(slot.distance>=slot.range){for(const v of slot.voices.values())this.release(v,.02);slot.voices.clear();slot.done.clear();}
+      if(slot.distance>=slot.range){for(const v of slot.voices.values())this.release(v,.02);slot.voices.clear();slot.done.clear();this.clearDeferred(slot);}
     }
     for(const[key,slot]of this.slots)if(key!=='local'&&!present.has(key)){
       slot.position=null;this.updateGain(key,slot);
-      for(const v of slot.voices.values())this.release(v,.02);slot.voices.clear();slot.done.clear();
+      for(const v of slot.voices.values())this.release(v,.02);slot.voices.clear();slot.done.clear();this.pruneDeferred(slot);
     }
   }
   remove(key) {
     const slot=this.slots.get(key);if(!slot)return;
     for(const v of [...this.aliveVoices])if(v.slot===slot){v.released=false;this.release(v,.012);}
-    slot.desired.clear();slot.voices.clear();slot.done.clear();this.slots.delete(key);
+    slot.desired.clear();slot.voices.clear();slot.done.clear();this.clearDeferred(slot);this.slots.delete(key);
     slot.gain.gain.setTargetAtTime(0,this.ctx.currentTime,.005);
     setTimeout(()=>{slot.gain.disconnect();slot.panner?.disconnect();},40);
   }

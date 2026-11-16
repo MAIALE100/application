@@ -8,8 +8,13 @@ const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
 let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[],keys=[...DEFAULT_KEYS];
 let listen=.65,muted=false,metronome=null,nextBeat=0,beat=0,noticeTimer=0;
+let listenOnlyOpen=false,listenCheck=0;
 const pedalSources=new Set();
 const now=()=>performance.now();
+const resumeAudioButton=document.createElement('button');
+resumeAudioButton.id='resumeAudio';resumeAudioButton.type='button';resumeAudioButton.hidden=true;
+resumeAudioButton.textContent='JAMの音声を有効にする';resumeAudioButton.style.pointerEvents='auto';
+$('feedback').append(resumeAudioButton);
 function error(message='') {$('error').textContent=message;$('error').hidden=!message;}
 function notice(message) {$('notice').textContent=message;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);}
 function save() {try{localStorage.setItem('flecity-jam-v1',JSON.stringify({keys,listen,muted}));}catch{}}
@@ -126,6 +131,7 @@ async function start() {
 function control(data) {
   if(data.kind==='started') {
     if(!shown||!starting){bridge('stop').catch(()=>{});return;}
+    listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;
     session=data.session;transport={session,queue:Promise.resolve(),queued:0};sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
     $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏を休む';$('lamp').classList.add('active');
     $('status').textContent=preview?'試奏モード · 周囲への共有なし':'演奏中 · 周囲に音が届きます';
@@ -147,14 +153,44 @@ function stop() {
 }
 function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function promptListenAudio() {
+  if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
+  resumeAudioButton.hidden=false;
+  $('status').textContent='音声が停止しています。右上の「JAMの音声を有効にする」を押してください。';
+}
+function listenAudioReady() {
+  if(!shown||!listenOnlyOpen)return;
+  resumeAudioButton.hidden=true;error();
+  $('status').textContent='周囲のJAM演奏を聴けます。';
+}
+async function checkListenAudio(manual=false) {
+  const check=listenCheck;
+  if(manual){resumeAudioButton.disabled=true;error();$('status').textContent='音声の再開を確認しています…';}
+  try {
+    const ok=await audio.unlock();
+    if(check!==listenCheck||!shown||!listenOnlyOpen)return;
+    if(!ok&&audio.ctx?.state!=='running')throw Error('audio suspended');
+    listenAudioReady();
+    if(manual)notice('JAMの音声を有効にしました。');
+  }catch{
+    if(check!==listenCheck||!shown||!listenOnlyOpen)return;
+    if(audio.ctx?.state==='running'){listenAudioReady();return;}
+    promptListenAudio();
+    if(manual)error('音声を再開できませんでした。もう一度「JAMの音声を有効にする」を押してください。');
+  }finally{if(check===listenCheck)resumeAudioButton.disabled=false;}
+}
+resumeAudioButton.onclick=()=>checkListenAudio(true);
 function open(data={}) {
-  shown=true;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
+  shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
   if(!validBindings(keys,reserved)){keys=[...DEFAULT_KEYS];save();}
   choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||7}m`;
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';
   $('instrument').focus();
-  audio.unlock().catch(()=>{});
+  if(listenOnlyOpen){
+    try{audio.init();}catch{}
+    promptListenAudio();checkListenAudio();
+  }else audio.unlock().catch(()=>{});
 }
 function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'消音中':'消音';save();}
 function stopMetronome() {clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
@@ -248,6 +284,7 @@ const early=[];window.addEventListener('message',e=>{
 setInterval(()=>{
   replicas.expire();
   if(shown||bootShown)bridge('pulse').catch(()=>{if(session)failTransport();});
+  if(shown&&listenOnlyOpen&&audio?.ctx?.state!=='running'&&resumeAudioButton.hidden)promptListenAudio();
   if(session&&model){if([...model.notes.values()].some(n=>now()-n.at>115000)){panic();notice('長時間の持続音を安全停止しました。');}syncInput();}
 },1000);
 async function readyBridge() {
@@ -283,7 +320,8 @@ async function initialize() {
     for(const data of early.splice(0))message(data);
     bootShown=false;
     // FiveM normally permits autoplay; if CEF blocks it, expose an explicit unlock command.
-    audio.unlock().then(ok=>{if(!ok&&!preview)notice('周囲の演奏を聴くには /jamlisten を開いてください。');}).catch(()=>{});
+    audio.unlock().then(ok=>{if(listenOnlyOpen&&shown){if(ok)listenAudioReady();else promptListenAudio();}
+      else if(!ok&&!preview)notice('周囲の演奏を聴くには /jamlisten を開いてください。');}).catch(()=>{});
     if(!preview&&!preloading){preloading=true;(async()=>{for(const spec of catalog.instruments)await audio.load(spec.id);})().catch(()=>notice('一部の音源を準備できませんでした。/jamlisten で確認してください。'));}
     if(preview){document.body.classList.add('preview');open();window.JAM={get model(){return model;},audio,replicas,message,midi,get session(){return session;},panic,stop};}
     bootReady=true;bootFailed=false;$('notice').hidden=true;$('notice').textContent='';

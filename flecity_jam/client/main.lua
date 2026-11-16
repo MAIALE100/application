@@ -75,12 +75,50 @@ RegisterNetEvent('flecity_jam:control',function(data)
     elseif data.session~=session then return end
     nui({type='control',data=data})
 end)
+local function publishPositions()
+    local positions, now = {}, GetGameTimer()
+    for id,state in pairs(peers) do
+        local index=GetPlayerFromServerId(id)
+        local ped=index~=-1 and GetPlayerPed(index) or 0
+        if now-state.seen>3500 then
+            peers[id]=nil; nui({type='expire',player=id,session=state.session})
+        elseif ped~=0 and DoesEntityExist(ped) then
+            local p=GetEntityCoords(ped)
+            positions[#positions+1]={player=id,x=p.x,y=p.y,z=p.z}
+            state.positioned=true
+        else state.positioned=false end
+    end
+    JamPresentation.updateRemotes(peers)
+    if #positions>0 or next(peers) then
+        local p=GetEntityCoords(PlayerPedId())
+        local rot=GetGameplayCamRot(2)
+        local yaw=math.rad(rot.z); local pitch=math.rad(rot.x)
+        nui({type='positions',sources=positions,listener={x=p.x,y=p.y,z=p.z,
+            fx=-math.sin(yaw)*math.cos(pitch),fy=math.cos(yaw)*math.cos(pitch),fz=math.sin(pitch)}})
+    end
+end
 RegisterNetEvent('flecity_jam:remote',function(data)
     if source~=65535 or data.player==GetPlayerServerId(PlayerId()) then return end
     if type(data.wire)~='number' or data.wire<=(wires[data.player] or -1) then return end
     wires[data.player]=data.wire
     if data.kind=='stop' then peers[data.player]=nil
-    else peers[data.player]={seen=GetGameTimer(),session=data.session,instrument=data.instrument or (peers[data.player] and peers[data.player].instrument)} end
+    else
+        local previous=peers[data.player]
+        local newSession=not previous or previous.session~=data.session
+        local needsPosition=newSession or not previous.positioned
+        peers[data.player]={seen=GetGameTimer(),session=data.session,
+            instrument=data.instrument or (previous and previous.instrument),positioned=not needsPosition}
+        if needsPosition and not newSession and data.kind~='snapshot' then
+            -- The existing NUI slot needs a position before a short on/off delta.
+            publishPositions()
+        end
+        nui({type='remote',data=data})
+        if newSession or data.kind=='snapshot' then
+            -- A snapshot can recreate the NUI slot after a lost delta.
+            publishPositions()
+        end
+        return
+    end
     nui({type='remote',data=data})
 end)
 
@@ -98,25 +136,7 @@ end)
 CreateThread(function()
     while true do
         Wait(next(peers) and 100 or 500)
-        local positions, now = {}, GetGameTimer()
-        for id,state in pairs(peers) do
-            local index=GetPlayerFromServerId(id)
-            local ped=index~=-1 and GetPlayerPed(index) or 0
-            if now-state.seen>3500 then
-                peers[id]=nil; nui({type='expire',player=id,session=state.session})
-            elseif ped~=0 and DoesEntityExist(ped) then
-                local p=GetEntityCoords(ped)
-                positions[#positions+1]={player=id,x=p.x,y=p.y,z=p.z}
-            end
-        end
-        JamPresentation.updateRemotes(peers)
-        if #positions>0 or next(peers) then
-            local p=GetEntityCoords(PlayerPedId())
-            local rot=GetGameplayCamRot(2)
-            local yaw=math.rad(rot.z); local pitch=math.rad(rot.x)
-            nui({type='positions',sources=positions,listener={x=p.x,y=p.y,z=p.z,
-                fx=-math.sin(yaw)*math.cos(pitch),fy=math.cos(yaw)*math.cos(pitch),fz=math.sin(pitch)}})
-        end
+        publishPositions()
     end
 end)
 AddEventHandler('onClientResourceStop',function(name)

@@ -131,7 +131,7 @@ async function start() {
 function control(data) {
   if(data.kind==='started') {
     if(!shown||!starting){bridge('stop').catch(()=>{});return;}
-    listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;
+    listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;
     session=data.session;transport={session,queue:Promise.resolve(),queued:0};sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
     $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏を休む';$('lamp').classList.add('active');
     $('status').textContent=preview?'試奏モード · 周囲への共有なし':'演奏中 · 周囲に音が届きます';
@@ -153,7 +153,7 @@ function stop() {
 }
 function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
 function promptListenAudio() {
   if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
   resumeAudioButton.hidden=false;
@@ -182,7 +182,7 @@ async function checkListenAudio(manual=false) {
 }
 resumeAudioButton.onclick=()=>checkListenAudio(true);
 function open(data={}) {
-  shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
+  shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
   if(!validBindings(keys,reserved)){keys=[...DEFAULT_KEYS];save();}
   choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||7}m`;
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';

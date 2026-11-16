@@ -100,7 +100,7 @@ export class AudioRack {
       if(age<=DEFERRED_NOTE_MS){
         slot.deferred.push({id,n:{...n,age},at:now});
         if(slot.deferred.length>DEFERRED_NOTE_LIMIT)slot.deferred.shift();
-        if(!slot.deferredTimer)this.scheduleDeferredExpiry(slot);
+        this.scheduleDeferredExpiry(slot);
       }
     }
     slot.volume=state.volume;slot.desired=next;slot.seen=now;
@@ -114,11 +114,13 @@ export class AudioRack {
         .catch(error=>{slot.loading=false;this.clearDeferred(slot);if(this.slots.get(key)===slot)this.onError(error.message);});
     }
   }
-  pruneDeferred(slot) {slot.deferred=slot.deferred.filter(entry=>this.now()-entry.at<=DEFERRED_NOTE_MS);}
+  pruneDeferred(slot) {slot.deferred=slot.deferred.filter(entry=>entry.n.age+Math.max(0,this.now()-entry.at)<=DEFERRED_NOTE_MS);}
   clearDeferred(slot) {slot.deferred=[];clearTimeout(slot.deferredTimer);slot.deferredTimer=null;}
   scheduleDeferredExpiry(slot) {
+    clearTimeout(slot.deferredTimer);
     if(!slot.deferred.length)return;
-    const delay=Math.max(1,DEFERRED_NOTE_MS-(this.now()-slot.deferred[0].at)+1);
+    const now=this.now();
+    const delay=Math.max(1,Math.min(...slot.deferred.map(entry=>DEFERRED_NOTE_MS-entry.n.age-Math.max(0,now-entry.at)))+1);
     slot.deferredTimer=setTimeout(()=>{
       slot.deferredTimer=null;this.pruneDeferred(slot);
       if(slot.deferred.length)this.scheduleDeferredExpiry(slot);

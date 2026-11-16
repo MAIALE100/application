@@ -39,7 +39,7 @@ try {
     let body=fs.readFileSync(file);
     if(relative==='audio.mjs')body=Buffer.from(body.toString('utf8')+`
       const originalUnlock=AudioRack.prototype.unlock;
-      AudioRack.prototype.unlock=async function(){if(window.__forceUnlockFalse){window.__forceUnlockFalse=false;return false;}const value=await originalUnlock.call(this);window.__rack=this;window.__unlockCalls=(window.__unlockCalls||0)+1;return value;};
+      AudioRack.prototype.unlock=async function(){if(window.__holdUnlockOnce){window.__holdUnlockOnce=false;return await new Promise(resolve=>{window.__releaseHeldUnlock=resolve;});}if(window.__forceUnlockFalse){window.__forceUnlockFalse=false;return false;}const value=await originalUnlock.call(this);window.__rack=this;window.__unlockCalls=(window.__unlockCalls||0)+1;return value;};
       const originalLoad=AudioRack.prototype.load;
       AudioRack.prototype.load=async function(id){const value=await originalLoad.call(this,id);if(window.__interruptNextLoad){window.__interruptNextLoad=false;await this.ctx.suspend();window.__interrupted=true;}return value;};
     `);
@@ -85,6 +85,22 @@ try {
   assert(await page.locator('#error').isHidden(),'successful resume must clear the prior error');
   assert.equal(await page.evaluate(()=>window.__rack.ctx.state),'running');
   console.log('PASS listener-only audio unlock exposes user gesture and retry (mock NUI)');
+  await page.evaluate(async()=>{await window.__rack.ctx.suspend();window.__holdUnlockOnce=true;});
+  await page.locator('#resumeAudio').waitFor({state:'visible'});
+  await page.click('#resumeAudio');
+  assert(await page.locator('#resumeAudio').isDisabled(),'pending resume should disable duplicate clicks');
+  await page.evaluate(()=>{
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'close'}}));
+    window.__forceUnlockFalse=true;
+    window.dispatchEvent(new MessageEvent('message',{data:{type:'open',listenOnly:true,range:7}}));
+  });
+  assert(await page.locator('#resumeAudio').isVisible());
+  assert(await page.locator('#resumeAudio').isEnabled(),'new listener view must allow retry despite an old pending resume');
+  await page.evaluate(()=>window.__releaseHeldUnlock(false));
+  assert(await page.locator('#resumeAudio').isEnabled(),'stale completion must not disable the new retry');
+  await page.click('#resumeAudio');
+  await page.locator('#resumeAudio').waitFor({state:'hidden'});
+  console.log('PASS stale audio-unlock completion leaves reopened listener retry enabled (mock NUI)');
   await page.evaluate(()=>{
     window.dispatchEvent(new MessageEvent('message',{data:{type:'close'}}));
     window.dispatchEvent(new MessageEvent('message',{data:{type:'open',range:7}}));

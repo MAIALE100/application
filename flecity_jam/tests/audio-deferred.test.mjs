@@ -71,6 +71,24 @@ test('cached sample waits briefly for the remote ped to stream into the position
   rack.stopAll();
 });
 
+test('deferred latency budget is measured from note onset, not note off',t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const {ctx,rack,ready,positions,setTime}=setup(t);ready();
+  rack.sync(2,state('first',[{...note(1),age:240}]));
+  rack.sync(2,state('first',[]));
+  assert.equal(rack.slots.get(2).deferred.length,1);
+  setTime(9);t.mock.timers.tick(9);positions();
+  assert.equal(ctx.sources.length,1,'a 249ms-old note can still play');
+  rack.stopAll();
+
+  setTime(100);rack.sync(2,state('second',[{...note(2),age:240}]));
+  rack.sync(2,state('second',[]));
+  setTime(111);t.mock.timers.tick(11);
+  assert.equal(rack.slots.get(2).deferred.length,0,'the note expires at 251ms from onset');
+  positions();assert.equal(ctx.sources.length,1);
+  rack.stopAll();
+});
+
 test('remote held note waits for audio resume and starts only once',async t=>{
   const {ctx,rack,ready,positions}=setup(t);ready();ctx.state='suspended';
   rack.sync(2,state('first',[note(1)]));positions();

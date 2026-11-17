@@ -2,13 +2,13 @@
 
 このZIPはテスト用です。最初に別添のQAと実機チェックリストを確認してください。既存のexport名・更新手順と一致させるため、リソース名は `flecity_jam` のまま使用します。ZIPには実行ファイル、音源、ライセンス、README、および導入・操作・設定・音源説明の公開資料だけを入れます。テスト、開発ツール、QA、内部資料、認証情報は含めません。
 
-## 0.3.0-test候補の更新元
+## 0.3.2-test候補の更新前基準
 
-2026-11-17の読取専用照合時点で、テストサーバーのJAMは **0.2.2-testの81ファイル**です。更新元として使う受領記録は `D:\FiveM_Test_Server\txData\Qbox_D233FD.base\flecity-jam-backups\jam-update-f7w5zh4u\receipt.json`、SHA256は `089d79208285b8f20f05e9d6afb21f9195dfd1d6dc583e2752dd6c837a2afabe` です。この記録の更新後81ファイルと、更新前バックアップ81ファイルのハッシュは全件一致しました。旧0.2.0-testの受領記録は現在の版の基準に使えません。
+2026-11-18の作業開始時点で、JAMは **0.3.1-testの81ファイル**でした。前回更新の受領記録は `D:\FiveM_Test_Server\txData\Qbox_D233FD.base\flecity-jam-backups\jam-update-1ed9e34d\receipt.json`、SHA256は `2563ad116ebad748cf386c1144b0a903b7c95732fb7b12ca9c5f8477052d31ed` です。更新後81ファイルとの一致を確認し、今回の旧版全体バックアップを作成しました。これは0.3.2更新前の記録であり、適用後の状態は別添`voice-range-20261118/QA/`を正本とします。
 
-0.3.0-test候補の配布ZIPが完成し、回帰・隔離した更新／復旧試験・差分監査に合格してから、下記の`--update`手順を用います。変更前にはJAMの設置版を全体バックアップし、JAM以外の5,304ファイルと設定5件を改めてハッシュ記録します。実行時に書き換わる他リソースの状態ファイルがあるため、過去日のハッシュだけで「更新直前」と判断しません。WAVE、Voice、DB、サーバー設定の変更はこの更新の範囲外です。
+0.3.2候補の回帰・隔離した更新／復旧試験・差分監査の合格後にだけ更新します。今回はユーザー指定のJAM Range7→15mのみ設定を変更し、レビュー済みincoming config.luaの完全SHA256を明示します。それ以外の設定変更を一括許可しません。JAM以外5,304ファイル・設定5件・txAdmin設定を今回の直前値と照合し、既存PuriPhoto Junctionは追跡しません。WAVE・Voice・DB・サーバー設定を変更しません。
 
-JAM画面が入力を専有する間のPTTは未保証です。安全な利用案内はEscで画面を閉じて会話し、`/jam`で戻る方法です。PTT、実際の音声、2人での距離・バケット・途中参加は、更新後の実機試験でそれぞれ判定します。ローカル試験だけで正式公開と判定しません。
+0.3.2のN／会話ボタンによる通常PTT入力は、相手への聴取まで確認して初めてPASSです。表示上の送信検出だけでは証明できません。声が届かない場合や無線を使う場合はEscで閉じて通常操作へ戻ります。マイクOFF・Voiceミュート等を解除せず、無線を代行しません。実機確認はユーザーのノートPCだけで行い、デスクトップFiveMは起動しません。PTT・15m聴感・共有・合奏は候補ではNOT_RUNで、正式公開はNO-GOです。
 
 ## 初回
 
@@ -38,8 +38,8 @@ JAM画面が入力を専有する間のPTTは未保証です。安全な利用�
    python flecity_jam/devtools/install.py --update --baseline "<基準一覧または前回receiptの絶対パス>" --baseline-sha256 <基準ファイルのSHA256>
    ```
 
-4. `PLAN_UPDATE` と設定の一致を確認後、同じコマンドへ `--confirmed-stopped --apply` を追加する。旧JAM全体のコピーをresources外へ作成・照合してから、同一ドライブ上の準備済み版と入れ替える。旧設定 `config.lua` と新ZIPの設定が異なる場合、勝手に移行せず `CONFLICT_STOP` で停止する。更新前に現行設置ファイルが1件でも異なる場合も停止する。
-5. `UPDATED` の結果、返された `receipt` と `receiptSha256`、バックアップ場所を記録する。receiptは入れ替え前に書き込む固定の復旧記録なので、内部状態は `PREPARED` と表示される。更新後のJAM全件SHA256を確認し、管理コンソールで `refresh`、`ensure flecity_jam`、`jam_status`。表示バージョンを確認し、実機の音声・終了・距離・複数人テストを確認する。
+4. `PLAN_UPDATE`と差分を確認後、同じコマンドへ`--confirmed-stopped --apply`を追加する。設定が変わる場合は既定で`CONFLICT_STOP`。今回のRange7→15だけと監査できた場合に限り、計画・適用の両方へ`--reviewed-config-sha256 <新config.luaの固定SHA256>`を明示する。値は別添QAに固定し、未指定・誤SHAは停止する。旧設置版がbaselineと1件でも違う場合、このpinが正しくても停止する。旧JAM全体をresources外で保全・照合してから同一ドライブ上で入れ替える。
+5. `UPDATED`の結果、`receipt`・`receiptSha256`・バックアップ場所を記録する。receiptは入れ替え前の固定記録なので内部状態は`PREPARED`で、`configReview`へ設定の前後SHA・変更有無・明示pinを記録する。更新後全件を照合し、定義再走査が必要な場合だけ`refresh`、JAMだけ`ensure flecity_jam`して`jam_status`を確認する。診断`jam_voice_diag`は単発の入力状態であり、実通話や聴感をPASSにしない。最終の設置・起動・ハッシュ結果は別添QAへ記録する。
 
 次回更新では、今回のreceiptとその `receiptSha256` を新しい `--baseline`、`--baseline-sha256` に指定できる。ロールバック済みの場合は現在設置中の版に対応する基準を使用する。
 

@@ -62,6 +62,51 @@ end)
 test('bucket switch removes previously authorized receiver',function()
     local f=fixture();f.start();f.packet({on(1)});f.people[2].bucket=2;f.e:tick();equal(f.messages[#f.messages].data.kind,'stop')
 end)
+
+test('15m routing includes 7m 10m and 14.9m but excludes the exact boundary and other buckets',function()
+    equal(JamConfig.Range,15.0)
+    local f=fixture()
+    for id,distance in pairs({[2]=7,[3]=10,[4]=14.9,[5]=15,[6]=20})do
+        f.people[id]={x=distance,y=0,z=0,bucket=0,alive=true}
+    end
+    f.people[7]={x=0,y=0,z=14.9,bucket=0,alive=true}
+    f.people[8]={x=0,y=0,z=15,bucket=0,alive=true}
+    f.people[9]={x=10,y=0,z=0,bucket=1,alive=true}
+    f.start();f.packet({on(1)});local recipients={}
+    for _,message in ipairs(f.messages)do
+        if message.event=='remote' then
+            recipients[message.target]=true
+            if message.data.kind=='snapshot' then equal(message.data.range,15.0)end
+        end
+    end
+    for _,id in ipairs({2,3,4,7})do assert(recipients[id],'missing recipient '..id)end
+    for _,id in ipairs({1,5,6,8,9})do assert(not recipients[id],'unauthorized recipient '..id)end
+end)
+
+test('15m performer and listener movement stop and resume held notes with ordered bucket transitions',function()
+    local f=fixture();f.people[2].x=10;f.start();f.packet({on(1)})
+    f.people[1].x=-10;f.advance(250);f.e:tick()
+    local stopped=f.messages[#f.messages];equal(stopped.target,2);equal(stopped.data.kind,'stop')
+    f.people[2].x=4;f.advance(250);f.e:tick()
+    local resumed=f.messages[#f.messages];equal(resumed.target,2);equal(resumed.data.kind,'snapshot')
+    assert(resumed.data.wire>stopped.data.wire);equal(resumed.data.notes[1].id,1);equal(resumed.data.notes[1].age,500)
+    f.people[1].bucket=2;f.e:tick();stopped=f.messages[#f.messages]
+    equal(stopped.target,2);equal(stopped.data.kind,'stop')
+    f.people[2].bucket=2;f.e:tick();resumed=f.messages[#f.messages]
+    equal(resumed.target,2);equal(resumed.data.kind,'snapshot');assert(resumed.data.wire>stopped.data.wire)
+    equal(resumed.data.notes[1].id,1);equal(resumed.data.notes[1].pitch,60)
+end)
+
+test('a new 14.9m listener receives sustained age and leaves cleanly at 20m',function()
+    local f=fixture();f.start();f.packet({on(1),{kind='pedal',down=true},{kind='off',id=1}})
+    f.people[5]={x=14.9,y=0,z=0,bucket=0,alive=true};f.advance(1200);f.e:tick()
+    local snapshot
+    for _,message in ipairs(f.messages)do if message.target==5 then snapshot=message.data end end
+    assert(snapshot and snapshot.kind=='snapshot');equal(snapshot.range,15.0);equal(snapshot.sustain,true)
+    equal(snapshot.notes[1].id,1);equal(snapshot.notes[1].held,false);equal(snapshot.notes[1].age,1200)
+    f.people[5].x=20;f.e:tick();local stopped=f.messages[#f.messages]
+    equal(stopped.target,5);equal(stopped.data.kind,'stop');assert(stopped.data.wire>snapshot.wire)
+end)
 test('multiple performers do not share notes or pedals',function()
     local f=fixture();local a=f.start();local b=f.start(2,'guitar');f.packet({on(1)});f.packet({on(1,64)},2)
     equal(a.notes[1].pitch,60);equal(b.notes[1].pitch,64);f.e:stop(1,'test');assert(f.e.sessions[2].notes[1])

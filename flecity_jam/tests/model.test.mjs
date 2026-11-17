@@ -112,6 +112,30 @@ test('expanded keyboard still obeys the 16-note polyphony limit',()=>{
 test('attenuation ends exactly at range and rejects invalid inputs',()=>{
   assert.equal(attenuation(0,7),1);assert(attenuation(3,7)>attenuation(5,7));assert.equal(attenuation(7,7),0);assert.equal(attenuation(100,7),0);assert.equal(attenuation(NaN,7),0);
 });
+test('15 metre attenuation keeps the existing quadratic curve at the requested distances',()=>{
+  const expected=new Map([[1,1],[3,144/196],[7,64/196],[10,25/196],[15,0],[20,0]]);
+  for(const [distance,gain]of expected)assert(Math.abs(attenuation(distance,15)-gain)<1e-12,`${distance}m`);
+  assert.equal(attenuation(0,15),1);assert.equal(attenuation(.5,15),1);
+});
+
+test('distance attenuation is bounded and monotonic for 15 metre and legacy 7 metre configurations',()=>{
+  for(const range of [7,15]){
+    let previous=1;
+    for(let step=0;step<=400;step++){
+      const distance=step/20,gain=attenuation(distance,range);
+      assert(Number.isFinite(gain)&&gain>=0&&gain<=1,`${range}m/${distance}m`);
+      assert(gain<=previous+1e-12,`${range}m/${distance}m increases`);previous=gain;
+    }
+    for(const distance of [range,range+.001,20])assert.equal(attenuation(distance,range),0);
+  }
+  for(const [distance,gain]of [[1,1],[3,4/9],[5,1/9],[7,0]])assert(Math.abs(attenuation(distance,7)-gain)<1e-12);
+});
+
+test('distance attenuation silences nonfinite distances and invalid configured ranges',()=>{
+  for(const distance of [NaN,Infinity,-Infinity,undefined,null,'7'])assert.equal(attenuation(distance,15),0);
+  for(const range of [NaN,Infinity,-Infinity,0,-1,undefined,null,'15'])assert.equal(attenuation(3,range),0);
+});
+
 test('sample layers and range stay consistent',()=>{
   assert.equal(selectSample(spec,60,50).layer,2);assert.equal(selectSample(spec,60,110).layer,4);
   for(const s of catalog.instruments)for(let n=s.min;n<=s.max;n++)if(s.kind!=='drums')assert(Math.abs(selectSample(s,n,100).midi-n)<=3,`${s.id}: ${n} exceeds 3 semitones`);

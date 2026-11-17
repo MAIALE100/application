@@ -215,7 +215,8 @@ def write_tree(target, data):
 
 
 def update(archive, expected_sha256, baseline, baseline_sha256,
-           apply=False, confirmed_stopped=False, fixture_resources=None):
+           apply=False, confirmed_stopped=False, fixture_resources=None,
+           reviewed_config_sha256=None):
     """Replace only a pinned JAM tree, retaining two verified full backups."""
     resources, target, backups = resource_paths(fixture_resources)
     no_links(target)
@@ -223,13 +224,21 @@ def update(archive, expected_sha256, baseline, baseline_sha256,
     previous = baseline_files(baseline, baseline_sha256)
     incoming, manifest = verified_archive(pathlib.Path(archive), expected_sha256)
     assert_tree(target, previous, 'installed JAM')
-    if (hashlib.sha256((target / 'config.lua').read_bytes()).hexdigest()
-            != hashlib.sha256(incoming['config.lua']).hexdigest()):
+    before_config = hashlib.sha256((target / 'config.lua').read_bytes()).hexdigest()
+    after_config = hashlib.sha256(incoming['config.lua']).hexdigest()
+    if (reviewed_config_sha256 is not None
+            and (not isinstance(reviewed_config_sha256, str)
+                 or reviewed_config_sha256.lower() != after_config)):
+        raise ValueError('CONFLICT_STOP: reviewed config.lua SHA-256 mismatch')
+    if before_config != after_config and reviewed_config_sha256 is None:
         raise ValueError('CONFLICT_STOP: config.lua requires explicit settings review')
     record = dict(status='PLAN_UPDATE', target=str(target), beforeFiles=len(previous),
                   afterFiles=len(incoming), archiveSha256=expected_sha256,
                   baselineSha256=baseline_sha256, serverStarted=False,
-                  otherResourcesChanged=False)
+                  otherResourcesChanged=False,
+                  configReview=dict(beforeSha256=before_config, afterSha256=after_config,
+                                    changed=before_config != after_config,
+                                    explicitPin=reviewed_config_sha256 is not None))
     if not apply:
         return record
     if not confirmed_stopped:
@@ -332,8 +341,12 @@ if __name__ == '__main__':
     parser.add_argument('--baseline', type=pathlib.Path)
     parser.add_argument('--baseline-sha256')
     parser.add_argument('--receipt-sha256')
+    parser.add_argument('--reviewed-config-sha256',
+                        help='Explicitly reviewed incoming config.lua SHA-256; update only')
     args = parser.parse_args()
     try:
+        if args.reviewed_config_sha256 is not None and not args.update:
+            raise ValueError('CONFLICT_STOP: reviewed config pin requires --update')
         if args.rollback:
             if not args.receipt_sha256:
                 raise ValueError('CONFLICT_STOP: --receipt-sha256 is required')
@@ -346,7 +359,8 @@ if __name__ == '__main__':
                     raise ValueError('CONFLICT_STOP: pinned baseline and SHA-256 are required')
                 result = update(pathlib.Path(package['file']), package['sha256'],
                                 args.baseline, args.baseline_sha256, args.apply,
-                                args.confirmed_stopped, args.fixture_resources)
+                                args.confirmed_stopped, args.fixture_resources,
+                                args.reviewed_config_sha256)
             else:
                 result = install(pathlib.Path(package['file']), package['sha256'],
                                  args.apply, args.fixture_resources)

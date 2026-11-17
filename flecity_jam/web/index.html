@@ -21,6 +21,7 @@
       <button id="start" class="primary">演奏する</button>
       <div class="octave"><span>PCの基準oct.</span><div><button id="octDown" aria-label="1オクターブ下げる">−</button><output id="octave">4</output><button id="octUp" aria-label="1オクターブ上げる">＋</button></div></div>
       <button id="sustain" aria-pressed="false"><span>サステイン</span><strong id="pedalState">OFF</strong><kbd>Space</kbd></button>
+      <button id="voice" aria-pressed="false" aria-describedby="voiceHelp" disabled><span>会話 · 押している間</span><strong id="voiceStatus" role="status">会話入力 停止</strong><kbd>N</kbd></button>
       <label class="slider">演奏音量 <output id="performValue">75%</output><input id="performVolume" aria-label="演奏音量" type="range" min="0" max="100" value="75"></label>
       <label class="slider">聴く音量 <output id="listenValue">65%</output><input id="listenVolume" aria-label="聴く音量" type="range" min="0" max="100" value="65"></label>
       <button id="mute" class="quiet" aria-pressed="false">消音</button>
@@ -39,10 +40,10 @@
       <div id="keyboardViewport" tabindex="0" aria-label="鍵盤表示。横スクロールで音域を移動"><div id="keyboard" class="keyboard" aria-label="鍵盤"></div></div>
       <div id="physicalLayout" aria-label="PC配列の案内。下の列が白鍵、上の列が黒鍵"></div>
       <p id="layoutHelp"></p>
-      <p class="input-hint">演奏画面はキー入力を専有します。PTT・無線・他の画面を使うときは <kbd>Esc</kbd> で閉じ、<kbd>/jam</kbd> で戻れます。</p>
+      <p id="voiceHelp" class="input-hint">演奏中の会話は <kbd>N</kbd> または会話ボタンを押している間。声が届かないときや無線・他画面を使うときは <kbd>Esc</kbd> で閉じてください。</p>
     </section>
     <footer>
-      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span><kbd>N</kbd> PTT予約</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 7m</span></div>
+      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span><kbd>N</kbd> 会話入力</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 15m</span></div>
       <div class="actions"><button id="panic" class="quiet">すべての音を止める</button><button id="settingsToggle" class="quiet" aria-expanded="false" aria-controls="settings">キー設定・MIDI</button></div>
     </footer>
     <section id="settings" aria-label="キー設定とMIDI" hidden>
@@ -51,7 +52,7 @@
       <div id="bindings"></div>
       <div class="settings-row"><button id="midiConnect">MIDIを接続</button><label>MIDI入力<select id="midiDevice" disabled><option>未接続</option></select></label><span id="midiStatus" role="status">対応環境でのみ利用できます</span></div>
       <div class="settings-row"><button id="metro" aria-pressed="false">メトロノーム OFF</button><label>テンポ <input id="bpm" type="number" min="40" max="240" value="100"></label><span>メトロノームは自分だけに聞こえます</span></div>
-      <p>配列切替とキー変更では発音中の音を止めます。演奏画面を閉じるとゲーム操作へ戻ります。専有入力中のPTT・無線の同時利用は環境依存です。Voice設定は変更しません。</p>
+      <p>配列切替とキー変更では発音中の音を止めます。会話入力はNまたは会話ボタンを押している間です。「送信状態を検出」は相手への到達を保証しません。無線を使うときはEscで閉じてください。Voice設定は変更しません。</p>
     </section>
   </main>
   <script type="module" src="app.mjs"></script>

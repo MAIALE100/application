@@ -1,6 +1,7 @@
 local handlers,callbacks,commands,threads,sent,messages={},{},{},{},{},{}
 local clock,dead,paused,focused,keepInput,otherUi=1000,false,false,false,false,false
 local focusWrites,keepInputWrites=0,0
+local controlWrites,detectedTalking={},false
 local currentPed=99
 local remotePresent=false
 local exported={}
@@ -27,6 +28,14 @@ function TriggerServerEvent(name,...)sent[#sent+1]={name=name,args={...}}end
 function CreateThread(fn)threads[#threads+1]=coroutine.create(fn)end
 function Wait(ms)coroutine.yield(ms)end
 function DisableControlAction(_,id)assert(id~=249,'PTT must not be disabled')end
+function SetControlNormal(pad,id,value)
+    assert(id==249 and (pad==0 or pad==1 or pad==2) and value==1.0,'only held PTT input may be injected')
+    controlWrites[#controlWrites+1]={pad=pad,id=id,value=value}
+end
+function IsControlEnabled()return true end
+function IsControlPressed()return #controlWrites>0 end
+function IsNuiFocusKeepingInput()return keepInput end
+function MumbleIsPlayerTalking()return detectedTalking and 1 or 0 end
 function DisablePlayerFiring()end
 function DoesEntityExist(ped)return remotePresent and ped==103 end
 function GetPlayerFromServerId(id)return id==3 and 3 or -1 end
@@ -46,6 +55,13 @@ local function call(name,data)
     local calls,result=0,nil
     callbacks[name](data or {},function(value)calls=calls+1;result=value end)
     assert(calls==1,'NUI callback must always respond exactly once');return result
+end
+local function voiceConfig()
+    for i=#messages,1,-1 do if messages[i].voice then return messages[i].voice end end
+    error('voice configuration missing')
+end
+local function frame()
+    assert(coroutine.resume(threads[1]))
 end
 test('another focused UI blocks opening without focus theft',function()
     otherUi=true;commands.jam(nil,{});assert(not focused);otherUi=false
@@ -138,6 +154,96 @@ test('resource stop while another UI owns focus does not release that UI',functi
     handlers.onClientResourceStop('flecity_jam')
     assert(focusWrites==beforeFocus and keepInputWrites==beforeKeep and IsNuiFocused())
     otherUi=false
+end)
+
+test('NUI PTT requires a current epoch strict boolean and monotonic bounded sequence',function()
+    commands.jam(nil,{});local config=voiceConfig();assert(config.enabled and type(config.token)=='string')
+    for _,data in ipairs({{token='stale',seq=1,held=true},{token=config.token,seq=1,held=1},
+        {token=config.token,seq=0,held=true},{token=config.token,seq=1.5,held=true},
+        {token=config.token,seq=2147483648,held=true},{token=config.token,seq=0/0,held=true}}) do
+        assert(not call('voice',data).ok)
+    end
+    assert(call('voice',{token=config.token,seq=1,held=true}).held)
+    assert(not call('voice',{token=config.token,seq=1,held=false}).ok)
+    assert(call('voice',{token=config.token,seq=2,held=false}).ok)
+    call('close');assert(not call('voice',{token=config.token,seq=3,held=true}).ok)
+end)
+
+test('PTT injects only native 249 every held frame without enabling game input or flooding NUI',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok)
+    frame();local writes,beforeMessages=#controlWrites,#messages;frame()
+    assert(#controlWrites==writes+3 and #messages==beforeMessages)
+    assert(controlWrites[writes+1].pad==0 and controlWrites[writes+2].pad==1 and controlWrites[writes+3].pad==2)
+    assert(focused and not keepInput)
+    detectedTalking=true;frame();assert(messages[#messages].type=='voiceState' and messages[#messages].talking)
+    detectedTalking=false;assert(call('voice',{token=token,seq=2,held=false}).ok)
+    writes=#controlWrites;frame();assert(#controlWrites==writes)
+    call('close')
+end)
+
+test('PTT renewals expire within 900ms and old renewals cannot resurrect an expired lease',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok)
+    clock=clock+200;assert(call('voice',{token=token,seq=2,held=true}).ok)
+    clock=clock+899;local writes=#controlWrites;frame();assert(#controlWrites==writes+3)
+    clock=clock+1;writes=#controlWrites;frame();assert(#controlWrites==writes)
+    assert(messages[#messages].type=='voiceState' and not messages[#messages].held and messages[#messages].expired)
+    assert(voiceConfig().token~=token)
+    assert(not call('voice',{token=token,seq=3,held=true}).ok)
+    call('close')
+end)
+
+test('a late renewal cannot extend an expired PTT lease before the next client frame',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok)
+    clock=clock+901;local writes=#controlWrites
+    assert(not call('voice',{token=token,seq=2,held=true}).ok)
+    assert(voiceConfig().token~=token and messages[#messages].expired and not messages[#messages].held)
+    frame();assert(#controlWrites==writes);call('close')
+end)
+
+test('performance stop rotates the PTT epoch and key release or close never writes a zero control',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok);frame()
+    local writes=#controlWrites;assert(call('stop').ok);assert(voiceConfig().token~=token)
+    assert(not call('voice',{token=token,seq=2,held=true}).ok);frame();assert(#controlWrites==writes)
+    token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    assert(call('voice',{token=token,seq=2,held=false}).ok);frame();assert(#controlWrites==writes)
+    call('close');assert(not voiceConfig().enabled);frame();assert(#controlWrites==writes)
+end)
+
+test('PTT fails closed on timer rollover and server stop or denial invalidate queued holds',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok)
+    local beforeClock,writes=clock,#controlWrites;clock=clock-2147483648;frame()
+    assert(#controlWrites==writes and voiceConfig().token~=token)
+    clock=beforeClock;assert(call('pulse').ok)
+    assert(call('start',{instrument='piano'}).ok);local request=sent[#sent].args[2]
+    token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    handlers['flecity_jam:control']({kind='denied',request=request,reason='permission'})
+    assert(voiceConfig().token~=token and not call('voice',{token=token,seq=2,held=true}).ok)
+    assert(call('start',{instrument='piano'}).ok);request=sent[#sent].args[2]
+    handlers['flecity_jam:control']({kind='started',request=request,session='voice-test',instrument='piano'})
+    token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    handlers['flecity_jam:control']({kind='stopped',session='voice-test'})
+    assert(voiceConfig().token~=token and not call('voice',{token=token,seq=2,held=true}).ok)
+    call('close')
+end)
+
+test('death focus loss disabled PTT and resource stop release a pending voice hold',function()
+    commands.jam(nil,{});local token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true}).ok);dead=true;local writes=#controlWrites;frame()
+    assert(not focused and #controlWrites==writes and not voiceConfig().enabled);dead=false
+    commands.jam(nil,{});token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    focused=false;writes=#controlWrites;frame();assert(#controlWrites==writes and voiceConfig().token~=token)
+    assert(not call('voice',{token=voiceConfig().token,seq=1,held=true}).ok);call('close')
+    JamConfig.PttControl=1;commands.jam(nil,{});token=voiceConfig().token
+    assert(not voiceConfig().enabled and not call('voice',{token=token,seq=1,held=true}).ok);call('close');JamConfig.PttControl=249
+    commands.jam(nil,{});token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    handlers.onClientResourceStop('flecity_jam');assert(not focused and not voiceConfig().enabled)
+    commands.jam(nil,{});assert(voiceConfig().token~=token)
+    assert(not call('voice',{token=token,seq=2,held=true}).ok);call('close')
 end)
 test('permission adapters fail closed for unavailable inventory',function()
     dofile('server/access.lua');JamConfig.Access='open';assert(JamHasAccess(1,'piano'))

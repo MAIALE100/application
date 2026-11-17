@@ -12,6 +12,8 @@ let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legac
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
 const pedalSources=new Set();
+const voiceSources=new Set();
+let voiceToken=null,voiceEnabled=false,voiceSeq=0,voiceTimer=0,voiceTalking=false,voiceLane={pending:false};
 const now=()=>performance.now();
 const resumeAudioButton=document.createElement('button');
 resumeAudioButton.id='resumeAudio';resumeAudioButton.type='button';resumeAudioButton.hidden=true;
@@ -51,6 +53,39 @@ async function bridge(name,data={}) {
     const response=await fetch(`https://${resource}/${name}`,{method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify(data),signal:abort.signal});
     if(!response.ok)throw Error('NUI connection');return await response.json();
   }finally{clearTimeout(timeout);}
+}
+function drawVoice() {
+  const held=voiceSources.size>0;
+  $('voice').disabled=!voiceEnabled;$('voice').setAttribute('aria-pressed',String(held));
+  $('voiceStatus').textContent=preview?(held?'試奏・会話入力のみ':'試奏・マイク送信なし'):voiceTalking?'送信状態を検出':held?'PTT入力中':voiceEnabled?'会話入力 待機':'会話入力 停止';
+}
+function releaseVoice(tellGame=true) {
+  const wasHeld=voiceSources.size>0;voiceSources.clear();clearInterval(voiceTimer);voiceTimer=0;
+  if(wasHeld&&tellGame)sendVoice(false);drawVoice();
+}
+function configureVoice(voice) {
+  const enabled=voice?.enabled===true&&typeof voice.token==='string'&&voice.token.length>0;
+  if(voiceToken!==voice?.token||!enabled){releaseVoice(false);voiceSeq=0;voiceTalking=false;voiceLane={pending:false};}
+  voiceToken=enabled?voice.token:null;voiceEnabled=enabled;drawVoice();
+}
+function sendVoice(held) {
+  const token=voiceToken,lane=voiceLane;if(!token||(held&&lane.pending))return;
+  const seq=++voiceSeq;lane.pending=true;
+  const fail=()=>{
+    if(voiceToken!==token||voiceSeq!==seq||!held)return;
+    releaseVoice(false);voiceEnabled=false;drawVoice();
+    bridge('voice',{token,seq:++voiceSeq,held:false}).catch(()=>{});
+    error('会話入力の応答を確認できません。Escで閉じて会話し、JAMを開き直してください。');
+  };
+  bridge('voice',{token,seq,held}).then(result=>{if(!result.ok)fail();}).catch(fail).finally(()=>{lane.pending=false;});
+}
+function voiceSource(source,down) {
+  if(down&&(!shown||!voiceEnabled))return;
+  const wasHeld=voiceSources.size>0;
+  if(down)voiceSources.add(source);else voiceSources.delete(source);
+  const held=voiceSources.size>0;
+  if(held!==wasHeld){sendVoice(held);clearInterval(voiceTimer);voiceTimer=held?setInterval(()=>sendVoice(true),200):0;}
+  drawVoice();
 }
 function failTransport() {
   stop();error('演奏の通信が途切れました。音を止めました。もう一度「演奏する」を押してください。');
@@ -179,7 +214,7 @@ function changeLayout(next) {
 function bindings() {
   $('bindings').replaceChildren();keys.forEach((code,i)=>{
     const b=document.createElement('button');b.textContent=noteName((model.octave+1)*12+i)+' · '+keyLabel(code);b.classList.toggle('capturing',capture===i);
-    b.addEventListener('click',()=>{panic();capture=i;bindings();$('status').textContent='割り当てるキーを押してください。Escで中止。';});$('bindings').append(b);
+    b.addEventListener('click',()=>{releaseVoice();panic();capture=i;bindings();$('status').textContent='割り当てるキーを押してください。Escで中止。';});$('bindings').append(b);
   });
 }
 async function start() {
@@ -221,6 +256,7 @@ function control(data) {
   } else if(data.session===session && data.kind==='resync')syncInput();
 }
 function stop() {
+  releaseVoice();
   const wasActive=session||starting;startGeneration++;session=null;starting=false;pending=[];clearTimeout(flushTimer);flushTimer=0;
   transport={session:null,queue:Promise.resolve(),queued:0};
   pedalSources.clear();model?.panic();audio?.remove('local');
@@ -230,7 +266,7 @@ function stop() {
 }
 function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {stop();configureVoice(null);stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
 function promptListenAudio() {
   if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
   resumeAudioButton.hidden=false;
@@ -260,7 +296,8 @@ async function checkListenAudio(manual=false) {
 resumeAudioButton.onclick=()=>checkListenAudio(true);
 function open(data={}) {
   shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
-  choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||7}m`;
+  configureVoice(data.voice||(preview?{token:'preview',enabled:true}:null));
+  choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||15}m`;
   if(!validBindings(keys,reserved,layout))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';
   $('instrument').focus();
@@ -312,19 +349,24 @@ window.addEventListener('keydown',e=>{
     if(!validBindings(proposal,reserved,layout)){error('そのキーは予約済み、重複、または使用できないキーです。');return;}
     keys=proposal;capture=null;model.bindings=[...keys];save();bindings();drawKeys();error();return;
   }
-  if(!session||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
+  if(e.code==='KeyN'){e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('keyboard',true);return;}
+  if(!session)return;
   if(e.repeat){if(e.code==='Space'||e.code==='ArrowDown'||e.code==='ArrowUp'||model.pitch(e.code)!==undefined){e.preventDefault();e.stopPropagation();}return;}
   if(e.code==='Space' && e.target.tagName!=='BUTTON'){e.preventDefault();e.stopPropagation();pedal('keyboard',true);return;}
   if(e.code==='ArrowDown'||e.code==='ArrowUp'){e.preventDefault();e.stopPropagation();shiftOctave(e.code==='ArrowDown'?-1:1);return;}
   const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();model.press('key:'+e.code,pitch);
 });
-window.addEventListener('keyup',e=>{if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
+window.addEventListener('keyup',e=>{if(voiceSources.has('button:'+e.code)){e.preventDefault();e.stopPropagation();voiceSource('button:'+e.code,false);}if(e.code==='KeyN'&&voiceSources.has('keyboard')){e.preventDefault();e.stopPropagation();voiceSource('keyboard',false);}if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
 window.addEventListener('blur',()=>{if(shown)close();else stopMetronome();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(shown)close();replicas.clear();audio?.stopAll();}});
 window.addEventListener('pagehide',()=>{if(shown)close();audio?.stopAll();});
 
 $('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=panic;
+$('voice').addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();$('voice').setPointerCapture(e.pointerId);voiceSource('pointer:'+e.pointerId,true);$('playArea').focus({preventScroll:true});});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])$('voice').addEventListener(type,e=>voiceSource('pointer:'+e.pointerId,false));
+for(const type of ['keydown','keyup'])$('voice').addEventListener(type,e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('button:'+e.code,type==='keydown');});
 $('instrument').onchange=()=>{stop();choose($('instrument').value);};
 $('octDown').onclick=()=>{shiftOctave(-1);$('playArea').focus();};
 $('octUp').onclick=()=>{shiftOctave(1);$('playArea').focus();};
@@ -356,6 +398,7 @@ function message(data) {
   else if(data.type==='notice')notice(data.message);
   else if(data.type==='toggleMute'){setMuted(!muted);notice(muted?'JAMを消音しました。/jammute で解除。':'JAMの消音を解除しました。');}
   else if(data.type==='config'){reserved=data.reserved||[];}
+  else if(data.type==='voiceState'&&shown){configureVoice(data.voice);voiceTalking=data.talking===true;if(data.expired===true)releaseVoice(false);drawVoice();}
 }
 let booting=false,bootReady=false,bootFailed=false,bootShown=false,preloading=false;
 const early=[];window.addEventListener('message',e=>{

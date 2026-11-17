@@ -1,6 +1,12 @@
 # Flecity JAM scope (2026-11-16)
 
-## Current handoff — 2026-11-17
+## Current handoff — 2026-11-18
+
+The active 0.3.2-test candidate adds N/hold-button secondary PTT input to native249 without changing keepInput=false, Voice settings, mic enable/mute/privacy guards or radio behavior. Renew every200ms with a900ms lease, per-open token and monotonic seq; release on keyup, blur, close, death, timeout and resource stop/restart. UI held/detected states are not proof a listener hears voice. The cause of0.3.1 VC failure is not established; Cfx has a PTT-specific path, so do not attribute it solely to keepInput=false. Esc close is the fallback.
+
+The user explicitly requested JAM Range7→15m; only that config value/comment changes, with PttControl249 and reservedN retained. Keep quadratic attenuation, rolloffFactor0 and58 samples unchanged. This is independent of native Voice3m. The installer remains fail-closed unless an exact reviewed incoming configSHA256 pin is supplied; preserve baseline, full backup, receipt configReview and rollback. No Voice/DB/other paused app changes.
+
+The user's0.3.1 notebook results: operation, instrument audio, surrounding sharing/attenuation and2+ ensemble PASS; own VC during JAM FAIL, immediately restored by Esc. These results do not certify0.3.2. Current candidate automatic counts/deployment are pending fresh QA, and all0.3.2 FiveM acceptance remains NOT_RUN on the user's notebook only. Do not launch desktop FiveM. Baseline81 and protected5304+5 are in voice-range-20261118. Older records below describe earlier snapshots.
 
 0.3.1-test is installed and started on Test_01. Fixed source7e97bade passed132 local checks; installed81/81, previous0.3.0 backup81/81, copy rollback81→81→81, protected5304 files+5 configs+txAdmin unchanged. Receipt jam-update-1ed9e34d/receipt.json SHA2562563ad116ebad748cf386c1144b0a903b7c95732fb7b12ca9c5f8477052d31ed. The latest package, QA and three notebook steps are in outputs/FLECITY_JAM_20261116/piano-keyboard-20261117/ in the original chat workspace. Actual FiveM keyboard/audio/U-J/PTT remain NOT_RUN; do not launch desktop FiveM. Other FLECITY apps stay paused. Read this newer handoff before the historical candidate notes below.
 

@@ -1,6 +1,6 @@
 JamConfig = {
     Command = 'jam',
-    Range = 7.0, -- metres; installed pma-voice defaults to 3m (native) / 7m (non-native).
+    Range = 15.0, -- instrument audio metres; independent of normal voice proximity.
     MaxPerformers = 8,
     MaxNotes = 16,
     MaxOps = 32,

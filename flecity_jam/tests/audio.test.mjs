@@ -10,7 +10,7 @@ class Param {
   cancelAndHoldAtTime(){}
 }
 class Node {
-  connect(node){return node;}
+  connect(node){this.destination=node;return node;}
   disconnect(){this.disconnected=true;}
 }
 class Buffer {
@@ -90,4 +90,29 @@ test('stalled sample decode also times out and remains retryable',async t=>{
   await Promise.resolve();await Promise.resolve();t.mock.timers.tick(8000);await rejected;
   assert.equal(rack.loading.size,0);
   rack.decoder.decodeAudioData=async()=>new Buffer();await rack.load('piano');assert.equal(rack.buffers.size,1);
+});
+
+
+test('remote audio applies one manual distance curve with panner rolloff disabled',t=>{
+  globals(t);const ctx=new Context();
+  ctx.listener=Object.fromEntries(['positionX','positionY','positionZ','forwardX','forwardY','forwardZ','upX','upY','upZ'].map(name=>[name,new Param()]));
+  ctx.createPanner=()=>Object.assign(new Node(),{positionX:new Param(),positionY:new Param(),positionZ:new Param(),rolloffFactor:1});
+  const rack=new AudioRack(catalog,ctx),listener={x:0,y:0,z:0,fx:0,fy:1,fz:0};
+  const slot=rack.slot(2,'piano',15,'range15');slot.volume=.8;
+  assert.equal(slot.gain.destination,slot.panner);assert.equal(slot.panner.destination,rack.master);
+  assert.equal(slot.panner.panningModel,'HRTF');assert.equal(slot.panner.distanceModel,'inverse');
+  assert.equal(slot.panner.rolloffFactor,0);assert.equal(slot.panner.refDistance,1);assert.equal(slot.panner.maxDistance,15);
+  assert.equal(slot.gain.gain.value,0,'remote source stays silent before its position is known');
+  for(const [distance,scale]of [[1,1],[3,144/196],[7,64/196],[10,25/196],[15,0],[20,0]]){
+    rack.positions(listener,[{player:2,x:distance,y:0,z:0}]);
+    assert.equal(slot.distance,distance);
+    assert(Math.abs(slot.gain.gain.value-.8*scale)<1e-12,`${distance}m gain should use the distance curve once`);
+  }
+  rack.positions(listener,[]);assert.equal(slot.gain.gain.value,0,'missing source position silences remote audio');
+  const legacy=rack.slot(3,'piano',7,'legacy7');legacy.volume=.5;
+  rack.positions(listener,[{player:3,x:3,y:0,z:0}]);
+  assert.equal(legacy.range,7);assert.equal(legacy.panner.maxDistance,7);assert.equal(legacy.panner.rolloffFactor,0);
+  assert(Math.abs(legacy.gain.gain.value-.5*4/9)<1e-12,'explicit legacy range keeps its previous gain');
+  const local=rack.slot('local','piano',15);local.volume=.6;rack.updateGain('local',local);
+  assert.equal(local.panner,null);assert.equal(local.gain.gain.value,.6,'local monitoring receives no distance attenuation');
 });

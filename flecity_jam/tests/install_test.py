@@ -4,6 +4,9 @@ import hashlib
 import importlib.util
 import json
 import pathlib
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -180,6 +183,79 @@ class InstallTests(unittest.TestCase):
             installer.rollback(result['receipt'], result['receiptSha256'],
                                True, True, self.resources)
         installer.assert_tree(pathlib.Path(result['backup']), original, 'safe backup')
+
+    def test_config_update_requires_exact_reviewed_incoming_pin(self):
+        target = self.initial()
+        baseline, baseline_sha, original = self.baseline()
+        config = b'JamConfig = {Range=15}\n'
+        incoming, incoming_sha = self.make_archive('reviewed-config', config=config)
+        for pin in (None, '0' * 64, sha((target / 'config.lua').read_bytes())):
+            with self.subTest(pin=pin), self.assertRaisesRegex(ValueError, 'CONFLICT_STOP'):
+                installer.update(incoming, incoming_sha, baseline, baseline_sha,
+                                 True, True, self.resources, pin)
+            installer.assert_tree(target, original, 'review did not authorize config')
+        self.assertFalse((self.resources.parent / 'flecity-jam-backups').exists())
+
+    def test_reviewed_config_update_records_hashes_and_rolls_back(self):
+        target = self.initial()
+        baseline, baseline_sha, original = self.baseline()
+        config = b'JamConfig = {Range=15}\n'
+        incoming, incoming_sha = self.make_archive('reviewed-config', config=config)
+        plan = installer.update(incoming, incoming_sha, baseline, baseline_sha,
+                                fixture_resources=self.resources,
+                                reviewed_config_sha256=sha(config))
+        self.assertEqual(plan['configReview'], dict(
+            beforeSha256=sha((target / 'config.lua').read_bytes()),
+            afterSha256=sha(config), changed=True, explicitPin=True))
+        installer.assert_tree(target, original, 'reviewed plan is read-only')
+        result = installer.update(incoming, incoming_sha, baseline, baseline_sha,
+                                  True, True, self.resources, sha(config))
+        receipt = json.loads(pathlib.Path(result['receipt']).read_text())
+        self.assertEqual(receipt['configReview'], plan['configReview'])
+        self.assertEqual((target / 'config.lua').read_bytes(), config)
+        installer.rollback(result['receipt'], result['receiptSha256'],
+                           True, True, self.resources)
+        installer.assert_tree(target, original, 'reviewed config restored exactly')
+
+    def test_reviewed_config_pin_cannot_bypass_installed_drift(self):
+        target = self.initial()
+        baseline, baseline_sha, _ = self.baseline()
+        config = b'JamConfig = {Range=15}\n'
+        incoming, incoming_sha = self.make_archive('reviewed-config', config=config)
+        (target / 'web/index.html').write_bytes(b'concurrent local edit')
+        with self.assertRaisesRegex(ValueError, 'CONFLICT_STOP: installed JAM'):
+            installer.update(incoming, incoming_sha, baseline, baseline_sha,
+                             True, True, self.resources, sha(config))
+        self.assertEqual((target / 'config.lua').read_bytes(), b'JamConfig = {}\n')
+        self.assertEqual((target / 'web/index.html').read_bytes(), b'concurrent local edit')
+        self.assertFalse((self.resources.parent / 'flecity-jam-backups').exists())
+
+    def test_cli_passes_exact_reviewed_config_pin_to_update(self):
+        # A copied tool gets its own STATE/package-result, never the real install state.
+        workspace = self.base / 'cli-workspace'
+        script = workspace / 'flecity_jam/devtools/install.py'
+        script.parent.mkdir(parents=True)
+        shutil.copyfile(ROOT / 'devtools/install.py', script)
+        state = workspace / '.flecity-dev/jam'
+        self.resources = state / 'install-fixtures/cli/resources'
+        self.resources.mkdir(parents=True)
+        target = self.initial()
+        baseline, baseline_sha, original = self.baseline()
+        config = b'JamConfig = {Range=15}\n'
+        incoming, incoming_sha = self.make_archive('cli-config', config=config)
+        (state / 'dist').mkdir()
+        (state / 'dist/package-result.json').write_text(json.dumps(
+            dict(file=str(incoming), sha256=incoming_sha)), encoding='utf-8')
+        command = [sys.executable, str(script), '--update', '--baseline', str(baseline),
+                   '--baseline-sha256', baseline_sha, '--fixture-resources', str(self.resources)]
+        blocked = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(blocked.returncode, 1)
+        self.assertIn('explicit settings review', json.loads(blocked.stdout)['error'])
+        planned = subprocess.run(command + ['--reviewed-config-sha256', sha(config)],
+                                 capture_output=True, text=True)
+        self.assertEqual(planned.returncode, 0, planned.stdout + planned.stderr)
+        self.assertTrue(json.loads(planned.stdout)['configReview']['explicitPin'])
+        installer.assert_tree(target, original, 'CLI plan leaves fixture unchanged')
 
     def test_swap_failure_restores_original(self):
         target = self.initial()

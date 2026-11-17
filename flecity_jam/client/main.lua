@@ -3,10 +3,50 @@ local shown,session,request,pending,lastUi = false,nil,0,nil,0
 local peers = {}
 local wires = {}
 local function nui(data) SendNUIMessage(data) end
+local voiceEpoch,voiceSeq,voiceHeld,voiceUntil = 0,0,false,0
+local voiceToken,lastVoice = nil,nil
+local function voiceConfig()
+    return {token=voiceToken,enabled=shown and JamConfig.PttControl==249}
+end
+local function talking()
+    if type(MumbleIsPlayerTalking)~='function' then return false end
+    local value=MumbleIsPlayerTalking(PlayerId())
+    return value==true or value==1
+end
+local function publishVoice(expired)
+    local detected=shown and talking() or false
+    local config=voiceConfig()
+    if not lastVoice or lastVoice.held~=voiceHeld or lastVoice.talking~=detected
+        or lastVoice.token~=voiceToken or lastVoice.enabled~=config.enabled then
+        lastVoice={held=voiceHeld,talking=detected,token=voiceToken,enabled=config.enabled}
+        nui({type='voiceState',held=voiceHeld,talking=detected,expired=expired==true,voice=config})
+    end
+end
+local function resetVoice(expired)
+    voiceEpoch=voiceEpoch+1
+    voiceToken=('%d:%d'):format(GetGameTimer(),voiceEpoch)
+    voiceSeq,voiceHeld,voiceUntil=0,false,0
+    publishVoice(expired)
+end
+local function hasVoiceLease()
+    local remaining=voiceUntil-GetGameTimer()
+    return voiceHeld and remaining>0 and remaining<=900
+end
+local function updateVoice()
+    if voiceHeld and (not hasVoiceLease() or not IsNuiFocused() or JamConfig.PttControl~=249) then
+        resetVoice(true);return
+    end
+    if shown and voiceHeld then
+        -- Same secondary-PTT input as pma-voice; never enable/mute/change Voice itself.
+        SetControlNormal(0,249,1.0);SetControlNormal(1,249,1.0);SetControlNormal(2,249,1.0)
+    end
+    publishVoice(false)
+end
 local function close(reason)
     local old = session
     local ownedFocus = shown
     shown,session,pending = false,nil,nil
+    resetVoice()
     if old then TriggerServerEvent('flecity_jam:stop',old) end
     JamPresentation.stop()
     if ownedFocus then SetNuiFocus(false,false); SetNuiFocusKeepInput(false) end
@@ -19,12 +59,20 @@ local function open(instrument,listenOnly)
     end
     shown,lastUi = true,GetGameTimer()
     SetNuiFocus(true,true); SetNuiFocusKeepInput(false)
-    nui({type='open',instrument=instrument,listenOnly=listenOnly==true,range=JamConfig.Range,reserved=JamConfig.ReservedKeys})
+    resetVoice()
+    nui({type='open',instrument=instrument,listenOnly=listenOnly==true,range=JamConfig.Range,reserved=JamConfig.ReservedKeys,voice=voiceConfig()})
 end
 RegisterCommand(JamConfig.Command,function(_,args) open(args[1],false) end,false)
 RegisterCommand('jamstop',function() close('command') end,false)
 RegisterCommand('jamlisten',function() open(nil,true) end,false)
 RegisterCommand('jammute',function() nui({type='toggleMute'}) end,false)
+RegisterCommand('jam_voice_diag',function()
+    local enabled=type(IsControlEnabled)=='function' and IsControlEnabled(0,249) or false
+    local pressed=type(IsControlPressed)=='function' and IsControlPressed(0,249) or false
+    local keep=type(IsNuiFocusKeepingInput)=='function' and IsNuiFocusKeepingInput() or false
+    print(('[JAM] voice held=%s lease=%s control249_enabled=%s pressed=%s mumble_detected=%s focused=%s keepInput=%s; hearing NOT_VERIFIED')
+        :format(tostring(voiceHeld),tostring(shown and hasVoiceLease()),tostring(enabled),tostring(pressed),tostring(talking()),tostring(IsNuiFocused()),tostring(keep)))
+end,false)
 exports('OpenInstrument',function(instrument) open(instrument,false) end)
 exports('StopPerformance',function() close('external') end)
 exports('IsPerforming',function() return session ~= nil end)
@@ -42,6 +90,16 @@ RegisterNUICallback('ready',function(_,cb)
     cb({ok=true})
 end)
 RegisterNUICallback('pulse',function(_,cb) lastUi=GetGameTimer(); cb({ok=true}) end)
+RegisterNUICallback('voice',function(data,cb)
+    if voiceHeld and not hasVoiceLease() then resetVoice(true) end
+    if not shown or JamConfig.PttControl~=249 or type(data)~='table' or data.token~=voiceToken
+        or type(data.held)~='boolean' or type(data.seq)~='number' or data.seq<1 or data.seq>2147483647
+        or data.seq%1~=0 or data.seq<=voiceSeq then cb({ok=false});return end
+    if data.held and (not IsNuiFocused() or IsPauseMenuActive() or IsEntityDead(PlayerPedId()) or not JamConfig.CanStartClient()) then cb({ok=false});return end
+    voiceSeq,voiceHeld=data.seq,data.held
+    voiceUntil=data.held and GetGameTimer()+900 or 0
+    publishVoice(false);cb({ok=true,held=voiceHeld})
+end)
 RegisterNUICallback('start',function(data,cb)
     if not shown or pending or session or type(data)~='table' or type(data.instrument) ~= 'string' or #data.instrument>32 or not JamConfig.CanStartClient() then cb({ok=false}); return end
     request=request+1; pending=request
@@ -55,6 +113,7 @@ RegisterNUICallback('input',function(data,cb)
 end)
 RegisterNUICallback('stop',function(_,cb)
     local old=session; session,pending=nil,nil
+    resetVoice()
     if old then TriggerServerEvent('flecity_jam:stop',old) end
     JamPresentation.stop(); cb({ok=true})
 end)
@@ -68,10 +127,10 @@ RegisterNetEvent('flecity_jam:control',function(data)
         CreateThread(function() JamPresentation.start(data.instrument,function() return session==expected end) end)
     elseif data.kind=='denied' then
         if data.request~=pending then return end
-        pending=nil
+        pending=nil;resetVoice()
     elseif data.kind=='stopped' then
         if data.session~=session then return end
-        session=nil; JamPresentation.stop()
+        session=nil;resetVoice();JamPresentation.stop()
     elseif data.session~=session then return end
     nui({type='control',data=data})
 end)
@@ -130,6 +189,7 @@ CreateThread(function()
             DisablePlayerFiring(PlayerId(),true)
             if IsEntityDead(PlayerPedId()) or IsPedRagdoll(PlayerPedId()) or IsPedInAnyVehicle(PlayerPedId(),false)
                 or IsPauseMenuActive() or not JamConfig.CanStartClient() or GetGameTimer()-lastUi>4500 then close('interrupted') end
+            if shown then updateVoice() end
         end
     end
 end)

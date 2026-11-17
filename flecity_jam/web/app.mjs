@@ -7,7 +7,7 @@ const preview=typeof GetParentResourceName!=='function';
 const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
 let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[],keys=[...DEFAULT_KEYS];
-let listen=.65,muted=false,metronome=null,nextBeat=0,beat=0,noticeTimer=0;
+let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
 const pedalSources=new Set();
 const now=()=>performance.now();
@@ -193,10 +193,15 @@ function open(data={}) {
   }else audio.unlock().catch(()=>{});
 }
 function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'消音中':'消音';save();}
-function stopMetronome() {clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
+function stopMetronome() {metroGeneration++;metroPending=false;clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-busy','false');$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
 async function toggleMetronome() {
-  if(metronome){stopMetronome();return;}
-  try{if(!await audio.unlock())throw Error('audio suspended');}catch{error('音声を開始できません。');return;}
+  if(metronome||metroPending){stopMetronome();return;}
+  const generation=++metroGeneration;metroPending=true;$('metro').setAttribute('aria-busy','true');
+  try{if(!await audio.unlock())throw Error('audio suspended');}catch{
+    if(generation===metroGeneration){stopMetronome();error('音声を開始できません。');}return;
+  }
+  if(generation!==metroGeneration||!shown)return;
+  metroPending=false;$('metro').setAttribute('aria-busy','false');
   beat=0;nextBeat=audio.ctx.currentTime+.05;$('metro').setAttribute('aria-pressed','true');$('metro').textContent='メトロノーム ON';
   metronome=setInterval(()=>{
     const bpm=Math.max(40,Math.min(240,Number($('bpm').value)||100));

@@ -20,18 +20,18 @@
 
 ## 更新
 
-2026-11-16時点のテストサーバー設置版は99ファイルで、元の固定コミット `c4d8f839bdcd02b26b37ddccd11ee8ff0dbf189b` から `web/index.html` と `web/style.css` の互換修正だけが異なります。更新の旧版基準には、この互換修正を含む `COMPAT_CANDIDATE.json` を使用し、そのファイル自身のSHA-256 `CB0CEC64EE6A7B1CC498D70B0ADF72789F40A65A5303C4D6F388ABB1533F0280` を別途照合します。別のサーバーや後続更新にこの値を使い回さないでください。
+更新元の版に対応する固定ファイル一覧と、その一覧のSHA-256を用意します。前回更新のreceiptには更新後全ファイルの `afterManifest` があるため、そのreceiptを次回の基準として利用できます。別の版・サーバー・ロールバック前のハッシュを使い回さないでください。現在のファイルが基準と違う場合は、差分を調査してから進めます。
 
 1. 作業中の別の自動化・演奏セッションを確認する。配布ZIPを作成し、`SHA256SUMS.txt` と `MANIFEST.json` を照合する。
 2. 管理コンソールで `stop flecity_jam` を実行する。サーバー全体を再起動しない。
-3. 以下の計画コマンドで、現行99ファイルと指定した旧版基準の全件SHA256を照合する。`<基準一覧の絶対パス>` には保存済みの `COMPAT_CANDIDATE.json` の実パスを指定する。
+3. 以下の計画コマンドで、現行JAMと指定した更新元基準の全件SHA256を照合する。
 
    ```text
-   python flecity_jam/devtools/install.py --update --baseline "<基準一覧の絶対パス>" --baseline-sha256 CB0CEC64EE6A7B1CC498D70B0ADF72789F40A65A5303C4D6F388ABB1533F0280
+   python flecity_jam/devtools/install.py --update --baseline "<基準一覧または前回receiptの絶対パス>" --baseline-sha256 <基準ファイルのSHA256>
    ```
 
 4. `PLAN_UPDATE` と設定の一致を確認後、同じコマンドへ `--confirmed-stopped --apply` を追加する。旧JAM全体のコピーをresources外へ作成・照合してから、同一ドライブ上の準備済み版と入れ替える。旧設定 `config.lua` と新ZIPの設定が異なる場合、勝手に移行せず `CONFLICT_STOP` で停止する。更新前に現行設置ファイルが1件でも異なる場合も停止する。
-5. `UPDATED` の結果、返された `receipt` と `receiptSha256`、バックアップ場所を記録する。receiptは入れ替え前に書き込む固定の復旧記録なので、内部状態は `PREPARED` と表示される。更新後のJAM全件SHA256を確認し、管理コンソールで `ensure flecity_jam`。実機の音声・終了・距離・複数人テストを確認する。
+5. `UPDATED` の結果、返された `receipt` と `receiptSha256`、バックアップ場所を記録する。receiptは入れ替え前に書き込む固定の復旧記録なので、内部状態は `PREPARED` と表示される。更新後のJAM全件SHA256を確認し、管理コンソールで `refresh`、`ensure flecity_jam`、`jam_status`。表示バージョンを確認し、実機の音声・終了・距離・複数人テストを確認する。
 
 次回更新では、今回のreceiptとその `receiptSha256` を新しい `--baseline`、`--baseline-sha256` に指定できる。ロールバック済みの場合は現在設置中の版に対応する基準を使用する。
 

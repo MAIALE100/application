@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
 const require=createRequire(import.meta.url);
 export async function staticChecks(ctx) {
-  ctx.exec('Keyboard / replica / audio / MIDI unit tests',process.execPath,['--test','tests/model.test.mjs','tests/audio.test.mjs','tests/midi.test.mjs']);
+  ctx.exec('Keyboard / replica / audio / MIDI unit tests',process.execPath,['--test','tests/model.test.mjs','tests/audio.test.mjs','tests/audio-deferred.test.mjs','tests/midi.test.mjs']);
   await ctx.check('Licensed audio inventory and hashes',()=>{
     const catalog=JSON.parse(ctx.read('web/catalog.json'));let files=0;
     for(const spec of catalog.instruments) {
@@ -26,7 +26,7 @@ export async function staticChecks(ctx) {
     walk(ctx.source);return n+' Lua files parsed';
   });else ctx.skip('Lua parser','Install luaparse or use native luac5.4');
   const runtime=path.resolve(ctx.source,'../.flecity-dev/tools/fengari-node-cli-0.1.0/node_modules/fengari-node-cli/src/lua-cli.js');
-  for(const [file,expected]of [['engine.lua',21],['client.lua',10]]){
+  for(const [file,expected]of [['engine.lua',21],['client.lua',11]]){
     if(!fs.existsSync(runtime)){ctx.skip('Lua simulation: '+file,'Fengari unavailable; run lua5.4 tests/'+file);continue;}
     await ctx.check('Lua simulation: '+file,()=>{
       const run=spawnSync(process.execPath,[runtime,'tests/'+file],{cwd:ctx.source,encoding:'utf8',timeout:60000,windowsHide:true});

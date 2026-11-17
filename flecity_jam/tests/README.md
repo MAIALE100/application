@@ -1,6 +1,6 @@
 # Flecity JAMの試験
 
-このファイルのコマンドは0.2.1-testのローカル試験です。件数やPASS/FAILは実行ごとの別添QAレポートで記録し、過去版の件数と合算しません。
+このファイルのコマンドは0.2.2-testのローカル試験です。件数やPASS/FAILは実行ごとの別添QAレポートで記録し、過去版の件数と合算しません。
 
 リソースディレクトリで実行します。
 
@@ -14,7 +14,7 @@
 
 共通開発基盤の静的検査はリポジトリルートで `node devtools/flecity/cli.mjs test flecity_jam --suite static`。他アプリの試験や旧式の全アプリ自動更新を開始しないでください。
 
-Luaのネイティブ検査は利用可能なLua 5.4環境で `lua5.4 tests/engine.lua`、`lua5.4 tests/client.lua` を実行します。このPCの通常のPATHにはLua実行ファイルが見つかっていません。Fengariによる代替はLua 5.3相当の模擬検査であり、ネイティブLua 5.4やFiveMのPASSとは分けて記録します。
+Luaのネイティブ検査は利用可能なLua 5.4環境で `lua5.4 tests/engine.lua`、`lua5.4 tests/client.lua` を実行します。2026-11-17は既存の `.flecity-dev/tools/lua-5.4.8-verified/lua54.exe` で32件PASSしました。ネイティブLuaで実行してもFiveMのAPIはモックです。FengariはLua 5.3相当の別実行環境であり、件数を重複加算しません。
 
 ブラウザー試験は既存の `.flecity-dev/local.json` 設定、`JAM_PLAYWRIGHT_MODULE`、または導入済みPlaywrightを使います。`JAM_SOAK_SECONDS=120` で2分間の音声ソークを有効にできます。結果は `.flecity-dev/jam/browser/` に保存します。外部サーバーや実FiveMには接続しません。
 

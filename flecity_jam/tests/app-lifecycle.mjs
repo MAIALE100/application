@@ -113,6 +113,18 @@ try {
   await page.click('#settingsToggle');
   console.log('PASS metronome rejects unavailable audio (mock NUI)');
 
+  await page.click('#settingsToggle');
+  await page.evaluate(()=>{window.__holdUnlockOnce=true;});
+  await page.click('#metro');
+  await page.waitForFunction(()=>typeof window.__releaseHeldUnlock==='function');
+  await page.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'close'}})));
+  await page.evaluate(()=>window.__releaseHeldUnlock(true));
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('#metro').getAttribute('aria-pressed'),'false','closing during audio unlock must cancel metronome start');
+  await page.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'open',range:7}})));
+  if(await page.locator('#settings').isVisible())await page.click('#settingsToggle');
+  console.log('PASS closing during pending metronome start cannot leave hidden ticking (mock NUI)');
+
   await page.waitForFunction(()=>{
     const r=window.__rack,s=r?.catalog.get('piano');
     return s?.samples.every(sample=>r.buffers.has(sample.file));

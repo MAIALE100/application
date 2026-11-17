@@ -108,6 +108,28 @@ try {
     });
     assert(metrics.sound>.001);assert(metrics.tail<1e-7);assert(metrics.peak<.99);fs.writeFileSync(path.join(evidence,'rendered-audio.json'),JSON.stringify(metrics,null,2));
   });
+  await check('batched melodic taps render audible PCM and finish without hanging',async()=>{
+    const metrics=await page.evaluate(async()=>{
+      const {AudioRack}=await import('./audio.mjs');
+      const {Replicas}=await import('./model.mjs');
+      const catalog=await(await fetch('catalog.json')).json(),out=[];
+      for(const instrument of ['piano','guitar','bass','clarinet']){
+        const ctx=new OfflineAudioContext(2,48000,48000),rack=new AudioRack(catalog,ctx);
+        await rack.load(instrument);
+        const replicas=new Replicas((id,state)=>rack.sync(id,state),id=>rack.remove(id),()=>0);
+        replicas.accept({kind:'snapshot',player:2,session:'tap',wire:1,rev:0,instrument,range:7,volume:1,sustain:false,notes:[]});
+        rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},[{player:2,x:0,y:1,z:0}]);
+        replicas.accept({kind:'delta',player:2,session:'tap',wire:2,rev:1,ops:[
+          {kind:'on',id:1,pitch:instrument==='bass'?36:62,velocity:110},{kind:'off',id:1}]});
+        const output=await ctx.startRendering(),pcm=output.getChannelData(0);
+        const rms=(a,b)=>Math.sqrt(pcm.slice(a,b).reduce((sum,x)=>sum+x*x,0)/(b-a));
+        out.push({instrument,sound:rms(0,12000),tail:rms(36000,48000),nodes:rack.stats().nodes});
+      }
+      return out;
+    });
+    fs.writeFileSync(path.join(evidence,'batched-taps.json'),JSON.stringify(metrics,null,2));
+    for(const m of metrics){assert(m.sound>.0001,`${m.instrument} short tap is silent: ${m.sound}`);assert(m.tail<1e-7);assert.equal(m.nodes,0);}
+  });
   await check('128 simultaneous voices render without clipping',async()=>{
     const metrics=await page.evaluate(async()=>{
       const {AudioRack}=await import('./audio.mjs');const catalog=await(await fetch('catalog.json')).json();

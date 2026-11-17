@@ -165,9 +165,10 @@ export class AudioRack {
     source.buffer=buffer;source.playbackRate.value=rate;
     if(sample.loopEnd){source.loop=true;source.loopStart=sample.loopStart;source.loopEnd=sample.loopEnd;}
     const level=(n.velocity/127)**1.4*spec.gain*(sample.gain||1)*.26;
-    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(level,now+(age>.1?.012:spec.attack));
+    const attackEnd=now+(age>.1?.012:spec.attack);
+    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(level,attackEnd);
     source.connect(gain).connect(slot.gain);
-    const voice={source,gain,slot,id,released:false,releaseTimer:null};
+    const voice={source,gain,slot,id,released:false,releaseTimer:null,startedAt:now,attackEnd};
     if(!transient)slot.voices.set(id,voice);
     this.aliveVoices.add(voice);
     source.onended=()=>{
@@ -182,9 +183,11 @@ export class AudioRack {
     if(seconds===null){return;} // Drum tails finish naturally; teardown still stops them through aliveVoices.
     clearTimeout(v.releaseTimer);v.releaseTimer=null;
     v.released=true;
-    const now=this.ctx.currentTime;
-    v.gain.gain.cancelAndHoldAtTime(now);v.gain.gain.linearRampToValueAtTime(0,now+seconds);
-    try{v.source.stop(now+seconds+.005);}catch{}
+    // A transport batch can contain both edges of a short tap. Let its attack
+    // sound before releasing, instead of cancelling the envelope at zero gain.
+    const releaseAt=Math.max(this.ctx.currentTime,v.startedAt+.02,v.attackEnd);
+    v.gain.gain.cancelAndHoldAtTime(releaseAt);v.gain.gain.linearRampToValueAtTime(0,releaseAt+seconds);
+    try{v.source.stop(releaseAt+seconds+.005);}catch{}
     // Count release tails until onended, so rapid taps cannot evade the source cap.
   }
   terminate(v) {

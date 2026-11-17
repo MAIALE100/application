@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Performance,Replicas,DEFAULT_KEYS,LEGACY_KEYS,EXPANDED_KEYS,validBindings,recommendedExpandedOctave,keyLabel,attenuation,selectSample} from '../web/model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,LEGACY_KEYS,EXPANDED_KEYS,PIANO_KEYS,validBindings,recommendedExpandedOctave,recommendedPianoOctave,keyLabel,attenuation,selectSample} from '../web/model.mjs';
 const catalog=JSON.parse(fs.readFileSync(new URL('../web/catalog.json',import.meta.url)));
 const spec=catalog.instruments[0];
 test('note off preserves pitch across octave changes',()=>{
@@ -25,11 +25,54 @@ test('legacy 18-key bindings remain valid and expanded 36-key rows are distinct'
   assert(validBindings(DEFAULT_KEYS,[],'legacy'));assert(validBindings(EXPANDED_KEYS,[],'expanded'));
   assert(!validBindings(DEFAULT_KEYS,[],'expanded'));assert(!validBindings(EXPANDED_KEYS,[],'legacy'));
   assert(!validBindings(EXPANDED_KEYS,['Digit1']));
-  for(const code of ['KeyZ','KeyX','KeyN','CapsLock','F8','F11','AltLeft','Space']){
+  for(const code of ['KeyN','CapsLock','F8','F11','AltLeft','Space','ArrowUp','ArrowDown']){
     const proposal=[...EXPANDED_KEYS];proposal[0]=code;assert(!validBindings(proposal),code);
   }
   const custom=[...EXPANDED_KEYS];custom[0]='IntlYen';custom[1]='IntlRo';assert(validBindings(custom,[],'expanded'));
   assert.equal(keyLabel('Minus'),'-');assert.equal(keyLabel('Equal'),'=');assert.equal(keyLabel('IntlYen'),'¥');assert.equal(keyLabel('IntlRo'),'ろ');
+});
+
+test('piano layout separates consecutive white rows and their black keys without voice or JIS punctuation conflicts',()=>{
+  assert.equal(PIANO_KEYS.length,25);assert.equal(new Set(PIANO_KEYS).size,25);
+  const whites=PIANO_KEYS.filter((_,pitch)=>![1,3,6,8,10].includes(pitch%12));
+  const blacks=PIANO_KEYS.filter((_,pitch)=>[1,3,6,8,10].includes(pitch%12));
+  assert.deepEqual(whites,['KeyZ','KeyX','KeyC','KeyV','KeyB','KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP']);
+  assert.deepEqual(blacks,['KeyS','KeyD','KeyG','KeyH','Digit2','Digit4','Digit5','Digit7','Digit8','Digit9']);
+  assert(validBindings(PIANO_KEYS,['KeyN','CapsLock'],'piano'));
+  assert(PIANO_KEYS.every(code=>/^(Key[A-Z]|Digit[0-9])$/.test(code)));
+  assert(!validBindings(PIANO_KEYS,[],'legacy'));assert(!validBindings(PIANO_KEYS,[],'expanded'));
+  assert(!validBindings(EXPANDED_KEYS,[],'piano'));
+  for(const code of ['KeyN','CapsLock','Space','ArrowUp','ArrowDown']){
+    const custom=[...PIANO_KEYS];custom[0]=code;assert(!validBindings(custom,[],'piano'),code);
+  }
+  const custom=[...PIANO_KEYS];custom[0]='IntlYen';assert(validBindings(custom,[],'piano'));
+});
+
+test('piano keyboard opens in a playable two-octave range while retaining instrument limits',()=>{
+  const expected={piano:[3,25],guitar:[3,25],bass:[1,16],clarinet:[4,25],drums:[2,8]};
+  for(const instrument of catalog.instruments){
+    const [octave,notes]=expected[instrument.id];assert.equal(recommendedPianoOctave(instrument),octave,instrument.id);
+    if(instrument.kind==='drums')continue;
+    const p=new Performance(instrument,()=>{});p.bindings=[...PIANO_KEYS];p.octave=octave;
+    let played=0;
+    for(const code of PIANO_KEYS){
+      const pitch=p.pitch(code),valid=pitch>=instrument.min&&pitch<=instrument.max;
+      assert.equal(p.press('key:'+code,pitch),valid,instrument.id+':'+code);
+      if(valid){played++;p.release('key:'+code);}
+    }
+    assert.equal(played,notes,instrument.id);assert.equal(p.notes.size,0);
+  }
+});
+
+test('piano low and high chords retain note IDs through an octave change and sustain release',()=>{
+  const ops=[],p=new Performance(spec,op=>ops.push(op));p.bindings=[...PIANO_KEYS];p.octave=recommendedPianoOctave(spec);
+  const chord=['KeyZ','KeyC','KeyB','KeyE','KeyT','KeyU','KeyP'];
+  assert.deepEqual(chord.map(code=>p.pitch(code)),[48,52,55,60,64,67,72]);
+  for(const code of chord)assert(p.press('key:'+code,p.pitch(code)));
+  assert.equal(p.notes.size,7);p.pedal(true);p.shift(1);
+  for(const code of chord)p.release('key:'+code);
+  assert.equal(p.notes.size,7);p.pedal(false);assert.equal(p.notes.size,0);
+  assert.deepEqual(ops.filter(op=>op.kind==='off').map(op=>op.id),ops.filter(op=>op.kind==='on').map(op=>op.id));
 });
 test('expanded octave maximizes each pitched instrument range while drums stay unchanged',()=>{
   const expected={piano:[3,36],guitar:[3,36],bass:[1,16],clarinet:[3,34],drums:[2,8]};

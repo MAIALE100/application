@@ -37,27 +37,27 @@ try {
   await check('keyboard chord, repeat suppression, release across octave change',async()=>{
     await page.click('#start');await page.waitForFunction(()=>window.JAM.session || !document.querySelector('#error').hidden);
     assert(await page.evaluate(()=>Boolean(JAM.session)),await page.locator('#error').innerText());
-    await page.keyboard.down('a');await page.keyboard.down('d');await page.keyboard.down('g');
+    await page.keyboard.down('z');await page.keyboard.down('d');await page.keyboard.down('g');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),3);
-    await page.keyboard.down('a');assert.equal(await page.evaluate(()=>JAM.model.notes.size),3);
-    await page.keyboard.press('x');await page.keyboard.up('a');await page.keyboard.up('d');await page.keyboard.up('g');
+    await page.keyboard.down('z');assert.equal(await page.evaluate(()=>JAM.model.notes.size),3);
+    await page.keyboard.press('ArrowUp');await page.keyboard.up('z');await page.keyboard.up('d');await page.keyboard.up('g');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
   });
   await check('sustain holds and releases all notes',async()=>{
-    await page.keyboard.down('Space');await page.keyboard.press('a');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);
+    await page.keyboard.down('Space');await page.keyboard.press('z');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);
     await page.keyboard.up('Space');assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
   });
   await check('rapid 100 trills and blur leave no stuck voices',async()=>{
-    await page.evaluate(()=>{for(let i=0;i<100;i++){window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyA'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyA'}));}});
-    await page.keyboard.down('a');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('a');
+    await page.evaluate(()=>{for(let i=0;i<100;i++){window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyZ'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyZ'}));}});
+    await page.keyboard.down('z');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('z');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);assert.equal(await page.evaluate(()=>JAM.audio.slots.has('local')),false);
     assert(await page.locator('#panel').isHidden());
     await page.evaluate(()=>JAM.message({type:'open'}));await page.click('#start');await page.waitForFunction(()=>JAM.session);
   });
   await check('key rebinding rejects PTT and duplicate bindings',async()=>{
     await page.click('#settingsToggle');await page.locator('#bindings button').first().click();await page.keyboard.press('n');
-    assert(await page.locator('#error').isVisible());await page.keyboard.press('c');assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyC');
-    await page.click('#settingsToggle');await page.locator('#playArea').focus();await page.keyboard.down('c');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);await page.keyboard.up('c');
+    assert(await page.locator('#error').isVisible());await page.keyboard.press('a');assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyA');
+    await page.click('#settingsToggle');await page.locator('#playArea').focus();await page.keyboard.down('a');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);await page.keyboard.up('a');
   });
   await check('MIDI velocity pedal and all-notes-off parser',async()=>{
     await page.evaluate(()=>{JAM.midi.receive([0x90,60,64]);JAM.midi.receive([0xb0,64,127]);JAM.midi.receive([0x90,60,0]);});

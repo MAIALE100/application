@@ -1,5 +1,12 @@
 export const LEGACY_KEYS = ['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','Quote'];
 export const DEFAULT_KEYS = LEGACY_KEYS;
+// White keys use two uninterrupted physical rows; black keys sit above them.
+// The lower row stops at G so N remains available as a reserved voice key.
+export const PIANO_KEYS = [
+  'KeyZ','KeyS','KeyX','KeyD','KeyC','KeyV','KeyG','KeyB','KeyH',
+  'KeyQ','Digit2','KeyW','KeyE','Digit4','KeyR','Digit5','KeyT',
+  'KeyY','Digit7','KeyU','Digit8','KeyI','Digit9','KeyO','KeyP'
+];
 // Three physical rows, each covering a chromatic octave from left to right.
 export const EXPANDED_KEYS = [
   'KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon','Quote','Backslash',
@@ -8,20 +15,26 @@ export const EXPANDED_KEYS = [
 ];
 export const DRUM_KEYS = ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK'];
 export const DRUM_PITCHES = [36,38,42,46,45,50,49,51];
-export const RESERVED = new Set(['Escape','Tab','Space','KeyZ','KeyX','KeyN','CapsLock','AltLeft','AltRight','ControlLeft','ControlRight','MetaLeft','MetaRight','F8','F11']);
+export const RESERVED = new Set(['Escape','Tab','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyN','CapsLock','AltLeft','AltRight','ControlLeft','ControlRight','MetaLeft','MetaRight','F8','F11']);
 export const noteName = n => ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][n%12]+(Math.floor(n/12)-1);
 export const keyLabel = code => ({Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\',Minus:'-',Equal:'=',IntlYen:'¥',IntlRo:'ろ'}[code] || code.replace(/^(Key|Digit)/,''));
 export function validBindings(keys, reserved=[], mode) {
-  const lengths=mode==='legacy'?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length]:[];
+  const lengths=mode==='legacy'?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode==='piano'?[PIANO_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length,PIANO_KEYS.length]:[];
   return Array.isArray(keys) && lengths.includes(keys.length) && new Set(keys).size===keys.length &&
     keys.every(k=>typeof k==='string' && /^(Key[A-Z]|Digit[0-9]|Semicolon|Quote|Comma|Period|Slash|BracketLeft|BracketRight|Backslash|Minus|Equal|IntlYen|IntlRo)$/.test(k) && !RESERVED.has(k) && !reserved.includes(k));
 }
 export function recommendedExpandedOctave(spec) {
-  const preferred=Math.max(0,Math.min(7,Number.isInteger(spec.octave)?spec.octave:4));
+  return recommendedOctave(spec,EXPANDED_KEYS.length);
+}
+export function recommendedPianoOctave(spec) {
+  return recommendedOctave(spec,PIANO_KEYS.length,spec.kind==='drums'?spec.octave:spec.octave-1);
+}
+function recommendedOctave(spec,keyCount,preferredOctave=spec.octave) {
+  const preferred=Math.max(0,Math.min(7,Number.isInteger(preferredOctave)?preferredOctave:4));
   if(spec.kind==='drums')return preferred;
   let best=preferred, overlap=-1;
   for(let octave=0;octave<=7;octave++) {
-    const first=(octave+1)*12, last=first+EXPANDED_KEYS.length-1;
+    const first=(octave+1)*12, last=first+keyCount-1;
     const count=Math.max(0,Math.min(spec.max,last)-Math.max(spec.min,first)+1);
     if(count>overlap || (count===overlap && Math.abs(octave-preferred)<Math.abs(best-preferred))) {
       best=octave;overlap=count;

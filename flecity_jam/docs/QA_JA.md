@@ -1,4 +1,16 @@
-# Flecity JAM 0.4.0-test 演奏調整・8楽器QA
+# Flecity JAM 0.4.1-test QA
+
+## 最終の設置・自動検証 — 2026-11-18
+
+固定実装fc6a318ec9a89b109c1d268ebdc7ede884208b46へ全回帰219/219 PASS、0 FAIL、試験中ソース不変。JS51、Lua engine28/client27、Chromium16（120秒模擬8人）、NUI8、鍵盤24、会話16、操作UI14、個別聴取音量12、音源9、更新fixture14。別途JS17/Lua9構文と8楽器オフラインPCMもPASS。最初の218件完走後に見つけた時計復帰の追加修正を含め、219件を全て再実行しました。
+
+0.4.0設置115件・全体保全と照合後、実ZIPのコピー環境で115→115→115／15m復旧模擬PASS。JAMだけ停止→更新→定義再読込→起動し、jam_statusの0.4.1-test／sessions=0／range=15.0m／access=openを確認。設置115/115・旧0.4.0backup115/115一致、非JAM5304・設定5件・txAdmin設定差分0。設定・91音源・catalog・provenanceは同一で、JAM以外の操作やサーバー全体再起動はありません。
+
+ZIP SHA256 `eaa7688d55ad6bce7d3493a895c3c11c1845a32d55e0de11151b5880b8ceec1b`。新receipt `jam-update-hrj2n4wz/receipt.json`、SHA256 `2e562fcb3ea6e902a447a0e4d86c783e96997c10557c669230a054884a3872dc` は0.4.0／15mへ戻します。設置先は復旧計画照合までで実復旧していません。正本資料は別添`outputs/FLECITY_JAM_20261116/hardening-20261118/`です。
+
+同一コンプレッサー出力からの静音基準／guard同時分岐のPCM比較、8楽器最大音量同音128声もPASS。これはFiveM音質・音声遅延・実演奏の保証ではありません。新VC・実打鍵・聴感・合奏・物理MIDI・CEF性能はNOT_RUN、正式公開NO-GO、デスクトップFiveM未起動を維持。
+
+## 過去の候補・設置記録
 
 ## 0.4.1-testの検証候補 — 2026-11-18
 

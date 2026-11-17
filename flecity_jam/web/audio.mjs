@@ -3,6 +3,11 @@ import {attenuation,selectSample} from './model.mjs';
 // Avoid replaying uncached remote notes so late that a band sounds out of time.
 const DEFERRED_NOTE_MS=250;
 const DEFERRED_NOTE_LIMIT=16;
+// Keep normal levels unchanged; bound exceptional summed peaks after compression.
+const PEAK_CURVE=Float32Array.from({length:4097},(_,i)=>{
+  const x=(i-2048)/2048,level=Math.abs(x);
+  return level<=.9?x:Math.sign(x)*(.9+.08*Math.tanh((level-.9)/.08));
+});
 
 async function bounded(promise,ms,message,cancel=()=>{}) {
   let timer;
@@ -27,7 +32,7 @@ export class AudioRack {
     if(this.master) {
       for(const voice of [...this.aliveVoices])this.terminate(voice);
       for(const slot of this.slots.values()){slot.gain.disconnect();slot.panner?.disconnect();}
-      this.slots.clear();this.master.disconnect();this.limiter.disconnect();
+      this.slots.clear();this.master.disconnect();this.limiter.disconnect();this.peakGuard.disconnect();
       this.master=null;this.ctx=null;
     }
     this.ctx ||= new AudioContext({latencyHint:'interactive',sampleRate:48000});
@@ -36,7 +41,8 @@ export class AudioRack {
     this.limiter=this.ctx.createDynamicsCompressor();
     this.limiter.threshold.value=-8;this.limiter.knee.value=4;this.limiter.ratio.value=12;
     this.limiter.attack.value=.003;this.limiter.release.value=.12;
-    this.master.connect(this.limiter).connect(this.ctx.destination);
+    this.peakGuard=this.ctx.createWaveShaper();this.peakGuard.curve=PEAK_CURVE;
+    this.master.connect(this.limiter).connect(this.peakGuard).connect(this.ctx.destination);
   }
   async unlock() {
     this.init();

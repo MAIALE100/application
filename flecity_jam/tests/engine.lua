@@ -161,6 +161,57 @@ test('retired identities cannot be resurrected',function()
     local f=fixture();f.start();f.packet({on(1),{kind='off',id=1}})
     assert(not f.sync({{id=1,pitch=60,velocity=100,held=true}}));equal(f.e.sessions[1],nil)
 end)
+test('late input cannot renew an expired session before the periodic tick',function()
+    local f=fixture();f.start();f.packet({on(1)})
+    f.advance(JamConfig.SessionTimeoutMs+1)
+    local ok,reason=f.sync({{id=1,pitch=60,velocity=100,held=true}})
+    assert(not ok);equal(reason,'expired');equal(f.e.sessions[1],nil)
+    f.e:tick();equal(f.e.sessions[1],nil)
+end)
+
+test('input and tick expire idle sessions at the same exact boundary',function()
+    for _,offset in ipairs({-1,0,1})do
+        for _,mode in ipairs({'sync','ops','tick'})do
+            local f=fixture();f.start();f.packet({on(1)});f.advance(JamConfig.SessionTimeoutMs+offset)
+            local ok,reason
+            if mode=='sync' then ok,reason=f.sync({{id=1,pitch=60,velocity=100,held=true}})
+            elseif mode=='ops' then ok,reason=f.packet({on(2)})
+            else f.e:tick() end
+            if offset<0 then assert(f.e.sessions[1]);if mode~='tick' then assert(ok)end
+            else equal(f.e.sessions[1],nil);if mode~='tick' then assert(not ok);equal(reason,'expired')end end
+        end
+    end
+end)
+
+test('input and tick enforce the maximum note age before applying new operations',function()
+    for _,offset in ipairs({-1,0,1})do
+        for _,mode in ipairs({'sync','ops','tick'})do
+            local f=fixture();f.start();f.packet({on(1)})
+            for _=1,119 do f.advance(1000);assert(f.sync({{id=1,pitch=60,velocity=100,held=true}}))end
+            f.advance(1000+offset)
+            local ok,reason
+            if mode=='sync' then ok,reason=f.sync({{id=1,pitch=60,velocity=100,held=true}})
+            elseif mode=='ops' then ok,reason=f.packet({{kind='panic'}})
+            else f.e:tick() end
+            if offset<0 then assert(f.e.sessions[1]);if mode~='tick' then assert(ok)end
+            else equal(f.e.sessions[1],nil);if mode~='tick' then assert(not ok);equal(reason,'expired')end end
+        end
+    end
+end)
+
+test('clock rollback permits explicit restart and first join without free rate-limit tokens',function()
+    local f=fixture();f.advance(100000);f.start()
+    local tokens=f.e.guards[1].tokens
+    f.advance(-2147483648);f.e:tick();equal(f.e.sessions[1],nil);f.advance(1000)
+    assert(f.e:start(1,'piano',2));equal(f.e.guards[1].tokens,tokens-12)
+    local ok,reason=f.e:start(1,'piano',3);assert(not ok);equal(reason,'cooldown')
+    assert(f.e:start(2,'piano',1))
+    ok,reason=f.e:start(2,'piano',2);assert(not ok);equal(reason,'cooldown')
+    f=fixture();f.advance(100000);f.start();f.e.guards[1].tokens=0
+    f.advance(-2147483648);f.e:tick()
+    ok,reason=f.e:start(1,'piano',2);assert(not ok);equal(reason,'rate');equal(f.e.guards[1].tokens,0)
+end)
+
 test('thirty simulated minutes with eight players stays bounded',function()
     local f=fixture();for id=1,8 do f.people[id]={x=id/4,y=0,z=0,bucket=0,alive=true};f.start(id) end
     for step=1,1800 do

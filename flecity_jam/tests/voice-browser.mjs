@@ -122,6 +122,21 @@ try{
     }
     await closeFixture(f);
   });
+  await check('sustain releases when held Space arrives at the voice button through real Shift+Tab navigation',async()=>{
+    const f=await fixture();await perform(f);
+    await f.page.keyboard.down('z');await f.page.keyboard.down('Space');await f.page.keyboard.up('z');
+    assert.equal(await f.page.locator('#sustain').getAttribute('aria-pressed'),'true');
+    assert.equal(await f.page.locator('#voiceCount').innerText(),'1音');
+    for(let steps=0;steps<20&&await f.page.evaluate(()=>document.activeElement.id!=='voice');steps++)
+      await f.page.keyboard.press('Shift+Tab');
+    assert(await f.page.locator('#voice').evaluate(node=>document.activeElement===node),'voice button not reached');
+    await f.page.keyboard.up('Space');
+    assert.equal(await f.page.locator('#sustain').getAttribute('aria-pressed'),'false');
+    assert.equal(await f.page.locator('#voiceCount').innerText(),'0音');
+    assert.equal(await held(f.page),'false');assert.equal(voices(f).length,0);
+    await f.page.screenshot({path:path.join(evidence,'sustain-keyup-on-voice.png')});
+    await closeFixture(f);
+  });
   await check('real voice pointer capture releases when the mouse is lifted outside the button',async()=>{
     const f=await fixture(),box=await f.page.locator('#voice').boundingBox();assert(box);
     await f.page.mouse.move(box.x+box.width/2,box.y+box.height/2);await f.page.mouse.down();

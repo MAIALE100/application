@@ -21,6 +21,7 @@ class Context {
   resume(){this.state='running';return Promise.resolve();}
   createGain(){return Object.assign(new Node(),{gain:new Param()});}
   createDynamicsCompressor(){return Object.assign(new Node(),Object.fromEntries(['threshold','knee','ratio','attack','release'].map(k=>[k,new Param()])));}
+  createWaveShaper(){return new Node();}
   createPanner(){return Object.assign(new Node(),Object.fromEntries(['positionX','positionY','positionZ'].map(k=>[k,new Param()])));}
   createBufferSource(){
     const source=Object.assign(new Node(),{playbackRate:new Param(),start(_time,offset){this.offset=offset;},stop(){this.stopped=true;}});

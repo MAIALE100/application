@@ -21,6 +21,16 @@ local function position(p)
         and number(p.z, -100000, 100000) and integer(p.bucket, 0, 2147483647) and p.alive == true
 end
 
+local function expired(s, now, config)
+    local idle = now-s.last
+    if idle < 0 or idle >= config.SessionTimeoutMs then return true end
+    for _,n in pairs(s.notes) do
+        local age = now-n.at
+        if age < 0 or age >= config.MaxNoteMs then return true end
+    end
+    return false
+end
+
 function JamEngine.new(config, catalog, env)
     return setmetatable({ c = config, catalog = catalog, env = env, sessions = {}, guards = {}, serial = 0, wire = 0 }, JamEngine)
 end
@@ -35,8 +45,9 @@ end
 
 function JamEngine:allow(src, cost)
     local now = self.env.now()
-    local g = self.guards[src] or { tokens = self.c.EventBurst, time = now, start = -10000 }
+    local g = self.guards[src] or { tokens = self.c.EventBurst, time = now, start = now-750 }
     self.guards[src] = g
+    if now < g.time then g.start = now-750 end
     g.tokens = math.min(self.c.EventBurst, g.tokens + math.max(0, now - g.time) * self.c.EventsPerSecond / 1000)
     g.time = now
     if g.tokens < cost then return false end
@@ -120,8 +131,9 @@ function JamEngine:receive(src, packet)
     local s = self.sessions[src]
     if not s or type(packet) ~= 'table' or packet.session ~= s.id then return false, 'session' end
     if not integer(packet.seq, 1, 2147483647) or packet.seq <= s.seq then return false, 'stale' end
-    if not position(self.env.position(src)) or not self.env.access(src, s.instrument) then self:stop(src, 'unavailable'); return false, 'unavailable' end
     local now = self.env.now()
+    if expired(s,now,self.c) then self:stop(src,'expired'); return false,'expired' end
+    if not position(self.env.position(src)) or not self.env.access(src, s.instrument) then self:stop(src, 'unavailable'); return false, 'unavailable' end
     local cleanOps = {}
     local function invalid(reason) self:stop(src, reason); return false, reason end
     if packet.kind == 'sync' then
@@ -188,9 +200,7 @@ end
 function JamEngine:tick()
     local now = self.env.now()
     for src,s in pairs(self.sessions) do
-        local expired = now-s.last > self.c.SessionTimeoutMs
-        for _,n in pairs(s.notes) do if now-n.at > self.c.MaxNoteMs then expired = true end end
-        if expired or not position(self.env.position(src)) or not self.env.access(src,s.instrument) then self:stop(src,'expired')
+        if expired(s,now,self.c) or not position(self.env.position(src)) or not self.env.access(src,s.instrument) then self:stop(src,'expired')
         else
             local force = now-s.lastSnapshot >= self.c.SnapshotMs
             if force then s.lastSnapshot = now end

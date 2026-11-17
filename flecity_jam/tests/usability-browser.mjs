@@ -43,6 +43,19 @@ async function sustainChord(page){
 }
 
 try{
+  await check('instrument changes cancel key capture and refresh settings pitches without silently rebinding',async()=>{
+    const page=await fixture();await page.click('#settingsToggle');
+    const first=page.locator('#bindings button').first();assert.match(await first.innerText(),/^C3/);
+    await first.click();assert(await first.evaluate(node=>node.classList.contains('capturing')));
+    const original=await page.evaluate(()=>localStorage.getItem('flecity-jam-v3'));
+    await page.selectOption('#instrument','flute');
+    assert.equal(await page.evaluate(()=>JAM.model.octave),4);assert.match(await first.innerText(),/^C4/);
+    assert.equal(await page.locator('#bindings .capturing').count(),0);
+    await page.locator('#playArea').focus();await page.keyboard.press('a');
+    assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyZ');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v3')),original);
+    await page.screenshot({path:path.join(evidence,'instrument-change-cancels-capture.png')});
+  });
   await check('new controls retain prior loudness and strength defaults without hiding the piano',async()=>{
     const page=await fixture();assert.equal(await page.locator('#velocity').inputValue(),'100');
     assert.equal(await page.locator('#performVolume').inputValue(),'75');assert.equal(await page.evaluate(()=>JAM.model.volume),.75);
@@ -143,11 +156,16 @@ try{
     await page.click('#settingsToggle');assert.equal(await page.evaluate(()=>document.activeElement.id),'playArea');
     await page.click('#resetKeys');assert.equal(await page.evaluate(()=>document.activeElement.id),'playArea');await sustainChord(page);
   });
-  await check('keyboard activation keeps focus on controls for subsequent Tab navigation',async()=>{
+  await check('keyboard activation and consecutive layout changes keep focus for subsequent navigation',async()=>{
     const page=await fixture();await start(page);
     for(const id of ['viewHome','mute','guideToggle','panic','octUp','octDown']){
       await page.locator('#'+id).focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>document.activeElement.id),id);
     }
+    await page.locator('#keyLayout').focus();await page.keyboard.press('ArrowDown');
+    assert.equal(await page.locator('#keyLayout').inputValue(),'expanded');assert.equal(await page.evaluate(()=>document.activeElement.id),'keyLayout');
+    await page.keyboard.press('ArrowDown');assert.equal(await page.locator('#keyLayout').inputValue(),'legacy');
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'keyLayout');assert.equal(await page.evaluate(()=>JAM.model.octave),await page.evaluate(()=>JAM.model.spec.octave));
+    await page.keyboard.press('ArrowUp');assert.equal(await page.locator('#keyLayout').inputValue(),'expanded');assert.equal(await page.evaluate(()=>document.activeElement.id),'keyLayout');
   });
   await check('real slider drag returns focus to playing without changing keyboard navigation behavior',async()=>{
     const page=await fixture();await start(page);

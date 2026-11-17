@@ -121,6 +121,59 @@ test('NUI failure watchdog releases focus and held session',function()
     assert(coroutine.resume(threads[1]));clock=clock+5000;assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)
     assert(not call('input',{session='s1'}).ok)
 end)
+test('clock rollback releases JAM focus pending starts and held PTT before a late grant',function()
+    local savedClock=clock
+    commands.jam(nil,{});clock=2147483640;assert(call('pulse').ok)
+    assert(call('start',{instrument='piano'}).ok);local request=sent[#sent].args[2]
+    local token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
+    clock=-2147479136;local writes=#controlWrites
+    handlers['flecity_jam:control']({kind='started',session='wrapped-late',request=request,instrument='piano'})
+    assert(not focused and not keepInput and not voiceConfig().enabled)
+    assert(sent[#sent].name=='flecity_jam:stop' and sent[#sent].args[1]=='wrapped-late')
+    frame();assert(#controlWrites==writes)
+    clock=savedClock;commands.jam(nil,{});assert(call('start',{instrument='piano'}).ok);call('close')
+end)
+
+test('clock rollback and exact heartbeat deadline release UI without waiting for another callback',function()
+    local savedClock=clock
+    for _,delta in ipairs({-2147483648,4500})do
+        commands.jam(nil,{});assert(focused);clock=clock+delta;frame()
+        assert(not focused and not keepInput and not voiceConfig().enabled)
+        clock=savedClock
+    end
+end)
+
+test('clock rollback expires remote peer state instead of sending stale positions indefinitely',function()
+    local savedClock=clock;remotePresent=true;clock=2147483640
+    handlers['flecity_jam:remote']({kind='snapshot',player=3,session='wrapped-peer',wire=1000,instrument='piano'})
+    assert(coroutine.resume(threads[2]))
+    local before=#messages;clock=-2147479136
+    assert(coroutine.resume(threads[2]))
+    local expired=false
+    for i=before+1,#messages do if messages[i].type=='expire' and messages[i].session=='wrapped-peer' then expired=true end end
+    assert(expired,'wrapped game timer must not retain remote peer state')
+    clock=savedClock;remotePresent=false
+end)
+
+test('optional guitar loading stops at timeout or clock rollback without spawning a prop',function()
+    local savedClock=clock;local released,spawned=0,0
+    function joaat(name)return name end
+    function RequestAnimDict()end
+    function RequestModel()end
+    function HasAnimDictLoaded()return false end
+    function HasModelLoaded()return false end
+    function SetModelAsNoLongerNeeded()released=released+1 end
+    function CreateObject()spawned=spawned+1;return 0 end
+    JamConfig.Presentation=true
+    for _,delta in ipairs({-2147483648,2500})do
+        local task=coroutine.create(function()JamPresentation.start('guitar',function()return true end)end)
+        assert(coroutine.resume(task));clock=clock+delta
+        assert(coroutine.resume(task));assert(coroutine.status(task)=='dead')
+        clock=savedClock
+    end
+    assert(released==2 and spawned==0);JamConfig.Presentation=false
+end)
+
 test('stopping performance keeps JAM focus until panel exit',function()
     commands.jam(nil,{});assert(focused and not keepInput)
     assert(call('stop').ok);assert(focused and not keepInput)
@@ -217,8 +270,8 @@ test('PTT fails closed on timer rollover and server stop or denial invalidate qu
     commands.jam(nil,{});local token=voiceConfig().token
     assert(call('voice',{token=token,seq=1,held=true}).ok)
     local beforeClock,writes=clock,#controlWrites;clock=clock-2147483648;frame()
-    assert(#controlWrites==writes and voiceConfig().token~=token)
-    clock=beforeClock;assert(call('pulse').ok)
+    assert(#controlWrites==writes and voiceConfig().token~=token and not focused and not voiceConfig().enabled)
+    clock=beforeClock;commands.jam(nil,{});assert(call('pulse').ok)
     assert(call('start',{instrument='piano'}).ok);local request=sent[#sent].args[2]
     token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true}).ok)
     handlers['flecity_jam:control']({kind='denied',request=request,reason='permission'})

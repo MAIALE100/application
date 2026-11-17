@@ -3,6 +3,10 @@ local shown,session,request,pending,lastUi = false,nil,0,nil,0
 local peers = {}
 local wires = {}
 local function nui(data) SendNUIMessage(data) end
+local function uiExpired()
+    local elapsed=GetGameTimer()-lastUi
+    return elapsed<0 or elapsed>=4500
+end
 local voiceEpoch,voiceSeq,voiceHeld,voiceUntil = 0,0,false,0
 local voiceToken,lastVoice = nil,nil
 local function voiceConfig()
@@ -120,6 +124,7 @@ end)
 RegisterNUICallback('close',function(_,cb) close('ui'); cb({ok=true}) end)
 RegisterNetEvent('flecity_jam:control',function(data)
     if source ~= 65535 then return end
+    if shown and uiExpired() then close('interrupted') end
     if data.kind=='started' then
         if not shown or pending~=data.request then TriggerServerEvent('flecity_jam:stop',data.session); return end
         pending=nil; session=data.session; lastUi=GetGameTimer()
@@ -139,7 +144,8 @@ local function publishPositions()
     for id,state in pairs(peers) do
         local index=GetPlayerFromServerId(id)
         local ped=index~=-1 and GetPlayerPed(index) or 0
-        if now-state.seen>3500 then
+        local age=now-state.seen
+        if age<0 or age>=3500 then
             peers[id]=nil; nui({type='expire',player=id,session=state.session})
         elseif ped~=0 and DoesEntityExist(ped) then
             local p=GetEntityCoords(ped)
@@ -188,7 +194,7 @@ CreateThread(function()
             for _,id in ipairs(JamConfig.DisableControls) do if id~=JamConfig.PttControl then DisableControlAction(0,id,true) end end
             DisablePlayerFiring(PlayerId(),true)
             if IsEntityDead(PlayerPedId()) or IsPedRagdoll(PlayerPedId()) or IsPedInAnyVehicle(PlayerPedId(),false)
-                or IsPauseMenuActive() or not JamConfig.CanStartClient() or GetGameTimer()-lastUi>4500 then close('interrupted') end
+                or IsPauseMenuActive() or not JamConfig.CanStartClient() or uiExpired() then close('interrupted') end
             if shown then updateVoice() end
         end
     end

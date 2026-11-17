@@ -144,6 +144,43 @@ try {
     });
     assert.equal(metrics.voices,128);assert(metrics.peak<.99,'peak='+metrics.peak);fs.writeFileSync(path.join(evidence,'rendered-polyphony.json'),JSON.stringify(metrics,null,2));
   });
+  await check('final peak guard preserves quiet PCM against a shared post-compressor reference',async()=>{
+    const metrics=await page.evaluate(async()=>{
+      const {AudioRack}=await import('./audio.mjs'),catalog=await(await fetch('catalog.json')).json(),rows=[];
+      for(const spec of catalog.instruments){
+        const ctx=new OfflineAudioContext(4,48000,48000),rack=new AudioRack(catalog,ctx);await rack.load(spec.id);
+        const reference=ctx.createChannelSplitter(2),guarded=ctx.createChannelSplitter(2),merged=ctx.createChannelMerger(4);
+        rack.limiter.connect(reference);rack.peakGuard.disconnect();rack.peakGuard.connect(guarded);
+        for(let c=0;c<2;c++){reference.connect(merged,c,c);guarded.connect(merged,c,c+2);}merged.connect(ctx.destination);
+        const pitch=spec.samples.find(s=>s.midi>=spec.min&&s.midi<=spec.max).midi;
+        rack.sync('local',{instrument:spec.id,volume:.75,notes:[{id:1,pitch,velocity:100,held:true,age:0}]});
+        const output=await ctx.startRendering();let peak=0,difference=0;
+        for(let c=0;c<2;c++){
+          const a=output.getChannelData(c),b=output.getChannelData(c+2);
+          for(let i=0;i<a.length;i++){peak=Math.max(peak,Math.abs(a[i]));difference=Math.max(difference,Math.abs(a[i]-b[i]));}
+        }rows.push({instrument:spec.id,peak,difference});
+      }return rows;
+    });
+    for(const row of metrics){assert(row.peak>0&&row.peak<.9);assert(row.difference<2e-7,JSON.stringify(row));}
+    fs.writeFileSync(path.join(evidence,'peak-guard-transparency.json'),JSON.stringify(metrics,null,2));
+  });
+  await check('maximum-volume same-pitch unison stays bounded for all eight instruments',async()=>{
+    const metrics=await page.evaluate(async()=>{
+      const {AudioRack}=await import('./audio.mjs'),catalog=await(await fetch('catalog.json')).json(),rows=[];
+      for(const spec of catalog.instruments){
+        const ctx=new OfflineAudioContext(2,48000,48000),rack=new AudioRack(catalog,ctx);await rack.load(spec.id);rack.setVolume(1);
+        const pitch=spec.samples.find(s=>s.midi>=spec.min&&s.midi<=spec.max).midi;
+        for(let player=1;player<=8;player++)rack.sync(player,{instrument:spec.id,session:'unison'+player,range:15,volume:1,
+          notes:Array.from({length:16},(_,i)=>({id:i+1,pitch,velocity:127,held:true,age:0}))});
+        rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},Array.from({length:8},(_,i)=>({player:i+1,x:0,y:1,z:0})));
+        const voices=rack.stats().voices,output=await ctx.startRendering();let peak=0,finite=true;
+        for(let c=0;c<2;c++)for(const value of output.getChannelData(c)){peak=Math.max(peak,Math.abs(value));finite&&=Number.isFinite(value);}
+        rows.push({instrument:spec.id,pitch,voices,peak,finite});
+      }return rows;
+    });
+    for(const row of metrics){assert.equal(row.voices,128);assert(row.finite);assert(row.peak<.98,JSON.stringify(row));}
+    fs.writeFileSync(path.join(evidence,'rendered-unison.json'),JSON.stringify(metrics,null,2));
+  });
   if(Number(process.env.JAM_SOAK_SECONDS)>0)await check('real-time browser soak with eight simulated performers',async()=>{
     const seconds=Math.min(600,Number(process.env.JAM_SOAK_SECONDS));
     const stats=await page.evaluate(async seconds=>{

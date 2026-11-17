@@ -68,3 +68,28 @@ test('unsupported MIDI reports the limitation without changing musical input sta
   await midi.connect();assert.equal(midi.access,null);assert.equal(midi.connecting,null);
   assert.equal(log.length,1);assert.equal(log[0][0],'status');assert(log[0][1].includes('対応していません'));
 });
+
+test('renewed MIDI access retains a selected device ID when port objects are replaced',async t=>{
+  const {midi}=setup();let menu='';
+  // Same selection-preserving device-list update as the application's MIDI select.
+  midi.devices=ports=>{const previous=menu;menu=ports[0]?.id||'';if(ports.some(p=>p.id===previous))menu=previous;};
+  const port=id=>({id,name:id.toUpperCase(),state:'connected',onmidimessage:null});
+  const firstA=port('a'),firstB=port('b'),nextA=port('a'),nextB=port('b');
+  const first={inputs:new Map([['a',firstA],['b',firstB]])},next={inputs:new Map([['a',nextA],['b',nextB]])};
+  let calls=0;navigatorFor(t,async()=>[first,next][calls++]);
+  await midi.connect();menu='b';midi.select('b');assert.equal(midi.port,firstB);
+  await midi.connect();assert.equal(firstB.onmidimessage,null);assert.equal(midi.port,nextB);assert.equal(menu,'b');assert.equal(typeof nextB.onmidimessage,'function');
+  const refreshedB=port('b');next.inputs.set('b',refreshedB);midi.refresh();
+  assert.equal(nextB.onmidimessage,null);assert.equal(midi.port,refreshedB);assert.equal(menu,'b');
+});
+
+test('renewed MIDI access falls back to a visible device when the selected ID disappears',async t=>{
+  const {midi}=setup();let menu='';
+  midi.devices=ports=>{const previous=menu;menu=ports[0]?.id||'';if(ports.some(p=>p.id===previous))menu=previous;};
+  const port=id=>({id,name:id.toUpperCase(),state:'connected',onmidimessage:null});
+  const oldB=port('b'),newA=port('a'),newC=port('c');
+  const accesses=[{inputs:new Map([['a',port('a')],['b',oldB]])},{inputs:new Map([['a',newA],['c',newC]])}];
+  let calls=0;navigatorFor(t,async()=>accesses[calls++]);
+  await midi.connect();menu='b';midi.select('b');await midi.connect();
+  assert.equal(oldB.onmidimessage,null);assert.equal(midi.port,newA);assert.equal(menu,'a');assert.equal(typeof newA.onmidimessage,'function');
+});

@@ -48,9 +48,13 @@ function JamPresentation.start(instrument, stillActive)
     if not JamConfig.Presentation or instrument ~= 'guitar' then return end
     local spec, model = guitar, joaat(guitar.model)
     RequestAnimDict(spec.dict); RequestModel(model)
-    local deadline = GetGameTimer()+2500
-    while (not HasAnimDictLoaded(spec.dict) or not HasModelLoaded(model)) and GetGameTimer()<deadline and stillActive() do Wait(25) end
-    if not stillActive() or not HasAnimDictLoaded(spec.dict) or not HasModelLoaded(model) then SetModelAsNoLongerNeeded(model); return end
+    local started = GetGameTimer()
+    local function withinDeadline()
+        local elapsed=GetGameTimer()-started
+        return elapsed>=0 and elapsed<2500
+    end
+    while (not HasAnimDictLoaded(spec.dict) or not HasModelLoaded(model)) and withinDeadline() and stillActive() do Wait(25) end
+    if not withinDeadline() or not stillActive() or not HasAnimDictLoaded(spec.dict) or not HasModelLoaded(model) then SetModelAsNoLongerNeeded(model); return end
     local ped=PlayerPedId()
     local pos=GetEntityCoords(ped)
     local prop=CreateObject(model,pos.x,pos.y,pos.z,false,false,false)

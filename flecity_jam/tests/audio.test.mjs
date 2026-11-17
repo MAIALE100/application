@@ -22,6 +22,7 @@ class Context {
   resume(){this.state='running';return Promise.resolve();}
   createGain(){return Object.assign(new Node(),{gain:new Param()});}
   createDynamicsCompressor(){return Object.assign(new Node(),Object.fromEntries(['threshold','knee','ratio','attack','release'].map(k=>[k,new Param()])));}
+  createWaveShaper(){return new Node();}
   createBuffer(channels,length,rate){return new Buffer(channels,length,rate);}
   createBufferSource(){
     const node=Object.assign(new Node(),{playbackRate:new Param(),start(time,offset){assert(Number.isFinite(time)&&Number.isFinite(offset));},stop(){this.stopped=true;}});
@@ -59,11 +60,26 @@ test('stalled audio resume times out and can be retried',async t=>{
 
 test('closed audio context is recreated without retaining old source nodes',async t=>{
   globals(t);const ctx=new Context(),rack=new AudioRack(catalog,ctx);
+  const previousGuard=rack.peakGuard;
   rack.buffers.set('piano.ogg',new Buffer(1,32000*8));
   rack.sync('local',{instrument:'piano',volume:.75,notes:[{id:1,pitch:60,velocity:100,age:0}]});
   ctx.state='closed';assert.equal(await rack.unlock(),true);
   assert.notEqual(rack.ctx,ctx);assert.equal(rack.stats().nodes,0);assert.equal(rack.slots.size,0);
   assert.equal(rack.buffers.size,1);assert(ctx.sources[0].stopped&&ctx.sources[0].disconnected);
+  assert(previousGuard.disconnected);assert.notEqual(rack.peakGuard,previousGuard);
+});
+
+test('final peak guard is symmetric, bounded and transparent below its soft knee',t=>{
+  globals(t);const ctx=new Context(),rack=new AudioRack(catalog,ctx),curve=rack.peakGuard.curve;
+  assert.equal(rack.master.destination,rack.limiter);assert.equal(rack.limiter.destination,rack.peakGuard);
+  assert.equal(rack.peakGuard.destination,ctx.destination);assert.equal(curve.length,4097);
+  for(let i=0;i<curve.length;i++){
+    const x=(i-2048)/2048;
+    assert(Number.isFinite(curve[i])&&Math.abs(curve[i])<.98);
+    assert(Math.abs(curve[i]+curve[curve.length-1-i])<1e-7);
+    if(i)assert(curve[i]>=curve[i-1]);
+    if(Math.abs(x)<=.9)assert.equal(curve[i],x);
+  }
 });
 
 test('saved mute remains effective on first creation and context recovery',async t=>{

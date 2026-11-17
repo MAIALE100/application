@@ -134,13 +134,14 @@ function redraw() {
   if(session)audio.sync('local',{instrument:model.spec.id,...model.snapshot()});
 }
 function choose(id) {
+  capture=null;
   const spec=catalog.instruments.find(s=>s.id===id)||catalog.instruments[0];
   model=new Performance(spec,emit,redraw);model.bindings=[...keys];model.volume=Number($('performVolume').value)/100;
   if(layout==='expanded')model.octave=recommendedExpandedOctave(spec);
   if(layout==='piano')model.octave=recommendedPianoOctave(spec);
   $('instrument').value=spec.id;$('sustain').disabled=spec.kind==='drums';$('octDown').disabled=spec.kind==='drums';$('octUp').disabled=spec.kind==='drums';
   $('keyLayout').value=layout;$('keyLayout').disabled=spec.kind==='drums';
-  drawKeys(true);redraw();
+  drawKeys(true);redraw();if(!$('settings').hidden)bindings();
 }
 function drawKeys(center=false) {
   const drums=model.spec.kind==='drums',keyboard=$('keyboard'),base=(model.octave+1)*12;
@@ -221,7 +222,7 @@ function changeLayout(next) {
   if(!['piano','legacy','expanded'].includes(next))return;
   panic();capture=null;keySets[layout]=[...keys];layout=next;keys=[...keySets[layout]];
   model.bindings=[...keys];model.octave=layout==='piano'?recommendedPianoOctave(model.spec):layout==='expanded'?recommendedExpandedOctave(model.spec):model.spec.octave;
-  drawKeys(true);redraw();bindings();save();$('playArea').focus();
+  drawKeys(true);redraw();bindings();save();
 }
 function bindings() {
   $('bindings').replaceChildren();keys.forEach((code,i)=>{
@@ -403,7 +404,7 @@ window.addEventListener('pagehide',()=>{if(shown)close();audio?.stopAll();});
 $('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=e=>{panic();focusAfterPointer(e);};
 $('voice').addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();$('voice').setPointerCapture(e.pointerId);voiceSource('pointer:'+e.pointerId,true);$('playArea').focus({preventScroll:true});});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('voice').addEventListener(type,e=>voiceSource('pointer:'+e.pointerId,false));
-for(const type of ['keydown','keyup'])$('voice').addEventListener(type,e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('button:'+e.code,type==='keydown');});
+$('voice').addEventListener('keydown',e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('button:'+e.code,true);});
 $('instrument').onchange=()=>{stop();choose($('instrument').value);};
 $('octDown').onclick=e=>{shiftOctave(-1);focusAfterPointer(e);};
 $('octUp').onclick=e=>{shiftOctave(1);focusAfterPointer(e);};

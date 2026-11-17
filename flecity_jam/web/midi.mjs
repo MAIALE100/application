@@ -12,9 +12,10 @@ export class MidiInput {
   }
   refresh() {
     const inputs=[...this.access.inputs.values()].filter(p=>p.state==='connected');
+    const selectedId=this.port?.id;
     this.devices(inputs.map(p=>({id:p.id,name:p.name||'MIDI入力'})));
     if(this.port && !inputs.includes(this.port)){this.detach();this.status('MIDI接続が解除されました');}
-    if(!this.port && inputs.length)this.select(inputs[0].id);
+    if(!this.port && inputs.length)this.select((inputs.find(p=>p.id===selectedId)||inputs[0]).id);
     if(!inputs.length)this.status('MIDI入力が見つかりません');
   }
   select(id) {

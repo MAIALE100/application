@@ -2,6 +2,10 @@
 
 ## Current handoff — 2026-11-18
 
+0.3.2-test is installed and started on Test_01 only. Source096ba8dc passed165 local checks; installed81/81, previous0.3.1 backup81/81, copy rollback81→81→81 PASS. Range is15m, with one reviewed config line; incoming SHA2563cb3fa6f2bb6229a5f05c7b4a163ec717894b5ed85214dd3aae3aed2e21fb2e3. Receipt jam-update-8apehtiw/receipt.json SHA256e7985c527ce0359be2b1b6369821e070b1ffb7d70518553a595ff0f2ca0782cc restores0.3.1 and7m. Other5304 resource files+5 configs+txAdmin are unchanged. The N/button→249 secondary-PTT route keeps exclusive NUI focus and respects microphone/Voice settings. Do not treat Cfx/pma patterns or mocks as real voice delivery. Notebook users must verify bidirectional VC, release, U/J and15m listening; new live results remain NOT_RUN. User-reported0.3.1 audio/sharing/ensemble PASS and VC FAIL are recorded separately. Do not start desktop FiveM or alter WAVE/Voice/DB/other paused apps. Current artifacts: original chat outputs/FLECITY_JAM_20261116/voice-range-20261118/.
+
+## Current handoff — 2026-11-18
+
 The active 0.3.2-test candidate adds N/hold-button secondary PTT input to native249 without changing keepInput=false, Voice settings, mic enable/mute/privacy guards or radio behavior. Renew every200ms with a900ms lease, per-open token and monotonic seq; release on keyup, blur, close, death, timeout and resource stop/restart. UI held/detected states are not proof a listener hears voice. The cause of0.3.1 VC failure is not established; Cfx has a PTT-specific path, so do not attribute it solely to keepInput=false. Esc close is the fallback.
 
 The user explicitly requested JAM Range7→15m; only that config value/comment changes, with PttControl249 and reservedN retained. Keep quadratic attenuation, rolloffFactor0 and58 samples unchanged. This is independent of native Voice3m. The installer remains fail-closed unless an exact reviewed incoming configSHA256 pin is supplied; preserve baseline, full backup, receipt configReview and rollback. No Voice/DB/other paused app changes.

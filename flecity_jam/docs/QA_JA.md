@@ -2,6 +2,12 @@
 
 ## 今回の基準と判定 — 2026-11-18
 
+最終の固定ソース096ba8dcで全回帰165/165 PASS、0 FAIL、実行中のソースSHA256不変。JS42、Lua engine24・client22、Chromium14（120秒模擬8人）、NUI7、鍵盤24、会話入力15、音源4、更新fixture13。別に5楽器PCM生成とJS15・Lua9の構文確認もPASS。これらはネイティブPTTや相手への声の到達を証明しない。
+
+Test_01のJAMだけ0.3.2-testへ適用し、停止→定義再読込1/110→JAM起動→jam_statusの0.3.2／sessions=0／range=15.0mを確認。設置81/81・旧0.3.1バックアップ81/81一致。コピー上の復旧は81(7m)→81(15m)→81(7m) PASS。非JAM5304件・設定5件・txAdmin設定は差分0。58音源、サーバー同期、音声・減衰・MIDI・カタログは同一。JAM設定差分はRange7→15の1行だけ。
+
+ZIP SHA256 `5e209ecef926b96af265c9a51a0049b8ad2699d970a257fa4101f926a8b49771`、レビュー済みincoming config SHA256 `3cb3fa6f2bb6229a5f05c7b4a163ec717894b5ed85214dd3aae3aed2e21fb2e3`。復旧receiptはjam-update-8apehtiw/receipt.json、SHA256 `e7985c527ce0359be2b1b6369821e070b1ffb7d70518553a595ff0f2ca0782cc`。詳細とノートPC用3群の正本は別添voice-range-20261118/。新しいVC送受信・PTT解放・15m聴感はNOT_RUNで、正式公開はNO-GO。デスクトップFiveMは起動していない。
+
 ユーザーのノートPCによる0.3.1-test報告は、操作・楽器発音・周囲共有・距離減衰・2人以上合奏がPASS。本人のJAM中VCはFAILで、Esc後すぐ復帰した。原因は未確定であり、CfxのPTT専用分岐も考慮し、keepInput=falseだけを原因と断定しない。
 
 0.3.2候補では通常249へのN／会話ボタン入力と、JAM独立の共有距離15mを実装する。入力専有を維持し、200ms保持更新・900ms期限・世代トークン・seqで解放漏れと古い要求を制限する。Voice設定・マイクの有効化・ミュート・無線・DBを変更しない。入力待機／PTT入力中／送信状態検出を分けるが、検出表示は相手の聴取PASSではない。声が届かない場合はEscで閉じる。

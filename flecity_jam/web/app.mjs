@@ -8,6 +8,7 @@ const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
 let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[];
 let layout='piano',keySets={piano:[...PIANO_KEYS],legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS]},keys,zoom=100;
+let velocity=100,performVolume=75,showGuide=true;
 let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
@@ -23,7 +24,7 @@ function error(message='') {$('error').textContent=message;$('error').hidden=!me
 function notice(message) {$('notice').textContent=message;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);}
 function save() {
   keySets[layout]=[...keys];
-  try{localStorage.setItem('flecity-jam-v3',JSON.stringify({version:3,layout,bindings:keySets,listen,muted,zoom}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
+  try{localStorage.setItem('flecity-jam-v3',JSON.stringify({version:3,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
 }
 function readPrefs(name) {try{const value=JSON.parse(localStorage.getItem(name)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
 const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),prefs=readPrefs('flecity-jam-v3');
@@ -41,7 +42,14 @@ for(const source of [legacyPrefs,previousPrefs,prefs]){
   if(typeof source.muted==='boolean')muted=source.muted;
 }
 for(const source of [previousPrefs,prefs])if(Number.isFinite(source.zoom))zoom=Math.max(70,Math.min(160,source.zoom));
+if(Number.isInteger(prefs.velocity)&&prefs.velocity>=1&&prefs.velocity<=127)velocity=prefs.velocity;
+if(Number.isFinite(prefs.performVolume)&&prefs.performVolume>=0&&prefs.performVolume<=100)performVolume=Math.round(prefs.performVolume);
+if(typeof prefs.showGuide==='boolean')showGuide=prefs.showGuide;
 keys=[...keySets[layout]];
+
+function focusAfterPointer(event) {
+  if(event.detail>0||event.type==='pointerup')($('panel').classList.contains('compact')?$('panel'):$('playArea')).focus({preventScroll:true});
+}
 
 async function bridge(name,data={}) {
   if(preview) {
@@ -141,6 +149,7 @@ function drawKeys(center=false) {
   const pitches=drums?DRUM_PITCHES:Array.from({length:lastPitch-firstPitch+1},(_,i)=>firstPitch+i);
   const bounds=(drums?'drums:':'piano:')+pitches.join(',');
   keyboard.classList.toggle('drums',drums);$('keyboardViewControls').hidden=drums;
+  if(drums){keyboard.style.removeProperty('width');$('keyboardViewport').scrollLeft=0;viewAnchor=0;}
   if(bounds!==keyboardBounds){
     keyboardBounds=bounds;keyboard.replaceChildren();let white=0;
     for(const pitch of pitches){
@@ -150,7 +159,7 @@ function drawKeys(center=false) {
       button.append(document.createElement('kbd'),document.createElement('span'));
       button.addEventListener('pointerdown',e=>{
         if(e.button!==0)return;e.preventDefault();if(!session)return;
-        button.setPointerCapture(e.pointerId);model.press('pointer:'+e.pointerId,pitch);$('playArea').focus({preventScroll:true});
+        button.setPointerCapture(e.pointerId);model.press('pointer:'+e.pointerId,pitch,velocity);$('playArea').focus({preventScroll:true});
       });
       for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,e=>model?.release('pointer:'+e.pointerId));
       keyboard.append(button);
@@ -173,7 +182,10 @@ function drawKeys(center=false) {
   $('layoutHelp').textContent=drums?'A〜K：8つのドラムパッド':layout==='legacy'?'従来18音の配置を使用中。旧設定は保持されています。':keys.every((code,i)=>code===EXPANDED_KEYS[i])?'下段 A〜\\ / 中段 Q〜] / 上段 1〜=：横は半音、各段は1オクターブ':'カスタム36音：鍵盤に表示されたPCキーで演奏';
   const standardPiano=layout==='piano'&&keys.every((code,i)=>code===PIANO_KEYS[i]);
   if(layout==='piano'&&!drums)$('layoutHelp').textContent=standardPiano?'白鍵 Z〜B：ド〜ソ / Q〜P：ラ〜上のド。黒鍵は上の列。↑↓で音域変更。':'カスタム25音：鍵盤上のPCキー表示で演奏。↑↓で音域変更。';
-  $('physicalLayout').hidden=drums||!standardPiano;
+  $('physicalLayout').hidden=drums||!standardPiano||!showGuide;
+  $('guideToggle').disabled=drums||!standardPiano;
+  $('guideToggle').setAttribute('aria-expanded',String(!drums&&standardPiano&&showGuide));
+  $('guideToggle').textContent=drums||!standardPiano?'配列ガイド（標準用）':showGuide?'配列ガイドを隠す':'配列ガイドを表示';
   if(!drums&&standardPiano){
     $('physicalLayout').replaceChildren();
     for(const [first,last,title] of [[0,9,'左手 Z〜B · ド〜ソ'],[9,25,'右手 Q〜P · ラ〜ド']]){
@@ -336,7 +348,32 @@ const midi=new MidiInput({press:(...args)=>{if(session)model.press(...args);},re
     if(!list.length)select.add(new Option('未接続',''));for(const p of list)select.add(new Option(p.name,p.id));
     if(list.some(p=>p.id===selected))select.value=selected;
   }});
-const replicas=new Replicas((id,s)=>{audio?.sync(id,s);$('nearby').textContent=`周囲 ${replicas.states.size}人`;},id=>{audio?.remove(id);$('nearby').textContent=`周囲 ${replicas.states.size}人`;});
+let peerMixSignature='';
+const peerVolumes=new Map();
+function refreshPeerMix() {
+  const entries=[...replicas.states.entries()].sort(([a],[b])=>a-b);
+  $('nearby').textContent=`周囲 ${entries.length}人`;
+  const signature=JSON.stringify(entries.map(([id,s])=>[id,s.session,s.instrument]));
+  if(signature===peerMixSignature)return;peerMixSignature=signature;
+  const list=$('peerMix'),rows=new Map([...list.children].map(row=>[row.dataset.key,row])),active=new Set(entries.map(([id,state])=>JSON.stringify([id,state.session])));
+  for(const [key,row] of rows)if(!active.has(key))row.remove();
+  entries.forEach(([id,state],index)=>{
+    const key=JSON.stringify([id,state.session]);active.add(key);let row=rows.get(key);
+    if(!row){
+      row=document.createElement('label');row.className='peer-mix-row';row.dataset.key=key;row.dataset.player=id;
+      const title=document.createElement('span'),slider=document.createElement('input'),value=document.createElement('output');
+      slider.type='range';slider.min=0;slider.max=100;slider.step=1;slider.value=Math.round((peerVolumes.get(key)??1)*100);
+      slider.setAttribute('aria-label',`演奏者${id}の楽器音量`);value.textContent=slider.value+'%';
+      slider.oninput=()=>{if(replicas.states.get(id)?.session===state.session){const level=Number(slider.value)/100;peerVolumes.set(key,level);audio.setSourceVolume(id,level,state.session);value.textContent=slider.value+'%';}};
+      slider.addEventListener('pointerup',focusAfterPointer);row.append(title,slider,value);
+    }
+    row.children[0].textContent=`演奏者 ${id} · ${catalog.instruments.find(spec=>spec.id===state.instrument)?.name||'楽器'}`;
+    if(list.children[index]!==row)list.insertBefore(row,list.children[index]||null);
+  });
+  for(const key of peerVolumes.keys())if(!active.has(key))peerVolumes.delete(key);
+  $('peerMixEmpty').hidden=entries.length>0;$('resetPeerMix').disabled=entries.length===0;
+}
+const replicas=new Replicas((id,s)=>{audio?.sync(id,s,peerVolumes.get(JSON.stringify([id,s.session]))??1);refreshPeerMix();},id=>{audio?.remove(id);refreshPeerMix();});
 
 window.addEventListener('keydown',e=>{
   if(!shown){
@@ -350,41 +387,45 @@ window.addEventListener('keydown',e=>{
     keys=proposal;capture=null;model.bindings=[...keys];save();bindings();drawKeys();error();return;
   }
   if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.code==='KeyN'&&(!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type==='range'))){e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('keyboard',true);return;}
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
-  if(e.code==='KeyN'){e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('keyboard',true);return;}
   if(!session)return;
   if(e.repeat){if(e.code==='Space'||e.code==='ArrowDown'||e.code==='ArrowUp'||model.pitch(e.code)!==undefined){e.preventDefault();e.stopPropagation();}return;}
   if(e.code==='Space' && e.target.tagName!=='BUTTON'){e.preventDefault();e.stopPropagation();pedal('keyboard',true);return;}
   if(e.code==='ArrowDown'||e.code==='ArrowUp'){e.preventDefault();e.stopPropagation();shiftOctave(e.code==='ArrowDown'?-1:1);return;}
-  const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();model.press('key:'+e.code,pitch);
+  const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();model.press('key:'+e.code,pitch,velocity);
 });
 window.addEventListener('keyup',e=>{if(voiceSources.has('button:'+e.code)){e.preventDefault();e.stopPropagation();voiceSource('button:'+e.code,false);}if(e.code==='KeyN'&&voiceSources.has('keyboard')){e.preventDefault();e.stopPropagation();voiceSource('keyboard',false);}if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
 window.addEventListener('blur',()=>{if(shown)close();else stopMetronome();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(shown)close();replicas.clear();audio?.stopAll();}});
 window.addEventListener('pagehide',()=>{if(shown)close();audio?.stopAll();});
 
-$('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=panic;
+$('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=e=>{panic();focusAfterPointer(e);};
 $('voice').addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();$('voice').setPointerCapture(e.pointerId);voiceSource('pointer:'+e.pointerId,true);$('playArea').focus({preventScroll:true});});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('voice').addEventListener(type,e=>voiceSource('pointer:'+e.pointerId,false));
 for(const type of ['keydown','keyup'])$('voice').addEventListener(type,e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('button:'+e.code,type==='keydown');});
 $('instrument').onchange=()=>{stop();choose($('instrument').value);};
-$('octDown').onclick=()=>{shiftOctave(-1);$('playArea').focus();};
-$('octUp').onclick=()=>{shiftOctave(1);$('playArea').focus();};
+$('octDown').onclick=e=>{shiftOctave(-1);focusAfterPointer(e);};
+$('octUp').onclick=e=>{shiftOctave(1);focusAfterPointer(e);};
 $('keyLayout').onchange=()=>changeLayout($('keyLayout').value);
 $('keyboardZoom').oninput=()=>{zoom=Number($('keyboardZoom').value);fitKeyboard();save();};
-$('viewLeft').onclick=()=>$('keyboardViewport').scrollBy({left:-$('keyboardViewport').clientWidth*.8});
-$('viewRight').onclick=()=>$('keyboardViewport').scrollBy({left:$('keyboardViewport').clientWidth*.8});
-$('viewHome').onclick=()=>fitKeyboard(true);
+$('viewLeft').onclick=e=>{$('keyboardViewport').scrollBy({left:-$('keyboardViewport').clientWidth*.8});focusAfterPointer(e);};
+$('viewRight').onclick=e=>{$('keyboardViewport').scrollBy({left:$('keyboardViewport').clientWidth*.8});focusAfterPointer(e);};
+$('viewHome').onclick=e=>{fitKeyboard(true);focusAfterPointer(e);};
+$('guideToggle').onclick=e=>{showGuide=!showGuide;drawKeys();save();focusAfterPointer(e);};
 $('keyboardViewport').onscroll=()=>{const viewport=$('keyboardViewport');if(viewUnit&&viewport.clientWidth===viewWidth)viewAnchor=viewport.scrollLeft/viewUnit;};
 new ResizeObserver(()=>fitKeyboard()).observe($('keyboardViewport'));
-$('sustain').onclick=()=>{if(session)pedal('button',!pedalSources.has('button'));$('playArea').focus();};
-$('performVolume').oninput=()=>{const v=Number($('performVolume').value);$('performValue').textContent=v+'%';model?.setVolume(v/100);};
+$('sustain').onclick=e=>{if(session)pedal('button',!pedalSources.has('button'));focusAfterPointer(e);};
+$('velocity').oninput=()=>{velocity=Number($('velocity').value);$('velocityValue').textContent=velocity;save();};
+$('performVolume').oninput=()=>{performVolume=Number($('performVolume').value);$('performValue').textContent=performVolume+'%';model?.setVolume(performVolume/100);save();};
 $('listenVolume').oninput=()=>{listen=Number($('listenVolume').value)/100;$('listenValue').textContent=Math.round(listen*100)+'%';audio.setVolume(listen);save();};
-$('mute').onclick=()=>setMuted(!muted);
-$('compact').onclick=()=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));if(compact){capture=null;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');}else requestAnimationFrame(()=>fitKeyboard());};
-$('settingsToggle').onclick=()=>{panic();capture=null;const open=$('settings').hidden;if(open&&$('panel').classList.contains('compact'))$('compact').click();$('settings').hidden=!open;$('settingsToggle').setAttribute('aria-expanded',String(open));if(open)bindings();};
-$('resetKeys').onclick=()=>{panic();keys=[...(layout==='piano'?PIANO_KEYS:layout==='expanded'?EXPANDED_KEYS:DEFAULT_KEYS)];model.bindings=[...keys];capture=null;save();bindings();drawKeys();};
-$('midiConnect').onclick=()=>midi.connect();$('midiDevice').onchange=()=>midi.select($('midiDevice').value);$('metro').onclick=toggleMetronome;
+$('mute').onclick=e=>{setMuted(!muted);focusAfterPointer(e);};
+$('compact').onclick=e=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));if(compact){capture=null;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');}else requestAnimationFrame(()=>fitKeyboard());focusAfterPointer(e);};
+$('settingsToggle').onclick=e=>{capture=null;const open=$('settings').hidden;if(open&&$('panel').classList.contains('compact'))$('compact').click();$('settings').hidden=!open;$('settingsToggle').setAttribute('aria-expanded',String(open));if(open)bindings();focusAfterPointer(e);};
+$('resetPeerMix').onclick=e=>{peerVolumes.clear();for(const[id,state]of replicas.states)audio.setSourceVolume(id,1,state.session);for(const row of $('peerMix').children){row.children[1].value=100;row.children[2].textContent='100%';}focusAfterPointer(e);};
+$('resetKeys').onclick=e=>{panic();keys=[...(layout==='piano'?PIANO_KEYS:layout==='expanded'?EXPANDED_KEYS:DEFAULT_KEYS)];model.bindings=[...keys];capture=null;save();bindings();drawKeys();focusAfterPointer(e);};
+for(const id of ['velocity','performVolume','listenVolume','keyboardZoom'])$(id).addEventListener('pointerup',focusAfterPointer);
+$('midiConnect').onclick=()=>midi.connect();$('midiDevice').onchange=()=>midi.select($('midiDevice').value);$('metro').onclick=e=>{toggleMetronome();focusAfterPointer(e);};
 
 function message(data) {
   if(!data||typeof data.type!=='string')return;
@@ -393,7 +434,7 @@ function message(data) {
   else if(data.type==='control')control(data.data);
   else if(data.type==='remote')replicas.accept(data.data);
   else if(data.type==='positions')audio.positions(data.listener,data.sources);
-  else if(data.type==='expire'){const s=replicas.states.get(data.player);if(s?.session===data.session){replicas.states.delete(data.player);audio.remove(data.player);}}
+  else if(data.type==='expire'){const s=replicas.states.get(data.player);if(s?.session===data.session){replicas.states.delete(data.player);audio.remove(data.player);refreshPeerMix();}}
   else if(data.type==='reset'){close(false);replicas.clear();audio.stopAll();}
   else if(data.type==='notice')notice(data.message);
   else if(data.type==='toggleMute'){setMuted(!muted);notice(muted?'JAMを消音しました。/jammute で解除。':'JAMの消音を解除しました。');}
@@ -448,7 +489,9 @@ async function initialize() {
       $('instrument').replaceChildren();
       for(const s of catalog.instruments)$('instrument').add(new Option(s.name,s.id));
       audio=new AudioRack(catalog,null,()=>{const message='音源を再生できませんでした。少し待ってから再試行してください。';error(message);if(!shown)notice(message);});audio.setVolume(listen);setMuted(muted);
-      $('listenVolume').value=Math.round(listen*100);$('listenValue').textContent=Math.round(listen*100)+'%';choose('piano');
+      $('listenVolume').value=Math.round(listen*100);$('listenValue').textContent=Math.round(listen*100)+'%';
+      $('performVolume').value=performVolume;$('performValue').textContent=performVolume+'%';
+      $('velocity').value=velocity;$('velocityValue').textContent=velocity;choose('piano');
     }
     await readyBridge();
     for(const data of early.splice(0))message(data);
@@ -456,7 +499,7 @@ async function initialize() {
     // FiveM normally permits autoplay; if CEF blocks it, expose an explicit unlock command.
     audio.unlock().then(ok=>{if(listenOnlyOpen&&shown){if(ok)listenAudioReady();else promptListenAudio();}
       else if(!ok&&!preview)notice('周囲の演奏を聴くには /jamlisten を開いてください。');}).catch(()=>{});
-    if(!preview&&!preloading){preloading=true;(async()=>{for(const spec of catalog.instruments)await audio.load(spec.id);})().catch(()=>notice('一部の音源を準備できませんでした。/jamlisten で確認してください。'));}
+    if(!preview&&!preloading){preloading=true;(async()=>{let failed=false;for(const spec of catalog.instruments){try{await audio.load(spec.id);}catch{failed=true;}}if(failed)notice('一部の音源を準備できませんでした。使う楽器で「演奏する」を押して再試行してください。');})();}
     if(preview){document.body.classList.add('preview');open();window.JAM={get model(){return model;},audio,replicas,message,midi,get session(){return session;},panic,stop};}
     bootReady=true;bootFailed=false;$('notice').hidden=true;$('notice').textContent='';
   }catch{

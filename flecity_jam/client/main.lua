@@ -76,7 +76,7 @@ end,false)
 exports('OpenInstrument',function(instrument) open(instrument,false) end)
 exports('StopPerformance',function() close('external') end)
 exports('IsPerforming',function() return session ~= nil end)
-for id, exportName in pairs({piano='UsePiano',guitar='UseGuitar',bass='UseBass',clarinet='UseClarinet',drums='UseDrums'}) do
+for id, exportName in pairs({piano='UsePiano',guitar='UseGuitar',bass='UseBass',clarinet='UseClarinet',drums='UseDrums',electric_guitar='UseElectricGuitar',flute='UseFlute',violin='UseViolin'}) do
     exports(exportName,function(data)
         if GetResourceState('ox_inventory')~='started' then return end
         exports.ox_inventory:useItem(data,function(used)

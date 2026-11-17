@@ -113,6 +113,7 @@ class InstallTests(unittest.TestCase):
 
     def test_package_scope_and_text_bytes(self):
         self.assertTrue(packager.allowed(pathlib.PurePath('docs/INSTALL_JA.md')))
+        self.assertTrue(packager.allowed(pathlib.PurePath('licenses/ADDED_INSTRUMENTS.md')))
         self.assertFalse(packager.allowed(pathlib.PurePath('docs/QA_JA.md')))
         self.assertFalse(packager.allowed(pathlib.PurePath('tests/install_test.py')))
         text = self.base / 'line.lua'
@@ -121,6 +122,21 @@ class InstallTests(unittest.TestCase):
         audio.write_bytes(b'\x00\r\n\x01')
         self.assertEqual(packager.package_bytes(text), b'a\nb\n')
         self.assertEqual(packager.package_bytes(audio), b'\x00\r\n\x01')
+
+    def test_licensed_source_notes_are_included_without_allowing_private_qa(self):
+        note=b'# Source and license\nCC0-1.0\n'
+        with zipfile.ZipFile(self.archive) as source:
+            files={name:source.read(name) for name in source.namelist()}
+        manifest=json.loads(files['flecity_jam/MANIFEST.json'])
+        manifest['files']['licenses/ADDED_INSTRUMENTS.md']=sha(note)
+        files['flecity_jam/licenses/ADDED_INSTRUMENTS.md']=note
+        files['flecity_jam/MANIFEST.json']=json.dumps(manifest).encode()
+        archive=self.base/'licensed.zip'
+        with zipfile.ZipFile(archive,'w') as output:
+            for name,data in files.items():output.writestr(name,data)
+        data,_=installer.verified_archive(archive,sha(archive.read_bytes()))
+        self.assertEqual(data['licenses/ADDED_INSTRUMENTS.md'],note)
+        self.assertFalse(packager.allowed(pathlib.PurePath('docs/QA_JA.md')))
 
     def test_pinned_update_backup_and_rollback(self):
         target = self.initial()

@@ -633,6 +633,394 @@
           "duration": 6.0
         }
       ]
+    },
+    {
+      "id": "electric_guitar",
+      "name": "クリーンエレキギター",
+      "family": "弦",
+      "kind": "pluck",
+      "min": 40,
+      "max": 85,
+      "octave": 4,
+      "attack": 0.004,
+      "release": 0.18,
+      "gain": 0.75,
+      "source": "FreePats FSBS Electric Guitar Clean #1 small",
+      "url": "https://freepats.zenvoid.org/ElectricGuitar/clean-electric-guitar.html",
+      "license": "CC0-1.0",
+      "samples": [
+        {
+          "midi": 36,
+          "layer": 4,
+          "tune": 4.2049,
+          "gain": 0.2580708725876016,
+          "file": "samples/electric_guitar/p36.ogg",
+          "sha256": "47b2557d015b2e0f722809841198d367d7270c4cfd113515b9602f5bf0a4bf9f",
+          "duration": 5.0
+        },
+        {
+          "midi": 41,
+          "layer": 4,
+          "tune": 0.2232,
+          "gain": 0.2775383694400464,
+          "file": "samples/electric_guitar/p41.ogg",
+          "sha256": "fc9457ca82a5ad0948d71a17ea899b1256f159889642d47d99b08717edb9c148",
+          "duration": 5.0
+        },
+        {
+          "midi": 45,
+          "layer": 4,
+          "tune": -15.9094,
+          "gain": 0.33953615412121085,
+          "file": "samples/electric_guitar/p45.ogg",
+          "sha256": "eaf4a9d03824d9e6de703861a9c8e3ec967ead91991f2bec68995e6504b95b39",
+          "duration": 5.0
+        },
+        {
+          "midi": 48,
+          "layer": 4,
+          "tune": -1.1992,
+          "gain": 0.26314535272359335,
+          "file": "samples/electric_guitar/p48.ogg",
+          "sha256": "c7093d7b5d653766234662e84753fca1071bb94ea520a09f4e5f6cdda3f29d4c",
+          "duration": 5.0
+        },
+        {
+          "midi": 52,
+          "layer": 4,
+          "tune": -5.9834,
+          "gain": 0.46703835772062646,
+          "file": "samples/electric_guitar/p52.ogg",
+          "sha256": "1b9286a1d99f91a6bc4580390c0363fa1cc17a3080d0f4477cda5687a29f29e0",
+          "duration": 5.0
+        },
+        {
+          "midi": 55,
+          "layer": 4,
+          "tune": 0.8464,
+          "gain": 0.5171398759117125,
+          "file": "samples/electric_guitar/p55.ogg",
+          "sha256": "8e16064be0f742b6526bce3e45c7cc3350f05b1ada4827e7c8f4adcb916a0bcd",
+          "duration": 5.0
+        },
+        {
+          "midi": 59,
+          "layer": 4,
+          "tune": -1.8451,
+          "gain": 0.6886483282820663,
+          "file": "samples/electric_guitar/p59.ogg",
+          "sha256": "f21e82042e8a87168e044c901db436938dad3f8cabee5f6490850c9ecffb4340",
+          "duration": 5.0
+        },
+        {
+          "midi": 64,
+          "layer": 4,
+          "tune": -0.2835,
+          "gain": 0.5206749400187433,
+          "file": "samples/electric_guitar/p64.ogg",
+          "sha256": "a9a55eb33454b66dedb1fb76513db0038107d518bded56fc4e0e51943f72a8eb",
+          "duration": 5.0
+        },
+        {
+          "midi": 67,
+          "layer": 4,
+          "tune": 0.8805,
+          "gain": 0.5874560735448869,
+          "file": "samples/electric_guitar/p67.ogg",
+          "sha256": "a5c2e04b76d18664d4610d86fb52ed7e8091dfe438a33af43e5b4168992b7ee0",
+          "duration": 5.0
+        },
+        {
+          "midi": 71,
+          "layer": 4,
+          "tune": -0.0369,
+          "gain": 0.6828673412633433,
+          "file": "samples/electric_guitar/p71.ogg",
+          "sha256": "9b7e9c3a051a8561675326fd632b25c1b62eea2b8212438cd5d2a8930dbd9af4",
+          "duration": 5.0
+        },
+        {
+          "midi": 74,
+          "layer": 4,
+          "tune": -4.8085,
+          "gain": 0.5842280470922434,
+          "file": "samples/electric_guitar/p74.ogg",
+          "sha256": "9898e7b96104101c1fe489e93375f3078948c23c313f89d4aeb66cb8d168c2f9",
+          "duration": 3.8115625
+        },
+        {
+          "midi": 80,
+          "layer": 4,
+          "tune": 0.8677,
+          "gain": 0.5070082851031288,
+          "file": "samples/electric_guitar/p80.ogg",
+          "sha256": "e42db5bd6034ac6f31791fcdbcf857106439c5aefd30e0a41787e44ade56821d",
+          "duration": 5.0
+        },
+        {
+          "midi": 85,
+          "layer": 4,
+          "tune": 0.9778,
+          "gain": 0.5250092155062258,
+          "file": "samples/electric_guitar/p85.ogg",
+          "sha256": "4463ddfd94f405fa0895be453ad77162942573a9ddd97ff32551a511d294c4a1",
+          "duration": 2.88759375
+        }
+      ]
+    },
+    {
+      "id": "flute",
+      "name": "フルート",
+      "family": "管",
+      "kind": "wind",
+      "min": 60,
+      "max": 93,
+      "octave": 5,
+      "attack": 0.025,
+      "release": 0.1,
+      "gain": 0.75,
+      "source": "Versilian Studios VSCO 2 Community Edition — Sam Gossner / Simon Dalzell",
+      "url": "https://github.com/sgossner/VSCO-2-CE",
+      "license": "CC0-1.0",
+      "samples": [
+        {
+          "midi": 60,
+          "layer": 4,
+          "tune": -2.0543,
+          "loopStart": 0.65,
+          "loopEnd": 1.47,
+          "gain": 6.719774611442099,
+          "file": "samples/flute/p60.wav",
+          "sha256": "195649f50e967c06cce6687e4a2190dd19b500198acc1cc7858c10051e2c7153",
+          "duration": 1.47
+        },
+        {
+          "midi": 64,
+          "layer": 4,
+          "tune": 0.8843,
+          "loopStart": 0.65,
+          "loopEnd": 2.154,
+          "gain": 4.663224648759773,
+          "file": "samples/flute/p64.wav",
+          "sha256": "1afe13ca3871cfdf64538871d646491dc74d45b26e034189fc75c9f2a0561818",
+          "duration": 2.154
+        },
+        {
+          "midi": 67,
+          "layer": 4,
+          "tune": 2.6551,
+          "loopStart": 0.65,
+          "loopEnd": 1.6235,
+          "gain": 2.9502078067431916,
+          "file": "samples/flute/p67.wav",
+          "sha256": "7857fc9af7ab8a362fc7fe60e161f5d697abfe543cadaadcbea76c1aa95c2528",
+          "duration": 1.6235
+        },
+        {
+          "midi": 69,
+          "layer": 4,
+          "tune": 3.7212,
+          "loopStart": 0.65,
+          "loopEnd": 1.455,
+          "gain": 3.6145389553242446,
+          "file": "samples/flute/p69.wav",
+          "sha256": "c37cefe2c02654a5c31eed8b0409cb973cd79949326e6d4fc192c9e05ba27512",
+          "duration": 1.455
+        },
+        {
+          "midi": 72,
+          "layer": 4,
+          "tune": -1.1322,
+          "loopStart": 0.65,
+          "loopEnd": 1.418,
+          "gain": 2.8555068934833963,
+          "file": "samples/flute/p72.wav",
+          "sha256": "0ee617ba1a7100374e46c67ba9261249a92110650e4c2237aa3dd861fb7799da",
+          "duration": 1.418
+        },
+        {
+          "midi": 76,
+          "layer": 4,
+          "tune": 1.6654,
+          "loopStart": 0.65,
+          "loopEnd": 1.608,
+          "gain": 2.1783358974735667,
+          "file": "samples/flute/p76.wav",
+          "sha256": "745bcd0b243d3ad3ec2cc7cc46d765e0374cb262ce5ec7e2c4ff59d5a01109c5",
+          "duration": 1.608
+        },
+        {
+          "midi": 79,
+          "layer": 4,
+          "tune": 0.2118,
+          "loopStart": 0.65,
+          "loopEnd": 2.17975,
+          "gain": 2.8921764196884934,
+          "file": "samples/flute/p79.wav",
+          "sha256": "61298f1828570a16c4aa17b380183621b22701be8e085ce0f0d01adf40144f0e",
+          "duration": 2.17975
+        },
+        {
+          "midi": 81,
+          "layer": 4,
+          "tune": -2.184,
+          "loopStart": 0.65,
+          "loopEnd": 1.517,
+          "gain": 1.6600784214082602,
+          "file": "samples/flute/p81.wav",
+          "sha256": "20488c40e9ebb7eceabcfd841a4bb3ff7a963d0d0544f01a7f6646526d5af0fc",
+          "duration": 1.517
+        },
+        {
+          "midi": 84,
+          "layer": 4,
+          "tune": 1.8553,
+          "loopStart": 0.65,
+          "loopEnd": 1.44975,
+          "gain": 0.968096689503068,
+          "file": "samples/flute/p84.wav",
+          "sha256": "d4c0c427de19af933e7e00fdba2b09ca301fc3ec58c90603dc65d73d3ce3a9a0",
+          "duration": 1.44975
+        },
+        {
+          "midi": 88,
+          "layer": 4,
+          "tune": -2.4495,
+          "loopStart": 0.65,
+          "loopEnd": 1.5025,
+          "gain": 0.7910906479696121,
+          "file": "samples/flute/p88.wav",
+          "sha256": "e507f3af9a6d4140b69bba707227576e88e94a69ff7c9e2051b112f58ab0f645",
+          "duration": 1.5025
+        },
+        {
+          "midi": 93,
+          "layer": 4,
+          "tune": 1.2618,
+          "loopStart": 0.65,
+          "loopEnd": 1.74725,
+          "gain": 0.6582399215179261,
+          "file": "samples/flute/p93.wav",
+          "sha256": "a9d451389e9aa5e6c5b915702bc15ee7fb2eb60665d0d4474f60ddb146038abb",
+          "duration": 1.74725
+        }
+      ]
+    },
+    {
+      "id": "violin",
+      "name": "ヴァイオリン",
+      "family": "弦",
+      "kind": "sustain",
+      "min": 55,
+      "max": 86,
+      "octave": 4,
+      "attack": 0.035,
+      "release": 0.16,
+      "gain": 0.75,
+      "source": "Versilian Studios VSCO 2 Community Edition — Sam Gossner / Simon Dalzell",
+      "url": "https://github.com/sgossner/VSCO-2-CE",
+      "license": "CC0-1.0",
+      "samples": [
+        {
+          "midi": 55,
+          "layer": 4,
+          "tune": 0.4689,
+          "loopStart": 0.65,
+          "loopEnd": 1.372,
+          "gain": 16,
+          "file": "samples/violin/p55.wav",
+          "sha256": "2c6e173170369d3522f44e8f706648c32ba7eafb10a0c16a3054012381219531",
+          "duration": 1.372
+        },
+        {
+          "midi": 57,
+          "layer": 4,
+          "tune": 1.1094,
+          "loopStart": 0.65,
+          "loopEnd": 1.5425,
+          "gain": 16,
+          "file": "samples/violin/p57.wav",
+          "sha256": "63bf30039fbe0d329ecf0715923a73813743c47be2e655f0ece2ad81f3a9f339",
+          "duration": 1.5425
+        },
+        {
+          "midi": 59,
+          "layer": 4,
+          "tune": -0.0142,
+          "loopStart": 0.65,
+          "loopEnd": 1.49625,
+          "gain": 16,
+          "file": "samples/violin/p59.wav",
+          "sha256": "c74bd3418cf28ce0b180901574730b5d77927c7cf02fe8f48be30244770bb531",
+          "duration": 1.49625
+        },
+        {
+          "midi": 62,
+          "layer": 4,
+          "tune": -2.5259,
+          "loopStart": 0.65,
+          "loopEnd": 1.3845,
+          "gain": 16,
+          "file": "samples/violin/p62.wav",
+          "sha256": "5a7b81a6d0b42f0985d6c909f9458354646679aa2a5f7ae6224354d6c5df1682",
+          "duration": 1.3845
+        },
+        {
+          "midi": 69,
+          "layer": 4,
+          "tune": -1.892,
+          "loopStart": 0.65,
+          "loopEnd": 1.72425,
+          "gain": 16,
+          "file": "samples/violin/p69.wav",
+          "sha256": "6b7c46668b518dbfa0b7a7e760f25225e329205598f94e09c3acbaf73191f844",
+          "duration": 1.72425
+        },
+        {
+          "midi": 72,
+          "layer": 4,
+          "tune": -1.2164,
+          "loopStart": 0.65,
+          "loopEnd": 1.721,
+          "gain": 8.151883583012133,
+          "file": "samples/violin/p72.wav",
+          "sha256": "b1e2706ab9f214d5c7cd65233967e0d9c73fbb64835c5934056b8d177280a32c",
+          "duration": 1.721
+        },
+        {
+          "midi": 76,
+          "layer": 4,
+          "tune": 0.4593,
+          "loopStart": 0.65,
+          "loopEnd": 1.416,
+          "gain": 16,
+          "file": "samples/violin/p76.wav",
+          "sha256": "b053fb7605610339087a0238bf1dd7e56bdf6448f3bc4d9f44f9b308edad1a73",
+          "duration": 1.416
+        },
+        {
+          "midi": 83,
+          "layer": 4,
+          "tune": -1.0212,
+          "loopStart": 0.65,
+          "loopEnd": 1.4315,
+          "gain": 16,
+          "file": "samples/violin/p83.wav",
+          "sha256": "2f9e128e47227a6a5eebbdcb5578ad054c2eadebc06ea7df566305394f88b52f",
+          "duration": 1.4315
+        },
+        {
+          "midi": 86,
+          "layer": 4,
+          "tune": -3.9884,
+          "loopStart": 0.65,
+          "loopEnd": 1.406,
+          "gain": 15.274508844625563,
+          "file": "samples/violin/p86.wav",
+          "sha256": "31a097cddad1d11e65218ce055a83a62d04d63ea59f0dbf336f9299d0fe9eab2",
+          "duration": 1.406
+        }
+      ]
     }
   ]
 }

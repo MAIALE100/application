@@ -1,11 +1,14 @@
 export class MidiInput {
-  constructor({press,release,pedal,panic,status,devices}) {Object.assign(this,{press,release,pedal,panic,status,devices});this.access=null;this.port=null;this.pedals=new Set();}
-  async connect() {
-    if(!navigator.requestMIDIAccess){this.status('この環境はWeb MIDIに対応していません。PCキーで演奏できます。');return;}
-    try {
-      this.access=await navigator.requestMIDIAccess({sysex:false});
-      this.access.onstatechange=()=>this.refresh();this.refresh();
-    } catch {this.status('MIDIの使用が許可されませんでした。PCキーはそのまま使えます。');}
+  constructor({press,release,pedal,panic,status,devices}) {Object.assign(this,{press,release,pedal,panic,status,devices});this.access=null;this.port=null;this.pedals=new Set();this.connecting=null;}
+  connect() {
+    if(this.connecting)return this.connecting;
+    if(!navigator.requestMIDIAccess){this.status('この環境はWeb MIDIに対応していません。PCキーで演奏できます。');return Promise.resolve();}
+    this.connecting=Promise.resolve().then(()=>navigator.requestMIDIAccess({sysex:false})).then(access=>{
+      if(this.access)this.access.onstatechange=null;
+      this.access=access;this.access.onstatechange=()=>this.refresh();this.refresh();
+    }).catch(()=>this.status('MIDIの使用が許可されませんでした。PCキーはそのまま使えます。'))
+      .finally(()=>{this.connecting=null;});
+    return this.connecting;
   }
   refresh() {
     const inputs=[...this.access.inputs.values()].filter(p=>p.state==='connected');

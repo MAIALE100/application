@@ -21,19 +21,23 @@
 | DisableControls | コード参照 | 演奏画面中に抑制するGTA操作 |
 | CanStartClient | state参照 | 死亡・インベントリ等、現地のUI競合判定を追加する窓口 |
 
-安全上限は運営が十分に試験してから変更してください。ブラウザー側は同時に確保する音声ノードが最大128、復号済み音源キャッシュ上限は64MiBです。標準の5楽器は約35.3MiBのキャッシュになります。診断値の `voices` は現在発音中の音、`nodes` はリリース中の余韻を含む確保済み音声ノード数です。上限判定は `nodes` に対して行います。キーを離した直後に `voices=0`、`nodes>0` でも、余韻の終了後に減れば正常です。
+安全上限は十分に試験してから変更してください。音声ノード上限128、復号PCMキャッシュ上限64MiBを維持します。0.4.0候補の8楽器・91録音は測定で約46.65MiBです。旧5楽器の約35.3MiBという値は追加前の記録です。診断の`voices`は発音中、`nodes`は余韻を含む確保済みノード数で、上限はnodesへ適用します。解放直後にnodes>voicesでも余韻終了後に減れば正常です。
 
-## 0.3.2-testの入力と端末設定
+## 0.4.0-testの入力と端末設定
 
 標準のメロディー鍵盤は白鍵・黒鍵を物理列で分けた25音です。ピアノ初期はC3～C5。白鍵は下段Z～Bと上側Q～P、黒鍵はその上のS/D/G/Hと2/4/5/7/8/9です。NをPTT予約に保つため下段はGで終え、QからAへ続きます。JISで印字が違う記号キーを標準配列では使いません。全プリセットのオクターブ変更は↑／↓と画面操作で、Z/Xは音符用です。
 
-画面鍵盤の横スクロール・拡大率は表示だけを変えます。**`MaxNotes=16`は同時発音数で、表示鍵数や割り当て数ではありません。** ドラム8パッド、5楽器の音域と58音源、音声・同期処理を維持します。サーバー共通設定の今回の変更はRange 7m→15mだけで、PttControl=249と予約Nを維持します。
+画面鍵盤の横スクロール・拡大率は表示だけを変えます。**`MaxNotes=16`は同時発音数で、表示鍵数・割り当て数ではありません。** 旧5楽器の設定・58音源を保持し、新3楽器を加えた91音源です。Range15m、PttControl249、予約N、Presentation=falseは維持します。今回のconfig差分は新3楽器のItems名だけです。
 
 従来18音・3段36音は別プリセットで保持します。v1/v2の元文字列には書き込まず、検証に通った値を新しい端末設定`flecity-jam-v3`へコピーします。変更済みの個人配列は選択状態を維持し、旧標準36音の利用者は新25音を初期表示します。v3に保存された有効な選択を次回起動で優先します。無効なデータや予約キーとの重複は演奏に使用せず、キー設定で修正します。音量・消音・表示倍率も引き継ぎます。DBやサーバー設定への移行書き込みはありません。移行・保持はローカルと実FiveMを別々に判定してください。
 
+v3へ`velocity`（1～127、初期100）、`performVolume`（0～100、初期75）、`showGuide`（初期true）を追加します。旧v3に項目がなければ初期値を使い、v1/v2は変更しません。velocityはPC／マウスの新規音だけに作用し、MIDIの値を上書きしません。周囲の個別音量は0～100%の聴取専用で、Voiceへ作用せず、永続設定へは保存しません。相手の同じセッションの再同期では保持し、停止・期限切れ・全状態リセットで清掃します。
+
+追加Items名は`electric_guitar=jam_electric_guitar`、`flute=jam_flute`、`violin=jam_violin`。`UseElectricGuitar`／`UseFlute`／`UseViolin`のexportを用意しますが、外部Inventoryのアイテム定義や所持データは追加・変更しません。Access=ox_inventoryでは運営が用意した正しいアイテムと使用成功応答・サーバー側所持確認が必要です。open／aceは既存方針を維持します。
+
 `SetNuiFocusKeepInput(false)`を維持し、N／会話ボタンの保持中だけ249の通常PTT入力をLuaから渡します。pma-voiceのsecondary PTTと同じ`SetControlNormal`の0/1/2入力群を毎フレーム使用し、Voice本体やマイクの有効化・ミュート・受信設定は変更しません。無線には介入しません。NUIは約200msごとに保持を更新し、Luaの有効期限は900msです。画面世代トークンと単調増加seqで古い要求を拒否し、解放・blur・終了・死亡・リソース停止等で解除します。
 
-0.3.1で演奏中の本人VCが使えなかった原因は未確定です。CfxにPTT用の分岐があるため、keepInput=falseだけで必ずPTTが抑制されるとは断定しません。入力状態の検出と相手の聴取は別で、0.3.2の実通話・競合・終了後の復帰は未確認です。声が届かないときや無線・チャットを使う場合はEscで閉じてください。
+0.3.1で演奏中の本人VCが使えなかった原因は未確定です。CfxにPTT用の分岐があるため、keepInput=falseだけで必ずPTTが抑制されるとは断定しません。入力状態の検出と相手の聴取は別で、0.4.0候補のVC送受信・競合・終了後の復帰は未確認です。声が届かないときや無線・チャットを使う場合はEscで閉じてください。
 
 一次資料：[Cfxの音声入力処理](https://github.com/citizenfx/fivem/blob/master/code/components/gta-net-five/src/MumbleVoice.cpp#L530-L540)、[Cfxのゲーム入力処理](https://github.com/citizenfx/fivem/blob/master/code/components/gta-core-five/src/GameInput.cpp#L1370-L1388)、[SET_CONTROL_NORMAL](https://github.com/citizenfx/natives/blob/master/PAD/SetControlNormal.md)、[pma-voiceのsecondary PTT](https://github.com/AvarianKnight/pma-voice/blob/main/client/commands.lua#L85-L106)。資料は設計の根拠であり、実機聴取PASSの証拠ではありません。
 
@@ -51,7 +55,7 @@
 
 15mはユーザーが指定したJAM独立の共有範囲です。現在のnative Voice通常3mから自動取得した値ではなく、pma-voice設定を変更しません。58音源も同一で、15mの実機聴感はNOT_RUNです。
 
-更新ツールは設定差分を既定で拒否します。今回だけ、Range 7→15のみという差分監査後、新config.luaの完全なSHA256を`--reviewed-config-sha256`に明示します。未指定・誤SHA・設置版競合はCONFLICT_STOP。receiptに設定の前後SHAと明示pinを記録し、旧設定を含めて復旧可能にします。値は最終の外部QAを参照し、緩い一括許可は使いません。
+更新ツールは設定差分を既定で拒否します。今回は新3楽器のItems名だけと監査した後、新config.luaの完全SHA256を`--reviewed-config-sha256`へ明示します。未指定・誤SHA・設置版競合はCONFLICT_STOP。receiptに前後SHAと明示pinを記録し、旧設定も全体復旧できます。値は最終の外部QAを参照し、一括許可は使いません。Range7→15は0.3.2時点の変更で、今回さらに広げません。
 
 `web/catalog.json`は楽器名・音域・初期オクターブ・発音／リリース・音源マッピング・ゲイン・ループを定義します。音源を差し替える場合は出典とハッシュも更新してください。クライアントに渡すカタログに秘密情報を含めてはいけません。
 

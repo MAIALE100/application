@@ -161,6 +161,38 @@ try {
   await page.waitForTimeout(50);
   assert(await page.locator('#start').innerText()!=='演奏する','old response must not stop new session');
   console.log('PASS old transport queue cannot block or stop new session (mock NUI)');
+  const recovery=await browser.newPage();
+  await recovery.addInitScript(()=>{window.GetParentResourceName=()=> 'jam.test';window.__preloadAttempts=[];});
+  let retriedStart=false;
+  await recovery.route('**/*',async route=>{
+    const request=route.request(),url=new URL(request.url());assert.equal(url.origin,'https://jam.test');
+    if(request.method()==='POST'){
+      if(url.pathname==='/start')retriedStart=JSON.parse(request.postData()).instrument==='guitar';
+      await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});return;
+    }
+    const web=path.resolve(root,'web'),file=path.resolve(web,decodeURIComponent(url.pathname).replace(/^\//,'')||'index.html');
+    assert(file.startsWith(web+path.sep));
+    const mime={'.html':'text/html','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.ogg':'audio/ogg','.wav':'audio/wav'};
+    let body=fs.readFileSync(file);
+    if(file.endsWith('audio.mjs'))body=Buffer.from(body.toString('utf8')+`
+      const normalLoad=AudioRack.prototype.load;
+      AudioRack.prototype.load=async function(id){
+        window.__recoveryRack=this;window.__preloadAttempts.push(id);
+        if(id==='guitar'&&!window.__failedGuitar){window.__failedGuitar=true;throw Error('isolated first preload failure');}
+        return await normalLoad.call(this,id);
+      };
+    `);
+    await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body});
+  });
+  await recovery.goto('https://jam.test/');
+  await recovery.waitForFunction(()=>document.querySelector('#notice').textContent.includes('一部の音源'),null,{timeout:20000});
+  assert.deepEqual(await recovery.evaluate(()=>window.__preloadAttempts),catalog.instruments.map(spec=>spec.id));
+  await recovery.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'open',instrument:'guitar',range:15}})));
+  await recovery.locator('#panel').waitFor({state:'visible'});await recovery.click('#start');
+  await recovery.waitForFunction(()=>window.__preloadAttempts.filter(id=>id==='guitar').length===2&&window.__recoveryRack.catalog.get('guitar').samples.every(sample=>window.__recoveryRack.buffers.has(sample.file)),null,{timeout:15000});
+  for(let i=0;i<20&&!retriedStart;i++)await recovery.waitForTimeout(25);
+  assert(retriedStart,'failed preload must remain manually retryable after later instruments load');
+  await recovery.close();console.log('PASS failed instrument preload continues to later instruments and retries on demand (mock NUI)');
 }finally{
   if(heldInput)try{await heldInput.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'})}catch{}
   await page?.close();await browser.close();

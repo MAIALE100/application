@@ -135,12 +135,17 @@ try{
     await waitFor(f,x=>voices(x).at(-1)?.body.held===false);const count=voices(f).length;
     await f.page.waitForTimeout(260);assert.equal(voices(f).length,count);assert.equal(await held(f.page),'false');await closeFixture(f);
   });
-  await check('modifier combinations, form focus and key capture cannot start voice requests',async()=>{
+  await check('modifiers, text inputs and key capture reject PTT while a range control permits it',async()=>{
     const f=await fixture();
     for(const modifier of ['Control','Alt','Meta']){await f.page.keyboard.down(modifier);await f.page.keyboard.press('n');await f.page.keyboard.up(modifier);}
     assert.equal(voices(f).length,0);
     await f.page.click('#settingsToggle');await f.page.locator('#bpm').focus();await f.page.keyboard.press('n');assert.equal(voices(f).length,0);
-    await f.page.locator('#playArea').focus();await f.page.keyboard.down('n');await waitFor(f,x=>voices(x).some(call=>call.body.held));
+    await f.page.locator('#performVolume').focus();const initialVolume=Number(await f.page.locator('#performVolume').inputValue());
+    await f.page.keyboard.down('n');await waitFor(f,x=>voices(x).at(-1)?.body.held===true);
+    await f.page.keyboard.press('ArrowLeft');assert.equal(Number(await f.page.locator('#performVolume').inputValue()),initialVolume-1);
+    assert.equal(await held(f.page),'true');await f.page.keyboard.up('n');await waitFor(f,x=>voices(x).at(-1)?.body.held===false);
+    const beforeCapture=voices(f).length;
+    await f.page.locator('#playArea').focus();await f.page.keyboard.down('n');await waitFor(f,x=>voices(x).length>beforeCapture&&voices(x).at(-1)?.body.held===true);
     await f.page.locator('#bindings button').first().click();await waitFor(f,x=>voices(x).at(-1)?.body.held===false);
     await f.page.keyboard.up('n');const count=voices(f).length;await f.page.keyboard.press('n');
     assert.equal(voices(f).length,count);assert.match(await f.page.locator('#error').innerText(),/予約/);await closeFixture(f);

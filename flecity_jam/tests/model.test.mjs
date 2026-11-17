@@ -49,7 +49,7 @@ test('piano layout separates consecutive white rows and their black keys without
 });
 
 test('piano keyboard opens in a playable two-octave range while retaining instrument limits',()=>{
-  const expected={piano:[3,25],guitar:[3,25],bass:[1,16],clarinet:[4,25],drums:[2,8]};
+  const expected={piano:[3,25],guitar:[3,25],bass:[1,16],clarinet:[4,25],drums:[2,8],electric_guitar:[3,25],flute:[4,25],violin:[4,25]};
   for(const instrument of catalog.instruments){
     const [octave,notes]=expected[instrument.id];assert.equal(recommendedPianoOctave(instrument),octave,instrument.id);
     if(instrument.kind==='drums')continue;
@@ -75,7 +75,7 @@ test('piano low and high chords retain note IDs through an octave change and sus
   assert.deepEqual(ops.filter(op=>op.kind==='off').map(op=>op.id),ops.filter(op=>op.kind==='on').map(op=>op.id));
 });
 test('expanded octave maximizes each pitched instrument range while drums stay unchanged',()=>{
-  const expected={piano:[3,36],guitar:[3,36],bass:[1,16],clarinet:[3,34],drums:[2,8]};
+  const expected={piano:[3,36],guitar:[3,36],bass:[1,16],clarinet:[3,34],drums:[2,8],electric_guitar:[3,36],flute:[4,34],violin:[3,29]};
   for(const instrument of catalog.instruments){
     const [octave,notes]=expected[instrument.id];assert.equal(recommendedExpandedOctave(instrument),octave,instrument.id);
     if(instrument.kind==='drums')continue;
@@ -164,4 +164,13 @@ test('short taps in one network batch retain their on and off edges',()=>{
   r.accept({kind:'snapshot',player:2,session:'s',wire:1,rev:0,notes:[],volume:1,sustain:false});
   r.accept({kind:'delta',player:2,session:'s',wire:2,rev:1,ops:[{kind:'on',id:1,pitch:38,velocity:100},{kind:'off',id:1}]});
   assert.deepEqual(sizes,[0,1,0]);
+});
+
+test('replica clear callbacks observe empty state and remove each old performer only once',()=>{
+  const removed=[];
+  const replicas=new Replicas(()=>{},id=>{
+    assert.equal(replicas.states.size,0);assert.equal(replicas.wires.size,0);removed.push(id);
+  });
+  for(const player of [2,3])assert(replicas.accept({kind:'snapshot',player,session:'s'+player,wire:player,rev:0,notes:[]}));
+  replicas.clear();assert.deepEqual(removed,[2,3]);replicas.clear();assert.deepEqual(removed,[2,3]);
 });

@@ -404,5 +404,302 @@
     "sourceFile": "acoustic_drums/ride.ogg",
     "sourceSha256": "d86d39b99e71f4e7257eb957e1763b6baf3419fb741c4df84d3934466fe50d01",
     "sha256": "d86d39b99e71f4e7257eb957e1763b6baf3419fb741c4df84d3934466fe50d01"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p36.ogg",
+    "sourceFile": "electric_guitar/p36.ogg",
+    "sourceSha256": "47b2557d015b2e0f722809841198d367d7270c4cfd113515b9602f5bf0a4bf9f",
+    "sourceMidi": 36,
+    "pitchOffset": 0,
+    "sha256": "47b2557d015b2e0f722809841198d367d7270c4cfd113515b9602f5bf0a4bf9f"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p41.ogg",
+    "sourceFile": "electric_guitar/p41.ogg",
+    "sourceSha256": "fc9457ca82a5ad0948d71a17ea899b1256f159889642d47d99b08717edb9c148",
+    "sourceMidi": 41,
+    "pitchOffset": 0,
+    "sha256": "fc9457ca82a5ad0948d71a17ea899b1256f159889642d47d99b08717edb9c148"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p45.ogg",
+    "sourceFile": "electric_guitar/p45.ogg",
+    "sourceSha256": "eaf4a9d03824d9e6de703861a9c8e3ec967ead91991f2bec68995e6504b95b39",
+    "sourceMidi": 45,
+    "pitchOffset": 0,
+    "sha256": "eaf4a9d03824d9e6de703861a9c8e3ec967ead91991f2bec68995e6504b95b39"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p48.ogg",
+    "sourceFile": "electric_guitar/p48.ogg",
+    "sourceSha256": "c7093d7b5d653766234662e84753fca1071bb94ea520a09f4e5f6cdda3f29d4c",
+    "sourceMidi": 48,
+    "pitchOffset": 0,
+    "sha256": "c7093d7b5d653766234662e84753fca1071bb94ea520a09f4e5f6cdda3f29d4c"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p52.ogg",
+    "sourceFile": "electric_guitar/p52.ogg",
+    "sourceSha256": "1b9286a1d99f91a6bc4580390c0363fa1cc17a3080d0f4477cda5687a29f29e0",
+    "sourceMidi": 52,
+    "pitchOffset": 0,
+    "sha256": "1b9286a1d99f91a6bc4580390c0363fa1cc17a3080d0f4477cda5687a29f29e0"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p55.ogg",
+    "sourceFile": "electric_guitar/p55.ogg",
+    "sourceSha256": "8e16064be0f742b6526bce3e45c7cc3350f05b1ada4827e7c8f4adcb916a0bcd",
+    "sourceMidi": 55,
+    "pitchOffset": 0,
+    "sha256": "8e16064be0f742b6526bce3e45c7cc3350f05b1ada4827e7c8f4adcb916a0bcd"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p59.ogg",
+    "sourceFile": "electric_guitar/p59.ogg",
+    "sourceSha256": "f21e82042e8a87168e044c901db436938dad3f8cabee5f6490850c9ecffb4340",
+    "sourceMidi": 59,
+    "pitchOffset": 0,
+    "sha256": "f21e82042e8a87168e044c901db436938dad3f8cabee5f6490850c9ecffb4340"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p64.ogg",
+    "sourceFile": "electric_guitar/p64.ogg",
+    "sourceSha256": "a9a55eb33454b66dedb1fb76513db0038107d518bded56fc4e0e51943f72a8eb",
+    "sourceMidi": 64,
+    "pitchOffset": 0,
+    "sha256": "a9a55eb33454b66dedb1fb76513db0038107d518bded56fc4e0e51943f72a8eb"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p67.ogg",
+    "sourceFile": "electric_guitar/p67.ogg",
+    "sourceSha256": "a5c2e04b76d18664d4610d86fb52ed7e8091dfe438a33af43e5b4168992b7ee0",
+    "sourceMidi": 67,
+    "pitchOffset": 0,
+    "sha256": "a5c2e04b76d18664d4610d86fb52ed7e8091dfe438a33af43e5b4168992b7ee0"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p71.ogg",
+    "sourceFile": "electric_guitar/p71.ogg",
+    "sourceSha256": "9b7e9c3a051a8561675326fd632b25c1b62eea2b8212438cd5d2a8930dbd9af4",
+    "sourceMidi": 71,
+    "pitchOffset": 0,
+    "sha256": "9b7e9c3a051a8561675326fd632b25c1b62eea2b8212438cd5d2a8930dbd9af4"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p74.ogg",
+    "sourceFile": "electric_guitar/p74.ogg",
+    "sourceSha256": "9898e7b96104101c1fe489e93375f3078948c23c313f89d4aeb66cb8d168c2f9",
+    "sourceMidi": 74,
+    "pitchOffset": 0,
+    "sha256": "9898e7b96104101c1fe489e93375f3078948c23c313f89d4aeb66cb8d168c2f9"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p80.ogg",
+    "sourceFile": "electric_guitar/p80.ogg",
+    "sourceSha256": "e42db5bd6034ac6f31791fcdbcf857106439c5aefd30e0a41787e44ade56821d",
+    "sourceMidi": 80,
+    "pitchOffset": 0,
+    "sha256": "e42db5bd6034ac6f31791fcdbcf857106439c5aefd30e0a41787e44ade56821d"
+  },
+  {
+    "instrument": "electric_guitar",
+    "file": "samples/electric_guitar/p85.ogg",
+    "sourceFile": "electric_guitar/p85.ogg",
+    "sourceSha256": "4463ddfd94f405fa0895be453ad77162942573a9ddd97ff32551a511d294c4a1",
+    "sourceMidi": 85,
+    "pitchOffset": 0,
+    "sha256": "4463ddfd94f405fa0895be453ad77162942573a9ddd97ff32551a511d294c4a1"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p60.wav",
+    "sourceFile": "flute/p48.ogg",
+    "sourceSha256": "c864df1cc85df687a54c837e3c021c5004d8ca9f3ec21cd289cfa13bd3939e48",
+    "sourceMidi": 48,
+    "pitchOffset": 12,
+    "sha256": "195649f50e967c06cce6687e4a2190dd19b500198acc1cc7858c10051e2c7153"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p64.wav",
+    "sourceFile": "flute/p52.ogg",
+    "sourceSha256": "2b546cdc2a5108d7aac612baa69500271025d2702af45521e2c4653a43842dc5",
+    "sourceMidi": 52,
+    "pitchOffset": 12,
+    "sha256": "1afe13ca3871cfdf64538871d646491dc74d45b26e034189fc75c9f2a0561818"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p67.wav",
+    "sourceFile": "flute/p55.ogg",
+    "sourceSha256": "b5f0e80283947f086056b1b0c8651835ad721051b5743d472f3ca0b31072ea46",
+    "sourceMidi": 55,
+    "pitchOffset": 12,
+    "sha256": "7857fc9af7ab8a362fc7fe60e161f5d697abfe543cadaadcbea76c1aa95c2528"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p69.wav",
+    "sourceFile": "flute/p57.ogg",
+    "sourceSha256": "d932c2a6f65c1bb8857b0e6c35ef419dff5b21f90fc843f79ab9336341b28d11",
+    "sourceMidi": 57,
+    "pitchOffset": 12,
+    "sha256": "c37cefe2c02654a5c31eed8b0409cb973cd79949326e6d4fc192c9e05ba27512"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p72.wav",
+    "sourceFile": "flute/p60.ogg",
+    "sourceSha256": "3c0603bcebe3953ab0eed1fd80141af4fda86ebf6fc477a7a49f4710f594a44e",
+    "sourceMidi": 60,
+    "pitchOffset": 12,
+    "sha256": "0ee617ba1a7100374e46c67ba9261249a92110650e4c2237aa3dd861fb7799da"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p76.wav",
+    "sourceFile": "flute/p64.ogg",
+    "sourceSha256": "67cdd404852e97b4d3c4d0f40c9b032064f068759d8c574bc8c7bc9af9fa5a9e",
+    "sourceMidi": 64,
+    "pitchOffset": 12,
+    "sha256": "745bcd0b243d3ad3ec2cc7cc46d765e0374cb262ce5ec7e2c4ff59d5a01109c5"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p79.wav",
+    "sourceFile": "flute/p67.ogg",
+    "sourceSha256": "18445cf085db10e7a7f1c2b643c42fc132cbc6e2d8703a01951e474256632bbb",
+    "sourceMidi": 67,
+    "pitchOffset": 12,
+    "sha256": "61298f1828570a16c4aa17b380183621b22701be8e085ce0f0d01adf40144f0e"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p81.wav",
+    "sourceFile": "flute/p69.ogg",
+    "sourceSha256": "febf988b20bb2a727910f8c53b66f8f96537edb2805d009dfbe3a1aba16d7e7a",
+    "sourceMidi": 69,
+    "pitchOffset": 12,
+    "sha256": "20488c40e9ebb7eceabcfd841a4bb3ff7a963d0d0544f01a7f6646526d5af0fc"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p84.wav",
+    "sourceFile": "flute/p72.ogg",
+    "sourceSha256": "9bbb406f0a0ec7474cc267651502cad775cd7894b69cda7b3553afafcfd21d8b",
+    "sourceMidi": 72,
+    "pitchOffset": 12,
+    "sha256": "d4c0c427de19af933e7e00fdba2b09ca301fc3ec58c90603dc65d73d3ce3a9a0"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p88.wav",
+    "sourceFile": "flute/p76.ogg",
+    "sourceSha256": "61f3ec61047ea9c4bea827be457db1c05b0be812e948f7031e62fc50547c1896",
+    "sourceMidi": 76,
+    "pitchOffset": 12,
+    "sha256": "e507f3af9a6d4140b69bba707227576e88e94a69ff7c9e2051b112f58ab0f645"
+  },
+  {
+    "instrument": "flute",
+    "file": "samples/flute/p93.wav",
+    "sourceFile": "flute/p81.ogg",
+    "sourceSha256": "ad1affdfa93ed96df6586a8ce423daa669110dba181eb1101fc8366a4f1ff75c",
+    "sourceMidi": 81,
+    "pitchOffset": 12,
+    "sha256": "a9d451389e9aa5e6c5b915702bc15ee7fb2eb60665d0d4474f60ddb146038abb"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p55.wav",
+    "sourceFile": "violin/p43.ogg",
+    "sourceSha256": "107b5c49961459053ae94c7762a72717cddd09c2be972b9d672cca65c8511890",
+    "sourceMidi": 43,
+    "pitchOffset": 12,
+    "sha256": "2c6e173170369d3522f44e8f706648c32ba7eafb10a0c16a3054012381219531"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p57.wav",
+    "sourceFile": "violin/p45.ogg",
+    "sourceSha256": "c4a7334c5080f45a988bf5fe0c44b04af874eaddbbd4ad1d610b0ec51f41ef88",
+    "sourceMidi": 45,
+    "pitchOffset": 12,
+    "sha256": "63bf30039fbe0d329ecf0715923a73813743c47be2e655f0ece2ad81f3a9f339"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p59.wav",
+    "sourceFile": "violin/p47.ogg",
+    "sourceSha256": "31fbd917f550ae8aa904e876aab85b4d32daaf01bd451222f4876b446c311d3f",
+    "sourceMidi": 47,
+    "pitchOffset": 12,
+    "sha256": "c74bd3418cf28ce0b180901574730b5d77927c7cf02fe8f48be30244770bb531"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p62.wav",
+    "sourceFile": "violin/p50.ogg",
+    "sourceSha256": "9793d1798eab5200e4a8b0666583e39eb16140237ef95f491f4024960268108b",
+    "sourceMidi": 50,
+    "pitchOffset": 12,
+    "sha256": "5a7b81a6d0b42f0985d6c909f9458354646679aa2a5f7ae6224354d6c5df1682"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p69.wav",
+    "sourceFile": "violin/p57.ogg",
+    "sourceSha256": "54d0232f60626a476179dbaff8a2658d1e64765cc9f99d4c0f0cb2dbd67df205",
+    "sourceMidi": 57,
+    "pitchOffset": 12,
+    "sha256": "6b7c46668b518dbfa0b7a7e760f25225e329205598f94e09c3acbaf73191f844"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p72.wav",
+    "sourceFile": "violin/p60.ogg",
+    "sourceSha256": "2b9ff03a59c0d6b6271459064413beb31a9a013388247b9935c4825c64d06b4c",
+    "sourceMidi": 60,
+    "pitchOffset": 12,
+    "sha256": "b1e2706ab9f214d5c7cd65233967e0d9c73fbb64835c5934056b8d177280a32c"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p76.wav",
+    "sourceFile": "violin/p64.ogg",
+    "sourceSha256": "0d94e135bb281a6218e0f03412594508868efa7b7a0f7dd08c6d54fa524b556d",
+    "sourceMidi": 64,
+    "pitchOffset": 12,
+    "sha256": "b053fb7605610339087a0238bf1dd7e56bdf6448f3bc4d9f44f9b308edad1a73"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p83.wav",
+    "sourceFile": "violin/p71.ogg",
+    "sourceSha256": "cff5ba32ee40f38e00317007d8b318ec0b6fe614a154fc0355adb682549ad818",
+    "sourceMidi": 71,
+    "pitchOffset": 12,
+    "sha256": "2f9e128e47227a6a5eebbdcb5578ad054c2eadebc06ea7df566305394f88b52f"
+  },
+  {
+    "instrument": "violin",
+    "file": "samples/violin/p86.wav",
+    "sourceFile": "violin/p74.ogg",
+    "sourceSha256": "0217b5634423da0ca5fe8a3dacdd391a8c7e2cb9cf0fc04c2e7a4a0439686aed",
+    "sourceMidi": 74,
+    "pitchOffset": 12,
+    "sha256": "31a097cddad1d11e65218ce055a83a62d04d63ea59f0dbf336f9299d0fe9eab2"
   }
 ]

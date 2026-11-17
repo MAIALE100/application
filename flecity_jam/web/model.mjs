@@ -129,5 +129,5 @@ export class Replicas {
     this.update(p.player,s);return true;
   }
   expire() {for(const[id,s]of this.states)if(this.now()-s.seen>3500){this.states.delete(id);this.remove(id);}}
-  clear() {for(const id of this.states.keys())this.remove(id);this.states.clear();this.wires.clear();}
+  clear() {const ids=[...this.states.keys()];this.states.clear();this.wires.clear();for(const id of ids)this.remove(id);}
 }

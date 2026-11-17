@@ -83,15 +83,16 @@ export class AudioRack {
         panner.rolloffFactor=0;panner.refDistance=1;panner.maxDistance=range;
         gain.connect(panner).connect(this.master);
       }else gain.connect(this.master);
-      slot={instrument,session,range,gain,panner,voices:new Map(),done:new Set(),desired:new Map(),deferred:[],deferredTimer:null,volume:.75,seen:this.now(),position:null};
+      slot={instrument,session,range,gain,panner,voices:new Map(),done:new Set(),desired:new Map(),deferred:[],deferredTimer:null,volume:.75,listenVolume:1,seen:this.now(),position:null};
       this.slots.set(key,slot);
     }
     if(session)slot.session=session;
     return slot;
   }
-  sync(key,state) {
+  sync(key,state,listenVolume) {
     this.init();const spec=this.catalog.get(state.instrument);if(!spec)return;
     const slot=this.slot(key,state.instrument,state.range,state.session);
+    if(key!=='local'&&Number.isFinite(listenVolume))slot.listenVolume=Math.max(0,Math.min(1,listenVolume));
     const next=new Map(state.notes instanceof Map ? state.notes : state.notes.map(n=>[n.id,n]));
     const now=this.now();
     this.pruneDeferred(slot);
@@ -197,9 +198,15 @@ export class AudioRack {
     v.source.disconnect();v.gain.disconnect();this.aliveVoices.delete(v);
     if(v.slot.voices.get(v.id)===v){v.slot.voices.delete(v.id);if(v.slot.desired.has(v.id))v.slot.done.add(v.id);}
   }
+  // Listener-only mix. Session guard prevents a stale control from muting a reused player ID.
+  setSourceVolume(key,value,session) {
+    const slot=this.slots.get(key);
+    if(key==='local'||!slot||!Number.isFinite(value)||(session&&slot.session!==session))return false;
+    slot.listenVolume=Math.max(0,Math.min(1,value));this.updateGain(key,slot);return true;
+  }
   updateGain(key,slot) {
     const scale=key==='local'?1:slot.position?attenuation(slot.distance,slot.range):0;
-    slot.gain.gain.setTargetAtTime(slot.volume*scale,this.ctx.currentTime,.02);
+    slot.gain.gain.setTargetAtTime(slot.volume*scale*(slot.listenVolume??1),this.ctx.currentTime,.02);
   }
   positions(listener,sources) {
     if(!this.ctx)return;this.listener=listener;

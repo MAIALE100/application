@@ -259,4 +259,14 @@ test('item exports require a successful inventory use callback',function()
     exports.ox_inventory.useItem=function(_,data,cb)assert(data.slot==1);cb(data)end
     exported.UseGuitar({slot=1});assert(focused);call('close');assert(not focused)
 end)
+test('additional instrument exports keep inventory consent and configured item boundaries',function()
+    for instrument,name in pairs({electric_guitar='UseElectricGuitar',flute='UseFlute',violin='UseViolin'}) do
+        assert(type(exported[name])=='function' and JamConfig.Items[instrument]=='jam_'..instrument)
+        exports={ox_inventory={useItem=function(_,data,cb)cb(false)end}}
+        exported[name]({slot=2});assert(not focused)
+        exports.ox_inventory.useItem=function(_,data,cb)cb(data)end
+        exported[name]({slot=2});assert(focused and messages[#messages].instrument==instrument)
+        call('close');assert(not focused)
+    end
+end)
 print(('RESULT %d PASS / 0 FAIL (mocked FiveM client/access; NOT live FiveM)'):format(count))

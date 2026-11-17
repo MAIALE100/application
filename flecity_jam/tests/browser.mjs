@@ -65,9 +65,9 @@ try {
     await page.evaluate(()=>JAM.midi.receive([0xb0,64,0]));assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
     await page.evaluate(()=>{JAM.midi.receive([0x90,64,100]);JAM.midi.receive([0xb0,123,0]);});assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
   });
-  await check('all 58 sound assets decode and every instrument starts and stops',async()=>{
+  await check('all 91 sound assets decode and every instrument starts and stops',async()=>{
     await page.click('#start');
-    for(const id of ['piano','guitar','bass','clarinet','drums']) {
+    for(const id of await page.evaluate(()=>[...JAM.audio.catalog.keys()])) {
       await page.selectOption('#instrument',id);await page.click('#start');await page.waitForFunction(()=>JAM.session);
       const key=await page.locator('#keyboard button[data-code]:not(:disabled) kbd').first().innerText();
       await page.keyboard.down(key);assert(await page.evaluate(()=>JAM.audio.stats().voices)>0,id);await page.keyboard.up(key);
@@ -115,7 +115,7 @@ try {
       const {AudioRack}=await import('./audio.mjs');
       const {Replicas}=await import('./model.mjs');
       const catalog=await(await fetch('catalog.json')).json(),out=[];
-      for(const instrument of ['piano','guitar','bass','clarinet']){
+      for(const instrument of catalog.instruments.filter(spec=>spec.kind!=='drums').map(spec=>spec.id)){
         const ctx=new OfflineAudioContext(2,48000,48000),rack=new AudioRack(catalog,ctx);
         await rack.load(instrument);
         const replicas=new Replicas((id,state)=>rack.sync(id,state),id=>rack.remove(id),()=>0);
@@ -147,7 +147,7 @@ try {
   if(Number(process.env.JAM_SOAK_SECONDS)>0)await check('real-time browser soak with eight simulated performers',async()=>{
     const seconds=Math.min(600,Number(process.env.JAM_SOAK_SECONDS));
     const stats=await page.evaluate(async seconds=>{
-      const ids=['piano','guitar','bass','clarinet','drums'];for(const id of ids)await JAM.audio.load(id);
+      const ids=[...JAM.audio.catalog.keys()];for(const id of ids)await JAM.audio.load(id);
       const before=JAM.audio.stats(),started=performance.now();let wire=100,round=0,maxVoices=0,maxNodes=0,maxSlots=0;
       while(performance.now()-started<seconds*1000){
         for(let player=1;player<=8;player++){

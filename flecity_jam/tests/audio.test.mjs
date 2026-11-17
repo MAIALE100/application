@@ -116,3 +116,42 @@ test('remote audio applies one manual distance curve with panner rolloff disable
   const local=rack.slot('local','piano',15);local.volume=.6;rack.updateGain('local',local);
   assert.equal(local.panner,null);assert.equal(local.gain.gain.value,.6,'local monitoring receives no distance attenuation');
 });
+
+test('listener mix is per performer and survives source volume and position updates',t=>{
+  globals(t);const ctx=new Context();
+  ctx.listener=Object.fromEntries(['positionX','positionY','positionZ','forwardX','forwardY','forwardZ','upX','upY','upZ'].map(n=>[n,new Param()]));
+  ctx.createPanner=()=>Object.assign(new Node(),{positionX:new Param(),positionY:new Param(),positionZ:new Param()});
+  const rack=new AudioRack(catalog,ctx),listener={x:0,y:0,z:0,fx:0,fy:1,fz:0};rack.buffers.set('piano.ogg',new Buffer());
+  const a=rack.slot(2,'piano',15,'a'),b=rack.slot(3,'piano',15,'b');a.volume=.8;b.volume=.6;
+  rack.positions(listener,[{player:2,x:3,y:0,z:0},{player:3,x:1,y:0,z:0}]);
+  const master=rack.master.gain.value,other=b.gain.gain.value;
+  assert(rack.setSourceVolume(2,.25,'a'));assert(Math.abs(a.gain.gain.value-.8*.25*144/196)<1e-12);
+  assert.equal(b.gain.gain.value,other);assert.equal(rack.master.gain.value,master);
+  rack.sync(2,{instrument:'piano',session:'a',range:15,notes:[],volume:.4});
+  rack.positions(listener,[{player:2,x:1,y:0,z:0},{player:3,x:1,y:0,z:0}]);
+  assert.equal(a.listenVolume,.25);assert.equal(a.gain.gain.value,.1);assert.equal(a.volume,.4);
+  assert(!rack.setSourceVolume(2,NaN,'a'));assert(!rack.setSourceVolume(2,Infinity,'a'));assert(!rack.setSourceVolume('local',0));
+  assert(rack.setSourceVolume(2,-1,'a'));assert.equal(a.gain.gain.value,0);
+  assert(rack.setSourceVolume(2,2,'a'));assert.equal(a.gain.gain.value,.4);
+  const replacement=rack.slot(2,'piano',15,'new');assert.equal(replacement.listenVolume,1);
+  assert(!rack.setSourceVolume(2,0,'a'));assert.equal(replacement.listenVolume,1);
+  rack.remove(2);assert(!rack.setSourceVolume(2,.5,'new'));rack.stopAll();
+});
+
+test('listener mute preserves a held note phase and cannot alter another performer',t=>{
+  globals(t);const ctx=new Context();
+  ctx.listener=Object.fromEntries(['positionX','positionY','positionZ','forwardX','forwardY','forwardZ','upX','upY','upZ'].map(n=>[n,new Param()]));
+  ctx.createPanner=()=>Object.assign(new Node(),{positionX:new Param(),positionY:new Param(),positionZ:new Param()});
+  const rack=new AudioRack(catalog,ctx);rack.buffers.set('piano.ogg',new Buffer());
+  rack.sync(2,{instrument:'piano',session:'a',range:15,volume:.7,notes:[{id:1,pitch:60,velocity:100,held:true,age:0}]});
+  rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},[{player:2,x:1,y:0,z:0}]);
+  const slot=rack.slots.get(2),source=slot.voices.get(1).source;
+  assert(rack.setSourceVolume(2,0,'a'));assert.equal(slot.gain.gain.value,0);
+  assert.equal(slot.voices.get(1).source,source);assert(!source.stopped);
+  assert(rack.setSourceVolume(2,.8,'a'));assert(Math.abs(slot.gain.gain.value-.56)<1e-12);
+  assert.equal(slot.voices.get(1).source,source);assert.equal(ctx.sources.length,1);
+  rack.remove(2);
+  rack.sync(2,{instrument:'piano',session:'a',range:15,volume:.7,notes:[{id:1,pitch:60,velocity:100,held:true,age:500}]},0);
+  rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},[{player:2,x:1,y:0,z:0}]);
+  assert.equal(rack.slots.get(2).listenVolume,0);assert.equal(rack.slots.get(2).gain.gain.value,0,'healing snapshot must apply the listener mute before rendering');rack.stopAll();
+});

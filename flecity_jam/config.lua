@@ -13,7 +13,8 @@ JamConfig = {
     -- open: everyone; ace: JamConfig.Ace; ox_inventory: instruments' configured item.
     Access = 'open',
     Ace = 'flecity.jam',
-    Items = { piano = 'jam_piano', guitar = 'jam_guitar', bass = 'jam_bass', clarinet = 'jam_clarinet', drums = 'jam_drums' },
+    Items = { piano = 'jam_piano', guitar = 'jam_guitar', bass = 'jam_bass', clarinet = 'jam_clarinet', drums = 'jam_drums',
+        electric_guitar = 'jam_electric_guitar', flute = 'jam_flute', violin = 'jam_violin' },
     -- Disabled until GTA animations and attachments have passed the target server's visual check.
     Presentation = false,
     PttControl = 249,

@@ -2,13 +2,13 @@
 
 このZIPはテスト用です。最初に別添のQAと実機チェックリストを確認してください。既存のexport名・更新手順と一致させるため、リソース名は `flecity_jam` のまま使用します。ZIPには実行ファイル、音源、ライセンス、README、および導入・操作・設定・音源説明の公開資料だけを入れます。テスト、開発ツール、QA、内部資料、認証情報は含めません。
 
-## 0.3.2-test候補の更新前基準
+## 0.4.0-test候補の更新前基準
 
-2026-11-18の作業開始時点で、JAMは **0.3.1-testの81ファイル**でした。前回更新の受領記録は `D:\FiveM_Test_Server\txData\Qbox_D233FD.base\flecity-jam-backups\jam-update-1ed9e34d\receipt.json`、SHA256は `2563ad116ebad748cf386c1144b0a903b7c95732fb7b12ca9c5f8477052d31ed` です。更新後81ファイルとの一致を確認し、今回の旧版全体バックアップを作成しました。これは0.3.2更新前の記録であり、適用後の状態は別添`voice-range-20261118/QA/`を正本とします。
+2026-11-18の作業開始時点でJAMは **0.3.2-testの81ファイル**でした。前回更新の受領記録は `D:\FiveM_Test_Server\txData\Qbox_D233FD.base\flecity-jam-backups\jam-update-8apehtiw\receipt.json`、SHA256は`e7985c527ce0359be2b1b6369821e070b1ffb7d70518553a595ff0f2ca0782cc`です。配布ZIPと81/81の一致を確認して全体保全しました。これは0.4.0更新前の記録で、今回の最終試験・適用・復旧情報は別添`rc-polish-20261118/QA/`を正本とします。
 
-0.3.2候補の回帰・隔離した更新／復旧試験・差分監査の合格後にだけ更新します。今回はユーザー指定のJAM Range7→15mのみ設定を変更し、レビュー済みincoming config.luaの完全SHA256を明示します。それ以外の設定変更を一括許可しません。JAM以外5,304ファイル・設定5件・txAdmin設定を今回の直前値と照合し、既存PuriPhoto Junctionは追跡しません。WAVE・Voice・DB・サーバー設定を変更しません。
+候補の回帰・音源の品質ゲート・隔離した更新／復旧試験・差分監査の合格後にだけ更新します。config差分は新3楽器のItems名だけで、Range15・アクセス方針・PTT・Presentation=falseを維持します。incoming configの完全SHAを明示し、それ以外の設定を一括許可しません。非JAM5,304ファイル・設定5件・txAdmin設定を今回の直前値と照合し、既存PuriPhoto Junctionは追跡しません。WAVE・Voice・DB・外部Inventory定義・サーバー設定を変更しません。
 
-0.3.2のN／会話ボタンによる通常PTT入力は、相手への聴取まで確認して初めてPASSです。表示上の送信検出だけでは証明できません。声が届かない場合や無線を使う場合はEscで閉じて通常操作へ戻ります。マイクOFF・Voiceミュート等を解除せず、無線を代行しません。実機確認はユーザーのノートPCだけで行い、デスクトップFiveMは起動しません。PTT・15m聴感・共有・合奏は候補ではNOT_RUNで、正式公開はNO-GOです。
+通常PTTは相手への送信と本人の受信を実際に確認して初めてPASSです。表示上の送信検出では証明できません。声が届かない場合や無線時はEscで閉じます。マイクOFF・Voiceミュート等を解除しません。0.4.0の新3楽器・個別聴取音量・VC双方向・15m聴感・合奏はNOT_RUN。ユーザーがノートPCで確認し、デスクトップFiveMは起動しません。正式公開NO-GOです。
 
 ## 初回
 
@@ -38,7 +38,7 @@
    python flecity_jam/devtools/install.py --update --baseline "<基準一覧または前回receiptの絶対パス>" --baseline-sha256 <基準ファイルのSHA256>
    ```
 
-4. `PLAN_UPDATE`と差分を確認後、同じコマンドへ`--confirmed-stopped --apply`を追加する。設定が変わる場合は既定で`CONFLICT_STOP`。今回のRange7→15だけと監査できた場合に限り、計画・適用の両方へ`--reviewed-config-sha256 <新config.luaの固定SHA256>`を明示する。値は別添QAに固定し、未指定・誤SHAは停止する。旧設置版がbaselineと1件でも違う場合、このpinが正しくても停止する。旧JAM全体をresources外で保全・照合してから同一ドライブ上で入れ替える。
+4. `PLAN_UPDATE`と差分を確認後、同じコマンドへ`--confirmed-stopped --apply`を追加する。設定変更は既定で`CONFLICT_STOP`。今回は新3楽器のItems名だけと監査できた場合に限り、計画・適用へ`--reviewed-config-sha256 <新config.luaの固定SHA256>`を明示する。値は別添QAに固定し、未指定・誤SHAは停止する。設置版がbaselineと1件でも違えば正しいpinでも停止する。旧JAM全体をresources外で保全・照合後に同一ドライブ上で入れ替える。
 5. `UPDATED`の結果、`receipt`・`receiptSha256`・バックアップ場所を記録する。receiptは入れ替え前の固定記録なので内部状態は`PREPARED`で、`configReview`へ設定の前後SHA・変更有無・明示pinを記録する。更新後全件を照合し、定義再走査が必要な場合だけ`refresh`、JAMだけ`ensure flecity_jam`して`jam_status`を確認する。診断`jam_voice_diag`は単発の入力状態であり、実通話や聴感をPASSにしない。最終の設置・起動・ハッシュ結果は別添QAへ記録する。
 
 次回更新では、今回のreceiptとその `receiptSha256` を新しい `--baseline`、`--baseline-sha256` に指定できる。ロールバック済みの場合は現在設置中の版に対応する基準を使用する。
@@ -69,5 +69,7 @@ python flecity_jam/devtools/install.py --rollback "<receiptの絶対パス>" --r
 ```
 
 コマンド開始は常に同じサーバー権限検査を通ります。クライアントexportだけで権限を付与しません。汎用呼出しは `exports.flecity_jam:OpenInstrument('guitar')`、終了は `exports.flecity_jam:StopPerformance()`。
+
+新3楽器は`jam_electric_guitar`／`jam_flute`／`jam_violin`と、`UseElectricGuitar`／`UseFlute`／`UseViolin`のexportを用意します。アイテム経由ではInventoryの使用成功応答とサーバー側の所持・権限確認が必要です。外部アイテム定義は運営が別途準備するもので、このZIPが既存Inventoryや所持データを変更することはありません。
 
 現地で演奏Propを確認する場合のみ `Presentation=true`。同梱はギター用のGTA標準候補で、外部アセットの購入は不要です。全楽器の専用Prop・設置型ピアノは実装範囲に含めていません。

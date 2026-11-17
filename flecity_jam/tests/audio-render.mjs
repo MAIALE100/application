@@ -42,6 +42,21 @@ try {
       return Math.sqrt(sum/(Math.round((end-start)*rate)));
     };
     const peak=ch=>ch.reduce((max,value)=>Math.max(max,Math.abs(value)),0);
+    const pitchMidi=(ch,start)=>{
+      const signal=Array.from({length:3600},(_,i)=>ch[Math.round(start*rate)+i*3]);
+      const differences=[0],normalized=[1];let total=0;
+      for(let lag=1;lag<=400;lag++){
+        let sum=0;for(let j=0;j<1600;j++){const d=signal[j]-signal[j+lag];sum+=d*d;}
+        differences[lag]=sum;total+=sum;normalized[lag]=total?sum*lag/total:1;
+      }
+      for(let lag=2;lag<399;lag++)if(normalized[lag]<.12){
+        while(lag<399&&normalized[lag+1]<normalized[lag])lag++;
+        const a=normalized[lag-1],b=normalized[lag],c=normalized[lag+1],den=a-2*b+c;
+        const refined=den?lag+(a-c)/(2*den):lag;
+        return 69+12*Math.log2((rate/3/refined)/440);
+      }
+      return null;
+    };
     const render=async(instrument,pitch,velocity=100,releaseAt=.5,seconds=3)=>{
       const ctx=new OfflineAudioContext(2,rate*seconds,rate);
       const rack=new AudioRack(catalog,ctx);
@@ -58,29 +73,50 @@ try {
       const ch=output.getChannelData(0);
       return {instrument,pitch,velocity,releaseAt,firstRms:rms(ch,.08,.35),
         tailRms:rms(ch,seconds-.2,seconds),peak:peak(ch),nodesAfter:rack.stats().nodes,
-        cacheBytes:rack.stats().cacheBytes};
+        cacheBytes:rack.stats().cacheBytes,measuredMidi:pitchMidi(ch,.24),
+        heldTailMidi:releaseAt==null?pitchMidi(ch,seconds-.24):null};
     };
     const instruments=[];
-    for(const [id,pitch]of [['piano',60],['guitar',60],['bass',34],['clarinet',62],['drums',36]])
+    for(const [id,pitch]of [['piano',60],['guitar',60],['bass',34],['clarinet',62],['drums',36],['electric_guitar',60],['flute',72],['violin',69]])
       instruments.push(await render(id,pitch));
     const clarinetLoop=await render('clarinet',65,100,null,4);
+    const sustainedLoops=[await render('flute',76,100,null,4),await render('violin',72,100,null,4)];
+    const additionalRangeEdges=[];
+    for(const identifier of ['electric_guitar','flute','violin']){
+      const spec=catalog.instruments.find(item=>item.id===identifier);
+      for(const pitch of [spec.min,spec.max])additionalRangeEdges.push(await render(identifier,pitch));
+    }
     const soft=await render('piano',80,74,null,2);
     const forte=await render('piano',80,75,null,2);
     const pianoBoundary={midi:80,softRms:soft.firstRms,forteRms:forte.firstRms,
       differenceDb:20*Math.log10(forte.firstRms/soft.firstRms),softPeak:soft.peak,fortePeak:forte.peak};
-    return {instruments,clarinetLoop,pianoBoundary};
+    return {instruments,clarinetLoop,sustainedLoops,additionalRangeEdges,pianoBoundary};
   });
   report.instruments=metrics.instruments;
   report.clarinetLoop=metrics.clarinetLoop;
+  report.sustainedLoops=metrics.sustainedLoops;
+  report.additionalRangeEdges=metrics.additionalRangeEdges;
   report.pianoBoundary=metrics.pianoBoundary;
   for(const item of report.instruments){
     assert(item.firstRms>1e-5,`${item.instrument}: silent initial note`);
     assert(item.peak<.99,`${item.instrument}: clipped`);
     assert(item.tailRms<1e-5,`${item.instrument}: sound after stop`);
     assert.equal(item.nodesAfter,0,`${item.instrument}: leaked source nodes`);
+    if(['electric_guitar','flute','violin'].includes(item.instrument))
+      assert(item.measuredMidi!=null&&Math.abs(item.measuredMidi-item.pitch)<.5,`${item.instrument}: rendered pitch ${item.measuredMidi}`);
   }
   assert(report.clarinetLoop.tailRms>1e-5,'clarinet held loop went silent');
   assert(report.clarinetLoop.peak<.99,'clarinet held loop clipped');
+  for(const item of report.sustainedLoops){
+    assert(item.tailRms>1e-5,`${item.instrument}: held loop went silent`);
+    assert(item.peak<.99,`${item.instrument}: held loop clipped`);
+    assert(item.heldTailMidi!=null&&Math.abs(item.heldTailMidi-item.pitch)<.5,`${item.instrument}: held loop pitch ${item.heldTailMidi}`);
+  }
+  for(const item of report.additionalRangeEdges){
+    assert(item.firstRms>1e-5&&item.peak<.99,`${item.instrument}: silent or clipped range edge ${item.pitch}`);
+    assert(item.tailRms<1e-5&&item.nodesAfter===0,`${item.instrument}: unreleased range edge`);
+    assert(item.measuredMidi!=null&&Math.abs(item.measuredMidi-item.pitch)<.5,`${item.instrument}: edge pitch ${item.measuredMidi}`);
+  }
   assert(Math.abs(report.pianoBoundary.differenceDb)<2,'piano velocity boundary jumped');
   const destination=process.env.JAM_AUDIO_RENDER_REPORT;
   if(destination){fs.mkdirSync(path.dirname(destination),{recursive:true});fs.writeFileSync(destination,JSON.stringify(report,null,2)+'\n');}

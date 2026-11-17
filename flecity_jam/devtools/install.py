@@ -71,7 +71,7 @@ def verified_archive(archive, expected):
                          or len(parts) >= 3 and parts[1] == 'samples' and
                          pathlib.PurePosixPath(name).suffix in {'.ogg', '.wav'})
                     or parts[0] == 'licenses' and
-                    (len(parts) != 2 or pathlib.PurePosixPath(name).suffix not in {'.txt', '.json'})
+                    (len(parts) != 2 or pathlib.PurePosixPath(name).suffix not in {'.txt', '.json', '.md'})
                     or parts[0] == 'docs' and
                     (len(parts) != 2 or parts[1] not in {'INSTALL_JA.md', 'MANUAL_JA.md',
                                                          'CONFIG_JA.md', 'SOUNDS_JA.md'})):

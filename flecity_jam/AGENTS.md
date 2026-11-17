@@ -6,6 +6,14 @@
 
 ## Current handoff — 2026-11-18
 
+The active0.4.0-test candidate adds electric_guitar/flute/violin for8 instruments/91 samples. Keep original5 catalog entries,58 sample bytes and provenance rows unchanged. Only new flute/violin root labels get+12 to match measured recorded pitch; new loops/source licenses are documented. Decoded PCM is about46.65MiB within64MiB, nodes128/polyphony16/performers8 remain. Quality and license/pitch/loop/level/cache gates take priority over adding all suggested instruments. Presentation stays false.
+
+Add PC/mouse velocity1..127(default100), guide collapse, optional v3 velocity/performVolume/showGuide without changing v1/v2. Preserve raw MIDI velocity; single-flight MIDI access clears old handlers and allows retry. Settings open/close must not panic held notes; pointer controls must restore appropriate playing focus. One failed preload must not stop later instruments; report failed items and allow selected retry.
+
+Listener-only peer mix is0..100%, at most8 performers, session-scoped and not persisted. Keep it across same-session wire-gap/audio recreation, reset new/reused IDs to100%, and clean stop/expire/clear before callbacks or row rendering. Keep other slider focus when a peer leaves. Never change another listener, performance packet volume or Voice. Range15 and nativePTT body remain unchanged; config only adds three Items entries, with explicit incoming SHA review. Add UseElectricGuitar/UseFlute/UseViolin exports without changing external inventory definitions.
+
+Current full test count/deployment are pending fresh rc-polish-20261118 QA. Baseline is installed0.3.2's81 files, fully backed up and hash-verified. New actual FiveM acceptance, especially eight-instrument timbre/peer mix/VC send AND receive, remains NOT_RUN on the user's notebook only. Do not launch desktop FiveM or other paused apps/automations. Treat older entries below as history.
+
 The active 0.3.2-test candidate adds N/hold-button secondary PTT input to native249 without changing keepInput=false, Voice settings, mic enable/mute/privacy guards or radio behavior. Renew every200ms with a900ms lease, per-open token and monotonic seq; release on keyup, blur, close, death, timeout and resource stop/restart. UI held/detected states are not proof a listener hears voice. The cause of0.3.1 VC failure is not established; Cfx has a PTT-specific path, so do not attribute it solely to keepInput=false. Esc close is the fallback.
 
 The user explicitly requested JAM Range7→15m; only that config value/comment changes, with PttControl249 and reservedN retained. Keep quadratic attenuation, rolloffFactor0 and58 samples unchanged. This is independent of native Voice3m. The installer remains fail-closed unless an exact reviewed incoming configSHA256 pin is supplied; preserve baseline, full backup, receipt configReview and rollback. No Voice/DB/other paused app changes.

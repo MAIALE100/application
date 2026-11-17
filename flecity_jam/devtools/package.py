@@ -15,7 +15,7 @@ PUBLIC_DOCS = {'INSTALL_JA.md', 'MANUAL_JA.md', 'CONFIG_JA.md', 'SOUNDS_JA.md'}
 WEB_ROOT = {'index.html', 'catalog.json'}
 WEB_EXT = {'.css', '.mjs'}
 AUDIO_EXT = {'.ogg', '.wav'}
-LICENSE_EXT = {'.txt', '.json'}
+LICENSE_EXT = {'.txt', '.json', '.md'}
 TEXT_EXT = {'.lua', '.mjs', '.css', '.html', '.json', '.md', '.txt'}
 
 

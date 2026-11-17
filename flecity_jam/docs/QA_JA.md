@@ -1,6 +1,14 @@
 # Flecity JAM 0.4.0-test 演奏調整・8楽器QA
 
-## 今回の候補 — 2026-11-18
+## 最終の設置・自動検証 — 2026-11-18
+
+実装946e756177e7648a9ebd7e3e8e7081504d592ad0に対する新たな全回帰204/204 PASS、0 FAIL、試験中ソース不変。JS48、Lua engine24/client23、Chromium14（120秒模擬8人）、NUI8、鍵盤24、会話15、操作UI13、個別聴取音量12、音源数値9、更新fixture14。別途JS17/Lua9構文・8楽器PCM・追加音源競合停止3件がPASS。実FiveM打鍵・聴感・PTTはNOT_RUN。
+
+Test_01のJAMだけ停止→更新→定義再読込→起動し、jam_statusの0.4.0-test／sessions=0／range=15.0m／access=openを確認。設置115/115・旧0.3.2バックアップ81/81 SHA一致、非JAM5304・設定5件・txAdmin設定差分0。実ZIPのコピー環境で81→115→81／15mの復旧模擬PASS。実サーバーでは固定receiptの復旧計画だけを照合し、復旧していない。
+
+ZIP SHA256 `d6befef81bebac240dae586f72571cd0387977d9e30203e79d0224d94c90422c`、新config pin `50bf2c982e4c04d77435da7de43518fba02be759c7a94375b8cda196c242936b`。復旧receipt `jam-update-y9ntu52i/receipt.json`、SHA256 `eb2593aba98e7af51b95350f47d98955b40ecfd0fa87c60650da61f1e47c6d59`（0.3.2／15mへ戻す）。GitHub feature/flecity-jam-20261116へ通常push。資料・QA・ノートPC用3群・固定復旧手順は別添rc-polish-20261118/。正式公開NO-GO、デスクトップFiveM未起動、WAVE/Voice/DB/本番・全体再起動・自動起動設定は無変更。
+
+## 候補作成時の記録 — 2026-11-18
 
 基準は設置0.3.2-testの81ファイルで、ZIPとの一致、完全バックアップ、保護対象5304件・設定5件・txAdmin設定の基準を確認済み。候補の件数・適用状況は別添`outputs/FLECITY_JAM_20261116/rc-polish-20261118/QA/`を正本とし、旧165 PASSを繰り越さない。
 

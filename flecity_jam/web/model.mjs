@@ -1,12 +1,33 @@
-export const DEFAULT_KEYS = ['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','Quote'];
+export const LEGACY_KEYS = ['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','Quote'];
+export const DEFAULT_KEYS = LEGACY_KEYS;
+// Three physical rows, each covering a chromatic octave from left to right.
+export const EXPANDED_KEYS = [
+  'KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon','Quote','Backslash',
+  'KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','BracketLeft','BracketRight',
+  'Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal'
+];
 export const DRUM_KEYS = ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK'];
 export const DRUM_PITCHES = [36,38,42,46,45,50,49,51];
 export const RESERVED = new Set(['Escape','Tab','Space','KeyZ','KeyX','KeyN','CapsLock','AltLeft','AltRight','ControlLeft','ControlRight','MetaLeft','MetaRight','F8','F11']);
 export const noteName = n => ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][n%12]+(Math.floor(n/12)-1);
-export const keyLabel = code => ({Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\'}[code] || code.replace(/^(Key|Digit)/,''));
-export function validBindings(keys, reserved=[]) {
-  return Array.isArray(keys) && keys.length===DEFAULT_KEYS.length && new Set(keys).size===keys.length &&
-    keys.every(k=>typeof k==='string' && /^(Key[A-Z]|Digit[0-9]|Semicolon|Quote|Comma|Period|Slash|BracketLeft|BracketRight|Backslash)$/.test(k) && !RESERVED.has(k) && !reserved.includes(k));
+export const keyLabel = code => ({Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\',Minus:'-',Equal:'=',IntlYen:'¥',IntlRo:'ろ'}[code] || code.replace(/^(Key|Digit)/,''));
+export function validBindings(keys, reserved=[], mode) {
+  const lengths=mode==='legacy'?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length]:[];
+  return Array.isArray(keys) && lengths.includes(keys.length) && new Set(keys).size===keys.length &&
+    keys.every(k=>typeof k==='string' && /^(Key[A-Z]|Digit[0-9]|Semicolon|Quote|Comma|Period|Slash|BracketLeft|BracketRight|Backslash|Minus|Equal|IntlYen|IntlRo)$/.test(k) && !RESERVED.has(k) && !reserved.includes(k));
+}
+export function recommendedExpandedOctave(spec) {
+  const preferred=Math.max(0,Math.min(7,Number.isInteger(spec.octave)?spec.octave:4));
+  if(spec.kind==='drums')return preferred;
+  let best=preferred, overlap=-1;
+  for(let octave=0;octave<=7;octave++) {
+    const first=(octave+1)*12, last=first+EXPANDED_KEYS.length-1;
+    const count=Math.max(0,Math.min(spec.max,last)-Math.max(spec.min,first)+1);
+    if(count>overlap || (count===overlap && Math.abs(octave-preferred)<Math.abs(best-preferred))) {
+      best=octave;overlap=count;
+    }
+  }
+  return best;
 }
 export function attenuation(distance, range) {
   if (!Number.isFinite(distance) || !Number.isFinite(range) || range<=0 || distance>=range) return 0;

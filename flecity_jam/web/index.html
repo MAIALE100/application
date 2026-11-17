@@ -14,12 +14,12 @@
     <header>
       <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>JAM<span>FLECITY</span></h1></div>
       <div class="session-status"><span id="lamp" aria-hidden="true"></span><span id="status" role="status">楽器を選んで、演奏を始めよう。</span></div>
-      <button id="compact" class="quiet" aria-expanded="true">縮小</button><button id="close" class="quiet">終了 <kbd>Esc</kbd></button>
+      <button id="compact" class="quiet" aria-expanded="true">縮小</button><button id="close" class="quiet">終了・会話 <kbd>Esc</kbd></button>
     </header>
     <section class="controls" aria-label="演奏設定">
       <label class="instrument">楽器<select id="instrument"></select></label>
       <button id="start" class="primary">演奏する</button>
-      <div class="octave"><span>オクターブ</span><div><button id="octDown" aria-label="1オクターブ下げる">−</button><output id="octave">4</output><button id="octUp" aria-label="1オクターブ上げる">＋</button></div></div>
+      <div class="octave"><span>PCの基準oct.</span><div><button id="octDown" aria-label="1オクターブ下げる">−</button><output id="octave">4</output><button id="octUp" aria-label="1オクターブ上げる">＋</button></div></div>
       <button id="sustain" aria-pressed="false"><span>サステイン</span><strong id="pedalState">OFF</strong><kbd>Space</kbd></button>
       <label class="slider">演奏音量 <output id="performValue">75%</output><input id="performVolume" aria-label="演奏音量" type="range" min="0" max="100" value="75"></label>
       <label class="slider">聴く音量 <output id="listenValue">65%</output><input id="listenVolume" aria-label="聴く音量" type="range" min="0" max="100" value="65"></label>
@@ -27,8 +27,18 @@
     </section>
     <div id="error" role="alert" hidden></div>
     <section id="playArea" tabindex="0" aria-label="楽器の鍵盤。表示されたPCキーで演奏" class="play-area">
+      <div class="keyboard-tools">
+        <label>PC配列<select id="keyLayout" aria-label="PCキー配列"><option value="expanded">拡張36音・3段</option><option value="legacy">従来18音・旧設定</option></select></label>
+        <span id="mappedRange"></span>
+        <div id="keyboardViewControls">
+          <button id="viewLeft" class="quiet" aria-label="鍵盤の表示を左へ">←</button><button id="viewHome" class="quiet">PC音域へ</button><button id="viewRight" class="quiet" aria-label="鍵盤の表示を右へ">→</button>
+          <label>鍵盤倍率 <input id="keyboardZoom" aria-label="鍵盤倍率" type="range" min="70" max="160" step="10" value="100"><output id="zoomValue">100%</output></label>
+        </div>
+      </div>
       <div class="keyboard-caption"><span id="rangeText">C4 — F5</span><span id="playingText">鍵盤をクリックしても演奏できます</span><span id="voiceCount">0音</span></div>
-      <div id="keyboard" class="keyboard" aria-label="鍵盤"></div>
+      <div id="keyboardViewport" tabindex="0" aria-label="鍵盤表示。横スクロールで音域を移動"><div id="keyboard" class="keyboard" aria-label="鍵盤"></div></div>
+      <p id="layoutHelp"></p>
+      <p class="input-hint">演奏画面はキー入力を専有します。PTT・無線・他の画面を使うときは <kbd>Esc</kbd> で閉じ、<kbd>/jam</kbd> で戻れます。</p>
     </section>
     <footer>
       <div class="hints"><span><kbd>Z</kbd><kbd>X</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 7m</span></div>
@@ -36,11 +46,11 @@
     </footer>
     <section id="settings" aria-label="キー設定とMIDI" hidden>
       <div class="settings-head"><h2>自分の弾きやすい配列に</h2><button id="resetKeys" class="quiet">標準配列に戻す</button></div>
-      <p>変更したいキーを選び、新しいキーを押してください。Nは通常PTT用に予約されています。IMEはオフにしてください。</p>
+      <p>変更したい音を選び、新しいキーを押してください。N・Z・X・Space等は予約済みです。表記はUS物理配列基準です。JIS配列は必要に応じて変更できます。IMEはオフにしてください。旧18音の設定は別に保持します。</p>
       <div id="bindings"></div>
       <div class="settings-row"><button id="midiConnect">MIDIを接続</button><label>MIDI入力<select id="midiDevice" disabled><option>未接続</option></select></label><span id="midiStatus" role="status">対応環境でのみ利用できます</span></div>
       <div class="settings-row"><button id="metro" aria-pressed="false">メトロノーム OFF</button><label>テンポ <input id="bpm" type="number" min="40" max="240" value="100"></label><span>メトロノームは自分だけに聞こえます</span></div>
-      <p>演奏中は移動とチャット入力を止めます。チャットはEscで演奏画面を閉じてから。ゲーム音声・無線の設定は変更しません。</p>
+      <p>配列切替とキー変更では発音中の音を止めます。演奏画面を閉じるとゲーム操作へ戻ります。専有入力中のPTT・無線の同時利用は環境依存です。Voice設定は変更しません。</p>
     </section>
   </main>
   <script type="module" src="app.mjs"></script>

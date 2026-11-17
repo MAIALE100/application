@@ -51,11 +51,13 @@ try {
     await page.evaluate(()=>{for(let i=0;i<100;i++){window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyA'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyA'}));}});
     await page.keyboard.down('a');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('a');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);assert.equal(await page.evaluate(()=>JAM.audio.slots.has('local')),false);
+    assert(await page.locator('#panel').isHidden());
+    await page.evaluate(()=>JAM.message({type:'open'}));await page.click('#start');await page.waitForFunction(()=>JAM.session);
   });
   await check('key rebinding rejects PTT and duplicate bindings',async()=>{
     await page.click('#settingsToggle');await page.locator('#bindings button').first().click();await page.keyboard.press('n');
-    assert(await page.locator('#error').isVisible());await page.keyboard.press('q');assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyQ');
-    await page.click('#settingsToggle');await page.locator('#playArea').focus();await page.keyboard.down('q');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);await page.keyboard.up('q');
+    assert(await page.locator('#error').isVisible());await page.keyboard.press('c');assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyC');
+    await page.click('#settingsToggle');await page.locator('#playArea').focus();await page.keyboard.down('c');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);await page.keyboard.up('c');
   });
   await check('MIDI velocity pedal and all-notes-off parser',async()=>{
     await page.evaluate(()=>{JAM.midi.receive([0x90,60,64]);JAM.midi.receive([0xb0,64,127]);JAM.midi.receive([0x90,60,0]);});
@@ -67,7 +69,7 @@ try {
     await page.click('#start');
     for(const id of ['piano','guitar','bass','clarinet','drums']) {
       await page.selectOption('#instrument',id);await page.click('#start');await page.waitForFunction(()=>JAM.session);
-      const key=await page.locator('#keyboard button:not(:disabled) kbd').first().innerText();
+      const key=await page.locator('#keyboard button[data-code]:not(:disabled) kbd').first().innerText();
       await page.keyboard.down(key);assert(await page.evaluate(()=>JAM.audio.stats().voices)>0,id);await page.keyboard.up(key);
       await page.click('#panic');await page.click('#start');
     }

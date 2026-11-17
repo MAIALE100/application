@@ -2,6 +2,8 @@
 
 ## Current handoff — 2026-11-17
 
+The current keyboard/input improvement task is based on installed 0.2.2-test and Git e6e26c7a, verified across all 81 installed files with a full backup. The 0.3.0-test candidate is developed in the attached managed JAM worktree; do not overwrite it with the older AutoDev copy. Use the latest QA, deployment receipt and Git source hashes to determine whether installation is complete. Keep other apps paused and preserve config.lua, samples, Voice and DB. Local keyboard/browser checks do not prove live U/J suppression or PTT coexistence.
+
 The user explicitly resumed JAM and authorized necessary access, edits and test-server deployment without routine confirmations. Source of truth is now `D:/FiveM_AutoDev/workspace-clean/flecity_jam` at 0.2.2-test; the inherited 0.2.1 candidate and older source were preserved. Other apps remain paused.
 The current session can write to the test server. 0.2.2-test has been installed with verified backup/rollback, but JAM is not started: authenticated txAdmin UI input timed out. See docs/QA_JA.md and .flecity-dev/jam/continuation.json. Native Lua 5.4.8 now works; 97 local checks passed. Live multiplayer, listening and PTT remain unverified. The older hourly JAM automation remains disabled; no background work is promised.
 

@@ -18,7 +18,7 @@ local function open(instrument,listenOnly)
         nui({type='notice',message='他の画面を閉じ、安全な場所で /jam を入力してください。'}); return
     end
     shown,lastUi = true,GetGameTimer()
-    SetNuiFocus(true,true); SetNuiFocusKeepInput(true)
+    SetNuiFocus(true,true); SetNuiFocusKeepInput(false)
     nui({type='open',instrument=instrument,listenOnly=listenOnly==true,range=JamConfig.Range,reserved=JamConfig.ReservedKeys})
 end
 RegisterCommand(JamConfig.Command,function(_,args) open(args[1],false) end,false)

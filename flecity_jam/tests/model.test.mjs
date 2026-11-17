@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Performance,Replicas,DEFAULT_KEYS,validBindings,attenuation,selectSample} from '../web/model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,LEGACY_KEYS,EXPANDED_KEYS,validBindings,recommendedExpandedOctave,keyLabel,attenuation,selectSample} from '../web/model.mjs';
 const catalog=JSON.parse(fs.readFileSync(new URL('../web/catalog.json',import.meta.url)));
 const spec=catalog.instruments[0];
 test('note off preserves pitch across octave changes',()=>{
@@ -18,6 +18,53 @@ test('voice stealing stays bounded even with sustain',()=>{
 });
 test('bindings reject duplicates reserved system and PTT keys',()=>{
   assert(validBindings(DEFAULT_KEYS));for(const value of ['KeyN','Escape','KeyA','F8','AltLeft','x']){const k=[...DEFAULT_KEYS];k[1]=value;assert(!validBindings(k));}assert(!validBindings(DEFAULT_KEYS,['KeyA']));
+});
+test('legacy 18-key bindings remain valid and expanded 36-key rows are distinct',()=>{
+  assert.deepEqual(LEGACY_KEYS,['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','Quote']);
+  assert.deepEqual(DEFAULT_KEYS,LEGACY_KEYS);assert.equal(EXPANDED_KEYS.length,36);assert.equal(new Set(EXPANDED_KEYS).size,36);
+  assert(validBindings(DEFAULT_KEYS,[],'legacy'));assert(validBindings(EXPANDED_KEYS,[],'expanded'));
+  assert(!validBindings(DEFAULT_KEYS,[],'expanded'));assert(!validBindings(EXPANDED_KEYS,[],'legacy'));
+  assert(!validBindings(EXPANDED_KEYS,['Digit1']));
+  for(const code of ['KeyZ','KeyX','KeyN','CapsLock','F8','F11','AltLeft','Space']){
+    const proposal=[...EXPANDED_KEYS];proposal[0]=code;assert(!validBindings(proposal),code);
+  }
+  const custom=[...EXPANDED_KEYS];custom[0]='IntlYen';custom[1]='IntlRo';assert(validBindings(custom,[],'expanded'));
+  assert.equal(keyLabel('Minus'),'-');assert.equal(keyLabel('Equal'),'=');assert.equal(keyLabel('IntlYen'),'¥');assert.equal(keyLabel('IntlRo'),'ろ');
+});
+test('expanded octave maximizes each pitched instrument range while drums stay unchanged',()=>{
+  const expected={piano:[3,36],guitar:[3,36],bass:[1,16],clarinet:[3,34],drums:[2,8]};
+  for(const instrument of catalog.instruments){
+    const [octave,notes]=expected[instrument.id];assert.equal(recommendedExpandedOctave(instrument),octave,instrument.id);
+    if(instrument.kind==='drums')continue;
+    const first=(octave+1)*12;
+    const available=Array.from({length:EXPANDED_KEYS.length},(_,offset)=>first+offset)
+      .filter(pitch=>pitch>=instrument.min&&pitch<=instrument.max).length;
+    assert.equal(available,notes,instrument.id);
+  }
+});
+test('expanded low middle and high keys can be held together and release across shifts',()=>{
+  const operations=[],p=new Performance(spec,operation=>operations.push(operation));
+  p.bindings=[...EXPANDED_KEYS];p.octave=recommendedExpandedOctave(spec);
+  assert.equal(p.pitch('KeyA'),48);assert.equal(p.pitch('KeyQ'),60);
+  assert.equal(p.pitch('Digit1'),72);assert.equal(p.pitch('Equal'),83);
+  for(const code of ['KeyA','KeyQ','Digit1','Equal'])assert(p.press('key:'+code,p.pitch(code)));
+  assert.equal(p.notes.size,4);p.shift(1);
+  for(const code of ['KeyA','KeyQ','Digit1','Equal'])p.release('key:'+code);
+  assert.equal(p.notes.size,0);
+  assert.deepEqual(operations.filter(op=>op.kind==='on').map(op=>op.pitch),[48,60,72,83]);
+  assert.equal(operations.filter(op=>op.kind==='off').length,4);
+});
+test('expanded keyboard still obeys the 16-note polyphony limit',()=>{
+  const operations=[],p=new Performance(spec,operation=>operations.push(operation));
+  p.bindings=[...EXPANDED_KEYS];p.octave=recommendedExpandedOctave(spec);
+  for(const code of EXPANDED_KEYS.slice(0,20))assert(p.press('key:'+code,p.pitch(code)));
+  assert.equal(p.notes.size,16);assert.equal(p.keys.size,16);
+  assert.equal(operations.filter(op=>op.kind==='kill').length,4);
+  for(const code of EXPANDED_KEYS.slice(0,20))p.release('key:'+code);
+  assert.equal(p.notes.size,0);assert.equal(p.keys.size,0);
+  const drums=catalog.instruments.find(instrument=>instrument.id==='drums');
+  const drum=new Performance(drums,()=>{});drum.bindings=[...EXPANDED_KEYS];
+  assert.equal(drum.pitch('KeyA'),36);assert.equal(drum.pitch('KeyS'),38);assert.equal(drum.pitch('Digit1'),undefined);
 });
 test('attenuation ends exactly at range and rejects invalid inputs',()=>{
   assert.equal(attenuation(0,7),1);assert(attenuation(3,7)>attenuation(5,7));assert.equal(attenuation(7,7),0);assert.equal(attenuation(100,7),0);assert.equal(attenuation(NaN,7),0);

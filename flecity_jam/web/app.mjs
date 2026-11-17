@@ -1,4 +1,4 @@
-import {Performance,Replicas,DEFAULT_KEYS,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,noteName,keyLabel} from './model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,EXPANDED_KEYS,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,noteName,keyLabel} from './model.mjs';
 import {AudioRack} from './audio.mjs';
 import {MidiInput} from './midi.mjs';
 
@@ -6,7 +6,9 @@ const $=id=>document.getElementById(id);
 const preview=typeof GetParentResourceName!=='function';
 const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
-let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[],keys=[...DEFAULT_KEYS];
+let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[];
+let layout='expanded',keySets={legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS]},keys,zoom=100;
+let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
 const pedalSources=new Set();
@@ -17,9 +19,24 @@ resumeAudioButton.textContent='JAMの音声を有効にする';resumeAudioButton
 $('feedback').append(resumeAudioButton);
 function error(message='') {$('error').textContent=message;$('error').hidden=!message;}
 function notice(message) {$('notice').textContent=message;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);}
-function save() {try{localStorage.setItem('flecity-jam-v1',JSON.stringify({keys,listen,muted}));}catch{}}
-try {const prefs=JSON.parse(localStorage.getItem('flecity-jam-v1')||'{}');if(validBindings(prefs.keys))keys=prefs.keys;
-  if(Number.isFinite(prefs.listen))listen=Math.max(0,Math.min(1,prefs.listen));muted=prefs.muted===true;}catch{}
+function save() {
+  keySets[layout]=[...keys];
+  try{localStorage.setItem('flecity-jam-v2',JSON.stringify({version:2,layout,bindings:keySets,listen,muted,zoom}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
+}
+function readPrefs(name) {try{const value=JSON.parse(localStorage.getItem(name)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
+const legacyPrefs=readPrefs('flecity-jam-v1'),prefs=readPrefs('flecity-jam-v2');
+if(validBindings(legacyPrefs.keys,[],'legacy')){
+  keySets.legacy=[...legacyPrefs.keys];
+  if(legacyPrefs.keys.some((code,i)=>code!==DEFAULT_KEYS[i])){layout='legacy';legacyImported=true;}
+}
+for(const mode of ['legacy','expanded'])if(validBindings(prefs.bindings?.[mode],[],mode))keySets[mode]=[...prefs.bindings[mode]];
+if(['legacy','expanded'].includes(prefs.layout))layout=prefs.layout;
+for(const source of [legacyPrefs,prefs]){
+  if(Number.isFinite(source.listen))listen=Math.max(0,Math.min(1,source.listen));
+  if(typeof source.muted==='boolean')muted=source.muted;
+}
+if(Number.isFinite(prefs.zoom))zoom=Math.max(70,Math.min(160,prefs.zoom));
+keys=[...keySets[layout]];
 
 async function bridge(name,data={}) {
   if(preview) {
@@ -72,36 +89,69 @@ function redraw() {
 function choose(id) {
   const spec=catalog.instruments.find(s=>s.id===id)||catalog.instruments[0];
   model=new Performance(spec,emit,redraw);model.bindings=[...keys];model.volume=Number($('performVolume').value)/100;
+  if(layout==='expanded')model.octave=recommendedExpandedOctave(spec);
   $('instrument').value=spec.id;$('sustain').disabled=spec.kind==='drums';$('octDown').disabled=spec.kind==='drums';$('octUp').disabled=spec.kind==='drums';
-  drawKeys();redraw();
+  $('keyLayout').value=layout;$('keyLayout').disabled=spec.kind==='drums';
+  drawKeys(true);redraw();
 }
-function drawKeys() {
-  const drums=model.spec.kind==='drums',keyboard=$('keyboard');keyboard.replaceChildren();keyboard.classList.toggle('drums',drums);
-  const codes=drums?DRUM_KEYS:keys;
-  let white=0;
-  const whites=codes.filter((_,i)=>![1,3,6,8,10].includes(i%12)).length;
-  codes.forEach((code,i)=>{
-    const pitch=drums?DRUM_PITCHES[i]:(model.octave+1)*12+i;
-    const black=!drums&&[1,3,6,8,10].includes(pitch%12),button=document.createElement('button');
-    button.type='button';button.className='key'+(black?' black':'');button.dataset.pitch=pitch;button.tabIndex=-1;
-    if(black)button.style.left=`${white/whites*100-2.75}%`;else white++;
-    const valid=pitch>=model.spec.min&&pitch<=model.spec.max;
+function drawKeys(center=false) {
+  const drums=model.spec.kind==='drums',keyboard=$('keyboard'),base=(model.octave+1)*12;
+  const firstPitch=Math.max(0,Math.min(Math.floor(model.spec.min/12)*12,base));
+  const lastPitch=Math.min(127,Math.max(Math.ceil(model.spec.max/12)*12,base+36));
+  const pitches=drums?DRUM_PITCHES:Array.from({length:lastPitch-firstPitch+1},(_,i)=>firstPitch+i);
+  const bounds=(drums?'drums:':'piano:')+pitches.join(',');
+  keyboard.classList.toggle('drums',drums);$('keyboardViewControls').hidden=drums;
+  if(bounds!==keyboardBounds){
+    keyboardBounds=bounds;keyboard.replaceChildren();let white=0;
+    for(const pitch of pitches){
+      const black=!drums&&[1,3,6,8,10].includes(pitch%12),button=document.createElement('button');
+      button.type='button';button.className='key'+(black?' black':'');button.dataset.pitch=pitch;button.tabIndex=-1;
+      button.style.setProperty('--key-position',String(black?white-.32:white++));
+      button.append(document.createElement('kbd'),document.createElement('span'));
+      button.addEventListener('pointerdown',e=>{
+        if(e.button!==0)return;e.preventDefault();if(!session)return;
+        button.setPointerCapture(e.pointerId);model.press('pointer:'+e.pointerId,pitch);$('playArea').focus({preventScroll:true});
+      });
+      for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,e=>model?.release('pointer:'+e.pointerId));
+      keyboard.append(button);
+    }
+    keyboardWhites=white;
+  }
+  for(const button of keyboard.children){
+    const pitch=Number(button.dataset.pitch),i=drums?DRUM_PITCHES.indexOf(pitch):pitch-base;
+    const code=drums?DRUM_KEYS[i]:keys[i],valid=pitch>=model.spec.min&&pitch<=model.spec.max;
+    const assigned=Boolean(code)&&!reserved.includes(code),label=drums?model.spec.samples.find(s=>s.midi===pitch)?.label:noteName(pitch);
     button.classList.toggle('out-of-range',!valid);button.disabled=!valid;
-    const label=drums?model.spec.samples.find(s=>s.midi===pitch)?.label:noteName(pitch);
-    const title=document.createElement('span'),key=document.createElement('kbd');title.textContent=label;key.textContent=keyLabel(code);
-    button.append(key,title);button.setAttribute('aria-label',`${label} (${keyLabel(code)})`);
-    button.addEventListener('pointerdown',e=>{
-      e.preventDefault();if(!session)return;
-      button.setPointerCapture(e.pointerId);model.press('pointer:'+e.pointerId,pitch);$('playArea').focus({preventScroll:true});
-    });
-    for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,e=>model.release('pointer:'+e.pointerId));
-    keyboard.append(button);
-  });
-  $('rangeText').textContent=drums?'8 PADS  /  GM':'音域 '+noteName(model.spec.min)+' — '+noteName(model.spec.max);
+    if(assigned)button.dataset.code=code;else delete button.dataset.code;
+    button.classList.toggle('mapped',assigned);button.classList.toggle('bank-middle',!drums&&layout==='expanded'&&i>=12&&i<24);button.classList.toggle('bank-high',!drums&&layout==='expanded'&&i>=24&&i<36);
+    button.children[0].textContent=assigned?keyLabel(code):'·';button.children[1].textContent=label;
+    button.setAttribute('aria-label',`${label}${valid?'':' 音域外'} (${assigned?keyLabel(code):'マウス・MIDI'})`);
+  }
+  $('rangeText').textContent=drums?'8 PADS / GM':'楽器 '+noteName(model.spec.min)+' — '+noteName(model.spec.max);
+  const count=drums?8:keys.filter((code,i)=>base+i>=model.spec.min&&base+i<=model.spec.max&&!reserved.includes(code)).length;
+  $('mappedRange').textContent=drums?'8パッド':`PC ${keys.length}音割当（音域内${count}音） ${noteName(base)} — ${noteName(base+keys.length-1)}`;
+  $('layoutHelp').textContent=drums?'A〜K：8つのドラムパッド':layout==='legacy'?'従来18音の配置を使用中。旧設定は保持されています。':keys.every((code,i)=>code===EXPANDED_KEYS[i])?'下段 A〜\\ / 中段 Q〜] / 上段 1〜=：横は半音、各段は1オクターブ':'カスタム36音：鍵盤に表示されたPCキーで演奏';
+  requestAnimationFrame(()=>fitKeyboard(center));
+}
+function fitKeyboard(center=false) {
+  if(!model||model.spec.kind==='drums')return;
+  const viewport=$('keyboardViewport');if(!viewport.clientWidth)return;
+  const unit=Math.max(28,viewport.clientWidth/22)*zoom/100;
+  if(center){const first=$('keyboard').querySelector('[data-code]');viewAnchor=first?Number(first.style.getPropertyValue('--key-position')):0;}
+  viewWidth=viewport.clientWidth;viewUnit=unit;
+  $('keyboard').style.setProperty('--white-width',unit+'px');$('keyboard').style.width=(keyboardWhites*unit)+'px';
+  $('keyboardZoom').value=zoom;$('zoomValue').textContent=zoom+'%';
+  viewport.scrollLeft=viewAnchor*unit;viewAnchor=viewport.scrollLeft/unit;
+}
+function changeLayout(next) {
+  if(!['legacy','expanded'].includes(next))return;
+  panic();capture=null;keySets[layout]=[...keys];layout=next;keys=[...keySets[layout]];
+  model.bindings=[...keys];model.octave=layout==='expanded'?recommendedExpandedOctave(model.spec):model.spec.octave;
+  drawKeys(true);redraw();bindings();save();$('playArea').focus();
 }
 function bindings() {
   $('bindings').replaceChildren();keys.forEach((code,i)=>{
-    const b=document.createElement('button');b.textContent=noteName(60+i)+' · '+keyLabel(code);b.classList.toggle('capturing',capture===i);
+    const b=document.createElement('button');b.textContent=noteName((model.octave+1)*12+i)+' · '+keyLabel(code);b.classList.toggle('capturing',capture===i);
     b.addEventListener('click',()=>{panic();capture=i;bindings();$('status').textContent='割り当てるキーを押してください。Escで中止。';});$('bindings').append(b);
   });
 }
@@ -153,7 +203,7 @@ function stop() {
 }
 function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {stop();stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
 function promptListenAudio() {
   if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
   resumeAudioButton.hidden=false;
@@ -183,14 +233,15 @@ async function checkListenAudio(manual=false) {
 resumeAudioButton.onclick=()=>checkListenAudio(true);
 function open(data={}) {
   shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
-  if(!validBindings(keys,reserved)){keys=[...DEFAULT_KEYS];save();}
   choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||7}m`;
+  if(!validBindings(keys,reserved,layout))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';
   $('instrument').focus();
   if(listenOnlyOpen){
     try{audio.init();}catch{}
     promptListenAudio();checkListenAudio();
   }else audio.unlock().catch(()=>{});
+  if(legacyImported){legacyImported=false;notice('以前の18音のキー設定を保持しました。「PC配列」で拡張36音へ切り替えられます。');}
 }
 function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'消音中':'消音';save();}
 function stopMetronome() {metroGeneration++;metroPending=false;clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-busy','false');$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
@@ -228,34 +279,42 @@ window.addEventListener('keydown',e=>{
     if(e.code==='Escape'&&!$('retryBoot').hidden){e.preventDefault();bootShown=false;early.length=0;$('retryBoot').hidden=true;bridge('close').catch(()=>{});}
     return;
   }
-  if(e.code==='Escape'){e.preventDefault();if(capture!==null){capture=null;bindings();}else if(!$('settings').hidden){$('settingsToggle').click();}else close();return;}
+  if(e.code==='Escape'){e.preventDefault();e.stopPropagation();close();return;}
   if(capture!==null){
     e.preventDefault();const proposal=[...keys];proposal[capture]=e.code;
-    if(!validBindings(proposal,reserved)){error('そのキーは予約済み、重複、または使用できないキーです。');return;}
+    if(!validBindings(proposal,reserved,layout)){error('そのキーは予約済み、重複、または使用できないキーです。');return;}
     keys=proposal;capture=null;model.bindings=[...keys];save();bindings();drawKeys();error();return;
   }
-  if(!session||e.repeat||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(!session||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
-  if(e.code==='Space' && e.target.tagName!=='BUTTON'){e.preventDefault();pedal('keyboard',true);return;}
-  if(e.code==='KeyZ'||e.code==='KeyX'){e.preventDefault();model.shift(e.code==='KeyZ'?-1:1);drawKeys();redraw();return;}
-  const pitch=model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();model.press('key:'+e.code,pitch);
+  if(e.repeat){if(e.code==='Space'||e.code==='KeyZ'||e.code==='KeyX'||model.pitch(e.code)!==undefined){e.preventDefault();e.stopPropagation();}return;}
+  if(e.code==='Space' && e.target.tagName!=='BUTTON'){e.preventDefault();e.stopPropagation();pedal('keyboard',true);return;}
+  if(e.code==='KeyZ'||e.code==='KeyX'){e.preventDefault();e.stopPropagation();model.shift(e.code==='KeyZ'?-1:1);drawKeys(true);redraw();return;}
+  const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();model.press('key:'+e.code,pitch);
 });
-window.addEventListener('keyup',e=>{if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
-window.addEventListener('blur',()=>{if(session)panic();stopMetronome();});
+window.addEventListener('keyup',e=>{if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
+window.addEventListener('blur',()=>{if(shown)close();else stopMetronome();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(shown)close();replicas.clear();audio?.stopAll();}});
-window.addEventListener('pagehide',()=>{audio?.stopAll();});
+window.addEventListener('pagehide',()=>{if(shown)close();audio?.stopAll();});
 
 $('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=panic;
-$('instrument').onchange=()=>choose($('instrument').value);
-$('octDown').onclick=()=>{model.shift(-1);drawKeys();redraw();$('playArea').focus();};
-$('octUp').onclick=()=>{model.shift(1);drawKeys();redraw();$('playArea').focus();};
+$('instrument').onchange=()=>{stop();choose($('instrument').value);};
+$('octDown').onclick=()=>{model.shift(-1);drawKeys(true);redraw();$('playArea').focus();};
+$('octUp').onclick=()=>{model.shift(1);drawKeys(true);redraw();$('playArea').focus();};
+$('keyLayout').onchange=()=>changeLayout($('keyLayout').value);
+$('keyboardZoom').oninput=()=>{zoom=Number($('keyboardZoom').value);fitKeyboard();save();};
+$('viewLeft').onclick=()=>$('keyboardViewport').scrollBy({left:-$('keyboardViewport').clientWidth*.8});
+$('viewRight').onclick=()=>$('keyboardViewport').scrollBy({left:$('keyboardViewport').clientWidth*.8});
+$('viewHome').onclick=()=>fitKeyboard(true);
+$('keyboardViewport').onscroll=()=>{const viewport=$('keyboardViewport');if(viewUnit&&viewport.clientWidth===viewWidth)viewAnchor=viewport.scrollLeft/viewUnit;};
+new ResizeObserver(()=>fitKeyboard()).observe($('keyboardViewport'));
 $('sustain').onclick=()=>{if(session)pedal('button',!pedalSources.has('button'));$('playArea').focus();};
 $('performVolume').oninput=()=>{const v=Number($('performVolume').value);$('performValue').textContent=v+'%';model?.setVolume(v/100);};
 $('listenVolume').oninput=()=>{listen=Number($('listenVolume').value)/100;$('listenValue').textContent=Math.round(listen*100)+'%';audio.setVolume(listen);save();};
 $('mute').onclick=()=>setMuted(!muted);
-$('compact').onclick=()=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));};
-$('settingsToggle').onclick=()=>{panic();capture=null;const open=$('settings').hidden;$('settings').hidden=!open;$('settingsToggle').setAttribute('aria-expanded',String(open));if(open)bindings();};
-$('resetKeys').onclick=()=>{panic();keys=[...DEFAULT_KEYS];model.bindings=[...keys];capture=null;save();bindings();drawKeys();};
+$('compact').onclick=()=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));if(compact){capture=null;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');}else requestAnimationFrame(()=>fitKeyboard());};
+$('settingsToggle').onclick=()=>{panic();capture=null;const open=$('settings').hidden;if(open&&$('panel').classList.contains('compact'))$('compact').click();$('settings').hidden=!open;$('settingsToggle').setAttribute('aria-expanded',String(open));if(open)bindings();};
+$('resetKeys').onclick=()=>{panic();keys=layout==='expanded'?[...EXPANDED_KEYS]:[...DEFAULT_KEYS];model.bindings=[...keys];capture=null;save();bindings();drawKeys();};
 $('midiConnect').onclick=()=>midi.connect();$('midiDevice').onchange=()=>midi.select($('midiDevice').value);$('metro').onclick=toggleMetronome;
 
 function message(data) {

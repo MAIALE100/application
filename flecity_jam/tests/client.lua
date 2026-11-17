@@ -1,5 +1,5 @@
 local handlers,callbacks,commands,threads,sent,messages={},{},{},{},{},{}
-local clock,dead,focused,keepInput,otherUi=1000,false,false,false,false
+local clock,dead,paused,focused,keepInput,otherUi=1000,false,false,false,false,false
 local focusWrites,keepInputWrites=0,0
 local currentPed=99
 local remotePresent=false
@@ -15,7 +15,7 @@ function SendNUIMessage(data)messages[#messages+1]=data end
 function SetNuiFocus(value)focusWrites=focusWrites+1;focused=value end
 function SetNuiFocusKeepInput(value)keepInputWrites=keepInputWrites+1;keepInput=value end
 function IsNuiFocused()return focused or otherUi end
-function IsPauseMenuActive()return false end
+function IsPauseMenuActive()return paused end
 function IsEntityDead()return dead end
 function IsPedRagdoll()return false end
 function IsPedInAnyVehicle()return false end
@@ -57,8 +57,11 @@ test('jamstop while another UI is focused does not release its focus',function()
     assert(focusWrites==beforeFocus and keepInputWrites==beforeKeep and IsNuiFocused())
     otherUi=false
 end)
-test('opening sets focus while keeping PTT input available',function()
-    commands.jam(nil,{});assert(focused and keepInput);assert(call('ready').ok);assert(call('pulse').ok)
+test('opening gives JAM exclusive keyboard focus without changing other resources',function()
+    local beforeFocus,beforeKeep=focusWrites,keepInputWrites
+    commands.jam(nil,{})
+    assert(focused and not keepInput and focusWrites==beforeFocus+1 and keepInputWrites==beforeKeep+1)
+    assert(call('ready').ok);assert(call('pulse').ok)
 end)
 test('start callback awaits matching server session',function()
     assert(call('start',{instrument='piano'}).ok);assert(not call('start',{instrument='piano'}).ok)
@@ -102,14 +105,39 @@ test('NUI failure watchdog releases focus and held session',function()
     assert(coroutine.resume(threads[1]));clock=clock+5000;assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)
     assert(not call('input',{session='s1'}).ok)
 end)
+test('stopping performance keeps JAM focus until panel exit',function()
+    commands.jam(nil,{});assert(focused and not keepInput)
+    assert(call('stop').ok);assert(focused and not keepInput)
+    commands.jam(nil,{});assert(not focused and not keepInput)
+end)
 test('late grant after closing is immediately cancelled',function()
     commands.jam(nil,{});call('start',{instrument='piano'});local request=sent[#sent].args[2];call('close')
     handlers['flecity_jam:control']({kind='started',session='late',request=request,instrument='piano'})
-    assert(sent[#sent].name=='flecity_jam:stop' and sent[#sent].args[1]=='late');assert(not focused)
+    assert(sent[#sent].name=='flecity_jam:stop' and sent[#sent].args[1]=='late');assert(not focused and not keepInput)
+end)
+test('denied pending start remains in JAM until the player closes it',function()
+    commands.jam(nil,{});assert(call('start',{instrument='piano'}).ok)
+    local request=sent[#sent].args[2]
+    handlers['flecity_jam:control']({kind='denied',reason='permission',request=request})
+    assert(focused and not keepInput)
+    call('close');assert(not focused and not keepInput)
 end)
 test('death and resource stop cannot leave NUI focus',function()
     commands.jam(nil,{});dead=true;assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)
     dead=false;commands.jam(nil,{});handlers.onClientResourceStop('flecity_jam');assert(not focused and not keepInput)
+end)
+test('pause and access loss release only JAM focus',function()
+    commands.jam(nil,{});paused=true;assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)
+    paused=false;commands.jam(nil,{});LocalPlayer.state.invOpen=true
+    assert(coroutine.resume(threads[1]));assert(not focused and not keepInput)
+    LocalPlayer.state.invOpen=false
+end)
+test('resource stop while another UI owns focus does not release that UI',function()
+    otherUi=true
+    local beforeFocus,beforeKeep=focusWrites,keepInputWrites
+    handlers.onClientResourceStop('flecity_jam')
+    assert(focusWrites==beforeFocus and keepInputWrites==beforeKeep and IsNuiFocused())
+    otherUi=false
 end)
 test('permission adapters fail closed for unavailable inventory',function()
     dofile('server/access.lua');JamConfig.Access='open';assert(JamHasAccess(1,'piano'))

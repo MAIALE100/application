@@ -1,3 +1,13 @@
+## 0.5.1-test — 2026-11-18共有範囲の検証・設置
+
+固定実装45d2f1bf60a0b7a5a8093bfb9692d2fed79464baを新規実行し331/331 PASS・0 FAIL・試験中ソース不変。旧309に加えengine7・client3・range UI12を追加。全5距離の境界、保持音age、途中参加、範囲拡縮、Bucket、他session隔離、不正値、端末保存と旧設定保持、反映前/古いACK、失敗時の安全停止、3画面幅を確認した。JS24/Lua9構文と8楽器PCMもPASS。実距離の聴感・FiveM・会話・複数人・CEFはNOT_RUNで、正式公開NO-GOを維持。
+
+Test_01のJAMだけ停止・更新・refresh・起動。0.5.1-test/sessions0/default15m、設置116/116、更新前0.5.0全体116/116照合。実ZIPコピー環境で116→116→116／旧15mへ復旧PASS、稼働先の復旧はPLANのみ。configはRangeOptions1行のみ追加。音源91・catalog・licenses・audio/model/MIDI・既存Voice処理は不変。WAVE・Voice・DBや他resourceの操作はなし。
+
+別チャットで許可されたQA0.2.5→0.2.6の差分を検出して停止し、最新35配布＋2可変ファイルの設置記録・ハッシュ・元5304・設定6を再照合した。適用直前5341件は不変。適用後の可変QAデータは個別レビューとして外部QAへ区別して記録し、未知の変化を無条件PASSにしない。正本range-20261118を参照。
+
+ZIP SHA256cc499731e115f875aa21e3a64bee4655d36fcf22226d59593ea9afce48c85658。復旧receipt jam-update-npco25ip/receipt.json、SHA256810f572244acb6f7e6b3ad954805052dd9a9dda2ef9b52d0d1f3f0b27494a1c4は0.5.0／15mへ戻す。以下は旧版履歴。
+
 ## 0.5.0-test — 2026-11-18検証・設置完了
 
 固定実装686822c0f59e14919c7336384f48608f6fb2dc9fに309/309 PASS、0 FAIL、試験中ソース不変。JS66、Lua engine28/client32、Chromium17（120秒模擬8人）、NUI12、旧鍵盤24、会話20、操作UI14、個別聴取12、音源9、更新fixture14、home18入力13、設定移行14、個人キー16、移動・自動開始18。別途JS23/Lua9構文・8楽器PCMもPASS。旧結果を繰り越さず再実行した。

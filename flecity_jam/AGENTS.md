@@ -1,5 +1,11 @@
 # Flecity JAM scope (2026-11-16)
 
+## Latest installed — 0.5.1-test personal sharing range, 2026-11-18
+
+Runtime source 45d2f1bf60a0b7a5a8093bfb9692d2fed79464ba passed 331/331 fresh checks, 0 FAIL, source unchanged; JS24/Lua9 syntax and 8 instrument PCM additional. Range choices 5/10/15/20/25m are per authenticated performer, default 15m. Preserve client key v1-v5 and window prefs; save distance independently in flecity-jam-range-v1. Start and sync validate selected range server-side; snapshots retain note ages, routing removes out-of-range peers and preserves buckets. Only current session monotonic seq range acknowledgements mark the UI confirmed. Voice proximity is unchanged.
+
+Test_01 JAM0.5.1 installed116/116, old0.5.0 backup116/116; fixture116->116->116 and old15m restored. Receipt jam-update-npco25ip/receipt.json SHA256810f572244acb6f7e6b3ad954805052dd9a9dda2ef9b52d0d1f3f0b27494a1c4 restores0.5.0/15m, real rollback PLAN only. ZIPcc499731e115f875aa21e3a64bee4655d36fcf22226d59593ea9afce48c85658. Config difference only RangeOptions; preserve default15 and other settings. Parallel authorized QA0.2.6 is preserved; use range-20261118 provenance and post-update reports, and do not mistake its runtime data writes for JAM source edits. No WAVE/Voice/DB/production/automation changes. Desktop FiveM NOT_RUN, notebook-only acceptance; formal release NO-GO. Current evidence is outputs/FLECITY_JAM_20261116/range-20261118/. Following entries are historical.
+
 ## Latest installed — 0.5.0-test instrument window, 2026-11-18
 
 Source686822c0f59e14919c7336384f48608f6fb2dc9f passed309/309 fresh local checks,0FAIL,source unchanged;JS23/Lua9syntax and8instrumentPCM additional. Test_01 JAM0.5.0 installed116/116,old0.4.4backup115/115,fixture115→116→115/15m. Receipt jam-update-5e4ufi0v/receipt.json SHA256be3eb1c6d8edcbc286ae05bb335cb493e747ee2cc6c97c7bfa4dd063a5c589ef restores0.4.4/15m; actualtarget rollbackPLANonly. ZIP36627b8e2483aecc07771d628ad615f2a46d8a2e758cc327ae14ed22af6197e0.

@@ -71,7 +71,7 @@ try {
     assert(await page.locator('#panel').isHidden());
     await page.evaluate(()=>JAM.message({type:'open'}));await page.click('#start');await page.waitForFunction(()=>JAM.session);
   });
-  await check('key rebinding rejects PTT and duplicate bindings',async()=>{
+  await check('key rebinding rejects PTT and accepts an unused personal key',async()=>{
     await page.click('#settingsToggle');await page.locator('#bindings button').first().click();await page.keyboard.press('n');
     assert(await page.locator('#error').isVisible());await page.keyboard.press('a');assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyA');
     await page.click('#settingsToggle');await page.locator('#playArea').focus();await page.keyboard.down('a');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);await page.keyboard.up('a');

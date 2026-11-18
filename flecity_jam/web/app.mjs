@@ -1,4 +1,4 @@
-import {Performance,Replicas,DEFAULT_KEYS,PIANO_KEYS,EXPANDED_KEYS,recommendedPianoOctave,recommendedHomeOctave,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,noteName,keyLabel} from './model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,PIANO_KEYS,EXPANDED_KEYS,recommendedPianoOctave,recommendedHomeOctave,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,remapBinding,noteName,keyLabel} from './model.mjs';
 import {AudioRack} from './audio.mjs';
 import {MidiInput} from './midi.mjs';
 
@@ -7,7 +7,7 @@ const preview=typeof GetParentResourceName!=='function';
 const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
 let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[];
-let layout='home18',keySets={home18:[...DEFAULT_KEYS],piano:[...PIANO_KEYS],legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS]},keys,zoom=100;
+let layout='home18',keySets={home18:[...DEFAULT_KEYS],piano:[...PIANO_KEYS],legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS],drums:[...DRUM_KEYS]},keys,zoom=100;
 let velocity=100,performVolume=75,showGuide=true;
 let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
@@ -25,10 +25,10 @@ function error(message='') {$('error').textContent=message;$('error').hidden=!me
 function notice(message) {$('notice').textContent=message;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);}
 function save() {
   keySets[layout]=[...keys];
-  try{localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
+  try{localStorage.setItem('flecity-jam-v5',JSON.stringify({version:5,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));return true;}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');return false;}
 }
 function readPrefs(name) {try{const value=JSON.parse(localStorage.getItem(name)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
-const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),version3Prefs=readPrefs('flecity-jam-v3'),prefs=readPrefs('flecity-jam-v4');
+const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),version3Prefs=readPrefs('flecity-jam-v3'),version4Prefs=readPrefs('flecity-jam-v4'),prefs=readPrefs('flecity-jam-v5');
 if(validBindings(legacyPrefs.keys,[],'legacy')){
   keySets.legacy=[...legacyPrefs.keys];
   if(legacyPrefs.keys.some((code,i)=>code!==DEFAULT_KEYS[i])){layout='legacy';legacyImported=true;}
@@ -41,9 +41,11 @@ if(['piano','legacy','expanded'].includes(version3Prefs.layout)&&validBindings(v
   const stockPiano=version3Prefs.layout==='piano'&&version3Prefs.bindings.piano.every((code,i)=>code===PIANO_KEYS[i]);
   layout=stockPiano?'home18':version3Prefs.layout;
 }
-for(const mode of ['home18','piano','legacy','expanded'])if(validBindings(prefs.bindings?.[mode],[],mode))keySets[mode]=[...prefs.bindings[mode]];
-if(['home18','piano','legacy','expanded'].includes(prefs.layout)&&validBindings(prefs.bindings?.[prefs.layout],[],prefs.layout))layout=prefs.layout;
-for(const source of [legacyPrefs,previousPrefs,version3Prefs,prefs]){
+for(const source of [version4Prefs,prefs]){
+  for(const mode of ['home18','piano','legacy','expanded','drums'])if(validBindings(source.bindings?.[mode],[],mode))keySets[mode]=[...source.bindings[mode]];
+  if(['home18','piano','legacy','expanded'].includes(source.layout)&&validBindings(source.bindings?.[source.layout],[],source.layout))layout=source.layout;
+}
+for(const source of [legacyPrefs,previousPrefs,version3Prefs,version4Prefs,prefs]){
   if(Number.isFinite(source.listen))listen=Math.max(0,Math.min(1,source.listen));
   if(typeof source.muted==='boolean')muted=source.muted;
   if(Number.isFinite(source.zoom))zoom=Math.max(70,Math.min(160,source.zoom));
@@ -142,7 +144,7 @@ function redraw() {
 function choose(id) {
   capture=null;
   const spec=catalog.instruments.find(s=>s.id===id)||catalog.instruments[0];
-  model=new Performance(spec,emit,redraw);model.bindings=[...keys];model.volume=Number($('performVolume').value)/100;
+  model=new Performance(spec,emit,redraw);model.bindings=[...keys];model.drumBindings=[...keySets.drums];model.volume=Number($('performVolume').value)/100;
   if(layout==='expanded')model.octave=recommendedExpandedOctave(spec);
   if(layout==='piano')model.octave=recommendedPianoOctave(spec);
   if(layout==='home18')model.octave=recommendedHomeOctave(spec);
@@ -176,7 +178,7 @@ function drawKeys(center=false) {
   }
   for(const button of keyboard.children){
     const pitch=Number(button.dataset.pitch),i=drums?DRUM_PITCHES.indexOf(pitch):pitch-base;
-    const code=drums?DRUM_KEYS[i]:keys[i],valid=pitch>=model.spec.min&&pitch<=model.spec.max;
+    const code=drums?keySets.drums[i]:keys[i],valid=pitch>=model.spec.min&&pitch<=model.spec.max;
     const assigned=Boolean(code)&&!reserved.includes(code),label=drums?model.spec.samples.find(s=>s.midi===pitch)?.label:noteName(pitch);
     button.classList.toggle('out-of-range',!valid);button.disabled=!valid;
     if(assigned)button.dataset.code=code;else delete button.dataset.code;
@@ -185,9 +187,9 @@ function drawKeys(center=false) {
     button.setAttribute('aria-label',`${label}${valid?'':' 音域外'} (${assigned?keyLabel(code):'マウス・MIDI'})`);
   }
   $('rangeText').textContent=drums?'8 PADS / GM':'楽器 '+noteName(model.spec.min)+' — '+noteName(model.spec.max);
-  const count=drums?8:keys.filter((code,i)=>base+i>=model.spec.min&&base+i<=model.spec.max&&!reserved.includes(code)).length;
+  const count=drums?keySets.drums.filter(code=>!reserved.includes(code)).length:keys.filter((code,i)=>base+i>=model.spec.min&&base+i<=model.spec.max&&!reserved.includes(code)).length;
   $('mappedRange').textContent=drums?'8パッド':`PC ${keys.length}音割当（音域内${count}音） ${noteName(base)} — ${noteName(base+keys.length-1)}`;
-  $('layoutHelp').textContent=drums?'A〜K：8つのドラムパッド':layout==='legacy'?'従来18音の配置を使用中。旧設定は保持されています。':keys.every((code,i)=>code===EXPANDED_KEYS[i])?'下段 A〜\\ / 中段 Q〜] / 上段 1〜=：横は半音、各段は1オクターブ':'カスタム36音：鍵盤に表示されたPCキーで演奏';
+  $('layoutHelp').textContent=drums?'8つのドラムパッド：'+keySets.drums.map(keyLabel).join(' ')+'。「キー配置を変更」で自分用に設定できます。':layout==='legacy'?'従来18音の配置を使用中。旧設定は保持されています。':keys.every((code,i)=>code===EXPANDED_KEYS[i])?'下段 A〜\\ / 中段 Q〜] / 上段 1〜=：横は半音、各段は1オクターブ':'カスタム36音：鍵盤に表示されたPCキーで演奏';
   const standardPiano=layout==='piano'&&keys.every((code,i)=>code===PIANO_KEYS[i]);
   const homeGuide=['home18','legacy'].includes(layout)&&keys.every((code,i)=>code===DEFAULT_KEYS[i]);
   const hasGuide=standardPiano||homeGuide;
@@ -236,11 +238,29 @@ function changeLayout(next) {
   model.bindings=[...keys];model.octave=layout==='home18'?recommendedHomeOctave(model.spec):layout==='piano'?recommendedPianoOctave(model.spec):layout==='expanded'?recommendedExpandedOctave(model.spec):model.spec.octave;
   drawKeys(true);redraw();bindings();save();
 }
+function bindingMode() {return model.spec.kind==='drums'?'drums':layout;}
+function activeBindings() {return bindingMode()==='drums'?keySets.drums:keys;}
+function applyBindings(next) {
+  if(bindingMode()==='drums'){keySets.drums=[...next];model.drumBindings=[...next];}
+  else{keys=[...next];model.bindings=[...next];}
+}
 function bindings() {
-  $('bindings').replaceChildren();keys.forEach((code,i)=>{
-    const b=document.createElement('button');b.textContent=noteName((model.octave+1)*12+i)+' · '+keyLabel(code);b.classList.toggle('capturing',capture===i);
-    b.addEventListener('click',()=>{releaseVoice();panic();capture=i;bindings();$('status').textContent='割り当てるキーを押してください。Escで中止。';});$('bindings').append(b);
+  const drums=bindingMode()==='drums';
+  $('bindingTarget').textContent=$('instrument').selectedOptions[0].textContent+' / '+(drums?'ドラム8パッド':$('keyLayout').selectedOptions[0].textContent);
+  $('cancelBinding').hidden=capture===null;
+  $('bindingStatus').textContent=capture===null?'このPCだけに自動保存。変更する音を選び、割り当てたいキーを押してください。':'割り当てたいキーを押してください。使用中のキーなら2音の割り当てを交換します。';
+  $('bindings').replaceChildren();activeBindings().forEach((code,i)=>{
+    const pitch=drums?DRUM_PITCHES[i]:(model.octave+1)*12+i;
+    const label=drums?model.spec.samples.find(s=>s.midi===pitch)?.label||noteName(pitch):noteName(pitch);
+    const b=document.createElement('button');b.type='button';b.textContent=label+' · '+keyLabel(code);b.dataset.bindingIndex=i;
+    b.classList.toggle('binding-black',!drums&&[1,3,6,8,10].includes(pitch%12));b.classList.toggle('capturing',capture===i);b.setAttribute('aria-pressed',String(capture===i));
+    b.addEventListener('click',()=>{releaseVoice();panic();capture=i;bindings();$('bindings').children[i].focus({preventScroll:true});});$('bindings').append(b);
   });
+}
+function setSettings(open) {
+  capture=null;if(open&&$('panel').classList.contains('compact'))$('compact').click();
+  $('settings').hidden=!open;for(const id of ['settingsToggle','editKeys'])$(id).setAttribute('aria-expanded',String(open));
+  if(open)bindings();
 }
 async function start() {
   if(session){stop();return;}
@@ -291,7 +311,7 @@ function stop() {
 }
 function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();configureVoice(null);stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {stop();configureVoice(null);stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('editKeys').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
 function promptListenAudio() {
   if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
   resumeAudioButton.hidden=false;
@@ -323,7 +343,7 @@ function open(data={}) {
   shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
   configureVoice(data.voice||(preview?{token:'preview',enabled:true}:null));
   choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||15}m`;
-  if(!validBindings(keys,reserved,layout))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
+  if(!validBindings(activeBindings(),reserved,bindingMode()))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';
   $('instrument').focus();
   if(listenOnlyOpen){
@@ -400,9 +420,14 @@ window.addEventListener('keydown',e=>{
   }
   if(e.code==='Escape'){e.preventDefault();e.stopPropagation();close();return;}
   if(capture!==null){
-    e.preventDefault();const proposal=[...keys];proposal[capture]=e.code;
-    if(!validBindings(proposal,reserved,layout)){error('そのキーは予約済み、重複、または使用できないキーです。');return;}
-    keys=proposal;capture=null;model.bindings=[...keys];save();bindings();drawKeys();error();return;
+    const target=e.target instanceof Element?e.target:null,action=target?.closest('#cancelBinding,#resetKeys,#settingsToggle,#editKeys');
+    if(e.code==='Tab'||(e.code==='Enter'&&(action||target?.closest('#bindings button')))||(e.code==='Space'&&action))return;
+    e.preventDefault();e.stopPropagation();if(e.repeat||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+    const selected=capture,current=activeBindings(),other=current.indexOf(e.code),proposal=remapBinding(current,selected,e.code,reserved,bindingMode());
+    if(!proposal){error('そのキーは予約済み、または使用できません。文字・数字・記号のキーを1つ押してください。');return;}
+    applyBindings(proposal);capture=null;const saved=save();bindings();drawKeys();error();
+    $('bindingStatus').textContent=(other>=0&&other!==selected?'2音のキーを交換しました。':'キー配置を変更しました。')+(saved?'このPCに保存済みです。':'端末に保存できません。今回のみ使用できます。');
+    $('bindings').children[selected].focus({preventScroll:true});return;
   }
   if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.code==='KeyN'&&(!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type==='range'))){e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('keyboard',true);return;}
@@ -438,10 +463,12 @@ $('velocity').oninput=()=>{velocity=Number($('velocity').value);$('velocityValue
 $('performVolume').oninput=()=>{performVolume=Number($('performVolume').value);$('performValue').textContent=performVolume+'%';model?.setVolume(performVolume/100);save();};
 $('listenVolume').oninput=()=>{listen=Number($('listenVolume').value)/100;$('listenValue').textContent=Math.round(listen*100)+'%';audio.setVolume(listen);save();};
 $('mute').onclick=e=>{setMuted(!muted);focusAfterPointer(e);};
-$('compact').onclick=e=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));if(compact){capture=null;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');}else requestAnimationFrame(()=>fitKeyboard());focusAfterPointer(e);};
-$('settingsToggle').onclick=e=>{capture=null;const open=$('settings').hidden;if(open&&$('panel').classList.contains('compact'))$('compact').click();$('settings').hidden=!open;$('settingsToggle').setAttribute('aria-expanded',String(open));if(open)bindings();focusAfterPointer(e);};
+$('compact').onclick=e=>{const compact=$('panel').classList.toggle('compact');$('compact').textContent=compact?'鍵盤を表示':'縮小';$('compact').setAttribute('aria-expanded',String(!compact));if(compact){capture=null;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('editKeys').setAttribute('aria-expanded','false');}else requestAnimationFrame(()=>fitKeyboard());focusAfterPointer(e);};
+$('settingsToggle').onclick=e=>{setSettings($('settings').hidden);focusAfterPointer(e);};
+$('editKeys').onclick=()=>{setSettings(true);$('bindings').children[0]?.focus({preventScroll:true});$('bindingTarget').scrollIntoView({block:'nearest'});};
+$('cancelBinding').onclick=()=>{capture=null;bindings();error();$('bindings').children[0]?.focus({preventScroll:true});};
 $('resetPeerMix').onclick=e=>{peerVolumes.clear();for(const[id,state]of replicas.states)audio.setSourceVolume(id,1,state.session);for(const row of $('peerMix').children){row.children[1].value=100;row.children[2].textContent='100%';}focusAfterPointer(e);};
-$('resetKeys').onclick=e=>{panic();keys=[...(layout==='piano'?PIANO_KEYS:layout==='expanded'?EXPANDED_KEYS:DEFAULT_KEYS)];model.bindings=[...keys];capture=null;save();bindings();drawKeys();focusAfterPointer(e);};
+$('resetKeys').onclick=e=>{panic();applyBindings(bindingMode()==='drums'?DRUM_KEYS:layout==='piano'?PIANO_KEYS:layout==='expanded'?EXPANDED_KEYS:DEFAULT_KEYS);capture=null;const saved=save();bindings();drawKeys();$('bindingStatus').textContent=saved?'この配列だけ初期化し、このPCに保存しました。他の配列は保持しています。':'この配列を初期化しましたが端末に保存できません。今回のみ使用できます。';focusAfterPointer(e);};
 for(const id of ['velocity','performVolume','listenVolume','keyboardZoom'])$(id).addEventListener('pointerup',focusAfterPointer);
 $('midiConnect').onclick=()=>midi.connect();$('midiDevice').onchange=()=>midi.select($('midiDevice').value);$('metro').onclick=e=>{toggleMetronome();focusAfterPointer(e);};
 

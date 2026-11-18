@@ -52,13 +52,13 @@ try{
     const page=await fixture();await page.click('#settingsToggle');
     const first=page.locator('#bindings button').first();assert.match(await first.innerText(),/^C3/);
     await first.click();assert(await first.evaluate(node=>node.classList.contains('capturing')));
-    const original=await page.evaluate(()=>localStorage.getItem('flecity-jam-v4'));
+    const original=await page.evaluate(()=>localStorage.getItem('flecity-jam-v5'));
     await page.selectOption('#instrument','flute');
     assert.equal(await page.evaluate(()=>JAM.model.octave),4);assert.match(await first.innerText(),/^C4/);
     assert.equal(await page.locator('#bindings .capturing').count(),0);
     await page.locator('#playArea').focus();await page.keyboard.press('a');
     assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyZ');
-    assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v4')),original);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v5')),original);
     await page.screenshot({path:path.join(evidence,'instrument-change-cancels-capture.png')});
   });
   await check('new controls retain prior loudness and strength defaults without hiding the piano',async()=>{
@@ -147,7 +147,7 @@ try{
     assert.equal(await page.evaluate(()=>JAM.model.volume),.3);assert(await page.locator('#physicalLayout').isHidden());
     assert.equal(await page.locator('#listenVolume').inputValue(),'42');assert.equal(await page.locator('#keyboardZoom').inputValue(),'120');
     assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v1')),v1);assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v2')),v2);
-    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.deepEqual(saved.bindings.legacy,legacy);assert.deepEqual(saved.bindings.expanded,expanded);
+    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v5')));assert.deepEqual(saved.bindings.legacy,legacy);assert.deepEqual(saved.bindings.expanded,expanded);
     await page.selectOption('#instrument','guitar');assert.equal(await page.evaluate(()=>JAM.model.volume),.3);assert.equal(await page.locator('#velocity').inputValue(),'64');
   });
   await check('invalid optional preference fields fall back safely while valid old preferences survive',async()=>{

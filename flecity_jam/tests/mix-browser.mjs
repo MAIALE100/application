@@ -64,7 +64,7 @@ try{
     await level(page,3,37);await gain(page,3,.8*(144/196)*.37);
     assert.equal(await page.evaluate(()=>JAM.audio.slots.get(2).listenVolume),0);assert.equal(await page.evaluate(()=>JAM.audio.slots.get(3).listenVolume),.37);
     const after=await page.evaluate(()=>({master:JAM.audio.masterVolume,masterGain:JAM.audio.master.gain.value,volume:JAM.model.volume,voice:document.querySelector('#voice').getAttribute('aria-pressed')}));assert.deepEqual(after,before);
-    const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.equal(Object.hasOwn(stored,'peerVolumes'),false,'transient performer IDs must not become persistent preferences');
+    const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v5')));assert.equal(Object.hasOwn(stored,'peerVolumes'),false,'transient performer IDs must not become persistent preferences');
   });
   await check('new snapshots, volume deltas and positions retain the local listening preference',async()=>{
     const page=await fixture();await snapshot(page,2);await positions(page);await level(page,2,25);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Performance,Replicas,DEFAULT_KEYS,LEGACY_KEYS,EXPANDED_KEYS,PIANO_KEYS,validBindings,recommendedExpandedOctave,recommendedPianoOctave,keyLabel,attenuation,selectSample} from '../web/model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,LEGACY_KEYS,EXPANDED_KEYS,PIANO_KEYS,DRUM_KEYS,DRUM_PITCHES,validBindings,remapBinding,recommendedExpandedOctave,recommendedPianoOctave,keyLabel,attenuation,selectSample} from '../web/model.mjs';
 const catalog=JSON.parse(fs.readFileSync(new URL('../web/catalog.json',import.meta.url)));
 const spec=catalog.instruments[0];
 test('note off preserves pitch across octave changes',()=>{
@@ -18,6 +18,59 @@ test('voice stealing stays bounded even with sustain',()=>{
 });
 test('bindings reject duplicates reserved system and PTT keys',()=>{
   assert(validBindings(DEFAULT_KEYS));for(const value of ['KeyN','Escape','KeyA','F8','AltLeft','x']){const k=[...DEFAULT_KEYS];k[1]=value;assert(!validBindings(k));}assert(!validBindings(DEFAULT_KEYS,['KeyA']));
+});
+
+test('drum bindings validate eight independent pads with the existing key restrictions',()=>{
+  assert(validBindings(DRUM_KEYS,[],'drums'));assert(validBindings(DRUM_KEYS));
+  for(const mode of ['home18','legacy','piano','expanded'])assert(!validBindings(DRUM_KEYS,[],mode),mode);
+  assert(!validBindings(DEFAULT_KEYS,[],'drums'));assert(!validBindings(DRUM_KEYS,['KeyA'],'drums'));
+  for(const code of ['KeyN','Space','ArrowUp','Numpad1','KeyS']){
+    const keys=[...DRUM_KEYS];keys[0]=code;assert(!validBindings(keys,[],'drums'),code);
+  }
+  const keys=[...DRUM_KEYS];keys[0]='IntlYen';keys[1]='IntlRo';assert(validBindings(keys,[],'drums'));
+});
+
+test('remapping copies, replaces or swaps each preset without mutating the original',()=>{
+  for(const [mode,stock]of [['home18',DEFAULT_KEYS],['legacy',LEGACY_KEYS],['piano',PIANO_KEYS],['expanded',EXPANDED_KEYS],['drums',DRUM_KEYS]]){
+    const keys=Object.freeze([...stock]);
+    const unchanged=remapBinding(keys,0,keys[0],[],mode);assert.deepEqual(unchanged,keys);assert.notEqual(unchanged,keys);
+    const replaced=remapBinding(keys,0,'IntlYen',[],mode);assert.equal(replaced[0],'IntlYen');assert.deepEqual(replaced.slice(1),keys.slice(1));
+    const swapped=remapBinding(keys,0,keys[1],[],mode);assert.equal(swapped[0],keys[1]);assert.equal(swapped[1],keys[0]);assert.deepEqual(swapped.slice(2),keys.slice(2));
+    assert(validBindings(swapped,[],mode));assert.deepEqual(keys,stock);
+  }
+});
+
+test('remapping rejects invalid indices, keys, modes and reserved keys without mutation',()=>{
+  const keys=Object.freeze([...DEFAULT_KEYS]);
+  for(const index of [-1,keys.length,.5,NaN,Infinity,'0',null])assert.equal(remapBinding(keys,index,'KeyZ',[],'home18'),null,String(index));
+  for(const code of ['KeyN','CapsLock','Space','ArrowUp','Escape','F8','F11','AltLeft','Numpad1','x','',null,{}])assert.equal(remapBinding(keys,0,code,[],'home18'),null,String(code));
+  assert.equal(remapBinding(keys,0,'KeyZ',['KeyZ'],'home18'),null);
+  assert.equal(remapBinding(keys,0,'KeyW',['KeyW'],'home18'),null,'a reserved key cannot be swapped into another slot');
+  assert.equal(remapBinding(keys,0,'KeyZ',[],'drums'),null);assert.equal(remapBinding(keys,0,'KeyZ',[],'unknown'),null);
+  for(const malformed of [null,{},[],['KeyA','KeyA']])assert.equal(remapBinding(malformed,0,'KeyZ'),null);
+  const repaired=remapBinding(keys,0,'KeyZ',['KeyA'],'home18');assert(repaired,'a newly server-reserved old key can be replaced');assert(!repaired.includes('KeyA'));
+  assert.deepEqual(keys,DEFAULT_KEYS);
+});
+
+test('custom drum keys control the same pad pitches independently from melodic keys and other models',()=>{
+  const spec=catalog.instruments.find(instrument=>instrument.id==='drums'),drum=new Performance(spec,()=>{}),other=new Performance(spec,()=>{}),piano=new Performance(catalog.instruments[0],()=>{});
+  assert.deepEqual(drum.drumBindings,DRUM_KEYS);assert.notEqual(drum.drumBindings,DRUM_KEYS);assert.notEqual(drum.drumBindings,other.drumBindings);
+  drum.drumBindings=remapBinding(drum.drumBindings,0,'KeyZ',[],'drums');drum.bindings=[...EXPANDED_KEYS];
+  assert.equal(drum.pitch('KeyA'),undefined);assert.equal(drum.pitch('KeyZ'),36);
+  assert.deepEqual(drum.drumBindings.map(code=>drum.pitch(code)),DRUM_PITCHES);
+  assert.equal(other.pitch('KeyA'),36);assert.equal(other.pitch('KeyZ'),undefined);assert.deepEqual(other.drumBindings,DRUM_KEYS);
+  assert.equal(piano.pitch('KeyA'),60);assert.equal(piano.pitch('KeyZ'),undefined);assert.deepEqual(piano.bindings,DEFAULT_KEYS);
+  for(const code of drum.drumBindings){assert(drum.press('key:'+code,drum.pitch(code)));drum.release('key:'+code);}
+  assert.equal(drum.notes.size,0);assert.equal(drum.keys.size,0);
+});
+
+test('drum remapping preserves held note release identity and the fixed pad pitch after octave changes',()=>{
+  const spec=catalog.instruments.find(instrument=>instrument.id==='drums'),ops=[],drum=new Performance(spec,op=>ops.push(op));
+  assert(drum.press('key:KeyA',drum.pitch('KeyA')));const id=ops[0].id;
+  drum.drumBindings=remapBinding(drum.drumBindings,0,'KeyZ',[],'drums');drum.shift(1);drum.release('key:KeyA');
+  assert.equal(drum.notes.size,0);assert.equal(ops.at(-1).id,id);assert.equal(drum.pitch('KeyZ'),36);
+  assert(drum.press('key:KeyZ',drum.pitch('KeyZ')));assert.equal(ops.at(-1).pitch,36);drum.release('key:KeyZ');
+  assert.equal(drum.notes.size,0);assert.equal(drum.keys.size,0);assert.deepEqual(DRUM_KEYS,['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK']);
 });
 test('legacy 18-key bindings remain valid and expanded 36-key rows are distinct',()=>{
   assert.deepEqual(LEGACY_KEYS,['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','Quote']);

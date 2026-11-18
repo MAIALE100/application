@@ -1,5 +1,9 @@
 # Flecity JAM scope (2026-11-16)
 
+## Active candidate — personal keys 0.4.4-test, 2026-11-18
+
+Only JAM personal client keyboard editor is in scope. Main editKeys opens existing settings. Use remapBinding for atomic key swaps, keep N/Caps/Space/arrows/Esc/system guards, ignore capture repeats/IME/modifier chords. Separate drums8 bindings via keySets.drums/model.drumBindings; do not alter melodic slots from drums editor. Copy old v1-v4 read-only to new v5, no server/DB mapping writes. Keep home18 default and old presets. Current tests/deployment pending fresh outputs/FLECITY_JAM_20261116/personal-keys-20261118/. Preserve WAVE/Voice/DB/other paused apps. Never start desktopFiveM; actual keyboard/audio/PTT remain notebook-only NOT_RUN. This checkout is separate from concurrent flecity_qa; never stage another resource or root edits.
+
 ## Latest installed — 0.4.3-test, 2026-11-18
 
 Source2596d2dc308a7aa467f2aaba5e49c2fff0c0945d passed256 fresh local checks,0FAIL,source unchanged;JS19/Lua9syntax and8PCM additional. Test_01 JAM0.4.3 installed115/115,backup0.4.2 115/115,fixture115→115→115/15m,nonJAM5304+5cfg+txAdmin unchanged. Receipt jam-update-j2w0rwh8/receipt.json SHA256b252947d1ace518ab288decfead9e0bae24eb6931b0c0fb9f09d2f465b66e348 restores0.4.2/15m; actualtarget rollbackPLANonly. ZIP22cebf79933990301131b9dd8a865041654a1a8a0ef50cc9c8b26e5f6e9ffcad. User-selected home18 is standard; old25/36/legacycustom remain. Writev4only, oldv1/v2/v3 untouched. Physicalcomfort/JIS/rollover/liveFiveM/audio/PTT/MIDI/CEF NOT_RUN notebookonly. FormalReleaseNO-GO. Do not startdesktopFiveM, changeWAVE/Voice/DB/otherpausedapps or automations. Outputs hands-layout-20261118 is canonical. Following entries are history.

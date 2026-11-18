@@ -283,7 +283,7 @@ try {
     assert.equal(await migrated.locator('#listenVolume').inputValue(),'42');assert.equal(await migrated.locator('#keyboardZoom').inputValue(),'120');
     await migrated.selectOption('#keyLayout','expanded');assert.deepEqual((await state(migrated)).bindings,expanded);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v2')),raw);
-    const v4=await migrated.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.equal(v4.version,4);assert.equal(v4.layout,'expanded');
+    const v5=await migrated.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v5')));assert.equal(v5.version,5);assert.equal(v5.layout,'expanded');
     await migrated.reload();await migrated.waitForFunction(()=>window.JAM);
     assert.equal((await state(migrated)).layout,'expanded');assert.deepEqual((await state(migrated)).bindings,expanded);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v2')),raw);

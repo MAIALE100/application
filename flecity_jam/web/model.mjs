@@ -19,9 +19,15 @@ export const RESERVED = new Set(['Escape','Tab','Space','ArrowUp','ArrowDown','A
 export const noteName = n => ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][n%12]+(Math.floor(n/12)-1);
 export const keyLabel = code => ({Semicolon:';',Quote:":/'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\',Minus:'-',Equal:'=',IntlYen:'¥',IntlRo:'ろ'}[code] || code.replace(/^(Key|Digit)/,''));
 export function validBindings(keys, reserved=[], mode) {
-  const lengths=(mode==='legacy'||mode==='home18')?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode==='piano'?[PIANO_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length,PIANO_KEYS.length]:[];
+  const lengths=mode==='drums'?[DRUM_KEYS.length]:(mode==='legacy'||mode==='home18')?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode==='piano'?[PIANO_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length,PIANO_KEYS.length,DRUM_KEYS.length]:[];
   return Array.isArray(keys) && lengths.includes(keys.length) && new Set(keys).size===keys.length &&
     keys.every(k=>typeof k==='string' && /^(Key[A-Z]|Digit[0-9]|Semicolon|Quote|Comma|Period|Slash|BracketLeft|BracketRight|Backslash|Minus|Equal|IntlYen|IntlRo)$/.test(k) && !RESERVED.has(k) && !reserved.includes(k));
+}
+export function remapBinding(keys,index,code,reserved=[],mode) {
+  if(!validBindings(keys,[],mode) || !Number.isInteger(index) || index<0 || index>=keys.length)return null;
+  const next=[...keys],other=next.indexOf(code),previous=next[index];
+  next[index]=code;if(other>=0)next[other]=previous;
+  return validBindings(next,reserved,mode)?next:null;
 }
 export function recommendedExpandedOctave(spec) {
   return recommendedOctave(spec,EXPANDED_KEYS.length);
@@ -60,10 +66,10 @@ export class Performance {
   constructor(spec, emit, change=()=>{}, now=()=>performance.now()) {
     this.spec=spec; this.emit=emit; this.change=change; this.now=now;
     this.notes=new Map(); this.keys=new Map(); this.nextId=0; this.sustain=false; this.volume=.75;
-    this.octave=spec.octave; this.bindings=[...DEFAULT_KEYS]; this.limit=16;
+    this.octave=spec.octave; this.bindings=[...DEFAULT_KEYS]; this.drumBindings=[...DRUM_KEYS]; this.limit=16;
   }
   pitch(code) {
-    if (this.spec.kind==='drums') return DRUM_PITCHES[DRUM_KEYS.indexOf(code)];
+    if (this.spec.kind==='drums') return DRUM_PITCHES[this.drumBindings.indexOf(code)];
     const offset=this.bindings.indexOf(code);
     return offset<0 ? undefined : (this.octave+1)*12+offset;
   }

@@ -1,4 +1,4 @@
-import {Performance,Replicas,DEFAULT_KEYS,PIANO_KEYS,EXPANDED_KEYS,recommendedPianoOctave,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,noteName,keyLabel} from './model.mjs';
+import {Performance,Replicas,DEFAULT_KEYS,PIANO_KEYS,EXPANDED_KEYS,recommendedPianoOctave,recommendedHomeOctave,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,noteName,keyLabel} from './model.mjs';
 import {AudioRack} from './audio.mjs';
 import {MidiInput} from './midi.mjs';
 
@@ -7,7 +7,7 @@ const preview=typeof GetParentResourceName!=='function';
 const resource=preview?'flecity_jam':GetParentResourceName();
 let catalog,model,audio,session=null,shown=false,starting=false,startGeneration=0,sequence=0;
 let pending=[],flushTimer=0,transport={session:null,queue:Promise.resolve(),queued:0},capture=null,reserved=[];
-let layout='piano',keySets={piano:[...PIANO_KEYS],legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS]},keys,zoom=100;
+let layout='home18',keySets={home18:[...DEFAULT_KEYS],piano:[...PIANO_KEYS],legacy:[...DEFAULT_KEYS],expanded:[...EXPANDED_KEYS]},keys,zoom=100;
 let velocity=100,performVolume=75,showGuide=true;
 let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
@@ -25,27 +25,32 @@ function error(message='') {$('error').textContent=message;$('error').hidden=!me
 function notice(message) {$('notice').textContent=message;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);}
 function save() {
   keySets[layout]=[...keys];
-  try{localStorage.setItem('flecity-jam-v3',JSON.stringify({version:3,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
+  try{localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');}
 }
 function readPrefs(name) {try{const value=JSON.parse(localStorage.getItem(name)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
-const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),prefs=readPrefs('flecity-jam-v3');
+const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),version3Prefs=readPrefs('flecity-jam-v3'),prefs=readPrefs('flecity-jam-v4');
 if(validBindings(legacyPrefs.keys,[],'legacy')){
   keySets.legacy=[...legacyPrefs.keys];
   if(legacyPrefs.keys.some((code,i)=>code!==DEFAULT_KEYS[i])){layout='legacy';legacyImported=true;}
 }
 for(const mode of ['legacy','expanded'])if(validBindings(previousPrefs.bindings?.[mode],[],mode))keySets[mode]=[...previousPrefs.bindings[mode]];
 const previousKeys=['legacy','expanded'].includes(previousPrefs.layout)?keySets[previousPrefs.layout]:undefined,previousDefault=previousPrefs.layout==='legacy'?DEFAULT_KEYS:EXPANDED_KEYS;
-if(previousKeys){layout=previousKeys.some((code,i)=>code!==previousDefault[i])?previousPrefs.layout:'piano';if(layout!=='piano')legacyImported=true;}
-for(const mode of ['piano','legacy','expanded'])if(validBindings(prefs.bindings?.[mode],[],mode))keySets[mode]=[...prefs.bindings[mode]];
-if(['piano','legacy','expanded'].includes(prefs.layout)&&validBindings(prefs.bindings?.[prefs.layout],[],prefs.layout))layout=prefs.layout;
-for(const source of [legacyPrefs,previousPrefs,prefs]){
+if(previousKeys){layout=previousKeys.some((code,i)=>code!==previousDefault[i])?previousPrefs.layout:'home18';if(layout!=='home18')legacyImported=true;}
+for(const mode of ['piano','legacy','expanded'])if(validBindings(version3Prefs.bindings?.[mode],[],mode))keySets[mode]=[...version3Prefs.bindings[mode]];
+if(['piano','legacy','expanded'].includes(version3Prefs.layout)&&validBindings(version3Prefs.bindings?.[version3Prefs.layout],[],version3Prefs.layout)){
+  const stockPiano=version3Prefs.layout==='piano'&&version3Prefs.bindings.piano.every((code,i)=>code===PIANO_KEYS[i]);
+  layout=stockPiano?'home18':version3Prefs.layout;
+}
+for(const mode of ['home18','piano','legacy','expanded'])if(validBindings(prefs.bindings?.[mode],[],mode))keySets[mode]=[...prefs.bindings[mode]];
+if(['home18','piano','legacy','expanded'].includes(prefs.layout)&&validBindings(prefs.bindings?.[prefs.layout],[],prefs.layout))layout=prefs.layout;
+for(const source of [legacyPrefs,previousPrefs,version3Prefs,prefs]){
   if(Number.isFinite(source.listen))listen=Math.max(0,Math.min(1,source.listen));
   if(typeof source.muted==='boolean')muted=source.muted;
+  if(Number.isFinite(source.zoom))zoom=Math.max(70,Math.min(160,source.zoom));
+  if(Number.isInteger(source.velocity)&&source.velocity>=1&&source.velocity<=127)velocity=source.velocity;
+  if(Number.isFinite(source.performVolume)&&source.performVolume>=0&&source.performVolume<=100)performVolume=Math.round(source.performVolume);
+  if(typeof source.showGuide==='boolean')showGuide=source.showGuide;
 }
-for(const source of [previousPrefs,prefs])if(Number.isFinite(source.zoom))zoom=Math.max(70,Math.min(160,source.zoom));
-if(Number.isInteger(prefs.velocity)&&prefs.velocity>=1&&prefs.velocity<=127)velocity=prefs.velocity;
-if(Number.isFinite(prefs.performVolume)&&prefs.performVolume>=0&&prefs.performVolume<=100)performVolume=Math.round(prefs.performVolume);
-if(typeof prefs.showGuide==='boolean')showGuide=prefs.showGuide;
 keys=[...keySets[layout]];
 
 function focusAfterPointer(event) {
@@ -140,6 +145,7 @@ function choose(id) {
   model=new Performance(spec,emit,redraw);model.bindings=[...keys];model.volume=Number($('performVolume').value)/100;
   if(layout==='expanded')model.octave=recommendedExpandedOctave(spec);
   if(layout==='piano')model.octave=recommendedPianoOctave(spec);
+  if(layout==='home18')model.octave=recommendedHomeOctave(spec);
   $('instrument').value=spec.id;$('sustain').disabled=spec.kind==='drums';$('octDown').disabled=spec.kind==='drums';$('octUp').disabled=spec.kind==='drums';
   $('keyLayout').value=layout;$('keyLayout').disabled=spec.kind==='drums';
   drawKeys(true);redraw();if(!$('settings').hidden)bindings();
@@ -183,19 +189,24 @@ function drawKeys(center=false) {
   $('mappedRange').textContent=drums?'8パッド':`PC ${keys.length}音割当（音域内${count}音） ${noteName(base)} — ${noteName(base+keys.length-1)}`;
   $('layoutHelp').textContent=drums?'A〜K：8つのドラムパッド':layout==='legacy'?'従来18音の配置を使用中。旧設定は保持されています。':keys.every((code,i)=>code===EXPANDED_KEYS[i])?'下段 A〜\\ / 中段 Q〜] / 上段 1〜=：横は半音、各段は1オクターブ':'カスタム36音：鍵盤に表示されたPCキーで演奏';
   const standardPiano=layout==='piano'&&keys.every((code,i)=>code===PIANO_KEYS[i]);
-  if(layout==='piano'&&!drums)$('layoutHelp').textContent=standardPiano?'白鍵 Z〜B：ド〜ソ / Q〜P：ラ〜上のド。黒鍵は上の列。↑↓で音域変更。':'カスタム25音：鍵盤上のPCキー表示で演奏。↑↓で音域変更。';
-  $('physicalLayout').hidden=drums||!standardPiano||!showGuide;
-  $('guideToggle').disabled=drums||!standardPiano;
-  $('guideToggle').setAttribute('aria-expanded',String(!drums&&standardPiano&&showGuide));
-  $('guideToggle').textContent=drums||!standardPiano?'配列ガイド（標準用）':showGuide?'配列ガイドを隠す':'配列ガイドを表示';
-  if(!drums&&standardPiano){
+  const homeGuide=['home18','legacy'].includes(layout)&&keys.every((code,i)=>code===DEFAULT_KEYS[i]);
+  const hasGuide=standardPiano||homeGuide;
+  if(layout==='piano'&&!drums)$('layoutHelp').textContent=standardPiano?'旧25音：Z/Qの2段。両手が重なる場合は「両手ホーム段18音」へ。↑↓で音域変更。':'カスタム25音：鍵盤上のPCキー表示で演奏。↑↓で音域変更。';
+  if(layout==='home18'&&!drums)$('layoutHelp').textContent=homeGuide?'白鍵は A S D F G ｜ H J K L ; :/\'。黒鍵は W E T Y U O P。Yは左右の境界で押しやすい手を使います。18音（C〜次のF）。↑↓で音域変更。':'カスタム18音：鍵盤上のPCキー表示で演奏。↑↓で音域変更。';
+  $('physicalLayout').hidden=drums||!hasGuide||!showGuide;
+  $('guideToggle').disabled=drums||!hasGuide;
+  $('guideToggle').setAttribute('aria-expanded',String(!drums&&hasGuide&&showGuide));
+  $('guideToggle').textContent=drums||!hasGuide?'配列ガイド（標準配列用）':showGuide?'配列ガイドを隠す':'配列ガイドを表示';
+  if(!drums&&hasGuide){
     $('physicalLayout').replaceChildren();
-    for(const [first,last,title] of [[0,9,'左手 Z〜B · ド〜ソ'],[9,25,'右手 Q〜P · ラ〜ド']]){
+    const banks=homeGuide?[[0,18,'白鍵：左手 A S D F G ｜ 右手 H J K L ; :/\'']]:[[0,9,'低音段 Z〜B · ド〜ソ'],[9,25,'高音段 Q〜P · ラ〜ド']];
+    for(const [first,last,title] of banks){
       const bank=document.createElement('div'),heading=document.createElement('strong'),grid=document.createElement('div');
-      bank.className='physical-bank';heading.textContent=title;grid.className='physical-keys';let white=0;
+      bank.className='physical-bank'+(homeGuide?' home18':'');heading.textContent=title;grid.className='physical-keys';let white=0;
       for(let i=first;i<last;i++){
         const pitch=base+i,black=[1,3,6,8,10].includes(pitch%12),cell=document.createElement('span');
         cell.className='pc-key'+(black?' black':'');cell.dataset.code=keys[i];cell.dataset.pitch=base+i;
+        if(homeGuide)cell.dataset.hand=i<9?'left':'right';
         cell.style.gridRow=black?'1':'2';cell.style.gridColumn=String(black?white*2:++white*2-1);
         const key=document.createElement('kbd'),note=document.createElement('small');key.textContent=keyLabel(keys[i]);note.textContent=noteName(pitch);cell.append(key,note);
         cell.classList.toggle('unavailable',pitch<model.spec.min||pitch>model.spec.max||reserved.includes(keys[i]));grid.append(cell);
@@ -220,9 +231,9 @@ function shiftOctave(amount) {
   model.shift(amount);drawKeys(true);redraw();bindings();
 }
 function changeLayout(next) {
-  if(!['piano','legacy','expanded'].includes(next))return;
+  if(!['home18','piano','legacy','expanded'].includes(next))return;
   panic();capture=null;keySets[layout]=[...keys];layout=next;keys=[...keySets[layout]];
-  model.bindings=[...keys];model.octave=layout==='piano'?recommendedPianoOctave(model.spec):layout==='expanded'?recommendedExpandedOctave(model.spec):model.spec.octave;
+  model.bindings=[...keys];model.octave=layout==='home18'?recommendedHomeOctave(model.spec):layout==='piano'?recommendedPianoOctave(model.spec):layout==='expanded'?recommendedExpandedOctave(model.spec):model.spec.octave;
   drawKeys(true);redraw();bindings();save();
 }
 function bindings() {
@@ -319,7 +330,7 @@ function open(data={}) {
     try{audio.init();}catch{}
     promptListenAudio();checkListenAudio();
   }else audio.unlock().catch(()=>{});
-  if(legacyImported){legacyImported=false;notice('個人用のキー設定を保持しました。「PC配列」で白鍵・黒鍵25音を選べます。音域変更は↑↓です。');}
+  if(legacyImported){legacyImported=false;notice('個人用のキー設定を保持しました。「PC配列」で両手ホーム段18音を選べます。音域変更は↑↓です。');}
 }
 function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'消音中':'消音';save();}
 function stopMetronome() {

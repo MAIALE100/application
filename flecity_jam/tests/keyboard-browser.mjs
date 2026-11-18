@@ -1,3 +1,5 @@
+// Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
+import {PIANO_KEYS} from '../web/model.mjs';
 // Local Chromium interaction QA for JAM's keyboard layout. No FXServer or network is used.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,6 +41,7 @@ async function routeLocal(page,callbacks) {
 async function newPreview(viewport={width:1366,height:768},seed) {
   const page=await browser.newPage({viewport});
   page.on('pageerror',error=>errors.push(error.message));
+  if(seed===undefined){await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);}
   if(seed!==undefined)await page.addInitScript(value=>{
     const records=typeof value==='string'?{v1:value}:value;
     for(const [version,raw]of Object.entries(records))localStorage.setItem('flecity-jam-'+version,raw);
@@ -69,7 +72,7 @@ let page,legacyPage,nuiPage,compactPage,capturePage;
 const migrationPages=[];
 try {
   page=await newPreview();
-  await check('fresh piano defaults to 25 piano-shaped C3–C5 pitches',async()=>{
+  await check('retained piano preset maps 25 piano-shaped C3–C5 pitches',async()=>{
     const s=await state(page);
     assert.equal(s.layout,'piano');assert.equal(s.octave,3);assert.equal(s.bindings.length,25);
     assert.equal(s.mapped.length,25);
@@ -272,15 +275,15 @@ try {
     try{assert.equal((await state(legacyPage)).notes[0].pitch,77);}
     finally{await legacyPage.keyboard.up('c');}
   });
-  await check('v2 standard 36-key settings copy to piano default without rewriting the old record',async()=>{
+  await check('v2 standard 36-key settings copy to home18 default without rewriting the old record',async()=>{
     const expanded=['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon','Quote','Backslash','KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','BracketLeft','BracketRight','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal'];
     const raw=JSON.stringify({version:2,layout:'expanded',bindings:{expanded},listen:.42,muted:false,zoom:120});
     const migrated=await newPreview({width:1366,height:768},{v2:raw});migrationPages.push(migrated);
-    assert.equal((await state(migrated)).layout,'piano');assert.equal((await state(migrated)).bindings.length,25);
+    assert.equal((await state(migrated)).layout,'home18');assert.equal((await state(migrated)).bindings.length,18);
     assert.equal(await migrated.locator('#listenVolume').inputValue(),'42');assert.equal(await migrated.locator('#keyboardZoom').inputValue(),'120');
     await migrated.selectOption('#keyLayout','expanded');assert.deepEqual((await state(migrated)).bindings,expanded);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v2')),raw);
-    const v3=await migrated.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v3')));assert.equal(v3.version,3);assert.equal(v3.layout,'expanded');
+    const v4=await migrated.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.equal(v4.version,4);assert.equal(v4.layout,'expanded');
     await migrated.reload();await migrated.waitForFunction(()=>window.JAM);
     assert.equal((await state(migrated)).layout,'expanded');assert.deepEqual((await state(migrated)).bindings,expanded);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v2')),raw);
@@ -291,7 +294,7 @@ try {
     const raw1=JSON.stringify({keys:legacy,listen:.31,muted:false});
     const raw2=JSON.stringify({version:2,layout:'expanded',bindings:{expanded},listen:.58,muted:false,zoom:100});
     const migrated=await newPreview({width:1366,height:768},{v1:raw1,v2:raw2});migrationPages.push(migrated);
-    assert.equal((await state(migrated)).layout,'piano');assert.equal(await migrated.locator('#listenVolume').inputValue(),'58');
+    assert.equal((await state(migrated)).layout,'home18');assert.equal(await migrated.locator('#listenVolume').inputValue(),'58');
     await migrated.selectOption('#keyLayout','legacy');assert.deepEqual((await state(migrated)).bindings,legacy);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v1')),raw1);
     assert.equal(await migrated.evaluate(()=>localStorage.getItem('flecity-jam-v2')),raw2);

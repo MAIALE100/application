@@ -1,3 +1,5 @@
+// Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
+import {PIANO_KEYS} from '../web/model.mjs';
 // Isolated Chromium NUI-contract QA. No game, microphone, Voice resource or server is used.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -44,6 +46,7 @@ async function fixture(reply){
     const mime={'.html':'text/html','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.ogg':'audio/ogg','.wav':'audio/wav'};
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
   });
+  await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
   await page.goto('https://jam.test/');
   await message(page,{type:'open',instrument:'piano',range:15,reserved:['KeyN','CapsLock'],voice:{token:'epoch-1',enabled:true}});
   await page.locator('#panel').waitFor({state:'visible'});await page.locator('#voice:not(:disabled)').waitFor();

@@ -1,7 +1,7 @@
 fx_version 'cerulean'
 game 'gta5'
 author 'Flecity'
-version '0.4.2-test'
+version '0.4.3-test'
 description 'Independent proximity instruments for Flecity'
 dependency '/onesync'
 nui_callback_strict_mode 'true'

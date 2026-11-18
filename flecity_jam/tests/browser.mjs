@@ -1,3 +1,5 @@
+// Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
+import {PIANO_KEYS} from '../web/model.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -24,6 +26,7 @@ try {
     const mime={'.html':'text/html','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.ogg':'audio/ogg','.wav':'audio/wav'};
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
   });
+  await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
   await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);
   await check('responsive panel at 390, 1366, 1920 and 2560 widths',async()=>{
     for(const [width,height]of [[390,844],[1366,768],[1920,1080],[2560,1440]]) {

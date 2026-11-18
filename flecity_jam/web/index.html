@@ -30,7 +30,7 @@
     <div id="error" role="alert" hidden></div>
     <section id="playArea" tabindex="0" aria-label="楽器の鍵盤。表示されたPCキーで演奏" class="play-area">
       <div class="keyboard-tools">
-        <label>PC配列<select id="keyLayout" aria-label="PCキー配列"><option value="piano">白鍵・黒鍵25音（標準）</option><option value="expanded">旧36音・半音3段</option><option value="legacy">従来18音・旧設定</option></select></label>
+        <label>PC配列<select id="keyLayout" aria-label="PCキー配列"><option value="home18">両手ホーム段18音（標準）</option><option value="piano">旧25音・Z/Qの2段</option><option value="expanded">旧36音・半音3段</option><option value="legacy">従来18音・旧個人設定</option></select></label>
         <button id="guideToggle" class="quiet" aria-expanded="true" aria-controls="physicalLayout">配列ガイドを隠す</button>
         <span id="mappedRange"></span>
         <div id="keyboardViewControls">
@@ -51,7 +51,7 @@
     <section id="settings" aria-label="キー設定とMIDI" hidden>
       <div class="settings-head"><h2>自分の弾きやすい配列に</h2><button id="resetKeys" class="quiet">標準配列に戻す</button></div>
       <p id="velocityHelp">「打鍵の強さ」は新しく鳴らすPCキー・マウスの音に適用します。MIDIは機器から届く強さを使います。「演奏音量」は演奏全体の音量です。</p>
-      <p>変更したい音を選び、新しいキーを押してください。N・CapsLock・方向キー・Space等は予約済みです。新標準はJIS/US共通の英数字キーだけを使用します。IMEはオフにしてください。旧18音・36音の設定は別に保持します。カスタム配列は鍵盤上のPCキー表示で確認できます。</p>
+      <p>変更したい音を選び、新しいキーを押してください。N・CapsLock・方向キー・Space等は予約済みです。ホーム段18音の右端はJISで「:」、USで「'」の同じ位置です。IMEはオフにしてください。旧25音・36音・従来18音の個人設定も別に保持します。カスタム配列は鍵盤上のPCキー表示で確認できます。</p>
       <div id="bindings"></div>
       <div class="settings-head peer-mix-head"><h2>周囲の演奏・自分だけの音量</h2><button id="resetPeerMix" class="quiet" disabled>100%に戻す</button></div>
       <p>自分に聞こえる楽器音だけを調整します。0%でその人の楽器を消音し、Voiceやほかの人の聞こえ方は変わりません。演奏が終了すると設定を解除します。</p>

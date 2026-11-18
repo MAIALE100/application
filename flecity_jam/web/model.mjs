@@ -17,9 +17,9 @@ export const DRUM_KEYS = ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK
 export const DRUM_PITCHES = [36,38,42,46,45,50,49,51];
 export const RESERVED = new Set(['Escape','Tab','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyN','CapsLock','AltLeft','AltRight','ControlLeft','ControlRight','MetaLeft','MetaRight','F8','F11']);
 export const noteName = n => ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][n%12]+(Math.floor(n/12)-1);
-export const keyLabel = code => ({Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\',Minus:'-',Equal:'=',IntlYen:'¥',IntlRo:'ろ'}[code] || code.replace(/^(Key|Digit)/,''));
+export const keyLabel = code => ({Semicolon:';',Quote:":/'",Comma:',',Period:'.',Slash:'/',BracketLeft:'[',BracketRight:']',Backslash:'\\',Minus:'-',Equal:'=',IntlYen:'¥',IntlRo:'ろ'}[code] || code.replace(/^(Key|Digit)/,''));
 export function validBindings(keys, reserved=[], mode) {
-  const lengths=mode==='legacy'?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode==='piano'?[PIANO_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length,PIANO_KEYS.length]:[];
+  const lengths=(mode==='legacy'||mode==='home18')?[LEGACY_KEYS.length]:mode==='expanded'?[EXPANDED_KEYS.length]:mode==='piano'?[PIANO_KEYS.length]:mode===undefined?[LEGACY_KEYS.length,EXPANDED_KEYS.length,PIANO_KEYS.length]:[];
   return Array.isArray(keys) && lengths.includes(keys.length) && new Set(keys).size===keys.length &&
     keys.every(k=>typeof k==='string' && /^(Key[A-Z]|Digit[0-9]|Semicolon|Quote|Comma|Period|Slash|BracketLeft|BracketRight|Backslash|Minus|Equal|IntlYen|IntlRo)$/.test(k) && !RESERVED.has(k) && !reserved.includes(k));
 }
@@ -28,6 +28,9 @@ export function recommendedExpandedOctave(spec) {
 }
 export function recommendedPianoOctave(spec) {
   return recommendedOctave(spec,PIANO_KEYS.length,spec.kind==='drums'?spec.octave:spec.octave-1);
+}
+export function recommendedHomeOctave(spec) {
+  return recommendedOctave(spec,DEFAULT_KEYS.length,spec.kind==='drums'?spec.octave:spec.octave-1);
 }
 function recommendedOctave(spec,keyCount,preferredOctave=spec.octave) {
   const preferred=Math.max(0,Math.min(7,Number.isInteger(preferredOctave)?preferredOctave:4));

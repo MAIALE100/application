@@ -1,3 +1,5 @@
+// Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
+import {PIANO_KEYS} from '../web/model.mjs';
 // Offline per-performer listening UI checks. Remote packets are synthetic, not live FiveM.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -23,6 +25,7 @@ async function fixture(settings=true){
     const mime={'.html':'text/html','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.ogg':'audio/ogg','.wav':'audio/wav'};
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
   });
+  await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
   await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));
   if(settings)await page.click('#settingsToggle');return page;
 }
@@ -61,7 +64,7 @@ try{
     await level(page,3,37);await gain(page,3,.8*(144/196)*.37);
     assert.equal(await page.evaluate(()=>JAM.audio.slots.get(2).listenVolume),0);assert.equal(await page.evaluate(()=>JAM.audio.slots.get(3).listenVolume),.37);
     const after=await page.evaluate(()=>({master:JAM.audio.masterVolume,masterGain:JAM.audio.master.gain.value,volume:JAM.model.volume,voice:document.querySelector('#voice').getAttribute('aria-pressed')}));assert.deepEqual(after,before);
-    const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v3')));assert.equal(Object.hasOwn(stored,'peerVolumes'),false,'transient performer IDs must not become persistent preferences');
+    const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.equal(Object.hasOwn(stored,'peerVolumes'),false,'transient performer IDs must not become persistent preferences');
   });
   await check('new snapshots, volume deltas and positions retain the local listening preference',async()=>{
     const page=await fixture();await snapshot(page,2);await positions(page);await level(page,2,25);

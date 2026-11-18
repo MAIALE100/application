@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {PIANO_KEYS} from '../web/model.mjs';
 
 const resource=fileURLToPath(new URL('../',import.meta.url)),web=path.join(resource,'web');
 const evidence=path.resolve(process.env.JAM_USABILITY_REPORT_DIR||path.join(resource,'../.flecity-dev/jam/usability-browser'));
@@ -18,7 +19,11 @@ async function check(name,fn){
 async function fixture(seed){
   const page=await browser.newPage({viewport:{width:1366,height:768}});pages.push(page);
   page.on('pageerror',error=>errors.push(error.message));
-  if(seed)await page.addInitScript(records=>{for(const [key,raw]of Object.entries(records))localStorage.setItem('flecity-jam-'+key,raw);},seed);
+  // Keep this suite's existing 25-key interaction regressions explicit; home18 has its own suite.
+  const records=seed??{v4:JSON.stringify({version:4,layout:'piano',bindings:{piano:PIANO_KEYS}})};
+  await page.addInitScript(({records,defaultPiano})=>{
+    for(const [key,raw]of Object.entries(records))if(!defaultPiano||!localStorage.getItem('flecity-jam-'+key))localStorage.setItem('flecity-jam-'+key,raw);
+  },{records,defaultPiano:seed===undefined});
   await page.route('**/*',async route=>{
     const url=new URL(route.request().url());assert.equal(url.origin,'https://jam.test','offline fixture must not contact other origins');
     const file=path.resolve(web,decodeURIComponent(url.pathname).replace(/^\//,'')||'index.html');
@@ -47,13 +52,13 @@ try{
     const page=await fixture();await page.click('#settingsToggle');
     const first=page.locator('#bindings button').first();assert.match(await first.innerText(),/^C3/);
     await first.click();assert(await first.evaluate(node=>node.classList.contains('capturing')));
-    const original=await page.evaluate(()=>localStorage.getItem('flecity-jam-v3'));
+    const original=await page.evaluate(()=>localStorage.getItem('flecity-jam-v4'));
     await page.selectOption('#instrument','flute');
     assert.equal(await page.evaluate(()=>JAM.model.octave),4);assert.match(await first.innerText(),/^C4/);
     assert.equal(await page.locator('#bindings .capturing').count(),0);
     await page.locator('#playArea').focus();await page.keyboard.press('a');
     assert.equal(await page.evaluate(()=>JAM.model.bindings[0]),'KeyZ');
-    assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v3')),original);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v4')),original);
     await page.screenshot({path:path.join(evidence,'instrument-change-cancels-capture.png')});
   });
   await check('new controls retain prior loudness and strength defaults without hiding the piano',async()=>{
@@ -122,11 +127,14 @@ try{
     await page.keyboard.up('z');await sustainChord(page);
     await page.click('#guideToggle');assert(await page.locator('#physicalLayout').isVisible());
   });
-  await check('guide preference remains independent of legacy and expanded presets',async()=>{
+  await check('guide preference survives legacy and expanded preset changes',async()=>{
     const page=await fixture();await page.click('#guideToggle');
-    for(const layout of ['legacy','expanded']){await page.selectOption('#keyLayout',layout);assert(await page.locator('#guideToggle').isDisabled());assert(await page.locator('#physicalLayout').isHidden());}
-    await page.selectOption('#keyLayout','piano');assert(await page.locator('#guideToggle').isEnabled());assert(await page.locator('#physicalLayout').isHidden());
-    await page.click('#guideToggle');assert(await page.locator('#physicalLayout').isVisible());assert.equal(await page.locator('#keyboard button[data-code]:not(:disabled)').count(),25);
+    await page.selectOption('#keyLayout','legacy');assert(await page.locator('#guideToggle').isEnabled());assert(await page.locator('#physicalLayout').isHidden());
+    await page.selectOption('#keyLayout','expanded');assert(await page.locator('#guideToggle').isDisabled());assert(await page.locator('#physicalLayout').isHidden());
+    await page.selectOption('#keyLayout','legacy');await page.click('#guideToggle');assert(await page.locator('#physicalLayout').isVisible());
+    await page.selectOption('#keyLayout','expanded');assert(await page.locator('#physicalLayout').isHidden());
+    await page.selectOption('#keyLayout','piano');assert(await page.locator('#guideToggle').isEnabled());assert(await page.locator('#physicalLayout').isVisible());
+    assert.equal(await page.locator('#keyboard button[data-code]:not(:disabled)').count(),25);
   });
   await check('strength, performer volume and guide choice reload without changing v1 or v2 bytes',async()=>{
     const legacy=['KeyA','KeyW','KeyS','KeyE','KeyD','KeyF','KeyT','KeyG','KeyY','KeyH','KeyU','KeyJ','KeyK','KeyO','KeyL','KeyP','Semicolon','KeyC'];
@@ -139,7 +147,7 @@ try{
     assert.equal(await page.evaluate(()=>JAM.model.volume),.3);assert(await page.locator('#physicalLayout').isHidden());
     assert.equal(await page.locator('#listenVolume').inputValue(),'42');assert.equal(await page.locator('#keyboardZoom').inputValue(),'120');
     assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v1')),v1);assert.equal(await page.evaluate(()=>localStorage.getItem('flecity-jam-v2')),v2);
-    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v3')));assert.deepEqual(saved.bindings.legacy,legacy);assert.deepEqual(saved.bindings.expanded,expanded);
+    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('flecity-jam-v4')));assert.deepEqual(saved.bindings.legacy,legacy);assert.deepEqual(saved.bindings.expanded,expanded);
     await page.selectOption('#instrument','guitar');assert.equal(await page.evaluate(()=>JAM.model.volume),.3);assert.equal(await page.locator('#velocity').inputValue(),'64');
   });
   await check('invalid optional preference fields fall back safely while valid old preferences survive',async()=>{

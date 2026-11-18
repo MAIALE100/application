@@ -32,6 +32,16 @@ test('legacy 18-key bindings remain valid and expanded 36-key rows are distinct'
   assert.equal(keyLabel('Minus'),'-');assert.equal(keyLabel('Equal'),'=');assert.equal(keyLabel('IntlYen'),'¥');assert.equal(keyLabel('IntlRo'),'ろ');
 });
 
+test('home18 validates eighteen independent custom bindings without changing older preset definitions',()=>{
+  assert(validBindings(DEFAULT_KEYS,[],'home18'));
+  assert(!validBindings(PIANO_KEYS,[],'home18'));assert(!validBindings(EXPANDED_KEYS,[],'home18'));
+  const home=[...DEFAULT_KEYS],legacy=[...DEFAULT_KEYS];home[0]='KeyZ';
+  assert(validBindings(home,[],'home18'));assert.deepEqual(legacy,LEGACY_KEYS);assert.equal(DEFAULT_KEYS[0],'KeyA');
+  for(const code of ['KeyN','CapsLock','Space','ArrowUp','ArrowDown','KeyW']){
+    const invalid=[...DEFAULT_KEYS];invalid[0]=code;assert(!validBindings(invalid,[],'home18'),code);
+  }
+});
+
 test('piano layout separates consecutive white rows and their black keys without voice or JIS punctuation conflicts',()=>{
   assert.equal(PIANO_KEYS.length,25);assert.equal(new Set(PIANO_KEYS).size,25);
   const whites=PIANO_KEYS.filter((_,pitch)=>![1,3,6,8,10].includes(pitch%12));

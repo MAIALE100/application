@@ -1,3 +1,5 @@
+// Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
+import {PIANO_KEYS} from '../web/model.mjs';
 // Isolated Chromium NUI simulation. No FiveM process or real server is contacted.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -58,6 +60,7 @@ try {
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body});
   });
 
+  await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
   await page.goto('https://jam.test/');
   for(let i=0;i<40&&calls.ready<2;i++)await page.waitForTimeout(25);
   assert.equal(calls.ready,2,'boot should try ready exactly twice before showing recovery');
@@ -255,6 +258,7 @@ try {
     `);
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body});
   });
+  await recovery.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
   await recovery.goto('https://jam.test/');
   await recovery.waitForFunction(()=>document.querySelector('#notice').textContent.includes('一部の音源'),null,{timeout:20000});
   assert.deepEqual(await recovery.evaluate(()=>window.__preloadAttempts),catalog.instruments.map(spec=>spec.id));

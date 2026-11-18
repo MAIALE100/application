@@ -1,4 +1,18 @@
-# Flecity JAM 0.4.1-test QA
+# Flecity JAM 0.4.2-test QA
+
+## 最終検証・設置 — 2026-11-18
+
+固定実装1843c244bb3dac6659031140c9ef0e9a47e27d65へ全233/233 PASS、0 FAIL、試験中ソース不変。JS60、Lua engine28/client27、Chromium17（120秒模擬8人）、NUI12、鍵盤24、会話16、操作UI14、個別聴取音量12、音源9、更新fixture14。別途JS17/Lua9構文と8楽器オフラインPCMもPASS。
+
+古いpulse失敗・確定started後の遅いACK失敗、予約メトロノーム音、停止contextでの解放済み打鍵・再開待機中のkeyup、MIDI同音再トリガー、不正replicaのwire汚染・部分編集を回帰。Metroの生成音を実AudioContext/AudioWorkletで連続取得し、OFF/close後15〜200ms窓のpeak/energyは修正前0.075185/0.900203→修正後0/0。これはFiveM実出力やマイクではありません。不正replicaも現サーバーで発生したと主張しません。
+
+0.4.1設置115件照合・全体保全、実ZIPのコピー環境115→115→115／15m復旧模擬PASS。Test_01のJAMだけ停止→更新→定義再読込→起動。jam_statusは0.4.2-test／sessions=0／range=15.0m／access=open。設置115/115・旧0.4.1backup115/115一致。config・91音源・catalog・出典・client/server Lua処理は同一。非JAM5304・設定5・txAdmin設定差分0、DB操作・全体再起動なし。
+
+ZIP SHA256 `940e21222dcc9ee5e63c3623d77d493daf9f6e30757790604e04af006f85dd24`。復旧receipt `jam-update-1z51ptgh/receipt.json`、SHA256 `405950983b00d1b51cff360e75d7090d14ca48b877b04f5c010ccbd2685a472b` は旧0.4.1／15mへ戻します。実設置先は復旧計画照合のみ、実復旧していません。資料正本は別添`outputs/FLECITY_JAM_20261116/stability-20261118/`。
+
+実打鍵・MIDI機器・VC送信/停止/受信・音質・合奏・15m・CEF負荷はNOT_RUN、正式公開NO-GO。ユーザーがノートPCで後日確認し、デスクトップFiveMは起動しません。既存CC120/123による全panic方針は変更せず、MIDI全メッセージの完全実装を主張しません。
+
+## 過去の候補・設置記録
 
 ## 0.4.2-test候補 — 2026-11-18
 

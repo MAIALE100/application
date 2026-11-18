@@ -1,5 +1,11 @@
 # Flecity JAM scope (2026-11-16)
 
+## Latest installed — 0.5.2-test range attenuation fix, 2026-11-18
+
+Runtime source5ddf0cd8ac7faa3ac27c73722b0a6dea54dd5478 passed334/334 fresh checks,0FAIL,source unchanged,JS24/Lua9syntax and8PCM additional. This supersedes0.5.1/331. The final audit found existing AudioRack slots retained old range; slot reuse now updates finite positive range/maxDistance without replacing held voice/source/timing/personal level. Three new audio regressions failed before and pass after. Preserve optional range semantics: only new slots default to7, omitted range never resets an existing slot. Real audio remains NOT_RUN.
+
+Test_01 0.5.2 installed116/116, old0.5.1backup116/116. Latest receipt jam-update-7kaw4d9r/receipt.json SHA256bcd96de366f099aceb0d5778309dab14301a86d85d6dc9420534980f260a2e40 restores0.5.1; then prior receipt jam-update-npco25ip/receipt.json SHA256810f572244acb6f7e6b3ad954805052dd9a9dda2ef9b52d0d1f3f0b27494a1c4 restoresoriginal0.5.0/15m. Chain0.5.0->0.5.1->0.5.2->0.5.1->0.5.0 tested in copy fixture,116each; real rollback PLAN only. ZIP07a4d100615f716679d03b0fef87f35e873240079bd33c53289835946248e0a3. Final update nonJAM5341/config5/txAdmin unchanged. Earlier QA monitor record#4 for JAM stop/start was separately explained, not overwritten. All older0.5.1evidence preserved in range-20261118/attempt-0.5.1. No WAVE/Voice/DB/production/automation edits; no desktopFiveM. Notebook distance/audio/VC/CEF NOT_RUN, formalReleaseNO-GO. range-20261118 is canonical. Following entries are history.
+
 ## Latest installed — 0.5.1-test personal sharing range, 2026-11-18
 
 Runtime source 45d2f1bf60a0b7a5a8093bfb9692d2fed79464ba passed 331/331 fresh checks, 0 FAIL, source unchanged; JS24/Lua9 syntax and 8 instrument PCM additional. Range choices 5/10/15/20/25m are per authenticated performer, default 15m. Preserve client key v1-v5 and window prefs; save distance independently in flecity-jam-range-v1. Start and sync validate selected range server-side; snapshots retain note ages, routing removes out-of-range peers and preserves buckets. Only current session monotonic seq range acknowledgements mark the UI confirmed. Voice proximity is unchanged.

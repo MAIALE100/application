@@ -1,4 +1,14 @@
-## 0.5.1-test — 2026-11-18共有範囲の検証・設置
+## 0.5.2-test — 2026-11-18最終検証・設置
+
+最終コード確認で、受信済み音声slotのrangeが初回値のまま残り、変更後の距離減衰へ反映されない問題を特定。既存slot再利用時のrangeとpanner上限を更新し、未指定rangeを7へ戻さないよう既定適用を新規slotだけへ移動した。3音声回帰は旧版FAIL→修正後PASS。保持voice/source/buffer/ID/startedAt/attackEnd/attack回数・個人音量・他者/localは不変。範囲外の停止も維持する。
+
+固定実装5ddf0cd8ac7faa3ac27c73722b0a6dea54dd5478を全334/334 PASS・0 FAIL・試験中ソース不変で再実行。JS69（旧66＋音声3）、ほかのsuiteは0.5.1の全範囲を再実行した。JS24/Lua9構文、8楽器PCMもPASS。実聴・実FiveMはNOT_RUN。
+
+JAMだけ0.5.2へ更新・起動。設置116/116・旧0.5.1backup116/116、実行0.5.2／演奏0／既定15m。最終更新前後の非JAM5341・設定5・txAdminは差分0。0.5.1更新時のQA監視自動記録#4は個別説明済みで、元の競合記録を維持した。Voice・WAVE・DBは不変。
+
+復旧コピーは0.5.0→0.5.1→0.5.2→0.5.1→0.5.0、各116件・最終15mでPASS。実設置ではPLANのみ。最新receipt jam-update-7kaw4d9r/receipt.json、SHA256bcd96de366f099aceb0d5778309dab14301a86d85d6dc9420534980f260a2e40で0.5.1へ戻し、旧receipt npco25ipで作業前0.5.0へ戻せる。ZIP07a4d100615f716679d03b0fef87f35e873240079bd33c53289835946248e0a3。正式公開NO-GO。range-20261118を正本とし、旧331件と一次ZIPはattempt-0.5.1に保全。以下は履歴。
+
+## 0.5.1-test — 2026-11-18共有範囲の検証・設置（履歴）
 
 固定実装45d2f1bf60a0b7a5a8093bfb9692d2fed79464baを新規実行し331/331 PASS・0 FAIL・試験中ソース不変。旧309に加えengine7・client3・range UI12を追加。全5距離の境界、保持音age、途中参加、範囲拡縮、Bucket、他session隔離、不正値、端末保存と旧設定保持、反映前/古いACK、失敗時の安全停止、3画面幅を確認した。JS24/Lua9構文と8楽器PCMもPASS。実距離の聴感・FiveM・会話・複数人・CEFはNOT_RUNで、正式公開NO-GOを維持。
 

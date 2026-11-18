@@ -1,3 +1,17 @@
+## 0.5.0-test — 2026-11-18検証・設置完了
+
+固定実装686822c0f59e14919c7336384f48608f6fb2dc9fに309/309 PASS、0 FAIL、試験中ソース不変。JS66、Lua engine28/client32、Chromium17（120秒模擬8人）、NUI12、旧鍵盤24、会話20、操作UI14、個別聴取12、音源9、更新fixture14、home18入力13、設定移行14、個人キー16、移動・自動開始18。別途JS23/Lua9構文・8楽器PCMもPASS。旧結果を繰り越さず再実行した。
+
+4サイズの配置、実ドラッグ・方向キー移動・境界・再配置・サイズ保存、演奏ボタンなしの開始を確認。準備済みNUI相当の短tapは1回、400ms遅延した古いtapは破棄、保持音を動かしても音高・解放を維持。cold previewでは準備が353/371msかかり初回短tapは期限超過で破棄される制約を残す。これを実FiveM音声PASSとしない。
+
+候補内で見つかった停止後の自動ON意図残留、演奏前の楽器変更でtokenを失う問題、同期焦点ガード解除後に更新タイマーが復活する問題を修正。会話20件はlease・到着順・失敗・解除を確認した模擬試験。hasFocus戻り値の異常注入と実CEF焦点・実音声到達を区別する。
+
+0.4.4設置115件を保全し、実ZIPで115→116→115／15m復旧模擬。別作業のQA29件追加・起動と管理権限の設定2行を検出して一度CONFLICT_STOP。別チャットの明示設置依頼・配布ハッシュ・原設定バックアップ・正確な追記だけであることと作業終了を確認し、元5304資源は不変のまま、新5333資源と設定5件を固定してJAMだけ更新した。QAを停止・修正していない。
+
+JAM0.5.0設置116/116・旧backup115/115 SHA一致。jam_statusは0.5.0-test／sessions0／15m。JAM更新前後の5333資源・設定5・txAdmin設定は差分0。config・server Lua・91音源・catalog・licenses・音声/MIDI処理は不変。追加runtimeはpanel-window.mjsのみ。WAVE・Voice・DB・本番・自動処理やサーバー全体再起動は対象外。
+
+ZIP SHA25636627b8e2483aecc07771d628ad615f2a46d8a2e758cc327ae14ed22af6197e0。復旧receipt jam-update-5e4ufi0v/receipt.json、SHA256be3eb1c6d8edcbc286ae05bb335cb493e747ee2cc6c97c7bfa4dd063a5c589efは旧0.4.4／15mへ戻す。実設置先の復旧は計画照合だけ。実FiveM操作・音声・N不要の会話・無線・マイク設定別・CEFはNOT_RUN、正式公開NO-GO。正本はoutputs/FLECITY_JAM_20261116/floating-ui-20261118/。以下は旧版履歴。
+
 ## 0.4.4-test 個人用キー配置 — 2026-11-18検証・設置完了
 
 固定実装 290cf3068568bef615b24f4242c512fcb8305bb9 に全282/282 PASS、0 FAIL、試験中ソース不変。JS66（model32）、Lua engine28/client27、Chromium17（120秒模擬8人）、NUI12、旧鍵盤24、会話16、操作UI14、個別聴取12、音源9、更新fixture14、home18実キー13、v5移行14、個人キー編集16。別にJS20/Lua9構文・8楽器オフラインPCMもPASS。新ケースは旧PASSを繰り越さず、変更後に再実行した。

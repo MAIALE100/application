@@ -24,9 +24,9 @@ local engine = JamEngine.new(JamConfig, instruments, {
     players = function() local out={}; for _,p in ipairs(GetPlayers()) do out[#out+1]=tonumber(p) end; return out end,
     send = function(target, event, data) TriggerClientEvent('flecity_jam:'..event,target,data) end
 })
-RegisterNetEvent('flecity_jam:start',function(instrument,request)
+RegisterNetEvent('flecity_jam:start',function(instrument,request,range)
     local src = source
-    local ok,reason = engine:start(src,instrument,request)
+    local ok,reason = engine:start(src,instrument,request,range)
     if not ok and reason ~= 'rate' then TriggerClientEvent('flecity_jam:control',src,{kind='denied',reason=reason,request=request}) end
 end)
 RegisterNetEvent('flecity_jam:input',function(packet) engine:receive(source,packet) end)

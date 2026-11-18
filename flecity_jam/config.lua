@@ -1,6 +1,7 @@
 JamConfig = {
     Command = 'jam',
     Range = 15.0, -- instrument audio metres; independent of normal voice proximity.
+    RangeOptions = { 5, 10, 15, 20, 25 },
     MaxPerformers = 8,
     MaxNotes = 16,
     MaxOps = 32,

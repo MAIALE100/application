@@ -403,4 +403,36 @@ test('additional instrument exports keep inventory consent and configured item b
         call('close');assert(not focused)
     end
 end)
+test('range choices reach NUI and selected range reaches the server start request',function()
+    for _,range in ipairs({5,10,15,20,25})do
+        commands.jam(nil,{})
+        assert(messages[#messages].range==15 and #messages[#messages].rangeOptions==5)
+        assert(call('ready').ok and messages[#messages].rangeOptions[5]==25)
+        assert(call('start',{instrument='piano',range=range}).ok)
+        local event=sent[#sent]
+        assert(event.name=='flecity_jam:start' and event.args[3]==range)
+        call('close')
+    end
+end)
+
+test('invalid NUI ranges do not create a server request',function()
+    commands.jam(nil,{})
+    for _,range in ipairs({'25',0,7,30,math.huge,0/0})do
+        local before=#sent
+        assert(not call('start',{instrument='piano',range=range}).ok and #sent==before)
+    end
+    call('close')
+end)
+
+test('only current server session range acknowledgements reach NUI',function()
+    commands.jam(nil,{})
+    assert(call('start',{instrument='piano',range=5}).ok)
+    handlers['flecity_jam:control']({kind='started',session='range-owner',request=sent[#sent].args[2],instrument='piano',range=5})
+    local before=#messages
+    handlers['flecity_jam:control']({kind='range',session='someone-else',range=25,seq=2})
+    assert(#messages==before)
+    handlers['flecity_jam:control']({kind='range',session='range-owner',range=10,seq=3})
+    assert(messages[#messages].data.range==10 and messages[#messages].data.seq==3)
+    call('close')
+end)
 print(('RESULT %d PASS / 0 FAIL (mocked FiveM client/access; NOT live FiveM)'):format(count))

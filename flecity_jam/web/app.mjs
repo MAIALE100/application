@@ -13,6 +13,8 @@ let velocity=100,performVolume=75,showGuide=true;
 let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
+const RANGE_STEPS=[5,10,15,20,25];
+let rangeOptions=[...RANGE_STEPS],defaultRange=15,shareRange=null,confirmedRange=null,lastRangeAck=0;
 const queuedNotes=new Map();
 let automaticVoice=true;
 const pedalSources=new Set();
@@ -31,6 +33,27 @@ function save() {
   try{localStorage.setItem('flecity-jam-v5',JSON.stringify({version:5,layout,bindings:keySets,listen,muted,zoom,velocity,performVolume,showGuide}));return true;}catch{notice('設定を端末へ保存できませんでした。今回の演奏には使用できます。');return false;}
 }
 function readPrefs(name) {try{const value=JSON.parse(localStorage.getItem(name)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
+const rangePrefs=readPrefs('flecity-jam-range-v1');
+if(rangePrefs.version===1&&RANGE_STEPS.includes(rangePrefs.range))shareRange=rangePrefs.range;
+function drawRange(){
+  $('shareRange').value=String(shareRange??defaultRange);$('shareRange').disabled=starting;
+  const status=!session?'次の演奏から適用':confirmedRange===shareRange?`共有中 ${confirmedRange}m`:`反映中${confirmedRange===null?'':`（現在 ${confirmedRange}m）`}`;
+  if($('rangeBadge').textContent!==status)$('rangeBadge').textContent=status;
+}
+function configureRange(data={}){
+  if(Array.isArray(data.rangeOptions)){
+    const allowed=[...new Set(data.rangeOptions.filter(value=>RANGE_STEPS.includes(value)))].sort((a,b)=>a-b);
+    rangeOptions=allowed.length?allowed:[RANGE_STEPS.includes(data.range)?data.range:15];
+  }
+  if(rangeOptions.includes(data.range))defaultRange=data.range;
+  if(!rangeOptions.includes(defaultRange))defaultRange=rangeOptions[0];
+  if(!rangeOptions.includes(shareRange))shareRange=defaultRange;
+  $('shareRange').replaceChildren(...rangeOptions.map(value=>new Option(`${value}m`,String(value))));drawRange();
+}
+function confirmRange(data){
+  if(!rangeOptions.includes(data.range)||!Number.isInteger(data.seq)||data.seq<=lastRangeAck||data.seq>sequence)return;
+  lastRangeAck=data.seq;confirmedRange=data.range;drawRange();
+}
 const legacyPrefs=readPrefs('flecity-jam-v1'),previousPrefs=readPrefs('flecity-jam-v2'),version3Prefs=readPrefs('flecity-jam-v3'),version4Prefs=readPrefs('flecity-jam-v4'),prefs=readPrefs('flecity-jam-v5');
 if(validBindings(legacyPrefs.keys,[],'legacy')){
   keySets.legacy=[...legacyPrefs.keys];
@@ -64,7 +87,8 @@ function focusAfterPointer(event) {
 
 async function bridge(name,data={}) {
   if(preview) {
-    if(name==='start')setTimeout(()=>control({kind:'started',session:'preview:'+Date.now(),instrument:data.instrument,maxNotes:16,maxNoteMs:120000}),10);
+    if(name==='start')setTimeout(()=>control({kind:'started',session:'preview:'+Date.now(),instrument:data.instrument,range:data.range,maxNotes:16,maxNoteMs:120000}),10);
+    if(name==='input'&&data.kind==='sync')setTimeout(()=>control({kind:'range',session:data.session,range:data.range,seq:data.seq}),10);
     return {ok:true};
   }
   const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),1800);
@@ -150,7 +174,7 @@ function emit(op) {
 }
 function syncInput() {
   if(!session||!model)return;
-  flush();send({kind:'sync',...model.snapshot()});
+  flush();send({kind:'sync',...model.snapshot(),range:shareRange});
 }
 function redraw() {
   if(!model)return;
@@ -286,7 +310,7 @@ function setSettings(open) {
 }
 async function start() {
   if(session||starting||!shown)return;
-  const generation=++startGeneration;starting=true;$('panel').setAttribute('aria-busy','true');$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
+  const generation=++startGeneration;starting=true;drawRange();$('panel').setAttribute('aria-busy','true');$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
   let stage='audio';
   try {
     if(!await audio.unlock())throw Error('audio unavailable');
@@ -297,7 +321,7 @@ async function start() {
     if(!await audio.unlock())throw Error('audio suspended');
     if(generation!==startGeneration||!shown)return;
     stage='server';
-    const result=await bridge('start',{instrument:model.spec.id});if(!result.ok)throw Error('演奏を開始できません。');
+    const result=await bridge('start',{instrument:model.spec.id,range:shareRange});if(!result.ok)throw Error('演奏を開始できません。');
     setTimeout(()=>{if(starting&&generation===startGeneration){stop();error('サーバーから応答がありません。再度お試しください。');}},5000);
   }catch{if(generation===startGeneration&&starting){stop();error({
     audio:'音声を開始できませんでした。JAMを開き直して、もう一度お試しください。',
@@ -311,6 +335,7 @@ function control(data) {
     if(!shown||!starting){bridge('stop').catch(()=>{});return;}
     listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;
     session=data.session;transport={session,queue:Promise.resolve(),queued:0};sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
+    configureRange(data);confirmedRange=rangeOptions.includes(data.range)?data.range:shareRange;lastRangeAck=0;drawRange();
     $('panel').setAttribute('aria-busy','false');$('panel').dataset.performing='true';$('instrument').disabled=false;$('lamp').classList.add('active');
     $('status').textContent=preview?'試奏モード · 周囲への共有なし':'演奏中 · 周囲に音が届きます';
     $('playArea').focus({preventScroll:true});syncInput();
@@ -321,11 +346,12 @@ function control(data) {
     }
     queuedNotes.clear();redraw();syncAutomaticVoice();
   } else if(data.kind==='denied') {
-    stop();const reason={permission:'この楽器を使用する権限・アイテムがありません。',capacity:'同時演奏人数の上限です。',cooldown:'少し待ってから開始してください。',unavailable:'現在は演奏できません。'};
+    stop();const reason={permission:'この楽器を使用する権限・アイテムがありません。',capacity:'同時演奏人数の上限です。',cooldown:'少し待ってから開始してください。',unavailable:'現在は演奏できません。',range:'この共有範囲は許可されていません。範囲を選び直してください。'};
     error(reason[data.reason]||'演奏を開始できませんでした。');
   } else if(data.session===session && data.kind==='stopped') {
     stop();error('演奏を終了しました。'+({rate:'入力が速すぎるため、安全停止しました。',expired:'応答または演奏状態を確認できませんでした。',unavailable:'現在は演奏できません。'}[data.reason]||''));
   } else if(data.session===session && data.kind==='resync')syncInput();
+  else if(data.session===session && data.kind==='range')confirmRange(data);
 }
 function stop(continueAutomatic=false) {
   const wasActive=session||starting;
@@ -333,6 +359,7 @@ function stop(continueAutomatic=false) {
   releaseVoice();
   if(automaticVoice&&wasActive)voiceToken=null; // Only an active stop rotates the authenticated epoch in Lua.
   startGeneration++;session=null;starting=false;queuedNotes.clear();pending=[];clearTimeout(flushTimer);flushTimer=0;
+  confirmedRange=null;lastRangeAck=0;drawRange();
   transport={session:null,queue:Promise.resolve(),queued:0};
   pedalSources.clear();model?.panic();audio?.remove('local');
   $('panel').setAttribute('aria-busy','false');$('panel').dataset.performing='false';$('instrument').disabled=false;$('lamp').classList.remove('active');
@@ -374,7 +401,7 @@ function open(data={}) {
   $('panel').setAttribute('aria-busy',String(starting));$('panel').dataset.performing=String(Boolean(session));
   automaticVoice=true;
   configureVoice(data.voice||(preview?{token:'preview',enabled:true}:null));
-  choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||15}m`;
+  choose(data.instrument||$('instrument').value);configureRange(data);
   if(!validBindings(activeBindings(),reserved,bindingMode()))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
   $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'鍵盤を押すと演奏開始。自動会話は演奏中だけONになります。';
   $('playArea').focus({preventScroll:true});floatingPanel.layout();
@@ -500,6 +527,14 @@ $('cancelBinding').onclick=()=>{capture=null;bindings();error();$('bindings').ch
 $('resetPeerMix').onclick=e=>{peerVolumes.clear();for(const[id,state]of replicas.states)audio.setSourceVolume(id,1,state.session);for(const row of $('peerMix').children){row.children[1].value=100;row.children[2].textContent='100%';}focusAfterPointer(e);};
 $('resetKeys').onclick=e=>{panic();applyBindings(bindingMode()==='drums'?DRUM_KEYS:layout==='piano'?PIANO_KEYS:layout==='expanded'?EXPANDED_KEYS:DEFAULT_KEYS);capture=null;const saved=save();bindings();drawKeys();$('bindingStatus').textContent=saved?'この配列だけ初期化し、このPCに保存しました。他の配列は保持しています。':'この配列を初期化しましたが端末に保存できません。今回のみ使用できます。';focusAfterPointer(e);};
 for(const id of ['velocity','performVolume','listenVolume','keyboardZoom'])$(id).addEventListener('pointerup',focusAfterPointer);
+$('shareRange').onchange=()=>{
+  const value=Number($('shareRange').value);
+  if(!rangeOptions.includes(value)){drawRange();return;}
+  shareRange=value;
+  try{localStorage.setItem('flecity-jam-range-v1',JSON.stringify({version:1,range:value}));}
+  catch{notice('共有範囲を端末へ保存できませんでした。今回の演奏には使用できます。');}
+  drawRange();if(session)syncInput();$('playArea').focus({preventScroll:true});
+};
 $('midiConnect').onclick=()=>midi.connect();$('midiDevice').onchange=()=>midi.select($('midiDevice').value);$('metro').onclick=e=>{toggleMetronome();focusAfterPointer(e);};
 
 function message(data) {
@@ -513,7 +548,7 @@ function message(data) {
   else if(data.type==='reset'){close(false);replicas.clear();audio.stopAll();}
   else if(data.type==='notice')notice(data.message);
   else if(data.type==='toggleMute'){setMuted(!muted);notice(muted?'JAMを消音しました。/jammute で解除。':'JAMの消音を解除しました。');}
-  else if(data.type==='config'){reserved=data.reserved||[];}
+  else if(data.type==='config'){reserved=data.reserved||[];configureRange(data);}
   else if(data.type==='voiceState'&&shown){configureVoice(data.voice);voiceTalking=data.talking===true;if(data.expired===true){automaticVoice=false;releaseVoice(false);}drawVoice();}
 }
 let booting=false,bootReady=false,bootFailed=false,bootShown=false,preloading=false;

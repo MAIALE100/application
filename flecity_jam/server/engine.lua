@@ -59,7 +59,14 @@ function JamEngine:visible(src, target, origin)
     if src == target then return false end
     local a, b = origin or self.env.position(src), self.env.position(target)
     if not position(a) or not position(b) or a.bucket ~= b.bucket then return false end
-    return (a.x-b.x)^2 + (a.y-b.y)^2 + (a.z-b.z)^2 < self.c.Range^2
+    local range = self.sessions[src] and self.sessions[src].range or self.c.Range
+    return (a.x-b.x)^2 + (a.y-b.y)^2 + (a.z-b.z)^2 < range^2
+end
+
+function JamEngine:validRange(range)
+    if not integer(range,5,25) or range%5~=0 or type(self.c.RangeOptions)~='table' then return false end
+    for _,allowed in ipairs(self.c.RangeOptions) do if range==allowed then return true end end
+    return false
 end
 
 function JamEngine:snapshot(s)
@@ -69,7 +76,7 @@ function JamEngine:snapshot(s)
     end
     table.sort(notes, function(a,b) return a.id < b.id end)
     return { kind = 'snapshot', player = s.src, session = s.id, rev = s.rev, instrument = s.instrument,
-        volume = s.volume, sustain = s.sustain, notes = notes, range = self.c.Range }
+        volume = s.volume, sustain = s.sustain, notes = notes, range = s.range }
 end
 
 function JamEngine:route(s, delta, force)
@@ -92,21 +99,23 @@ function JamEngine:route(s, delta, force)
     s.peers = nextPeers
 end
 
-function JamEngine:start(src, instrument, request)
+function JamEngine:start(src, instrument, request, range)
     if not self:allow(src, 12) then return false, 'rate' end
     local now, g = self.env.now(), self.guards[src]
     if now-g.start < 750 then return false, 'cooldown' end
     g.start = now
     if not integer(request, 1, 2147483647) or type(instrument) ~= 'string' or not self.catalog[instrument] then return false, 'instrument' end
+    if range==nil then range=self.c.Range end
+    if not self:validRange(range) then return false, 'range' end
     if not position(self.env.position(src)) then return false, 'unavailable' end
     if not self.env.access(src, instrument) then return false, 'permission' end
     if not self.sessions[src] and count(self.sessions) >= self.c.MaxPerformers then return false, 'capacity' end
     self:stop(src, 'replaced')
     self.serial = self.serial + 1
     local s = { src=src, id=self.env.epoch..':'..self.serial, instrument=instrument, notes={}, peers={},
-        sustain=false, volume=0.75, seq=0, rev=0, last=now, lastSnapshot=now, highId=0 }
+        sustain=false, volume=0.75, range=range, seq=0, rev=0, last=now, lastSnapshot=now, highId=0 }
     self.sessions[src] = s
-    self.env.send(src, 'control', { kind='started', session=s.id, request=request, instrument=instrument, range=self.c.Range,
+    self.env.send(src, 'control', { kind='started', session=s.id, request=request, instrument=instrument, range=s.range, rangeOptions=self.c.RangeOptions,
         maxNotes=self.c.MaxNotes, maxNoteMs=self.c.MaxNoteMs })
     self:route(s, nil, true)
     return true
@@ -137,6 +146,8 @@ function JamEngine:receive(src, packet)
     local cleanOps = {}
     local function invalid(reason) self:stop(src, reason); return false, reason end
     if packet.kind == 'sync' then
+        local range = packet.range==nil and s.range or packet.range
+        if not self:validRange(range) then return invalid('range') end
         if not array(packet.notes, self.c.MaxNotes) or type(packet.sustain) ~= 'boolean' or not number(packet.volume, 0, 1) then return invalid('invalid') end
         if not self:allow(src, #packet.notes) then return invalid('rate') end
         local notes, high = {}, s.highId
@@ -149,7 +160,7 @@ function JamEngine:receive(src, packet)
             notes[n.id] = {id=n.id,pitch=n.pitch,velocity=n.velocity,held=n.held,at=old and old.at or now}
             high = math.max(high, n.id)
         end
-        s.notes, s.highId, s.sustain, s.volume = notes, high, packet.sustain, packet.volume
+        s.notes, s.highId, s.sustain, s.volume, s.range = notes, high, packet.sustain, packet.volume, range
     elseif packet.kind == 'ops' then
         if packet.seq ~= s.seq + 1 then
             -- A complete input snapshot heals a missing batch; don't apply a partial chord.
@@ -191,6 +202,7 @@ function JamEngine:receive(src, packet)
     if packet.kind == 'sync' then
         s.lastSnapshot = now
         self:route(s,nil,true)
+        if packet.range~=nil then self.env.send(src,'control',{kind='range',session=s.id,range=s.range,seq=s.seq}) end
     else
         self:route(s,{kind='delta', player=src, session=s.id, rev=s.rev, ops=cleanOps},false)
     end

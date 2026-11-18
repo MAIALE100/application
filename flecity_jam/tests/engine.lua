@@ -22,9 +22,9 @@ local function fixture()
     local f={e=e,people=people,messages=messages}
     function f.advance(ms)clock=clock+ms end
     function f.access(value)permitted=value end
-    function f.start(id,instrument) assert(e:start(id or 1,instrument or 'piano',1));return e.sessions[id or 1] end
+    function f.start(id,instrument,range) assert(e:start(id or 1,instrument or 'piano',1,range));return e.sessions[id or 1] end
     function f.packet(ops,id,seq)id=id or 1;local s=e.sessions[id];return e:receive(id,{session=s.id,seq=seq or s.seq+1,kind='ops',ops=ops})end
-    function f.sync(notes,sustain,id,seq)id=id or 1;local s=e.sessions[id];return e:receive(id,{session=s.id,seq=seq or s.seq+1,kind='sync',notes=notes,sustain=sustain or false,volume=.5})end
+    function f.sync(notes,sustain,id,seq,range)id=id or 1;local s=e.sessions[id];return e:receive(id,{session=s.id,seq=seq or s.seq+1,kind='sync',notes=notes,sustain=sustain or false,volume=.5,range=range})end
     return f
 end
 local function on(id,pitch)return {kind='on',id=id,pitch=pitch or 60,velocity=100}end
@@ -107,6 +107,113 @@ test('a new 14.9m listener receives sustained age and leaves cleanly at 20m',fun
     f.people[5].x=20;f.e:tick();local stopped=f.messages[#f.messages]
     equal(stopped.target,5);equal(stopped.data.kind,'stop');assert(stopped.data.wire>snapshot.wire)
 end)
+local function delivery(f,target,kind,player,first)
+    for i=#f.messages,first or 1,-1 do
+        local message=f.messages[i]
+        if message.target==target and message.data.kind==kind and (not player or message.data.player==player) then return message end
+    end
+end
+local heldNote={id=1,pitch=60,velocity=100,held=true}
+
+test('all five sharing distances enforce strict horizontal and vertical boundaries and preserve buckets',function()
+    equal(JamConfig.Range,15.0);equal(#JamConfig.RangeOptions,5)
+    for index,range in ipairs({5,10,15,20,25})do
+        equal(JamConfig.RangeOptions[index],range)
+        local f=fixture()
+        f.people[2]={x=range-.001,y=0,z=0,bucket=0,alive=true}
+        f.people[3]={x=range,y=0,z=0,bucket=0,alive=true}
+        f.people[4]={x=1,y=0,z=0,bucket=1,alive=true}
+        f.people[5]={x=range+.001,y=0,z=0,bucket=0,alive=true}
+        f.people[6]={x=0,y=0,z=range-.001,bucket=0,alive=true}
+        f.people[7]={x=0,y=0,z=range,bucket=0,alive=true}
+        local s=f.start(1,'piano',range);equal(s.range,range)
+        local started=delivery(f,1,'started').data;equal(started.range,range);equal(#started.rangeOptions,5)
+        for i,value in ipairs({5,10,15,20,25})do equal(started.rangeOptions[i],value)end
+        for _,id in ipairs({2,6})do local message=delivery(f,id,'snapshot',1);assert(message);equal(message.data.range,range)end
+        for _,id in ipairs({1,3,4,5,7})do assert(not delivery(f,id,'snapshot',1),'outside boundary or bucket '..id)end
+        assert(f.e:visible(1,2));assert(not f.e:visible(1,3));assert(not f.e:visible(1,4))
+    end
+    local f=fixture();equal(f.start().range,15);equal(delivery(f,1,'started').data.range,15)
+end)
+
+test('start rejects malformed or unconfigured distances without widening or replacing an existing session',function()
+    for _,range in ipairs({0,4,6,10.5,26,30,-5,math.huge,-math.huge,0/0,'10',false,{}})do
+        local f=fixture();local ok,reason=f.e:start(1,'piano',1,range)
+        assert(not ok);equal(reason,'range');equal(f.e.sessions[1],nil);equal(#f.messages,0)
+    end
+    local f=fixture();f.e.c.RangeOptions={5,15,25}
+    local ok,reason=f.e:start(1,'piano',1,10);assert(not ok);equal(reason,'range')
+    f=fixture();local s=f.start(1,'piano',5);assert(f.packet({on(1)}));f.advance(800)
+    ok,reason=f.e:start(1,'piano',2,50);assert(not ok);equal(reason,'range');equal(f.e.sessions[1],s);equal(s.range,5);equal(s.notes[1].pitch,60)
+end)
+
+test('expanding and shrinking sharing distance snapshots held notes and stops only newly excluded listeners',function()
+    local f=fixture();f.people[2].x=4;f.people[3].x=12
+    local s=f.start(1,'piano',5);assert(f.packet({on(1)}));local at=s.notes[1].at
+    assert(not delivery(f,3,'snapshot',1));local first=#f.messages+1;f.advance(600)
+    assert(f.sync({heldNote},false,1,nil,15));equal(s.range,15);equal(s.seq,2);equal(s.rev,2);equal(s.notes[1].at,at)
+    for _,id in ipairs({2,3})do
+        local snapshot=delivery(f,id,'snapshot',1,first).data
+        equal(snapshot.range,15);equal(snapshot.rev,2);equal(snapshot.notes[1].age,600);equal(snapshot.notes[1].pitch,60)
+    end
+    assert(not delivery(f,4,'snapshot',1,first));local wide=delivery(f,3,'snapshot',1).data
+    local ack=delivery(f,1,'range',nil,first).data;equal(ack.session,s.id);equal(ack.range,15);equal(ack.seq,2)
+    first=#f.messages+1;f.advance(400);assert(f.sync({heldNote},false,1,nil,5))
+    equal(s.range,5);equal(s.notes[1].at,at);equal(s.seq,3);equal(s.rev,3)
+    local narrow=delivery(f,2,'snapshot',1,first).data;equal(narrow.range,5);equal(narrow.notes[1].age,1000)
+    local stopped=delivery(f,3,'stop',1,first).data;assert(stopped.wire>wide.wire);equal(stopped.session,s.id);equal(stopped.rev,3)
+    assert(not delivery(f,3,'snapshot',1,first));equal(delivery(f,1,'range',nil,first).data.seq,3)
+end)
+
+test('omitted distance is retained and explicit same-value acknowledgements cannot be replayed to widen it',function()
+    local f=fixture();local s=f.start(1,'piano',25);assert(f.packet({on(1)}))
+    local first=#f.messages+1;assert(f.sync({heldNote}));equal(s.range,25)
+    equal(delivery(f,2,'snapshot',1,first).data.range,25);assert(not delivery(f,1,'range',nil,first))
+    first=#f.messages+1;assert(f.sync({heldNote},false,1,nil,25));equal(delivery(f,1,'range',nil,first).data.seq,3)
+    assert(f.sync({heldNote},false,1,5,10));equal(s.range,10);equal(delivery(f,1,'range').data.seq,5)
+    first=#f.messages+1
+    local ok,reason=f.sync({heldNote},false,1,4,25);assert(not ok);equal(reason,'stale');equal(s.range,10);equal(s.seq,5)
+    equal(#f.messages,first-1)
+end)
+
+test('malformed sync distances fail closed without changing another performer or their notes',function()
+    for _,range in ipairs({0,4,6,15.5,26,30,-5,math.huge,-math.huge,0/0,'25',false,{}})do
+        local f=fixture();f.start(1,'piano',5);local b=f.start(2,'guitar',20)
+        assert(f.packet({on(1)}));assert(f.packet({on(1,64)},2));local seq,rev=b.seq,b.rev
+        local first=#f.messages+1;local ok,reason=f.sync({heldNote},false,1,nil,range)
+        assert(not ok);equal(reason,'range');equal(f.e.sessions[1],nil);equal(f.e.sessions[2],b)
+        equal(b.range,20);equal(b.notes[1].pitch,64);equal(b.seq,seq);equal(b.rev,rev)
+        assert(not delivery(f,1,'range',nil,first))
+    end
+    local f=fixture();f.e.c.RangeOptions={5,15,25};f.start(1,'piano',5)
+    local ok,reason=f.sync({},false,1,nil,10);assert(not ok);equal(reason,'range')
+end)
+
+test('foreign sessions and forged ownership fields cannot change another performer sharing distance',function()
+    local f=fixture();local a=f.start(1,'piano',5);local b=f.start(2,'guitar',10)
+    local ok,reason=f.e:receive(2,{session=a.id,seq=1,kind='sync',notes={},sustain=false,volume=.5,range=25})
+    assert(not ok);equal(reason,'session');equal(a.range,5);equal(b.range,10);equal(a.seq,0);equal(b.seq,0)
+    local first=#f.messages+1
+    assert(f.e:receive(1,{session=a.id,player=2,src=2,target=2,instrument='guitar',rangeOptions={50},seq=1,kind='sync',notes={},sustain=false,volume=.5,range=20}))
+    equal(a.range,20);equal(a.instrument,'piano');equal(b.range,10);equal(b.seq,0)
+    local ack=delivery(f,1,'range',nil,first).data;equal(ack.session,a.id);equal(ack.range,20);equal(ack.seq,1)
+    assert(not delivery(f,2,'range',nil,first));equal(delivery(f,2,'snapshot',1,first).data.range,20);equal(JamConfig.Range,15)
+    assert(f.e:receive(1,{session=a.id,seq=2,kind='ops',ops={{kind='volume',value=.7}},range=25}))
+    equal(a.range,20);equal(b.range,10);equal(b.seq,0)
+end)
+
+test('late listeners and expanded delivery retain released sustained note age and bucket isolation',function()
+    local f=fixture();local s=f.start(1,'piano',5)
+    assert(f.packet({on(1),{kind='pedal',down=true},{kind='off',id=1}}));local at=s.notes[1].at
+    f.advance(1000);f.people[3].x=4;f.e:tick()
+    local joined=delivery(f,3,'snapshot',1).data;equal(joined.range,5);equal(joined.notes[1].held,false);equal(joined.notes[1].age,1000)
+    f.people[5]={x=24.9,y=0,z=0,bucket=0,alive=true};f.people[6]={x=1,y=0,z=0,bucket=1,alive=true}
+    local first=#f.messages+1;f.advance(500)
+    assert(f.sync({{id=1,pitch=60,velocity=100,held=false}},true,1,nil,25));equal(s.notes[1].at,at)
+    local expanded=delivery(f,5,'snapshot',1,first).data;equal(expanded.range,25);equal(expanded.sustain,true);equal(expanded.notes[1].held,false);equal(expanded.notes[1].age,1500)
+    assert(not delivery(f,6,'snapshot',1,first));equal(delivery(f,1,'range',nil,first).data.range,25)
+end)
+
 test('multiple performers do not share notes or pedals',function()
     local f=fixture();local a=f.start();local b=f.start(2,'guitar');f.packet({on(1)});f.packet({on(1,64)},2)
     equal(a.notes[1].pitch,60);equal(b.notes[1].pitch,64);f.e:stop(1,'test');assert(f.e.sessions[2].notes[1])

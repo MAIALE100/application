@@ -51,7 +51,7 @@
       <p id="layoutHelp"></p>
     </section>
     <footer>
-      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 15m</span></div>
+      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span id="nearby">周囲 0人</span><label class="share-range">楽器の共有範囲<select id="shareRange" aria-label="楽器音の共有範囲" aria-describedby="rangeBadge"><option value="5">5m</option><option value="10">10m</option><option value="15" selected>15m</option><option value="20">20m</option><option value="25">25m</option></select></label><span id="rangeBadge" role="status" aria-live="polite">次の演奏から適用</span></div>
       <div class="actions"><button id="panic" class="quiet">楽器の音を止める</button><button id="settingsToggle" class="quiet" aria-expanded="false" aria-controls="settings">設定・MIDI・周囲の音</button></div>
     </footer>
     <p id="voiceHelp" class="input-hint voice-help">演奏開始時は自動会話ON。Nキーは不要で、上部からOFFにできます。マイクの無効設定は解除しません。無線やほかの画面を使うときは <kbd>Esc</kbd> で閉じてください。</p>

@@ -72,7 +72,7 @@ local function open(instrument,listenOnly)
     shown,lastUi = true,GetGameTimer()
     SetNuiFocus(true,true); SetNuiFocusKeepInput(false)
     resetVoice()
-    nui({type='open',instrument=instrument,listenOnly=listenOnly==true,range=JamConfig.Range,reserved=JamConfig.ReservedKeys,voice=voiceConfig()})
+    nui({type='open',instrument=instrument,listenOnly=listenOnly==true,range=JamConfig.Range,rangeOptions=JamConfig.RangeOptions,reserved=JamConfig.ReservedKeys,voice=voiceConfig()})
 end
 RegisterCommand(JamConfig.Command,function(_,args) open(args[1],false) end,false)
 RegisterCommand('jamstop',function() close('command') end,false)
@@ -98,7 +98,7 @@ for id, exportName in pairs({piano='UsePiano',guitar='UseGuitar',bass='UseBass',
 end
 
 RegisterNUICallback('ready',function(_,cb)
-    nui({type='config',range=JamConfig.Range,reserved=JamConfig.ReservedKeys})
+    nui({type='config',range=JamConfig.Range,rangeOptions=JamConfig.RangeOptions,reserved=JamConfig.ReservedKeys})
     cb({ok=true})
 end)
 RegisterNUICallback('pulse',function(_,cb) lastUi=GetGameTimer(); cb({ok=true}) end)
@@ -118,8 +118,13 @@ RegisterNUICallback('voice',function(data,cb)
 end)
 RegisterNUICallback('start',function(data,cb)
     if not shown or pending or session or type(data)~='table' or type(data.instrument) ~= 'string' or #data.instrument>32 or not JamConfig.CanStartClient() then cb({ok=false}); return end
+    if data.range~=nil then
+        local allowed=false
+        for _,value in ipairs(JamConfig.RangeOptions or {JamConfig.Range}) do if type(data.range)=='number' and data.range==value then allowed=true end end
+        if not allowed then cb({ok=false});return end
+    end
     request=request+1; pending=request
-    TriggerServerEvent('flecity_jam:start',data.instrument,request)
+    TriggerServerEvent('flecity_jam:start',data.instrument,request,data.range)
     cb({ok=true})
 end)
 RegisterNUICallback('input',function(data,cb)

@@ -1,3 +1,13 @@
+## 0.4.3-test 検証・設置完了 — 2026-11-18
+
+固定実装 2596d2dc308a7aa467f2aaba5e49c2fff0c0945d に全256/256 PASS、0 FAIL、試験中ソース不変。JS61、Lua engine28/client27、Chromium17（120秒模擬8人）、NUI12、旧鍵盤24、会話16、操作UI14、個別聴取12、音源9、更新fixture14、home18実キー13、v4移行9。別にJS19/Lua9構文・8楽器オフラインPCMもPASS。旧25音が必要な旧試験はv4で明示選択し、新標準home18は独立した実ブラウザー打鍵で確認。初回旧試験のseedがreload毎に設定を戻す不備を修正し、全件を再実行した。これは実ユーザーの設定破損ではない。
+
+0.4.2設置115/115照合・全体保全、実ZIPのコピー環境115→115→115／15m復旧模擬PASS。Test_01のJAMだけ停止→更新→定義再読込→起動。jam_statusは0.4.3-test、sessions=0、range=15.0m、access=open。設置115/115・旧0.4.2backup115/115一致。非JAM5304・設定5・txAdmin設定の差分0。config・91音源・catalog・licenses・client/server Luaは同一。DBや全体再起動は実行していない。
+
+ZIP SHA256 22cebf79933990301131b9dd8a865041654a1a8a0ef50cc9c8b26e5f6e9ffcad。復旧receiptは jam-update-j2w0rwh8/receipt.json、SHA256 b252947d1ace518ab288decfead9e0bae24eb6931b0c0fb9f09d2f465b66e348で0.4.2／15mへ戻す。実サーバーの復旧は計画照合のみ。正式公開NO-GO、実FiveMの弾き心地・物理JIS・rollover・実音声・U/J・VC/PTT・MIDI・CEFはNOT_RUN。ノートPC確認待ち。旧v1/v2/v3と新v4は保全し、ロールバック時も設定キーを消さない。
+
+正本：元チャット outputs/FLECITY_JAM_20261116/hands-layout-20261118/。以下は候補・旧版の履歴。
+
 # Flecity JAM 0.4.3-test QA（新しい試験・設置記録は別添hands-layout-20261118を正本）
 
 ## 0.4.3-test：両手ホーム段18音

@@ -1,5 +1,9 @@
 # Flecity JAM scope (2026-11-16)
 
+## Latest installed — 0.4.3-test, 2026-11-18
+
+Source2596d2dc308a7aa467f2aaba5e49c2fff0c0945d passed256 fresh local checks,0FAIL,source unchanged;JS19/Lua9syntax and8PCM additional. Test_01 JAM0.4.3 installed115/115,backup0.4.2 115/115,fixture115→115→115/15m,nonJAM5304+5cfg+txAdmin unchanged. Receipt jam-update-j2w0rwh8/receipt.json SHA256b252947d1ace518ab288decfead9e0bae24eb6931b0c0fb9f09d2f465b66e348 restores0.4.2/15m; actualtarget rollbackPLANonly. ZIP22cebf79933990301131b9dd8a865041654a1a8a0ef50cc9c8b26e5f6e9ffcad. User-selected home18 is standard; old25/36/legacycustom remain. Writev4only, oldv1/v2/v3 untouched. Physicalcomfort/JIS/rollover/liveFiveM/audio/PTT/MIDI/CEF NOT_RUN notebookonly. FormalReleaseNO-GO. Do not startdesktopFiveM, changeWAVE/Voice/DB/otherpausedapps or automations. Outputs hands-layout-20261118 is canonical. Following entries are history.
+
 ## Current candidate — home18, 2026-11-18
 
 User explicitly chose white home row ASDFG | HJKL;Quote, black WETYUOP. Use independent home18, preserve old piano25/expanded36/legacy18 and their custom bindings. Default piano C3–F4 is18notes, NOT2octaves. Physical Quote is JIScolon/USapostrophe, show :/'. N/Space/arrows remain reserved. Write only v4, copy valid v1/v2/v3 without modifying raw old records; custom selections preserved, valid v4 wins including oldpiano reselect. All config/samples/catalog/licenses/Lua unchanged. Actual hands comfort, FiveM voice/audio/PTT remain notebook-only NOT_RUN. No desktopFiveM. Latest test/update evidence: original chat outputs/FLECITY_JAM_20261116/hands-layout-20261118/. Treat following entries as history until latest QA freezes.

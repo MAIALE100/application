@@ -102,6 +102,25 @@ test('remote held note waits for audio resume and starts only once',async t=>{
   rack.stopAll();
 });
 
+test('local resume discards completed taps and starts only the latest held note once',async t=>{
+  const {ctx,rack,ready,setTime}=setup(t);ready();ctx.state='suspended';
+  rack.sync('local',state('local',[note(1)]));rack.sync('local',state('local',[]));
+  assert.equal(ctx.sources.length,0,'a released local tap must not be queued in a paused context');
+  assert.equal(await rack.unlock(),true);assert.equal(ctx.sources.length,0);
+  ctx.state='suspended';rack.sync('local',state('local',[note(2)]));
+  setTime(1000);assert.equal(ctx.sources.length,0);await rack.unlock();
+  assert.equal(ctx.sources.length,1);assert.equal(ctx.sources[0].offset,1);
+  await rack.unlock();assert.equal(ctx.sources.length,1,'repeated unlock must not duplicate a held note');
+  ctx.state='suspended';rack.sync('local',state('local',[]));
+  await rack.unlock();assert.equal(rack.stats().nodes,0,'a note released during suspension must not resume its old tail');
+  assert(ctx.sources[0].stopped&&ctx.sources[0].disconnected);
+  rack.sync('local',state('local',[note(3)]));ctx.state='suspended';let resume;
+  ctx.resume=()=>new Promise(resolve=>{resume=resolve;});
+  const pending=rack.unlock();rack.sync('local',state('local',[]));
+  assert.equal(rack.stats().nodes,0,'keyup during a pending resume must discard its paused voice immediately');
+  ctx.state='running';resume();await pending;assert.equal(rack.stats().nodes,0);rack.stopAll();
+});
+
 test('offline rendering can schedule remote notes before rendering begins',t=>{
   const {ctx,rack,ready,positions}=setup(t);ready();
   ctx.state='suspended';ctx.startRendering=async()=>{};

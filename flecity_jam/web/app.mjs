@@ -13,6 +13,7 @@ let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legac
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
 const pedalSources=new Set();
+const metroVoices=new Set();
 const voiceSources=new Set();
 let voiceToken=null,voiceEnabled=false,voiceSeq=0,voiceTimer=0,voiceTalking=false,voiceLane={pending:false};
 const now=()=>performance.now();
@@ -246,7 +247,7 @@ async function start() {
     stage='server';
     const result=await bridge('start',{instrument:model.spec.id});if(!result.ok)throw Error('演奏を開始できません。');
     setTimeout(()=>{if(starting&&generation===startGeneration){stop();error('サーバーから応答がありません。再度お試しください。');}},5000);
-  }catch{if(generation===startGeneration){stop();error({
+  }catch{if(generation===startGeneration&&starting){stop();error({
     audio:'音声を開始できませんでした。JAMを開き直して、もう一度お試しください。',
     samples:'音源を読み込めませんでした。少し待ってから、もう一度お試しください。',
     resume:'音声を再開できませんでした。JAMを開き直して、もう一度お試しください。',
@@ -321,7 +322,11 @@ function open(data={}) {
   if(legacyImported){legacyImported=false;notice('個人用のキー設定を保持しました。「PC配列」で白鍵・黒鍵25音を選べます。音域変更は↑↓です。');}
 }
 function setMuted(value) {muted=value;audio.setMute(muted);$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'消音中':'消音';save();}
-function stopMetronome() {metroGeneration++;metroPending=false;clearInterval(metronome);metronome=null;$('metro').setAttribute('aria-busy','false');$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';}
+function stopMetronome() {
+  metroGeneration++;metroPending=false;clearInterval(metronome);metronome=null;
+  for(const {osc,gain}of metroVoices){try{osc.stop();}catch{}osc.disconnect();gain.disconnect();}
+  metroVoices.clear();$('metro').setAttribute('aria-busy','false');$('metro').setAttribute('aria-pressed','false');$('metro').textContent='メトロノーム OFF';
+}
 async function toggleMetronome() {
   if(metronome||metroPending){stopMetronome();return;}
   const generation=++metroGeneration;metroPending=true;$('metro').setAttribute('aria-busy','true');
@@ -336,9 +341,10 @@ async function toggleMetronome() {
     nextBeat=Math.max(nextBeat,audio.ctx.currentTime);
     while(nextBeat<audio.ctx.currentTime+.1){
       const osc=audio.ctx.createOscillator(),gain=audio.ctx.createGain();osc.frequency.value=beat++%4===0?1200:800;
+      const click={osc,gain};metroVoices.add(click);
       gain.gain.setValueAtTime(.08,nextBeat);gain.gain.exponentialRampToValueAtTime(.0001,nextBeat+.04);
       osc.connect(gain).connect(audio.master);osc.start(nextBeat);osc.stop(nextBeat+.05);
-      osc.onended=()=>{osc.disconnect();gain.disconnect();};nextBeat+=60/bpm;
+      osc.onended=()=>{metroVoices.delete(click);osc.disconnect();gain.disconnect();};nextBeat+=60/bpm;
     }
   },25);
 }
@@ -459,7 +465,10 @@ const early=[];window.addEventListener('message',e=>{
 });
 setInterval(()=>{
   replicas.expire();
-  if(shown||bootShown)bridge('pulse').catch(()=>{if(session)failTransport();});
+  if(shown||bootShown){
+    const check=listenCheck,generation=startGeneration,expected=session;
+    bridge('pulse').catch(()=>{if(shown&&check===listenCheck&&generation===startGeneration&&session===expected&&session)failTransport();});
+  }
   if(shown&&listenOnlyOpen&&audio?.ctx?.state!=='running'&&resumeAudioButton.hidden)promptListenAudio();
   if(session&&model){if([...model.notes.values()].some(n=>now()-n.at>115000)){panic();notice('長時間の持続音を安全停止しました。');}syncInput();}
 },1000);

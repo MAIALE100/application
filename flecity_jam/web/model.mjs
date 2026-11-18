@@ -94,17 +94,51 @@ export class Performance {
   snapshot() { return {notes:[...this.notes.values()].map(({at,...n})=>({...n,age:Math.max(0,this.now()-at)})),sustain:this.sustain,volume:this.volume}; }
 }
 
+const remoteInteger = (n,min=0,max=Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(n) && n>=min && n<=max;
+const remoteNumber = (n,min,max=Infinity) => Number.isFinite(n) && n>=min && n<=max;
+const remoteObject = value => value!==null && typeof value==='object' && !Array.isArray(value);
+const remoteNote = n => remoteObject(n) && remoteInteger(n.id,1,2147483647) && remoteInteger(n.pitch,0,127) && remoteInteger(n.velocity,1,127);
+function snapshotNotes(notes) {
+  if(Array.isArray(notes))return notes;
+  // Lua serializes an empty notes table as {}, not necessarily [].
+  return remoteObject(notes) && Object.keys(notes).length===0 ? [] : null;
+}
+function validRemotePacket(p) {
+  if(!remoteObject(p) || !remoteInteger(p.player,1) || typeof p.session!=='string' || !p.session || !remoteInteger(p.wire,1))return false;
+  if(p.kind==='stop')return p.rev===undefined || remoteInteger(p.rev);
+  if(!remoteInteger(p.rev))return false;
+  if(p.kind==='snapshot') {
+    const notes=snapshotNotes(p.notes),ids=new Set();
+    if(!notes || typeof p.instrument!=='string' || !p.instrument || !remoteNumber(p.volume,0,1) || typeof p.sustain!=='boolean' || !Number.isFinite(p.range) || p.range<=0)return false;
+    for(const n of notes) {
+      if(!remoteNote(n) || typeof n.held!=='boolean' || !remoteNumber(n.age,0) || ids.has(n.id))return false;
+      ids.add(n.id);
+    }
+    return true;
+  }
+  if(p.kind!=='delta' || !Array.isArray(p.ops))return false;
+  for(const op of p.ops) {
+    if(!remoteObject(op))return false;
+    if(op.kind==='on') {if(!remoteNote(op))return false;}
+    else if(op.kind==='off' || op.kind==='kill') {if(!remoteInteger(op.id,1,2147483647))return false;}
+    else if(op.kind==='pedal') {if(typeof op.down!=='boolean')return false;}
+    else if(op.kind==='volume') {if(!remoteNumber(op.value,0,1))return false;}
+    else if(op.kind!=='panic')return false;
+  }
+  return true;
+}
+
 export class Replicas {
   constructor(update,remove,now=()=>performance.now()) { this.states=new Map();this.wires=new Map();this.update=update;this.remove=remove;this.now=now; }
   accept(p) {
-    if(!p || !Number.isInteger(p.player) || typeof p.session!=='string' || !Number.isInteger(p.wire))return false;
+    // Validate the whole packet before advancing replay protection or changing notes.
+    if(!validRemotePacket(p))return false;
     if(p.wire<=(this.wires.get(p.player)??-1))return false;
     this.wires.set(p.player,p.wire);
     let s=this.states.get(p.player);
     if(p.kind==='stop') { if(s?.session===p.session){this.states.delete(p.player);this.remove(p.player);} return true; }
     if(p.kind==='snapshot') {
-      const notes=Array.isArray(p.notes)?p.notes:p.notes&&Object.keys(p.notes).length===0?[]:null;
-      if(!notes)return false;
+      const notes=snapshotNotes(p.notes);
       if(s && s.session!==p.session)this.remove(p.player);
       s={...p,notes:new Map(notes.map(n=>[n.id,{...n}])),seen:this.now(),desynced:false}; this.states.set(p.player,s);
     } else if(p.kind==='delta') {

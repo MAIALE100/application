@@ -10,10 +10,20 @@ const {chromium}=await import(path.isAbsolute(playwrightPath)?pathToFileURL(play
 const browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});
 let page;
 const calls={ready:0,pulse:0,start:0,input:[],stop:0,catalog:0};
-let heldInput;
+let heldInput,heldPulse,heldStart,holdNextPulse=false,holdNextStart=false;
 try {
   page=await browser.newPage();
-  await page.addInitScript(()=>{window.GetParentResourceName=()=> 'jam.test';});
+  await page.addInitScript(()=>{
+    window.GetParentResourceName=()=> 'jam.test';window.__scheduledOscillators=[];
+    const create=AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator=function(...args){
+      const osc=create.apply(this,args),entry={ctx:this,stops:[],disconnected:false};window.__scheduledOscillators.push(entry);
+      const start=osc.start.bind(osc),stop=osc.stop.bind(osc),disconnect=osc.disconnect.bind(osc);
+      osc.start=time=>{entry.start=time??this.currentTime;start(time);};
+      osc.stop=time=>{entry.stops.push(time??this.currentTime);stop(time);};
+      osc.disconnect=()=>{entry.disconnected=true;disconnect();};return osc;
+    };
+  });
   await page.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url());
     if(url.origin!=='https://jam.test'){await route.abort();return;}
@@ -23,6 +33,8 @@ try {
       if(name==='pulse')calls.pulse++;
       if(name==='start')calls.start++;
       if(name==='stop')calls.stop++;
+      if(name==='pulse'&&holdNextPulse){holdNextPulse=false;heldPulse=route;return;}
+      if(name==='start'&&holdNextStart){holdNextStart=false;heldStart=route;return;}
       if(name==='input'){
         const body=JSON.parse(request.postData()||'{}');
         calls.input.push({session:body.session,at:Date.now()});
@@ -161,6 +173,65 @@ try {
   await page.waitForTimeout(50);
   assert(await page.locator('#start').innerText()!=='演奏する','old response must not stop new session');
   console.log('PASS old transport queue cannot block or stop new session (mock NUI)');
+
+  holdNextPulse=true;
+  for(let i=0;i<80&&!heldPulse;i++)await page.waitForTimeout(20);
+  assert(heldPulse,'old-view heartbeat must be held before switching views');
+  await page.keyboard.press('Escape');
+  await page.evaluate(()=>window.postMessage({type:'open',instrument:'piano'},location.origin));
+  await page.locator('#panel').waitFor({state:'visible'});
+  const beforeReopen=calls.start;await page.click('#start');
+  for(let i=0;i<80&&calls.start===beforeReopen;i++)await page.waitForTimeout(20);
+  assert.equal(calls.start,beforeReopen+1);
+  await page.evaluate(()=>window.postMessage({type:'control',data:{kind:'started',session:'pulse-new',instrument:'piano',maxNotes:16}},location.origin));
+  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
+  await page.keyboard.down('z');await heldPulse.abort('failed');heldPulse=null;await page.waitForTimeout(120);
+  assert.equal(await page.locator('#voiceCount').innerText(),'1音');assert.match(await page.locator('#start').innerText(),/休む/);assert(await page.locator('#error').isHidden());
+  await page.keyboard.up('z');holdNextPulse=true;
+  for(let i=0;i<80&&!heldPulse;i++)await page.waitForTimeout(20);
+  assert(heldPulse);await heldPulse.abort('failed');heldPulse=null;
+  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#start').innerText(),'演奏する');
+  assert.match(await page.locator('#error').innerText(),/通信が途切れ/);
+  console.log('PASS old heartbeat failure cannot stop a reopened session while current failure still stops safely (mock NUI)');
+
+  holdNextStart=true;await page.click('#start');
+  for(let i=0;i<80&&!heldStart;i++)await page.waitForTimeout(20);
+  assert(heldStart);assert(await page.locator('#start').isDisabled());
+  await page.evaluate(()=>window.postMessage({type:'control',data:{kind:'started',session:'ack-confirmed',instrument:'piano',maxNotes:16}},location.origin));
+  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
+  await heldStart.abort('failed');heldStart=null;await page.waitForTimeout(120);
+  assert.match(await page.locator('#start').innerText(),/休む/);assert(await page.locator('#error').isHidden());
+  console.log('PASS delayed start acknowledgement failure cannot override an authenticated started notification (mock NUI)');
+
+  await page.click('#start');holdNextStart=true;await page.click('#start');
+  for(let i=0;i<80&&!heldStart;i++)await page.waitForTimeout(20);
+  assert(heldStart);assert(await page.locator('#start').isDisabled());
+  await heldStart.fulfill({status:200,contentType:'application/json',body:'{"ok":false}'});heldStart=null;
+  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#start').innerText(),'演奏する');assert(await page.locator('#start').isEnabled());
+  const beforeTimeout=calls.start;await page.click('#start');
+  for(let i=0;i<80&&calls.start===beforeTimeout;i++)await page.waitForTimeout(20);
+  assert.equal(calls.start,beforeTimeout+1);assert(await page.locator('#start').isDisabled());
+  await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('サーバーから応答'),null,{timeout:6500});
+  assert.equal(await page.locator('#start').innerText(),'演奏する');assert(await page.locator('#start').isEnabled());
+  console.log('PASS rejected and unconfirmed start requests still restore controls and time out safely (mock NUI)');
+
+  if(await page.locator('#settings').isHidden())await page.click('#settingsToggle');
+  await page.locator('#bpm').fill('240');
+  for(const action of ['off','close']){
+    const previous=await page.evaluate(()=>window.__scheduledOscillators.length);
+    await page.click('#metro');
+    await page.waitForFunction(previous=>{
+      const nodes=window.__scheduledOscillators,last=nodes.at(-1);
+      return nodes.length>=previous+2&&last.start-last.ctx.currentTime>.03;
+    },previous);
+    if(action==='off')await page.click('#metro');else await page.keyboard.press('Escape');
+    const stopped=await page.evaluate(()=>{const last=window.__scheduledOscillators.at(-1);return {start:last.start,stop:last.stops.at(-1),disconnected:last.disconnected};});
+    assert(stopped.stop<stopped.start,JSON.stringify(stopped));assert(stopped.disconnected,'a scheduled metronome source must be disconnected at stop');
+    assert.equal(await page.locator('#metro').getAttribute('aria-pressed'),'false');
+    if(action==='close')assert(await page.locator('#panel').isHidden());
+  }
+  console.log('PASS OFF and close cancel already scheduled metronome oscillators (native WebAudio scheduling)');
+
   const recovery=await browser.newPage();
   await recovery.addInitScript(()=>{window.GetParentResourceName=()=> 'jam.test';window.__preloadAttempts=[];});
   let retriedStart=false;
@@ -195,5 +266,6 @@ try {
   await recovery.close();console.log('PASS failed instrument preload continues to later instruments and retries on demand (mock NUI)');
 }finally{
   if(heldInput)try{await heldInput.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'})}catch{}
+  for(const held of [heldPulse,heldStart])if(held)try{await held.abort('failed');}catch{}
   await page?.close();await browser.close();
 }

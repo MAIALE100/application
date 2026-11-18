@@ -1,5 +1,7 @@
 # Flecity JAMの試験
 
+0.4.2-testでは単体60件（model26/audio10/deferred10/MIDI14）、Lua engine28/client27、Chromium17（soak有効時）、NUI12、keyboard24、voice16、usability14、mix12、音源9、installer14を固定候補で再実行します。全233件を想定し、最終件数はstability-20261118/QA/に記録します。NUI／Luaはモック、音声計測は生成音でFiveM実音声ではありません。
+
 0.4.1-testは0.4.0の204件を引き継がず、全スイートを新候補へ再実行します。追加はサステインkeyup／楽器切替capture／select連続操作、MIDI port交換、受信期限・時計巻戻り、全8楽器128同音の出力範囲と同一信号分岐による通常レベルのPCM比較です。Lua静的ランナーの期待値はengine28/client27。Native Lua試験もFiveM APIはモック、ChromiumとPCMも実FiveMの音質・VC・CEF性能の証拠ではありません。最終件数・ソース・ログは別添hardening-20261118/QA/で固定します。
 
 このファイルは0.4.0-test候補のローカル試験です。件数・ソース不変・PASS/FAILは別添`rc-polish-20261118/QA/`へ実行ごとに記録し、旧165 PASSやユーザーの実機報告を候補へ繰り越しません。

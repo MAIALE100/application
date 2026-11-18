@@ -1,6 +1,6 @@
 {
   "name": "flecity-jam",
-  "version": "0.4.1-test",
+  "version": "0.4.2-test",
   "private": true,
   "description": "Standalone FiveM proximity instruments; no runtime npm dependencies",
   "scripts": {

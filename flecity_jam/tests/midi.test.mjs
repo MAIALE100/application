@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MidiInput} from '../web/midi.mjs';
+import {Performance} from '../web/model.mjs';
 function setup(){
   const log=[];const midi=new MidiInput(Object.fromEntries(['press','release','pedal','panic','status','devices'].map(name=>[name,(...args)=>log.push([name,...args])])));
   return {midi,log};
@@ -10,6 +11,58 @@ function navigatorFor(t,requestMIDIAccess){
   Object.defineProperty(globalThis,'navigator',{configurable:true,value:{requestMIDIAccess}});
   t.after(()=>{if(previous)Object.defineProperty(globalThis,'navigator',previous);else delete globalThis.navigator;});
 }
+function performanceSetup(kind='pluck'){
+  const operations=[],pitch=kind==='drums'?36:60;
+  const model=new Performance({kind,min:36,max:96,octave:4,samples:[{midi:pitch,layer:4}]},operation=>operations.push(operation));
+  const midi=new MidiInput({press:(...args)=>model.press(...args),release:key=>model.release(key),
+    pedal:down=>model.pedal(down),panic:()=>model.panic(),status:()=>{},devices:()=>{}});
+  return {midi,model,operations,pitch};
+}
+
+test('repeated MIDI Note On retriggers piano and drums with a fresh velocity and no initial release',()=>{
+  for(const kind of ['pluck','drums']){
+    const {midi,model,operations,pitch}=performanceSetup(kind);
+    midi.receive([0x90,pitch,60]);assert.deepEqual(operations.map(op=>op.kind),['on']);
+    midi.receive([0x90,pitch,120]);assert.deepEqual(operations.map(op=>op.kind),['on','off','on']);
+    assert.equal(operations[1].id,operations[0].id);assert.notEqual(operations[2].id,operations[0].id);
+    assert.equal(operations[2].velocity,120);assert.equal(model.notes.size,1);assert.equal(midi.activeKeys.size,1);
+    midi.receive([0x80,pitch,0]);assert.equal(model.notes.size,0);assert.equal(midi.activeKeys.size,0);
+  }
+});
+
+test('MIDI retrigger leaves other channels and held PC notes independent while PC repeat stays suppressed',()=>{
+  const {midi,model,operations}=performanceSetup();
+  model.press('key:Z',60);model.press('key:Z',60);assert.equal(operations.length,1);
+  midi.receive([0x90,60,60]);midi.receive([0x91,60,70]);
+  const other=model.keys.get('midi:1:60');midi.receive([0x90,60,120]);
+  assert.equal(model.notes.size,3);assert.equal(model.keys.get('midi:1:60'),other);
+  assert.equal(model.notes.get(other).velocity,70);assert(model.keys.has('key:Z'));
+  assert.equal(operations.filter(op=>op.kind==='on').length,4);
+  midi.receive([0x90,60,0]);assert.equal(model.notes.size,2);
+  midi.receive([0x81,60,0]);model.release('key:Z');assert.equal(model.notes.size,0);assert.equal(midi.activeKeys.size,0);
+});
+
+test('MIDI sustain retains the old released strike while a repeated Note On owns the new key',()=>{
+  const {midi,model}=performanceSetup();midi.receive([0xb0,64,127]);
+  midi.receive([0x90,60,60]);const first=model.keys.get('midi:0:60');midi.receive([0x90,60,120]);
+  const second=model.keys.get('midi:0:60');assert.notEqual(first,second);assert.equal(model.notes.size,2);
+  assert.equal(model.notes.get(first).held,false);assert.equal(model.notes.get(second).held,true);
+  midi.receive([0x90,60,0]);assert.equal(midi.activeKeys.size,0);assert.equal(model.notes.size,2);
+  assert.equal(model.notes.get(second).held,false);midi.receive([0xb0,64,0]);assert.equal(model.notes.size,0);
+});
+
+test('MIDI active keys are bounded by valid channels and pitches and clear on global CC or detach',()=>{
+  const {midi,log}=setup();
+  for(let channel=0;channel<16;channel++)for(let pitch=0;pitch<128;pitch++)midi.receive([0x90+channel,pitch,90]);
+  assert.equal(midi.activeKeys.size,2048);
+  for(let pitch=0;pitch<128;pitch++)midi.receive([0x90,pitch,100]);assert.equal(midi.activeKeys.size,2048);
+  for(const controller of [123,120]){
+    midi.receive([0xb0,controller,0]);assert.equal(midi.activeKeys.size,0);
+    const before=log.filter(row=>row[0]==='release').length;midi.receive([0x90,60,100]);
+    assert.equal(log.filter(row=>row[0]==='release').length,before,'first strike after CC must not release a previous identity');
+  }
+  midi.port={state:'connected',onmidimessage:()=>{},close:()=>{}};midi.detach();assert.equal(midi.activeKeys.size,0);
+});
 test('MIDI channels keep note identities separate and zero velocity releases',()=>{
   const {midi,log}=setup();midi.receive([0x90,60,40]);midi.receive([0x91,60,100]);midi.receive([0x90,60,0]);
   assert.deepEqual(log,[['press','midi:0:60',60,40],['press','midi:1:60',60,100],['release','midi:0:60']]);

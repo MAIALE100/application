@@ -46,8 +46,11 @@ export class AudioRack {
   }
   async unlock() {
     this.init();
-    if(this.ctx.state!=='running')await bounded(this.ctx.resume(),3000,'音声を開始できません。「演奏する」をもう一度押してください。');
-    if(this.ctx.state==='running')for(const [key,slot] of this.slots)if(key!=='local')this.reconcile(key,slot);
+    if(this.ctx.state!=='running'){
+      for(const voice of [...this.aliveVoices])if(voice.released||!voice.slot.desired.has(voice.id))this.terminate(voice);
+      await bounded(this.ctx.resume(),3000,'音声を開始できません。「演奏する」をもう一度押してください。');
+    }
+    if(this.ctx.state==='running')for(const [key,slot] of this.slots)this.reconcile(key,slot);
     return this.ctx.state==='running';
   }
   setVolume(value) {this.masterVolume=Math.max(0,Math.min(1,value));this.applyMaster();}
@@ -150,7 +153,7 @@ export class AudioRack {
         if(voice && spec.kind!=='drums')voice.releaseTimer=setTimeout(()=>this.release(voice,spec.release),20);
       }
     }
-    if(key!=='local' && !ready)return;
+    if(!ready)return;
     for(const[id,n]of slot.desired) {
       if(slot.voices.has(id)||slot.done.has(id))continue;
       this.startVoice(slot,spec,id,{...n,age:n.age+Math.max(0,time-slot.seen)});
@@ -186,6 +189,7 @@ export class AudioRack {
     return voice;
   }
   release(v,seconds) {
+    if(this.ctx.state!=='running'&&typeof this.ctx.startRendering!=='function'){this.terminate(v);return;}
     if(v.released)return;
     if(seconds===null){return;} // Drum tails finish naturally; teardown still stops them through aliveVoices.
     clearTimeout(v.releaseTimer);v.releaseTimer=null;

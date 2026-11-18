@@ -150,18 +150,18 @@ test('replicas reject old wire data, heal gaps, permit range re-entry',()=>{
 });
 test('16-voice 8-performer simulation is isolated and cleans up',()=>{
   const r=new Replicas(()=>{},()=>{});let wire=0;
-  for(let id=1;id<=8;id++)r.accept({kind:'snapshot',player:id,session:'s'+id,wire:++wire,rev:0,instrument:'piano',notes:[{id:1,pitch:60+id,velocity:90,held:true,age:0}]});
+  for(let id=1;id<=8;id++)r.accept({kind:'snapshot',player:id,session:'s'+id,wire:++wire,rev:0,instrument:'piano',volume:1,sustain:false,range:15,notes:[{id:1,pitch:60+id,velocity:90,held:true,age:0}]});
   r.accept({kind:'stop',player:1,session:'s1',wire:++wire});assert.equal(r.states.size,7);assert.equal(r.states.get(2).notes.get(1).pitch,62);r.clear();assert.equal(r.states.size,0);
 });
 test('Lua empty tables initialize silent peers before the first delta',()=>{
   const r=new Replicas(()=>{},()=>{});
-  assert(r.accept({kind:'snapshot',player:2,session:'s',wire:1,rev:0,notes:{},volume:.5,sustain:false}));
+  assert(r.accept({kind:'snapshot',player:2,session:'s',wire:1,rev:0,instrument:'piano',range:15,notes:{},volume:.5,sustain:false}));
   assert(r.accept({kind:'delta',player:2,session:'s',wire:2,rev:1,ops:[{kind:'on',id:1,pitch:60,velocity:90}]}));
   assert.equal(r.states.get(2).notes.size,1);
 });
 test('short taps in one network batch retain their on and off edges',()=>{
   const sizes=[],r=new Replicas((id,s)=>sizes.push(s.notes.size),()=>{});
-  r.accept({kind:'snapshot',player:2,session:'s',wire:1,rev:0,notes:[],volume:1,sustain:false});
+  r.accept({kind:'snapshot',player:2,session:'s',wire:1,rev:0,instrument:'piano',range:15,notes:[],volume:1,sustain:false});
   r.accept({kind:'delta',player:2,session:'s',wire:2,rev:1,ops:[{kind:'on',id:1,pitch:38,velocity:100},{kind:'off',id:1}]});
   assert.deepEqual(sizes,[0,1,0]);
 });
@@ -171,6 +171,55 @@ test('replica clear callbacks observe empty state and remove each old performer 
   const replicas=new Replicas(()=>{},id=>{
     assert.equal(replicas.states.size,0);assert.equal(replicas.wires.size,0);removed.push(id);
   });
-  for(const player of [2,3])assert(replicas.accept({kind:'snapshot',player,session:'s'+player,wire:player,rev:0,notes:[]}));
+  for(const player of [2,3])assert(replicas.accept({kind:'snapshot',player,session:'s'+player,wire:player,rev:0,instrument:'piano',volume:1,sustain:false,range:15,notes:[]}));
   replicas.clear();assert.deepEqual(removed,[2,3]);replicas.clear();assert.deepEqual(removed,[2,3]);
+});
+
+const remoteSnapshot={player:2,session:'a',kind:'snapshot',rev:0,wire:1,instrument:'piano',volume:1,sustain:false,range:15,
+  notes:[{id:1,pitch:60,velocity:90,held:true,age:0}]};
+
+test('malformed remote envelopes cannot advance the wire or block a normal stop',()=>{
+  for(const malformed of [null,[],{kind:'unknown'},{player:0},{session:''},{wire:NaN},{wire:Infinity},{wire:1.5},{rev:-1}]){
+    const r=new Replicas(()=>{},()=>{});assert(r.accept(remoteSnapshot));
+    assert.equal(r.accept(malformed===null||Array.isArray(malformed)?malformed:{...remoteSnapshot,wire:999,...malformed}),false);
+    assert.equal(r.wires.get(2),1);assert.equal(r.states.get(2).notes.get(1).pitch,60);
+    assert(r.accept({kind:'stop',player:2,session:'a',wire:2}));assert.equal(r.states.size,0);
+  }
+});
+
+test('malformed snapshots leave notes and the watermark unchanged',()=>{
+  const note=remoteSnapshot.notes[0];
+  for(const fields of [
+    {notes:null},{notes:[null]},{notes:[{...note,id:0}]},{notes:[{...note,pitch:128}]},
+    {notes:[{...note,velocity:0}]},{notes:[{...note,held:1}]},{notes:[{...note,age:NaN}]},
+    {notes:[note,note]},{notes:Array(1)},{instrument:''},{volume:Infinity},{volume:-1},{sustain:0},{range:0}
+  ]){
+    const r=new Replicas(()=>{},()=>{});assert(r.accept(remoteSnapshot));
+    assert.equal(r.accept({...remoteSnapshot,wire:999,...fields}),false);
+    assert.equal(r.wires.get(2),1);assert.deepEqual([...r.states.get(2).notes.values()],[note]);
+    assert(r.accept({...remoteSnapshot,wire:2}));
+  }
+});
+
+test('malformed deltas are rejected atomically before applying any operation',()=>{
+  for(const ops of [null,{},[null],[{kind:'unknown'}],[{kind:'on',id:2,pitch:NaN,velocity:90}],
+    [{kind:'off',id:0}],[{kind:'kill',id:1.5}],[{kind:'pedal',down:1}],[{kind:'volume',value:2}],
+    [{kind:'on',id:2,pitch:64,velocity:90},null],Array(1)]){
+    const events=[],r=new Replicas((id,s)=>events.push(s.notes.size),()=>{});assert(r.accept(remoteSnapshot));
+    assert.equal(r.accept({kind:'delta',player:2,session:'a',wire:999,rev:1,ops}),false);
+    assert.equal(r.wires.get(2),1);assert.equal(r.states.get(2).rev,0);
+    assert.deepEqual([...r.states.get(2).notes.values()],remoteSnapshot.notes);assert.deepEqual(events,[1]);
+    assert(r.accept({kind:'delta',player:2,session:'a',wire:2,rev:1,ops:[{kind:'off',id:1}]}));
+    assert.equal(r.states.get(2).notes.size,0);
+  }
+});
+
+test('valid stops retain tombstones without a state and allow only a newer snapshot',()=>{
+  const r=new Replicas(()=>{},()=>{});
+  assert(r.accept({kind:'stop',player:2,session:'a',wire:2}));assert.equal(r.wires.get(2),2);
+  assert.equal(r.accept(remoteSnapshot),false);assert.equal(r.states.size,0);
+  assert(r.accept({...remoteSnapshot,session:'b',wire:3}));
+  assert(r.accept({kind:'stop',player:2,session:'b',wire:4}));assert.equal(r.states.size,0);
+  assert.equal(r.accept({...remoteSnapshot,session:'b',wire:3}),false);
+  assert(r.accept({...remoteSnapshot,session:'c',wire:5}));
 });

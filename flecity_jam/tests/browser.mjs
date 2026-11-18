@@ -47,6 +47,20 @@ try {
     await page.keyboard.down('Space');await page.keyboard.press('z');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);
     await page.keyboard.up('Space');assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
   });
+  await check('suspended local audio does not replay released keys and resumes a held key once',async()=>{
+    await page.waitForFunction(()=>JAM.audio.stats().nodes===0);await page.locator('#playArea').focus();
+    await page.evaluate(()=>JAM.audio.ctx.suspend());
+    for(const key of ['z','x','c','v','b'])await page.keyboard.press(key);
+    assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
+    assert.equal(await page.evaluate(()=>JAM.audio.stats().nodes),0,'paused taps must not create pending sources');
+    await page.evaluate(()=>JAM.audio.unlock());assert.equal(await page.evaluate(()=>JAM.audio.stats().nodes),0);
+    await page.evaluate(()=>JAM.audio.ctx.suspend());await page.keyboard.down('z');
+    assert.equal(await page.evaluate(()=>JAM.audio.stats().nodes),0);
+    await page.evaluate(()=>JAM.audio.unlock());assert.equal(await page.evaluate(()=>JAM.audio.stats().voices),1);
+    await page.evaluate(()=>JAM.audio.unlock());assert.equal(await page.evaluate(()=>JAM.audio.stats().voices),1);
+    await page.evaluate(()=>JAM.audio.ctx.suspend());await page.keyboard.up('z');
+    await page.evaluate(()=>JAM.audio.unlock());assert.equal(await page.evaluate(()=>JAM.audio.stats().nodes),0);
+  });
   await check('rapid 100 trills and blur leave no stuck voices',async()=>{
     await page.evaluate(()=>{for(let i=0;i<100;i++){window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyZ'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyZ'}));}});
     await page.keyboard.down('z');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('z');

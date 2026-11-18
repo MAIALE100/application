@@ -1,5 +1,5 @@
 export class MidiInput {
-  constructor({press,release,pedal,panic,status,devices}) {Object.assign(this,{press,release,pedal,panic,status,devices});this.access=null;this.port=null;this.pedals=new Set();this.connecting=null;}
+  constructor({press,release,pedal,panic,status,devices}) {Object.assign(this,{press,release,pedal,panic,status,devices});this.access=null;this.port=null;this.pedals=new Set();this.activeKeys=new Set();this.connecting=null;}
   connect() {
     if(this.connecting)return this.connecting;
     if(!navigator.requestMIDIAccess){this.status('この環境はWeb MIDIに対応していません。PCキーで演奏できます。');return Promise.resolve();}
@@ -27,13 +27,18 @@ export class MidiInput {
     const [status,pitch,value]=data,type=status&0xf0,channel=status&0x0f;
     if(!Number.isInteger(status)||status<0x80||status>0xef||![pitch,value].every(n=>Number.isInteger(n)&&n>=0&&n<=127))return;
     const key=`midi:${channel}:${pitch}`;
-    if(type===0x90 && value>0)this.press(key,pitch,value);
-    else if(type===0x80 || (type===0x90 && value===0))this.release(key);
+    if(type===0x90 && value>0){
+      // A MIDI Note On is a new strike, unlike an operating-system key repeat.
+      // Validated channel/pitch bytes bound this set to 16 * 128 identities.
+      if(this.activeKeys.has(key))this.release(key);
+      this.activeKeys.add(key);this.press(key,pitch,value);
+    }
+    else if(type===0x80 || (type===0x90 && value===0)){this.activeKeys.delete(key);this.release(key);}
     else if(type===0xb0 && pitch===64){if(value>=64)this.pedals.add(channel);else this.pedals.delete(channel);this.pedal(this.pedals.size>0);}
-    else if(type===0xb0 && [120,123].includes(pitch)){this.pedals.clear();this.pedal(false);this.panic();}
+    else if(type===0xb0 && [120,123].includes(pitch)){this.activeKeys.clear();this.pedals.clear();this.pedal(false);this.panic();}
   }
   detach() {
-    const port=this.port;this.port=null;this.pedals.clear();
+    const port=this.port;this.port=null;this.pedals.clear();this.activeKeys.clear();
     if(port){port.onmidimessage=null;try{Promise.resolve(port.close?.()).catch(()=>{});}catch{}this.pedal(false);this.panic();}
   }
 }

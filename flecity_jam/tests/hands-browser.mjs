@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Isolated Chromium keyboard/layout QA. No FiveM, server, microphone or MIDI device is used.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -32,7 +33,7 @@ async function fixture(){
   });
   await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);return page;
 }
-async function start(page){await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));await page.locator('#playArea').focus();}
+async function start(page){await beginPlaying(page);}
 const notes=page=>page.evaluate(()=>[...JAM.model.notes.values()].map(({id,pitch,held})=>({id,pitch,held})));
 const assigned=page=>page.evaluate(()=>JAM.model.bindings);
 const guide=page=>page.locator('#physicalLayout .pc-key').evaluateAll(cells=>cells.map(cell=>({

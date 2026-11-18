@@ -1,6 +1,7 @@
 import {Performance,Replicas,DEFAULT_KEYS,PIANO_KEYS,EXPANDED_KEYS,recommendedPianoOctave,recommendedHomeOctave,recommendedExpandedOctave,DRUM_KEYS,DRUM_PITCHES,RESERVED,validBindings,remapBinding,noteName,keyLabel} from './model.mjs';
 import {AudioRack} from './audio.mjs';
 import {MidiInput} from './midi.mjs';
+import {panelWindow} from './panel-window.mjs';
 
 const $=id=>document.getElementById(id);
 const preview=typeof GetParentResourceName!=='function';
@@ -12,6 +13,8 @@ let velocity=100,performVolume=75,showGuide=true;
 let keyboardBounds='',keyboardWhites=0,viewWidth=0,viewUnit=0,viewAnchor=0,legacyImported=false;
 let listen=.65,muted=false,metronome=null,metroPending=false,metroGeneration=0,nextBeat=0,beat=0,noticeTimer=0;
 let listenOnlyOpen=false,listenCheck=0;
+const queuedNotes=new Map();
+let automaticVoice=true;
 const pedalSources=new Set();
 const metroVoices=new Set();
 const voiceSources=new Set();
@@ -72,8 +75,9 @@ async function bridge(name,data={}) {
 }
 function drawVoice() {
   const held=voiceSources.size>0;
-  $('voice').disabled=!voiceEnabled;$('voice').setAttribute('aria-pressed',String(held));
-  $('voiceStatus').textContent=preview?(held?'試奏・会話入力のみ':'試奏・マイク送信なし'):voiceTalking?'送信状態を検出':held?'PTT入力中':voiceEnabled?'会話入力 待機':'会話入力 停止';
+  $('voice').disabled=!voiceEnabled;$('voice').setAttribute('aria-pressed',String(automaticVoice));
+  $('voice').querySelector('kbd').textContent=automaticVoice?'ON':'OFF';
+  $('voiceStatus').textContent=preview?'試奏・マイク送信なし':!voiceEnabled?'会話入力 停止':voiceTalking?'送信状態を検出':voiceSources.has('automatic')?'自動会話入力 ON':held?'Nキーの会話入力中':automaticVoice?'演奏開始後に自動ON':'自動会話 OFF';
 }
 function releaseVoice(tellGame=true) {
   const wasHeld=voiceSources.size>0;voiceSources.clear();clearInterval(voiceTimer);voiceTimer=0;
@@ -81,30 +85,47 @@ function releaseVoice(tellGame=true) {
 }
 function configureVoice(voice) {
   const enabled=voice?.enabled===true&&typeof voice.token==='string'&&voice.token.length>0;
-  if(voiceToken!==voice?.token||!enabled){releaseVoice(false);voiceSeq=0;voiceTalking=false;voiceLane={pending:false};}
-  voiceToken=enabled?voice.token:null;voiceEnabled=enabled;drawVoice();
+  if(voiceToken!==voice?.token||!enabled){if(!enabled||(voiceToken!==null&&voiceToken!==voice?.token))automaticVoice=false;releaseVoice(false);voiceSeq=0;voiceTalking=false;voiceLane={pending:false};}
+  voiceToken=enabled?voice.token:null;voiceEnabled=enabled;drawVoice();if(enabled&&automaticVoice&&session)syncAutomaticVoice();
 }
+function syncAutomaticVoice(){voiceSource('automatic',Boolean(shown&&session&&automaticVoice&&voiceEnabled));}
 function sendVoice(held) {
+  if(held&&voiceSources.has('automatic')&&(document.hidden||!document.hasFocus())){automaticVoice=false;releaseVoice();return;}
   const token=voiceToken,lane=voiceLane;if(!token||(held&&lane.pending))return;
   const seq=++voiceSeq;lane.pending=true;
   const fail=()=>{
     if(voiceToken!==token||voiceSeq!==seq||!held)return;
-    releaseVoice(false);voiceEnabled=false;drawVoice();
+    automaticVoice=false;releaseVoice(false);voiceEnabled=false;drawVoice();
     bridge('voice',{token,seq:++voiceSeq,held:false}).catch(()=>{});
     error('会話入力の応答を確認できません。Escで閉じて会話し、JAMを開き直してください。');
   };
-  bridge('voice',{token,seq,held}).then(result=>{if(!result.ok)fail();}).catch(fail).finally(()=>{lane.pending=false;});
+  const automatic=held&&voiceSources.has('automatic');
+  bridge('voice',{token,seq,held,...(automatic?{automatic:true,session}: {})}).then(result=>{if(!result.ok)fail();}).catch(fail).finally(()=>{lane.pending=false;});
 }
 function voiceSource(source,down) {
   if(down&&(!shown||!voiceEnabled))return;
   const wasHeld=voiceSources.size>0;
   if(down)voiceSources.add(source);else voiceSources.delete(source);
   const held=voiceSources.size>0;
-  if(held!==wasHeld){sendVoice(held);clearInterval(voiceTimer);voiceTimer=held?setInterval(()=>sendVoice(true),200):0;}
+  if(held!==wasHeld){clearInterval(voiceTimer);voiceTimer=held?setInterval(()=>{if(voiceSources.size>0)sendVoice(true);},200):0;sendVoice(held);}
   drawVoice();
 }
 function failTransport() {
-  stop();error('演奏の通信が途切れました。音を止めました。もう一度「演奏する」を押してください。');
+  automaticVoice=false;stop();error('演奏の通信が途切れました。音と自動会話を止めました。キーを離して、もう一度鍵盤を押してください。');
+}
+function requestNote(key,pitch,strength=velocity){
+  if(!shown||!model||!Number.isInteger(pitch)||pitch<model.spec.min||pitch>model.spec.max)return;
+  if(session){model.press(key,pitch,strength);return;}
+  if(!queuedNotes.has(key)&&queuedNotes.size>=16)queuedNotes.delete(queuedNotes.keys().next().value);
+  queuedNotes.set(key,{pitch,strength,at:now()});if(!starting)start();
+}
+function releaseNote(key,cancel=false){
+  const pendingNote=queuedNotes.get(key);
+  if(pendingNote){
+    if(cancel){if(pendingNote.releasedAt===undefined)queuedNotes.delete(key);}
+    else pendingNote.releasedAt=now();
+  }
+  model?.release(key);
 }
 function send(packet) {
   const expected=session,lane=transport,created=now();
@@ -168,10 +189,11 @@ function drawKeys(center=false) {
       button.style.setProperty('--key-position',String(black?white-.32:white++));
       button.append(document.createElement('kbd'),document.createElement('span'));
       button.addEventListener('pointerdown',e=>{
-        if(e.button!==0)return;e.preventDefault();if(!session)return;
-        button.setPointerCapture(e.pointerId);model.press('pointer:'+e.pointerId,pitch,velocity);$('playArea').focus({preventScroll:true});
+        if(e.button!==0)return;e.preventDefault();
+        button.setPointerCapture(e.pointerId);requestNote('pointer:'+e.pointerId,pitch,velocity);$('playArea').focus({preventScroll:true});
       });
-      for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,e=>model?.release('pointer:'+e.pointerId));
+      button.addEventListener('pointerup',e=>releaseNote('pointer:'+e.pointerId));
+      for(const type of ['pointercancel','lostpointercapture'])button.addEventListener(type,e=>releaseNote('pointer:'+e.pointerId,true));
       keyboard.append(button);
     }
     keyboardWhites=white;
@@ -254,7 +276,7 @@ function bindings() {
     const label=drums?model.spec.samples.find(s=>s.midi===pitch)?.label||noteName(pitch):noteName(pitch);
     const b=document.createElement('button');b.type='button';b.textContent=label+' · '+keyLabel(code);b.dataset.bindingIndex=i;
     b.classList.toggle('binding-black',!drums&&[1,3,6,8,10].includes(pitch%12));b.classList.toggle('capturing',capture===i);b.setAttribute('aria-pressed',String(capture===i));
-    b.addEventListener('click',()=>{releaseVoice();panic();capture=i;bindings();$('bindings').children[i].focus({preventScroll:true});});$('bindings').append(b);
+    b.addEventListener('click',()=>{releaseVoice();syncAutomaticVoice();panic();capture=i;bindings();$('bindings').children[i].focus({preventScroll:true});});$('bindings').append(b);
   });
 }
 function setSettings(open) {
@@ -263,9 +285,8 @@ function setSettings(open) {
   if(open)bindings();
 }
 async function start() {
-  if(session){stop();return;}
-  if(starting)return;
-  const generation=++startGeneration;starting=true;$('start').disabled=true;$('start').setAttribute('aria-busy','true');$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
+  if(session||starting||!shown)return;
+  const generation=++startGeneration;starting=true;$('panel').setAttribute('aria-busy','true');$('instrument').disabled=true;error();$('status').textContent='音源を準備しています…';
   let stage='audio';
   try {
     if(!await audio.unlock())throw Error('audio unavailable');
@@ -290,9 +311,15 @@ function control(data) {
     if(!shown||!starting){bridge('stop').catch(()=>{});return;}
     listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;
     session=data.session;transport={session,queue:Promise.resolve(),queued:0};sequence=0;pending=[];starting=false;model.limit=data.maxNotes||16;
-    $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏を休む';$('lamp').classList.add('active');
+    $('panel').setAttribute('aria-busy','false');$('panel').dataset.performing='true';$('instrument').disabled=false;$('lamp').classList.add('active');
     $('status').textContent=preview?'試奏モード · 周囲への共有なし':'演奏中 · 周囲に音が届きます';
-    $('playArea').focus({preventScroll:true});syncInput();redraw();
+    $('playArea').focus({preventScroll:true});syncInput();
+    for(const [key,note]of queuedNotes){
+      // Preserve the first quick strike only within a small startup window, never replay an old burst after a long load.
+      if(note.releasedAt!==undefined&&(now()-note.releasedAt>150||now()-note.at>250))continue;
+      model.press(key,note.pitch,note.strength);if(note.releasedAt!==undefined)model.release(key);
+    }
+    queuedNotes.clear();redraw();syncAutomaticVoice();
   } else if(data.kind==='denied') {
     stop();const reason={permission:'この楽器を使用する権限・アイテムがありません。',capacity:'同時演奏人数の上限です。',cooldown:'少し待ってから開始してください。',unavailable:'現在は演奏できません。'};
     error(reason[data.reason]||'演奏を開始できませんでした。');
@@ -300,18 +327,21 @@ function control(data) {
     stop();error('演奏を終了しました。'+({rate:'入力が速すぎるため、安全停止しました。',expired:'応答または演奏状態を確認できませんでした。',unavailable:'現在は演奏できません。'}[data.reason]||''));
   } else if(data.session===session && data.kind==='resync')syncInput();
 }
-function stop() {
+function stop(continueAutomatic=false) {
+  const wasActive=session||starting;
+  automaticVoice=continueAutomatic&&automaticVoice;
   releaseVoice();
-  const wasActive=session||starting;startGeneration++;session=null;starting=false;pending=[];clearTimeout(flushTimer);flushTimer=0;
+  if(automaticVoice&&wasActive)voiceToken=null; // Only an active stop rotates the authenticated epoch in Lua.
+  startGeneration++;session=null;starting=false;queuedNotes.clear();pending=[];clearTimeout(flushTimer);flushTimer=0;
   transport={session:null,queue:Promise.resolve(),queued:0};
   pedalSources.clear();model?.panic();audio?.remove('local');
-  $('start').disabled=false;$('start').setAttribute('aria-busy','false');$('start').textContent='演奏する';$('instrument').disabled=false;$('lamp').classList.remove('active');
-  $('status').textContent='楽器を選んで、演奏を始めよう。';
+  $('panel').setAttribute('aria-busy','false');$('panel').dataset.performing='false';$('instrument').disabled=false;$('lamp').classList.remove('active');
+  $('status').textContent='鍵盤を押すと、そのまま演奏できます。';
   if(wasActive)bridge('stop').catch(()=>{});
 }
-function panic() {pedalSources.clear();model?.panic();audio?.remove('local');flush();}
+function panic() {queuedNotes.clear();pedalSources.clear();model?.panic();audio?.remove('local');flush();}
 function pedal(source,down) {if(down)pedalSources.add(source);else pedalSources.delete(source);model.pedal(pedalSources.size>0);}
-function close(tellGame=true) {stop();configureVoice(null);stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('editKeys').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
+function close(tellGame=true) {floatingPanel.cancelDrag();stop();configureVoice(null);stopMetronome();capture=null;shown=false;listenOnlyOpen=false;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('settings').hidden=true;$('settingsToggle').setAttribute('aria-expanded','false');$('editKeys').setAttribute('aria-expanded','false');$('panel').hidden=true;if(tellGame)bridge('close').catch(()=>{});}
 function promptListenAudio() {
   if(!shown||!listenOnlyOpen||audio.ctx?.state==='running')return;
   resumeAudioButton.hidden=false;
@@ -341,11 +371,13 @@ async function checkListenAudio(manual=false) {
 resumeAudioButton.onclick=()=>checkListenAudio(true);
 function open(data={}) {
   shown=true;listenOnlyOpen=data.listenOnly===true;listenCheck++;resumeAudioButton.hidden=true;resumeAudioButton.disabled=false;$('panel').hidden=false;error();reserved=Array.isArray(data.reserved)?data.reserved:reserved;
+  $('panel').setAttribute('aria-busy',String(starting));$('panel').dataset.performing=String(Boolean(session));
+  automaticVoice=true;
   configureVoice(data.voice||(preview?{token:'preview',enabled:true}:null));
   choose(data.instrument||$('instrument').value);$('rangeBadge').textContent=`共有範囲 ${data.range||15}m`;
   if(!validBindings(activeBindings(),reserved,bindingMode()))error('予約キーと重なる割り当ては演奏に使えません。キー設定で変更してください。');
-  $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'楽器を選んで、演奏を始めよう。';
-  $('instrument').focus();
+  $('status').textContent=data.listenOnly?'「聴く音量」で周囲の演奏を調整できます。':'鍵盤を押すと演奏開始。自動会話は演奏中だけONになります。';
+  $('playArea').focus({preventScroll:true});floatingPanel.layout();
   if(listenOnlyOpen){
     try{audio.init();}catch{}
     promptListenAudio();checkListenAudio();
@@ -380,7 +412,8 @@ async function toggleMetronome() {
   },25);
 }
 
-const midi=new MidiInput({press:(...args)=>{if(session)model.press(...args);},release:key=>model?.release(key),pedal:down=>{if(session)pedal('midi',down);},panic,
+const floatingPanel=panelWindow($('panel'),$('panelDrag'),$('resetPanel'),$('panelSize'),()=>notice('画面位置を保存できませんでした。今回のみ使用できます。'));
+const midi=new MidiInput({press:requestNote,release:releaseNote,pedal:down=>{if(shown)pedal('midi',down);},panic,
   status:text=>$('midiStatus').textContent=text,devices:list=>{
     const select=$('midiDevice'),selected=select.value;select.replaceChildren();select.disabled=!list.length;
     if(!list.length)select.add(new Option('未接続',''));for(const p of list)select.add(new Option(p.name,p.id));
@@ -432,22 +465,19 @@ window.addEventListener('keydown',e=>{
   if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.code==='KeyN'&&(!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type==='range'))){e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('keyboard',true);return;}
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
-  if(!session)return;
   if(e.repeat){if(e.code==='Space'||e.code==='ArrowDown'||e.code==='ArrowUp'||model.pitch(e.code)!==undefined){e.preventDefault();e.stopPropagation();}return;}
   if(e.code==='Space' && e.target.tagName!=='BUTTON'){e.preventDefault();e.stopPropagation();pedal('keyboard',true);return;}
   if(e.code==='ArrowDown'||e.code==='ArrowUp'){e.preventDefault();e.stopPropagation();shiftOctave(e.code==='ArrowDown'?-1:1);return;}
-  const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();model.press('key:'+e.code,pitch,velocity);
+  const pitch=reserved.includes(e.code)?undefined:model.pitch(e.code);if(pitch===undefined)return;e.preventDefault();e.stopPropagation();requestNote('key:'+e.code,pitch,velocity);
 });
-window.addEventListener('keyup',e=>{if(voiceSources.has('button:'+e.code)){e.preventDefault();e.stopPropagation();voiceSource('button:'+e.code,false);}if(e.code==='KeyN'&&voiceSources.has('keyboard')){e.preventDefault();e.stopPropagation();voiceSource('keyboard',false);}if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){model.release('key:'+e.code);model.pedal(pedalSources.size>0);}});
+window.addEventListener('keyup',e=>{if(voiceSources.has('button:'+e.code)){e.preventDefault();e.stopPropagation();voiceSource('button:'+e.code,false);}if(e.code==='KeyN'&&voiceSources.has('keyboard')){e.preventDefault();e.stopPropagation();voiceSource('keyboard',false);}if(shown&&((e.code==='Space'&&pedalSources.has('keyboard'))||model?.keys.has('key:'+e.code))){e.preventDefault();e.stopPropagation();}if(e.code==='Space')pedalSources.delete('keyboard');if(model){releaseNote('key:'+e.code);model.pedal(pedalSources.size>0);}});
 window.addEventListener('blur',()=>{if(shown)close();else stopMetronome();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(shown)close();replicas.clear();audio?.stopAll();}});
 window.addEventListener('pagehide',()=>{if(shown)close();audio?.stopAll();});
 
-$('start').onclick=start;$('close').onclick=()=>close();$('panic').onclick=e=>{panic();focusAfterPointer(e);};
-$('voice').addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();$('voice').setPointerCapture(e.pointerId);voiceSource('pointer:'+e.pointerId,true);$('playArea').focus({preventScroll:true});});
-for(const type of ['pointerup','pointercancel','lostpointercapture'])$('voice').addEventListener(type,e=>voiceSource('pointer:'+e.pointerId,false));
-$('voice').addEventListener('keydown',e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!e.repeat)voiceSource('button:'+e.code,true);});
-$('instrument').onchange=()=>{stop();choose($('instrument').value);};
+$('close').onclick=()=>close();$('panic').onclick=e=>{panic();focusAfterPointer(e);};
+$('voice').onclick=e=>{automaticVoice=!automaticVoice;if(!automaticVoice)releaseVoice();else syncAutomaticVoice();drawVoice();focusAfterPointer(e);};
+$('instrument').onchange=()=>{stop(true);choose($('instrument').value);};
 $('octDown').onclick=e=>{shiftOctave(-1);focusAfterPointer(e);};
 $('octUp').onclick=e=>{shiftOctave(1);focusAfterPointer(e);};
 $('keyLayout').onchange=()=>changeLayout($('keyLayout').value);
@@ -458,7 +488,7 @@ $('viewHome').onclick=e=>{fitKeyboard(true);focusAfterPointer(e);};
 $('guideToggle').onclick=e=>{showGuide=!showGuide;drawKeys();save();focusAfterPointer(e);};
 $('keyboardViewport').onscroll=()=>{const viewport=$('keyboardViewport');if(viewUnit&&viewport.clientWidth===viewWidth)viewAnchor=viewport.scrollLeft/viewUnit;};
 new ResizeObserver(()=>fitKeyboard()).observe($('keyboardViewport'));
-$('sustain').onclick=e=>{if(session)pedal('button',!pedalSources.has('button'));focusAfterPointer(e);};
+$('sustain').onclick=e=>{if(shown)pedal('button',!pedalSources.has('button'));focusAfterPointer(e);};
 $('velocity').oninput=()=>{velocity=Number($('velocity').value);$('velocityValue').textContent=velocity;save();};
 $('performVolume').oninput=()=>{performVolume=Number($('performVolume').value);$('performValue').textContent=performVolume+'%';model?.setVolume(performVolume/100);save();};
 $('listenVolume').oninput=()=>{listen=Number($('listenVolume').value)/100;$('listenValue').textContent=Math.round(listen*100)+'%';audio.setVolume(listen);save();};
@@ -484,7 +514,7 @@ function message(data) {
   else if(data.type==='notice')notice(data.message);
   else if(data.type==='toggleMute'){setMuted(!muted);notice(muted?'JAMを消音しました。/jammute で解除。':'JAMの消音を解除しました。');}
   else if(data.type==='config'){reserved=data.reserved||[];}
-  else if(data.type==='voiceState'&&shown){configureVoice(data.voice);voiceTalking=data.talking===true;if(data.expired===true)releaseVoice(false);drawVoice();}
+  else if(data.type==='voiceState'&&shown){configureVoice(data.voice);voiceTalking=data.talking===true;if(data.expired===true){automaticVoice=false;releaseVoice(false);}drawVoice();}
 }
 let booting=false,bootReady=false,bootFailed=false,bootShown=false,preloading=false;
 const early=[];window.addEventListener('message',e=>{

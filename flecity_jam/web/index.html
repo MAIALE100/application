@@ -11,18 +11,24 @@
     <button id="retryBoot" type="button" hidden>JAMを再読み込み</button>
   </aside>
   <main id="panel" aria-label="JAM 演奏パネル" tabindex="-1" hidden>
-    <header>
+    <div class="panel-chrome">
+    <header class="instrument-header">
       <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>JAM<span>FLECITY</span></h1></div>
-      <div class="session-status"><span id="lamp" aria-hidden="true"></span><span id="status" role="status">楽器を選んで、演奏を始めよう。</span></div>
-      <button id="compact" class="quiet" aria-expanded="true">縮小</button><button id="close" class="quiet">終了・会話 <kbd>Esc</kbd></button>
-    </header>
-    <section class="controls" aria-label="演奏設定">
       <label class="instrument">楽器<select id="instrument"></select></label>
-      <button id="start" class="primary">演奏する</button>
+      <div id="panelDrag" class="drag-handle" role="button" tabindex="0" aria-label="パネルを移動" aria-describedby="panelMoveHelp" title="ドラッグ、または方向キーでパネルを移動">
+        <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M6 5h.01M14 5h.01M6 10h.01M14 10h.01M6 15h.01M14 15h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span>移動</span>
+      </div>
+      <div class="window-actions"><button id="resetPanel" class="quiet" aria-label="パネルの位置と大きさを戻す" title="パネルの位置と大きさを戻す">中央へ</button><button id="compact" class="quiet" aria-expanded="true">縮小</button><button id="close" class="quiet">閉じる <kbd>Esc</kbd></button></div>
+    </header>
+    <p id="panelMoveHelp" class="visually-hidden">移動ハンドルをドラッグするか、フォーカスして方向キーで10pxずつ、Shiftと方向キーで40pxずつ動かせます。Homeまたは「中央へ」で位置と大きさを戻せます。</p>
+    <section class="session-bar" aria-label="演奏と会話の状態">
+      <div class="session-status"><span id="lamp" aria-hidden="true"></span><span id="status" role="status">鍵盤を押すと、そのまま演奏できます。</span></div>
+      <button id="voice" aria-pressed="false" aria-describedby="voiceHelp" disabled><span>会話 自動</span><strong id="voiceStatus" role="status">自動OFF</strong><kbd>ON / OFF</kbd></button>
+    </section>
+    </div>
+    <section class="controls" aria-label="演奏設定">
       <div class="octave"><span>PCの基準oct.</span><div><button id="octDown" aria-label="1オクターブ下げる">−</button><output id="octave">4</output><button id="octUp" aria-label="1オクターブ上げる">＋</button></div></div>
       <button id="sustain" aria-pressed="false"><span>サステイン</span><strong id="pedalState">OFF</strong><kbd>Space</kbd></button>
-      <button id="voice" aria-pressed="false" aria-describedby="voiceHelp" disabled><span>会話 · 押している間</span><strong id="voiceStatus" role="status">会話入力 停止</strong><kbd>N</kbd></button>
-      <label class="slider">打鍵の強さ <output id="velocityValue">100</output><input id="velocity" aria-label="PCキーとマウスの打鍵の強さ" aria-describedby="velocityHelp" type="range" min="1" max="127" step="1" value="100"></label>
       <label class="slider">演奏音量 <output id="performValue">75%</output><input id="performVolume" aria-label="演奏音量" type="range" min="0" max="100" value="75"></label>
       <label class="slider">聴く音量 <output id="listenValue">65%</output><input id="listenVolume" aria-label="聴く音量" type="range" min="0" max="100" value="65"></label>
       <button id="mute" class="quiet" aria-pressed="false">消音</button>
@@ -43,15 +49,18 @@
       <div id="keyboardViewport" tabindex="0" aria-label="鍵盤表示。横スクロールで音域を移動"><div id="keyboard" class="keyboard" aria-label="鍵盤"></div></div>
       <div id="physicalLayout" aria-label="PC配列の案内。下の列が白鍵、上の列が黒鍵"></div>
       <p id="layoutHelp"></p>
-      <p id="voiceHelp" class="input-hint">演奏中の会話は <kbd>N</kbd> または会話ボタンを押している間。声が届かないときや無線・他画面を使うときは <kbd>Esc</kbd> で閉じてください。</p>
     </section>
     <footer>
-      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span><kbd>N</kbd> 会話入力</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 15m</span></div>
-      <div class="actions"><button id="panic" class="quiet">すべての音を止める</button><button id="settingsToggle" class="quiet" aria-expanded="false" aria-controls="settings">設定・MIDI・周囲の音</button></div>
+      <div class="hints"><span><kbd>↓</kbd><kbd>↑</kbd> 音域</span><span><kbd>Space</kbd> ペダル</span><span id="nearby">周囲 0人</span><span id="rangeBadge">共有範囲 15m</span></div>
+      <div class="actions"><button id="panic" class="quiet">楽器の音を止める</button><button id="settingsToggle" class="quiet" aria-expanded="false" aria-controls="settings">設定・MIDI・周囲の音</button></div>
     </footer>
+    <p id="voiceHelp" class="input-hint voice-help">演奏開始時は自動会話ON。Nキーは不要で、上部からOFFにできます。マイクの無効設定は解除しません。無線やほかの画面を使うときは <kbd>Esc</kbd> で閉じてください。</p>
     <section id="settings" aria-label="キー設定とMIDI" hidden>
-      <div class="settings-head"><h2 id="bindingTarget">自分の弾きやすい配列に</h2><div class="binding-actions"><button id="cancelBinding" class="quiet" hidden>変更を中止</button><button id="resetKeys" class="quiet">この配列を初期化</button></div></div>
+      <div class="settings-row panel-settings"><label>パネルの大きさ<select id="panelSize"><option value="small">小さめ</option><option value="normal" selected>標準</option><option value="large">大きめ</option></select></label><span>移動ハンドルをドラッグして好きな位置へ。Homeまたは「中央へ」で元に戻せます。</span></div>
+      <div class="settings-head"><h2>演奏の強さ</h2></div>
+      <label class="slider velocity-setting">打鍵の強さ <output id="velocityValue">100</output><input id="velocity" aria-label="PCキーとマウスの打鍵の強さ" aria-describedby="velocityHelp" type="range" min="1" max="127" step="1" value="100"></label>
       <p id="velocityHelp">「打鍵の強さ」は新しく鳴らすPCキー・マウスの音に適用します。MIDIは機器から届く強さを使います。「演奏音量」は演奏全体の音量です。</p>
+      <div class="settings-head"><h2 id="bindingTarget">自分の弾きやすい配列に</h2><div class="binding-actions"><button id="cancelBinding" class="quiet" hidden>変更を中止</button><button id="resetKeys" class="quiet">この配列を初期化</button></div></div>
       <p>音を選んで、使いたい文字・数字・記号キーを1つ押すと変更できます。すでに他の音で使っているキーは、2音の割り当てを交換します。ドラムも個別に変更できます。設定はこのPCだけに保存され、他の人のキー配置は変わりません。</p>
       <p>N・CapsLock・方向キー・Space・Esc等は会話／操作のため予約済みです。右端の「:」はUS配列の「'」と同じ位置。IMEはオフにしてください。変更待ちは「変更を中止」、JAMを閉じる場合はEsc。初期化は現在の配列だけが対象です。</p>
       <p id="bindingStatus" role="status" aria-live="polite">このPCだけに自動保存。変更する音を選んでください。</p>
@@ -61,7 +70,7 @@
       <p id="peerMixEmpty">近くで演奏が始まると、演奏者ごとの音量が表示されます。</p><div id="peerMix"></div>
       <div class="settings-row"><button id="midiConnect">MIDIを接続</button><label>MIDI入力<select id="midiDevice" disabled><option>未接続</option></select></label><span id="midiStatus" role="status">対応環境でのみ利用できます</span></div>
       <div class="settings-row"><button id="metro" aria-pressed="false">メトロノーム OFF</button><label>テンポ <input id="bpm" type="number" min="40" max="240" value="100"></label><span>メトロノームは自分だけに聞こえます</span></div>
-      <p>配列切替とキー変更では発音中の音を止めます。会話入力はNまたは会話ボタンを押している間です。「送信状態を検出」は相手への到達を保証しません。無線を使うときはEscで閉じてください。Voice設定は変更しません。</p>
+      <p>配列切替とキー変更では発音中の音を止めます。会話の自動入力は上部のボタンで切り替えます。声が届かないときや無線を使うときはEscで閉じてください。</p>
     </section>
   </main>
   <script type="module" src="app.mjs"></script>

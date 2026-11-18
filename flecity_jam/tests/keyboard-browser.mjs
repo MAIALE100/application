@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
 import {PIANO_KEYS} from '../web/model.mjs';
 // Local Chromium interaction QA for JAM's keyboard layout. No FXServer or network is used.
@@ -58,14 +59,7 @@ const state=page=>page.evaluate(()=>({
   layout:document.querySelector('#keyLayout').value,
   mapped:[...document.querySelectorAll('#keyboard button[data-code]:not(:disabled)')].map(button=>({code:button.dataset.code,pitch:Number(button.dataset.pitch)}))
 }));
-async function start(page) {
-  if(!await page.evaluate(()=>Boolean(JAM.session))){
-    await page.click('#start');
-    await page.waitForFunction(()=>window.JAM?.session||!document.querySelector('#error').hidden);
-  }
-  assert(await page.evaluate(()=>Boolean(JAM.session)),await page.locator('#error').innerText());
-  await page.locator('#playArea').focus();
-}
+async function start(page) {await beginPlaying(page);}
 async function releaseAll(page,codes) {for(const code of codes)await page.keyboard.up(code);}
 
 let page,legacyPage,nuiPage,compactPage,capturePage;
@@ -238,7 +232,7 @@ try {
     finally{await page.keyboard.up('c');}
   });
   await check('drums remain eight pads with bounded playable range',async()=>{
-    if(await page.evaluate(()=>Boolean(JAM.session)))await page.click('#start');
+    if(await page.evaluate(()=>Boolean(JAM.session)))await stopPlaying(page);
     await page.selectOption('#instrument','drums');await start(page);
     const s=await state(page);assert.equal(s.mapped.length,8);assert.equal(s.bindings.length,36);
     assert.equal(await page.locator('#keyboard .key').count(),8);
@@ -248,7 +242,7 @@ try {
     assert.equal((await state(page)).notes.length,0);
   });
   await check('each pitched instrument enables only its declared min–max',async()=>{
-    await page.click('#start');
+    await stopPlaying(page);
     for(const id of ['piano','guitar','bass','clarinet']){
       await page.selectOption('#instrument',id);
       const result=await page.evaluate(()=>{

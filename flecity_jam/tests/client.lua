@@ -1,7 +1,7 @@
 local handlers,callbacks,commands,threads,sent,messages={},{},{},{},{},{}
 local clock,dead,paused,focused,keepInput,otherUi=1000,false,false,false,false,false
 local focusWrites,keepInputWrites=0,0
-local controlWrites,detectedTalking={},false
+local controlWrites,detectedTalking,pttEnabled={},false,true
 local currentPed=99
 local remotePresent=false
 local exported={}
@@ -32,7 +32,7 @@ function SetControlNormal(pad,id,value)
     assert(id==249 and (pad==0 or pad==1 or pad==2) and value==1.0,'only held PTT input may be injected')
     controlWrites[#controlWrites+1]={pad=pad,id=id,value=value}
 end
-function IsControlEnabled()return true end
+function IsControlEnabled()return pttEnabled end
 function IsControlPressed()return #controlWrites>0 end
 function IsNuiFocusKeepingInput()return keepInput end
 function MumbleIsPlayerTalking()return detectedTalking and 1 or 0 end
@@ -298,6 +298,87 @@ test('death focus loss disabled PTT and resource stop release a pending voice ho
     commands.jam(nil,{});assert(voiceConfig().token~=token)
     assert(not call('voice',{token=token,seq=2,held=true}).ok);call('close')
 end)
+local function startVoiceSession(id)
+    commands.jam(nil,{})
+    assert(call('start',{instrument='piano'}).ok)
+    local request=sent[#sent].args[2]
+    handlers['flecity_jam:control']({kind='started',request=request,session=id,instrument='piano'})
+    return voiceConfig().token
+end
+
+test('automatic conversation requires an authenticated current performance rather than opening or listening',function()
+    commands.jamlisten();local token=voiceConfig().token
+    assert(not call('voice',{token=token,seq=1,held=true,automatic=true,session='none'}).ok)
+    assert(call('start',{instrument='piano'}).ok);local request=sent[#sent].args[2]
+    assert(not call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-start'}).ok)
+    handlers['flecity_jam:control']({kind='started',request=request,session='auto-start',instrument='piano'})
+    assert(not call('voice',{token=token,seq=1,held=true,automatic='true',session='auto-start'}).ok)
+    assert(not call('voice',{token=token,seq=1,held=true,automatic=true,session='old'}).ok)
+    assert(not call('voice',{token=token,seq=1,held=true,automatic=true}).ok)
+    assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-start'}).ok)
+    local writes=#controlWrites;frame();assert(#controlWrites==writes+3)
+    assert(messages[#messages].type=='voiceState' and messages[#messages].held and messages[#messages].automatic)
+    call('close')
+end)
+
+test('automatic conversation renews a 900ms lease and expiry cannot resume without a fresh explicit request',function()
+    local token=startVoiceSession('auto-lease')
+    assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-lease'}).ok)
+    clock=clock+200;assert(call('voice',{token=token,seq=2,held=true,automatic=true,session='auto-lease'}).ok)
+    clock=clock+899;local writes=#controlWrites;frame();assert(#controlWrites==writes+3)
+    clock=clock+1;writes=#controlWrites;frame();assert(#controlWrites==writes)
+    local state=messages[#messages];assert(state.expired and not state.held and not state.automatic and state.voice.token~=token)
+    assert(not call('voice',{token=token,seq=3,held=true,automatic=true,session='auto-lease'}).ok)
+    frame();assert(#controlWrites==writes,'expiry must not automatically reacquire voice')
+    token=voiceConfig().token
+    assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-lease'}).ok)
+    frame();assert(#controlWrites==writes+3)
+    assert(call('voice',{token=token,seq=2,held=false,automatic=true,session='auto-lease'}).ok)
+    writes=#controlWrites;frame();assert(#controlWrites==writes)
+    assert(not messages[#messages].automatic and not messages[#messages].held);call('close')
+end)
+
+test('disabled or unavailable native PTT stays disabled and invalidates automatic input without a forced zero',function()
+    local token=startVoiceSession('auto-disabled')
+    assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-disabled'}).ok)
+    local writes=#controlWrites;pttEnabled=false;frame();assert(#controlWrites==writes)
+    assert(not voiceConfig().enabled and voiceConfig().token~=token and messages[#messages].expired)
+    assert(not call('voice',{token=voiceConfig().token,seq=1,held=true,automatic=true,session='auto-disabled'}).ok)
+    pttEnabled=true;frame();assert(voiceConfig().enabled and #controlWrites==writes)
+    token=voiceConfig().token;assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-disabled'}).ok)
+    local native=IsControlEnabled;IsControlEnabled=nil;frame();assert(#controlWrites==writes and not voiceConfig().enabled)
+    assert(not call('voice',{token=voiceConfig().token,seq=1,held=true,automatic=true,session='auto-disabled'}).ok)
+    IsControlEnabled=native;frame();assert(#controlWrites==writes and voiceConfig().enabled);call('close')
+end)
+
+test('automatic conversation stops at session end while the legacy held schema remains available as an explicit fallback',function()
+    local token=startVoiceSession('auto-stop')
+    assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-stop'}).ok);frame()
+    local writes=#controlWrites;assert(call('stop').ok);frame();assert(#controlWrites==writes)
+    assert(not call('voice',{token=token,seq=2,held=true,automatic=true,session='auto-stop'}).ok)
+    token=voiceConfig().token
+    assert(not call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-stop'}).ok)
+    assert(call('voice',{token=token,seq=1,held=true}).ok);frame();assert(#controlWrites==writes+3)
+    assert(messages[#messages].held and not messages[#messages].automatic)
+    assert(call('voice',{token=token,seq=2,held=false}).ok);call('close')
+end)
+
+test('automatic conversation releases on focus loss death pause clock rollover and resource shutdown',function()
+    for _,reason in ipairs({'focus','death','pause','clock','resource'})do
+        local beforeClock=clock;local token=startVoiceSession('auto-'..reason)
+        assert(call('voice',{token=token,seq=1,held=true,automatic=true,session='auto-'..reason}).ok)
+        local writes=#controlWrites
+        if reason=='focus' then focused=false
+        elseif reason=='death' then dead=true
+        elseif reason=='pause' then paused=true
+        elseif reason=='clock' then clock=clock-2147483648
+        else handlers.onClientResourceStop('flecity_jam') end
+        frame();assert(#controlWrites==writes and voiceConfig().token~=token,reason)
+        assert(not call('voice',{token=token,seq=2,held=true,automatic=true,session='auto-'..reason}).ok,reason)
+        dead,paused=false,false;clock=beforeClock;call('close')
+    end
+end)
+
 test('permission adapters fail closed for unavailable inventory',function()
     dofile('server/access.lua');JamConfig.Access='open';assert(JamHasAccess(1,'piano'))
     JamConfig.Access='ace';function IsPlayerAceAllowed()return false end;assert(not JamHasAccess(1,'piano'))

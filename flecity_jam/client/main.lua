@@ -8,9 +8,15 @@ local function uiExpired()
     return elapsed<0 or elapsed>=4500
 end
 local voiceEpoch,voiceSeq,voiceHeld,voiceUntil = 0,0,false,0
+local voiceAutomatic,voiceSession = false,nil
 local voiceToken,lastVoice = nil,nil
+local function voiceControlEnabled()
+    if JamConfig.PttControl~=249 or type(IsControlEnabled)~='function' then return false end
+    local enabled=IsControlEnabled(0,249)
+    return enabled==true or enabled==1
+end
 local function voiceConfig()
-    return {token=voiceToken,enabled=shown and JamConfig.PttControl==249}
+    return {token=voiceToken,enabled=shown and voiceControlEnabled()}
 end
 local function talking()
     if type(MumbleIsPlayerTalking)~='function' then return false end
@@ -20,16 +26,17 @@ end
 local function publishVoice(expired)
     local detected=shown and talking() or false
     local config=voiceConfig()
-    if not lastVoice or lastVoice.held~=voiceHeld or lastVoice.talking~=detected
+    if not lastVoice or lastVoice.held~=voiceHeld or lastVoice.automatic~=voiceAutomatic or lastVoice.talking~=detected
         or lastVoice.token~=voiceToken or lastVoice.enabled~=config.enabled then
-        lastVoice={held=voiceHeld,talking=detected,token=voiceToken,enabled=config.enabled}
-        nui({type='voiceState',held=voiceHeld,talking=detected,expired=expired==true,voice=config})
+        lastVoice={held=voiceHeld,automatic=voiceAutomatic,talking=detected,token=voiceToken,enabled=config.enabled}
+        nui({type='voiceState',held=voiceHeld,automatic=voiceAutomatic,talking=detected,expired=expired==true,voice=config})
     end
 end
 local function resetVoice(expired)
     voiceEpoch=voiceEpoch+1
     voiceToken=('%d:%d'):format(GetGameTimer(),voiceEpoch)
     voiceSeq,voiceHeld,voiceUntil=0,false,0
+    voiceAutomatic,voiceSession=false,nil
     publishVoice(expired)
 end
 local function hasVoiceLease()
@@ -37,7 +44,8 @@ local function hasVoiceLease()
     return voiceHeld and remaining>0 and remaining<=900
 end
 local function updateVoice()
-    if voiceHeld and (not hasVoiceLease() or not IsNuiFocused() or JamConfig.PttControl~=249) then
+    if voiceHeld and (not hasVoiceLease() or not IsNuiFocused() or not voiceControlEnabled()
+        or (voiceAutomatic and voiceSession~=session)) then
         resetVoice(true);return
     end
     if shown and voiceHeld then
@@ -74,8 +82,8 @@ RegisterCommand('jam_voice_diag',function()
     local enabled=type(IsControlEnabled)=='function' and IsControlEnabled(0,249) or false
     local pressed=type(IsControlPressed)=='function' and IsControlPressed(0,249) or false
     local keep=type(IsNuiFocusKeepingInput)=='function' and IsNuiFocusKeepingInput() or false
-    print(('[JAM] voice held=%s lease=%s control249_enabled=%s pressed=%s mumble_detected=%s focused=%s keepInput=%s; hearing NOT_VERIFIED')
-        :format(tostring(voiceHeld),tostring(shown and hasVoiceLease()),tostring(enabled),tostring(pressed),tostring(talking()),tostring(IsNuiFocused()),tostring(keep)))
+    print(('[JAM] voice automatic=%s held=%s lease=%s control249_enabled=%s pressed=%s mumble_detected=%s focused=%s keepInput=%s; hearing NOT_VERIFIED')
+        :format(tostring(voiceAutomatic),tostring(voiceHeld),tostring(shown and hasVoiceLease()),tostring(enabled),tostring(pressed),tostring(talking()),tostring(IsNuiFocused()),tostring(keep)))
 end,false)
 exports('OpenInstrument',function(instrument) open(instrument,false) end)
 exports('StopPerformance',function() close('external') end)
@@ -96,11 +104,15 @@ end)
 RegisterNUICallback('pulse',function(_,cb) lastUi=GetGameTimer(); cb({ok=true}) end)
 RegisterNUICallback('voice',function(data,cb)
     if voiceHeld and not hasVoiceLease() then resetVoice(true) end
-    if not shown or JamConfig.PttControl~=249 or type(data)~='table' or data.token~=voiceToken
+    if not shown or not voiceControlEnabled() or type(data)~='table' or data.token~=voiceToken
         or type(data.held)~='boolean' or type(data.seq)~='number' or data.seq<1 or data.seq>2147483647
-        or data.seq%1~=0 or data.seq<=voiceSeq then cb({ok=false});return end
+        or data.seq%1~=0 or data.seq<=voiceSeq
+        or (data.automatic~=nil and type(data.automatic)~='boolean') then cb({ok=false});return end
+    if data.automatic and (not session or data.session~=session) then cb({ok=false});return end
     if data.held and (not IsNuiFocused() or IsPauseMenuActive() or IsEntityDead(PlayerPedId()) or not JamConfig.CanStartClient()) then cb({ok=false});return end
     voiceSeq,voiceHeld=data.seq,data.held
+    voiceAutomatic=data.held and data.automatic==true
+    voiceSession=voiceAutomatic and session or nil
     voiceUntil=data.held and GetGameTimer()+900 or 0
     publishVoice(false);cb({ok=true,held=voiceHeld})
 end)

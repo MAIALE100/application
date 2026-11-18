@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
 import {PIANO_KEYS} from '../web/model.mjs';
 import fs from 'node:fs';
@@ -38,7 +39,7 @@ try {
     await page.setViewportSize({width:1366,height:768});
   });
   await check('keyboard chord, repeat suppression, release across octave change',async()=>{
-    await page.click('#start');await page.waitForFunction(()=>window.JAM.session || !document.querySelector('#error').hidden);
+    await beginPlaying(page);
     assert(await page.evaluate(()=>Boolean(JAM.session)),await page.locator('#error').innerText());
     await page.keyboard.down('z');await page.keyboard.down('d');await page.keyboard.down('g');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),3);
@@ -69,7 +70,7 @@ try {
     await page.keyboard.down('z');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('z');
     assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);assert.equal(await page.evaluate(()=>JAM.audio.slots.has('local')),false);
     assert(await page.locator('#panel').isHidden());
-    await page.evaluate(()=>JAM.message({type:'open'}));await page.click('#start');await page.waitForFunction(()=>JAM.session);
+    await page.evaluate(()=>JAM.message({type:'open'}));await beginPlaying(page);
   });
   await check('key rebinding rejects PTT and accepts an unused personal key',async()=>{
     await page.click('#settingsToggle');await page.locator('#bindings button').first().click();await page.keyboard.press('n');
@@ -83,12 +84,12 @@ try {
     await page.evaluate(()=>{JAM.midi.receive([0x90,64,100]);JAM.midi.receive([0xb0,123,0]);});assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
   });
   await check('all 91 sound assets decode and every instrument starts and stops',async()=>{
-    await page.click('#start');
+    await stopPlaying(page);
     for(const id of await page.evaluate(()=>[...JAM.audio.catalog.keys()])) {
-      await page.selectOption('#instrument',id);await page.click('#start');await page.waitForFunction(()=>JAM.session);
+      await page.selectOption('#instrument',id);await beginPlaying(page);
       const key=await page.locator('#keyboard button[data-code]:not(:disabled) kbd').first().innerText();
       await page.keyboard.down(key);assert(await page.evaluate(()=>JAM.audio.stats().voices)>0,id);await page.keyboard.up(key);
-      await page.click('#panic');await page.click('#start');
+      await page.click('#panic');await stopPlaying(page);
     }
     const stats=await page.evaluate(()=>JAM.audio.stats());assert(stats.cacheBytes>0 && stats.cacheBytes<64*1024*1024);assert.equal(stats.voices,0);
     fs.writeFileSync(path.join(evidence,'audio-cache.json'),JSON.stringify(stats,null,2));

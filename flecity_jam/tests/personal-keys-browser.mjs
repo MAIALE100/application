@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Isolated Chromium interaction checks for personal mappings. No game or user profile is used.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -69,7 +70,7 @@ async function capture(page,index){
   assert(await page.locator('#cancelBinding').isVisible());
 }
 async function reload(page){await page.reload();await page.waitForFunction(()=>window.JAM);}
-async function start(page){if(!await page.evaluate(()=>Boolean(JAM.session))){await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));}await page.locator('#playArea').focus();}
+async function start(page){await beginPlaying(page);}
 function oldRecords(){return {
   v1:JSON.stringify({keys:custom.legacy,listen:.12},null,2),
   v2:JSON.stringify({version:2,layout:'expanded',bindings:{legacy:custom.legacy,expanded:custom.expanded}},null,2),
@@ -144,7 +145,7 @@ try{
     const page=await fixture(),before=await saved(page);await start(page);const octave=await page.evaluate(()=>JAM.model.octave);await capture(page,0);
     for(const key of ['KeyN','CapsLock','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','F8']){
       await page.keyboard.press(key);assert.equal(await button(page,0).getAttribute('aria-pressed'),'true');assert.deepEqual(await saved(page),before);
-      assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'false');assert.equal(await page.evaluate(()=>JAM.model.sustain),false);assert.equal(await page.evaluate(()=>JAM.model.octave),octave);
+      assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true','binding capture must not change the automatic-conversation preference');assert.equal(await page.evaluate(()=>JAM.model.sustain),false);assert.equal(await page.evaluate(()=>JAM.model.octave),octave);
     }
     assert.match(await page.locator('#error').innerText(),/予約済み/);await page.click('#cancelBinding');
     await page.evaluate(()=>JAM.message({type:'open',reserved:['KeyC']}));await capture(page,0);await page.keyboard.press('KeyC');assert.deepEqual((await mappings(page)).melodic,home);

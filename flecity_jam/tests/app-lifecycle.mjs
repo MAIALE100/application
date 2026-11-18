@@ -1,3 +1,4 @@
+import {requestPlaying,stopPlaying} from './ui-actions.mjs';
 // Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
 import {PIANO_KEYS} from '../web/model.mjs';
 // Isolated Chromium NUI simulation. No FiveM process or real server is contacted.
@@ -146,35 +147,35 @@ try {
   },null,{timeout:15000});
   const beforeUnlock=await page.evaluate(()=>window.__unlockCalls);
   await page.evaluate(()=>{window.__interruptNextLoad=true;});
-  await page.click('#start');
-  await page.waitForFunction(()=>document.querySelector('#start').getAttribute('aria-busy')==='true');
-  await page.waitForFunction(()=>document.querySelector('#start').getAttribute('aria-busy')==='true' && document.querySelector('#status').textContent.includes('準備'));
+  await requestPlaying(page);
+  await page.waitForFunction(()=>document.querySelector('#panel').getAttribute('aria-busy')==='true');
+  await page.waitForFunction(()=>document.querySelector('#panel').getAttribute('aria-busy')==='true' && document.querySelector('#status').textContent.includes('準備'));
   await page.waitForFunction(()=>window.__interrupted===true && window.__rack?.ctx.state==='running');
   assert((await page.evaluate(()=>window.__unlockCalls))-beforeUnlock>=2,'start must unlock again after load suspends audio');
-  await page.waitForFunction(()=>document.querySelector('#start').disabled && document.querySelector('#status').textContent.includes('準備'));
+  await page.waitForFunction(()=>document.querySelector('#panel').getAttribute('aria-busy')==='true' && document.querySelector('#status').textContent.includes('準備'));
   await page.waitForTimeout(50);
   assert.equal(calls.start,1);
   console.log('PASS start restores audio after sample-load interruption (mock NUI)');
 
   await page.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'control',data:{kind:'started',session:'old',instrument:'piano',maxNotes:16}}})));
-  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
-  await page.waitForFunction(()=>document.querySelector('#voiceCount') && document.querySelector('#start').getAttribute('aria-busy')==='false');
+  await page.waitForFunction(()=>document.querySelector('#panel').dataset.performing==='true');
+  await page.waitForFunction(()=>document.querySelector('#voiceCount') && document.querySelector('#panel').getAttribute('aria-busy')==='false');
   for(let i=0;i<40&&!heldInput;i++)await page.waitForTimeout(25);
   assert(heldInput,'first session input should be held by the mock transport');
-  await page.click('#start');
-  await page.click('#start');
+  await stopPlaying(page);
+  await requestPlaying(page);
   for(let i=0;i<80&&calls.start<2;i++)await page.waitForTimeout(25);
   assert.equal(calls.start,2);
   const switchedAt=Date.now();
   await page.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'control',data:{kind:'started',session:'new',instrument:'piano',maxNotes:16}}})));
-  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
+  await page.waitForFunction(()=>document.querySelector('#panel').dataset.performing==='true');
   for(let i=0;i<20&&!calls.input.some(input=>input.session==='new');i++)await page.waitForTimeout(50);
   const newInput=calls.input.find(input=>input.session==='new');
   assert(newInput,'new session must send despite prior hung input');
   assert(newInput.at-switchedAt<1500,'new session must not wait for stale bridge timeout');
   await heldInput.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});
   await page.waitForTimeout(50);
-  assert(await page.locator('#start').innerText()!=='演奏する','old response must not stop new session');
+  assert((await page.locator('#panel').getAttribute('data-performing'))==='true','old response must not stop new session');
   console.log('PASS old transport queue cannot block or stop new session (mock NUI)');
 
   holdNextPulse=true;
@@ -183,39 +184,39 @@ try {
   await page.keyboard.press('Escape');
   await page.evaluate(()=>window.postMessage({type:'open',instrument:'piano'},location.origin));
   await page.locator('#panel').waitFor({state:'visible'});
-  const beforeReopen=calls.start;await page.click('#start');
+  const beforeReopen=calls.start;await requestPlaying(page);
   for(let i=0;i<80&&calls.start===beforeReopen;i++)await page.waitForTimeout(20);
   assert.equal(calls.start,beforeReopen+1);
   await page.evaluate(()=>window.postMessage({type:'control',data:{kind:'started',session:'pulse-new',instrument:'piano',maxNotes:16}},location.origin));
-  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
+  await page.waitForFunction(()=>document.querySelector('#panel').dataset.performing==='true');
   await page.keyboard.down('z');await heldPulse.abort('failed');heldPulse=null;await page.waitForTimeout(120);
-  assert.equal(await page.locator('#voiceCount').innerText(),'1音');assert.match(await page.locator('#start').innerText(),/休む/);assert(await page.locator('#error').isHidden());
+  assert.equal(await page.locator('#voiceCount').innerText(),'1音');assert((await page.locator('#panel').getAttribute('data-performing'))==='true');assert(await page.locator('#error').isHidden());
   await page.keyboard.up('z');holdNextPulse=true;
   for(let i=0;i<80&&!heldPulse;i++)await page.waitForTimeout(20);
   assert(heldPulse);await heldPulse.abort('failed');heldPulse=null;
-  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#start').innerText(),'演奏する');
+  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#panel').getAttribute('data-performing'),'false');
   assert.match(await page.locator('#error').innerText(),/通信が途切れ/);
   console.log('PASS old heartbeat failure cannot stop a reopened session while current failure still stops safely (mock NUI)');
 
-  holdNextStart=true;await page.click('#start');
+  holdNextStart=true;await requestPlaying(page);
   for(let i=0;i<80&&!heldStart;i++)await page.waitForTimeout(20);
-  assert(heldStart);assert(await page.locator('#start').isDisabled());
+  assert(heldStart);assert.equal(await page.locator('#panel').getAttribute('aria-busy'),'true');
   await page.evaluate(()=>window.postMessage({type:'control',data:{kind:'started',session:'ack-confirmed',instrument:'piano',maxNotes:16}},location.origin));
-  await page.waitForFunction(()=>document.querySelector('#start').textContent.includes('休む'));
+  await page.waitForFunction(()=>document.querySelector('#panel').dataset.performing==='true');
   await heldStart.abort('failed');heldStart=null;await page.waitForTimeout(120);
-  assert.match(await page.locator('#start').innerText(),/休む/);assert(await page.locator('#error').isHidden());
+  assert((await page.locator('#panel').getAttribute('data-performing'))==='true');assert(await page.locator('#error').isHidden());
   console.log('PASS delayed start acknowledgement failure cannot override an authenticated started notification (mock NUI)');
 
-  await page.click('#start');holdNextStart=true;await page.click('#start');
+  await stopPlaying(page);holdNextStart=true;await requestPlaying(page);
   for(let i=0;i<80&&!heldStart;i++)await page.waitForTimeout(20);
-  assert(heldStart);assert(await page.locator('#start').isDisabled());
+  assert(heldStart);assert.equal(await page.locator('#panel').getAttribute('aria-busy'),'true');
   await heldStart.fulfill({status:200,contentType:'application/json',body:'{"ok":false}'});heldStart=null;
-  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#start').innerText(),'演奏する');assert(await page.locator('#start').isEnabled());
-  const beforeTimeout=calls.start;await page.click('#start');
+  await page.locator('#error').waitFor({state:'visible'});assert.equal(await page.locator('#panel').getAttribute('data-performing'),'false');assert(await page.locator('#instrument').isEnabled());
+  const beforeTimeout=calls.start;await requestPlaying(page);
   for(let i=0;i<80&&calls.start===beforeTimeout;i++)await page.waitForTimeout(20);
-  assert.equal(calls.start,beforeTimeout+1);assert(await page.locator('#start').isDisabled());
+  assert.equal(calls.start,beforeTimeout+1);assert.equal(await page.locator('#panel').getAttribute('aria-busy'),'true');
   await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('サーバーから応答'),null,{timeout:6500});
-  assert.equal(await page.locator('#start').innerText(),'演奏する');assert(await page.locator('#start').isEnabled());
+  assert.equal(await page.locator('#panel').getAttribute('data-performing'),'false');assert(await page.locator('#instrument').isEnabled());
   console.log('PASS rejected and unconfirmed start requests still restore controls and time out safely (mock NUI)');
 
   if(await page.locator('#settings').isHidden())await page.click('#settingsToggle');
@@ -263,7 +264,7 @@ try {
   await recovery.waitForFunction(()=>document.querySelector('#notice').textContent.includes('一部の音源'),null,{timeout:20000});
   assert.deepEqual(await recovery.evaluate(()=>window.__preloadAttempts),catalog.instruments.map(spec=>spec.id));
   await recovery.evaluate(()=>window.dispatchEvent(new MessageEvent('message',{data:{type:'open',instrument:'guitar',range:15}})));
-  await recovery.locator('#panel').waitFor({state:'visible'});await recovery.click('#start');
+  await recovery.locator('#panel').waitFor({state:'visible'});await requestPlaying(recovery);
   await recovery.waitForFunction(()=>window.__preloadAttempts.filter(id=>id==='guitar').length===2&&window.__recoveryRack.catalog.get('guitar').samples.every(sample=>window.__recoveryRack.buffers.has(sample.file)),null,{timeout:15000});
   for(let i=0;i<20&&!retriedStart;i++)await recovery.waitForTimeout(25);
   assert(retriedStart,'failed preload must remain manually retryable after later instruments load');

@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Retained 25-note preset regression; fresh home18 has independent hands-browser coverage.
 import {PIANO_KEYS} from '../web/model.mjs';
 // Offline per-performer listening UI checks. Remote packets are synthetic, not live FiveM.
@@ -26,7 +27,7 @@ async function fixture(settings=true){
     await route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
   });
   await page.addInitScript(keys=>{if(!localStorage.getItem('flecity-jam-v4'))localStorage.setItem('flecity-jam-v4',JSON.stringify({version:4,layout:'piano',bindings:{piano:keys}}));},PIANO_KEYS);
-  await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));
+  await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);await beginPlaying(page);
   if(settings)await page.click('#settingsToggle');return page;
 }
 const row=(page,id)=>page.locator(`#peerMix label[data-player="${id}"]`);
@@ -113,7 +114,7 @@ try{
     const page=await fixture(false);await snapshot(page,2);await page.locator('#playArea').focus();await page.keyboard.down('z');await page.keyboard.down('n');
     await page.click('#settingsToggle');assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');
     await level(page,2,0);assert.equal(await page.evaluate(()=>JAM.model.notes.size),1);assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');
-    await page.keyboard.up('z');await page.keyboard.up('n');assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'false');
+    await page.keyboard.up('z');await page.keyboard.up('n');assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true','manual N release must preserve the selected automatic-conversation mode');
   });
   await check('reset restores every peer to 100 percent and pointer adjustment returns focus to playing',async()=>{
     const page=await fixture();await snapshot(page,2);await snapshot(page,3);await positions(page);await level(page,2,0);await level(page,3,25);

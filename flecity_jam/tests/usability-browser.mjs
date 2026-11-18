@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Offline browser interaction checks. FiveM, microphone and MIDI hardware are not used.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -33,9 +34,10 @@ async function fixture(seed){
   });
   await page.goto('https://jam.test/');await page.waitForFunction(()=>window.JAM);return page;
 }
-async function start(page){await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));await page.locator('#playArea').focus();}
+async function start(page){await beginPlaying(page);}
 const notes=page=>page.evaluate(()=>[...JAM.model.notes.values()].map(({pitch,velocity,held})=>({pitch,velocity,held})));
 async function range(page,id,value){
+  if(!await page.locator('#'+id).isVisible())await page.click('#settingsToggle');
   const input=page.locator('#'+id),min=Number(await input.getAttribute('min')),max=Number(await input.getAttribute('max'));
   await input.focus();const fromMin=value-min<=max-value;await page.keyboard.press(fromMin?'Home':'End');
   for(let i=0;i<(fromMin?value-min:max-value);i++)await page.keyboard.press(fromMin?'ArrowRight':'ArrowLeft');
@@ -178,7 +180,7 @@ try{
   await check('real slider drag returns focus to playing without changing keyboard navigation behavior',async()=>{
     const page=await fixture();await start(page);
     for(const id of ['velocity','performVolume','listenVolume','keyboardZoom']){
-      const slider=page.locator('#'+id);await slider.scrollIntoViewIfNeeded();const box=await slider.boundingBox();assert(box);
+      const slider=page.locator('#'+id);if(!await slider.isVisible())await page.click('#settingsToggle');await slider.scrollIntoViewIfNeeded();const box=await slider.boundingBox();assert(box);
       await page.mouse.move(box.x+box.width*.5,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width*.7,box.y+box.height/2,{steps:5});await page.mouse.up();
       assert.equal(await page.evaluate(()=>document.activeElement.id),'playArea',id);await sustainChord(page);
       await slider.focus();await page.keyboard.press('ArrowLeft');assert.equal(await page.evaluate(()=>document.activeElement.id),id);

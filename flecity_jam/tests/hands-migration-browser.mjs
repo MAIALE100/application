@@ -1,3 +1,4 @@
+import {beginPlaying,stopPlaying} from './ui-actions.mjs';
 // Synthetic preference migration in an isolated browser. No FiveM or user profile is accessed.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -83,7 +84,7 @@ try{
     await page.selectOption('#keyLayout','home18');assert.deepEqual((await current(page)).keys,legacy);
     await page.selectOption('#keyLayout',mode);await reload(page);assert.deepEqual(await current(page),{layout:mode,keys:custom[mode]});
     assert.deepEqual(await rawOld(page),protectedOld(records));const record=await saved(page);assert.deepEqual(record.bindings[mode],custom[mode]);assert.deepEqual(record.bindings.home18,legacy);assert.deepEqual(record.bindings.drums,drums);
-    await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));
+    await beginPlaying(page);
     const pitch=await page.evaluate(()=>(JAM.model.octave+1)*12),code=custom[mode][0];await page.keyboard.down(code);
     try{assert.deepEqual(await page.evaluate(()=>[...JAM.model.notes.values()].map(note=>({pitch:note.pitch,velocity:note.velocity}))),[{pitch,velocity:73}]);}
     finally{await page.keyboard.up(code);}
@@ -118,11 +119,11 @@ try{
     for(const [name,value]of Object.entries(scalars))assert.equal(record[name],value,name);
     for(const layout of ['home18','piano','legacy','expanded']){await page.selectOption('#keyLayout',layout);assert.deepEqual(await current(page),{layout,keys:slots[layout]});}
     await page.selectOption('#instrument','drums');assert.deepEqual(await drumKeys(page),customDrums);
-    await page.click('#start');await page.waitForFunction(()=>Boolean(JAM.session));await page.locator('#playArea').focus();
+    await beginPlaying(page);await page.locator('#playArea').focus();
     await page.keyboard.down('z');assert.deepEqual(await page.evaluate(()=>[...JAM.model.notes.values()].map(note=>({pitch:note.pitch,velocity:note.velocity}))),[{pitch:36,velocity:117}]);
     await page.keyboard.up('z');assert.equal(await page.evaluate(()=>JAM.model.notes.size),0);
     await page.screenshot({path:path.join(evidence,'v5-custom-drums.png')});
-    await page.click('#start');await page.waitForFunction(()=>!JAM.session);
+    await stopPlaying(page);await page.waitForFunction(()=>!JAM.session);
     await page.selectOption('#instrument','piano');assert.deepEqual(await current(page),{layout:'expanded',keys:custom.expanded});
     await reload(page);record=await saved(page);assert.deepEqual(record.bindings,slots);assert.deepEqual(await rawOld(page),protectedOld(records));
     await page.selectOption('#instrument','drums');assert.deepEqual(await drumKeys(page),customDrums);

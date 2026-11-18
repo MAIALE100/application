@@ -1,3 +1,23 @@
+## 0.4.4-test 個人用キー配置 — 2026-11-18検証・設置完了
+
+固定実装 290cf3068568bef615b24f4242c512fcb8305bb9 に全282/282 PASS、0 FAIL、試験中ソース不変。JS66（model32）、Lua engine28/client27、Chromium17（120秒模擬8人）、NUI12、旧鍵盤24、会話16、操作UI14、個別聴取12、音源9、更新fixture14、home18実キー13、v5移行14、個人キー編集16。別にJS20/Lua9構文・8楽器オフラインPCMもPASS。新ケースは旧PASSを繰り越さず、変更後に再実行した。
+
+キー配置入口、未使用キーへの変更、使用済みキー2音交換、同一キー、Tab/Enter/Spaceの取消、Esc終了、長押しrepeat/IME/修飾の誤確定防止、ドラム専用8キー、他配列保持、初期化の分離、v1〜v4原文不変、保存失敗時の通知、キー設定のNUI非送信を確認。IMEフラグ・MIDIpacketは明示的な合成試験で、実機の日本語IME/MIDIハードではない。migration初回のdrums slot名と演奏停止前のselect操作はfixtureを修正して再実行。製品不具合と混同しない。
+
+設置0.4.3全115件をSHA256照合して完全保全。実ZIPコピー環境115→115→115／15m復旧模擬PASS。Test_01はJAMだけ停止→更新→refresh→ensure。jam_statusは0.4.4-test、sessions=0、range=15.0m、access=open。設置115/115と旧0.4.3backup115/115一致、非JAM5304・設定5・txAdmin設定差分0。config・91音源・catalog・licenses・client/server Lua・音声/MIDI処理は不変。サーバー全体再起動、DB・銀行操作はなし。
+
+ZIP SHA256 d741d1e4ed72c5d855dc62ca281d165dbe6897dba9f86deac17d57a5815fc2f5。復旧receipt jam-update-8lzd54e8/receipt.json、SHA256 8f783d40972db282ec62477d7abeb08af9b3706513babd1fdb2812024093f0e5で0.4.3／15mへ戻す。実設置の復旧はplan照合のみ。端末v1〜v5は削除せず、旧版はv4までを使うためv5の新編集を逆書込みしない。
+
+| 判定範囲 | 結果 |
+|---|---|
+| 個人キー編集・保存/再読込・ドラム・予約キー・取消 | ローカルChromium PASS 16/16 |
+| 旧設定コピー/保存失敗/破損拒否 | 合成端末設定 PASS 14/14 |
+| 回帰・更新・復旧コピー・設置整合性 | PASS |
+| 物理JIS・弾き心地・U/J・実FiveM音声・PTT送受信・無線・MIDI機器・CEF | NOT_RUN |
+| 正式公開 | NO-GO |
+
+正本：元チャット outputs/FLECITY_JAM_20261116/personal-keys-20261118/。デスクトップFiveMは起動せず、WAVE/Voice/DB/本番/その他停止中アプリ/既存自動処理は無変更。以後の古い記録を今回のPASSへ読み替えない。
+
 # 0.4.4-test 個人キー配置候補
 
 ## 0.4.4-test：このPCだけのキー配置

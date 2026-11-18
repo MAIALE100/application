@@ -1,5 +1,9 @@
 # Flecity JAM scope (2026-11-16)
 
+## Latest installed — 0.4.4-test personal keys, 2026-11-18
+
+Source290cf3068568bef615b24f4242c512fcb8305bb9 passed282/282 fresh isolated checks,0FAIL,source unchanged. ExtraJS20/Lua9syntax and8instrumentPCM. Test_01 JAM0.4.4 installed115/115;old0.4.3 backup115/115;fixture115→115→115/15m;nonJAM5304+5cfg+txAdmin unchanged. Receipt jam-update-8lzd54e8/receipt.json SHA2568f783d40972db282ec62477d7abeb08af9b3706513babd1fdb2812024093f0e5 restores0.4.3/15m; realtarget rollbackPLANonly. ZIPd741d1e4ed72c5d855dc62ca281d165dbe6897dba9f86deac17d57a5815fc2f5. Client-only editor editKeys,2keyswap,independentdrums8,andv5copy are deployed. Preserve all oldv1-v4 and v5, oldversion doesn't readv5. No mappingwrites toserver/DB. RealFiveM/JIS/comfort/UJ/PTT/audio/MIDI/CEF NOT_RUN notebookonly. FormalReleaseNO-GO. NeverstartdesktopFiveM,otherpausedapps,Voice,DB,production or automations. New managedworktree jam-personal-keys-20261118 is active; oldworktree has unrelated concurrentflecity_qa work, leaveitunchanged. Canonicaloutputs personal-keys-20261118. Following entries history.
+
 ## Active candidate — personal keys 0.4.4-test, 2026-11-18
 
 Only JAM personal client keyboard editor is in scope. Main editKeys opens existing settings. Use remapBinding for atomic key swaps, keep N/Caps/Space/arrows/Esc/system guards, ignore capture repeats/IME/modifier chords. Separate drums8 bindings via keySets.drums/model.drumBindings; do not alter melodic slots from drums editor. Copy old v1-v4 read-only to new v5, no server/DB mapping writes. Keep home18 default and old presets. Current tests/deployment pending fresh outputs/FLECITY_JAM_20261116/personal-keys-20261118/. Preserve WAVE/Voice/DB/other paused apps. Never start desktopFiveM; actual keyboard/audio/PTT remain notebook-only NOT_RUN. This checkout is separate from concurrent flecity_qa; never stage another resource or root edits.

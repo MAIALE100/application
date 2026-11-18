@@ -81,10 +81,11 @@ export class AudioRack {
     };
     for(let i=0;i<spec.samples.length;i+=4)await Promise.all(spec.samples.slice(i,i+4).map(loadSample));
   }
-  slot(key,instrument,range=7,session=null) {
+  slot(key,instrument,range,session=null) {
     let slot=this.slots.get(key);
     if(slot && (slot.instrument!==instrument || (session && slot.session && slot.session!==session))){this.remove(key);slot=null;}
     if(!slot) {
+      range=Number.isFinite(range)&&range>0?range:7;
       const gain=this.ctx.createGain();gain.gain.value=key==='local'?1:0;
       let panner=null;
       if(key!=='local') {
@@ -95,6 +96,7 @@ export class AudioRack {
       slot={instrument,session,range,gain,panner,voices:new Map(),done:new Set(),desired:new Map(),deferred:[],deferredTimer:null,volume:.75,listenVolume:1,seen:this.now(),position:null};
       this.slots.set(key,slot);
     }
+    if(Number.isFinite(range)&&range>0){slot.range=range;if(slot.panner)slot.panner.maxDistance=range;}
     if(session)slot.session=session;
     return slot;
   }

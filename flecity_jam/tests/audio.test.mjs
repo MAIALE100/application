@@ -25,7 +25,7 @@ class Context {
   createWaveShaper(){return new Node();}
   createBuffer(channels,length,rate){return new Buffer(channels,length,rate);}
   createBufferSource(){
-    const node=Object.assign(new Node(),{playbackRate:new Param(),start(time,offset){assert(Number.isFinite(time)&&Number.isFinite(offset));},stop(){this.stopped=true;}});
+    const node=Object.assign(new Node(),{playbackRate:new Param(),starts:[],start(time,offset){assert(Number.isFinite(time)&&Number.isFinite(offset));this.starts.push({time,offset});},stop(){this.stopped=true;}});
     this.sources.push(node);return node;
   }
 }
@@ -35,6 +35,12 @@ function globals(t){
   globalThis.AudioContext=Context;
   globalThis.OfflineAudioContext=class {decodeAudioData(){return Promise.resolve(new Buffer());}};
   t.after(()=>{for(const[k,v]of Object.entries(originals)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}});
+}
+function spatialContext(){
+  const ctx=new Context();
+  ctx.listener=Object.fromEntries(['positionX','positionY','positionZ','forwardX','forwardY','forwardZ','upX','upY','upZ'].map(name=>[name,new Param()]));
+  ctx.createPanner=()=>Object.assign(new Node(),{positionX:new Param(),positionY:new Param(),positionZ:new Param()});
+  return ctx;
 }
 
 test('release tails count toward the real source cap during rapid retriggers',t=>{
@@ -170,4 +176,59 @@ test('listener mute preserves a held note phase and cannot alter another perform
   rack.sync(2,{instrument:'piano',session:'a',range:15,volume:.7,notes:[{id:1,pitch:60,velocity:100,held:true,age:500}]},0);
   rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},[{player:2,x:1,y:0,z:0}]);
   assert.equal(rack.slots.get(2).listenVolume,0);assert.equal(rack.slots.get(2).gain.gain.value,0,'healing snapshot must apply the listener mute before rendering');rack.stopAll();
+});
+
+test('an existing listener at 20m adopts an expanded 25m range and starts the held note at its current age',t=>{
+  globals(t);const ctx=spatialContext(),rack=new AudioRack(catalog,ctx),buffer=new Buffer(1,32000*8);
+  let time=0;rack.now=()=>time;rack.buffers.set('piano.ogg',buffer);
+  const listener={x:0,y:0,z:0,fx:0,fy:1,fz:0},note={id:1,pitch:60,velocity:100,held:true,age:1000};
+  const state={instrument:'piano',session:'range-change',range:15,volume:.8,notes:[note]};
+  rack.sync(2,state,.25);rack.positions(listener,[{player:2,x:20,y:0,z:0}]);
+  const slot=rack.slots.get(2),gain=slot.gain,panner=slot.panner;
+  assert.equal(slot.gain.gain.value,0);assert.equal(slot.voices.size,0);assert.equal(ctx.sources.length,0);
+  time=500;ctx.currentTime=.5;rack.sync(2,{...state,range:25,notes:[{...note,age:1500}]});
+  assert.equal(rack.slots.get(2),slot);assert.equal(slot.gain,gain);assert.equal(slot.panner,panner);assert.equal(slot.range,25);assert.equal(panner.maxDistance,25);
+  assert(Math.abs(slot.gain.gain.value-.8*.25*25/576)<1e-12);assert(slot.gain.gain.value>0);
+  const voice=slot.voices.get(1),source=voice.source;assert.equal(source.buffer,buffer);assert.deepEqual(source.starts,[{time:.5,offset:1.5}]);
+  time=1000;ctx.currentTime=1;rack.sync(2,{...state,range:25,notes:[{...note,age:2000}]});
+  assert.equal(slot.voices.get(1),voice);assert.equal(voice.source,source);assert.equal(ctx.sources.length,1);assert.equal(source.starts.length,1);assert.equal(voice.startedAt,.5);
+  rack.positions(listener,[{player:2,x:3,y:0,z:0}]);rack.sync(2,{...state,range:5,notes:[{...note,age:2000}]});
+  assert.equal(slot.range,5);assert.equal(panner.maxDistance,5);assert(Math.abs(slot.gain.gain.value-.8*.25*.25)<1e-12);
+  assert.equal(slot.voices.get(1),voice);assert.equal(ctx.sources.length,1);assert.equal(source.starts.length,1);assert.equal(slot.listenVolume,.25);rack.stopAll();
+});
+
+test('nearby held voices retain identity timing local mix and other performers during 15 to 25 to 5m updates',t=>{
+  globals(t);const ctx=spatialContext(),rack=new AudioRack(catalog,ctx),buffer=new Buffer(1,32000*8);
+  let time=0;rack.now=()=>time;rack.buffers.set('piano.ogg',buffer);
+  const note={id:1,pitch:60,velocity:100,held:true,age:0},state={instrument:'piano',session:'a',range:15,volume:.8,notes:[note]};
+  rack.sync(2,state,.37);rack.sync(3,{...state,session:'b',volume:.6});rack.sync('local',{...state,session:'local',volume:.5});
+  rack.positions({x:0,y:0,z:0,fx:0,fy:1,fz:0},[{player:2,x:3,y:0,z:0},{player:3,x:1,y:0,z:0}]);
+  const slot=rack.slots.get(2),voice=slot.voices.get(1),source=voice.source,other=rack.slots.get(3),local=rack.slots.get('local');
+  const before={startedAt:voice.startedAt,attackEnd:voice.attackEnd,otherGain:other.gain.gain.value,otherVoice:other.voices.get(1),localGain:local.gain.gain.value,localVoice:local.voices.get(1),master:rack.master.gain.value};
+  for(const [range,curve]of [[25,121/144],[5,.25]]){
+    time+=300;ctx.currentTime+=.3;rack.sync(2,{...state,range,notes:[{...note,age:time}]});
+    assert.equal(rack.slots.get(2),slot);assert.equal(slot.range,range);assert.equal(slot.panner.maxDistance,range);assert.equal(slot.panner.rolloffFactor,0);
+    assert(Math.abs(slot.gain.gain.value-.8*.37*curve)<1e-12);assert.equal(slot.listenVolume,.37);assert.equal(slot.volume,.8);assert.equal(slot.session,'a');
+    assert.equal(slot.voices.get(1),voice);assert.equal(voice.source,source);assert.equal(voice.startedAt,before.startedAt);assert.equal(voice.attackEnd,before.attackEnd);assert.equal(source.starts.length,1);
+    assert.equal(source.buffer,buffer);assert.equal(rack.buffers.get('piano.ogg'),buffer);assert.equal(ctx.sources.length,3);
+    assert.equal(other.range,15);assert.equal(other.gain.gain.value,before.otherGain);assert.equal(other.voices.get(1),before.otherVoice);
+    assert.equal(local.range,15);assert.equal(local.panner,null);assert.equal(local.gain.gain.value,before.localGain);assert.equal(local.voices.get(1),before.localVoice);assert.equal(rack.master.gain.value,before.master);
+  }
+  assert(!source.stopped);rack.stopAll();
+});
+
+test('invalid or omitted range cannot corrupt an existing slot and out-of-range positions still stop its voice',t=>{
+  globals(t);const ctx=spatialContext(),rack=new AudioRack(catalog,ctx);rack.buffers.set('piano.ogg',new Buffer(1,32000*8));
+  const listener={x:0,y:0,z:0,fx:0,fy:1,fz:0},state={instrument:'piano',session:'range-guard',range:25,volume:.7,notes:[{id:1,pitch:60,velocity:100,held:true,age:0}]};
+  rack.sync(2,state,.4);rack.positions(listener,[{player:2,x:3,y:0,z:0}]);
+  const slot=rack.slots.get(2),voice=slot.voices.get(1),gain=slot.gain.gain.value;
+  for(const range of [NaN,Infinity,-Infinity,0,-5,'5',null,undefined]){
+    rack.sync(2,{...state,range});assert.equal(slot.range,25);assert.equal(slot.panner.maxDistance,25);assert.equal(slot.gain.gain.value,gain);
+    assert.equal(slot.voices.get(1),voice);assert.equal(voice.source.starts.length,1);assert.equal(slot.listenVolume,.4);
+  }
+  const legacy=rack.slot(3,'piano');assert.equal(legacy.range,7);assert.equal(legacy.panner.maxDistance,7);
+  rack.sync(2,{...state,range:5});assert.equal(slot.range,5);assert.equal(slot.panner.maxDistance,5);
+  rack.positions(listener,[{player:2,x:5,y:0,z:0}]);
+  assert.equal(slot.gain.gain.value,0);assert.equal(slot.voices.size,0);assert.equal(slot.done.size,0);assert.equal(slot.deferred.length,0);assert(voice.released&&voice.source.stopped);
+  assert.equal(voice.source.starts.length,1);assert.equal(ctx.sources.length,1);rack.stopAll();
 });

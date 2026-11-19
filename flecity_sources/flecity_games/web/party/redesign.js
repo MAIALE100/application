@@ -95,6 +95,7 @@
   $('linkHostBadge').textContent=room.isHost?'ホストのみ':'閲覧のみ';
   $('linkNavCreate').disabled=true;
   const inRound=room.state!=='lobby';
+  $('telephonePanel').classList.toggle('link-telephone-drawing',inRound&&room.roundState?.gameId==='telephone'&&!$('telephoneDrawControls').classList.contains('hidden'));
   document.body.dataset.linkView=inRound?'round':'lobby';
   $('linkPageTitle').textContent='ルームロビー';$('linkBack').classList.add('hidden');
   $('linkNavRooms').setAttribute('aria-current','page');$('linkNavCreate').setAttribute('aria-current','false');

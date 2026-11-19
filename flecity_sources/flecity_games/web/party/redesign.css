@@ -174,6 +174,18 @@ body.link-v2.screen-expanded[data-link-view="round"] main.wrap{padding:1rem;}
 .link-v2.screen-expanded #linkHome{min-height:calc(100dvh - 20rem);}
 body.link-v2.party-app.screen-expanded #telephoneCanvas{width:min(100%,calc(52dvh * 18 / 13),980px);height:auto;aspect-ratio:18/13;}
 body.link-v2.party-app.screen-expanded #telephoneDrawControls{max-width:min(100%,calc(52dvh * 18 / 13),980px);}
+@media(min-width:900px){
+ body.link-v2.party-app.screen-expanded #telephonePanel.link-telephone-drawing{display:grid;grid-template-columns:minmax(0,1fr) minmax(14rem,20rem);gap:.5rem 1rem;align-items:start;}
+ .link-v2.screen-expanded .link-telephone-drawing #telephoneCountdown,.link-v2.screen-expanded .link-telephone-drawing #telephoneTurnCallout{grid-column:1/-1;grid-row:1;margin:0;}
+ .link-v2.screen-expanded .link-telephone-drawing>.kicker{grid-column:2;grid-row:2;}
+ .link-v2.screen-expanded .link-telephone-drawing #telephoneStatus{grid-column:2;grid-row:3;margin:0;}
+ .link-v2.screen-expanded .link-telephone-drawing #telephoneHint{grid-column:2;grid-row:4;margin:0;}
+ body.link-v2.party-app.screen-expanded .link-telephone-drawing #telephoneTextPrompt{grid-column:2;grid-row:5;margin:0;padding:.7rem;font-size:.8rem;line-height:1.6;background:#f4ead4;color:#6b5128;}
+ body.link-v2.party-app.screen-expanded .link-telephone-drawing #telephoneCanvas{grid-column:1;grid-row:2/span 5;width:100%;height:auto;aspect-ratio:18/13;margin:0;}
+ body.link-v2.party-app.screen-expanded .link-telephone-drawing #telephoneDrawControls{grid-column:2;grid-row:6;max-width:100%;width:100%;margin:0;}
+ .link-v2.screen-expanded .link-telephone-drawing #telephoneRetry{grid-column:2;grid-row:7;}
+ .link-v2.screen-expanded .link-telephone-drawing #telephoneTextControls{grid-column:2;grid-row:8;}
+}
 @media(max-width:360px){.link-v2 .link-header h1{font-size:1.25rem}.link-v2 main.wrap{padding-inline:.7rem}.link-v2 .link-header{margin-inline:-.7rem}.link-v2 .link-room-code{font-size:.75rem}.link-v2 #roomCode{font-size:1.05rem}.link-v2 .link-game-card{flex-basis:5.6rem}.link-v2 #players .player{font-size:.78rem}.link-v2 .link-host-tag{font-size:.55rem}.link-v2 .link-player-name{flex-wrap:wrap}.link-v2 .link-bottom-nav>button{font-size:.8rem}}
 @media(max-height:680px){.link-v2 #linkHome{min-height:12rem}.link-v2 .link-logo-mark .link-icon{width:6rem;height:6rem}.link-v2 .link-wordmark{font-size:3.2rem}.link-v2 .link-bottom-nav{height:3.5rem}.link-v2 .link-bottom-nav #linkNavCreate{width:5.5rem;height:5.5rem;font-size:.8rem}}
 @media(prefers-reduced-motion:reduce){.link-v2 *{scroll-behavior:auto!important}}

@@ -158,6 +158,7 @@ function showEntry(){
  currentRoom=null;ready=false;activeRoundToken=null;lastRoomRevision=-1;serverOffsetReady=false;roomPushEnabled=false;resetRoundRuntime();resetLeaveConfirmation();clearInterval(poll);poll=null;
  document.body.classList.remove('party-room','party-round','party-shogi');
  roomEl.classList.add('hidden');entryEl.classList.remove('hidden');
+ globalThis.LinkUi?.enter();
 }
 function submissionProgress(rs){
  const done=Math.max(0,Number(rs&&rs.submittedCount)||0),total=Math.max(done,Number(rs&&rs.expectedSubmissions)||0);
@@ -198,6 +199,7 @@ async function refreshPartyPlusStatus(){
 }
 // LINK+ is managed on demand inside Settings; never show a persistent sales panel.
 function openLinkPlusSettings(){
+ globalThis.LinkUi?.openSettings();
  if(partyPlusCard.classList.contains('hidden'))return;
  const settings=partyPlusCard.closest('details.global-settings');
  if(settings)settings.open=true;
@@ -206,6 +208,7 @@ function openLinkPlusSettings(){
  void refreshPartyPlusStatus();
 }
 function renderPartyPlus(){
+ globalThis.LinkUi?.updateProfile(partyConfig);
  const plus=partyConfig.plus;
  if(!plus||plus.enabled===false){partyPlusCard.classList.add('hidden');return;}
  partyPlusCard.classList.remove('hidden');
@@ -298,10 +301,13 @@ function renderPlayers(room){
  readySummary.textContent='人間 '+humans+'人 · AI '+bots+'人 · アプリ '+appOpenCount+'/'+connected.length+' · 準備 '+readyCount+'/'+connected.length;
  room.players.forEach(p=>{
    const row=document.createElement('div');row.className='player';
-   const left=document.createElement('span');left.textContent=(p.isHost?'★ ':'')+(p.ai?'[AI] ':'')+p.name;
+   const avatar=document.createElement('span');avatar.className='link-player-avatar';avatar.innerHTML=p.ai?'AI':(globalThis.LinkUi?.avatarIcon()||'人');avatar.setAttribute('aria-hidden','true');
+   const left=document.createElement('span');left.className='link-player-name';
+   const name=document.createElement('span');name.textContent=p.name+(p.memberId===room.selfMemberId?'（あなた）':'');left.appendChild(name);
+   if(p.isHost){const badge=document.createElement('span');badge.className='link-host-tag';badge.textContent='ホスト';left.appendChild(badge);}
    const state=p.disconnected?'オフライン':(p.appOpen===false?'アプリ閉じています':(p.ready?'準備OK':'待機中'));
    const right=document.createElement('span');right.textContent=state;right.className=p.ready&&p.appOpen!==false?'good':(p.disconnected?'error':'muted');
-   row.append(left,right);playersEl.appendChild(row);
+   row.append(avatar,left,right);playersEl.appendChild(row);
  });
 }
 function resultHoldLoop(token){
@@ -1302,6 +1308,7 @@ function renderRoom(room,timing){
      else{hideRoundGames(null,true);resultsPanel.classList.add('hidden');if(globalThis.PartyFallBattle)globalThis.PartyFallBattle.render(room);}
    }
  }
+ globalThis.LinkUi?.render(room,partyConfig);
  return true;
 }
 async function refresh(){
@@ -1875,10 +1882,11 @@ async function bootstrap(){
  else status('ルーム復元失敗: '+FlecityErrors.text(res.error),'error');
 }
 function registerPhonePushAfterRestore(){bindVisibilityLifecycle();registerPhonePushChannel();}
+if(globalThis.LinkUi)LinkUi.init({getRoom:()=>currentRoom,getConfig:()=>partyConfig,status});
 if(globalThis.FlecityScreen)FlecityScreen.start({
  canTransfer:(closing=false)=>Array.isArray(partyConfig.games)&&partyConfig.games.length>0&&!refreshInFlight&&!actionLocks.size&&!miniShogiPromotionOverlay&&!drawStroke&&!telephoneStroke&&
    PartyFallBattle.canTransfer()&&(closing||!currentRoom?.roundState||['code_break','reversi','gomoku','connect4','mini_shogi','tic_tac','draw','telephone','fall_battle'].includes(currentRoom.roundState.gameId)),
- snapshot:()=>JSON.parse(JSON.stringify({currentRoom,partyConfig,appSettings,activeRoundToken,lastRoomRevision,
+ snapshot:()=>JSON.parse(JSON.stringify({currentRoom,partyConfig,appSettings,activeRoundToken,lastRoomRevision,linkUi:globalThis.LinkUi?.snapshot(),
    serverTick:estimatedServerTick(),at:Date.now(),telephoneStrokes,telephoneTool,drawTool,codeBreakGuess,codeBreakToken,memoryChainLocal,memoryChainKey,
    miniShogiSelected,miniShogiDropKind,fall:PartyFallBattle.snapshot(),
    inputs:Object.fromEntries([codeEl,telephoneText,drawGuess,ngWordClue,ngWordGuess,fakeAnswerInput].map(el=>[el.id,el.value]))})),
@@ -1886,7 +1894,7 @@ if(globalThis.FlecityScreen)FlecityScreen.start({
    clearTimeout(deadlineRaf);clearTimeout(resultHoldRaf);cancelAnimationFrame(reactionRaf);cancelAnimationFrame(stopBattleRaf);clearTimeout(deductionPhaseRaf);clearTimeout(telephoneRevealTimer);telephoneRevealTimer=null;clearTimeout(telephoneDraftTimer);telephoneDraftTimer=null;clearTimeout(telephoneCountdownTimer);telephoneCountdownTimer=null;clearTimeout(connect4CeremonyTimer);clearTimeout(statusTimer);statusTimer=null;PartyFallBattle.pause();
    resetLeaveConfirmation();resetPartyPlusConfirmation();},
  restore:s=>{
-   appSuspended=false;partyConfig=s.partyConfig;applySettings(s.appSettings);
+   appSuspended=false;partyConfig=s.partyConfig;applySettings(s.appSettings);globalThis.LinkUi?.restore(s.linkUi);
    gameEl.innerHTML='';
    for(const game of partyConfig.games||[]){
 
@@ -1895,6 +1903,8 @@ if(globalThis.FlecityScreen)FlecityScreen.start({
    currentRoom=s.currentRoom;if(currentRoom)currentRoom.serverTick=s.serverTick+(Date.now()-s.at);activeRoundToken=s.activeRoundToken;lastRoomRevision=s.lastRoomRevision;
    serverOffsetMs=s.serverTick+(Date.now()-s.at)-performance.now();serverOffsetReady=true;
    memoryChainLocal=s.memoryChainLocal;memoryChainKey=s.memoryChainKey;telephoneStrokes=s.telephoneStrokes||[];
+   // Keep transferred local ink until the restored step actually changes.
+   telephoneActiveStep=currentRoom?.roundState?.gameId==='telephone'?String(currentRoom.roundState.token)+':'+String(currentRoom.roundState.step):'';
    setInkTool('draw',s.drawTool||'pen');setInkTool('telephone',s.telephoneTool||'pen');codeBreakGuess=s.codeBreakGuess;codeBreakToken=s.codeBreakToken;
    miniShogiSelected=s.miniShogiSelected;miniShogiDropKind=s.miniShogiDropKind;
    PartyFallBattle.restore(s.fall);

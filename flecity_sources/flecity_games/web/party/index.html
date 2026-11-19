@@ -9,8 +9,84 @@
   #players{max-height:10.5rem}
   #players .player{font-size:.82rem}
 }
+/* LINK Tetris results: dark components sit inside the light LINK theme.
+   Explicit foreground/background pairing prevents inherited dark text on dark cards.
+   Scoped to this completed-round panel; no game controls or LOOP/WAVE styles change. */
+body.party-app #resultsPanel .fall-result-hero{
+  color:#f8fafc;
+  background:radial-gradient(circle at 50% 0,rgba(255,214,117,.13),transparent 63%),linear-gradient(145deg,#1c2836,#101923);
+  border-color:#506477;
+}
+body.party-app #resultsPanel .fall-result-eyebrow{color:#dce8f5}
+body.party-app #resultsPanel .fall-result-title{color:#ffe6a5;font-size:clamp(1.35rem,2.6vw,1.75rem);line-height:1.2}
+body.party-app #resultsPanel .fall-result-sub{color:#eef3fb;font-size:.84rem}
+body.party-app #resultsPanel .fall-result-self{
+  color:#f5f9ff;background:#1b2c40;border-color:#477190;
+  font-size:.84rem;
+}
+body.party-app #resultsPanel .fall-result-self strong{color:#f5f9ff;font-size:.9rem}
+body.party-app #resultsPanel .fall-result-self span{color:#d9ecff}
+body.party-app #resultsPanel .fall-result-rank{
+  color:#eef6ff;background:#182532;border-color:#3e5369;
+  min-height:3.1rem;
+}
+body.party-app #resultsPanel .fall-result-rank.is-winner{
+  color:#fff2c7;background:linear-gradient(120deg,#353226,#212c36);
+  border-color:#a89048;
+}
+body.party-app #resultsPanel .fall-result-rank.is-self{box-shadow:inset .2rem 0 0 #80dfcb}
+body.party-app #resultsPanel .fall-result-place{color:inherit;font-size:1.1rem}
+body.party-app #resultsPanel .fall-result-player strong{
+  color:inherit;font-size:.94rem;line-height:1.25;
+}
+body.party-app #resultsPanel .fall-result-player span{
+  color:#fff2d5;background:#36404c;border-color:#7b785c;font-size:.64rem;
+}
+body.party-app #resultsPanel .fall-result-rank.is-self .fall-result-player span{
+  color:#c4ffeb;background:#224b4a;border-color:#40786d;
+}
+body.party-app #resultsPanel .fall-result-stat{color:#e8f2fc;font-size:.81rem}
+@media(max-width:22.5rem){
+  body.party-app #resultsPanel .fall-result-rank{min-height:3.6rem}
+  body.party-app #resultsPanel .fall-result-stat{padding-top:.12rem}
+}
 </style>
-<link rel="stylesheet" href="../shared/screen.css"></head>
+<link rel="stylesheet" href="../shared/screen.css"><style id="link-drawing-tools-style">
+
+/* LINK drawing UI v9: distinct prompt and clear, touch-friendly tools. */
+#drawPanel,#telephonePanel,#resultsPanel{--ink-accent:#276ab0}
+#drawPanel .kicker,#telephonePanel .kicker{font-weight:800;color:#2369a6;letter-spacing:.05em}
+#drawPrompt,#telephoneStatus{font-weight:800;line-height:1.3;overflow-wrap:anywhere}
+.drawing-prompt,.drawing-reveal{background:#e7f4ff;color:#152e43;border:2px solid #74b6e6;border-radius:12px;padding:.85rem;line-height:1.55;font-weight:750;white-space:pre-wrap;overflow-wrap:anywhere}
+.drawing-reveal{background:#fff1d4;color:#4b3215;border-color:#ebbd68;font-size:1.04rem}
+#drawCanvas,#telephoneCanvas,.drawing-result-canvas{max-width:100%;height:auto;background:#fff;border:2px solid #aec9e1;border-radius:10px;touch-action:none}
+.brush-settings{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;background:#eef5fa;border:1px solid #bbd7e9;padding:.45rem .65rem;border-radius:10px;color:#1e3b53}
+.brush-settings label{display:flex;align-items:center;gap:.4rem;font-size:.83rem;font-weight:700}
+.brush-settings input[type="color"]{min-width:42px;width:42px;height:34px;border:0;background:none;padding:2px;cursor:pointer}
+.brush-settings input[type="range"]{width:min(30vw,120px)}
+.brush-width-value{font-size:.82rem;min-width:38px}
+.drawing-result-title{font-size:1.08rem;font-weight:800;line-height:1.5;color:#1d3850}
+.drawing-result-entry{background:#f4f9ff!important;color:#183043!important;border:2px solid #bad5ea!important;border-radius:12px;padding:.8rem;overflow-wrap:anywhere}
+.drawing-result-entry .kicker{font-size:.82rem;color:#335e7f}
+.drawing-result-text{font-size:1.18rem;font-weight:800;line-height:1.6;white-space:pre-wrap;color:#18334a}
+.drawing-result-nav{display:flex;align-items:center;justify-content:space-between;gap:.35rem;flex-wrap:wrap}
+.drawing-result-nav button{flex:1;min-width:5.5rem}
+.drawing-result-count{font-weight:800;color:#234863}
+
+.drawing-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+.drawing-tools button{padding:.48rem .25rem;min-height:2.4rem;font-size:.82rem}
+.drawing-tools button.active-tool{border-color:#7ad0ff!important;background:#174b67!important;color:#fff!important}
+
+
+/* Telephone timer and turn cue */
+#telephonePanel .telephone-countdown{background:#113f61;color:#fff;border:2px solid #58c9ff;border-radius:14px;padding:1.2rem;display:flex;align-items:center;justify-content:center;gap:.65rem;flex-wrap:wrap;font-weight:800;letter-spacing:.02em;margin-bottom:.75rem}
+#telephonePanel .telephone-countdown strong{font-size:2.6rem;color:#ffda71;line-height:1}
+#telephonePanel .telephone-countdown.hidden,#telephonePanel .telephone-turn-callout.hidden{display:none!important}
+#telephonePanel #telephoneTextControls.hidden,#telephonePanel #telephoneDrawControls.hidden{display:none!important}
+#telephonePanel .telephone-turn-callout{background:#ffedb0;color:#523500;border:2px solid #dcb24a;border-radius:12px;padding:.75rem;font-weight:800;font-size:1.12rem;line-height:1.4;margin:.5rem 0}
+#resultsPanel .drawing-auto-note{color:#9a5b00;font-weight:700}
+</style>
+</head>
 <body class="party-app">
 <main class="wrap">
 <section id="status" class="status app-status hidden"></section>
@@ -50,8 +126,10 @@
    <div id="connect4Panel" class="hidden"><div class="kicker">コネクトフォー</div><h2 id="connect4Status">待機中…</h2><div id="connect4Columns" class="connect4-columns"></div><div id="connect4Board" class="connect4-board" aria-label="CONNECT 4 board"></div><div id="connect4Meta" class="status compact-status">縦・横・斜めに4つ</div></div>
    <div id="miniShogiPanel" class="hidden"><h2 id="miniShogiStatus">待機中…</h2><div id="miniShogiHandsTop" class="mini-shogi-hands"></div><div id="miniShogiBoard" class="mini-shogi-board" aria-label="将棋盤"></div><div id="miniShogiHandsBottom" class="mini-shogi-hands"></div><div id="miniShogiMeta" class="status compact-status">9×9本将棋 · 持ち駒・成り対応</div></div>
    <div id="deductionPanel" class="hidden"><div id="deductionGame" class="kicker">ワードウルフ</div><h2 id="deductionSecret"></h2><p id="deductionHint" class="muted"></p><div id="deductionChoices" class="stack"></div></div>
-   <div id="drawPanel" class="hidden"><div class="kicker">お絵かき当て</div><h2 id="drawPrompt">DRAWING…</h2><p id="drawProgress" class="muted"></p><canvas id="drawCanvas" width="360" height="260"></canvas><div id="drawDrawerControls" class="stack"><button id="drawClear" class="secondary">消去</button></div><div id="drawGuessControls" class="row"><input id="drawGuess" maxlength="40" placeholder="答えを入力"><button id="drawGuessSubmit">回答</button></div></div>
-   <div id="telephonePanel" class="hidden"><div class="kicker">お絵かき伝言</div><h2 id="telephoneStatus">待機中…</h2><p id="telephoneHint" class="muted"></p><div id="telephoneTextPrompt" class="status hidden"></div><canvas id="telephoneCanvas" class="hidden" width="360" height="260"></canvas><div id="telephoneDrawControls" class="stack hidden"><button id="telephoneClear" class="secondary">消去</button><button id="telephoneDrawSubmit">絵を送信</button></div><button id="telephoneRetry" class="secondary hidden">絵の同期を再確認</button><div id="telephoneTextControls" class="row hidden"><input id="telephoneText" maxlength="80" placeholder="絵から読み取った内容"><button id="telephoneTextSubmit">送信</button></div></div>
+   <div id="drawPanel" class="hidden"><div class="kicker">お絵かき当て</div><h2 id="drawPrompt">DRAWING…</h2><p id="drawProgress" class="muted"></p><div id="drawRevealCard" class="drawing-reveal hidden" aria-live="polite"></div><canvas id="drawCanvas" width="360" height="260"></canvas><div id="drawDrawerControls" class="stack"><div class="drawing-tools"><button id="drawPen" type="button" class="secondary active-tool">✎ ペン</button><button id="drawEraser" type="button" class="secondary">▯ 消しゴム</button><button id="drawUndo" type="button" class="secondary">↶ 1画戻す</button><button id="drawClear" type="button" class="secondary">全消去</button></div><div class="brush-settings"><label>ペンの色 <input id="drawColor" type="color" value="#111111" aria-label="ペンの色"></label><label>太さ <input id="drawWidth" type="range" min="2" max="16" step="2" value="4" aria-label="ペンの太さ"></label><span id="drawWidthLabel" class="brush-width-value">4 px</span></div></div><div id="drawGuessControls" class="row"><input id="drawGuess" maxlength="40" placeholder="答えを入力"><button id="drawGuessSubmit">回答</button></div></div>
+   <div id="telephonePanel" class="hidden">
+     <div id="telephoneCountdown" class="telephone-countdown hidden" role="status" aria-live="polite"><span>もうすぐ開始！</span><strong>5</strong><span>秒後にスタート</span></div>
+     <div id="telephoneTurnCallout" class="telephone-turn-callout hidden" role="status">🔔 あなたの手番です！</div><div class="kicker">お絵かき伝言 · 自由なお題</div><h2 id="telephoneStatus">待機中…</h2><p id="telephoneHint" class="muted"></p><div id="telephoneTextPrompt" class="drawing-prompt hidden"></div><canvas id="telephoneCanvas" class="hidden" width="360" height="260"></canvas><div id="telephoneDrawControls" class="stack hidden"><div class="drawing-tools"><button id="telephonePen" type="button" class="secondary active-tool">✎ ペン</button><button id="telephoneEraser" type="button" class="secondary">▯ 消しゴム</button><button id="telephoneUndo" type="button" class="secondary">↶ 1画戻す</button><button id="telephoneClear" type="button" class="secondary">全消去</button></div><div class="brush-settings"><label>ペンの色 <input id="telephoneColor" type="color" value="#111111" aria-label="ペンの色"></label><label>太さ <input id="telephoneWidth" type="range" min="2" max="16" step="2" value="4" aria-label="ペンの太さ"></label><span id="telephoneWidthLabel" class="brush-width-value">4 px</span></div><button id="telephoneDrawSubmit">絵を送信</button></div><button id="telephoneRetry" class="secondary hidden">お題・絵を再受信</button><div id="telephoneTextControls" class="row hidden"><input id="telephoneText" maxlength="80" placeholder="絵から読み取った内容"><button id="telephoneTextSubmit">送信</button></div></div>
    <div id="ngWordPanel" class="hidden"><div class="kicker">LINK+ · NGワード</div><h2 id="ngWordTitle">待機中…</h2><p id="ngWordHint" class="muted"></p><div id="ngWordForbidden" class="status hidden"></div><div id="ngWordClueControls" class="row hidden"><input id="ngWordClue" maxlength="100" placeholder="NGワードを避けてヒントを入力"><button id="ngWordClueSubmit">ヒント送信</button></div><div id="ngWordGuessControls" class="row hidden"><input id="ngWordGuess" maxlength="40" placeholder="答えを入力"><button id="ngWordGuessSubmit">回答</button></div></div>
    <div id="fakeAnswerPanel" class="hidden"><div class="kicker">LINK+ · ニセ回答</div><h2 id="fakeAnswerQuestion">待機中…</h2><p id="fakeAnswerHint" class="muted"></p><div id="fakeAnswerSubmitControls" class="row hidden"><input id="fakeAnswerInput" maxlength="50" placeholder="本物っぽい偽回答"><button id="fakeAnswerSubmit">偽回答を送信</button></div><div id="fakeAnswerChoices" class="stack"></div></div>
    <div id="bombPanel" class="hidden big-center"><div class="kicker">LINK+ · 爆弾リレー</div><h2 id="bombPrompt">待機中…</h2><div id="bombHolder" class="big-number">---</div><p id="bombHint" class="muted"></p><button id="bombPass" class="hidden">答えた！ 次へ</button></div>
@@ -69,6 +147,7 @@
      <p id="fallBattleHint" class="muted">全員同じピース列で90秒勝負。</p>
    </div>
    <div id="resultsPanel" class="hidden"><div class="kicker">結果</div><div id="results" class="stack"></div></div>
+   <button id="fallRematch" class="hidden">再戦する</button>
    <button id="lobby" class="secondary hidden">ロビーに戻る</button>
  </div>
 </section>

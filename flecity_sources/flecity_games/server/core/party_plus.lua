@@ -36,6 +36,21 @@ local function revenueProvider()
     return tostring(config().RevenueProvider or 'auto')
 end
 
+-- TINYINT(1) may be decoded by oxmysql as a Lua boolean instead of a number.
+-- Treat both representations (and their string forms) as equivalent. Never
+-- silently map an unknown DB value to OFF: that would hide a storage error.
+local function decodeAutoRenew(value)
+    if type(value)=='boolean' then return value end
+    local n=tonumber(value)
+    if n~=nil then return n~=0 end
+    if type(value)=='string' then
+        local s=value:lower():match('^%s*(.-)%s*$')
+        if s=='true' then return true end
+        if s=='false' then return false end
+    end
+    error(('LINK_PLUS_INVALID_AUTO_RENEW_DB_VALUE: %s'):format(type(value)))
+end
+
 local function readRow(id)
     if not id then return nil end
     local row=MySQL.single.await([[
@@ -48,7 +63,7 @@ local function readRow(id)
     return {
         planId='party_plus',
         expiresAt=tonumber(row.expires_at) or 0,
-        autoRenew=tonumber(row.auto_renew)==1
+        autoRenew=decodeAutoRenew(row.auto_renew)
     }
 end
 
@@ -307,20 +322,37 @@ function FlecityGamesPartyPlus.HasAccess(source,id,allowRenew)
     return row~=nil and tonumber(row.expiresAt)>os.time(),renewError
 end
 
+-- Never report an auto-renew switch as successful until it is actually
+-- persisted and read back. This call never charges or changes the expiry.
+local function persistAutoRenew(id,enabled)
+    local affected=MySQL.update.await([[
+        UPDATE flecity_game_subscriptions
+        SET auto_renew=?,updated_at=CURRENT_TIMESTAMP
+        WHERE player_identifier=? AND plan_id='party_plus'
+    ]],{enabled and 1 or 0,id})
+    if affected==nil then
+        print('[FlecityGames] LINK+ auto-renew write returned nil')
+        return nil,'SUBSCRIPTION_SAVE_FAILED'
+    end
+    local saved=readRow(id)
+    if not saved or saved.autoRenew~=enabled then
+        print(('[FlecityGames] LINK+ auto-renew read-back mismatch: desired=%s actual=%s affected_rows=%s row_present=%s')
+            :format(tostring(enabled),tostring(saved and saved.autoRenew),tostring(affected),tostring(saved~=nil)))
+        return nil,'SUBSCRIPTION_SAVE_FAILED'
+    end
+    remember(id,saved)
+    return saved,nil
+end
+
 function FlecityGamesPartyPlus.Subscribe(source)
     if not planEnabled() then return {ok=false,error='PARTY_PLUS_DISABLED'} end
     local id=identifier(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     local row=readRow(id)
     if row and row.expiresAt>os.time() then
-        row.autoRenew=true
-        MySQL.update.await([[
-            UPDATE flecity_game_subscriptions
-            SET auto_renew=1,updated_at=CURRENT_TIMESTAMP
-            WHERE player_identifier=? AND plan_id='party_plus'
-        ]],{id})
-        remember(id,row)
-        return {ok=true,status=publicStatus(row)}
+        local saved,errorCode=persistAutoRenew(id,true)
+        if errorCode then return {ok=false,error=errorCode,status=publicStatus(readRow(id))} end
+        return {ok=true,status=publicStatus(saved)}
     end
     local updated,errorCode=purchasePeriod(source,id,row,false)
     if errorCode then return {ok=false,error=errorCode,status=publicStatus(updated,errorCode)} end
@@ -332,14 +364,9 @@ function FlecityGamesPartyPlus.Cancel(source)
     if not id then return {ok=false,error='PLAYER_NOT_READY'} end
     local row=readRow(id)
     if not row then return {ok=true,status=publicStatus(nil)} end
-    row.autoRenew=false
-    MySQL.update.await([[
-        UPDATE flecity_game_subscriptions
-        SET auto_renew=0,updated_at=CURRENT_TIMESTAMP
-        WHERE player_identifier=? AND plan_id='party_plus'
-    ]],{id})
-    remember(id,row)
-    return {ok=true,status=publicStatus(row)}
+    local saved,errorCode=persistAutoRenew(id,false)
+    if errorCode then return {ok=false,error=errorCode,status=publicStatus(readRow(id))} end
+    return {ok=true,status=publicStatus(saved)}
 end
 
 function FlecityGamesPartyPlus.ClearCache(id)

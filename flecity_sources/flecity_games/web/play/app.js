@@ -1,7 +1,7 @@
 const statusEl=document.getElementById('status'),gamesEl=document.getElementById('games'),homeEl=document.getElementById('home');
 const continueCard=document.getElementById('continueCard'),continueGames=document.getElementById('continueGames'),continueCount=document.getElementById('continueCount'),gameCount=document.getElementById('gameCount');
 const recentCard=document.getElementById('recentCard'),recentGames=document.getElementById('recentGames'),recentCount=document.getElementById('recentCount'),libraryFilters=document.getElementById('libraryFilters'),randomPlay=document.getElementById('randomPlay');
-const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingSelf=document.getElementById('rankingSelf'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows');
+const rankingGame=document.getElementById('rankingGame'),rankingPeriod=document.getElementById('rankingPeriod'),rankingSelf=document.getElementById('rankingSelf'),rankingLoad=document.getElementById('rankingLoad'),rankingRows=document.getElementById('rankingRows'),rankingGameTabs=document.getElementById('rankingGameTabs');
 const dailyCard=document.getElementById('dailyCard'),dailyGame=document.getElementById('dailyGame'),dailyDate=document.getElementById('dailyDate'),dailyPlay=document.getElementById('dailyPlay'),dailyBest=document.getElementById('dailyBest'),dailyRanking=document.getElementById('dailyRanking');
 const statPlays=document.getElementById('statPlays'),statTime=document.getElementById('statTime'),gameStatRows=document.getElementById('gameStatRows'),achievementCount=document.getElementById('achievementCount'),achievementRows=document.getElementById('achievementRows');
 const settingSound=document.getElementById('settingSound'),settingMotion=document.getElementById('settingMotion');
@@ -627,10 +627,28 @@ function renderRankingSelf(){
  const best=bootstrapData&&bootstrapData.best&&bootstrapData.best[gameId];
  rankingSelf.textContent=best?'全期間の自己ベスト · '+formatGameScore(game,best.score):'全期間の自己ベスト · まだ記録がありません';
 }
+function syncRankingGameTabs(){
+ if(!rankingGameTabs)return;
+ for(const button of rankingGameTabs.querySelectorAll('button[data-game]')){
+  const active=button.dataset.game===rankingGame.value;
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-pressed',String(active));
+ }
+}
 function populateRankingGames(games){
  const current=rankingGame.value;rankingGame.innerHTML='';
- (games||[]).filter(g=>g.app==='play'&&g.enabled&&g.supportsRanking).forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rankingGame.appendChild(o);});
+ if(rankingGameTabs)rankingGameTabs.replaceChildren();
+ (games||[]).filter(g=>g.app==='play'&&g.enabled&&g.supportsRanking).forEach(g=>{
+  const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rankingGame.appendChild(o);
+  if(rankingGameTabs){
+   const button=document.createElement('button');button.type='button';
+   button.className='ranking-game-tab';button.dataset.game=g.id;button.textContent=g.name;
+   button.onclick=()=>{if(rankingGame.value!==g.id){rankingGame.value=g.id;syncRankingGameTabs();scheduleRankingReload();}};
+   rankingGameTabs.appendChild(button);
+  }
+ });
  if([...rankingGame.options].some(o=>o.value===current))rankingGame.value=current;
+ syncRankingGameTabs();
  renderRankingSelf();
 }
 let rankingRequestId=0,rankingDebounce=null;
@@ -705,6 +723,7 @@ async function loadRanking(){
 function openGameRanking(gameId){
  if(!rankingGame.querySelector('option[value="'+String(gameId).replace(/[^a-z0-9_]/gi,'')+'"]'))return;
  rankingGame.value=gameId;
+ syncRankingGameTabs();
  rankingPeriod.value='all';
  ++rankingRequestId;
  clearTimeout(rankingDebounce);rankingDebounce=null;
@@ -723,7 +742,7 @@ function scheduleRankingReload(){
  rankingDebounce=setTimeout(()=>{void loadRanking();},650);
 }
 rankingLoad.onclick=()=>{void loadRanking();};
-rankingGame.onchange=scheduleRankingReload;
+rankingGame.onchange=()=>{syncRankingGameTabs();scheduleRankingReload();};
 rankingPeriod.onchange=scheduleRankingReload;
 async function bootstrap(){
  const bridge=await FlecityBridge.call('bridgePing',{});
@@ -1634,10 +1653,12 @@ let cachedFallCells=[];
 function renderFall(){
  const game=fallGame;if(!game)return;
  const renderStartedAt=performance.now();
- fallScore.textContent=String(game.score);
+ const scoreText=String(game.score);
+ if(fallScore.textContent!==scoreText)fallScore.textContent=scoreText;
  const pressure=fallPressure(game);
  const level=1+Math.floor((Number(game.lines)||0)/5),nextLevelIn=5-((Number(game.lines)||0)%5),gravity=(fallGravityDelay(game)/1000).toFixed(2);
- fallMeta.textContent='レベル '+level+' · 落下間隔 '+gravity+'秒 · 次のレベルまで +'+String(nextLevelIn)+' · 消したライン '+String(game.lines)+' · 連続消し '+String(game.combo)+' · '+pressure.label+(game.ended?' · ゲーム終了':'');
+ const metaText='レベル '+level+' · 落下間隔 '+gravity+'秒 · 次のレベルまで +'+String(nextLevelIn)+' · 消したライン '+String(game.lines)+' · 連続消し '+String(game.combo)+' · '+pressure.label+(game.ended?' · ゲーム終了':'');
+ if(fallMeta.textContent!==metaText)fallMeta.textContent=metaText;
  fallBoard.classList.toggle('fall-tight',pressure.label==='TIGHT');
  fallBoard.classList.toggle('fall-danger',pressure.label==='DANGER');
  fallBoard.classList.toggle('fall-grounded',game.groundedAt!=null&&!game.ended);
@@ -1655,20 +1676,25 @@ function renderFall(){
  const cells=cachedFallCells;
  const shape=!game.ended?fallShape(game.nextPiece,game.rotation):[];
  const ghostY=!game.ended?fallLandingY(game,shape):null;
- const active=new Set(),ghost=new Set();
+ // Reuse integer board offsets instead of allocating coordinate strings/Set entries each render.
+ const active=new Uint8Array(count),ghost=new Uint8Array(count);
  if(!game.ended){
    const activeY=Math.max(0,Math.floor(Number(game.y)||0));
    shape.forEach(([dx,dy])=>{
-     const ax=game.x+dx,ay=activeY+dy;if(ay>=0&&ay<game.height)active.add(ax+','+ay);
-     if(ghostY!==null){const gy=ghostY+dy;if(gy>=0&&gy<game.height)ghost.add(ax+','+gy);}
+     const ax=game.x+dx,ay=activeY+dy;
+     if(ax>=0&&ax<game.width&&ay>=0&&ay<game.height)active[ay*game.width+ax]=1;
+     if(ghostY!==null){
+       const gy=ghostY+dy;
+       if(ax>=0&&ax<game.width&&gy>=0&&gy<game.height)ghost[gy*game.width+ax]=1;
+     }
    });
  }
  for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
-   const cell=cells[y*game.width+x],value=Number(game.board[y][x]||0),key=x+','+y;
+   const index=y*game.width+x,cell=cells[index],value=Number(game.board[y][x]||0);
    let cls='fall-cell';
    if(value)cls+=' filled fall-piece-'+String(value);
-   else if(active.has(key))cls+=' active fall-piece-'+String(game.nextPiece);
-   else if(ghost.has(key))cls+=' ghost fall-piece-'+String(game.nextPiece);
+   else if(active[index])cls+=' active fall-piece-'+String(game.nextPiece);
+   else if(ghost[index])cls+=' ghost fall-piece-'+String(game.nextPiece);
    if(cell.className!==cls)cell.className=cls;
  }
  renderFallPreview();
@@ -3640,10 +3666,22 @@ if(globalThis.FlecityScreen)FlecityScreen.start({
    const shift=performance.now()-s.now-(Date.now()-s.at);
    for(const g of [block,merge,fallGame,slideGame])if(g&&g.startedAt)g.startedAt+=shift;
    hideAll();
+   // Expanded/phone surfaces are fresh documents: bootstrap() is intentionally skipped
+   // when a screen snapshot is imported. Rebuild all ranking and record DOM here.
+   if(bootstrapData){
+     populateRankingGames(bootstrapData.games);
+     renderPlatform(bootstrapData);
+   }
    if(s.view==='fall'){fallEl.classList.remove('hidden');renderFall();startFallGravity();}
    else if(s.view==='block'){blockEl.classList.remove('hidden');renderBlock();}
    else if(s.view==='merge'){mergeEl.classList.remove('hidden');renderMerge();}
    else if(s.view==='slide'){slideEl.classList.remove('hidden');renderSlide();slideClock=setInterval(updateSlideTime,200);}
    else showHome();
+ },
+ // Wait for screenReady/screenReturned before fetching data from the server.
+ afterRestore:()=>{
+   if(!bootstrapData||homeEl.classList.contains('hidden'))return;
+   if(rankingGame.value)void loadRanking();
+   void refreshPlatform();
  }
 },bootstrap);else bootstrap();

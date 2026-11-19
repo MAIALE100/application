@@ -80,12 +80,11 @@ test('NUI interruption retains ink, transmits it, and clears it on lobby transit
   await page.evaluate(()=>{globalThis.sent=[];FlecityBridge.call=async(action,payload)=>{sent.push({action,payload});return {ok:false,error:'RATE_LIMIT'};};});
   await page.locator('#telephoneDrawSubmit').click();
   const sent=await page.evaluate(()=>globalThis.sent);
-  assert.equal(sent.filter(row=>row.action==='partySubmitTelephoneDrawing').length,1,interruption+' dropped the drawing: '+JSON.stringify(sent.map(row=>row.action)));assert.equal(sent.find(row=>row.action==='partySubmitTelephoneDrawing').action,'partySubmitTelephoneDrawing');
-  const drawing=sent.find(row=>row.action==='partySubmitTelephoneDrawing');
-  assert(drawing.payload.strokes[0].length>=2);assert(drawing.payload.strokes[0].some(p=>p.x!==drawing.payload.strokes[0][0].x));
+  assert.equal(sent.length,1,interruption+' dropped the drawing');assert.equal(sent[0].action,'partySubmitTelephoneDrawing');
+  assert(sent[0].payload.strokes[0].length>=2);assert(sent[0].payload.strokes[0].some(p=>p.x!==sent[0].payload.strokes[0][0].x));
   assert(await page.locator('#telephoneDrawSubmit').isEnabled());
   // Paint the transmitted data in the next player's text turn.
-  await page.evaluate(room=>auditRender(room),{...room,roundState:{...room.roundState,mode:'text',step:2,promptStrokes:drawing.payload.strokes}});
+  await page.evaluate(room=>auditRender(room),{...room,roundState:{...room.roundState,mode:'text',step:2,promptStrokes:sent[0].payload.strokes}});
   const ink=await canvas.evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4!==3&&v<100));assert(ink);
   await page.locator('#telephoneText').fill('前ゲームの入力');
   await page.evaluate(room=>auditUpdate({...room,state:'lobby',revision:2,roundState:null}),room);

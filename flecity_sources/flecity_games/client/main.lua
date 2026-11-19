@@ -249,6 +249,8 @@ local callbackMap={
     partySubmitLiarVote='flecity_games:party:submitLiarVote',
     partyAddDrawStroke='flecity_games:party:addDrawStroke',
     partyClearDrawing='flecity_games:party:clearDrawing',
+    partyUndoDrawing='flecity_games:party:undoDrawing',
+    partyPreviewDrawStroke='flecity_games:party:previewDrawStroke',
     partySubmitDrawGuess='flecity_games:party:submitDrawGuess',
     partySubmitTelephoneDrawing='flecity_games:party:submitTelephoneDrawing',
     partySubmitTelephoneText='flecity_games:party:submitTelephoneText',
@@ -259,6 +261,7 @@ local callbackMap={
     partySubmitBombPass='flecity_games:party:submitBombPass',
     partySubmitMemoryChain='flecity_games:party:submitMemoryChain',
     partySubmitFallBattle='flecity_games:party:submitFallBattle',
+    partyRematchFallBattle='flecity_games:party:rematchFallBattle',
     partyReturnLobby='flecity_games:party:returnLobby',
     partyLeaveRoom='flecity_games:party:leaveRoom'
 }
@@ -278,14 +281,16 @@ RegisterNetEvent('flecity_games:client:partyUpdate',function(room)
 end)
 
 RegisterNetEvent('flecity_games:client:partyDrawStroke',function(data)
-    if screenOwns('party') and screen.ready and type(data)=='table' then SendNUIMessage({type='partyDrawStroke',token=data.token,revision=data.revision,points=data.points});return end
+    if screenOwns('party') and screen.ready and type(data)=='table' then SendNUIMessage({type='partyDrawStroke',token=data.token,revision=data.revision,points=data.points,strokeId=data.strokeId,preview=data.preview});return end
     if GetResourceState('lb-phone')~='started' or type(data)~='table' or not partyAppOpen or partyPushSuspended then return end
     pcall(function()
         exports['lb-phone']:SendCustomAppMessage(FlecityGamesConfig.Apps.Party.identifier,{
             type='partyDrawStroke',
             token=data.token,
             revision=data.revision,
-            points=data.points
+            points=data.points,
+            strokeId=data.strokeId,
+            preview=data.preview
         })
     end)
 end)

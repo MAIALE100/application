@@ -174,11 +174,112 @@ function FlecityGamesPartyFall.Validate(seed,history,width,height,maxElapsedMs)
     },nil
 end
 
+-- Incremental, server-owned opponent. It only locks pieces whose scheduled
+-- action time has actually passed. The bot and humans use the identical seed,
+-- shape transformations, line clearing and authoritative replay validator.
+local PRACTICE_PACE={easy=1900,normal=1200,hard=800}
+
+function FlecityGamesPartyFall.NewPractice(seed,difficulty,width,height)
+    local level=tostring(difficulty or 'normal')
+    if not PRACTICE_PACE[level] then level='normal' end
+    width=math.max(6,math.min(14,math.floor(tonumber(width) or 10)))
+    height=math.max(12,math.min(24,math.floor(tonumber(height) or 18)))
+    return {
+        seed=seed,width=width,height=height,level=level,
+        pace=PRACTICE_PACE[level],nextActionMs=PRACTICE_PACE[level],
+        board=emptyBoard(width,height),rng=math.floor(tonumber(seed) or 1),
+        history={},ended=false,elapsedMs=0
+    }
+end
+
+local function practiceChoice(bot,pieceType)
+    local choices={}
+    for rotation=0,3 do
+        local shape=shapeFor(pieceType,rotation)
+        for x=0,bot.width-1 do
+            local landing=dropY(bot.board,bot.width,bot.height,shape,x)
+            if landing~=nil then
+                local candidate={}
+                for y,row in ipairs(bot.board) do
+                    candidate[y]={}
+                    for col,value in ipairs(row) do candidate[y][col]=value end
+                end
+                local applied=applyPlacement(candidate,bot.width,bot.height,pieceType,x,rotation,0,0)
+                if applied then
+                    local holes,stack=0,0
+                    for col=1,bot.width do
+                        local occupied=false
+                        for y=1,bot.height do
+                            if candidate[y][col]~=0 then
+                                if not occupied then stack=stack+(bot.height-y+1) occupied=true end
+                            elseif occupied then holes=holes+1 end
+                        end
+                    end
+                    choices[#choices+1]={
+                        x=x,rotation=rotation,board=candidate,
+                        value=applied.cleared*1000-holes*38-stack*3+landing
+                    }
+                end
+            end
+        end
+    end
+    table.sort(choices,function(a,b)
+        if a.value~=b.value then return a.value>b.value end
+        if a.rotation~=b.rotation then return a.rotation<b.rotation end
+        return a.x<b.x
+    end)
+    if #choices==0 then return nil end
+    local index=1
+    if bot.level=='normal' then index=math.min(#choices,math.max(1,math.floor(#choices/12))) end
+    if bot.level=='easy' then index=math.min(#choices,math.max(1,math.floor(#choices*3/5))) end
+    return choices[index]
+end
+
+-- Reconciliation is called periodically by the existing room cleanup timer.
+-- Per-tick work is bounded; at settlement, finish all moves already due.
+-- elapsedMs is server-authoritative and capped to the existing 90-second round.
+function FlecityGamesPartyFall.AdvancePractice(bot,elapsedMs,finalize)
+    if type(bot)~='table' then return nil end
+    local elapsed=math.max(0,math.min(90000,math.floor(tonumber(elapsedMs) or 0)))
+    bot.elapsedMs=math.max(bot.elapsedMs or 0,elapsed)
+    local limit=finalize and 120 or 3
+    local moves=0
+    while not bot.ended and bot.nextActionMs<=bot.elapsedMs and moves<limit do
+        local pieceType
+        bot.rng,pieceType=nextPiece(bot.rng)
+        local picked=practiceChoice(bot,pieceType)
+        if not picked then bot.ended=true break end
+        bot.board=picked.board
+        bot.history[#bot.history+1]={x=picked.x,rotation=picked.rotation,hold=false,t=bot.nextActionMs}
+        bot.nextActionMs=bot.nextActionMs+bot.pace
+        moves=moves+1
+        -- Next seeded piece must fit in at least one orientation, as on client.
+        local _,upcoming=nextPiece(bot.rng)
+        if not findAnyPlacement(bot.board,bot.width,bot.height,upcoming) then bot.ended=true end
+    end
+    return moves
+end
+
+function FlecityGamesPartyFall.PracticeResult(bot)
+    if not bot or #bot.history==0 then return {score=0,lines=0,pieces=0,ended=bot and bot.ended or false,history={}} end
+    return FlecityGamesPartyFall.Validate(bot.seed,bot.history,bot.width,bot.height,bot.elapsedMs)
+end
+
+-- Public compatibility for existing local checks: no future moves and no
+-- fabricated score. Pass elapsedMs explicitly; default is zero, not 90s.
+function FlecityGamesPartyFall.Practice(seed,difficulty,width,height,elapsedMs)
+    local bot=FlecityGamesPartyFall.NewPractice(seed,difficulty,width,height)
+    FlecityGamesPartyFall.AdvancePractice(bot,elapsedMs or 0,true)
+    return FlecityGamesPartyFall.PracticeResult(bot)
+end
+
 function FlecityGamesPartyFall.DebugSelftest()
     local valid=FlecityGamesPartyFall.Validate(12345,{{x=3,rotation=0,hold=false,t=100}},10,18,1000)
     local tooFast=FlecityGamesPartyFall.Validate(12345,{{x=3,rotation=0,hold=false,t=100},{x=3,rotation=0,hold=false,t=120}},10,18,1000)
     return {
         basic_valid=valid~=nil,
-        timing_guard=tooFast==nil
+        timing_guard=tooFast==nil,
+        ai_no_future_moves=(FlecityGamesPartyFall.Practice(12345,'hard',10,18,1000).pieces==1),
+        ai_no_early_moves=(FlecityGamesPartyFall.Practice(12345,'hard',10,18,500).pieces==0)
     }
 end

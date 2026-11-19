@@ -44,6 +44,8 @@ local callbacks={
     ['flecity_games:party:submitLiarVote']=function(source,data) return FlecityGamesParty.SubmitLiarVote(source,data) end,
     ['flecity_games:party:addDrawStroke']=function(source,data) return FlecityGamesParty.AddDrawStroke(source,data) end,
     ['flecity_games:party:clearDrawing']=function(source,data) return FlecityGamesParty.ClearDrawing(source,data) end,
+    ['flecity_games:party:undoDrawing']=function(source,data) return FlecityGamesParty.UndoDrawing(source,data) end,
+    ['flecity_games:party:previewDrawStroke']=function(source,data) return FlecityGamesParty.PreviewDrawStroke(source,data) end,
     ['flecity_games:party:submitDrawGuess']=function(source,data) return FlecityGamesParty.SubmitDrawGuess(source,data) end,
     ['flecity_games:party:submitTelephoneDrawing']=function(source,data) return FlecityGamesParty.SubmitTelephoneDrawing(source,data) end,
     ['flecity_games:party:submitTelephoneText']=function(source,data) return FlecityGamesParty.SubmitTelephoneText(source,data) end,
@@ -54,6 +56,7 @@ local callbacks={
     ['flecity_games:party:submitBombPass']=function(source,data) return FlecityGamesParty.SubmitBombPass(source,data) end,
     ['flecity_games:party:submitMemoryChain']=function(source,data) return FlecityGamesParty.SubmitMemoryChain(source,data) end,
     ['flecity_games:party:submitFallBattle']=function(source,data) return FlecityGamesParty.SubmitFallBattle(source,data) end,
+    ['flecity_games:party:rematchFallBattle']=function(source) return FlecityGamesParty.RematchFallBattle(source) end,
     ['flecity_games:party:returnLobby']=function(source) return FlecityGamesParty.ReturnLobby(source) end,
     ['flecity_games:party:leaveRoom']=function(source) return FlecityGamesParty.LeaveRoom(source) end
 }

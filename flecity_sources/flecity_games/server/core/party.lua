@@ -193,7 +193,7 @@ local function newMemorySequence(stage)
 end
 
 local function memoryRevealSeconds(sequence)
-    return 15
+    return 10
 end
 
 local telephonePrompts={
@@ -329,7 +329,9 @@ local function connectedIdentifiers(room)
 end
 
 -- Local, server-owned practice participants. Never accept a client-supplied AI identity.
-local aiGameIds={ng_word=true,draw=true,telephone=true}
+-- Release policy: AI only in one-vs-one games. Other games require human participants.
+-- code_break / reversi / gomoku / connect4 / mini_shogi already use their own solo AI.
+local aiGameIds={fall_battle=true}
 local function aiGameSupported(gameId) return aiGameIds[tostring(gameId or '')]==true end
 local function aiMemberId(index) return '__flecity_party_ai_'..tostring(index) end
 local function humanMemberCount(room)
@@ -377,13 +379,47 @@ end
 local function roundTimeoutSeconds(gameId)
     local limits={
         code_break=120,reversi=0,gomoku=0,connect4=0,reaction=12,stop_battle=25,vote=60,majority=45,minority=45,
-        tic_tac=45,mini_shogi=0,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=15
+        tic_tac=45,mini_shogi=0,word_wolf=150,liar=150,draw=90,telephone=45,ng_word=45,fake_answer=60,bomb=10,memory_chain=10
     }
     return limits[tostring(gameId or '')] or 90
 end
 
+-- Telephone role order is randomized once at match start, never reshuffled mid-chain.
+local function randomTelephoneOrder(ids)
+    local order={}
+    for i,id in ipairs(ids or {}) do order[i]=id end
+    for i=#order,2,-1 do
+        local j=math.random(1,i)
+        order[i],order[j]=order[j],order[i]
+    end
+    return order
+end
+
+local function telephoneTurnNotice(room)
+    local rs=room and room.roundState
+    if not rs or rs.gameId~='telephone' or rs.complete or rs.countdownUntilTick then return end
+    local id=rs.currentIdentifier
+    local member=id and room.members[id]
+    if not member or member.ai or member.disconnected or member.appOpen==false or not member.source then return end
+    local noticeKey=tostring(rs.token)..':'..tostring(rs.step)
+    if rs.lastTelephoneNotice==noticeKey then return end
+    rs.lastTelephoneNotice=noticeKey
+    local modeLabel=rs.mode=='prompt' and 'お題を作る' or (rs.mode=='draw' and '絵を描く' or '絵を見て回答する')
+    -- lb-phone supports a source-targeted unsaved notification. Failure must
+    -- not block the next player or change the authoritative game state.
+    pcall(function()
+        if GetResourceState('lb-phone')=='started' then
+            exports['lb-phone']:SendNotification(tonumber(member.source),{
+                app=FlecityGamesConfig.Apps.Party.identifier,
+                title='LINK｜あなたの手番です！',
+                content='お絵描き伝言：'..modeLabel..'番です。制限時間内に入力してください。'
+            })
+        end
+    end)
+end
+
 local function telephoneTurnTimeoutSeconds(mode)
-    return mode=='text' and 30 or 45
+    return mode=='prompt' and 60 or (mode=='text' and 45 or 75)
 end
 
 local function setRoundDeadline(rs,seconds)
@@ -1135,19 +1171,27 @@ local function memberName(room,id)
     return m and m.name or 'Player'
 end
 
-local function sanitizedStrokes(strokes,maxStrokes,maxPoints)
+local function sanitizedStrokes(strokes,maxStrokes,maxPoints,maxPerStroke)
     if type(strokes)~='table' or #strokes<1 or #strokes>(maxStrokes or 80) then return nil end
     local clean={} local totalPoints=0
     for _,stroke in ipairs(strokes) do
-        if type(stroke)~='table' or #stroke<2 or #stroke>48 then return nil end
+        if type(stroke)~='table' or #stroke<2 or #stroke>(maxPerStroke or 48) then return nil end
         totalPoints=totalPoints+#stroke
         if maxPoints and totalPoints>maxPoints then return nil end
         local points={}
-        for _,point in ipairs(stroke) do
+        for index,point in ipairs(stroke) do
             if type(point)~='table' then return nil end
             local x=tonumber(point.x) local y=tonumber(point.y)
             if not x or not y or x~=x or y~=y or x<0 or x>1 or y<0 or y>1 then return nil end
-            points[#points+1]={x=math.floor(x*10000+0.5)/10000,y=math.floor(y*10000+0.5)/10000}
+            local cleanPoint={x=math.floor(x*10000+0.5)/10000,y=math.floor(y*10000+0.5)/10000}
+            -- First-point ink metadata remains optional for existing drawings.
+            if index==1 then
+                if point.erase==true or point.erase==1 then cleanPoint.erase=true end
+                if type(point.color)=='string' and point.color:match('^#%x%x%x%x%x%x$') then cleanPoint.color=point.color end
+                local width=tonumber(point.width)
+                if width and width==width then cleanPoint.width=math.floor(math.max(2,math.min(16,width))+0.5) end
+            end
+            points[#points+1]=cleanPoint
         end
         clean[#clean+1]=points
     end
@@ -1166,6 +1210,8 @@ local function telephonePublicChain(room,rs)
         local contributor=entry.byName or (entry.byIdentifier and memberName(room,entry.byIdentifier)) or 'START'
         local item={kind=entry.kind,name=contributor}
         if entry.kind=='text' then item.text=entry.text else item.strokes=entry.strokes end
+        item.autoSubmitted=entry.autoSubmitted==true
+        item.autoEmpty=entry.autoEmpty==true
         out[#out+1]=item
     end
     return out
@@ -1177,6 +1223,7 @@ local function publicRoundState(room,viewerId)
     local out={
         token=rs.token,gameId=rs.gameId,startedAt=rs.startedAt,startedTick=rs.startedTick,
         deadlineTick=rs.deadlineTick,deadlineDurationSec=rs.deadlineDurationSec,
+        countdownUntilTick=rs.countdownUntilTick,
         complete=rs.complete==true,selfSubmitted=rs.submissions and rs.submissions[viewerId]~=nil or false
     }
     if rs.gameId=='reaction' or rs.gameId=='stop_battle' or rs.gameId=='vote'
@@ -1188,6 +1235,9 @@ local function publicRoundState(room,viewerId)
         end
         out.submittedCount=submitted
         out.expectedSubmissions=activeCount(room)
+    end
+    if rs.gameId=='fall_battle' then
+        out.aiPieces=rs.fallPractice and #rs.fallPractice.history or nil
     end
     if rs.gameId=='code_break' then
         local history=rs.codeBreakHistory and rs.codeBreakHistory[viewerId] or {}
@@ -1282,9 +1332,13 @@ local function publicRoundState(room,viewerId)
         out.voteUnlockTick=rs.voteUnlockTick
     end
     if rs.gameId=='draw' then
-        out.isDrawer=viewerId==rs.drawerIdentifier
+        out.drawIndex=rs.drawIndex or 1
+        out.totalDrawRounds=#(rs.drawOrder or {})>0 and #rs.drawOrder or 1
+        out.drawPhase=rs.drawPhase or 'draw'
+        if rs.drawPhase=='reveal' then out.drawLastResult=rs.drawLastResult end
+        out.isDrawer=viewerId==rs.drawerIdentifier and rs.drawPhase~='reveal'
         out.drawerMemberId=memberPublicId(room,rs.drawerIdentifier)
-        out.prompt=viewerId==rs.drawerIdentifier and rs.prompt or nil
+        out.prompt=viewerId==rs.drawerIdentifier and rs.drawPhase~='reveal' and rs.prompt or nil
         out.strokes=rs.strokes or {}
         out.selfGuessed=rs.guessed and rs.guessed[viewerId]==true or false
         local guessedCount=0
@@ -1300,8 +1354,23 @@ local function publicRoundState(room,viewerId)
         out.isCurrent=viewerId==rs.currentIdentifier
         if out.isCurrent and not rs.complete then
             local previous=rs.chain and rs.chain[#rs.chain] or nil
+            if previous then
+                out.sourceKind=previous.kind
+                out.sourceContributor=previous.byName
+                out.sourceStep=#(rs.chain or {})
+            end
             if rs.mode=='draw' and previous and previous.kind=='text' then out.promptText=previous.text end
-            if rs.mode=='text' and previous and previous.kind=='draw' then out.promptStrokes=previous.strokes end
+            if rs.mode=='text' and previous and previous.kind=='draw' then
+                out.promptStrokes=previous.strokes out.previousAutoEmpty=previous.autoEmpty==true
+            end
+            -- The originator alone gets the prompt-entry UI; do not disclose future turns.
+            if rs.mode=='prompt' then out.enterPrompt=true end
+            -- Draft is visible ONLY to its owner to support NUI re-entry.
+            local draft=rs.telephoneDraft
+            if draft and draft.owner==viewerId and draft.step==rs.step then
+                if draft.mode=='draw' then out.selfDraftStrokes=draft.strokes
+                else out.selfDraftText=draft.text end
+            end
         end
     end
     if rs.gameId=='ng_word' then
@@ -1399,7 +1468,7 @@ local function publicRoundState(room,viewerId)
         end
     end
     if rs.complete then
-        if rs.gameId=='telephone' then out.results={chain=telephonePublicChain(room,rs)} else out.results=rs.results end
+        if rs.gameId=='telephone' then out.results={chain=telephonePublicChain(room,rs),expectedSteps=#(rs.turnOrder or {})} else out.results=rs.results end
     end
     return out
 end
@@ -1574,6 +1643,10 @@ function FlecityGamesParty.JoinRoom(source,data)
     if memberCount(room)>=FlecityGamesConfig.Party.MaxPlayers and connectedCount(room)<FlecityGamesConfig.Party.MaxPlayers then
         reclaimDisconnectedCapacity(room,FlecityGamesConfig.Party.MaxPlayers)
     end
+    -- A new real player replaces any solo Tetris AI, even below room capacity.
+    if room.selectedGame=='fall_battle' and room.aiOptions and room.aiOptions.enabled then
+        configureAiMembers(room,0)
+    end
     -- Free a local AI slot for an actual human joining the lobby.
     local selectedGame=partyGame(room.selectedGame)
     local limit=math.min(FlecityGamesConfig.Party.MaxPlayers,selectedGame and selectedGame.maxPlayers or FlecityGamesConfig.Party.MaxPlayers)
@@ -1671,6 +1744,7 @@ function FlecityGamesParty.SetPracticeAi(source,data)
     if enabled and (not requested or requested~=math.floor(requested) or requested<1) then return {ok=false,error='INVALID_AI_COUNT'} end
     local count=enabled and requested or 0
     if count>aiOptionLimit(room,game) then return {ok=false,error='AI_COUNT_EXCEEDED'} end
+    if game.id=='fall_battle' and (count>1 or (enabled and humanMemberCount(room)~=1)) then return {ok=false,error='AI_COUNT_EXCEEDED'} end
     local difficulty=tostring(data.difficulty or 'normal')
     if difficulty~='easy' and difficulty~='normal' and difficulty~='hard' then return {ok=false,error='INVALID_AI_DIFFICULTY'} end
     configureAiMembers(room,count)
@@ -1870,17 +1944,22 @@ function FlecityGamesParty.StartRound(source)
         local ids=connectedIdentifiers(room)
         room.rotation=room.rotation or {draw=0,telephone=0}
         room.rotation.draw=((tonumber(room.rotation.draw) or 0)%#ids)+1
-        rs.drawerIdentifier=ids[room.rotation.draw]
+        rs.drawOrder=rotatedIdentifiers(ids,room.rotation.draw)
+        rs.drawIndex=1 rs.drawPhase='draw' rs.drawHistory={}
+        rs.drawerIdentifier=rs.drawOrder[1]
         rs.prompt=pickRoomPrompt(room,'draw',room.members[rs.drawerIdentifier] and room.members[rs.drawerIdentifier].ai and {'家','太陽','木','魚','山','花'} or drawPrompts)
         rs.strokes={} rs.guessed={} rs.guessedAt={}
     end
     if game.id=='telephone' then
         local ids=connectedIdentifiers(room)
         room.rotation=room.rotation or {draw=0,telephone=0}
-        room.rotation.telephone=((tonumber(room.rotation.telephone) or 0)%#ids)+1
-        rs.turnOrder=rotatedIdentifiers(ids,room.rotation.telephone)
-        rs.step=1 rs.mode='draw' rs.currentIdentifier=rs.turnOrder[1]
-        rs.chain={{kind='text',text=pickRoomPrompt(room,'telephone',telephonePrompts)}}
+        rs.turnOrder=randomTelephoneOrder(ids)
+        -- Gartic-style chain: first player writes their own topic, then another draws.
+        -- One final alternating step returns to the first player for 2-player rounds.
+        rs.turnOrder[#rs.turnOrder+1]=rs.turnOrder[1]
+        rs.step=1 rs.mode='prompt' rs.currentIdentifier=rs.turnOrder[1]
+        rs.chain={} rs.telephoneDraft=nil rs.lastTelephoneNotice=nil
+        rs.countdownUntilTick=GetGameTimer()+5000
     end
     if game.id=='ng_word' then
         local ids=connectedIdentifiers(room)
@@ -1935,6 +2014,7 @@ function FlecityGamesParty.StartRound(source)
         rs.deadlineDurationSec=nil
     elseif game.id=='telephone' then
         setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode))
+        rs.deadlineTick=rs.deadlineTick+5000 -- 5-second pre-round countdown
     elseif game.id=='ng_word' then
         setRoundDeadline(rs,45)
     elseif game.id=='fake_answer' then
@@ -2678,22 +2758,41 @@ function FlecityGamesParty.SubmitLiarVote(source,data)
     return {ok=true,room=snapshot(room,id)}
 end
 
-local function maybeFinishDraw(room,force)
+-- One match contains one drawing turn per participant. Every reveal lasts a
+-- short interval before passing the pen. No caller can modify strokes during
+-- the reveal phase; stale packets must carry the expected drawIndex.
+local function startNextDrawTurn(room)
     local rs=room.roundState
     if not rs or rs.gameId~='draw' or rs.complete then return end
+    while (rs.drawIndex or 0)<#(rs.drawOrder or {}) do
+        rs.drawIndex=rs.drawIndex+1
+        local id=rs.drawOrder[rs.drawIndex]
+        local player=room.members[id]
+        if player and not player.disconnected and player.appOpen~=false then
+            rs.drawerIdentifier=id rs.drawPhase='draw' rs.drawLastResult=nil
+            rs.prompt=pickRoomPrompt(room,'draw',player.ai and {'家','太陽','木','魚','山','花'} or drawPrompts)
+            rs.strokes={} rs.guessed={} rs.guessedAt={} rs.submissions={}
+            setRoundDeadline(rs,roundTimeoutSeconds('draw'))
+            return
+        end
+    end
+    rs.complete=true rs.drawPhase='complete'
+    rs.results={turns=rs.drawHistory or {},prompt=rs.prompt,entries=rs.drawLastResult and rs.drawLastResult.entries or {},timedOut=false}
+end
+local function maybeFinishDraw(room,force)
+    local rs=room.roundState
+    if not rs or rs.gameId~='draw' or rs.complete or rs.drawPhase=='reveal' then return end
     local drawer=room.members[rs.drawerIdentifier]
     if not drawer or drawer.disconnected or drawer.appOpen==false then
-        rs.complete=true
-        rs.results={aborted=true,reason='DRAWER_LEFT',prompt=rs.prompt,entries={}}
-        return
+        -- Record the skipped turn and continue with remaining players instead
+        -- of aborting the entire match.
+        force=true
     end
     local needed=0 local guessed=0
     for id,m in pairs(room.members) do
         if not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier then needed=needed+1 if rs.guessed[id] then guessed=guessed+1 end end
     end
     if guessed<needed and not force then
-        -- Bot players submit one attempt each. Do not keep a solo human drawer
-        -- waiting 90 seconds when all remaining responders are finished bots.
         local awaiting=false
         for id,m in pairs(room.members) do
             if not m.disconnected and m.appOpen~=false and id~=rs.drawerIdentifier and not rs.guessed[id] then
@@ -2710,7 +2809,22 @@ local function maybeFinishDraw(room,force)
     end
     table.sort(entries,function(a,b) return a.guessedAt<b.guessedAt end)
     for i,e in ipairs(entries) do e.place=i e.guessedAt=nil end
-    rs.complete=true rs.results={aborted=false,prompt=rs.prompt,entries=entries,drawerMemberId=drawer.memberId,timedOut=force==true and guessed<needed}
+    local turn={index=rs.drawIndex or 1,drawerName=drawer and drawer.name or '退出した人',prompt=rs.prompt,entries=entries,timedOut=force==true and guessed<needed}
+    rs.drawHistory=rs.drawHistory or {}
+    rs.drawHistory[#rs.drawHistory+1]=turn
+    rs.drawLastResult=turn
+    local more=false
+    for i=(rs.drawIndex or 1)+1,#(rs.drawOrder or {}) do
+        local p=room.members[rs.drawOrder[i]]
+        if p and not p.disconnected and p.appOpen~=false then more=true break end
+    end
+    if more then
+        rs.drawPhase='reveal'
+        setRoundDeadline(rs,6)
+    else
+        rs.complete=true rs.drawPhase='complete'
+        rs.results={turns=rs.drawHistory,prompt=turn.prompt,entries=entries,timedOut=turn.timedOut}
+    end
 end
 
 function FlecityGamesParty.AddDrawStroke(source,data)
@@ -2721,16 +2835,59 @@ function FlecityGamesParty.AddDrawStroke(source,data)
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.drawPhase=='reveal' then return {ok=false,error='REVEAL_IN_PROGRESS'} end
+    if tonumber(data.drawIndex)~=(tonumber(rs.drawIndex) or 1) then return {ok=false,error='DRAW_TURN_CHANGED'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     if #(rs.strokes or {})>=160 then return {ok=false,error='DRAW_LIMIT'} end
+    local clean=sanitizedStrokes({data.points},1,128,128)
+    if not clean then return {ok=false,error='INVALID_STROKE'} end
+    if strokePointCount(rs.strokes)+#clean[1]>4800 then return {ok=false,error='DRAW_LIMIT'} end
+    rs.strokes[#rs.strokes+1]=clean[1]
+    local strokeId=math.floor(tonumber(data.strokeId) or -1)
+    notifyRoomEvent(room,source,'flecity_games:client:partyDrawStroke',{
+        token=rs.token,drawIndex=rs.drawIndex,points=clean[1],strokeId=strokeId
+    })
+    return {ok=true,room=snapshot(room,id)}
+end
+
+function FlecityGamesParty.PreviewDrawStroke(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'draw_preview',75) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token or rs.complete then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.drawPhase=='reveal' then return {ok=false,error='REVEAL_IN_PROGRESS'} end
+    if tonumber(data.drawIndex)~=(tonumber(rs.drawIndex) or 1) then return {ok=false,error='DRAW_TURN_CHANGED'} end
+    if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
+    local strokeId=tonumber(data.strokeId)
+    if not strokeId or strokeId<0 or strokeId>100000 or strokeId~=math.floor(strokeId) then return {ok=false,error='INVALID_STROKE_ID'} end
     local clean=sanitizedStrokes({data.points},1,48)
     if not clean then return {ok=false,error='INVALID_STROKE'} end
-    if strokePointCount(rs.strokes)+#clean[1]>3200 then return {ok=false,error='DRAW_LIMIT'} end
-    rs.strokes[#rs.strokes+1]=clean[1]
-    notifyRoomEvent(room,source,'flecity_games:client:partyDrawStroke',{
-        token=rs.token,
-        points=clean[1]
-    })
+    local preview={token=rs.token,drawIndex=rs.drawIndex,points=clean[1],strokeId=strokeId,offset=math.max(0,math.floor(tonumber(data.offset) or 0)),preview=true}
+    for _,member in pairs(room.members) do
+        local src=member.source and tonumber(member.source) or nil
+        if src and src~=tonumber(source) and not member.disconnected and member.appOpen~=false then
+            TriggerClientEvent('flecity_games:client:partyDrawStroke',src,preview)
+        end
+    end
+    return {ok=true}
+end
+
+function FlecityGamesParty.UndoDrawing(source,data)
+    if not FlecityGamesRateLimit.Allow(source,'draw_undo',120) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room then return {ok=false,error='NOT_IN_ROOM'} end
+    local rs=room.roundState
+    if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
+    if tostring(data.token or '')~=rs.token or rs.complete then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
+    if rs.drawPhase=='reveal' then return {ok=false,error='REVEAL_IN_PROGRESS'} end
+    if tonumber(data.drawIndex)~=(tonumber(rs.drawIndex) or 1) then return {ok=false,error='DRAW_TURN_CHANGED'} end
+    if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
+    if #(rs.strokes or {})>0 then
+        table.remove(rs.strokes)
+        notifyRoom(room,source)
+    end
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -2742,9 +2899,11 @@ function FlecityGamesParty.ClearDrawing(source,data)
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.drawPhase=='reveal' then return {ok=false,error='REVEAL_IN_PROGRESS'} end
+    if tonumber(data.drawIndex)~=(tonumber(rs.drawIndex) or 1) then return {ok=false,error='DRAW_TURN_CHANGED'} end
     if rs.drawerIdentifier~=id then return {ok=false,error='DRAWER_ONLY'} end
     rs.strokes={}
-    notifyRoomEvent(room,source,'flecity_games:client:partyDrawClear',{token=rs.token})
+    notifyRoomEvent(room,source,'flecity_games:client:partyDrawClear',{token=rs.token,drawIndex=rs.drawIndex})
     return {ok=true,room=snapshot(room,id)}
 end
 
@@ -2756,6 +2915,8 @@ function FlecityGamesParty.SubmitDrawGuess(source,data)
     if type(data)~='table' or room.state~='round' or not rs or rs.gameId~='draw' then return {ok=false,error='INVALID_ROUND'} end
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
+    if rs.drawPhase=='reveal' then return {ok=false,error='REVEAL_IN_PROGRESS'} end
+    if tonumber(data.drawIndex)~=(tonumber(rs.drawIndex) or 1) then return {ok=false,error='DRAW_TURN_CHANGED'} end
     if rs.drawerIdentifier==id then return {ok=false,error='DRAWER_CANNOT_GUESS'} end
     if rs.guessed[id] then return {ok=false,error='ALREADY_GUESSED'} end
     local guess=FlecityGamesText.Normalize(data.guess)
@@ -2778,7 +2939,11 @@ local function advanceTelephone(room,toggleMode)
         if rs.step>#(rs.turnOrder or {}) then rs.complete=true rs.currentIdentifier=nil return end
         local candidate=rs.turnOrder[rs.step]
         local member=room.members[candidate]
-        if member and not member.disconnected and member.appOpen~=false then rs.currentIdentifier=candidate return end
+        if member and not member.disconnected and member.appOpen~=false then
+            rs.currentIdentifier=candidate rs.telephoneDraft=nil
+            telephoneTurnNotice(room)
+            return
+        end
     end
 end
 
@@ -2792,8 +2957,54 @@ local function ensureTelephoneTurn(room)
     return true
 end
 
+-- Draft updates use the existing authenticated phone callbacks with draft=true;
+-- they do not advance the turn and never broadcast private artwork.
+local function saveTelephoneDraft(rs,id,mode,data)
+    local seq=tonumber(data.draftRevision)
+    if not seq or seq~=math.floor(seq) or seq<1 or seq>10000000 then return {ok=false,error='INVALID_DRAFT_REVISION'} end
+    local previous=rs.telephoneDraft
+    if previous and previous.owner==id and previous.step==rs.step and seq<=previous.revision then
+        return {ok=true,revision=previous.revision,stale=true}
+    end
+    local draft={owner=id,step=rs.step,mode=mode,revision=seq}
+    if mode=='draw' then
+        if type(data.strokes)~='table' or #data.strokes>80 then return {ok=false,error='INVALID_DRAWING'} end
+        if #data.strokes>0 then
+            draft.strokes=sanitizedStrokes(data.strokes,80,2400,128)
+            if not draft.strokes then return {ok=false,error='INVALID_DRAWING'} end
+        else draft.strokes={} end
+    else
+        local val=FlecityGamesText.Normalize(data.text or '')
+        if FlecityGamesText.Length(val)>80 then return {ok=false,error='INVALID_TEXT'} end
+        draft.text=val
+    end
+    rs.telephoneDraft=draft
+    return {ok=true,revision=seq,saved=true}
+end
+
+local function telephoneDeadlineSubmit(room)
+    local rs=room and room.roundState
+    if not rs or rs.gameId~='telephone' or rs.complete then return end
+    local id=rs.currentIdentifier
+    local draft=rs.telephoneDraft
+    local valid=draft and draft.owner==id and draft.step==rs.step and draft.mode==rs.mode
+    if rs.mode=='draw' then
+        local strokes=valid and draft.strokes or {}
+        local missing=#strokes==0
+        rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,byName=memberName(room,id),strokes=strokes,autoSubmitted=true,autoEmpty=missing}
+    else
+        local value=valid and draft.text or ''
+        local missing=value==''
+        if missing then value='（時間切れ・未入力）' end
+        rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,byName=memberName(room,id),text=value,autoSubmitted=true,autoEmpty=missing}
+    end
+    rs.submissions[id]=(rs.submissions[id] or 0)+1
+    advanceTelephone(room,true)
+    if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+end
+
 function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'telephone_draw',500) then return {ok=false,error='RATE_LIMIT'} end
+    if not FlecityGamesRateLimit.Allow(source,(type(data)=='table' and data.draft==true) and 'telephone_draw_draft' or 'telephone_draw',(type(data)=='table' and data.draft==true) and 250 or 500) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
@@ -2802,18 +3013,27 @@ function FlecityGamesParty.SubmitTelephoneDrawing(source,data)
     ensureTelephoneTurn(room)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
     if rs.currentIdentifier~=id or rs.mode~='draw' then return {ok=false,error='NOT_YOUR_TURN'} end
-    local clean=sanitizedStrokes(data.strokes,80,2400)
+    if tonumber(data.step)~=tonumber(rs.step) then return {ok=false,error='STEP_CHANGED'} end
+    if rs.countdownUntilTick then
+        if GetGameTimer()<rs.countdownUntilTick then return {ok=false,error='COUNTDOWN_ACTIVE'} end
+        rs.countdownUntilTick=nil
+        telephoneTurnNotice(room)
+    end
+    if data.draft==true then return saveTelephoneDraft(rs,id,'draw',data) end
+    local previous=rs.chain and rs.chain[#rs.chain]
+    if not previous or previous.kind~='text' or type(previous.text)~='string' or previous.text=='' then return {ok=false,error='PROMPT_UNAVAILABLE'} end
+    local clean=sanitizedStrokes(data.strokes,80,2400,128)
     if not clean then return {ok=false,error='INVALID_DRAWING'} end
     rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,byName=memberName(room,id),strokes=clean}
     rs.submissions[id]=(rs.submissions[id] or 0)+1
     advanceTelephone(room,true)
     if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
     notifyRoom(room,source)
-    return {ok=true,room=snapshot(room,id)}
+    return {ok=true,receipt={kind='draw',step=data.step,strokeCount=#clean,pointCount=strokePointCount(clean)},room=snapshot(room,id)}
 end
 
 function FlecityGamesParty.SubmitTelephoneText(source,data)
-    if not FlecityGamesRateLimit.Allow(source,'telephone_text',500) then return {ok=false,error='RATE_LIMIT'} end
+    if not FlecityGamesRateLimit.Allow(source,(type(data)=='table' and data.draft==true) and 'telephone_text_draft' or 'telephone_text',(type(data)=='table' and data.draft==true) and 250 or 500) then return {ok=false,error='RATE_LIMIT'} end
     local id=identifier(source) local room=roomForPlayer(source,id)
     if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
     local rs=room.roundState
@@ -2821,7 +3041,21 @@ function FlecityGamesParty.SubmitTelephoneText(source,data)
     if tostring(data.token or '')~=rs.token then return {ok=false,error='ROUND_TOKEN_MISMATCH'} end
     ensureTelephoneTurn(room)
     if rs.complete then return {ok=false,error='ROUND_COMPLETE'} end
-    if rs.currentIdentifier~=id or rs.mode~='text' then return {ok=false,error='NOT_YOUR_TURN'} end
+    if rs.currentIdentifier~=id or (rs.mode~='text' and rs.mode~='prompt') then return {ok=false,error='NOT_YOUR_TURN'} end
+    if tonumber(data.step)~=tonumber(rs.step) then return {ok=false,error='STEP_CHANGED'} end
+    if rs.countdownUntilTick then
+        if GetGameTimer()<rs.countdownUntilTick then return {ok=false,error='COUNTDOWN_ACTIVE'} end
+        rs.countdownUntilTick=nil
+        telephoneTurnNotice(room)
+    end
+    if data.draft==true then return saveTelephoneDraft(rs,id,rs.mode,data) end
+    local promptStage=rs.mode=='prompt'
+    if promptStage then
+        if #rs.chain~=0 then return {ok=false,error='PROMPT_ALREADY_SET'} end
+    else
+        local previous=rs.chain and rs.chain[#rs.chain]
+        if not previous or previous.kind~='draw' or not (previous.autoEmpty or sanitizedStrokes(previous.strokes,80,2400,128)) then return {ok=false,error='DRAWING_UNAVAILABLE'} end
+    end
     local value=FlecityGamesText.Normalize(data.text)
     local textLength=FlecityGamesText.Length(value)
     if textLength<1 or textLength>80 then return {ok=false,error='INVALID_TEXT'} end
@@ -3021,7 +3255,9 @@ local function drivePracticeBots(room)
         local member=id and room.members[id] or nil
         if not member or not member.ai then return false end
         local previous=rs.chain[#rs.chain]
-        if rs.mode=='draw' then
+        if rs.mode=='prompt' then
+            rs.chain[#rs.chain+1]={kind='text',byIdentifier=id,byName=member.name,text=pickRoomPrompt(room,'telephone',telephonePrompts)}
+        elseif rs.mode=='draw' then
             local text=previous and previous.kind=='text' and previous.text or ''
             rs.chain[#rs.chain+1]={kind='draw',byIdentifier=id,byName=member.name,strokes=botDrawing(text)}
         else
@@ -3034,6 +3270,7 @@ local function drivePracticeBots(room)
         practiceAiNextTick(rs,1800)
         return true
     elseif rs.gameId=='draw' then
+        if rs.drawPhase=='reveal' then return false end
         local drawer=room.members[rs.drawerIdentifier]
         if drawer and drawer.ai then
             if #(rs.strokes or {})>0 then return false end
@@ -3506,7 +3743,36 @@ end
 
 local function maybeFinishFallBattle(room,force)
     local rs=room.roundState
-    if not rs or rs.gameId~='fall_battle' or rs.complete or (not force and completedSubmissionCount(room)<activeCount(room)) then return end
+    if not rs or rs.gameId~='fall_battle' or rs.complete then return end
+    local botId=aiMemberId(1)
+    local botChanged=false
+    if room.members[botId] and not rs.submissions[botId] then
+        local humansDone=true
+        for memberId,member in pairs(room.members) do
+            if not member.ai and not member.disconnected and member.appOpen~=false and not rs.submissions[memberId] then
+                humansDone=false break
+            end
+        end
+        if not rs.fallPractice then
+            rs.fallPractice=FlecityGamesPartyFall.NewPractice(rs.seed,room.aiOptions and room.aiOptions.difficulty,rs.width,rs.height)
+        end
+        local elapsed=math.max(0,GetGameTimer()-(tonumber(rs.startedTick) or GetGameTimer()))
+        local finalize=humansDone or force
+        local moves=FlecityGamesPartyFall.AdvancePractice(rs.fallPractice,elapsed,finalize)
+        botChanged=(moves or 0)>0
+        if finalize or rs.fallPractice.ended then
+            local result=FlecityGamesPartyFall.PracticeResult(rs.fallPractice)
+            if result then
+                rs.submissions[botId]={score=result.score,lines=result.lines,pieces=result.pieces,ended=result.ended==true}
+            else
+                -- Reject invalid bot replays rather than publish a manufactured score.
+                rs.submissions[botId]={score=0,lines=0,pieces=0,forfeited=true,ended=true}
+            end
+            rs.fallPractice=nil
+            botChanged=true
+        end
+    end
+    if not force and completedSubmissionCount(room)<activeCount(room) then return botChanged end
 
     local entries={}
     local bestScore=nil
@@ -3549,8 +3815,22 @@ local function maybeFinishFallBattle(room,force)
         end
     end
 
+    -- Competition ranking: equal valid scores and cleared lines share the same place.
+    -- Disqualified and missing submissions never displace a valid finisher.
+    for index,entry in ipairs(entries) do
+        local previous=entries[index-1]
+        if previous and not entry.timedOut and not entry.forfeited
+            and not previous.timedOut and not previous.forfeited
+            and entry.score==previous.score and entry.lines==previous.lines then
+            entry.place=previous.place
+        else
+            entry.place=index
+        end
+    end
     rs.complete=true
     rs.results={entries=entries,winnerMemberIds=winners,timedOut=force==true}
+    rs.fallPractice=nil
+    return true
 end
 
 function FlecityGamesParty.SubmitFallBattle(source,data)
@@ -3565,8 +3845,19 @@ function FlecityGamesParty.SubmitFallBattle(source,data)
 
     local serverElapsed=math.max(0,GetGameTimer()-(tonumber(rs.startedTick) or GetGameTimer()))
     local allowedElapsed=math.min(90000,serverElapsed)
-    local validated,errorCode=FlecityGamesPartyFall.Validate(rs.seed,data.history,rs.width,rs.height,allowedElapsed)
+    local validated,errorCode
+    if type(data.history)=='table' and next(data.history)==nil then
+        -- A participant who locked no pieces still has a legitimate zero-score
+        -- result. Missing a placement must not automatically mean 'no submission'.
+        validated={score=0,lines=0,pieces=0,ended=false}
+    else
+        validated,errorCode=FlecityGamesPartyFall.Validate(rs.seed,data.history,rs.width,rs.height,allowedElapsed)
+    end
     if not validated then return {ok=false,error=errorCode or 'INVALID_FALL_BATTLE_REPLAY'} end
+    -- Network grace is for transport only: no move after 90 seconds is valid.
+    if validated.history and #validated.history>0 and validated.history[#validated.history].t>90000 then
+        return {ok=false,error='IMPOSSIBLE_TIMING'}
+    end
 
     rs.submissions[id]={
         score=validated.score,
@@ -3577,6 +3868,52 @@ function FlecityGamesParty.SubmitFallBattle(source,data)
     maybeFinishFallBattle(room)
     notifyRoom(room,source)
     return {ok=true,room=snapshot(room,id)}
+end
+
+-- Rematch never bypasses another human's ready confirmation.
+-- A solo human vs AI may immediately start a fresh, independently seeded round.
+-- Human-vs-human rematches keep the room and game selection but require lobby ready.
+function FlecityGamesParty.RematchFallBattle(source)
+    if not FlecityGamesRateLimit.Allow(source,'fall_battle_rematch',1200) then return {ok=false,error='RATE_LIMIT'} end
+    local id=identifier(source) local room=roomForPlayer(source,id)
+    if not id or not room or not room.members[id] then return {ok=false,error='NOT_IN_ROOM'} end
+    if room.hostIdentifier~=id then return {ok=false,error='HOST_ONLY'} end
+    local old=room.roundState
+    if room.state~='round' or not old or old.gameId~='fall_battle' or old.complete~=true then
+        return {ok=false,error='ROUND_IN_PROGRESS'}
+    end
+    local humans,bots=0,0
+    for _,member in pairs(room.members) do
+        if not member.disconnected then
+            if member.ai then bots=bots+1 else humans=humans+1 end
+        end
+    end
+    if humans~=1 or bots~=1 then return FlecityGamesParty.ReturnLobby(source) end
+    -- Normal StartRound clears human ready flags after every round. Only in
+    -- the ONE-human/ONE-bot case may a host's rematch click be treated as ready.
+    -- Preserve and restore all readiness flags on any failed start.
+    local previousRound=room.round
+    local previousReady={}
+    for memberId,member in pairs(room.members) do
+        previousReady[memberId]=member.ready
+        if member.ai or (memberId==id and member.appOpen~=false and not member.disconnected) then
+            member.ready=true
+        end
+    end
+    room.state='lobby'
+    room.roundState=nil
+    local ok,result=pcall(FlecityGamesParty.StartRound,source)
+    if not ok or not result or result.ok~=true then
+        room.state='round'
+        room.roundState=old
+        room.round=previousRound
+        for memberId,wasReady in pairs(previousReady) do
+            if room.members[memberId] then room.members[memberId].ready=wasReady end
+        end
+        if not ok then return {ok=false,error='SERVER_ERROR'} end
+        return result or {ok=false,error='SERVER_ERROR'}
+    end
+    return result
 end
 
 function FlecityGamesParty.ReturnLobby(source)
@@ -3647,6 +3984,13 @@ reconcileRound=function(room)
     local purged=purgeDisconnectedTargets(room)
     local botChanged=drivePracticeBots(room)
     if rs.complete then return botChanged or purged>0 end
+    if rs.gameId=='telephone' and rs.countdownUntilTick then
+        if GetGameTimer()<rs.countdownUntilTick then return false end
+        rs.countdownUntilTick=nil
+        telephoneTurnNotice(room)
+        -- Publish the first actionable turn only once when countdown expires.
+        notifyRoom(room)
+    end
 
     if rs.gameId=='bomb' and tonumber(rs.bombFuseTick) and GetGameTimer()>=tonumber(rs.bombFuseTick) then
         finishBomb(room,'BOMB')
@@ -3654,9 +3998,10 @@ reconcileRound=function(room)
     end
 
     if tonumber(rs.deadlineTick) and GetGameTimer()>=tonumber(rs.deadlineTick) then
-        if rs.gameId=='telephone' then
-            advanceTelephone(room,false)
-            if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+        if rs.gameId=='draw' and rs.drawPhase=='reveal' then
+            startNextDrawTurn(room)
+        elseif rs.gameId=='telephone' then
+            telephoneDeadlineSubmit(room)
         elseif rs.gameId=='gomoku' or rs.gameId=='connect4' then
             finishSimpleBoardForfeit(room,rs.currentIdentifier,'TURN_TIMEOUT')
         elseif rs.gameId=='gomoku' or rs.gameId=='connect4' then
@@ -3684,9 +4029,17 @@ reconcileRound=function(room)
             if rs.phase=='memorize' then openMemoryInput(room)
             elseif rs.phase=='input' then resolveMemoryStage(room,true)
             else abortRound(room,'ROUND_TIMEOUT') end
-        elseif rs.gameId=='fall_battle' then maybeFinishFallBattle(room,true)
+        elseif rs.gameId=='fall_battle' then
+            -- Leave a short network-delivery window AFTER gameplay has frozen at 90s.
+            -- Validate() still caps every human action to the original 90s. This avoids
+            -- scoring an active human as '未送信' solely because the packet arrived late.
+            local graceEnd=tonumber(rs.deadlineTick)+4000
+            if GetGameTimer()<graceEnd and completedSubmissionCount(room)<activeCount(room) then
+                return botChanged or purged>0
+            end
+            maybeFinishFallBattle(room,true)
         else abortRound(room,'ROUND_TIMEOUT') end
-        if not rs.complete and rs.gameId~='telephone' and rs.gameId~='memory_chain' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
+        if not rs.complete and rs.gameId~='telephone' and rs.gameId~='draw' and rs.gameId~='memory_chain' and not (rs.gameId=='fake_answer' and rs.phase=='vote') then abortRound(room,'ROUND_TIMEOUT') end
         return true
     end
 
@@ -3753,7 +4106,7 @@ reconcileRound=function(room)
             if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
         end
     elseif rs.gameId=='fall_battle' then
-        maybeFinishFallBattle(room)
+        if maybeFinishFallBattle(room) then botChanged=true end
     end
 
     return botChanged or purged>0
@@ -3783,8 +4136,9 @@ function FlecityGamesParty.AppClosed(source)
             maybeFinishFallBattle(room)
             changed=true
         elseif rs.gameId=='telephone' and rs.currentIdentifier==id then
-            advanceTelephone(room,false)
-            if not rs.complete then setRoundDeadline(rs,telephoneTurnTimeoutSeconds(rs.mode)) end
+            -- If a player closes the UI mid-turn, finish with the latest stored
+            -- draft instead of discarding the drawing. No new user input is needed.
+            telephoneDeadlineSubmit(room)
             changed=true
         elseif rs.gameId=='bomb' and rs.currentIdentifier==id then
             if not advanceBomb(room) then abortRound(room,'NOT_ENOUGH_PLAYERS') end
@@ -4202,7 +4556,7 @@ function FlecityGamesParty.DebugSelftest()
         fallBattleDisconnectForfeit=fallBattleDisconnectForfeit,
         telephoneAppCloseSkip=appClosedTelephoneRoom.roundState.currentIdentifier=='b'
             and appClosedTelephoneRoom.roundState.step==2
-            and appClosedTelephoneRoom.roundState.deadlineDurationSec==45,
+            and appClosedTelephoneRoom.roundState.deadlineDurationSec==telephoneTurnTimeoutSeconds('draw'),
         bombAppCloseSkip=appClosedBombRoom.roundState.currentIdentifier=='b'
             and appClosedBombRoom.roundState.currentIndex==2,
         ticTacAppCloseForfeit=appClosedTicRoom.roundState.complete==true
@@ -4272,7 +4626,7 @@ function FlecityGamesParty.DebugSelftest()
         telephoneDisconnectSkip=telephoneSkipRoom.roundState.step==3
             and telephoneSkipRoom.roundState.currentIdentifier=='c'
             and telephoneSkipRoom.roundState.mode=='text',
-        telephoneDisconnectFreshDeadline=telephoneSkipRoom.roundState.deadlineDurationSec==30
+        telephoneDisconnectFreshDeadline=telephoneSkipRoom.roundState.deadlineDurationSec==telephoneTurnTimeoutSeconds('text')
             and tonumber(telephoneSkipRoom.roundState.deadlineTick)>GetGameTimer(),
         telephoneContinuesWithTwo=telephoneSkipRoom.roundState.complete~=true
     }

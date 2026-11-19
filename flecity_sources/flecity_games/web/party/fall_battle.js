@@ -84,32 +84,34 @@ function drawBoard(){
  const cells=cachedBattleCells;
  const shape=!game.ended?shapeFor(game.nextPiece,game.rotation):[];
  const ghostY=!game.ended?landingY(shape):null;
- const active=new Set(),ghost=new Set();
+ const active=new Uint8Array(count),ghost=new Uint8Array(count);
  if(!game.ended){
    const yy=Math.max(0,Math.floor(Number(game.y)||0));
    shape.forEach(([dx,dy])=>{
-     const ax=game.x+dx,ay=yy+dy;if(ay>=0&&ay<game.height)active.add(ax+','+ay);
-     if(ghostY!==null){const gy=ghostY+dy;if(gy>=0&&gy<game.height)ghost.add(ax+','+gy);}
+     const ax=game.x+dx,ay=yy+dy;if(ax>=0&&ax<game.width&&ay>=0&&ay<game.height)active[ay*game.width+ax]=1;
+     if(ghostY!==null){const gy=ghostY+dy;if(ax>=0&&ax<game.width&&gy>=0&&gy<game.height)ghost[gy*game.width+ax]=1;}
    });
  }
  for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
-   const s=cells[y*game.width+x],v=Number(game.board[y][x]||0),key=x+','+y;
+   const cellIndex=y*game.width+x,s=cells[cellIndex],v=Number(game.board[y][x]||0);
    let cls='fall-cell';
    if(v)cls+=' filled fall-piece-'+v;
-   else if(active.has(key))cls+=' active fall-piece-'+game.nextPiece;
-   else if(ghost.has(key))cls+=' ghost fall-piece-'+game.nextPiece;
+   else if(active[cellIndex])cls+=' active fall-piece-'+game.nextPiece;
+   else if(ghost[cellIndex])cls+=' ghost fall-piece-'+game.nextPiece;
    if(s.className!==cls)s.className=cls;
  }
  const score=el('fallBattleScore'),meta=el('fallBattleMeta'),hint=el('fallBattleHint');
- if(score)score.textContent=String(game.score)+' pt';
- if(meta)meta.textContent='LINES '+game.lines+' · PIECES '+game.pieces+' · FINISH '+game.finishedCount+'/'+game.expectedCount+' · '+(game.submitted?'送信済み':(game.ended?'GAME OVER':'PLAY'));
+ if(score){const value=String(game.score)+' pt';if(score.textContent!==value)score.textContent=value;}
+ if(meta){const value='LINES '+game.lines+' · PIECES '+game.pieces+' · FINISH '+game.finishedCount+'/'+game.expectedCount+' · '+(game.submitted?'送信済み':(game.ended?'GAME OVER':'PLAY'));if(meta.textContent!==value)meta.textContent=value;}
  if(hint){
    if(game.submitted)hint.textContent='記録送信済み · 他の参加者を待っています。';
+   else if(game.submitError)hint.textContent='記録の送信を再試行しています。対戦画面を閉じずにお待ちください。';
+   else if(game.submitting)hint.textContent='記録を送信中です…';
    else if(game.ended)hint.textContent='GAME OVER · 記録を送信します。';
-   else hint.textContent='全員同じピース列。90秒以内にできるだけ高いスコアを狙ってください。';
+   else if(hint.textContent!=='全員同じピース列。90秒以内にできるだけ高いスコアを狙ってください。')hint.textContent='全員同じピース列。90秒以内にできるだけ高いスコアを狙ってください。';
  }
  const locked=game.submitted||game.ended;
- ['fallBattleLeft','fallBattleRight','fallBattleRotate','fallBattleSoft','fallBattleDrop','fallBattleHold'].forEach(id=>{const b=el(id);if(b)b.disabled=locked;});
+ ['fallBattleLeft','fallBattleRight','fallBattleRotate','fallBattleSoft','fallBattleDrop','fallBattleHold'].forEach(id=>{const b=el(id);if(b&&b.disabled!==locked)b.disabled=locked;});
  const ms=performance.now()-renderStartedAt;perf.renders++;
  perf.renderMeanMs+=(ms-perf.renderMeanMs)/Math.min(perf.renders,200);
  perf.renderMaxMs=Math.max(perf.renderMaxMs,ms);
@@ -183,20 +185,36 @@ function startClocks(){
  deadlineClock=setInterval(()=>{
    if(!game||game.submitted)return;
    if(serverNow()>=game.deadlineTick){
-     stopClocks();
-     if(game.history.length)void submit();
-     else {game.ended=true;drawBoard();}
+     game.ended=true;
+     // Freeze the board at 90 seconds, but keep a short submission retry loop.
+     clearInterval(gravityClock);gravityClock=null;
+     if(!game.submitting && serverNow()>=(game.nextSubmitAt||0))void submit();
+   }else if(game.ended && !game.submitting && serverNow()>=(game.nextSubmitAt||0)){
+     void submit();
    }
  },100);
 }
 async function submit(){
- if(!game||game.submitted||game.submitting||!game.history.length)return;
- game.submitting=true;
+ if(!game||game.submitted||game.submitting)return;
+ const active=game;
+ active.submitting=true;
+ active.nextSubmitAt=serverNow()+1000;
  try{
-   const res=await FlecityBridge.call('partySubmitFallBattle',{token:game.token,history:game.history});
-   if(res.ok){game.submitted=true;stopClocks();drawBoard();}
-   else if(res.error==='ROUND_COMPLETE'||res.error==='ALREADY_SUBMITTED'){game.submitted=true;stopClocks();drawBoard();}
- }finally{if(game)game.submitting=false;}
+   const res=await FlecityBridge.call('partySubmitFallBattle',{
+     token:active.token,history:active.history.map(e=>({...e}))
+   });
+   // Never apply a delayed reply from a previous game to a new round.
+   if(game!==active)return;
+   if(res.ok||res.error==='ALREADY_SUBMITTED'||res.error==='ROUND_COMPLETE'){
+     active.submitted=true;stopClocks();drawBoard();
+   }else{
+     active.submitError=res.error||'SUBMIT_FAILED';
+     active.nextSubmitAt=serverNow()+1000;
+     drawBoard();
+   }
+ }catch(err){
+   if(game===active){active.submitError='NETWORK_ERROR';active.nextSubmitAt=serverNow()+1000;drawBoard();}
+ }finally{active.submitting=false;}
 }
 let keyboardBound=false;
 function bind(){
@@ -248,7 +266,7 @@ function render(room){
  game.expectedCount=Math.max(1,Number(rs.expectedSubmissions)||Number(room.connectedCount)||1);
  if(rs.selfSubmitted===true&&!game.submitted){game.submitted=true;stopClocks();}
  if(rs.complete){game.submitted=true;stopClocks();}
- if(!game.submitted&&!game.ended&&!gravityClock){game.lastGravityAt=performance.now();startClocks();}
+ if(!game.submitted&&!deadlineClock){game.lastGravityAt=performance.now();startClocks();}
  drawBoard();
 }
 function hide(){stopClocks();const panel=el('fallBattlePanel');if(panel)panel.classList.add('hidden');}
@@ -259,6 +277,6 @@ Object.assign(globalThis.PartyFallBattle,{
  snapshot:()=>({game,serverTick:serverNow(),at:Date.now()}),
  pause:stopClocks,
  restore:s=>{stopClocks();game=s?.game||null;serverOffsetMs=(s?.serverTick||0)+(Date.now()-(s?.at||Date.now()))-performance.now();
-  if(game){game.lastGravityAt=performance.now();game.groundedAt=null;if(!game.submitted&&!game.ended)startClocks();drawBoard();}}
+  if(game){game.lastGravityAt=performance.now();game.groundedAt=null;if(!game.submitted)startClocks();drawBoard();}}
 });
 })();
